@@ -1,3 +1,4 @@
+import json
 import os
 import secrets
 import subprocess
@@ -72,6 +73,44 @@ class ProductionSettingsTests(SimpleTestCase):
     def test_production_accepts_a_real_strong_secret(self) -> None:
         result = self.import_production_settings(secrets.token_urlsafe(64))
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_deployment_settings_keep_exact_https_and_readiness_contract(self) -> None:
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",
+                "DJANGO_ALLOWED_HOSTS": "web.dtcdev.click",
+                "DJANGO_CSRF_TRUSTED_ORIGINS": "https://web.dtcdev.click",
+                "DJANGO_SECRET_KEY": secrets.token_urlsafe(64),
+            }
+        )
+        command = (
+            "import importlib, json, sys; "
+            "settings = importlib.import_module(f'website.settings.{sys.argv[1]}'); "
+            "print(json.dumps({"
+            "'ssl_redirect': settings.SECURE_SSL_REDIRECT, "
+            "'proxy_header': settings.SECURE_PROXY_SSL_HEADER, "
+            "'redirect_exempt': settings.SECURE_REDIRECT_EXEMPT"
+            "}))"
+        )
+
+        expected = {
+            "ssl_redirect": True,
+            "proxy_header": ["HTTP_X_FORWARDED_PROTO", "https"],
+            "redirect_exempt": [r"^health/ready$"],
+        }
+        for module in ("development", "production"):
+            with self.subTest(module=module):
+                result = subprocess.run(
+                    [sys.executable, "-c", command, module],
+                    cwd=os.getcwd(),
+                    env=environment,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(json.loads(result.stdout), expected)
 
     def test_committed_example_secret_is_in_the_production_denylist(self) -> None:
         example_line = next(

@@ -3,6 +3,13 @@ from unittest.mock import Mock, patch
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
+ALB_READINESS_SECURITY_SETTINGS = {
+    "ALLOWED_HOSTS": ["web.dtcdev.click"],
+    "SECURE_SSL_REDIRECT": True,
+    "SECURE_PROXY_SSL_HEADER": ("HTTP_X_FORWARDED_PROTO", "https"),
+    "SECURE_REDIRECT_EXEMPT": [r"^health/ready$"],
+}
+
 
 class HealthTests(TestCase):
     @override_settings(
@@ -27,6 +34,65 @@ class HealthTests(TestCase):
         response = self.client.get(reverse("health-ready"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ready")
+
+    @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
+    def test_readiness_accepts_direct_http_alb_probe_with_private_target_host(self) -> None:
+        response = self.client.get(
+            reverse("health-ready"),
+            headers={"host": "10.0.0.10:8000"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["status"], "ready")
+        self.assertNotIn("Location", response.headers)
+
+    @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
+    def test_readiness_alb_probe_preserves_dependency_failure(self) -> None:
+        with patch("core.views.connection.cursor", side_effect=RuntimeError("secret detail")):
+            response = self.client.get(
+                reverse("health-ready"),
+                headers={"host": "10.0.0.10:8000"},
+            )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "not_ready")
+        self.assertEqual(response.json()["checks"]["database"]["message"], "database unavailable")
+        self.assertNotContains(response, "secret detail", status_code=503)
+
+    @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
+    def test_readiness_redirect_exemption_is_exact(self) -> None:
+        for path in ("/", reverse("health-live"), f"{reverse('health-ready')}/"):
+            with self.subTest(path=path):
+                response = self.client.get(
+                    path,
+                    headers={
+                        "host": "web.dtcdev.click",
+                        "x-forwarded-proto": "http",
+                    },
+                )
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], f"https://web.dtcdev.click{path}")
+
+    @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
+    def test_private_target_host_is_not_allowed_outside_exact_readiness_path(self) -> None:
+        for path in ("/", reverse("health-live"), f"{reverse('health-ready')}/"):
+            with self.subTest(path=path):
+                response = self.client.get(path, headers={"host": "10.0.0.10:8000"})
+                self.assertEqual(response.status_code, 400)
+
+    @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
+    def test_public_https_health_and_page_requests_do_not_redirect(self) -> None:
+        for path in ("/", reverse("health-live"), reverse("health-ready")):
+            with self.subTest(path=path):
+                response = self.client.get(
+                    path,
+                    headers={
+                        "host": "web.dtcdev.click",
+                        "x-forwarded-proto": "https",
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertNotIn("Location", response.headers)
 
     def test_readiness_fails_safely_when_database_is_unavailable(self) -> None:
         with patch("core.views.connection.cursor", side_effect=RuntimeError("secret detail")):
