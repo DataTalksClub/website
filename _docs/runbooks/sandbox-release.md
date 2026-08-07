@@ -16,9 +16,12 @@ database migration is forward-only: compensation and rollback never run a revers
 2. Keep Terraform/OIDC administration separate from the application roles. Read back the
    publisher/deployer trust policies and confirm their exact audience and immutable subjects.
    Confirm the GitHub `sandbox` environment permits only the `main` deployment branch.
-3. Copy the non-secret Terraform outputs to GitHub variables using the mapping below. Values scoped
-   to the `sandbox` environment are available only to the deployer job; the region, ECR, and
-   publisher values must be repository variables because the publisher deliberately has no
+3. Configure the non-secret GitHub variables using the exact scope and accepted source below. The
+   release-control repository configuration consists of the five repository rows plus the
+   independent fail-closed `SANDBOX_AUTO_DEPLOY=false` switch. The `sandbox` environment contains
+   the exact 18 environment rows and must not define or shadow
+   `SANDBOX_ROUTE53_HOSTED_ZONE_ID`. Environment values are available only to the deployer job;
+   repository values are available to both probe roles because the publisher deliberately has no
    environment.
 4. Complete the live OIDC probe hold point described below. All allowed sessions, wrong claims,
    metadata reads, and permission denials must pass before continuing.
@@ -28,30 +31,31 @@ database migration is forward-only: compensation and rollback never run a revers
 6. Proceed to release A and later release exercises only after the two required secret versions
    have been verified through metadata without reading their values.
 
-| GitHub variable | Terraform output |
-| --- | --- |
-| `SANDBOX_AWS_REGION` | `aws_region` |
-| `SANDBOX_ECR_REPOSITORY_URI` | `ecr_repository_uri` |
-| `SANDBOX_ECR_REPOSITORY_NAME` | `ecr_repository_name` |
-| `SANDBOX_PUBLISHER_ROLE_ARN` | `github_publisher_role_arn` |
-| `SANDBOX_DEPLOYER_ROLE_ARN` | `github_deployer_role_arn` |
-| `SANDBOX_ECS_CLUSTER_ARN` | `ecs_cluster_arn` |
-| `SANDBOX_WEB_TARGET_GROUP_ARN` | `web_target_group_arn` |
-| `SANDBOX_ECS_WEB_SERVICE_NAME` | `ecs_web_service_name` |
-| `SANDBOX_ECS_WORKER_SERVICE_NAME` | `ecs_worker_service_name` |
-| `SANDBOX_ECS_WEB_TASK_FAMILY` | `ecs_web_task_definition_family` |
-| `SANDBOX_ECS_WORKER_TASK_FAMILY` | `ecs_worker_task_definition_family` |
-| `SANDBOX_ECS_MIGRATION_TASK_FAMILY` | `ecs_migration_task_definition_family` |
-| `SANDBOX_ECS_TASK_ROLE_ARN` | `ecs_task_role_arn` |
-| `SANDBOX_ECS_EXECUTION_ROLE_ARN` | `ecs_task_execution_role_arn` |
-| `SANDBOX_ECS_CONTAINER_NAMES` | compact JSON from `ecs_container_names` |
-| `SANDBOX_ECS_SUBNET_IDS` | compact JSON from `ecs_subnet_ids` |
-| `SANDBOX_ECS_SECURITY_GROUP_IDS` | compact JSON from `ecs_security_group_ids` |
-| `SANDBOX_ECS_ASSIGN_PUBLIC_IP` | `ecs_assign_public_ip` as `true`/`false` |
-| `SANDBOX_WEB_RELEASE_DESIRED_COUNT` | `web_release_desired_count` |
-| `SANDBOX_WORKER_RELEASE_DESIRED_COUNT` | `worker_release_desired_count` |
-| `SANDBOX_RESOURCE_PROJECT_TAG` | `resource_project_tag` |
-| `SANDBOX_RESOURCE_ENVIRONMENT_TAG` | `resource_environment_tag` |
+| GitHub variable | Scope | Accepted source |
+| --- | --- | --- |
+| `SANDBOX_AWS_REGION` | repository | Terraform output `aws_region` |
+| `SANDBOX_ECR_REPOSITORY_URI` | repository | Terraform output `ecr_repository_uri` |
+| `SANDBOX_ECR_REPOSITORY_NAME` | repository | Terraform output `ecr_repository_name` |
+| `SANDBOX_PUBLISHER_ROLE_ARN` | repository | Terraform output `github_publisher_role_arn` |
+| `SANDBOX_ROUTE53_HOSTED_ZONE_ID` | repository, probe-only | reviewed infrastructure input/invariant `Z05963572WVWFHDQZH5NE`; this is not a Terraform output and is never discovered by name |
+| `SANDBOX_DEPLOYER_ROLE_ARN` | `sandbox` environment | Terraform output `github_deployer_role_arn` |
+| `SANDBOX_ECS_CLUSTER_ARN` | `sandbox` environment | Terraform output `ecs_cluster_arn` |
+| `SANDBOX_WEB_TARGET_GROUP_ARN` | `sandbox` environment | Terraform output `web_target_group_arn` |
+| `SANDBOX_ECS_WEB_SERVICE_NAME` | `sandbox` environment | Terraform output `ecs_web_service_name` |
+| `SANDBOX_ECS_WORKER_SERVICE_NAME` | `sandbox` environment | Terraform output `ecs_worker_service_name` |
+| `SANDBOX_ECS_WEB_TASK_FAMILY` | `sandbox` environment | Terraform output `ecs_web_task_definition_family` |
+| `SANDBOX_ECS_WORKER_TASK_FAMILY` | `sandbox` environment | Terraform output `ecs_worker_task_definition_family` |
+| `SANDBOX_ECS_MIGRATION_TASK_FAMILY` | `sandbox` environment | Terraform output `ecs_migration_task_definition_family` |
+| `SANDBOX_ECS_TASK_ROLE_ARN` | `sandbox` environment | Terraform output `ecs_task_role_arn` |
+| `SANDBOX_ECS_EXECUTION_ROLE_ARN` | `sandbox` environment | Terraform output `ecs_task_execution_role_arn` |
+| `SANDBOX_ECS_CONTAINER_NAMES` | `sandbox` environment | compact JSON from Terraform output `ecs_container_names` |
+| `SANDBOX_ECS_SUBNET_IDS` | `sandbox` environment | compact JSON from Terraform output `ecs_subnet_ids` |
+| `SANDBOX_ECS_SECURITY_GROUP_IDS` | `sandbox` environment | compact JSON from Terraform output `ecs_security_group_ids` |
+| `SANDBOX_ECS_ASSIGN_PUBLIC_IP` | `sandbox` environment | Terraform output `ecs_assign_public_ip` as `true`/`false` |
+| `SANDBOX_WEB_RELEASE_DESIRED_COUNT` | `sandbox` environment | Terraform output `web_release_desired_count` |
+| `SANDBOX_WORKER_RELEASE_DESIRED_COUNT` | `sandbox` environment | Terraform output `worker_release_desired_count` |
+| `SANDBOX_RESOURCE_PROJECT_TAG` | `sandbox` environment | Terraform output `resource_project_tag` |
+| `SANDBOX_RESOURCE_ENVIRONMENT_TAG` | `sandbox` environment | Terraform output `resource_environment_tag` |
 
 Do not export secret-container ARNs to the workflow. The normalized builder retains and compares
 the task definitions' secret references without requesting secret values.
@@ -65,6 +69,15 @@ release-record inputs empty. Probe mode
 skips the normal quality/Django/Playwright jobs, the container build, publisher mutation,
 deployment, and release artifacts. Its separate contract job still checks the lockfile,
 deployment source, and focused release/probe tests.
+
+Immediately before dispatch, prove `SANDBOX_AUTO_DEPLOY=false`; exact local, remote, controller,
+and source `main`; the accepted main-only environment policy and exact role trusts/policies; the
+five repository variables and exact 18 unshadowed environment variables above; both ECS services
+at desired/running/pending `0/0/0`; and zero tasks, images, target registrations, and secret
+versions. Capture a canonical, sorted full-record representation of each of the exact six
+website-owned DNS records, including name, type, TTL, and complete alias target or record values,
+and retain its digest as pre-probe evidence. An aggregate hosted-zone count is not a substitute
+for these six canonical full records.
 
 The publisher probe has no GitHub environment and therefore receives the exact main-ref subject.
 The deployer probe uses `environment: sandbox` and therefore receives the exact sandbox subject.
@@ -90,18 +103,30 @@ Allowed calls are metadata-only: caller identity and exact-repository image meta
 publisher; plus exact cluster, service, task-definition, running-task, and target-health metadata
 for the deployer. Safe denial probes cover Terraform-state metadata, IAM, CloudFront, ALB, RDS,
 KMS, ECS deregistration, ECR deletion, and otherwise-allowed actions against cross-repository,
-cross-cluster/service, cross-family, and production-shaped scopes. The secret and Route 53 probes
-use run-scoped or structurally nonexistent resources; they never name the database secret or the
-real hosted zone. Every sentinel is syntactically valid and guaranteed absent for the run. Only
-`AccessDenied` passes. NotFound, a safe not-present response, network failure, or success means the
-permission boundary was not proven and fails loudly without creating or mutating a resource. The
-real target group is used only by the allowed target-health read.
+cross-cluster/service, cross-family, and production-shaped scopes. Secret sentinels remain
+run-scoped and absent. Route 53 is the single narrow real-zone exception: the probe passes the
+exact non-secret `Z05963572WVWFHDQZH5NE` ID without listing or selecting zones, then submits one
+transactional request with exactly two byte-for-byte identical `DELETE` changes for the synthetic
+TXT RRset `oidc-denial-probe-<numeric-run-id>.dtcdev.click.` and value
+`"oidc-denial-probe-<numeric-run-id>"`. This name, type, and value cannot equal the managed web,
+origin, or ACM-validation records. Route 53 validates the whole batch transactionally, documents
+duplicate deletes as `InvalidChangeBatch`, and applies none of it if validation fails. Thus an
+unexpectedly over-permitted application role still cannot mutate DNS. Only an AccessDenied-class
+response passes. `InvalidChangeBatch`, `NoSuchHostedZone`, any other service result, network
+failure, or success means the authorization boundary was not proven and fails loudly. The real
+target group is used only by the allowed target-health read.
 
 Probe logs contain one JSON line per allowed/denied action with the non-secret resource, assumed
 role session ARN, role class, result, and timestamp. They never print an OIDC token, temporary
 credential, secret value, state body, authorization header, or raw AWS exception. A probe creates
 no image, upload, task revision/run, service update, invalidation, secret read/write, release
 record, or artifact.
+
+After every probe result, including a red result, repeat the services/tasks/images/targets/secret
+version inventory and recapture the same exact six DNS records in the same canonical format.
+Require every zero-mutation invariant to remain zero and the six complete DNS records and digest
+to be byte-for-byte unchanged from the pre-probe evidence. Stop at the hold point on any mismatch;
+do not explain it with aggregate record-count drift or continue to secrets or a release.
 
 ## Select and promote a release
 

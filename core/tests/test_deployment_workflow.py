@@ -361,6 +361,46 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn(exact_pattern, validation)
         self.assertNotIn('test -n "$WEB_TARGET_GROUP_ARN"', validation)
 
+    def test_route53_zone_is_exactly_validated_for_both_probe_roles_only(self) -> None:
+        workflow_path = ROOT / ".github/workflows/ci.yml"
+        workflow = workflow_path.read_text()
+        document = yaml.safe_load(workflow)
+        jobs = document["jobs"]
+        variable_expression = "${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}"
+
+        for job_name, role in (
+            ("probe-publisher", "publisher"),
+            ("probe-deployer", "deployer"),
+        ):
+            steps = jobs[job_name]["steps"]
+            validation = next(
+                step for step in steps if step.get("name") == f"Validate exact {role} probe inputs"
+            )
+            credential_index = next(
+                index
+                for index, step in enumerate(steps)
+                if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
+            )
+            self.assertLess(steps.index(validation), credential_index)
+            self.assertEqual(validation["env"]["HOSTED_ZONE_ID"], variable_expression)
+            self.assertIn(
+                'test "$HOSTED_ZONE_ID" = "Z05963572WVWFHDQZH5NE"',
+                validation["run"],
+            )
+
+            probe = next(
+                step
+                for step in steps
+                if f"python -m deploy.oidc_probe {role}" in step.get("run", "")
+            )
+            self.assertEqual(probe["env"]["HOSTED_ZONE_ID"], variable_expression)
+            self.assertIn('--hosted-zone-id "$HOSTED_ZONE_ID"', probe["run"])
+
+        self.assertEqual(workflow.count("vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID"), 4)
+        for job_name, job in jobs.items():
+            if job_name not in {"probe-publisher", "probe-deployer"}:
+                self.assertNotIn("SANDBOX_ROUTE53_HOSTED_ZONE_ID", str(job))
+
     def test_runbook_orders_probe_before_secret_population_and_releases(self) -> None:
         runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
         bootstrap = runbook.split("## One-time bootstrap", maxsplit=1)[1].split(
@@ -368,7 +408,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )[0]
 
         apply_position = bootstrap.index("Apply the reviewed")
-        outputs_position = bootstrap.index("Copy the non-secret Terraform outputs")
+        outputs_position = bootstrap.index("Configure the non-secret GitHub variables")
         trust_position = bootstrap.index("Read back the\n   publisher/deployer trust policies")
         probe_position = bootstrap.index("Complete the live OIDC probe hold point")
         secrets_position = bootstrap.index("Only after the probe is green, populate")
@@ -379,6 +419,25 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertLess(probe_position, secrets_position)
         self.assertLess(secrets_position, release_position)
         self.assertNotIn("Populate the required Secrets Manager values", bootstrap)
+
+    def test_runbook_documents_exact_route53_probe_and_pre_post_evidence(self) -> None:
+        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
+            "## Select and promote a release", maxsplit=1
+        )[0]
+        normalized_probe = " ".join(probe.split())
+
+        self.assertIn("`SANDBOX_ROUTE53_HOSTED_ZONE_ID`", runbook)
+        self.assertIn("`Z05963572WVWFHDQZH5NE`", runbook)
+        self.assertIn("not a Terraform output", runbook)
+        self.assertIn("exactly two byte-for-byte identical `DELETE` changes", normalized_probe)
+        self.assertIn("transactional", normalized_probe)
+        self.assertIn("`InvalidChangeBatch`", normalized_probe)
+        self.assertIn("`NoSuchHostedZone`", normalized_probe)
+        self.assertIn("Only an AccessDenied-class response passes", normalized_probe)
+        self.assertIn("canonical full record", normalized_probe)
+        self.assertIn("exact six", normalized_probe)
+        self.assertIn("byte-for-byte unchanged", normalized_probe)
 
     def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
         runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()

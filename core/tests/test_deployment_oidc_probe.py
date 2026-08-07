@@ -2,16 +2,24 @@ from __future__ import annotations
 
 import io
 import json
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from dataclasses import replace
 from typing import Any
+from unittest.mock import patch
 
 from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 from django.test import SimpleTestCase
 
 from deploy.contracts import ReleaseContractError
 from deploy.oidc_claim_probe import prove_wrong_claim_denied
-from deploy.oidc_probe import OidcProbe, ProbeConfig
+from deploy.oidc_probe import (
+    DENIAL_CODES,
+    ROUTE53_HOSTED_ZONE_ID,
+    OidcProbe,
+    ProbeConfig,
+    build_parser,
+    main,
+)
 
 ACCOUNT_ID = "817685572750"
 REGION = "eu-west-1"
@@ -22,6 +30,7 @@ TARGET_GROUP = (
     "targetgroup/website-sandbox-web/0123456789abcdef"
 )
 FAMILIES = tuple(f"website-sandbox-{name}" for name in ("web", "worker", "migration"))
+DUPLICATE_HOSTED_ZONE_ID = "Z04966063K9K29ZGHVRYN"
 
 
 def access_denied(operation: str) -> ClientError:
@@ -40,16 +49,22 @@ class FakeAwsClient:
         self.service = service
         self.role = role
         self.calls: list[tuple[str, dict[str, Any]]] = []
-        self.error_overrides: dict[str, str] = {}
+        self.error_overrides: dict[str, str | Exception] = {}
+        self.response_overrides: dict[str, Any] = {}
 
     def __getattr__(self, method: str):  # type: ignore[no-untyped-def]
         def call(**kwargs):  # type: ignore[no-untyped-def]
             self.calls.append((method, kwargs))
             if method in self.error_overrides:
-                raise ClientError(
-                    {"Error": {"Code": self.error_overrides[method], "Message": "redacted"}},
-                    method,
-                )
+                error = self.error_overrides[method]
+                if isinstance(error, str):
+                    raise ClientError(
+                        {"Error": {"Code": error, "Message": "redacted"}},
+                        method,
+                    )
+                raise error
+            if method in self.response_overrides:
+                return self.response_overrides[method]
             if self.service == "sts" and method == "get_caller_identity":
                 return {
                     "Account": ACCOUNT_ID,
@@ -121,6 +136,7 @@ def config(role: str) -> ProbeConfig:
         "region": REGION,
         "repository_name": REPOSITORY,
         "probe_id": "12345",
+        "hosted_zone_id": ROUTE53_HOSTED_ZONE_ID,
     }
     if role == "deployer":
         common |= {
@@ -175,9 +191,6 @@ class OidcProbeTests(SimpleTestCase):
         secret_probe = fake_clients["secretsmanager"].calls[0]
         self.assertEqual(secret_probe[1]["SecretId"], "website-sandbox/probe-denied-12345")
         self.assertNotIn("VersionStage", secret_probe[1])
-        route_probe = fake_clients["route53"].calls[0]
-        self.assertEqual(route_probe[1]["HostedZoneId"], "Z00000000000000000000")
-        self.assertEqual(route_probe[1]["ChangeBatch"]["Changes"][0]["Action"], "DELETE")
         cloudfront_probe = fake_clients["cloudfront"].calls[0]
         self.assertEqual(cloudfront_probe[1]["DistributionId"], "E0000000000000")
         self.assertEqual(
@@ -201,6 +214,117 @@ class OidcProbeTests(SimpleTestCase):
         )
         ecs_probe = fake_clients["ecs"].calls[0]
         self.assertEqual(ecs_probe[1]["taskDefinition"], "website-sandbox-web:999999999")
+
+    def test_route53_request_is_one_exact_duplicate_delete_batch_without_managed_records(
+        self,
+    ) -> None:
+        records, fake_clients = self.run_probe("publisher")
+
+        self.assertEqual(len(fake_clients["route53"].calls), 1)
+        method, arguments = fake_clients["route53"].calls[0]
+        self.assertEqual(method, "change_resource_record_sets")
+        self.assertEqual(arguments["HostedZoneId"], ROUTE53_HOSTED_ZONE_ID)
+        self.assertEqual(arguments["ChangeBatch"]["Comment"], "OIDC denial probe")
+        changes = arguments["ChangeBatch"]["Changes"]
+        self.assertEqual(len(changes), 2)
+        self.assertEqual(changes[0], changes[1])
+        self.assertEqual(
+            json.dumps(changes[0], sort_keys=True).encode(),
+            json.dumps(changes[1], sort_keys=True).encode(),
+        )
+        self.assertEqual(
+            changes[0],
+            {
+                "Action": "DELETE",
+                "ResourceRecordSet": {
+                    "Name": "oidc-denial-probe-12345.dtcdev.click.",
+                    "Type": "TXT",
+                    "TTL": 60,
+                    "ResourceRecords": [{"Value": '"oidc-denial-probe-12345"'}],
+                },
+            },
+        )
+        serialized_request = json.dumps(arguments, sort_keys=True)
+        for managed_dns_identifier in (
+            "web.dtcdev.click",
+            "origin.web.dtcdev.click",
+            "acm-validations.aws",
+        ):
+            self.assertNotIn(managed_dns_identifier, serialized_request)
+        route_record = next(
+            record for record in records if record["action"] == "route53:ChangeResourceRecordSets"
+        )
+        self.assertEqual(route_record["resource"], ROUTE53_HOSTED_ZONE_ID)
+        self.assertNotIn("oidc-denial-probe-12345", json.dumps(records))
+
+    def test_route53_access_denial_codes_pass(self) -> None:
+        for code in sorted(DENIAL_CODES):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["route53"].error_overrides["change_resource_record_sets"] = code
+                output = io.StringIO()
+
+                with redirect_stdout(output):
+                    OidcProbe(config("publisher"), fake_clients).run()
+
+                route_records = [
+                    json.loads(line)
+                    for line in output.getvalue().splitlines()
+                    if '"action": "route53:ChangeResourceRecordSets"' in line
+                ]
+                self.assertEqual(len(route_records), 1)
+                self.assertEqual(route_records[0]["result"], "denied")
+                self.assertEqual(len(fake_clients["route53"].calls), 1)
+
+    def test_route53_non_authorization_results_fail_closed(self) -> None:
+        for code in ("InvalidChangeBatch", "NoSuchHostedZone", "InternalError"):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["route53"].error_overrides["change_resource_record_sets"] = code
+                output = io.StringIO()
+                with (
+                    self.assertRaisesMessage(
+                        ReleaseContractError,
+                        "permission denial was not proven for "
+                        f"route53:ChangeResourceRecordSets ({code})",
+                    ),
+                    redirect_stdout(output),
+                ):
+                    OidcProbe(config("publisher"), fake_clients).run()
+                self.assertEqual(len(fake_clients["route53"].calls), 1)
+                self.assertNotIn("redacted", output.getvalue())
+
+    def test_route53_network_failure_and_success_fail_closed(self) -> None:
+        network_failure_clients = clients("publisher")
+        network_failure_clients["route53"].error_overrides["change_resource_record_sets"] = (
+            TimeoutError("must not be logged")
+        )
+        network_output = io.StringIO()
+        with (
+            self.assertRaisesMessage(
+                ReleaseContractError,
+                "permission denial probe failed for "
+                "route53:ChangeResourceRecordSets (TimeoutError)",
+            ),
+            redirect_stdout(network_output),
+        ):
+            OidcProbe(config("publisher"), network_failure_clients).run()
+        self.assertEqual(len(network_failure_clients["route53"].calls), 1)
+        self.assertNotIn("must not be logged", network_output.getvalue())
+
+        success_clients = clients("publisher")
+        success_clients["route53"].response_overrides["change_resource_record_sets"] = {
+            "ChangeInfo": {"Id": "must-not-be-accepted"}
+        }
+        with (
+            self.assertRaisesMessage(
+                ReleaseContractError,
+                "unsafe permission unexpectedly allowed: route53:ChangeResourceRecordSets",
+            ),
+            redirect_stdout(io.StringIO()),
+        ):
+            OidcProbe(config("publisher"), success_clients).run()
+        self.assertEqual(len(success_clients["route53"].calls), 1)
 
     def test_deployer_probe_reads_only_exact_runtime_metadata(self) -> None:
         records, fake_clients = self.run_probe("deployer")
@@ -264,7 +388,81 @@ class OidcProbeTests(SimpleTestCase):
                 region=REGION,
                 repository_name=REPOSITORY,
                 probe_id="12345",
+                hosted_zone_id=ROUTE53_HOSTED_ZONE_ID,
             )
+
+    def test_probe_requires_the_exact_delegated_hosted_zone(self) -> None:
+        invalid_zone_ids = (
+            "",
+            "Z00000000000000000000",
+            DUPLICATE_HOSTED_ZONE_ID,
+            ROUTE53_HOSTED_ZONE_ID.lower(),
+            f"{ROUTE53_HOSTED_ZONE_ID} ",
+        )
+        for hosted_zone_id in invalid_zone_ids:
+            with (
+                self.subTest(hosted_zone_id=hosted_zone_id),
+                self.assertRaisesMessage(
+                    ReleaseContractError,
+                    "OIDC probe hosted-zone ID is not the exact sandbox zone",
+                ),
+            ):
+                replace(config("publisher"), hosted_zone_id=hosted_zone_id)
+
+    def test_cli_requires_one_hosted_zone_value_and_rejects_repetition(self) -> None:
+        common_arguments = [
+            "publisher",
+            "--account-id",
+            ACCOUNT_ID,
+            "--region",
+            REGION,
+            "--repository-name",
+            REPOSITORY,
+            "--probe-id",
+            "12345",
+        ]
+        for hosted_zone_arguments in (
+            [],
+            [
+                "--hosted-zone-id",
+                ROUTE53_HOSTED_ZONE_ID,
+                "--hosted-zone-id",
+                ROUTE53_HOSTED_ZONE_ID,
+            ],
+        ):
+            with (
+                self.subTest(hosted_zone_arguments=hosted_zone_arguments),
+                redirect_stderr(io.StringIO()),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                build_parser().parse_args(common_arguments + hosted_zone_arguments)
+            self.assertEqual(raised.exception.code, 2)
+
+    def test_invalid_cli_zone_fails_before_any_aws_client_is_created(self) -> None:
+        arguments = [
+            "oidc_probe.py",
+            "publisher",
+            "--account-id",
+            ACCOUNT_ID,
+            "--region",
+            REGION,
+            "--repository-name",
+            REPOSITORY,
+            "--probe-id",
+            "12345",
+            "--hosted-zone-id",
+            DUPLICATE_HOSTED_ZONE_ID,
+        ]
+        with (
+            patch("sys.argv", arguments),
+            patch("deploy.oidc_probe.boto3.client") as client_factory,
+            redirect_stderr(io.StringIO()),
+            self.assertRaises(SystemExit) as raised,
+        ):
+            main()
+
+        self.assertEqual(raised.exception.code, 1)
+        client_factory.assert_not_called()
 
     def test_deployer_rejects_stale_or_unrelated_target_group_arns(self) -> None:
         invalid_arns = (
