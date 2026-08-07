@@ -17,6 +17,7 @@ from deploy.contracts import ReleaseContractError
 DENIAL_CODES = {"403", "AccessDenied", "AccessDeniedException", "UnauthorizedOperation"}
 STATE_KEY = "sandbox/website/terraform.tfstate"
 DATABASE_IDENTIFIER = "website-sandbox"
+ROUTE53_HOSTED_ZONE_ID = "Z05963572WVWFHDQZH5NE"
 ROLE_NAMES = {
     "publisher": "website-sandbox-github-publisher",
     "deployer": "website-sandbox-github-deployer",
@@ -34,6 +35,7 @@ class ProbeConfig:
     region: str
     repository_name: str
     probe_id: str
+    hosted_zone_id: str
     cluster_arn: str | None = None
     web_target_group_arn: str | None = None
     web_service_name: str | None = None
@@ -49,6 +51,8 @@ class ProbeConfig:
             raise ReleaseContractError("OIDC probe region is invalid")
         if not self.repository_name or not re.fullmatch(r"[0-9]{1,12}", self.probe_id):
             raise ReleaseContractError("OIDC probe identifiers are invalid")
+        if self.hosted_zone_id != ROUTE53_HOSTED_ZONE_ID:
+            raise ReleaseContractError("OIDC probe hosted-zone ID is not the exact sandbox zone")
         if self.role == "deployer" and (
             not self.cluster_arn
             or not self.web_target_group_arn
@@ -201,7 +205,6 @@ class OidcProbe:
         )
 
     def _denied_boundaries(self) -> None:
-        unique_name = f"probe-denied-{self.config.probe_id}.web.dtcdev.click"
         foreign_repository = f"website-sandbox-foreign-probe-{self.config.probe_id}"
         production_repository = f"website-production-probe-{self.config.probe_id}"
         for repository in (foreign_repository, production_repository):
@@ -230,25 +233,25 @@ class OidcProbe:
                 Description="OIDC denial probe",
             ),
         )
-        nonexistent_hosted_zone = "Z00000000000000000000"
+        synthetic_dns_name = f"oidc-denial-probe-{self.config.probe_id}.dtcdev.click."
+        synthetic_dns_value = f'"oidc-denial-probe-{self.config.probe_id}"'
+        duplicate_delete = {
+            "Action": "DELETE",
+            "ResourceRecordSet": {
+                "Name": synthetic_dns_name,
+                "Type": "TXT",
+                "TTL": 60,
+                "ResourceRecords": [{"Value": synthetic_dns_value}],
+            },
+        }
         self._deny(
             "route53:ChangeResourceRecordSets",
-            nonexistent_hosted_zone,
+            self.config.hosted_zone_id,
             lambda: self._client("route53").change_resource_record_sets(
-                HostedZoneId=nonexistent_hosted_zone,
+                HostedZoneId=self.config.hosted_zone_id,
                 ChangeBatch={
                     "Comment": "OIDC denial probe",
-                    "Changes": [
-                        {
-                            "Action": "DELETE",
-                            "ResourceRecordSet": {
-                                "Name": unique_name,
-                                "Type": "TXT",
-                                "TTL": 60,
-                                "ResourceRecords": [{"Value": '"not-present"'}],
-                            },
-                        }
-                    ],
+                    "Changes": [duplicate_delete, duplicate_delete],
                 },
             ),
         )
@@ -406,6 +409,19 @@ class OidcProbe:
         self._denied_boundaries()
 
 
+class _StoreOnceAction(argparse.Action):
+    def __call__(
+        self,
+        parser: argparse.ArgumentParser,
+        namespace: argparse.Namespace,
+        values: Any,
+        option_string: str | None = None,
+    ) -> None:
+        if getattr(namespace, self.dest, None) is not None:
+            parser.error(f"{option_string} may be specified only once")
+        setattr(namespace, self.dest, values)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run the non-mutating sandbox OIDC probe")
     parser.add_argument("role", choices=sorted(ROLE_NAMES))
@@ -413,6 +429,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--region", required=True)
     parser.add_argument("--repository-name", required=True)
     parser.add_argument("--probe-id", required=True)
+    parser.add_argument("--hosted-zone-id", required=True, action=_StoreOnceAction)
     parser.add_argument("--cluster-arn")
     parser.add_argument("--web-target-group-arn")
     parser.add_argument("--web-service-name")
@@ -430,6 +447,7 @@ def main() -> None:
             region=arguments.region,
             repository_name=arguments.repository_name,
             probe_id=arguments.probe_id,
+            hosted_zone_id=arguments.hosted_zone_id,
             cluster_arn=arguments.cluster_arn,
             web_target_group_arn=arguments.web_target_group_arn,
             web_service_name=arguments.web_service_name,
