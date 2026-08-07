@@ -1,0 +1,168 @@
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+from deploy.aws_gateway import AwsReleaseConfig, AwsReleaseGateway
+from deploy.contracts import ReleaseContractError, ReleaseIdentity, ReleaseRecord
+from deploy.release import PromotionConfig, promote, rollback
+from deploy.task_definitions import TaskDefinitionConfig
+
+
+def _boolean(value: str) -> bool:
+    normalized = value.lower()
+    if normalized not in {"true", "false"}:
+        raise argparse.ArgumentTypeError("must be true or false")
+    return normalized == "true"
+
+
+def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--region", required=True)
+    parser.add_argument("--cluster-arn", required=True)
+    parser.add_argument("--web-target-group-arn", required=True)
+    parser.add_argument("--web-service-name", required=True)
+    parser.add_argument("--worker-service-name", required=True)
+    parser.add_argument("--web-family", required=True)
+    parser.add_argument("--worker-family", required=True)
+    parser.add_argument("--migration-family", required=True)
+    parser.add_argument("--web-container-name", required=True)
+    parser.add_argument("--worker-container-name", required=True)
+    parser.add_argument("--migration-container-name", required=True)
+    parser.add_argument("--task-role-arn", required=True)
+    parser.add_argument("--execution-role-arn", required=True)
+    parser.add_argument("--subnet-id", action="append", required=True)
+    parser.add_argument("--security-group-id", action="append", required=True)
+    parser.add_argument("--assign-public-ip", type=_boolean, required=True)
+    parser.add_argument("--base-url", default="https://web.dtcdev.click")
+    parser.add_argument("--screenshot-directory", type=Path, default=Path(".tmp/deployed-smoke"))
+    parser.add_argument("--timeout-seconds", type=int, default=900)
+    parser.add_argument("--poll-seconds", type=int, default=10)
+
+
+def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
+    if arguments.timeout_seconds < 1 or arguments.poll_seconds < 1:
+        raise ReleaseContractError("timeouts must be positive")
+    return AwsReleaseGateway(
+        AwsReleaseConfig(
+            region=arguments.region,
+            cluster_arn=arguments.cluster_arn,
+            web_target_group_arn=arguments.web_target_group_arn,
+            service_names={
+                "web": arguments.web_service_name,
+                "worker": arguments.worker_service_name,
+            },
+            task_families={
+                "web": arguments.web_family,
+                "worker": arguments.worker_family,
+                "migration": arguments.migration_family,
+            },
+            container_names={
+                "web": arguments.web_container_name,
+                "worker": arguments.worker_container_name,
+                "migration": arguments.migration_container_name,
+            },
+            task_role_arn=arguments.task_role_arn,
+            execution_role_arn=arguments.execution_role_arn,
+            subnet_ids=arguments.subnet_id,
+            security_group_ids=arguments.security_group_id,
+            assign_public_ip=arguments.assign_public_ip,
+            base_url=arguments.base_url,
+            screenshot_directory=arguments.screenshot_directory,
+            timeout_seconds=arguments.timeout_seconds,
+            poll_seconds=arguments.poll_seconds,
+        )
+    )
+
+
+def _promote(arguments: argparse.Namespace) -> ReleaseRecord:
+    identity = ReleaseIdentity(
+        source_sha=arguments.source_sha,
+        image_digest=arguments.image_digest,
+        repository_uri=arguments.repository_uri,
+    )
+    task_config = TaskDefinitionConfig(
+        families={
+            "web": arguments.web_family,
+            "worker": arguments.worker_family,
+            "migration": arguments.migration_family,
+        },
+        container_names={
+            "web": arguments.web_container_name,
+            "worker": arguments.worker_container_name,
+            "migration": arguments.migration_container_name,
+        },
+        task_role_arn=arguments.task_role_arn,
+        execution_role_arn=arguments.execution_role_arn,
+    )
+    expected = (
+        ReleaseRecord.read(arguments.prior_release_record)
+        if arguments.prior_release_record
+        else None
+    )
+    return promote(
+        _gateway(arguments),
+        PromotionConfig(
+            identity=identity,
+            task_definitions=task_config,
+            web_desired_count=arguments.web_desired_count,
+            worker_desired_count=arguments.worker_desired_count,
+            project_tag=arguments.project_tag,
+            environment_tag=arguments.environment_tag,
+            release_record_path=arguments.release_record_path,
+            expected_prior_release=expected,
+        ),
+    )
+
+
+def _rollback(arguments: argparse.Namespace) -> ReleaseRecord:
+    return rollback(
+        _gateway(arguments),
+        ReleaseRecord.read(arguments.target_release_record),
+        ReleaseRecord.read(arguments.current_release_record),
+        arguments.repository_uri,
+        arguments.release_record_path,
+    )
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Promote or roll back an immutable ECS release")
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    promote_parser = subparsers.add_parser("promote")
+    _add_runtime_arguments(promote_parser)
+    promote_parser.add_argument("--source-sha", required=True)
+    promote_parser.add_argument("--image-digest", required=True)
+    promote_parser.add_argument("--repository-uri", required=True)
+    promote_parser.add_argument("--web-desired-count", type=int, required=True)
+    promote_parser.add_argument("--worker-desired-count", type=int, required=True)
+    promote_parser.add_argument("--project-tag", required=True)
+    promote_parser.add_argument("--environment-tag", required=True)
+    promote_parser.add_argument("--prior-release-record", type=Path)
+    promote_parser.add_argument("--release-record-path", type=Path, required=True)
+    promote_parser.set_defaults(handler=_promote)
+
+    rollback_parser = subparsers.add_parser("rollback")
+    _add_runtime_arguments(rollback_parser)
+    rollback_parser.add_argument("--repository-uri", required=True)
+    rollback_parser.add_argument("--target-release-record", type=Path, required=True)
+    rollback_parser.add_argument("--current-release-record", type=Path, required=True)
+    rollback_parser.add_argument("--release-record-path", type=Path, required=True)
+    rollback_parser.set_defaults(handler=_rollback)
+    return parser
+
+
+def main() -> None:
+    parser = build_parser()
+    arguments = parser.parse_args()
+    try:
+        record = arguments.handler(arguments)
+    except ReleaseContractError as error:
+        parser.exit(1, f"release failed safely: {error}\n")
+    except Exception as error:
+        parser.exit(1, f"release failed safely: AWS operation failed ({type(error).__name__})\n")
+    print(json.dumps({"status": "successful", "release": record.source_sha}, sort_keys=True))
+
+
+if __name__ == "__main__":
+    main()
