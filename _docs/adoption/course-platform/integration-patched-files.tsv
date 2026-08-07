@@ -1,0 +1,2 @@
+destination_path	size_bytes	sha256	rationale
+course_platform_templates/base.html	11025	3e95405d8b1c242ae045ce194f78c32f52286d8259a50482df2ffba326d8aadd	Add the unified site's required canonical URL without altering CMP business behavior.

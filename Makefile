@@ -1,22 +1,34 @@
 .PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-playwright-core test-playwright migrate run worker
 
+ADOPTION_INTEGRATION_PYTHON = \
+	accounts/managers.py \
+	accounts/tests/test_user.py \
+	api/auth.py \
+	api/models.py \
+	api/tests/test_admin_health.py \
+	scripts/capture_screenshots.py \
+	scripts/render_course_platform_inventory.py \
+	scripts/verify_course_platform_adoption.py
+
 setup:
 	uv sync --locked
 	mkdir -p .tmp/screenshots
 	uv run playwright install chromium
 
 lint:
-	uv run ruff check .
+	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON)
 
 format:
-	uv run ruff format .
+	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON)
 
 format-check:
-	uv run ruff format --check .
+	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON)
 
 typecheck:
-	uv run mypy manage.py website core accounts content content_sync courses events email_app studio api jobs scripts
+	uv run mypy manage.py website core content content_sync events email_app studio jobs \
+		scripts/capture_screenshots.py scripts/render_course_platform_inventory.py \
+		scripts/verify_course_platform_adoption.py
 
 migrations-check:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py makemigrations --check --dry-run

@@ -20,6 +20,7 @@ else:
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 NOINDEX = True
+OBSERVABILITY_EVENT_BACKENDS = ["noop"]
 Q_CLUSTER = {**Q_CLUSTER, "sync": True}  # noqa: F405
 MIDDLEWARE = [
     middleware

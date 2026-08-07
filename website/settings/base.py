@@ -6,6 +6,8 @@ import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
+from course_management import settings as course_platform_settings
+
 BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 
@@ -68,12 +70,15 @@ ENVIRONMENT = os.getenv("DTC_ENVIRONMENT", "local")
 CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://datatalks.club").rstrip("/")
 
 INSTALLED_APPS = [
+    "unfold",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    "loginas",
     "django_q",
     "core.apps.CoreConfig",
     "accounts.apps.AccountsConfig",
@@ -85,9 +90,19 @@ INSTALLED_APPS = [
     "studio.apps.StudioConfig",
     "api.apps.ApiConfig",
     "jobs.apps.JobsConfig",
+    "data.apps.DataConfig",
+    "cadmin.apps.CadminConfig",
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.github",
+    "allauth.socialaccount.providers.slack",
 ]
 
 MIDDLEWARE = [
+    "course_management.middleware.HealthCheckMiddleware",
+    "course_management.middleware.ObservabilityExceptionMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "core.middleware.RequestIdMiddleware",
@@ -97,6 +112,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "core.middleware.PrivateSurfaceMiddleware",
     "core.middleware.NoIndexMiddleware",
 ]
@@ -105,13 +121,14 @@ ROOT_URLCONF = "website.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [BASE_DIR / "templates"],
+        "DIRS": [BASE_DIR / "course_platform_templates", BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "course_management.context_processors.export_settings",
                 "core.context_processors.site_context",
             ]
         },
@@ -120,11 +137,33 @@ TEMPLATES = [
 WSGI_APPLICATION = "website.wsgi.application"
 ASGI_APPLICATION = "website.asgi.application"
 
-AUTH_USER_MODEL = "accounts.User"
-AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
-LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "studio:home"
+AUTH_USER_MODEL = "accounts.CustomUser"
+AUTHENTICATION_BACKENDS = ["allauth.account.auth_backends.AuthenticationBackend"]
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "home"
+
+SITE_ID = 2
+ACCOUNT_EMAIL_VERIFICATION = "none"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_USER_MODEL_EMAIL_FIELD = "email"
+ACCOUNT_ALLOW_REGISTRATION = False
+SOCIALACCOUNT_ADAPTER = "accounts.auth.ConsolidatingSocialAccountAdapter"
+SOCIALACCOUNT_LOGIN_ON_GET = True
+SOCIALACCOUNT_PROVIDERS = {
+    "github": {"SCOPE": ["user:email"], "VERIFIED_EMAIL": True},
+}
+CAN_LOGIN_AS = course_platform_settings.can_login_as
+
+UNFOLD = {
+    "SITE_HEADER": "Course Management",
+    "SITE_TITLE": "Course Management",
+    "SITE_SYMBOL": "school",
+}
+SHOW_WRAPPED = False
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -142,6 +181,38 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "DataTalks.Club <noreply@datatalks.club>"
 
+VERSION = APP_VERSION
+PUBLIC_BASE_URL = CANONICAL_ORIGIN
+OBSERVABILITY_ENVIRONMENT = ENVIRONMENT
+OBSERVABILITY_EVENT_SCHEMA_VERSION = os.getenv("OBSERVABILITY_EVENT_SCHEMA_VERSION", "1")
+OBSERVABILITY_EVENT_BACKENDS = ["log"]
+CLOUDWATCH_APP_METRIC_NAMESPACE = os.getenv(
+    "CLOUDWATCH_APP_METRIC_NAMESPACE", "CourseManagement/App"
+)
+CLOUDWATCH_APP_METRIC_REGION = os.getenv(
+    "CLOUDWATCH_APP_METRIC_REGION", os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", ""))
+)
+
+DATAMAILER_URL = os.getenv("DATAMAILER_URL", "")
+DATAMAILER_API_KEY = os.getenv("DATAMAILER_API_KEY", "")
+DATAMAILER_CLIENT = os.getenv("DATAMAILER_CLIENT", "")
+DATAMAILER_AUDIENCE = os.getenv("DATAMAILER_AUDIENCE", "")
+DATAMAILER_FROM_EMAIL = os.getenv("DATAMAILER_FROM_EMAIL", "")
+DATAMAILER_STRICT = env_flag("DATAMAILER_STRICT")
+DATAMAILER_TIMEOUT_SECONDS = float(os.getenv("DATAMAILER_TIMEOUT_SECONDS", "60"))
+DATAMAILER_TRANSACTIONAL_DRY_RUN = env_flag("DATAMAILER_TRANSACTIONAL_DRY_RUN")
+DATAMAILER_WEBHOOK_TOKEN = os.getenv("DATAMAILER_WEBHOOK_TOKEN", "")
+DATAMAILER_IMPORT_S3_BUCKET = os.getenv("DATAMAILER_IMPORT_S3_BUCKET", "")
+DATAMAILER_IMPORT_S3_PREFIX = os.getenv("DATAMAILER_IMPORT_S3_PREFIX", "datamailer-imports").strip(
+    "/"
+)
+DATAMAILER_IMPORT_URL_EXPIRES_SECONDS = int(
+    os.getenv("DATAMAILER_IMPORT_URL_EXPIRES_SECONDS", "3600")
+)
+DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
+DATAMAILER_SYNC_ON_USER_CREATE = env_flag("DATAMAILER_SYNC_ON_USER_CREATE", True)
+DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = env_flag("DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY")
+
 Q_CLUSTER = {
     "name": "dtc-website",
     "workers": 2,
@@ -158,5 +229,8 @@ REQUIRED_BOOTSTRAP_SETTINGS = ("SECRET_KEY", "ALLOWED_HOSTS", "DATABASES")
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_HTTPONLY = True
-CSRF_COOKIE_HTTPONLY = True
+# CMP's preserved loginas/browser flows read Django's CSRF cookie and submit it
+# through the standard X-CSRFToken header.
+CSRF_COOKIE_HTTPONLY = False

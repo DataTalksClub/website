@@ -20,7 +20,9 @@ class StudioAccessTests(TestCase):
         self.assertIn("no-store", login_response.headers["Cache-Control"])
 
     def test_non_staff_user_is_denied(self) -> None:
-        user = get_user_model().objects.create_user("learner@example.com", "test-password")
+        user = get_user_model().objects.create_user(
+            username="learner", email="learner@example.com", password="test-password"
+        )
         self.client.force_login(user)
         response = self.client.get(reverse("studio:home"))
         self.assertEqual(response.status_code, 403)
@@ -28,7 +30,10 @@ class StudioAccessTests(TestCase):
 
     def test_staff_user_sees_studio_shell_with_private_headers(self) -> None:
         user = get_user_model().objects.create_user(
-            "staff@example.com", "test-password", is_staff=True
+            username="staff",
+            email="staff@example.com",
+            password="test-password",
+            is_staff=True,
         )
         self.client.force_login(user)
         response = self.client.get(reverse("studio:home"))

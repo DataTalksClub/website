@@ -13,7 +13,9 @@ class AdminHealthTests(TestCase):
         self.assertIn("no-store", response.headers["Cache-Control"])
 
     def test_non_staff_request_is_forbidden(self) -> None:
-        user = get_user_model().objects.create_user("learner@example.com", "test-password")
+        user = get_user_model().objects.create_user(
+            username="learner", email="learner@example.com", password="test-password"
+        )
         self.client.force_login(user)
         response = self.client.get(reverse("api:admin-health"))
         self.assertEqual(response.status_code, 403)
@@ -21,7 +23,10 @@ class AdminHealthTests(TestCase):
 
     def test_staff_request_returns_versioned_health(self) -> None:
         user = get_user_model().objects.create_user(
-            "staff@example.com", "test-password", is_staff=True
+            username="staff",
+            email="staff@example.com",
+            password="test-password",
+            is_staff=True,
         )
         self.client.force_login(user)
         response = self.client.get(reverse("api:admin-health"))

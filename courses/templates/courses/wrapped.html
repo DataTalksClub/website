@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  DataTalks.Club Wrapped {{ year }}
+{% endblock %}
+
+{% block breadcrumbs %}
+  <li>
+    <a href="{% url 'wrapped' year %}">{{ year }} Wrapped</a>
+  </li>
+{% endblock %}
+
+{% block content %}
+  {% if no_data %}
+    <section class="wrapped-hero">
+      <h1 class="text-2xl font-semibold app-heading md:text-3xl">DataTalks.Club Wrapped {{ year }}</h1>
+      <p class="mt-1 text-sm app-muted">Your year of learning in review.</p>
+    </section>
+
+    <section class="mt-6 rounded-md border app-alert-info p-4">
+      <h2 class="text-base font-semibold app-heading">Wrapped data is not available yet</h2>
+      <p class="mt-1 text-sm">
+        The {{ year }} Wrapped statistics are being calculated. Check back soon to see your year in review.
+      </p>
+    </section>
+
+    <section class="mt-6 border-t app-border pt-6">
+      <h2 class="text-lg font-semibold app-heading">Keep learning</h2>
+      <p class="mt-1 text-sm app-muted">Join us for more courses and challenges.</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary w-fit">Explore courses</a>
+      </div>
+    </section>
+  {% else %}
+    <section class="wrapped-hero">
+      <h1 class="text-2xl font-semibold app-heading md:text-3xl">DataTalks.Club Wrapped {{ year }}</h1>
+      <p class="mt-1 text-sm app-muted">Your year of learning in review.</p>
+    </section>
+
+    {% if user_stats %}
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold app-heading">Your {{ year }} highlights</h2>
+        <p class="mt-1 text-sm app-muted">Everything you earned across the platform this year.</p>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a href="{% url 'user_wrapped' year request.user.id %}" class="primer-button primer-button-secondary w-fit">
+            View your shareable Wrapped page
+          </a>
+        </div>
+
+        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="wrapped-stat">
+            <p class="wrapped-stat-label">Total points earned</p>
+            <p class="wrapped-stat-number">{{ user_stats.total_points }}</p>
+          </div>
+          <div class="wrapped-stat">
+            <p class="wrapped-stat-label">Hours of learning</p>
+            <p class="wrapped-stat-number">{{ user_stats.total_hours }}</p>
+          </div>
+          <div class="wrapped-stat">
+            <p class="wrapped-stat-label">Courses enrolled</p>
+            <p class="wrapped-stat-number">{{ user_stats.courses_enrolled|length }}</p>
+          </div>
+          <div class="wrapped-stat">
+            <p class="wrapped-stat-label">Certificates earned</p>
+            <p class="wrapped-stat-number">{{ user_stats.certificates_earned }}</p>
+          </div>
+          {% if user_rank %}
+            <div class="wrapped-stat">
+              <p class="wrapped-stat-label">Your global rank</p>
+              <p class="wrapped-stat-number">#{{ user_rank }}</p>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if user_stats.courses_enrolled %}
+        <section class="mt-8">
+          <h2 class="text-lg font-semibold app-heading">Your courses</h2>
+          <div class="mt-3 overflow-hidden rounded-md border app-border app-surface">
+            <div class="divide-y app-divide">
+              {% for course in user_stats.courses_enrolled %}
+                <a href="{% url 'leaderboard_score_breakdown' course.slug course.enrollment_id %}"
+                   class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 no-underline app-hover-muted">
+                  <span class="min-w-0 font-medium app-link">{{ course.title }}</span>
+                  <span class="text-sm app-muted">{{ course.score }} points</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+    {% endif %}
+
+    <section class="mt-8">
+      <h2 class="text-lg font-semibold app-heading">Community highlights {{ year }}</h2>
+      <p class="mt-1 text-sm app-muted">What the whole community achieved together.</p>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Total participants</p>
+          <p class="wrapped-stat-number">{{ platform_stats.total_enrollments|default:"0" }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Total hours learning</p>
+          <p class="wrapped-stat-number">{{ platform_stats.total_hours|default:"0" }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Certificates awarded</p>
+          <p class="wrapped-stat-number">{{ platform_stats.total_certificates|default:"0" }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Total points earned</p>
+          <p class="wrapped-stat-number">{{ platform_stats.total_points|default:"0" }}</p>
+        </div>
+      </div>
+    </section>
+
+    {% if platform_stats.course_stats %}
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold app-heading">Most popular courses in {{ year }}</h2>
+        <div class="mt-3 overflow-hidden rounded-md border app-border app-surface">
+          <div class="divide-y app-divide">
+            {% for course_stat in platform_stats.course_stats %}
+              <a href="{% url 'course' course_stat.slug %}"
+                 class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 no-underline app-hover-muted">
+                <span class="min-w-0 font-medium app-link">{{ course_stat.title }}</span>
+                <span class="text-sm app-muted">{{ course_stat.enrollment_count }} participants</span>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="mt-8">
+      <h2 class="text-lg font-semibold app-heading">Top {{ year }} leaderboard</h2>
+      <div class="mt-3 overflow-hidden rounded-md border app-border app-surface">
+        <div class="grid grid-cols-[44px_minmax(0,1fr)_72px] border-b app-border app-surface-muted px-4 py-2 text-xs font-semibold uppercase app-muted md:grid-cols-[56px_minmax(0,1fr)_96px]">
+          <div>Rank</div>
+          <div>Name</div>
+          <div class="text-right">Score</div>
+        </div>
+        <div class="divide-y app-divide">
+          {% for entry in leaderboard %}
+            <div class="grid grid-cols-[44px_minmax(0,1fr)_72px] items-center px-4 py-3 text-sm md:grid-cols-[56px_minmax(0,1fr)_96px] {% if user.is_authenticated and entry.student_id == user.id %}app-alert-info{% endif %}">
+              <div>
+                <span class="wrapped-rank {% if entry.rank == 1 %}wrapped-rank-1{% elif entry.rank == 2 %}wrapped-rank-2{% elif entry.rank == 3 %}wrapped-rank-3{% else %}wrapped-rank-other{% endif %}">
+                  {{ entry.rank }}
+                </span>
+              </div>
+              <div class="min-w-0">
+                <a href="{% url 'user_wrapped' year entry.student_id %}"
+                   class="min-w-0 font-medium app-link hover:underline md:truncate">
+                  {{ entry.display_name }}
+                </a>
+              </div>
+              <div class="text-right font-semibold app-heading">{{ entry.total_score }}</div>
+            </div>
+          {% empty %}
+            <p class="px-4 py-6 text-sm app-muted">No leaderboard data available for {{ year }}.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-8 border-t app-border pt-6">
+      <h2 class="text-lg font-semibold app-heading">Keep learning in {{ year|add:1 }}</h2>
+      <p class="mt-1 text-sm app-muted">Join us for more courses and challenges.</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary w-fit">Explore courses</a>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,391 @@
+{% extends 'cadmin/base.html' %}
+{% load custom_filters %}
+{% block breadcrumbs %}
+    <li>
+        <a href="{% url 'cadmin_course_list' %}">Course Admin</a>
+    </li>
+    <li>
+        <a href="{% url 'cadmin_course' course.slug %}">{{ course.title }}</a>
+    </li>
+    <li>
+        <a href="{% url 'cadmin_project_submissions' course.slug project.slug %}">{{ project.title }} Submissions</a>
+    </li>
+{% endblock %}
+{% block cadmin_content %}
+    <section class="border-b app-border pb-5">
+        <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
+        <h1 class="mt-2 text-2xl font-semibold app-heading md:text-3xl">{{ project.title }} - Submissions</h1>
+        <div class="mt-4 flex flex-col gap-3">
+            <div class="dense-utility-links flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                <a href="{% url 'cadmin_course' course.slug %}"
+                   class="app-link">Back to Course Admin</a>
+                <a href="{% url 'project' course.slug project.slug %}" class="app-link">
+                    <i class="fas fa-external-link-alt"></i> Public
+                </a>
+                <a href="/admin/courses/project/{{ project.id }}/change/"
+                   title="Edit in Django Admin"
+                   class="app-link">
+                    <i class="fas fa-edit"></i> Django
+                </a>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                {% if project.needs_review_assignment %}
+                    <form method="post"
+                          action="{% url 'cadmin_project_assign_reviews' course.slug project.slug %}"
+                          onsubmit="return confirm('Assign peer reviews for {{ project.title }}?');">
+                        {% csrf_token %}
+                        <input type="hidden"
+                               name="next"
+                               value="{% url 'cadmin_project_submissions' course.slug project.slug %}">
+                        <button type="submit" class="primer-button primer-button-secondary">
+                            <i class="fas fa-random" aria-hidden="true"></i> Assign peer reviews
+                        </button>
+                    </form>
+                {% endif %}
+                {% if project.needs_scoring %}
+                    <form method="post"
+                          action="{% url 'cadmin_project_score' course.slug project.slug %}"
+                          onsubmit="return confirm('Score all submissions for {{ project.title }}?');">
+                        {% csrf_token %}
+                        <input type="hidden"
+                               name="next"
+                               value="{% url 'cadmin_project_submissions' course.slug project.slug %}">
+                        <button type="submit" class="primer-button cadmin-primary">
+                            <i class="fas fa-calculator" aria-hidden="true"></i> Score projects
+                        </button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+    {% if submissions or search_query or status_filter != 'all' %}
+        <section class="mt-6">
+            <form method="get" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                {% if status_filter != 'all' %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+                <div class="min-w-0 flex-1 sm:max-w-md">
+                    <label for="project-submission-search" class="block text-sm font-semibold app-heading">Search submissions</label>
+                    <input type="search"
+                           id="project-submission-search"
+                           name="q"
+                           value="{{ search_query }}"
+                           class="form-control mt-2"
+                           placeholder="Email or username">
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button type="submit" class="primer-button w-fit">Search</button>
+                    {% if search_query %}
+                        <a href="?{% if status_filter != 'all' %}status={{ status_filter }}{% endif %}" class="primer-button primer-button-secondary">Clear</a>
+                    {% endif %}
+                    <button id="copyEmailsBtn"
+                            type="button"
+                            class="primer-button primer-button-secondary w-fit"
+                            onclick="copyEmails()">
+                        <i class="fas fa-copy"></i> Copy All Emails
+                    </button>
+                    <span id="copyFeedback"
+                          class="text-sm font-medium app-success-text"
+                          style="display: none"> <i class="fas fa-check"></i> Copied! </span>
+                </div>
+            </form>
+        </section>
+        <section class="mt-4 overflow-hidden rounded-md border app-border app-surface ">
+            <div class="border-b app-border app-surface-muted px-4 py-3">
+                <h2 class="text-base font-semibold app-heading">Submissions</h2>
+                <p class="mt-0.5 text-sm app-muted">
+                    {{ submissions_page.paginator.count }} result{{ submissions_page.paginator.count|pluralize }}{% if search_query %} for "{{ search_query }}"{% endif %}
+                </p>
+            </div>
+            <div class="grid grid-cols-2 gap-2 border-b app-border px-4 py-3 md:grid-cols-5">
+                <a href="?{% if search_query %}q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'all' %}cadmin-active-filter{% endif %}">
+                    <span class="block text-xs font-semibold uppercase app-muted">All</span>
+                    <span class="mt-1 block text-lg font-semibold app-heading">{{ project_filter_counts.all }}</span>
+                </a>
+                <a href="?status=incomplete-reviews{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'incomplete-reviews' %}cadmin-active-filter{% endif %}">
+                    <span class="block text-xs font-semibold uppercase app-muted">Incomplete reviews</span>
+                    <span class="mt-1 block text-lg font-semibold app-heading">{{ project_filter_counts.incomplete_reviews }}</span>
+                </a>
+                <a href="?status=missing-repository{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'missing-repository' %}cadmin-active-filter{% endif %}">
+                    <span class="block text-xs font-semibold uppercase app-muted">Missing repo</span>
+                    <span class="mt-1 block text-lg font-semibold app-heading">{{ project_filter_counts.missing_repository }}</span>
+                </a>
+                <a href="?status=unscored{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'unscored' %}cadmin-active-filter{% endif %}">
+                    <span class="block text-xs font-semibold uppercase app-muted">Unscored</span>
+                    <span class="mt-1 block text-lg font-semibold app-heading">{{ project_filter_counts.unscored }}</span>
+                </a>
+                <a href="?status=not-passed{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'not-passed' %}cadmin-active-filter{% endif %}">
+                    <span class="block text-xs font-semibold uppercase app-muted">Not passed</span>
+                    <span class="mt-1 block text-lg font-semibold app-heading">{{ project_filter_counts.not_passed }}</span>
+                </a>
+            </div>
+            <div class="divide-y app-divide md:hidden">
+                {% for submission in submissions %}
+                    <article class="px-4 py-4">
+                        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
+                            <div class="min-w-0">
+                                <p class="font-medium app-heading">
+                                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=submission.enrollment.id %}"
+                                       class="app-link">
+                                        {% if submission.student.email %}
+                                            {{ submission.student.email }}
+                                        {% else %}
+                                            {{ submission.student.username }}
+                                        {% endif %}
+                                    </a>
+                                </p>
+                                <p class="mt-1 text-xs app-muted">{{ submission.submitted_at|date:"Y-m-d H:i" }}</p>
+                            </div>
+                            <div class="text-right">
+                                <span class="inline-flex min-w-8 justify-center rounded-md border app-border app-surface-muted px-2 py-1 text-sm font-semibold app-heading">
+                                    {% if submission.total_score is not None %}
+                                        {{ submission.total_score }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
+                            <div>
+                                <dt class="text-xs font-semibold uppercase app-muted">Project</dt>
+                                <dd class="font-medium app-heading">
+                                    {% if submission.project_score is not None %}{{ submission.project_score }}{% else %}-{% endif %}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold uppercase app-muted">Reviews</dt>
+                                <dd class="font-medium app-heading">{{ submission.peer_reviews_completed }} / {{ submission.peer_reviews_total }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs font-semibold uppercase app-muted">Status</dt>
+                                <dd>
+                                    {% if submission.passed %}
+                                        <span class="app-badge app-badge-success">Passed</span>
+                                    {% elif submission.passed is not None %}
+                                        <span class="app-badge app-badge-danger">Not passed</span>
+                                    {% else %}
+                                        <span class="app-muted">-</span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                        <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                            {% if submission.github_link %}
+                                <a href="{{ submission.github_link }}"
+                                   target="_blank"
+                                   class="font-medium app-link">Repository</a>
+                            {% endif %}
+                            <a href="{% url 'cadmin_project_submission_edit' course.slug project.slug submission.id %}"
+                               class="font-medium app-link">Edit</a>
+                            <form method="post"
+                                  action="{% url 'loginas-user-login' submission.student.id %}">
+                                {% csrf_token %}
+                                <input type="hidden"
+                                       name="next"
+                                       value="{% url 'cadmin_project_submissions' course.slug project.slug %}">
+                                <button type="submit"
+                                        class="font-medium app-link"
+                                        title="Log in as {{ submission.student.email }}">
+                                    Log in as
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="px-4 py-6 text-sm app-muted">No project submissions match this view.</p>
+                {% endfor %}
+            </div>
+            <div class="hidden overflow-x-auto md:block">
+                <table class="min-w-full text-sm" id="submissionsTable">
+                    <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted ">
+                        <tr>
+                            <th class="cursor-pointer px-3 py-2" onclick="sortTable('email')">
+                                Email <span class="inline-block w-3" id="arrow-email"></span>
+                            </th>
+                            <th class="cursor-pointer whitespace-nowrap px-3 py-2"
+                                onclick="sortTable('submitted')">
+                                Submitted <span class="inline-block w-3" id="arrow-submitted"></span>
+                            </th>
+                            <th class="cursor-pointer whitespace-nowrap px-3 py-2 text-right"
+                                onclick="sortTable('reviews')">
+                                Reviews <span class="inline-block w-3" id="arrow-reviews"></span>
+                            </th>
+                            <th class="cursor-pointer whitespace-nowrap px-3 py-2 text-right"
+                                onclick="sortTable('project_score')">
+                                Project <span class="inline-block w-3" id="arrow-project_score"></span>
+                            </th>
+                            <th class="cursor-pointer whitespace-nowrap px-3 py-2 text-right"
+                                onclick="sortTable('total_score')">
+                                Total <span class="inline-block w-3" id="arrow-total_score"></span>
+                            </th>
+                            <th class="px-3 py-2">Status</th>
+                            <th class="px-3 py-2 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y app-divide">
+                        {% for submission in submissions %}
+                            <tr class="align-top">
+                                <td class="px-3 py-2 font-medium app-heading">
+                                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=submission.enrollment.id %}"
+                                       class="app-link">
+                                        {% if submission.student.email %}
+                                            {{ submission.student.email }}
+                                        {% else %}
+                                            {{ submission.student.username }}
+                                        {% endif %}
+                                    </a>
+                                </td>
+                                <td class="whitespace-nowrap px-3 py-2 app-text">{{ submission.submitted_at|date:"Y-m-d H:i" }}</td>
+                                <td class="px-3 py-2 text-right app-text">
+                                    {% if submission.peer_reviews_completed < submission.peer_reviews_total %}
+                                        <span class="app-badge app-badge-warning">
+                                            {{ submission.peer_reviews_completed }} / {{ submission.peer_reviews_total }}
+                                        </span>
+                                    {% else %}
+                                        {{ submission.peer_reviews_completed }} / {{ submission.peer_reviews_total }}
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-right font-medium app-heading">
+                                    {% if submission.project_score is not None %}
+                                        {{ submission.project_score }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2 text-right font-medium app-heading">
+                                    {% if submission.total_score is not None %}
+                                        {{ submission.total_score }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2">
+                                    {% if submission.passed %}
+                                        <span class="app-badge app-badge-success">Passed</span>
+                                    {% elif submission.passed is not None %}
+                                        <span class="app-badge app-badge-danger">Not passed</span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="px-3 py-2">
+                                    <div class="flex flex-wrap justify-end gap-x-4 gap-y-2">
+                                        {% if submission.github_link %}
+                                            <a href="{{ submission.github_link }}"
+                                               target="_blank"
+                                               class="font-medium app-link">Repository</a>
+                                        {% endif %}
+                                        <a href="{% url 'cadmin_project_submission_edit' course.slug project.slug submission.id %}"
+                                           class="font-medium app-link">Edit</a>
+                                        <form method="post"
+                                              action="{% url 'loginas-user-login' submission.student.id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden"
+                                                   name="next"
+                                                   value="{% url 'cadmin_project_submissions' course.slug project.slug %}">
+                                            <button type="submit"
+                                                    class="font-medium app-link"
+                                                    title="Log in as {{ submission.student.email }}">
+                                                Log in as
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="px-3 py-6 text-center text-sm app-muted">No project submissions match this view.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% else %}
+        <p class="mt-6 rounded-md border app-border app-surface px-4 py-6 text-sm app-muted ">No submissions yet.</p>
+    {% endif %}
+    <script>
+      const MISSING_SCORE_VALUE = -999;
+      let currentSort = 'total_score';
+      let currentDir = 'desc';
+      const defaultDirs = {
+        email: 'asc',
+        submitted: 'desc',
+        reviews: 'desc',
+        project_score: 'desc',
+        total_score: 'desc',
+      };
+
+      function copyEmails() {
+        const emails = [
+          {% for submission in submissions %}
+            "{{ submission.student.email }}"{% if not forloop.last %},{% endif %}
+          {% endfor %}
+        ];
+        const textarea = document.createElement('textarea');
+        textarea.value = emails.join(', ');
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+
+        const feedback = document.getElementById('copyFeedback');
+        feedback.style.display = 'inline';
+        setTimeout(() => {
+          feedback.style.display = 'none';
+        }, 2000);
+      }
+
+      function sortTable(column) {
+        currentDir = column === currentSort
+          ? (currentDir === 'asc' ? 'desc' : 'asc')
+          : (defaultDirs[column] || 'desc');
+        currentSort = column;
+
+        const table = document.getElementById('submissionsTable');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+
+        rows.sort((a, b) => {
+          let result = 0;
+
+          if (column === 'email') {
+            result = a.cells[0].textContent.trim().localeCompare(b.cells[0].textContent.trim());
+          } else if (column === 'submitted') {
+            result = a.cells[1].textContent.trim().localeCompare(b.cells[1].textContent.trim());
+          } else if (column === 'reviews') {
+            const aVal = parseInt(a.cells[2].textContent.trim().split('/')[0], 10) || 0;
+            const bVal = parseInt(b.cells[2].textContent.trim().split('/')[0], 10) || 0;
+            result = aVal - bVal;
+          } else if (column === 'project_score') {
+            result = parseScore(a.cells[3].textContent) - parseScore(b.cells[3].textContent);
+          } else if (column === 'total_score') {
+            result = parseScore(a.cells[4].textContent) - parseScore(b.cells[4].textContent);
+          }
+
+          return currentDir === 'desc' ? -result : result;
+        });
+
+        rows.forEach(row => tbody.appendChild(row));
+        updateArrows();
+      }
+
+      function parseScore(text) {
+        const trimmed = text.trim();
+        return trimmed === '-' ? MISSING_SCORE_VALUE : parseFloat(trimmed);
+      }
+
+      function updateArrows() {
+        document.querySelectorAll('[id^="arrow-"]').forEach(el => {
+          el.textContent = '';
+        });
+
+        const arrowEl = document.getElementById('arrow-' + currentSort);
+        if (arrowEl) {
+          arrowEl.textContent = currentDir === 'asc' ? ' ▲' : ' ▼';
+        }
+      }
+
+      updateArrows();
+    </script>
+    {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_querystring=pagination_querystring pagination_label='Project submission pages' %}
+{% endblock %}

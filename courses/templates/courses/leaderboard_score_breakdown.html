@@ -1,0 +1,270 @@
+{% extends 'base.html' %}
+{% block meta_robots %}
+  <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block breadcrumbs %}
+  <li><a href="{% url 'course' enrollment.course.slug %}">{{ enrollment.course.title }}</a></li>
+  <li><a href="{% url 'leaderboard' enrollment.course.slug %}">Leaderboard</a></li>
+  <li>{{ enrollment.display_name }}</li>
+{% endblock %}
+
+{% block content %}
+<section class="border-b app-border pb-5">
+  <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ enrollment.course.title }}</p>
+  <div class="mt-2">
+    <div>
+      <h1 class="text-2xl font-semibold app-heading md:text-3xl">{{ enrollment.display_name }}</h1>
+      {% if public_profile and public_profile.about_me %}
+        <p class="mt-2 max-w-2xl text-sm app-text">
+          <strong>About me:</strong> {{ public_profile.about_me }}
+        </p>
+      {% endif %}
+      <div class="mt-3 flex gap-3 text-lg">
+        {% if public_profile and public_profile.github_url %}
+          <a href="{{ public_profile.github_url }}" target="_blank" class="app-muted app-link">
+            <i class="fab fa-github social-icon"></i>
+          </a>
+        {% endif %}
+        {% if public_profile and public_profile.linkedin_url %}
+          <a href="{{ public_profile.linkedin_url }}" target="_blank" class="app-muted app-link">
+            <i class="fab fa-linkedin social-icon"></i>
+          </a>
+        {% endif %}
+        {% if public_profile and public_profile.personal_website_url %}
+          <a href="{{ public_profile.personal_website_url }}" target="_blank" class="app-muted app-link">
+            <i class="fas fa-globe social-icon"></i>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-2">
+      {% if request.user.is_staff %}
+        <a href="{% url 'cadmin_enrollment_edit' course_slug=enrollment.course.slug enrollment_id=enrollment.id %}"
+           class="primer-button primer-button-secondary"
+           title="Admin: Edit Enrollment">
+          <i class="fas fa-cog"></i> Admin
+        </a>
+      {% endif %}
+      {% if show_public_profile_settings_link %}
+        <a href="{% url 'enrollment' enrollment.course.slug %}"
+           class="primer-button primer-button-secondary">
+          Show public profile
+        </a>
+      {% endif %}
+      <a href="{% url 'leaderboard' enrollment.course.slug %}"
+         class="primer-button primer-button-secondary">Back to Leaderboard</a>
+      <button type="button"
+              class="leaderboard-flag-button primer-button primer-button-secondary"
+              data-flag-url="{% url 'leaderboard_complaint' course_slug=enrollment.course.slug enrollment_id=enrollment.id %}"
+              data-flag-name="{{ enrollment.display_name }}">
+        <i class="far fa-flag"></i> Flag this record
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="mt-6">
+  <div class="w-fit rounded-md border app-border app-surface p-4">
+    <p class="text-xs font-semibold uppercase app-muted">Total Score</p>
+    <p class="mt-1 text-2xl font-semibold app-heading">{{ enrollment.total_score }}</p>
+  </div>
+</section>
+
+<section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
+  <div class="border-b app-border app-surface-muted px-4 py-3">
+    <h2 class="text-base font-semibold app-heading">Homework submissions</h2>
+  </div>
+  <div class="divide-y app-divide">
+    {% for submission in submissions %}
+      {% if submission.homework.is_scored %}
+        <article class="px-4 py-4">
+          <h3 class="font-medium app-heading">{{ submission.homework.title }}</h3>
+          <p class="mt-3 text-sm app-text">
+            <strong>Score:</strong>
+            <span class="font-semibold app-heading">{{ submission.total_score }}</span>
+            =
+            {{ submission.questions_score }} <span class="app-muted">(questions)</span>
+            +
+            {{ submission.faq_score }} <span class="app-muted">(FAQ)</span>
+            +
+            {{ submission.learning_in_public_score }} <span class="app-muted">(learning in public)</span>
+          </p>
+          {% if submission.homework_link %}
+            <p class="mt-3 text-sm">
+              <strong>Homework URL:</strong>
+              <a href="{{ submission.homework_link }}"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="app-link hover:underline">View submission</a>
+            </p>
+          {% endif %}
+          {% if submission.faq_contribution_url %}
+            <p class="mt-3 text-sm">
+              <strong>FAQ URL:</strong>
+              <a href="{{ submission.faq_contribution_url }}"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="app-link hover:underline">View submission</a>
+            </p>
+          {% endif %}
+          {% if submission.learning_in_public_links %}
+            <details class="mt-3 text-sm">
+              <summary class="cursor-pointer app-link">
+                <strong>Learning in public links</strong>
+              </summary>
+              <ul class="mt-2 list-disc pl-5">
+                {% for link in submission.learning_in_public_links %}
+                  <li>
+                    <a href="{{ link }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="break-all">{{ link }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </details>
+          {% endif %}
+        </article>
+      {% endif %}
+    {% empty %}
+      <p class="px-4 py-6 text-sm app-muted">No submissions yet.</p>
+    {% endfor %}
+  </div>
+  <p class="border-t app-border px-4 py-3 text-sm app-muted">
+    Only scored homework submissions appear here.
+  </p>
+</section>
+
+<section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
+  <div class="border-b app-border app-surface-muted px-4 py-3">
+    <h2 class="text-base font-semibold app-heading">Project submissions</h2>
+  </div>
+  <div class="divide-y app-divide">
+    {% for submission in project_submissions %}
+      {% if submission.project.state == 'CO' %}
+        <article class="px-4 py-4">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <h3 class="font-medium app-heading">{{ submission.project.title }}</h3>
+            {% if submission.passed %}
+              <span class="app-badge app-badge-success">Passed</span>
+            {% else %}
+              <span class="app-badge app-badge-danger">Failed</span>
+            {% endif %}
+          </div>
+          <p class="mt-3 text-sm app-text">
+            <strong>Score:</strong>
+            <span class="font-semibold app-heading">{{ submission.total_score }}</span>
+            =
+            {{ submission.project_score }} <span class="app-muted">(project)</span>
+            +
+            {{ submission.peer_review_score }} <span class="app-muted">(peer review)</span>
+            +
+            {{ submission.project_learning_in_public_score }} <span class="app-muted">(learning in public / project)</span>
+            +
+            {{ submission.peer_review_learning_in_public_score }} <span class="app-muted">(learning in public / peer review)</span>
+            +
+            {{ submission.project_faq_score }} <span class="app-muted">(FAQ)</span>
+          </p>
+          {% if submission.github_link %}
+            <p class="mt-3 text-sm">
+              <strong>Project URL:</strong>
+              <a href="{{ submission.github_link }}"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="app-link hover:underline">View project</a>
+            </p>
+          {% endif %}
+          {% if submission.faq_contribution_url %}
+            <p class="mt-3 text-sm">
+              <strong>FAQ URL:</strong>
+              <a href="{{ submission.faq_contribution_url }}"
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 class="app-link hover:underline">View submission</a>
+            </p>
+          {% endif %}
+          {% if submission.learning_in_public_links %}
+            <details class="mt-3 text-sm">
+              <summary class="cursor-pointer app-link">
+                <strong>Learning in public links</strong>
+              </summary>
+              <ul class="mt-2 list-disc pl-5">
+                {% for link in submission.learning_in_public_links %}
+                  <li>
+                    <a href="{{ link }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="break-all">{{ link }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </details>
+          {% endif %}
+        </article>
+      {% endif %}
+    {% empty %}
+      <p class="px-4 py-6 text-sm app-muted">No project submissions found.</p>
+    {% endfor %}
+  </div>
+  <p class="border-t app-border px-4 py-3 text-sm app-muted">
+    Only completed project submissions appear here.
+  </p>
+</section>
+
+<dialog id="leaderboard-flag-dialog" class="rounded-md border app-border app-surface p-0">
+  <form method="post" id="leaderboard-flag-form" class="w-[min(92vw,34rem)]">
+    {% csrf_token %}
+    <div class="border-b app-border px-4 py-3">
+      <h2 class="text-base font-semibold app-heading">Flag this record</h2>
+      <p id="leaderboard-flag-record" class="mt-1 text-sm app-muted"></p>
+    </div>
+    <div class="space-y-4 px-4 py-4">
+      <div>
+        <label for="flag-issue-type" class="settings-label mb-2 block text-sm font-semibold">What is wrong?</label>
+        <select id="flag-issue-type" name="issue_type" class="form-control" required>
+          <option value="learning_in_public">Incorrect learning in public links</option>
+          <option value="homework">Incorrect homework</option>
+          <option value="project">Incorrect project</option>
+          <option value="other">Other leaderboard issue</option>
+        </select>
+      </div>
+      <div>
+        <label for="flag-description" class="settings-label mb-2 block text-sm font-semibold">Reason</label>
+        <textarea id="flag-description"
+                  name="description"
+                  class="form-control"
+                  rows="5"
+                  required
+                  placeholder="Describe what looks incorrect."></textarea>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2 border-t app-border px-4 py-3">
+      <button type="submit" class="primer-button">Submit flag</button>
+      <button type="button" class="primer-button primer-button-secondary" data-flag-close>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var dialog = document.getElementById('leaderboard-flag-dialog');
+    var form = document.getElementById('leaderboard-flag-form');
+    var record = document.getElementById('leaderboard-flag-record');
+    var description = document.getElementById('flag-description');
+    var closeButton = document.querySelector('[data-flag-close]');
+    var button = document.querySelector('.leaderboard-flag-button');
+
+    button.addEventListener('click', function() {
+      form.action = button.dataset.flagUrl;
+      record.textContent = button.dataset.flagName;
+      description.value = '';
+      dialog.showModal();
+    });
+
+    closeButton.addEventListener('click', function() {
+      dialog.close();
+    });
+  });
+</script>
+{% endblock %}
