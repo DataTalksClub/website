@@ -27,6 +27,7 @@ dev = [
 
 [tool.uv]
 package = false
+exclude-newer = "2099-12-31T23:00:00Z"
 
 [tool.ruff]
 target-version = "py313"

@@ -7,8 +7,7 @@ resolution-markers = [
 ]
 
 [options]
-exclude-newer = "2026-07-31T11:35:39.137831399Z"
-exclude-newer-span = "P7D"
+exclude-newer = "2099-12-31T23:00:00Z"
 
 [[package]]
 name = "asgiref"
