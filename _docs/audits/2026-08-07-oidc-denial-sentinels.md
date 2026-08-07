@@ -191,11 +191,32 @@ The removed sentinels use a three-part proof without recreating an unsafe reques
    omission of those ECS actions; omission of IAM role updates, CloudFront invalidations, target
    group changes, RDS changes, and ECR delete from both roles; and exact repository scope for ECR
    describe.
-3. Before the live probe, the operator canonically reads back both deployed inline policies and
-   runs the complete `aws iam simulate-principal-policy` matrix in the release runbook. Every
-   negative row must return `implicitDeny`; exact positive controls must return `allowed` with no
-   missing context. Any extra/attached policy, shape mismatch, unexpected decision, or failed
-   positive control stops issue #70.
+3. Before the live probe, separately authorized #81 Gate B uses the source-bound
+   `deploy/gate_b_manifest.json` contract and pure-offline `deploy.gate_b_evidence` validator. It
+   canonically compares both exact role trusts and inline policies plus the KMS key policy to
+   independently rendered fixtures. It rejects any missing/extra/attached policy, application
+   role in the KMS policy or grant principals, malformed document, or canonical mismatch.
+4. Gate B reads every effective resource-policy layer: exact S3 owner and
+   `BucketOwnerEnforced` plus mandatory bucket-policy absence; both ECR repository and registry-v2
+   policy absence; all six exact Secrets Manager resource-policy absences after metadata existence
+   proof; and the exact KMS policy. CloudFront is bound from exact distribution ID through returned
+   ARN/account/domain and the sole `web.dtcdev.click` alias, with origin custom headers filtered.
+   IAM simulation alone is never accepted as composite authorization evidence.
+5. Every simulator invocation is atomic: exactly one principal, action, resource, result, and
+   expected decision. Foreign/production negatives change one resource or one context axis from a
+   known positive. Every positive and negative requires `MissingContextValues=[]`; missing,
+   duplicate, extra, partial, truncated, or malformed results fail closed rather than masquerading
+   as `implicitDeny`.
+
+The operator runs `aws iam simulate-principal-policy` once per manifest row. The manifest keeps
+the positive controls beside their one-axis negative counterparts so an `implicitDeny` is never
+accepted without proving the corresponding intended permission first.
+
+The corrected contract code-pins the canonical manifest digest and binds the separately accepted
+operator identity to the STS readback, so neither a self-consistent fixture edit nor a different
+caller can redefine a pass. It also requires null permissions boundaries, complete typed KMS
+grants, exact GitHub variable values, exact ECS/ELB/RDS identities, 90 request-bound simulator
+rows, untruncated responses, and a payload digest on every local evidence envelope.
 
 Focused website tests independently exercise all four retained sentinels so a preceding failure
 cannot hide the next boundary. They assert the exact S3 object and owner, exact Route 53 batch,
@@ -204,12 +225,21 @@ representative NotFound, validation, transport, DryRunOperation, normal response
 outcomes; and assert exact one-call requests. The workflow contract separately limits the KMS ARN
 to the two allowed probe jobs and validates it before role assumption.
 
-The IAM simulator provides identity-policy evidence only. Before dispatch, the operator must
-also canonically read the KMS key policy, prove the ECR repository policy is absent or has the
-exact reviewed shape, and read the S3 state-bucket policy when operator authority permits. If a
-required resource-policy contribution cannot be established, the preflight stops. The retained
-bounded live calls provide the final composite evidence; executing the readback or simulator is
-outside issue #83 and requires the separately authorized issue #81 Gate B.
+The older grouped simulator rows, optional S3 policy wording, repository-only ECR policy check,
+and positive-only missing-context rule are superseded. The exact accepted absence states are S3
+`NoSuchBucketPolicy`, ECR `RepositoryPolicyNotFoundException`, registry-v2
+`RegistryPolicyNotFoundException`, and a successful Secrets Manager response with exact ARN/name
+and the `ResourcePolicy` member absent. Generic 403/NotFound, empty/null policy members, unreadable
+policy, resource ambiguity, or any policy body where absence is expected stops Gate B.
+
+The KMS grant inventory is dynamic evidence, not a frozen empty fixture. Gate B rejects either
+application role as `GranteePrincipal` or `RetiringPrincipal`, then canonically hashes the complete
+non-secret inventory as the pre-probe baseline. Legitimate service-owned grant IDs are retained in
+that baseline; Gate C postflight must match the canonical bytes exactly.
+
+The retained bounded calls provide the later final composite evidence. Executing any readback or
+simulator remains outside issue #83/#84 and requires separately authorized #81 Gate B. Completing
+#84 changes no probe, workflow, Terraform, IAM, policy, resource, or AWS state.
 
 Before any new live probe, the operator must also satisfy the complete preflight and postflight in
 [`sandbox-release.md`](../runbooks/sandbox-release.md): exact policies and variables, zero runtime

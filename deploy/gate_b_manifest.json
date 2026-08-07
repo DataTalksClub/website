@@ -1,0 +1,1732 @@
+{
+  "schema_version": 1,
+  "contract_id": "website-sandbox-gate-b-v1",
+  "source_binding": {
+    "website_sha": "07186fc9bf9cf353fa12b74e97018d7f951d0fe6",
+    "website_tree": "9621d51fd8952a6c12af5ea62b207aa07c988ac5",
+    "infra_sha": "95d93f7e07ded19e482a0c6d6471fbd93fb608d8",
+    "infra_tree": "1c38fdf6872a448d92e8191282525bafd3ab3410"
+  },
+  "static": {
+    "account_id": "817685572750",
+    "region": "eu-west-1",
+    "state_region": "us-east-1",
+    "roles": {
+      "publisher": {
+        "name": "website-sandbox-github-publisher",
+        "arn": "arn:aws:iam::817685572750:role/website-sandbox-github-publisher",
+        "path": "/",
+        "max_session_duration": 3600,
+        "inline_policy_names": [
+          "website-sandbox-github-publisher"
+        ],
+        "attached_policies": [],
+        "permissions_boundary": null
+      },
+      "deployer": {
+        "name": "website-sandbox-github-deployer",
+        "arn": "arn:aws:iam::817685572750:role/website-sandbox-github-deployer",
+        "path": "/",
+        "max_session_duration": 3600,
+        "inline_policy_names": [
+          "website-sandbox-github-deployer"
+        ],
+        "attached_policies": [],
+        "permissions_boundary": null
+      }
+    },
+    "kms": {
+      "arn": "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887",
+      "key_id": "b9181223-d870-4bae-92d2-fc28b7813887",
+      "alias_name": "alias/website-sandbox-runtime",
+      "enabled": true,
+      "key_state": "Enabled",
+      "key_manager": "CUSTOMER",
+      "origin": "AWS_KMS",
+      "key_usage": "ENCRYPT_DECRYPT",
+      "spec": "SYMMETRIC_DEFAULT",
+      "multi_region": false,
+      "rotation_enabled": true
+    },
+    "state": {
+      "bucket": "datamailer-sandbox-817685572750-us-east-1-tfstate",
+      "key": "sandbox/website/terraform.tfstate",
+      "object_arn": "arn:aws:s3:::datamailer-sandbox-817685572750-us-east-1-tfstate/sandbox/website/terraform.tfstate",
+      "lock_key": "sandbox/website/terraform.tfstate.tflock"
+    },
+    "ecr": {
+      "name": "website-sandbox",
+      "arn": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "uri": "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+      "zero_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "ecs": {
+      "cluster_arn": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+      "web_service_arn": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "worker_service_arn": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+      "web_family": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:*",
+      "worker_family": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:*",
+      "migration_family": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-migration:*",
+      "task_role_arn": "arn:aws:iam::817685572750:role/website-sandbox-task-application",
+      "execution_role_arn": "arn:aws:iam::817685572750:role/website-sandbox-task-execution"
+    },
+    "route53": {
+      "zone_id": "Z05963572WVWFHDQZH5NE",
+      "zone_arn": "arn:aws:route53:::hostedzone/Z05963572WVWFHDQZH5NE",
+      "web_hostname": "web.dtcdev.click",
+      "origin_hostname": "origin.web.dtcdev.click"
+    },
+    "database_arn": "arn:aws:rds:eu-west-1:817685572750:db:website-sandbox",
+    "secret_names": {
+      "database_url": "website-sandbox/database-url",
+      "django_secret_key": "website-sandbox/django-secret-key",
+      "github": "website-sandbox/github",
+      "integrations": "website-sandbox/integrations",
+      "oidc": "website-sandbox/oidc",
+      "webhook": "website-sandbox/webhook"
+    },
+    "repository_variable_names": [
+      "SANDBOX_AUTO_DEPLOY",
+      "SANDBOX_AWS_REGION",
+      "SANDBOX_ECR_REPOSITORY_NAME",
+      "SANDBOX_ECR_REPOSITORY_URI",
+      "SANDBOX_KMS_KEY_ARN",
+      "SANDBOX_PUBLISHER_ROLE_ARN",
+      "SANDBOX_ROUTE53_HOSTED_ZONE_ID"
+    ],
+    "environment_variable_names": [
+      "SANDBOX_DEPLOYER_ROLE_ARN",
+      "SANDBOX_ECS_ASSIGN_PUBLIC_IP",
+      "SANDBOX_ECS_CLUSTER_ARN",
+      "SANDBOX_ECS_CONTAINER_NAMES",
+      "SANDBOX_ECS_EXECUTION_ROLE_ARN",
+      "SANDBOX_ECS_MIGRATION_TASK_FAMILY",
+      "SANDBOX_ECS_SECURITY_GROUP_IDS",
+      "SANDBOX_ECS_SUBNET_IDS",
+      "SANDBOX_ECS_TASK_ROLE_ARN",
+      "SANDBOX_ECS_WEB_SERVICE_NAME",
+      "SANDBOX_ECS_WEB_TASK_FAMILY",
+      "SANDBOX_ECS_WORKER_SERVICE_NAME",
+      "SANDBOX_ECS_WORKER_TASK_FAMILY",
+      "SANDBOX_RESOURCE_ENVIRONMENT_TAG",
+      "SANDBOX_RESOURCE_PROJECT_TAG",
+      "SANDBOX_WEB_RELEASE_DESIRED_COUNT",
+      "SANDBOX_WEB_TARGET_GROUP_ARN",
+      "SANDBOX_WORKER_RELEASE_DESIRED_COUNT"
+    ]
+  },
+  "policy_fixtures": {
+    "publisher-trust": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "ExactImmutableMainSubject",
+          "Effect": "Allow",
+          "Action": "sts:AssumeRoleWithWebIdentity",
+          "Principal": {
+            "Federated": "arn:aws:iam::817685572750:oidc-provider/token.actions.githubusercontent.com"
+          },
+          "Condition": {
+            "StringEquals": {
+              "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+              "token.actions.githubusercontent.com:sub": "repo:DataTalksClub@72699292/website@1326548167:ref:refs/heads/main"
+            }
+          }
+        }
+      ]
+    },
+    "deployer-trust": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "ExactImmutableEnvironmentSubject",
+          "Effect": "Allow",
+          "Action": "sts:AssumeRoleWithWebIdentity",
+          "Principal": {
+            "Federated": "arn:aws:iam::817685572750:oidc-provider/token.actions.githubusercontent.com"
+          },
+          "Condition": {
+            "StringEquals": {
+              "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+              "token.actions.githubusercontent.com:sub": "repo:DataTalksClub@72699292/website@1326548167:environment:sandbox"
+            }
+          }
+        }
+      ]
+    },
+    "publisher-inline": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "RegionScopedEcrAuthorization",
+          "Effect": "Allow",
+          "Action": "ecr:GetAuthorizationToken",
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "PublishAndVerifyExactRepository",
+          "Effect": "Allow",
+          "Action": [
+            "ecr:BatchCheckLayerAvailability",
+            "ecr:BatchGetImage",
+            "ecr:CompleteLayerUpload",
+            "ecr:DescribeImages",
+            "ecr:InitiateLayerUpload",
+            "ecr:PutImage",
+            "ecr:UploadLayerPart"
+          ],
+          "Resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox"
+        }
+      ]
+    },
+    "deployer-inline": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "ReadExactReleaseMetadata",
+          "Effect": "Allow",
+          "Action": [
+            "ecr:BatchGetImage",
+            "ecr:DescribeImages"
+          ],
+          "Resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox"
+        },
+        {
+          "Sid": "RegisterTaggedReleaseDefinitions",
+          "Effect": "Allow",
+          "Action": "ecs:RegisterTaskDefinition",
+          "Resource": [
+            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-migration:*",
+            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:*",
+            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:*"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1",
+              "aws:RequestTag/Environment": "sandbox",
+              "aws:RequestTag/Project": "website",
+              "aws:RequestTag/ReleaseManager": "DataTalksClub/website"
+            },
+            "ForAllValues:StringEquals": {
+              "aws:TagKeys": [
+                "Environment",
+                "Project",
+                "ReleaseManager"
+              ]
+            }
+          }
+        },
+        {
+          "Sid": "DescribeReleaseDefinitions",
+          "Effect": "Allow",
+          "Action": "ecs:DescribeTaskDefinition",
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        },
+        {
+          "Sid": "TagExactReleaseDefinitions",
+          "Effect": "Allow",
+          "Action": "ecs:TagResource",
+          "Resource": [
+            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-migration:*",
+            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:*",
+            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:*"
+          ],
+          "Condition": {
+            "ForAllValues:StringEquals": {
+              "aws:TagKeys": [
+                "Environment",
+                "Project",
+                "ReleaseManager"
+              ]
+            }
+          }
+        },
+        {
+          "Sid": "RunMigrationOnly",
+          "Effect": "Allow",
+          "Action": "ecs:RunTask",
+          "Resource": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-migration:*",
+          "Condition": {
+            "ArnEquals": {
+              "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+            }
+          }
+        },
+        {
+          "Sid": "ObserveExactCluster",
+          "Effect": "Allow",
+          "Action": "ecs:DescribeClusters",
+          "Resource": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+        },
+        {
+          "Sid": "ObserveAndStopExactClusterTasks",
+          "Effect": "Allow",
+          "Action": [
+            "ecs:DescribeTasks",
+            "ecs:StopTask"
+          ],
+          "Resource": "arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/*",
+          "Condition": {
+            "ArnEquals": {
+              "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+            }
+          }
+        },
+        {
+          "Sid": "ListExactClusterTasks",
+          "Effect": "Allow",
+          "Action": "ecs:ListTasks",
+          "Resource": "*",
+          "Condition": {
+            "ArnEquals": {
+              "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+            }
+          }
+        },
+        {
+          "Sid": "ObserveExactServices",
+          "Effect": "Allow",
+          "Action": "ecs:DescribeServices",
+          "Resource": [
+            "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+            "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker"
+          ]
+        },
+        {
+          "Sid": "PromoteExactWebServiceAndFamily",
+          "Effect": "Allow",
+          "Action": "ecs:UpdateService",
+          "Resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+          "Condition": {
+            "ArnEquals": {
+              "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+            },
+            "ArnLike": {
+              "ecs:task-definition": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:*"
+            }
+          }
+        },
+        {
+          "Sid": "PromoteExactWorkerServiceAndFamily",
+          "Effect": "Allow",
+          "Action": "ecs:UpdateService",
+          "Resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+          "Condition": {
+            "ArnEquals": {
+              "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+            },
+            "ArnLike": {
+              "ecs:task-definition": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:*"
+            }
+          }
+        },
+        {
+          "Sid": "PassOnlyWebsiteTaskRoles",
+          "Effect": "Allow",
+          "Action": "iam:PassRole",
+          "Resource": [
+            "arn:aws:iam::817685572750:role/website-sandbox-task-execution",
+            "arn:aws:iam::817685572750:role/website-sandbox-task-application"
+          ],
+          "Condition": {
+            "StringEquals": {
+              "iam:PassedToService": "ecs-tasks.amazonaws.com"
+            }
+          }
+        },
+        {
+          "Sid": "ReadRegionalTargetHealth",
+          "Effect": "Allow",
+          "Action": "elasticloadbalancing:DescribeTargetHealth",
+          "Resource": "*",
+          "Condition": {
+            "StringEquals": {
+              "aws:RequestedRegion": "eu-west-1"
+            }
+          }
+        }
+      ]
+    },
+    "kms-key-policy": {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "EnableAccountIamPolicies",
+          "Effect": "Allow",
+          "Action": "kms:*",
+          "Resource": "*",
+          "Principal": {
+            "AWS": "arn:aws:iam::817685572750:root"
+          }
+        },
+        {
+          "Sid": "AllowCloudWatchLogsEncryption",
+          "Effect": "Allow",
+          "Action": [
+            "kms:Decrypt",
+            "kms:DescribeKey",
+            "kms:Encrypt",
+            "kms:GenerateDataKey*",
+            "kms:ReEncrypt*"
+          ],
+          "Resource": "*",
+          "Principal": {
+            "Service": "logs.eu-west-1.amazonaws.com"
+          },
+          "Condition": {
+            "ArnLike": {
+              "kms:EncryptionContext:aws:logs:arn": [
+                "arn:aws:logs:eu-west-1:817685572750:log-group:/ecs/website-sandbox/migration",
+                "arn:aws:logs:eu-west-1:817685572750:log-group:/ecs/website-sandbox/web",
+                "arn:aws:logs:eu-west-1:817685572750:log-group:/ecs/website-sandbox/worker",
+                "arn:aws:logs:eu-west-1:817685572750:log-group:/aws/rds/instance/website-sandbox/postgresql",
+                "arn:aws:logs:eu-west-1:817685572750:log-group:/aws/rds/instance/website-sandbox/upgrade"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  },
+  "resource_policy_absence": {
+    "s3_bucket": "NoSuchBucketPolicy",
+    "ecr_repository": "RepositoryPolicyNotFoundException",
+    "ecr_registry": "RegistryPolicyNotFoundException",
+    "secrets_manager": "success-with-resource-policy-member-absent"
+  },
+  "dynamic_binding_schema": {
+    "required": [
+      "cloudfront",
+      "target_group",
+      "task_definitions",
+      "secret_arns",
+      "network",
+      "dns_records",
+      "github_repository_variables",
+      "github_environment_variables",
+      "operator_identity"
+    ],
+    "fields": {
+      "cloudfront": ["distribution_arn", "distribution_id", "domain_name"],
+      "target_group": ["arn", "suffix"],
+      "task_definitions": ["migration", "web", "worker"],
+      "secret_arns": ["database_url", "django_secret_key", "github", "integrations", "oidc", "webhook"],
+      "network": ["alb_dns_name", "alb_zone_id", "security_group_ids", "subnet_ids", "vpc_id"],
+      "dns_record": ["name", "type", "value"],
+      "operator_identity": ["account_id", "arn", "user_id"]
+    }
+  },
+  "readback_manifest": {
+    "acquisition_owner": "sandbox-operator",
+    "validator": "python -m deploy.gate_b_evidence",
+    "modes": [
+      "manifest",
+      "bindings",
+      "policies",
+      "resources",
+      "simulator",
+      "summary"
+    ],
+    "envelope_fields": [
+      "capture_id",
+      "infra_sha",
+      "kind",
+      "payload",
+      "payload_sha256",
+      "schema_version",
+      "website_sha"
+    ],
+    "bundle_schemas": {
+      "bindings": [
+        "cloudfront",
+        "dns_records",
+        "github_environment_variables",
+        "github_repository_variables",
+        "network",
+        "operator_identity",
+        "secret_arns",
+        "target_group",
+        "task_definitions"
+      ],
+      "policies": [
+        "kms",
+        "roles"
+      ],
+      "resources": [
+        "caller_identity",
+        "cloudfront",
+        "dns_records",
+        "ecr",
+        "github",
+        "route53",
+        "runtime",
+        "s3",
+        "secrets",
+        "terraform"
+      ],
+      "simulator": [
+        "results"
+      ]
+    },
+    "field_schemas": {
+      "operator_identity": [
+        "account_id",
+        "arn",
+        "user_id"
+      ],
+      "role": [
+        "arn",
+        "attached_policies",
+        "inline_policies",
+        "max_session_duration",
+        "name",
+        "path",
+        "permissions_boundary",
+        "trust_policy"
+      ],
+      "kms": [
+        "alias_name",
+        "alias_target_key_id",
+        "arn",
+        "enabled",
+        "grant_inventory",
+        "grant_inventory_truncated",
+        "key_id",
+        "key_manager",
+        "key_policy",
+        "key_state",
+        "key_usage",
+        "multi_region",
+        "origin",
+        "policy_name",
+        "rotation_enabled",
+        "spec"
+      ],
+      "s3": [
+        "bucket",
+        "bucket_location",
+        "bucket_policy_error",
+        "encryption_algorithm",
+        "expected_bucket_owner",
+        "key",
+        "object_exists",
+        "ownership",
+        "public_access_block",
+        "versioning"
+      ],
+      "ecr": [
+        "arn",
+        "image_tag_mutability",
+        "kms_key_arn",
+        "name",
+        "registry_id",
+        "registry_policy_error",
+        "repository_policy_error",
+        "scan_on_push",
+        "zero_digest_error",
+        "zero_digest_present"
+      ],
+      "secret": [
+        "arn",
+        "deleted_date",
+        "description",
+        "kms_key_id",
+        "name",
+        "owning_service",
+        "primary_region",
+        "resource_policy_response",
+        "rotation_enabled",
+        "version_ids_to_stages"
+      ],
+      "cloudfront": [
+        "aliases",
+        "arn",
+        "distribution_id",
+        "domain_name",
+        "enabled",
+        "route53_web_targets",
+        "status"
+      ],
+      "ecs_cluster": [
+        "active_services",
+        "arn",
+        "name",
+        "pending_tasks",
+        "registered_container_instances",
+        "running_tasks",
+        "status"
+      ],
+      "ecs_service": [
+        "arn",
+        "desired",
+        "name",
+        "pending",
+        "running",
+        "status",
+        "task_definition"
+      ],
+      "task_definition": [
+        "arn",
+        "execution_role_arn",
+        "family",
+        "revision",
+        "status",
+        "task_role_arn"
+      ],
+      "target_group": [
+        "arn",
+        "health_check_path",
+        "name",
+        "port",
+        "protocol",
+        "target_type",
+        "vpc_id"
+      ],
+      "database": [
+        "arn",
+        "encrypted",
+        "identifier",
+        "kms_key_arn",
+        "publicly_accessible",
+        "status"
+      ],
+      "route53": [
+        "record_count",
+        "records_sha256",
+        "zone_id"
+      ],
+      "simulator_context_entry": [
+        "ContextKeyName",
+        "ContextKeyType",
+        "ContextKeyValues"
+      ],
+      "terraform": [
+        "address_count",
+        "locked",
+        "state_metadata_sha256"
+      ]
+    },
+    "assertion_groups": [
+      "sts-exact-operator-and-account",
+      "github-exact-repository-environment-and-main-policy",
+      "iam-exact-role-trust-inline-attached-boundary-session",
+      "kms-exact-key-alias-rotation-policy-complete-grants",
+      "s3-exact-owner-location-object-encryption-versioning-public-access-policy-absence-lock",
+      "ecr-exact-repository-zero-images-zero-digest-repository-and-registry-policy-absence",
+      "secrets-exact-six-metadata-zero-versions-and-policy-absence",
+      "ecs-exact-cluster-services-task-definitions-and-zero-tasks",
+      "rds-exact-identity-kms-encryption-status-and-network-boundary",
+      "elb-exact-target-group-and-zero-targets",
+      "route53-exact-zone-six-records-and-canonical-hash",
+      "cloudfront-exact-id-arn-domain-status-enabled-alias-and-route53-targets",
+      "terraform-exact-state-object-metadata-address-count-and-lock-absence"
+    ],
+    "simulator_request_fields": [
+      "action_names",
+      "context_entries",
+      "policy_source_arn",
+      "resource_arns"
+    ],
+    "simulator_result_fields": [
+      "EvaluationResults",
+      "is_truncated",
+      "request",
+      "row_id"
+    ],
+    "forbidden": [
+      "GetObject",
+      "GetSecretValue",
+      "terraform plan",
+      "terraform apply",
+      "workflow dispatch",
+      "aws configure export-credentials",
+      "set -x"
+    ],
+    "rds_managed_master_secret": "outside-six-bootstrap-secrets-and-never-read"
+  },
+  "simulator_rows": [
+    {
+      "id": "publisher-ecr-describe-exact",
+      "principal": "publisher",
+      "action": "ecr:DescribeImages",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher repository positive control"
+    },
+    {
+      "id": "publisher-ecr-describe-foreign",
+      "principal": "publisher",
+      "action": "ecr:DescribeImages",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-describe-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-describe-production",
+      "principal": "publisher",
+      "action": "ecr:DescribeImages",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-describe-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-batch-check-exact",
+      "principal": "publisher",
+      "action": "ecr:BatchCheckLayerAvailability",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher repository publish control"
+    },
+    {
+      "id": "publisher-ecr-batch-get-exact",
+      "principal": "publisher",
+      "action": "ecr:BatchGetImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher repository read control"
+    },
+    {
+      "id": "publisher-ecr-complete-upload-exact",
+      "principal": "publisher",
+      "action": "ecr:CompleteLayerUpload",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher repository publish control"
+    },
+    {
+      "id": "publisher-ecr-initiate-upload-exact",
+      "principal": "publisher",
+      "action": "ecr:InitiateLayerUpload",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher repository publish control"
+    },
+    {
+      "id": "publisher-ecr-put-image-exact",
+      "principal": "publisher",
+      "action": "ecr:PutImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher repository publish control"
+    },
+    {
+      "id": "publisher-ecr-upload-part-exact",
+      "principal": "publisher",
+      "action": "ecr:UploadLayerPart",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher repository publish control"
+    },
+    {
+      "id": "publisher-ecr-batch-check-foreign",
+      "principal": "publisher",
+      "action": "ecr:BatchCheckLayerAvailability",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-batch-check-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-batch-check-production",
+      "principal": "publisher",
+      "action": "ecr:BatchCheckLayerAvailability",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-batch-check-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-batch-get-foreign",
+      "principal": "publisher",
+      "action": "ecr:BatchGetImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-batch-get-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-batch-get-production",
+      "principal": "publisher",
+      "action": "ecr:BatchGetImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-batch-get-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-complete-upload-foreign",
+      "principal": "publisher",
+      "action": "ecr:CompleteLayerUpload",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-complete-upload-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-complete-upload-production",
+      "principal": "publisher",
+      "action": "ecr:CompleteLayerUpload",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-complete-upload-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-initiate-upload-foreign",
+      "principal": "publisher",
+      "action": "ecr:InitiateLayerUpload",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-initiate-upload-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-initiate-upload-production",
+      "principal": "publisher",
+      "action": "ecr:InitiateLayerUpload",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-initiate-upload-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-put-image-foreign",
+      "principal": "publisher",
+      "action": "ecr:PutImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-put-image-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-put-image-production",
+      "principal": "publisher",
+      "action": "ecr:PutImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-put-image-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-upload-part-foreign",
+      "principal": "publisher",
+      "action": "ecr:UploadLayerPart",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-upload-part-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-upload-part-production",
+      "principal": "publisher",
+      "action": "ecr:UploadLayerPart",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-upload-part-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "publisher-ecr-token-exact",
+      "principal": "publisher",
+      "action": "ecr:GetAuthorizationToken",
+      "resource": "*",
+      "context": {
+        "aws:RequestedRegion": "eu-west-1"
+      },
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact publisher region authorization-token control"
+    },
+    {
+      "id": "publisher-ecr-token-foreign-region",
+      "principal": "publisher",
+      "action": "ecr:GetAuthorizationToken",
+      "resource": "*",
+      "context": {
+        "aws:RequestedRegion": "eu-central-1"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-token-exact",
+      "changed_axis": "context:aws:RequestedRegion",
+      "rationale": "Only the requested-region context changes"
+    },
+    {
+      "id": "publisher-ecr-token-production-region",
+      "principal": "publisher",
+      "action": "ecr:GetAuthorizationToken",
+      "resource": "*",
+      "context": {
+        "aws:RequestedRegion": "us-east-1"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "publisher-ecr-token-exact",
+      "changed_axis": "context:aws:RequestedRegion",
+      "rationale": "Only the requested-region context changes"
+    },
+    {
+      "id": "deployer-ecr-describe-exact",
+      "principal": "deployer",
+      "action": "ecr:DescribeImages",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact deployer repository positive control"
+    },
+    {
+      "id": "deployer-ecr-describe-foreign",
+      "principal": "deployer",
+      "action": "ecr:DescribeImages",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-ecr-describe-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "deployer-ecr-batch-get-exact",
+      "principal": "deployer",
+      "action": "ecr:BatchGetImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact deployer repository read control"
+    },
+    {
+      "id": "deployer-ecr-batch-get-foreign",
+      "principal": "deployer",
+      "action": "ecr:BatchGetImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-foreign",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-ecr-batch-get-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "deployer-ecr-batch-get-production",
+      "principal": "deployer",
+      "action": "ecr:BatchGetImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-ecr-batch-get-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "deployer-ecr-describe-production",
+      "principal": "deployer",
+      "action": "ecr:DescribeImages",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-production",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-ecr-describe-exact",
+      "changed_axis": "resource",
+      "rationale": "Only the repository resource changes"
+    },
+    {
+      "id": "deployer-describe-web",
+      "principal": "deployer",
+      "action": "ecs:DescribeServices",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Web service positive with no nonexistent cluster condition"
+    },
+    {
+      "id": "deployer-describe-worker",
+      "principal": "deployer",
+      "action": "ecs:DescribeServices",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+      "context": {},
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Worker service positive with no nonexistent cluster condition"
+    },
+    {
+      "id": "deployer-describe-web-foreign",
+      "principal": "deployer",
+      "action": "ecs:DescribeServices",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-foreign-web",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-describe-web",
+      "changed_axis": "resource",
+      "rationale": "Only the service resource changes"
+    },
+    {
+      "id": "deployer-describe-web-production",
+      "principal": "deployer",
+      "action": "ecs:DescribeServices",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-production/website-production-web",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-describe-web",
+      "changed_axis": "resource",
+      "rationale": "Only the service resource changes"
+    },
+    {
+      "id": "deployer-update-web",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "${web_task_definition_arn}"
+      },
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact web promotion positive"
+    },
+    {
+      "id": "deployer-update-web-resource-foreign",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-foreign-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "${web_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-web",
+      "changed_axis": "resource",
+      "rationale": "Only the service resource changes"
+    },
+    {
+      "id": "deployer-update-web-cluster-foreign",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-foreign",
+        "ecs:task-definition": "${web_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-web",
+      "changed_axis": "context:ecs:cluster",
+      "rationale": "Only the cluster context changes"
+    },
+    {
+      "id": "deployer-update-web-family-production",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-production-web:1"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-web",
+      "changed_axis": "context:ecs:task-definition",
+      "rationale": "Only the task-definition context changes"
+    },
+    {
+      "id": "deployer-update-worker",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "${worker_task_definition_arn}"
+      },
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact worker promotion positive"
+    },
+    {
+      "id": "deployer-update-worker-resource-production",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-production/website-production-worker",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "${worker_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-worker",
+      "changed_axis": "resource",
+      "rationale": "Only the service resource changes"
+    },
+    {
+      "id": "deployer-update-worker-cluster-production",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-production",
+        "ecs:task-definition": "${worker_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-worker",
+      "changed_axis": "context:ecs:cluster",
+      "rationale": "Only the cluster context changes"
+    },
+    {
+      "id": "deployer-update-worker-family-foreign",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-foreign-worker:1"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-worker",
+      "changed_axis": "context:ecs:task-definition",
+      "rationale": "Only the task-definition context changes"
+    },
+    {
+      "id": "deployer-run-migration",
+      "principal": "deployer",
+      "action": "ecs:RunTask",
+      "resource": "${migration_task_definition_arn}",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+      },
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact migration task positive"
+    },
+    {
+      "id": "deployer-run-migration-resource-foreign",
+      "principal": "deployer",
+      "action": "ecs:RunTask",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-foreign-migration:1",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-run-migration",
+      "changed_axis": "resource",
+      "rationale": "Only the task resource changes"
+    },
+    {
+      "id": "deployer-run-migration-cluster-production",
+      "principal": "deployer",
+      "action": "ecs:RunTask",
+      "resource": "${migration_task_definition_arn}",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-production"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-run-migration",
+      "changed_axis": "context:ecs:cluster",
+      "rationale": "Only the cluster context changes"
+    },
+    {
+      "id": "deployer-pass-task-role",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-task-application",
+      "context": {
+        "iam:PassedToService": "ecs-tasks.amazonaws.com"
+      },
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact application task role positive"
+    },
+    {
+      "id": "deployer-pass-execution-role",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-task-execution",
+      "context": {
+        "iam:PassedToService": "ecs-tasks.amazonaws.com"
+      },
+      "expected": "allowed",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Exact execution task role positive"
+    },
+    {
+      "id": "deployer-pass-task-role-resource-foreign",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-foreign-task-application",
+      "context": {
+        "iam:PassedToService": "ecs-tasks.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-task-role",
+      "changed_axis": "resource",
+      "rationale": "Only the role resource changes"
+    },
+    {
+      "id": "deployer-pass-task-role-context-foreign",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-task-application",
+      "context": {
+        "iam:PassedToService": "lambda.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-task-role",
+      "changed_axis": "context:iam:PassedToService",
+      "rationale": "Only the service context changes"
+    },
+    {
+      "id": "deployer-describe-worker-foreign",
+      "principal": "deployer",
+      "action": "ecs:DescribeServices",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-foreign-worker",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-describe-worker",
+      "changed_axis": "resource",
+      "rationale": "Only the worker service resource changes"
+    },
+    {
+      "id": "deployer-describe-worker-production",
+      "principal": "deployer",
+      "action": "ecs:DescribeServices",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-production/website-production-worker",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": "deployer-describe-worker",
+      "changed_axis": "resource",
+      "rationale": "Only the worker service resource changes"
+    },
+    {
+      "id": "deployer-update-web-resource-production",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-production/website-production-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "${web_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-web",
+      "changed_axis": "resource",
+      "rationale": "Only the web service resource changes"
+    },
+    {
+      "id": "deployer-update-web-cluster-production",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-production",
+        "ecs:task-definition": "${web_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-web",
+      "changed_axis": "context:ecs:cluster",
+      "rationale": "Only the cluster context changes"
+    },
+    {
+      "id": "deployer-update-web-family-foreign",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-foreign-web:1"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-web",
+      "changed_axis": "context:ecs:task-definition",
+      "rationale": "Only the web task-family context changes"
+    },
+    {
+      "id": "deployer-update-worker-resource-foreign",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-foreign-worker",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "${worker_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-worker",
+      "changed_axis": "resource",
+      "rationale": "Only the worker service resource changes"
+    },
+    {
+      "id": "deployer-update-worker-cluster-foreign",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-foreign",
+        "ecs:task-definition": "${worker_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-worker",
+      "changed_axis": "context:ecs:cluster",
+      "rationale": "Only the cluster context changes"
+    },
+    {
+      "id": "deployer-update-worker-family-production",
+      "principal": "deployer",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-worker",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-production-worker:1"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-update-worker",
+      "changed_axis": "context:ecs:task-definition",
+      "rationale": "Only the worker task-family context changes"
+    },
+    {
+      "id": "deployer-run-migration-resource-production",
+      "principal": "deployer",
+      "action": "ecs:RunTask",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-production-migration:1",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-run-migration",
+      "changed_axis": "resource",
+      "rationale": "Only the migration task-family resource changes"
+    },
+    {
+      "id": "deployer-run-migration-cluster-foreign",
+      "principal": "deployer",
+      "action": "ecs:RunTask",
+      "resource": "${migration_task_definition_arn}",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-foreign"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-run-migration",
+      "changed_axis": "context:ecs:cluster",
+      "rationale": "Only the cluster context changes"
+    },
+    {
+      "id": "deployer-pass-task-role-resource-production",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-production-task-application",
+      "context": {
+        "iam:PassedToService": "ecs-tasks.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-task-role",
+      "changed_axis": "resource",
+      "rationale": "Only the application-role resource changes"
+    },
+    {
+      "id": "deployer-pass-task-role-context-production",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-task-application",
+      "context": {
+        "iam:PassedToService": "codebuild.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-task-role",
+      "changed_axis": "context:iam:PassedToService",
+      "rationale": "Only the service context changes"
+    },
+    {
+      "id": "deployer-pass-execution-role-resource-foreign",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-foreign-task-execution",
+      "context": {
+        "iam:PassedToService": "ecs-tasks.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-execution-role",
+      "changed_axis": "resource",
+      "rationale": "Only the execution-role resource changes"
+    },
+    {
+      "id": "deployer-pass-execution-role-resource-production",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-production-task-execution",
+      "context": {
+        "iam:PassedToService": "ecs-tasks.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-execution-role",
+      "changed_axis": "resource",
+      "rationale": "Only the execution-role resource changes"
+    },
+    {
+      "id": "deployer-pass-execution-role-context-foreign",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-task-execution",
+      "context": {
+        "iam:PassedToService": "lambda.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-execution-role",
+      "changed_axis": "context:iam:PassedToService",
+      "rationale": "Only the service context changes"
+    },
+    {
+      "id": "deployer-pass-execution-role-context-production",
+      "principal": "deployer",
+      "action": "iam:PassRole",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-task-execution",
+      "context": {
+        "iam:PassedToService": "codebuild.amazonaws.com"
+      },
+      "expected": "implicitDeny",
+      "negative_of": "deployer-pass-execution-role",
+      "changed_axis": "context:iam:PassedToService",
+      "rationale": "Only the service context changes"
+    },
+    {
+      "id": "publisher-s3-state-deny",
+      "principal": "publisher",
+      "action": "s3:GetObject",
+      "resource": "arn:aws:s3:::datamailer-sandbox-817685572750-us-east-1-tfstate/sandbox/website/terraform.tfstate",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "State access omitted"
+    },
+    {
+      "id": "deployer-s3-state-deny",
+      "principal": "deployer",
+      "action": "s3:GetObject",
+      "resource": "arn:aws:s3:::datamailer-sandbox-817685572750-us-east-1-tfstate/sandbox/website/terraform.tfstate",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "State access omitted"
+    },
+    {
+      "id": "publisher-secret-deny",
+      "principal": "publisher",
+      "action": "secretsmanager:GetSecretValue",
+      "resource": "${database_secret_arn}",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Secret values omitted"
+    },
+    {
+      "id": "deployer-secret-deny",
+      "principal": "deployer",
+      "action": "secretsmanager:GetSecretValue",
+      "resource": "${database_secret_arn}",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Secret values omitted"
+    },
+    {
+      "id": "publisher-deregister-deny",
+      "principal": "publisher",
+      "action": "ecs:DeregisterTaskDefinition",
+      "resource": "*",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Task-definition deregistration omitted"
+    },
+    {
+      "id": "deployer-deregister-deny",
+      "principal": "deployer",
+      "action": "ecs:DeregisterTaskDefinition",
+      "resource": "*",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Task-definition deregistration omitted"
+    },
+    {
+      "id": "publisher-iam-publisher-deny",
+      "principal": "publisher",
+      "action": "iam:UpdateRoleDescription",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-github-publisher",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "IAM mutation omitted"
+    },
+    {
+      "id": "publisher-iam-deployer-deny",
+      "principal": "publisher",
+      "action": "iam:UpdateRoleDescription",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-github-deployer",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "IAM mutation omitted"
+    },
+    {
+      "id": "deployer-iam-publisher-deny",
+      "principal": "deployer",
+      "action": "iam:UpdateRoleDescription",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-github-publisher",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "IAM mutation omitted"
+    },
+    {
+      "id": "deployer-iam-deployer-deny",
+      "principal": "deployer",
+      "action": "iam:UpdateRoleDescription",
+      "resource": "arn:aws:iam::817685572750:role/website-sandbox-github-deployer",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "IAM mutation omitted"
+    },
+    {
+      "id": "publisher-route53-deny",
+      "principal": "publisher",
+      "action": "route53:ChangeResourceRecordSets",
+      "resource": "arn:aws:route53:::hostedzone/Z05963572WVWFHDQZH5NE",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "DNS mutation omitted"
+    },
+    {
+      "id": "deployer-route53-deny",
+      "principal": "deployer",
+      "action": "route53:ChangeResourceRecordSets",
+      "resource": "arn:aws:route53:::hostedzone/Z05963572WVWFHDQZH5NE",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "DNS mutation omitted"
+    },
+    {
+      "id": "publisher-cloudfront-deny",
+      "principal": "publisher",
+      "action": "cloudfront:CreateInvalidation",
+      "resource": "${cloudfront_distribution_arn}",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "CloudFront mutation omitted"
+    },
+    {
+      "id": "deployer-cloudfront-deny",
+      "principal": "deployer",
+      "action": "cloudfront:CreateInvalidation",
+      "resource": "${cloudfront_distribution_arn}",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "CloudFront mutation omitted"
+    },
+    {
+      "id": "publisher-target-group-deny",
+      "principal": "publisher",
+      "action": "elasticloadbalancing:ModifyTargetGroupAttributes",
+      "resource": "${target_group_arn}",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Target-group mutation omitted"
+    },
+    {
+      "id": "deployer-target-group-deny",
+      "principal": "deployer",
+      "action": "elasticloadbalancing:ModifyTargetGroupAttributes",
+      "resource": "${target_group_arn}",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Target-group mutation omitted"
+    },
+    {
+      "id": "publisher-rds-deny",
+      "principal": "publisher",
+      "action": "rds:ModifyDBInstance",
+      "resource": "arn:aws:rds:eu-west-1:817685572750:db:website-sandbox",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Database mutation omitted"
+    },
+    {
+      "id": "deployer-rds-deny",
+      "principal": "deployer",
+      "action": "rds:ModifyDBInstance",
+      "resource": "arn:aws:rds:eu-west-1:817685572750:db:website-sandbox",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Database mutation omitted"
+    },
+    {
+      "id": "publisher-kms-deny",
+      "principal": "publisher",
+      "action": "kms:CreateGrant",
+      "resource": "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Grant creation omitted"
+    },
+    {
+      "id": "deployer-kms-deny",
+      "principal": "deployer",
+      "action": "kms:CreateGrant",
+      "resource": "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d-fc28b7813887",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Grant creation omitted"
+    },
+    {
+      "id": "publisher-ecr-delete-deny",
+      "principal": "publisher",
+      "action": "ecr:BatchDeleteImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Image deletion omitted"
+    },
+    {
+      "id": "deployer-ecr-delete-deny",
+      "principal": "deployer",
+      "action": "ecr:BatchDeleteImage",
+      "resource": "arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Image deletion omitted"
+    },
+    {
+      "id": "publisher-describe-services-deny",
+      "principal": "publisher",
+      "action": "ecs:DescribeServices",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {},
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Publisher ECS service access omitted"
+    },
+    {
+      "id": "publisher-update-service-deny",
+      "principal": "publisher",
+      "action": "ecs:UpdateService",
+      "resource": "arn:aws:ecs:eu-west-1:817685572750:service/website-sandbox/website-sandbox-web",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+        "ecs:task-definition": "${web_task_definition_arn}"
+      },
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Publisher service mutation omitted"
+    },
+    {
+      "id": "publisher-run-task-deny",
+      "principal": "publisher",
+      "action": "ecs:RunTask",
+      "resource": "${migration_task_definition_arn}",
+      "context": {
+        "ecs:cluster": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+      },
+      "expected": "implicitDeny",
+      "negative_of": null,
+      "changed_axis": null,
+      "rationale": "Publisher task launch omitted"
+    }
+  ]
+}

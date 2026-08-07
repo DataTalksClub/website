@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -588,6 +590,165 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "S3 state-bucket policy",
         ):
             self.assertIn(expected, probe)
+
+    def test_gate_b_evidence_contract_is_atomic_offline_and_workflow_isolated(self) -> None:
+        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
+        manifest = json.loads((ROOT / "deploy/gate_b_manifest.json").read_text())
+        gate = runbook.split("### #81 Gate B — readback and simulator preflight", maxsplit=1)[
+            1
+        ].split("Before the regional `DescribeTargetHealth`", maxsplit=1)[0]
+
+        self.assertEqual(manifest["schema_version"], 1)
+        self.assertEqual(manifest["contract_id"], "website-sandbox-gate-b-v1")
+        self.assertEqual(
+            manifest["source_binding"],
+            {
+                "website_sha": "07186fc9bf9cf353fa12b74e97018d7f951d0fe6",
+                "website_tree": "9621d51fd8952a6c12af5ea62b207aa07c988ac5",
+                "infra_sha": "95d93f7e07ded19e482a0c6d6471fbd93fb608d8",
+                "infra_tree": "1c38fdf6872a448d92e8191282525bafd3ab3410",
+            },
+        )
+        self.assertEqual(
+            manifest["resource_policy_absence"],
+            {
+                "s3_bucket": "NoSuchBucketPolicy",
+                "ecr_repository": "RepositoryPolicyNotFoundException",
+                "ecr_registry": "RegistryPolicyNotFoundException",
+                "secrets_manager": "success-with-resource-policy-member-absent",
+            },
+        )
+        self.assertEqual(len(manifest["static"]["secret_names"]), 6)
+        self.assertEqual(manifest["static"]["kms"]["alias_name"], "alias/website-sandbox-runtime")
+        self.assertIn("operator_identity", manifest["dynamic_binding_schema"]["required"])
+        self.assertEqual(len(manifest["simulator_rows"]), 90)
+        self.assertEqual(
+            set(manifest["readback_manifest"]["field_schemas"]),
+            {
+                "cloudfront",
+                "database",
+                "ecr",
+                "ecs_cluster",
+                "ecs_service",
+                "kms",
+                "operator_identity",
+                "role",
+                "route53",
+                "s3",
+                "secret",
+                "simulator_context_entry",
+                "target_group",
+                "task_definition",
+                "terraform",
+            },
+        )
+        for role in manifest["static"]["roles"].values():
+            self.assertEqual(role["attached_policies"], [])
+            self.assertIsNone(role["permissions_boundary"])
+            self.assertEqual(role["inline_policy_names"], [role["name"]])
+
+        command_blocks = [part.split("```", maxsplit=1)[0] for part in gate.split("```bash")[1:]]
+        commands = "\n".join(command_blocks)
+        for required in (
+            "aws iam get-role ",
+            "aws iam get-role-policy ",
+            "aws kms get-key-policy ",
+            "aws kms list-grants ",
+            "aws s3api get-bucket-ownership-controls ",
+            "aws s3api get-bucket-policy ",
+            "aws ecr get-repository-policy ",
+            "aws ecr get-registry-policy ",
+            "aws secretsmanager get-resource-policy ",
+            "aws cloudfront get-distribution ",
+            "aws route53 list-resource-record-sets ",
+            "gh variable get ",
+            "gh api --method GET ",
+            "aws iam simulate-principal-policy ",
+            "sandbox/website/terraform.tfstate.tflock",
+        ):
+            self.assertIn(required, commands)
+        for forbidden in (
+            "aws s3api get-object ",
+            "aws secretsmanager get-secret-value ",
+            "terraform plan",
+            "terraform apply",
+            "gh workflow run",
+            "--debug",
+            "set -x",
+        ):
+            self.assertNotIn(forbidden, commands.lower())
+        self.assertFalse(
+            any(
+                line.lstrip().startswith(("aws ", "gh ", "terraform "))
+                for line in commands.splitlines()
+            )
+        )
+
+        mode_positions = [
+            gate.index(f"python -m deploy.gate_b_evidence {mode}")
+            for mode in ("manifest", "bindings", "policies", "resources", "simulator", "summary")
+        ]
+        self.assertEqual(mode_positions, sorted(mode_positions))
+        self.assertIn("never falls through", gate)
+        self.assertIn("MissingContextValues=[]", gate)
+        self.assertIn("BucketOwnerEnforced", gate)
+        self.assertIn("registry-v2", gate)
+        self.assertIn("ResourcePolicy` member absent", gate)
+        self.assertIn("origin custom headers", gate)
+        self.assertIn("one resource or one context key", gate)
+        self.assertIn("payload_sha256", gate)
+        self.assertIn('chmod 0700 -- ".tmp"', gate)
+        self.assertIn("chmod 0600", gate)
+        self.assertIn("ContextKeyName", gate)
+        self.assertIn("grant_inventory_truncated", gate)
+        self.assertIn("null permissions", gate)
+        self.assertIn("code-pinned canonical SHA-256", gate)
+        self.assertIn("superseded", audit)
+        self.assertIn("application role as `GranteePrincipal` or `RetiringPrincipal`", audit)
+
+        rows = manifest["simulator_rows"]
+        by_id = {row["id"]: row for row in rows}
+        self.assertEqual(len(by_id), len(rows))
+        for row in rows:
+            self.assertIsInstance(row["action"], str)
+            self.assertIsInstance(row["resource"], str)
+            self.assertIn(row["expected"], {"allowed", "implicitDeny"})
+            parent_id = row["negative_of"]
+            if parent_id is None:
+                self.assertIsNone(row["changed_axis"])
+                continue
+            parent = by_id[parent_id]
+            self.assertEqual(parent["expected"], "allowed")
+            self.assertEqual(parent["principal"], row["principal"])
+            self.assertEqual(parent["action"], row["action"])
+            if row["changed_axis"] == "resource":
+                self.assertNotEqual(parent["resource"], row["resource"])
+                self.assertEqual(parent["context"], row["context"])
+            else:
+                self.assertEqual(parent["resource"], row["resource"])
+
+        unchanged_hashes = {
+            ".github/workflows/ci.yml": (
+                "6932845a0f919c816a086bdcf5976d38bb1195ee75af4d118e6fd4b962e11ac9"
+            ),
+            "deploy/oidc_probe.py": (
+                "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
+            ),
+            "deploy/oidc_claim_probe.py": (
+                "693b1844e5e1c40709ce368ecb6bef22814a5912ceaa635288f0d0204a75ba28"
+            ),
+            "core/tests/test_deployment_oidc_probe.py": (
+                "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
+            ),
+            "pyproject.toml": ("892b36023b1f984616bf1424d8bdeeeef38984b58570ecf422689814d2504be9"),
+            "uv.lock": "2f429a2e0edad55dc14b3a70c0697304ce11a832c93431558073fbdca514cb10",
+        }
+        for relative_path, expected_hash in unchanged_hashes.items():
+            actual_hash = hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest()
+            self.assertEqual(actual_hash, expected_hash)
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertNotIn("gate_b_evidence", workflow)
 
     def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
         runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
