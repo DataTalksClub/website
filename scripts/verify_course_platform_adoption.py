@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""Verify the pinned Course Management Platform copy and its manifest."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import subprocess
+from dataclasses import dataclass
+from pathlib import Path
+
+SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
+SOURCE_CHECKOUT = Path(".tmp/cmp-source-98a2352")
+MANIFEST = Path("_docs/adoption/course-platform/copied-files.tsv")
+PATCH_MANIFEST = Path("_docs/adoption/course-platform/integration-patched-files.tsv")
+TARGET_INTEGRATION_MANIFEST = Path(
+    "_docs/adoption/course-platform/target-owned-compatibility-shims.tsv"
+)
+TARGET_COMPATIBILITY_CLASSIFICATION = "target-owned compatibility shim"
+REQUIRED_TARGET_COMPATIBILITY_SHIMS = {
+    "website/admin_api_urls.py",
+    "website/admin_api_views.py",
+}
+ALLOWLIST = {
+    "accounts": "accounts",
+    "api": "api",
+    "cadmin": "cadmin",
+    "course_management": "course_management",
+    "courses": "courses",
+    "data": "data",
+    "e2e": "e2e",
+    "scripts": "scripts",
+    "templates": "course_platform_templates",
+}
+
+
+@dataclass(frozen=True)
+class Entry:
+    source: str
+    destination: str
+    size: int
+    sha256: str
+
+    def line(self) -> str:
+        return f"{self.source}\t{self.destination}\t{self.size}\t{self.sha256}"
+
+
+@dataclass(frozen=True)
+class TargetIntegrationEntry:
+    destination: str
+    classification: str
+    size: int
+    sha256: str
+    rationale: str
+
+
+def run_git(source: Path, *args: str) -> str:
+    result = subprocess.run(
+        ["git", "-C", str(source), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout
+
+
+def digest(path: Path) -> str:
+    hasher = hashlib.sha256()
+    with path.open("rb") as source_file:
+        for chunk in iter(lambda: source_file.read(1024 * 1024), b""):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def destination_for(source_path: str) -> str:
+    root, separator, suffix = source_path.partition("/")
+    destination_root = ALLOWLIST[root]
+    return destination_root if not separator else f"{destination_root}/{suffix}"
+
+
+def expected_entries(source: Path) -> list[Entry]:
+    tracked = run_git(source, "ls-files", "--", *ALLOWLIST).splitlines()
+    entries = []
+    for source_path in sorted(tracked):
+        absolute_source = source / source_path
+        entries.append(
+            Entry(
+                source=source_path,
+                destination=destination_for(source_path),
+                size=absolute_source.stat().st_size,
+                sha256=digest(absolute_source),
+            )
+        )
+    return entries
+
+
+def read_manifest(path: Path) -> list[Entry]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    expected_header = "source_path\tdestination_path\tsize_bytes\tsha256"
+    if not lines or lines[0] != expected_header:
+        raise SystemExit(f"invalid manifest header: {path}")
+    entries = []
+    for line in lines[1:]:
+        source, destination, raw_size, sha256 = line.split("\t")
+        entries.append(Entry(source, destination, int(raw_size), sha256))
+    return entries
+
+
+def render_manifest(entries: list[Entry]) -> str:
+    header = "source_path\tdestination_path\tsize_bytes\tsha256"
+    return "\n".join([header, *(entry.line() for entry in entries)]) + "\n"
+
+
+def read_patch_manifest(path: Path) -> dict[str, tuple[int, str]]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    expected_header = "destination_path\tsize_bytes\tsha256\trationale"
+    if not lines or lines[0] != expected_header:
+        raise SystemExit(f"invalid integration patch manifest header: {path}")
+    patches = {}
+    for line in lines[1:]:
+        destination, raw_size, sha256, _rationale = line.split("\t", 3)
+        patches[destination] = (int(raw_size), sha256)
+    return patches
+
+
+def read_target_integration_manifest(path: Path) -> list[TargetIntegrationEntry]:
+    lines = path.read_text(encoding="utf-8").splitlines()
+    expected_header = "destination_path\tclassification\tsize_bytes\tsha256\trationale"
+    if not lines or lines[0] != expected_header:
+        raise SystemExit(f"invalid target integration manifest header: {path}")
+    entries = []
+    for line in lines[1:]:
+        destination, classification, raw_size, sha256, rationale = line.split("\t", 4)
+        entries.append(
+            TargetIntegrationEntry(
+                destination=destination,
+                classification=classification,
+                size=int(raw_size),
+                sha256=sha256,
+                rationale=rationale,
+            )
+        )
+    return entries
+
+
+def verify_source(source: Path) -> None:
+    if run_git(source, "rev-parse", "HEAD").strip() != SOURCE_COMMIT:
+        raise SystemExit(f"source checkout is not pinned to {SOURCE_COMMIT}")
+    if run_git(source, "status", "--porcelain=v1", "--untracked-files=all"):
+        raise SystemExit("source checkout is not clean")
+
+
+def verify_destinations(
+    repo: Path, entries: list[Entry], patches: dict[str, tuple[int, str]]
+) -> None:
+    errors: list[str] = []
+    manifest_destinations = {entry.destination for entry in entries}
+    unknown_patches = sorted(set(patches) - manifest_destinations)
+    errors.extend(
+        f"integration patch is not an allowlisted copy: {path}" for path in unknown_patches
+    )
+    for entry in entries:
+        destination = repo / entry.destination
+        if not destination.is_file():
+            errors.append(f"missing destination: {entry.destination}")
+            continue
+        actual_size = destination.stat().st_size
+        actual_sha256 = digest(destination)
+        expected_size, expected_sha256 = patches.get(entry.destination, (entry.size, entry.sha256))
+        if actual_size != expected_size or actual_sha256 != expected_sha256:
+            errors.append(
+                "destination differs from recorded copy/integration state: "
+                f"{entry.destination} ({actual_size}, {actual_sha256})"
+            )
+    if errors:
+        raise SystemExit("\n".join(errors))
+
+
+def verify_target_integrations(repo: Path, entries: list[TargetIntegrationEntry]) -> None:
+    errors: list[str] = []
+    destinations = {entry.destination for entry in entries}
+    if destinations != REQUIRED_TARGET_COMPATIBILITY_SHIMS:
+        errors.append(
+            "target integration manifest paths differ from required compatibility shims: "
+            f"{sorted(destinations)}"
+        )
+    for entry in entries:
+        destination = repo / entry.destination
+        if entry.classification != TARGET_COMPATIBILITY_CLASSIFICATION:
+            errors.append(f"invalid target integration classification: {entry.destination}")
+        if not entry.rationale.strip():
+            errors.append(f"missing target integration rationale: {entry.destination}")
+        if not destination.is_file():
+            errors.append(f"missing target integration file: {entry.destination}")
+            continue
+        actual_size = destination.stat().st_size
+        actual_sha256 = digest(destination)
+        if actual_size != entry.size or actual_sha256 != entry.sha256:
+            errors.append(
+                "target integration differs from recorded state: "
+                f"{entry.destination} ({actual_size}, {actual_sha256})"
+            )
+    if errors:
+        raise SystemExit("\n".join(errors))
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--source", type=Path, default=SOURCE_CHECKOUT)
+    parser.add_argument("--write-manifest", action="store_true")
+    args = parser.parse_args()
+
+    repo = Path(__file__).resolve().parents[1]
+    source = args.source if args.source.is_absolute() else repo / args.source
+    manifest_path = repo / MANIFEST
+
+    verify_source(source)
+    expected = expected_entries(source)
+    if args.write_manifest:
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text(render_manifest(expected), encoding="utf-8")
+
+    recorded = read_manifest(manifest_path)
+    if recorded != expected:
+        raise SystemExit("manifest does not match the pinned source allowlist")
+    patches = read_patch_manifest(repo / PATCH_MANIFEST)
+    verify_destinations(repo, recorded, patches)
+    target_integrations = read_target_integration_manifest(repo / TARGET_INTEGRATION_MANIFEST)
+    verify_target_integrations(repo, target_integrations)
+    print(
+        f"verified {len(recorded)} copied files from {SOURCE_COMMIT} and "
+        f"{len(target_integrations)} target-owned compatibility shims"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

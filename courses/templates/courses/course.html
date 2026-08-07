@@ -1,0 +1,219 @@
+{% extends 'base.html' %}
+{% load tz %}
+{% load custom_filters %}
+
+{% block breadcrumbs %}
+  <li><a href="{% url 'course' course.slug %}">{{ course.title }}</a></li>
+{% endblock %}
+
+{% block content %}
+<section>
+  <div class="max-w-3xl">
+    <h1 class="text-3xl font-semibold leading-tight tracking-normal md:text-4xl">
+      {{ course.title }}
+    </h1>
+    <div class="mt-3 text-base leading-7 app-text md:text-lg">
+      {{ course.description | urlize_target_blank }}
+    </div>
+  </div>
+
+  <div class="course-actions mt-5 flex flex-wrap gap-2 md:mt-7">
+    {% if registration_campaign and not has_enrollment and not has_registration %}
+      <a href="{% url 'registration_campaign' registration_campaign.slug %}" class="primer-button primer-button-secondary course-register-button whitespace-nowrap">
+        <i class="fas fa-user-plus"></i> Register
+      </a>
+    {% elif course.registration_url and not has_enrollment %}
+      <a href="{{ course.registration_url }}" class="primer-button primer-button-secondary course-register-button whitespace-nowrap">
+        <i class="fas fa-user-plus"></i> Register
+      </a>
+    {% endif %}
+    {% if course.github_repo_url %}
+      <a href="{{ course.github_repo_url }}"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="primer-button primer-button-secondary whitespace-nowrap">
+        <i class="fab fa-github" aria-hidden="true"></i> GitHub
+      </a>
+    {% endif %}
+    {% if course.first_homework_scored %}
+      <a href="{% url 'leaderboard' course.slug %}" class="primer-button primer-button-secondary whitespace-nowrap">
+        <i class="fas fa-trophy"></i> Course leaderboard
+      </a>
+    {% endif %}
+    {% if course.first_homework_scored %}
+      <a href="{% url 'dashboard' course.slug %}" class="primer-button primer-button-secondary whitespace-nowrap">
+        <i class="fas fa-chart-bar"></i> Course dashboard
+      </a>
+    {% endif %}
+    {% if is_authenticated and has_enrollment %}
+      <a href="{% url 'enrollment' course.slug %}" class="primer-button primer-button-secondary whitespace-nowrap">
+        <i class="fas fa-user-edit"></i> Edit course profile
+      </a>
+    {% endif %}
+    {% if is_authenticated and certificate_url %}
+      <a href="{{ certificate_url }}" target="_blank" class="primer-button primer-button-secondary whitespace-nowrap">
+        Download Certificate
+      </a>
+    {% endif %}
+  </div>
+
+  {% if user.is_staff %}
+    <div class="mt-6">
+      <a href="{% url 'cadmin_course' course.slug %}" class="inline-flex items-center text-sm font-medium app-link">
+        <i class="fas fa-cog mr-2"></i> Manage course in cadmin
+      </a>
+    </div>
+  {% endif %}
+
+  {% if is_authenticated and course.first_homework_scored %}
+    <div class="mt-6 flex items-baseline gap-2 text-sm">
+      <span class="app-muted">Total score</span>
+      <span class="text-base font-semibold app-heading">{{ total_score|default:"N/A" }}</span>
+    </div>
+  {% endif %}
+</section>
+
+{% if homeworks %}
+  <section class="mt-8">
+    <div class="mb-4">
+      <h2 class="text-2xl font-semibold">Homework</h2>
+    </div>
+
+    <div class="hidden border-b app-border pb-2 text-xs font-semibold uppercase app-muted md:grid md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:gap-3">
+      <div>Homework</div>
+      <div>Deadline</div>
+      <div class="text-right">Status</div>
+    </div>
+
+    <div class="divide-y app-divide">
+      {% for hw in homeworks %}
+        <div class="grid gap-2 py-4 md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:items-center md:gap-3">
+          <div class="flex min-w-0 items-start gap-3">
+            <i class="far fa-file-alt mt-1 hidden app-muted md:inline"></i>
+            <div class="min-w-0">
+              {% if hw.state == 'CL' %}
+                <div class="font-semibold app-heading">{{ hw.title }}</div>
+              {% else %}
+                <a href="{% url 'homework' course.slug hw.slug %}" class="font-semibold app-link">
+                  {{ hw.title }}
+                </a>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="text-sm app-text">
+            <i class="far fa-calendar-alt mr-2 hidden app-muted md:inline"></i>
+            {% if hw.is_scored %}
+              <span class="md:whitespace-nowrap">{{ hw.due_date|user_datetime:request }}</span>
+              <div class="mt-1 text-xs app-muted">Already scored</div>
+            {% else %}
+              <span class="md:whitespace-nowrap">{{ hw.due_date|user_datetime:request }}</span>
+              <div class="time-left mt-1 text-xs app-muted" data-deadline="{{ hw.due_date | date:"c" }}" data-past-tone="muted"></div>
+            {% endif %}
+          </div>
+
+          <div class="md:text-right">
+            {% if hw.state == 'CL' %}
+              <span class="app-badge app-badge-upper app-badge-neutral">Closed</span>
+            {% elif hw.is_scored and hw.submitted %}
+              <span class="app-badge app-badge-upper app-badge-success">Scored ({{ hw.score }})</span>
+            {% elif hw.is_scored %}
+              <span class="app-badge app-badge-upper app-badge-info">Scored</span>
+            {% elif not hw.is_scored and hw.submitted %}
+              <span class="app-badge app-badge-upper app-badge-success">Submitted</span>
+            {% else %}
+              <span class="app-badge app-badge-upper app-badge-warning">Open</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+
+{% if projects %}
+  <section class="mt-8">
+    <div class="mb-4">
+      <h2 class="text-2xl font-semibold">Projects</h2>
+    </div>
+
+    <div class="hidden border-b app-border pb-2 text-xs font-semibold uppercase app-muted md:grid md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:gap-3">
+      <div>Project</div>
+      <div>Deadline</div>
+      <div class="text-right">Status</div>
+    </div>
+
+    <div class="divide-y app-divide">
+      {% for project in projects %}
+        <div class="grid gap-2 py-4 md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:items-center md:gap-3">
+          <div class="flex min-w-0 items-start gap-3">
+            <i class="far fa-folder mt-1 hidden app-muted md:inline"></i>
+            <div class="min-w-0">
+              {% if project.state == 'CS' %}
+                <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}" class="font-semibold app-link">{{ project.title }}</a>
+              {% elif project.state == 'PR' %}
+                <a href="{% url 'projects_eval' course.slug project.slug %}" class="font-semibold app-link">{{ project.title }}</a>
+              {% elif project.state == 'CO' %}
+                <a href="{% url 'project_results' course.slug project.slug %}" class="font-semibold app-link">{{ project.title }}</a>
+              {% else %}
+                <div class="font-semibold app-heading">{{ project.title }}</div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="text-sm app-text">
+            <i class="far fa-calendar-alt mr-2 hidden app-muted md:inline"></i>
+            {% if project.state == 'PR' and project.submitted %}
+              <span class="md:whitespace-nowrap">{{ project.peer_review_due_date|user_datetime:request }}</span>
+              <div class="time-left mt-1 text-xs app-muted" data-deadline="{{ project.peer_review_due_date | date:"c" }}" data-past-tone="muted"></div>
+            {% elif project.state == 'CO' %}
+              <span class="md:whitespace-nowrap">{{ project.peer_review_due_date|user_datetime:request }}</span>
+              <div class="mt-1 text-xs app-muted">Completed</div>
+            {% else %}
+              <span class="md:whitespace-nowrap">{{ project.submission_due_date|user_datetime:request }}</span>
+              <div class="time-left mt-1 text-xs app-muted" data-deadline="{{ project.submission_due_date | date:"c" }}" data-past-tone="muted"></div>
+            {% endif %}
+          </div>
+
+          <div class="md:text-right">
+            {% if project.badge_css_class == 'bg-success' or project.badge_css_class == 'bg-info' %}
+              <span class="app-badge app-badge-upper app-badge-success">{{ project.badge_state_name }}</span>
+            {% elif project.badge_css_class == 'bg-warning' %}
+              <span class="app-badge app-badge-upper app-badge-warning">{{ project.badge_state_name }}</span>
+            {% elif project.badge_css_class == 'bg-danger' %}
+              <span class="app-badge app-badge-upper app-badge-danger">{{ project.badge_state_name }}</span>
+            {% else %}
+              <span class="app-badge app-badge-upper app-badge-neutral">{{ project.badge_state_name }}</span>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    {% if has_completed_projects %}
+      <div class="mt-7 text-center">
+        <a href="{% url 'list_all_project_submissions' course.slug %}" class="inline-flex items-center font-medium app-link">
+          See all submitted projects <span class="ml-2" aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
+    {% endif %}
+  </section>
+{% endif %}
+
+{% if not homeworks and not projects %}
+  <div class="mt-10 rounded-md border app-alert-info p-5 app-heading" role="alert">
+    There are no homeworks or projects available for this course yet. Come back later.
+  </div>
+{% endif %}
+
+<div class="mt-8 text-sm app-muted">
+  {% if is_authenticated %}
+    All deadlines are shown in your
+    <a href="{% url 'account_settings' %}#display-preferences-section"
+       class="app-link">account timezone</a>.
+  {% else %}
+    All deadlines are shown in your timezone.
+  {% endif %}
+  <a href="{% url 'course_calendar' course.slug %}" class="app-link">Calendar feed</a>
+</div>
+{% endblock %}

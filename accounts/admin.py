@@ -1,37 +1,45 @@
+import secrets
+
+from django import forms
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 
-from .models import User
+from .models import CustomUser, Token
 
 
-@admin.register(User)
-class EmailUserAdmin(UserAdmin):
-    ordering = ("email",)
-    list_display = ("email", "is_staff", "is_active", "date_joined")
-    search_fields = ("email", "first_name", "last_name")
-    fieldsets = (
-        (None, {"fields": ("email", "password")}),
-        ("Personal information", {"fields": ("first_name", "last_name")}),
-        (
-            "Permissions",
-            {
-                "fields": (
-                    "is_active",
-                    "is_staff",
-                    "is_superuser",
-                    "groups",
-                    "user_permissions",
-                )
-            },
-        ),
-        ("Important dates", {"fields": ("last_login", "date_joined")}),
-    )
-    add_fieldsets = (
-        (
-            None,
-            {
-                "classes": ("wide",),
-                "fields": ("email", "password1", "password2", "is_staff", "is_active"),
-            },
-        ),
-    )
+class CustomUserAdmin(admin.ModelAdmin):
+    search_fields = ["email"]
+    change_form_template = 'loginas/change_form.html'
+
+
+admin.site.register(CustomUser, CustomUserAdmin)
+
+
+class TokenAdminForm(forms.ModelForm):
+    class Meta:
+        model = Token
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(TokenAdminForm, self).__init__(*args, **kwargs)
+        if not self.instance.pk:  # Check if this is a new object
+            self.initial['key'] = secrets.token_urlsafe(16)
+
+
+class TokenAdmin(admin.ModelAdmin):
+    # autocomplete_fields = ['user']
+
+    form = TokenAdminForm
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "user":
+            kwargs["queryset"] = CustomUser.objects.filter(
+                is_staff=True
+            )
+            # Or use any condition to filter the queryset
+            # based on permissions or other criteria
+        return super().formfield_for_foreignkey(
+            db_field, request, **kwargs
+        )
+
+
+admin.site.register(Token, TokenAdmin)

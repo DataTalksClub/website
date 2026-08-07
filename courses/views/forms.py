@@ -1,0 +1,128 @@
+from django import forms
+
+from courses.models.course import (
+    Enrollment,
+    LeaderboardComplaint,
+)
+from courses.models.homework import Answer
+
+
+CERTIFICATE_NAME_WIDGET = forms.TextInput(
+    attrs={
+        "class": "form-control",
+        "placeholder": "Your name for certificates",
+    }
+)
+DISPLAY_NAME_WIDGET = forms.TextInput(attrs={"class": "form-control"})
+DISPLAY_PUBLIC_PROFILE_WIDGET = forms.CheckboxInput(
+    attrs={"class": "h-4 w-4"}
+)
+DISPLAY_ON_LEADERBOARD_WIDGET = forms.CheckboxInput(
+    attrs={"class": "h-4 w-4"}
+)
+COMPLAINT_ISSUE_TYPE_WIDGET = forms.Select(
+    attrs={"class": "form-control"}
+)
+COMPLAINT_DESCRIPTION_WIDGET = forms.Textarea(
+    attrs={
+        "class": "form-control",
+        "rows": 5,
+        "placeholder": (
+            "Include the homework, project, or link that looks "
+            "incorrect and why it should be reviewed."
+        ),
+    }
+)
+
+
+class AnswerForm(forms.ModelForm):
+    class Meta:
+        model = Answer
+        fields = ["answer_text"]
+
+
+class EnrollmentForm(forms.ModelForm):
+    certificate_name = forms.CharField(
+        label="Certificate name",
+        required=False,
+        help_text="Used for certificates across your course enrollments.",
+        widget=CERTIFICATE_NAME_WIDGET,
+    )
+
+    class Meta:
+        model = Enrollment
+        fields = [
+            "display_name",
+            "certificate_name",
+            "display_on_leaderboard",
+            "display_public_profile",
+        ]
+        widgets = {
+            "display_name": DISPLAY_NAME_WIDGET,
+            "display_public_profile": DISPLAY_PUBLIC_PROFILE_WIDGET,
+            "display_on_leaderboard": DISPLAY_ON_LEADERBOARD_WIDGET,
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        self.user = user
+        super().__init__(*args, **kwargs)
+        self.enrollment_certificate_name = self.instance.certificate_name
+        if self.user is not None and not self.is_bound:
+            self.initial["certificate_name"] = self.user.certificate_name
+
+    def _save_enrollment(self, commit):
+        enrollment = super().save(commit=False)
+        enrollment.certificate_name = self.enrollment_certificate_name
+
+        if commit:
+            enrollment.save()
+            self.save_m2m()
+        return enrollment
+
+    def _submitted_certificate_name(self):
+        certificate_name = self.cleaned_data.get("certificate_name")
+        if certificate_name:
+            return certificate_name
+        return None
+
+    def _sync_user_certificate_name(self, commit):
+        if self.user is None:
+            return
+
+        certificate_name = self._submitted_certificate_name()
+        if self.user.certificate_name == certificate_name:
+            return
+
+        self.user.certificate_name = certificate_name
+        if commit:
+            self.user.save(update_fields=["certificate_name"])
+
+    def save(self, commit=True):
+        enrollment = self._save_enrollment(commit)
+        self._sync_user_certificate_name(commit)
+        return enrollment
+
+    def is_valid(self):
+        valid = super().is_valid()
+        if not valid:
+            field_names = self.fields
+            for field in field_names:
+                if field in self.errors:
+                    attrs = self.fields[field].widget.attrs
+                    class_name = attrs.get("class", "")
+                    attrs["class"] = class_name + " is-invalid"
+        return valid
+
+
+class LeaderboardComplaintForm(forms.ModelForm):
+    class Meta:
+        model = LeaderboardComplaint
+        fields = ["issue_type", "description"]
+        labels = {
+            "issue_type": "What is wrong?",
+            "description": "Describe the issue",
+        }
+        widgets = {
+            "issue_type": COMPLAINT_ISSUE_TYPE_WIDGET,
+            "description": COMPLAINT_DESCRIPTION_WIDGET,
+        }

@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block meta_robots %}
+    <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block breadcrumbs %}
+    <li>
+        <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+    </li>
+    <li>Enrollment</li>
+{% endblock %}
+
+{% block content %}
+    <section class="settings-section border-b pb-5">
+        <p class="settings-page-kicker text-sm font-semibold uppercase tracking-wide">
+            {{ course.title }}
+        </p>
+        <div class="mt-2 flex flex-col gap-3">
+            <div>
+                <h1 class="settings-page-title text-2xl font-semibold md:text-3xl">
+                    Edit Enrollment Details
+                </h1>
+                <p class="settings-section-copy mt-1 max-w-2xl text-sm">
+                    Update how your profile appears on the leaderboard and public score breakdown.
+                    Certificate name is managed in account settings.
+                </p>
+            </div>
+            <a href="{% url 'course' course.slug %}"
+               class="primer-button primer-button-secondary w-fit">
+                Back to course
+            </a>
+        </div>
+    </section>
+
+    <form method="post" class="settings-form mt-6 space-y-8">
+        {% csrf_token %}
+
+        <section class="settings-section">
+            <div>
+                <h2 class="settings-section-title text-lg font-semibold">Public identity</h2>
+                <p class="settings-section-copy mt-1 text-sm leading-6">
+                    How classmates and the course team identify you in public course views.
+                </p>
+            </div>
+            <div class="mt-5 space-y-5">
+                <div>
+                    <label for="{{ form.display_name.id_for_label }}"
+                           class="settings-label mb-2 block text-sm font-semibold">
+                        Leaderboard name
+                    </label>
+                    {{ form.display_name }}
+                    <p class="settings-helper mt-1 text-xs leading-5">
+                        Shown on leaderboards and public score pages.
+                    </p>
+                    {% if form.display_name.errors %}
+                        <div class="mt-2 text-sm font-medium app-danger-text">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            {{ form.display_name.errors|join:" " }}
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.certificate_name.id_for_label }}"
+                           class="settings-label mb-2 block text-sm font-semibold">
+                        Certificate name
+                    </label>
+                    {{ form.certificate_name }}
+                    <p class="settings-helper mt-1 text-xs leading-5">
+                        Saved to your account and used across course certificates.
+                    </p>
+                    {% if form.certificate_name.errors %}
+                        <div class="mt-2 text-sm font-medium app-danger-text">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            {{ form.certificate_name.errors|join:" " }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section border-t pt-6">
+            <div class="space-y-5">
+                <div class="toggle-row js-immediate-toggle-row"
+                     data-toggle-url="{% url 'update_enrollment_toggle' course.slug %}">
+                    {{ form.display_on_leaderboard }}
+                    <span class="toggle-copy">
+                        <span class="toggle-label">
+                            Show my record on the public leaderboard
+                        </span>
+                        <span class="toggle-help">
+                            When disabled, your score remains saved for you and the course team, but your row is hidden from public leaderboard views and exports.
+                        </span>
+                    </span>
+                </div>
+                <div class="toggle-row js-immediate-toggle-row"
+                     data-toggle-url="{% url 'update_enrollment_toggle' course.slug %}">
+                    {{ form.display_public_profile }}
+                    <span class="toggle-copy">
+                        <span class="toggle-label">
+                            Display my public profile data on this leaderboard record
+                        </span>
+                        <span class="toggle-help">
+                            Uses your account profile: About me, GitHub, LinkedIn, and website.
+                            <a href="{% url 'account_settings' %}" class="app-link font-medium">
+                                Edit public profile
+                            </a>
+                        </span>
+                    </span>
+                </div>
+                <div class="text-sm">
+                    <span class="settings-meta-label">Certificate:</span>
+                    {% if enrollment.certificate_url %}
+                        <a href="{{ enrollment.certificate_url }}"
+                           target="_blank"
+                           class="settings-link ml-1 font-medium hover:underline">
+                            Download
+                        </a>
+                    {% else %}
+                        <span class="settings-meta-value ml-1">Not available</span>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <div class="flex flex-wrap gap-2 border-t app-border pt-5">
+            <button id="submit-button"
+                    type="submit"
+                    class="primer-button">
+                Save changes
+            </button>
+        </div>
+    </form>
+
+    <script src="{% static 'homework.js' %}"></script>
+{% endblock %}
+
+{% block extra_js %}
+    {{ block.super }}
+    <script src="{% static 'settings_toggles.js' %}"></script>
+{% endblock %}

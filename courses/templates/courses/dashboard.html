@@ -1,0 +1,343 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block breadcrumbs %}
+  <li>
+    <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+  </li>
+  <li>Dashboard</li>
+{% endblock %}
+
+{% block content %}
+  <section class="border-b app-border pb-5">
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
+    <div class="mt-2 flex flex-col gap-3">
+      <div>
+        <h1 class="text-2xl font-semibold app-heading md:text-3xl">{{ course.title }} Dashboard</h1>
+        <p class="mt-1 text-sm app-muted">Course-level participation, homework, and project statistics.</p>
+      </div>
+      {% if course.first_homework_scored %}
+        <div class="flex flex-wrap gap-2">
+          <a href="{% url 'leaderboard' course.slug %}" class="primer-button primer-button-secondary w-fit">
+            <i class="fas fa-trophy"></i> View Leaderboard
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+    <div class="overflow-hidden rounded-md border app-border app-surface">
+      <div class="border-b app-border app-surface-muted px-4 py-3">
+        <h2 class="text-base font-semibold app-heading">Course overview</h2>
+      </div>
+      <dl class="divide-y app-divide text-sm">
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Total enrollments</dt>
+          <dd class="font-semibold app-heading">{{ total_enrollments }}</dd>
+        </div>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Project submissions</dt>
+          <dd class="font-semibold app-heading">{{ project_total_submissions }}</dd>
+        </div>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Project completion rate</dt>
+          <dd class="font-semibold app-heading">{{ project_completion_rate }}%</dd>
+        </div>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Average total score</dt>
+          <dd class="font-semibold app-heading">{{ avg_total_score }}</dd>
+        </div>
+        {% if total_score_median %}
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+            <dt class="app-muted">Median total score</dt>
+            <dd class="font-semibold app-heading">
+              <span title="Most students scored between {{ total_score_q25|floatformat:0 }} and {{ total_score_q75|floatformat:0 }}">
+                {{ total_score_median_formatted }}
+              </span>
+            </dd>
+          </div>
+        {% endif %}
+        {% if overall_completion_rate is not None %}
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+            <dt class="app-muted">Overall completion rate</dt>
+            <dd class="font-semibold app-heading">{{ overall_completion_rate }}%</dd>
+          </div>
+        {% endif %}
+        {% if graduates_count > 0 %}
+          <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+            <dt class="app-muted">Graduates</dt>
+            <dd class="font-semibold app-heading">{{ graduates_count }}</dd>
+          </div>
+        {% endif %}
+      </dl>
+    </div>
+
+    <div class="overflow-hidden rounded-md border app-border app-surface">
+      <div class="border-b app-border app-surface-muted px-4 py-3">
+        <h2 class="text-base font-semibold app-heading">Project outcomes</h2>
+      </div>
+      <dl class="divide-y app-divide text-sm">
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Score to pass</dt>
+          <dd class="font-semibold app-heading">{{ project_passing_score }}</dd>
+        </div>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Passed</dt>
+          <dd class="font-semibold app-heading">{{ project_pass_count }}</dd>
+        </div>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Failed</dt>
+          <dd class="font-semibold app-heading">{{ project_fail_count }}</dd>
+        </div>
+        <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 py-3">
+          <dt class="app-muted">Median project score</dt>
+          <dd class="font-semibold app-heading">
+            {% if project_score_median %}{{ project_score_median|floatformat:0 }}{% else %}-{% endif %}
+          </dd>
+        </div>
+      </dl>
+      <div class="border-t app-border app-surface-muted px-4 py-3">
+        <a href="{% url 'list_all_project_submissions' course.slug %}" class="font-medium app-link">
+          View All Project Submissions <span aria-hidden="true">&rarr;</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  {% if homework_stats %}
+    <section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
+      <div class="border-b app-border app-surface-muted px-4 py-3">
+        <h2 class="text-base font-semibold app-heading">Homework statistics</h2>
+        <p class="mt-1 text-sm app-muted">
+          Median time and score by homework. Hover values on desktop for interquartile ranges.
+        </p>
+      </div>
+      <div class="hidden overflow-x-auto md:block">
+        <table class="min-w-full text-sm">
+          <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted">
+            <tr>
+              <th class="px-3 py-2">Homework</th>
+              <th class="px-3 py-2 text-right">Submissions</th>
+              <th class="px-3 py-2 text-right">Completion</th>
+              <th class="px-3 py-2 text-right">Lecture time</th>
+              <th class="px-3 py-2 text-right">Homework time</th>
+              <th class="px-3 py-2 text-right">Total time</th>
+              <th class="px-3 py-2 text-right">Median score</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y app-divide">
+            {% for hw_stat in homework_stats %}
+              <tr>
+                <td class="min-w-48 px-3 py-2 font-medium app-heading">{{ hw_stat.homework.title }}</td>
+                <td class="px-3 py-2 text-right">{{ hw_stat.submissions_count }}</td>
+                <td class="px-3 py-2 text-right">{{ hw_stat.completion_rate }}%</td>
+                <td class="px-3 py-2 text-right">
+                  {% if hw_stat.time_lecture_median %}
+                    <span title="Most students spent between {{ hw_stat.time_lecture_q25|floatformat:1 }} and {{ hw_stat.time_lecture_q75|floatformat:1 }} hours on lectures">
+                      {{ hw_stat.time_lecture_median_formatted }}h
+                    </span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-3 py-2 text-right">
+                  {% if hw_stat.time_homework_median %}
+                    <span title="Most students spent between {{ hw_stat.time_homework_q25|floatformat:1 }} and {{ hw_stat.time_homework_q75|floatformat:1 }} hours on homework">
+                      {{ hw_stat.time_homework_median_formatted }}h
+                    </span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-3 py-2 text-right">
+                  {% if hw_stat.time_total_median %}
+                    <span title="Most students spent between {{ hw_stat.time_total_q25|floatformat:1 }} and {{ hw_stat.time_total_q75|floatformat:1 }} hours total">
+                      {{ hw_stat.time_total_median_formatted }}h
+                    </span>
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td class="px-3 py-2 text-right font-semibold app-heading">
+                  {% if hw_stat.score_median %}{{ hw_stat.score_median|floatformat:0 }}{% else %}-{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="divide-y app-divide md:hidden">
+        {% for hw_stat in homework_stats %}
+          <article class="px-4 py-3">
+            <h3 class="font-medium app-heading">{{ hw_stat.homework.title }}</h3>
+            <dl class="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+              <div>
+                <dt class="app-muted">Submissions</dt>
+                <dd class="font-semibold app-heading">{{ hw_stat.submissions_count }}</dd>
+              </div>
+              <div>
+                <dt class="app-muted">Completion</dt>
+                <dd class="font-semibold app-heading">{{ hw_stat.completion_rate }}%</dd>
+              </div>
+              <div>
+                <dt class="app-muted">Median score</dt>
+                <dd class="font-semibold app-heading">{% if hw_stat.score_median %}{{ hw_stat.score_median|floatformat:0 }}{% else %}-{% endif %}</dd>
+              </div>
+              <div>
+                <dt class="app-muted">Lecture time</dt>
+                <dd>{% if hw_stat.time_lecture_median %}{{ hw_stat.time_lecture_median_formatted }}h{% else %}-{% endif %}</dd>
+              </div>
+              <div>
+                <dt class="app-muted">Homework time</dt>
+                <dd>{% if hw_stat.time_homework_median %}{{ hw_stat.time_homework_median_formatted }}h{% else %}-{% endif %}</dd>
+              </div>
+              <div>
+                <dt class="app-muted">Total time</dt>
+                <dd>{% if hw_stat.time_total_median %}{{ hw_stat.time_total_median_formatted }}h{% else %}-{% endif %}</dd>
+              </div>
+            </dl>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if homework_difficulty_stats %}
+    <section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
+      <div class="border-b app-border app-surface-muted px-4 py-3">
+        <h2 class="text-base font-semibold app-heading">Assignment difficulty</h2>
+        <p class="mt-1 text-sm app-muted">
+          Ranked by lowest median question score relative to the maximum
+          achievable. Normalizing by question count makes homeworks of
+          different lengths comparable; a lower percentage indicates a harder
+          assignment.
+        </p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted">
+            <tr>
+              <th class="px-3 py-2">Rank</th>
+              <th class="px-3 py-2">Homework</th>
+              <th class="px-3 py-2 text-right">Median score</th>
+              <th class="px-3 py-2 text-right">Score %</th>
+              <th class="px-3 py-2 text-right">Completion</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y app-divide">
+            {% for hw_stat in homework_difficulty_stats %}
+              <tr>
+                <td class="px-3 py-2 font-semibold app-heading">{{ hw_stat.difficulty_rank }}</td>
+                <td class="min-w-48 px-3 py-2 font-medium app-heading">{{ hw_stat.homework.title }}</td>
+                <td class="px-3 py-2 text-right">{{ hw_stat.questions_score_median|floatformat:0 }} / {{ hw_stat.max_questions_score }}</td>
+                <td class="px-3 py-2 text-right">{{ hw_stat.score_ratio_pct }}%</td>
+                <td class="px-3 py-2 text-right">{{ hw_stat.completion_rate }}%</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if question_difficulty %}
+    <section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
+      <div class="border-b app-border app-surface-muted px-4 py-3">
+        <h2 class="text-base font-semibold app-heading">Question difficulty</h2>
+        <p class="mt-1 text-sm app-muted">
+          Share of submitted answers that were correct, per question. A lower
+          percentage points to a harder or more confusing question.
+          Participation-only questions are excluded.
+        </p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted">
+            <tr>
+              <th class="px-3 py-2">Homework</th>
+              <th class="px-3 py-2">Question</th>
+              <th class="px-3 py-2 text-right">Correct</th>
+              <th class="px-3 py-2 text-right">Answers</th>
+              <th class="px-3 py-2 text-right">% correct</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y app-divide">
+            {% for group in question_difficulty %}
+              {% for question in group.questions %}
+                <tr>
+                  <td class="min-w-40 px-3 py-2 app-muted">
+                    {% if forloop.first %}{{ group.homework_title }}{% endif %}
+                  </td>
+                  <td class="min-w-64 px-3 py-2 app-heading">{{ question.text }}</td>
+                  <td class="px-3 py-2 text-right">{{ question.correct }}</td>
+                  <td class="px-3 py-2 text-right">{{ question.total }}</td>
+                  <td class="px-3 py-2 text-right font-semibold app-heading">
+                    {% if question.pct_correct is not None %}{{ question.pct_correct }}%{% else %}-{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  {% endif %}
+
+  {% if submission_timing %}
+    <section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
+      <div class="border-b app-border app-surface-muted px-4 py-3">
+        <h2 class="text-base font-semibold app-heading">Submission timing</h2>
+        <p class="mt-1 text-sm app-muted">
+          When homework submissions arrive relative to the deadline, across all
+          assignments.
+        </p>
+      </div>
+      <dl class="divide-y app-divide text-sm">
+        {% for bucket in submission_timing %}
+          <div class="px-4 py-3">
+            <div class="flex items-baseline justify-between gap-4">
+              <dt class="app-heading">{{ bucket.label }}</dt>
+              <dd class="app-muted">{{ bucket.count }} ({{ bucket.pct }}%)</dd>
+            </div>
+            <div class="mt-2 h-2 w-full overflow-hidden rounded app-surface-muted">
+              <div class="h-full rounded" style="width: {{ bucket.pct }}%; background: var(--link-color)"></div>
+            </div>
+          </div>
+        {% endfor %}
+      </dl>
+    </section>
+  {% endif %}
+
+  {% if engagement_trend %}
+    <section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
+      <div class="border-b app-border app-surface-muted px-4 py-3">
+        <h2 class="text-base font-semibold app-heading">Engagement over time</h2>
+        <p class="mt-1 text-sm app-muted">
+          Homework submissions per week, across all assignments. Bars are scaled
+          to the busiest week.
+        </p>
+      </div>
+      <dl class="divide-y app-divide text-sm">
+        {% for week in engagement_trend %}
+          <div class="grid grid-cols-[7rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2">
+            <dt class="app-muted">{{ week.label }}</dt>
+            <dd class="h-2 w-full overflow-hidden rounded app-surface-muted">
+              <div class="h-full rounded" style="width: {{ week.bar_pct }}%; background: var(--link-color)"></div>
+            </dd>
+            <dd class="text-right font-semibold app-heading">{{ week.count }}</dd>
+          </div>
+        {% endfor %}
+      </dl>
+    </section>
+  {% endif %}
+
+  {% if graduates_count > 0 %}
+    <section class="mt-6 border-t app-border pt-5">
+      <h2 class="text-base font-semibold app-heading">Graduates</h2>
+      <p class="mt-2 text-sm app-text">
+        {{ graduates_count }} students completed the course and received certificates.
+      </p>
+    </section>
+  {% endif %}
+{% endblock %}

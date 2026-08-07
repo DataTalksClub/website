@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}
+  {{ display_name }}'s DataTalks.Club Wrapped {{ year }}
+{% endblock %}
+
+{% block meta_robots %}
+  <!-- Allow sharing on social media -->
+{% endblock %}
+
+{% block breadcrumbs %}
+  <li>
+    <a href="{% url 'wrapped' year %}">{{ year }} Wrapped</a>
+  </li>
+  <li>{{ display_name|default:viewed_user.username }}'s Wrapped</li>
+{% endblock %}
+
+{% block content %}
+  {% if no_activity %}
+    <section class="wrapped-hero">
+      <h1 class="text-2xl font-semibold app-heading md:text-3xl">DataTalks.Club Wrapped {{ year }}</h1>
+      <p class="mt-1 text-sm app-muted">{{ display_name }}'s year in review.</p>
+    </section>
+
+    <section class="mt-6 rounded-md border app-alert-info p-4">
+      <h2 class="text-base font-semibold app-heading">No activity in {{ year }}</h2>
+      <p class="mt-1 text-sm">
+        This user hasn't participated in any courses with homework or project submissions in {{ year }} yet.
+      </p>
+    </section>
+
+    <section class="mt-6 border-t app-border pt-6">
+      <div class="flex flex-wrap gap-2">
+        <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary w-fit">Explore courses</a>
+      </div>
+    </section>
+  {% else %}
+    <section class="wrapped-hero">
+      <h1 class="text-2xl font-semibold app-heading md:text-3xl">
+        {{ display_name }}'s DataTalks.Club Wrapped {{ year }}
+      </h1>
+      <p class="mt-1 text-sm app-muted">A year of learning achievements.</p>
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-lg font-semibold app-heading">{{ year }} highlights</h2>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Total points</p>
+          <p class="wrapped-stat-number">{{ user_stats.total_points }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Hours learning</p>
+          <p class="wrapped-stat-number">{{ user_stats.total_hours }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Courses</p>
+          <p class="wrapped-stat-number">{{ user_stats.courses|length }}</p>
+        </div>
+        {% if user_rank %}
+          <div class="wrapped-stat">
+            <p class="wrapped-stat-label">Global rank</p>
+            <p class="wrapped-stat-number">#{{ user_rank }}</p>
+          </div>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="mt-8">
+      <h2 class="text-lg font-semibold app-heading">Submissions and contributions</h2>
+      <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Homeworks</p>
+          <p class="wrapped-stat-number">{{ user_stats.homework_count }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Projects</p>
+          <p class="wrapped-stat-number">{{ user_stats.project_count }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Peer reviews</p>
+          <p class="wrapped-stat-number">{{ user_stats.peer_reviews_given }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Learning in public</p>
+          <p class="wrapped-stat-number">{{ user_stats.learning_in_public_count }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">FAQ contributions</p>
+          <p class="wrapped-stat-number">{{ user_stats.faq_contributions_count }}</p>
+        </div>
+        <div class="wrapped-stat">
+          <p class="wrapped-stat-label">Certificates</p>
+          <p class="wrapped-stat-number">{{ user_stats.certificates_earned }}</p>
+        </div>
+      </div>
+    </section>
+
+    {% if user_stats.courses %}
+      <section class="mt-8">
+        <h2 class="text-lg font-semibold app-heading">Courses in {{ year }}</h2>
+        <div class="mt-3 overflow-hidden rounded-md border app-border app-surface">
+          <div class="divide-y app-divide">
+            {% for course in user_stats.courses %}
+              <a href="{% url 'leaderboard_score_breakdown' course.slug course.enrollment_id %}"
+                 class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 no-underline app-hover-muted">
+                <span class="min-w-0 font-medium app-link">{{ course.title }}</span>
+                <span class="text-sm app-muted">{{ course.score }} points</span>
+              </a>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    <section class="mt-8 border-t app-border pt-6">
+      <h2 class="text-lg font-semibold app-heading">Share your {{ year }} Wrapped</h2>
+      <p class="mt-1 text-sm app-muted">Show off your learning achievements on social media.</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a href="https://twitter.com/intent/tweet?text={{ twitter_text|urlencode }}&url={{ request.build_absolute_uri|urlencode }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="primer-button primer-button-secondary w-fit">
+          <i class="fab fa-twitter" aria-hidden="true"></i> Share on Twitter
+        </a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri|urlencode }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="primer-button primer-button-secondary w-fit">
+          <i class="fab fa-linkedin" aria-hidden="true"></i> Share on LinkedIn
+        </a>
+      </div>
+    </section>
+
+    <section class="mt-8 border-t app-border pt-6">
+      <h2 class="text-lg font-semibold app-heading">Keep learning in {{ year|add:1 }}</h2>
+      <p class="mt-1 text-sm app-muted">Join us for more courses.</p>
+      <div class="mt-3 flex flex-wrap gap-2">
+        <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary w-fit">Explore courses</a>
+      </div>
+    </section>
+  {% endif %}
+{% endblock %}
