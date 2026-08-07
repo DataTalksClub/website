@@ -5,9 +5,20 @@ import json
 from pathlib import Path
 
 from deploy.aws_gateway import AwsReleaseConfig, AwsReleaseGateway
-from deploy.contracts import ReleaseContractError, ReleaseIdentity, ReleaseRecord
-from deploy.release import PromotionConfig, promote, rollback
+from deploy.contracts import ActiveServicePair, ReleaseContractError, ReleaseIdentity, ReleaseRecord
+from deploy.release import (
+    FAILURE_INJECTIONS,
+    PromotionConfig,
+    RecoveryContext,
+    capture_current_service_pair,
+    capture_recovery_context,
+    promote,
+    restore_after_finalization_failure,
+    rollback,
+)
 from deploy.task_definitions import TaskDefinitionConfig
+
+MAX_STAGE_TIMEOUT_SECONDS = 180
 
 
 def _boolean(value: str) -> bool:
@@ -36,13 +47,17 @@ def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--assign-public-ip", type=_boolean, required=True)
     parser.add_argument("--base-url", default="https://web.dtcdev.click")
     parser.add_argument("--screenshot-directory", type=Path, default=Path(".tmp/deployed-smoke"))
-    parser.add_argument("--timeout-seconds", type=int, default=900)
+    parser.add_argument("--timeout-seconds", type=int, default=MAX_STAGE_TIMEOUT_SECONDS)
     parser.add_argument("--poll-seconds", type=int, default=10)
 
 
 def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
     if arguments.timeout_seconds < 1 or arguments.poll_seconds < 1:
         raise ReleaseContractError("timeouts must be positive")
+    if arguments.timeout_seconds > MAX_STAGE_TIMEOUT_SECONDS:
+        raise ReleaseContractError("sandbox stage timeout exceeds the recovery-safe maximum")
+    if arguments.poll_seconds > arguments.timeout_seconds:
+        raise ReleaseContractError("poll interval must not exceed the stage timeout")
     return AwsReleaseGateway(
         AwsReleaseConfig(
             region=arguments.region,
@@ -95,11 +110,17 @@ def _promote(arguments: argparse.Namespace) -> ReleaseRecord:
         task_role_arn=arguments.task_role_arn,
         execution_role_arn=arguments.execution_role_arn,
     )
-    expected = (
-        ReleaseRecord.read(arguments.prior_release_record)
-        if arguments.prior_release_record
-        else None
-    )
+    if arguments.prior_release_record and arguments.active_service_pair:
+        raise ReleaseContractError(
+            "promotion accepts either a manual prior release or an active service pair"
+        )
+    expected: ReleaseRecord | ActiveServicePair | None
+    if arguments.active_service_pair:
+        expected = ActiveServicePair.read(arguments.active_service_pair)
+    elif arguments.prior_release_record:
+        expected = ReleaseRecord.read(arguments.prior_release_record)
+    else:
+        expected = None
     return promote(
         _gateway(arguments),
         PromotionConfig(
@@ -111,6 +132,9 @@ def _promote(arguments: argparse.Namespace) -> ReleaseRecord:
             environment_tag=arguments.environment_tag,
             release_record_path=arguments.release_record_path,
             expected_prior_release=expected,
+            failure_injection=arguments.failure_injection,
+            evidence_path=arguments.evidence_path,
+            recovery_context_path=arguments.recovery_context_path,
         ),
     )
 
@@ -122,6 +146,45 @@ def _rollback(arguments: argparse.Namespace) -> ReleaseRecord:
         ReleaseRecord.read(arguments.current_release_record),
         arguments.repository_uri,
         arguments.release_record_path,
+        arguments.evidence_path,
+        arguments.recovery_context_path,
+    )
+
+
+def _restore_finalization(arguments: argparse.Namespace) -> RecoveryContext:
+    failed_release = ReleaseRecord.read(arguments.failed_release_record)
+    context = RecoveryContext.read(arguments.recovery_context)
+    restore_after_finalization_failure(
+        _gateway(arguments),
+        context,
+        failed_release,
+    )
+    return context
+
+
+def _capture_current(arguments: argparse.Namespace) -> ActiveServicePair:
+    return capture_current_service_pair(
+        _gateway(arguments),
+        arguments.repository_uri,
+        arguments.release_record_path,
+        expected_web_count=arguments.expected_web_count,
+        expected_worker_count=arguments.expected_worker_count,
+    )
+
+
+def _capture_recovery(arguments: argparse.Namespace) -> RecoveryContext:
+    if arguments.prior_release_record and arguments.active_service_pair:
+        raise ReleaseContractError("recovery capture accepts only one expected prior")
+    expected: ReleaseRecord | ActiveServicePair | None = None
+    if arguments.prior_release_record:
+        expected = ReleaseRecord.read(arguments.prior_release_record)
+    elif arguments.active_service_pair:
+        expected = ActiveServicePair.read(arguments.active_service_pair)
+    return capture_recovery_context(
+        _gateway(arguments),
+        arguments.repository_uri,
+        arguments.recovery_context_path,
+        expected,
     )
 
 
@@ -139,7 +202,15 @@ def build_parser() -> argparse.ArgumentParser:
     promote_parser.add_argument("--project-tag", required=True)
     promote_parser.add_argument("--environment-tag", required=True)
     promote_parser.add_argument("--prior-release-record", type=Path)
+    promote_parser.add_argument("--active-service-pair", type=Path)
+    promote_parser.add_argument(
+        "--failure-injection",
+        choices=sorted(FAILURE_INJECTIONS),
+        default="none",
+    )
     promote_parser.add_argument("--release-record-path", type=Path, required=True)
+    promote_parser.add_argument("--evidence-path", type=Path)
+    promote_parser.add_argument("--recovery-context-path", type=Path)
     promote_parser.set_defaults(handler=_promote)
 
     rollback_parser = subparsers.add_parser("rollback")
@@ -148,7 +219,31 @@ def build_parser() -> argparse.ArgumentParser:
     rollback_parser.add_argument("--target-release-record", type=Path, required=True)
     rollback_parser.add_argument("--current-release-record", type=Path, required=True)
     rollback_parser.add_argument("--release-record-path", type=Path, required=True)
+    rollback_parser.add_argument("--evidence-path", type=Path)
+    rollback_parser.add_argument("--recovery-context-path", type=Path)
     rollback_parser.set_defaults(handler=_rollback)
+
+    restore_parser = subparsers.add_parser("restore-finalization")
+    _add_runtime_arguments(restore_parser)
+    restore_parser.add_argument("--recovery-context", type=Path, required=True)
+    restore_parser.add_argument("--failed-release-record", type=Path, required=True)
+    restore_parser.set_defaults(handler=_restore_finalization)
+
+    capture_parser = subparsers.add_parser("capture-current")
+    _add_runtime_arguments(capture_parser)
+    capture_parser.add_argument("--repository-uri", required=True)
+    capture_parser.add_argument("--expected-web-count", type=int, required=True)
+    capture_parser.add_argument("--expected-worker-count", type=int, required=True)
+    capture_parser.add_argument("--release-record-path", type=Path, required=True)
+    capture_parser.set_defaults(handler=_capture_current)
+
+    recovery_capture_parser = subparsers.add_parser("capture-recovery")
+    _add_runtime_arguments(recovery_capture_parser)
+    recovery_capture_parser.add_argument("--repository-uri", required=True)
+    recovery_capture_parser.add_argument("--prior-release-record", type=Path)
+    recovery_capture_parser.add_argument("--active-service-pair", type=Path)
+    recovery_capture_parser.add_argument("--recovery-context-path", type=Path, required=True)
+    recovery_capture_parser.set_defaults(handler=_capture_recovery)
     return parser
 
 
@@ -161,7 +256,21 @@ def main() -> None:
         parser.exit(1, f"release failed safely: {error}\n")
     except Exception as error:
         parser.exit(1, f"release failed safely: AWS operation failed ({type(error).__name__})\n")
-    print(json.dumps({"status": "successful", "release": record.source_sha}, sort_keys=True))
+    if arguments.command == "restore-finalization":
+        print(
+            json.dumps(
+                {
+                    "status": "restored_prior",
+                    "release": record.source_sha or "bootstrap-disabled",
+                    "image_digest": record.image_digest,
+                },
+                sort_keys=True,
+            )
+        )
+    elif arguments.command == "capture-recovery":
+        print(json.dumps({"status": "recovery_checkpoint_captured"}, sort_keys=True))
+    else:
+        print(json.dumps({"status": "successful", "release": record.source_sha}, sort_keys=True))
 
 
 if __name__ == "__main__":

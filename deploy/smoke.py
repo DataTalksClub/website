@@ -7,6 +7,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from deploy.contracts import ReleaseContractError, validate_source_sha
@@ -101,7 +103,11 @@ def verify_health(origin: str, source_sha: str) -> None:
             raise ReleaseContractError(f"readiness {name} check is not successful")
 
 
-def run_http_smoke(origin: str, source_sha: str) -> None:
+def run_http_smoke(
+    origin: str,
+    source_sha: str,
+    evidence_path: Path | None = None,
+) -> dict[str, Any]:
     origin = validate_origin(origin)
     verify_health(origin, source_sha)
 
@@ -151,6 +157,60 @@ def run_http_smoke(origin: str, source_sha: str) -> None:
         }
     }:
         raise ReleaseContractError("anonymous admin API health payload differs")
+
+    missing_path = "/__dtc_deployed_smoke_missing__"
+    missing = _request(origin, missing_path)
+    _assert_status(missing, 404, missing_path)
+    _assert_noindex(missing, missing_path)
+    missing_html = missing.body.decode("utf-8", errors="replace").lower()
+    if any(marker in missing_html for marker in ("traceback", "technical 404", "debug=true")):
+        raise ReleaseContractError("missing page exposes debug output")
+
+    evidence: dict[str, Any] = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "mode": "read_only",
+        "origin": origin,
+        "source_sha": source_sha,
+        "checks": [
+            {"path": "/health/live", "status": 200, "noindex": True, "exact_version": True},
+            {
+                "path": "/health/ready",
+                "status": 200,
+                "noindex": True,
+                "configuration": True,
+                "database": True,
+                "migrations": True,
+            },
+            {"path": "/", "status": 200, "noindex": True, "canonical": True},
+            {
+                "path": "/studio/",
+                "status": studio.status,
+                "noindex": True,
+                "private_no_store": True,
+                "exact_login_redirect": True,
+            },
+            {
+                "path": "/accounts/login/",
+                "status": 200,
+                "noindex": True,
+                "private_no_store": True,
+            },
+            {
+                "path": "/api/v1/admin/health",
+                "status": 401,
+                "noindex": True,
+                "private_no_store": True,
+                "anonymous_denial": True,
+            },
+            {"path": missing_path, "status": 404, "noindex": True, "debug_safe": True},
+        ],
+    }
+    if evidence_path is not None:
+        evidence_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary_path = evidence_path.with_suffix(evidence_path.suffix + ".new")
+        temporary_path.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n")
+        temporary_path.replace(evidence_path)
+    return evidence
 
 
 def main() -> None:

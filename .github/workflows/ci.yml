@@ -14,12 +14,32 @@ on:
         required: true
         default: false
         type: boolean
+      probe_sandbox:
+        description: Assume application roles only for the non-mutating OIDC probe
+        required: true
+        default: false
+        type: boolean
       operation:
-        description: Promote a release or roll back to a successful release record
+        description: Promote, roll back, or run the non-mutating post-bootstrap probe
         required: true
         default: promote
         type: choice
-        options: [promote, rollback]
+        options: [promote, rollback, probe]
+      failure_injection:
+        description: Controlled promotion-only failure drill; leave none for normal releases
+        required: true
+        default: none
+        type: choice
+        options: [none, migration, post_mutation_smoke]
+      reuse_existing_image:
+        description: Verify and reuse an already-published immutable image without Docker
+        required: true
+        default: false
+        type: boolean
+      published_image_record:
+        description: Compact non-secret published-image JSON; required only for reuse
+        required: false
+        type: string
       prior_release_record:
         description: Compact successful release JSON; empty only for first bootstrap
         required: false
@@ -54,6 +74,18 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_RELEASE_SHA: ${{ inputs.release_sha }}
+          INPUT_DEPLOY_SANDBOX: ${{ inputs.deploy_sandbox }}
+          INPUT_PROBE_SANDBOX: ${{ inputs.probe_sandbox }}
+          INPUT_OPERATION: ${{ inputs.operation }}
+          INPUT_FAILURE_INJECTION: ${{ inputs.failure_injection }}
+          INPUT_REUSE_EXISTING_IMAGE: ${{ inputs.reuse_existing_image }}
+          INPUT_PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
+          INPUT_PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
+          INPUT_TARGET_RELEASE_RECORD: ${{ inputs.target_release_record }}
+          INPUT_CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
+          RELEASE_A_SHA: 0f0ae208526fa2e76848cf4f5a87bd4aa26687ec
+          RELEASE_B_SHA: e2b93beb1544170b6177ba55ea8fd6530b2e57a3
+          SANDBOX_REPOSITORY_URI: 817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
@@ -62,6 +94,154 @@ jobs:
               exit 1
             fi
             candidate="$INPUT_RELEASE_SHA"
+            case "$INPUT_REUSE_EXISTING_IMAGE" in
+              true|false) ;;
+              *) echo "reuse_existing_image must be true or false" >&2; exit 1 ;;
+            esac
+            case "$INPUT_FAILURE_INJECTION" in
+              none|migration|post_mutation_smoke) ;;
+              *) echo "Unsupported release failure injection" >&2; exit 1 ;;
+            esac
+            validate_release_record() {
+              jq -e '
+                type == "object" and
+                keys == ["image_digest", "migration_task_definition_arn", "rollback_eligible", "source_sha", "web_desired_count", "web_task_definition_arn", "worker_desired_count", "worker_task_definition_arn"] and
+                (.source_sha | type == "string" and test("^[0-9a-f]{40}$")) and
+                (.image_digest | type == "string" and test("^sha256:[0-9a-f]{64}$")) and
+                .image_digest != "sha256:1111111111111111111111111111111111111111111111111111111111111111" and
+                .image_digest != "sha256:0000000000000000000000000000000000000000000000000000000000000000" and
+                (.web_task_definition_arn | type == "string" and test("^arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:[1-9][0-9]*$")) and
+                (.worker_task_definition_arn | type == "string" and test("^arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:[1-9][0-9]*$")) and
+                (.migration_task_definition_arn | type == "string" and test("^arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-migration:[1-9][0-9]*$")) and
+                (.web_desired_count | type == "number" and . == 1) and
+                (.worker_desired_count | type == "number" and . == 1) and
+                .rollback_eligible == true
+              ' <<< "$1" > /dev/null
+            }
+            prior_source=""
+            if [[ -n "$INPUT_PRIOR_RELEASE_RECORD" ]]; then
+              validate_release_record "$INPUT_PRIOR_RELEASE_RECORD"
+              prior_source="$(jq -er '
+                select(type == "object") |
+                .source_sha |
+                select(type == "string" and test("^[0-9a-f]{40}$"))
+              ' <<< "$INPUT_PRIOR_RELEASE_RECORD")"
+            fi
+            target_source=""
+            if [[ -n "$INPUT_TARGET_RELEASE_RECORD" ]]; then
+              validate_release_record "$INPUT_TARGET_RELEASE_RECORD"
+              target_source="$(jq -er '
+                select(type == "object") |
+                .source_sha |
+                select(type == "string" and test("^[0-9a-f]{40}$"))
+              ' <<< "$INPUT_TARGET_RELEASE_RECORD")"
+            fi
+            current_source=""
+            if [[ -n "$INPUT_CURRENT_RELEASE_RECORD" ]]; then
+              validate_release_record "$INPUT_CURRENT_RELEASE_RECORD"
+              current_source="$(jq -er '
+                select(type == "object") |
+                .source_sha |
+                select(type == "string" and test("^[0-9a-f]{40}$"))
+              ' <<< "$INPUT_CURRENT_RELEASE_RECORD")"
+            fi
+            if [[ "$INPUT_REUSE_EXISTING_IMAGE" == "true" ]]; then
+              if [[ -z "$INPUT_PUBLISHED_IMAGE_RECORD" ]]; then
+                echo "reuse requires a published-image record" >&2
+                exit 1
+              fi
+              jq -e \
+                --arg source_sha "$candidate" \
+                --arg repository_uri "$SANDBOX_REPOSITORY_URI" '
+                type == "object" and
+                keys == ["image_config_digest", "image_digest", "platform", "repository_uri", "source_sha", "user"] and
+                .source_sha == $source_sha and
+                .repository_uri == $repository_uri and
+                (.image_digest | type == "string" and test("^sha256:[0-9a-f]{64}$")) and
+                .image_digest != "sha256:1111111111111111111111111111111111111111111111111111111111111111" and
+                .image_digest != "sha256:0000000000000000000000000000000000000000000000000000000000000000" and
+                (.image_config_digest | type == "string" and test("^sha256:[0-9a-f]{64}$")) and
+                .platform == "linux/amd64" and
+                .user == "10001:10001"
+              ' <<< "$INPUT_PUBLISHED_IMAGE_RECORD" > /dev/null
+            elif [[ -n "$INPUT_PUBLISHED_IMAGE_RECORD" ]]; then
+              echo "published_image_record is accepted only when reuse_existing_image=true" >&2
+              exit 1
+            fi
+            if [[ "$INPUT_FAILURE_INJECTION" != "none" ]]; then
+              if [[ "$INPUT_OPERATION" != "promote" ]]; then
+                echo "Controlled failure injection is promotion-only" >&2
+                exit 1
+              fi
+              if [[ "$candidate" != "$RELEASE_B_SHA" ]]; then
+                echo "Controlled failure injection requires exact accepted release B" >&2
+                exit 1
+              fi
+              if [[ "$prior_source" != "$RELEASE_A_SHA" ]]; then
+                echo "Controlled failure injection requires exact accepted release A as prior" >&2
+                exit 1
+              fi
+              if [[ "$INPUT_FAILURE_INJECTION" == "post_mutation_smoke" && "$INPUT_REUSE_EXISTING_IMAGE" != "true" ]]; then
+                echo "The controlled B post-mutation failure must reuse the published B image" >&2
+                exit 1
+              fi
+            fi
+            if [[ "$INPUT_OPERATION" == "probe" ]]; then
+              if [[ "$INPUT_PROBE_SANDBOX" != "true" || "$INPUT_DEPLOY_SANDBOX" != "false" ]]; then
+                echo "Probe requires probe_sandbox=true and deploy_sandbox=false" >&2
+                exit 1
+              fi
+              if [[ "$INPUT_FAILURE_INJECTION" != "none" ]]; then
+                echo "Probe cannot inject a release failure" >&2
+                exit 1
+              fi
+              if [[ "$INPUT_REUSE_EXISTING_IMAGE" != "false" || -n "$INPUT_PUBLISHED_IMAGE_RECORD" || -n "$INPUT_PRIOR_RELEASE_RECORD" || -n "$INPUT_TARGET_RELEASE_RECORD" || -n "$INPUT_CURRENT_RELEASE_RECORD" ]]; then
+                echo "Probe accepts no image reuse or release record" >&2
+                exit 1
+              fi
+            elif [[ "$INPUT_PROBE_SANDBOX" != "false" ]]; then
+              echo "probe_sandbox is valid only for operation=probe" >&2
+              exit 1
+            fi
+            if [[ "$INPUT_OPERATION" == "rollback" ]]; then
+              if [[ -n "$INPUT_PRIOR_RELEASE_RECORD" ]]; then
+                echo "Rollback rejects the promotion prior-release input" >&2
+                exit 1
+              fi
+              if [[ "$INPUT_FAILURE_INJECTION" != "none" || "$INPUT_REUSE_EXISTING_IMAGE" != "true" ]]; then
+                echo "Rollback requires reuse with no failure injection" >&2
+                exit 1
+              fi
+              if [[ "$target_source" != "$candidate" || -z "$current_source" ]]; then
+                echo "Rollback records must identify the selected target and an active current release" >&2
+                exit 1
+              fi
+              if [[ "$candidate" == "$RELEASE_A_SHA" && "$current_source" != "$RELEASE_B_SHA" ]]; then
+                echo "The release-B-to-A drill requires exact accepted release B as current" >&2
+                exit 1
+              fi
+            fi
+            if [[ "$INPUT_OPERATION" == "promote" && ( -n "$INPUT_TARGET_RELEASE_RECORD" || -n "$INPUT_CURRENT_RELEASE_RECORD" ) ]]; then
+              echo "Promotion rejects rollback target/current inputs" >&2
+              exit 1
+            fi
+            if [[ "$INPUT_DEPLOY_SANDBOX" == "true" && "$INPUT_OPERATION" == "promote" ]]; then
+              if [[ "$candidate" == "$RELEASE_A_SHA" ]]; then
+                if [[ "$INPUT_FAILURE_INJECTION" != "none" || -n "$prior_source" ]]; then
+                  echo "Initial release A requires no prior release" >&2
+                  exit 1
+                fi
+              elif [[ "$candidate" == "$RELEASE_B_SHA" ]]; then
+                if [[ "$prior_source" != "$RELEASE_A_SHA" ]]; then
+                  echo "Every release B exercise requires exact accepted release A as prior" >&2
+                  exit 1
+                fi
+                if [[ "$INPUT_FAILURE_INJECTION" != "migration" && "$INPUT_REUSE_EXISTING_IMAGE" != "true" ]]; then
+                  echo "Every B run after its migration drill must reuse the published B image" >&2
+                  exit 1
+                fi
+              fi
+            fi
           else
             candidate="$GITHUB_SHA"
           fi
@@ -70,6 +250,14 @@ jobs:
             exit 1
           fi
           git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$(git rev-parse HEAD)" != "$(git rev-parse refs/remotes/origin/main)" ]]; then
+            echo "Workflow controller is not the current main commit" >&2
+            exit 1
+          fi
+          if [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_OPERATION" == "probe" && "$candidate" != "$(git rev-parse HEAD)" ]]; then
+            echo "OIDC probes run only from the current main source" >&2
+            exit 1
+          fi
           if ! git cat-file -e "${candidate}^{commit}"; then
             echo "Release SHA is not an existing commit" >&2
             exit 1
@@ -85,6 +273,7 @@ jobs:
           echo "release_sha=$candidate" >> "$GITHUB_OUTPUT"
 
   quality:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
     runs-on: ubuntu-latest
     defaults:
@@ -109,6 +298,7 @@ jobs:
       - run: make deployment-check
 
   django:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
     runs-on: ubuntu-latest
     services:
@@ -145,6 +335,7 @@ jobs:
       - run: make test
 
   playwright:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
     runs-on: ubuntu-latest
     defaults:
@@ -165,14 +356,41 @@ jobs:
       - run: make test-playwright-core
 
   container:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
     runs-on: ubuntu-latest
     steps:
+      - id: image-cache
+        name: Restore the immutable tested-image cache for an automatic rerun
+        if: github.event_name == 'push' || inputs.reuse_existing_image == false
+        uses: actions/cache@v4
+        with:
+          path: .tmp/release-image.tar
+          key: tested-release-image-${{ needs.resolve-release.outputs.release_sha }}
+      - name: Reject a rerun when its immutable image cache is missing
+        if: >-
+          github.run_attempt > 1 &&
+          (github.event_name == 'push' || inputs.reuse_existing_image == false) &&
+          steps.image-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "Automatic reruns may only restore and reverify the first attempt's tested image." >&2
+          exit 1
+      - name: Complete the container gate without Docker for immutable-image reuse
+        if: github.event_name == 'workflow_dispatch' && inputs.reuse_existing_image == true
+        env:
+          PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
+        run: test -n "$PUBLISHED_IMAGE_RECORD"
       - uses: actions/checkout@v4
+        if: >-
+          (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
+          steps.image-cache.outputs.cache-hit != 'true'
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
       - name: Build the production image once for sandbox architecture
+        if: >-
+          (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
+          steps.image-cache.outputs.cache-hit != 'true'
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
         run: |
@@ -184,7 +402,13 @@ jobs:
             --tag "dtc-website:$RELEASE_SHA" \
             --load \
             .tmp/release-source
+      - name: Load the immutable tested image without rebuilding on a cache hit
+        if: >-
+          (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
+          steps.image-cache.outputs.cache-hit == 'true'
+        run: docker image load --input .tmp/release-image.tar
       - name: Verify image provenance, architecture, and exact runtime user
+        if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
         run: |
@@ -196,6 +420,7 @@ jobs:
           test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
           test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
       - name: Smoke-test liveness without publishing
+        if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
         run: |
@@ -214,31 +439,191 @@ jobs:
           done
           exit 1
       - name: Preserve the one tested image
+        if: >-
+          (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
+          steps.image-cache.outputs.cache-hit != 'true'
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
         run: docker image save --output .tmp/release-image.tar "dtc-website:$RELEASE_SHA"
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         with:
           name: release-image-${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-image.tar
           compression-level: 0
           retention-days: 1
           if-no-files-found: error
+          overwrite: true
+
+  auto-capture-prior:
+    if: >-
+      github.event_name == 'push' &&
+      vars.SANDBOX_AUTO_DEPLOY == 'true' &&
+      github.ref == 'refs/heads/main'
+    needs: [resolve-release, quality, django, playwright, container]
+    runs-on: ubuntu-latest
+    environment:
+      name: sandbox
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      active_service_pair: ${{ steps.capture.outputs.active_service_pair }}
+      before_oidc_at: ${{ steps.capture-before-oidc.outputs.verified_at }}
+      before_capture_at: ${{ steps.capture-before-read.outputs.verified_at }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - name: Validate automatic prior-capture configuration
+        env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          DEPLOYER_ROLE_ARN: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
+          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
+          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
+        run: |
+          set -euo pipefail
+          test "$AWS_REGION" = "eu-west-1"
+          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
+          test "$ECR_REPOSITORY_URI" = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+          test "$ECS_CLUSTER_ARN" = "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+          test "$WEB_SERVICE_NAME" = "website-sandbox-web"
+          test "$WORKER_SERVICE_NAME" = "website-sandbox-worker"
+          test "$WEB_FAMILY" = "website-sandbox-web"
+          test "$WORKER_FAMILY" = "website-sandbox-worker"
+          test "$TASK_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-application"
+          test "$EXECUTION_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-execution"
+          test "$WEB_DESIRED_COUNT" = "1"
+          test "$WORKER_DESIRED_COUNT" = "1"
+          jq -e '. == {"migration":"migration","web":"web","worker":"worker"}' <<< "$CONTAINER_NAMES"
+      - id: capture-before-oidc
+        name: Verify current-main controller immediately before prior-capture OIDC
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$GITHUB_SHA" = "$RELEASE_SHA"
+          test "$(git rev-parse refs/remotes/origin/main)" = "$RELEASE_SHA"
+          echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-session-name: website-prior-capture-${{ github.run_id }}
+      - id: capture-before-read
+        name: Recheck current-main controller immediately before active-pair capture
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$GITHUB_SHA" = "$RELEASE_SHA"
+          test "$(git rev-parse refs/remotes/origin/main)" = "$RELEASE_SHA"
+          echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - id: capture
+        name: Capture the exact managed active web-worker pair
+        env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
+          SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
+          SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
+          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/deployment
+          mapfile -t subnet_ids < <(jq -er '.[]' <<< "$SUBNET_IDS")
+          mapfile -t security_group_ids < <(jq -er '.[]' <<< "$SECURITY_GROUP_IDS")
+          runtime_args=(
+            --region "$AWS_REGION"
+            --cluster-arn "$CLUSTER_ARN"
+            --web-target-group-arn "$WEB_TARGET_GROUP_ARN"
+            --web-service-name "$WEB_SERVICE_NAME"
+            --worker-service-name "$WORKER_SERVICE_NAME"
+            --web-family "$WEB_FAMILY"
+            --worker-family "$WORKER_FAMILY"
+            --migration-family "$MIGRATION_FAMILY"
+            --web-container-name "$(jq -er '.web' <<< "$CONTAINER_NAMES")"
+            --worker-container-name "$(jq -er '.worker' <<< "$CONTAINER_NAMES")"
+            --migration-container-name "$(jq -er '.migration' <<< "$CONTAINER_NAMES")"
+            --task-role-arn "$TASK_ROLE_ARN"
+            --execution-role-arn "$EXECUTION_ROLE_ARN"
+            --assign-public-ip "$ASSIGN_PUBLIC_IP"
+          )
+          for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done
+          for security_group_id in "${security_group_ids[@]}"; do
+            runtime_args+=(--security-group-id "$security_group_id")
+          done
+          uv run python -m deploy.cli capture-current \
+            "${runtime_args[@]}" \
+            --repository-uri "$REPOSITORY_URI" \
+            --expected-web-count "$WEB_DESIRED_COUNT" \
+            --expected-worker-count "$WORKER_DESIRED_COUNT" \
+            --release-record-path .tmp/deployment/active-service-pair.json
+          prior_source="$(jq -er '.source_sha' .tmp/deployment/active-service-pair.json)"
+          git cat-file -e "${prior_source}^{commit}"
+          test "$(git rev-parse "${prior_source}^{commit}")" = "$prior_source"
+          git merge-base --is-ancestor "$prior_source" refs/remotes/origin/main
+          pair="$(jq -c . .tmp/deployment/active-service-pair.json)"
+          echo "active_service_pair=$pair" >> "$GITHUB_OUTPUT"
 
   publish:
     if: >-
-      github.event_name == 'workflow_dispatch' &&
-      inputs.deploy_sandbox == true &&
+      always() &&
+      needs.resolve-release.result == 'success' &&
+      needs.quality.result == 'success' &&
+      needs.django.result == 'success' &&
+      needs.playwright.result == 'success' &&
+      needs.container.result == 'success' &&
+      ((github.event_name == 'push' && vars.SANDBOX_AUTO_DEPLOY == 'true' &&
+      needs.auto-capture-prior.result == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_sandbox == true &&
+      inputs.operation != 'probe' && needs.auto-capture-prior.result == 'skipped')) &&
       github.ref == 'refs/heads/main'
-    needs: [resolve-release, quality, django, playwright, container]
+    needs: [resolve-release, quality, django, playwright, container, auto-capture-prior]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     outputs:
-      image_digest: ${{ steps.publish.outputs.image_digest }}
+      image_digest: ${{ steps.image.outputs.image_digest }}
+      before_oidc_at: ${{ steps.publisher-before-oidc.outputs.verified_at }}
+      before_publish_at: ${{ steps.publisher-before-write.outputs.verified_at }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
+        if: github.event_name == 'push' || inputs.reuse_existing_image == false
         with:
           name: release-image-${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp
@@ -248,29 +633,65 @@ jobs:
           ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
           ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
           PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+          PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
+          REUSE_EXISTING_IMAGE: ${{ inputs.reuse_existing_image }}
         run: |
           set -euo pipefail
-          test -n "$AWS_REGION"
-          test -n "$ECR_REPOSITORY_URI"
-          test -n "$ECR_REPOSITORY_NAME"
-          test -n "$PUBLISHER_ROLE_ARN"
-          test "${ECR_REPOSITORY_URI##*/}" = "$ECR_REPOSITORY_NAME"
+          test "$AWS_REGION" = "eu-west-1"
+          test "$ECR_REPOSITORY_URI" = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+          test "$ECR_REPOSITORY_NAME" = "website-sandbox"
+          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
+          if [[ "$REUSE_EXISTING_IMAGE" == "true" ]]; then
+            test "$(jq -er '.repository_uri' <<< "$PUBLISHED_IMAGE_RECORD")" = "$ECR_REPOSITORY_URI"
+          fi
+      - id: publisher-before-oidc
+        name: Verify current-main controller immediately before publisher OIDC
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            test "$controller" = "$RELEASE_SHA"
+            test "$GITHUB_SHA" = "$RELEASE_SHA"
+          fi
+          echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
           aws-region: ${{ vars.SANDBOX_AWS_REGION }}
           role-session-name: website-publisher-${{ github.run_id }}
-      - id: publish
-        name: Push once or prove the immutable SHA tag is the same build
+      - id: publisher-before-write
+        name: Recheck current-main controller immediately before ECR access
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            test "$controller" = "$RELEASE_SHA"
+            test "$GITHUB_SHA" = "$RELEASE_SHA"
+          fi
+          echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - name: Push once and write the non-release published-image record
+        if: github.event_name == 'push' || inputs.reuse_existing_image == false
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
           ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
           ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
-          OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
           docker image load --input .tmp/release-image.tar
           local_config_digest="$(docker image inspect --format '{{.Id}}' "dtc-website:$RELEASE_SHA")"
+          test "$(docker image inspect --format '{{.Architecture}}' "dtc-website:$RELEASE_SHA")" = "amd64"
+          test "$(docker image inspect --format '{{.Config.User}}' "dtc-website:$RELEASE_SHA")" = "10001:10001"
+          [[ "$local_config_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           if aws ecr describe-images \
             --repository-name "$ECR_REPOSITORY_NAME" \
             --image-ids "imageTag=$RELEASE_SHA" \
@@ -280,15 +701,11 @@ jobs:
               --image-ids "imageTag=$RELEASE_SHA" \
               --query 'images[0].imageManifest' \
               --output text)"
-            remote_config_digest="$(MANIFEST="$manifest" python -c 'import json, os; print(json.loads(os.environ["MANIFEST"])["config"]["digest"])')"
+            remote_config_digest="$(jq -er '.config.digest' <<< "$manifest")"
             test "$remote_config_digest" = "$local_config_digest"
           else
             if ! grep -q 'ImageNotFoundException' .tmp/ecr-existing-error.txt; then
               echo "Unable to prove whether the immutable release tag exists" >&2
-              exit 1
-            fi
-            if [[ "$OPERATION" == "rollback" ]]; then
-              echo "Rollback target image is missing; a rollback never republishes it" >&2
               exit 1
             fi
             aws ecr get-login-password | docker login \
@@ -311,12 +728,71 @@ jobs:
             --image-ids "imageDigest=$image_digest" \
             --query 'images[0].imageManifest' \
             --output text)"
-          remote_config_digest="$(MANIFEST="$manifest" python -c 'import json, os; print(json.loads(os.environ["MANIFEST"])["config"]["digest"])')"
+          remote_config_digest="$(jq -er '.config.digest' <<< "$manifest")"
           test "$remote_config_digest" = "$local_config_digest"
+          jq -cn \
+            --arg source_sha "$RELEASE_SHA" \
+            --arg repository_uri "$ECR_REPOSITORY_URI" \
+            --arg image_digest "$image_digest" \
+            --arg image_config_digest "$local_config_digest" \
+            '{source_sha: $source_sha, repository_uri: $repository_uri, image_digest: $image_digest, image_config_digest: $image_config_digest, platform: "linux/amd64", user: "10001:10001"}' \
+            > .tmp/published-image.json
+      - name: Verify and preserve the recorded immutable image without Docker
+        if: github.event_name == 'workflow_dispatch' && inputs.reuse_existing_image == true
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
+        run: |
+          set -euo pipefail
+          jq -ceS . <<< "$PUBLISHED_IMAGE_RECORD" > .tmp/published-image.json
+          recorded_digest="$(jq -er '.image_digest' .tmp/published-image.json)"
+          recorded_config_digest="$(jq -er '.image_config_digest' .tmp/published-image.json)"
+          test "$(jq -er '.source_sha' .tmp/published-image.json)" = "$RELEASE_SHA"
+          test "$(jq -er '.repository_uri' .tmp/published-image.json)" = "$ECR_REPOSITORY_URI"
+          aws ecr describe-images \
+            --repository-name "$ECR_REPOSITORY_NAME" \
+            --image-ids "imageTag=$RELEASE_SHA" \
+            --output json > .tmp/reused-ecr-image.json
+          jq -e --arg digest "$recorded_digest" '
+            (.imageDetails | length) == 1 and
+            .imageDetails[0].imageDigest == $digest
+          ' .tmp/reused-ecr-image.json > /dev/null
+          aws ecr batch-get-image \
+            --repository-name "$ECR_REPOSITORY_NAME" \
+            --image-ids "imageTag=$RELEASE_SHA" \
+            --output json > .tmp/reused-ecr-manifest.json
+          jq -e --arg digest "$recorded_digest" --arg config "$recorded_config_digest" '
+            (.failures | length) == 0 and
+            (.images | length) == 1 and
+            .images[0].imageId.imageDigest == $digest and
+            (.images[0].imageManifest | fromjson | .config.digest) == $config
+          ' .tmp/reused-ecr-manifest.json > /dev/null
+      - id: image
+        name: Export the one verified immutable digest
+        run: |
+          set -euo pipefail
+          image_digest="$(jq -er '.image_digest | select(test("^sha256:[0-9a-f]{64}$"))' .tmp/published-image.json)"
           echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
+      - name: Preserve the published-image record independently of deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-published-image-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
+          path: .tmp/published-image.json
+          if-no-files-found: error
+          retention-days: 90
 
   deploy:
-    needs: [resolve-release, quality, django, playwright, container, publish]
+    if: >-
+      always() &&
+      needs.publish.result == 'success' &&
+      ((github.event_name == 'push' && vars.SANDBOX_AUTO_DEPLOY == 'true' &&
+      needs.auto-capture-prior.result == 'success') ||
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_sandbox == true &&
+      inputs.operation != 'probe' && needs.auto-capture-prior.result == 'skipped')) &&
+      github.ref == 'refs/heads/main'
+    needs: [resolve-release, quality, django, playwright, container, auto-capture-prior, publish]
     runs-on: ubuntu-latest
     environment:
       name: sandbox
@@ -326,6 +802,8 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -335,28 +813,186 @@ jobs:
       - run: uv run playwright install --with-deps chromium
       - name: Validate deployer configuration before assuming AWS
         env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
           DEPLOYER_ROLE_ARN: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
+          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
           ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
           WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
           ECS_SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
           ECS_SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
+          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
+          PROJECT_TAG: ${{ vars.SANDBOX_RESOURCE_PROJECT_TAG }}
+          ENVIRONMENT_TAG: ${{ vars.SANDBOX_RESOURCE_ENVIRONMENT_TAG }}
+          OPERATION: ${{ github.event_name == 'push' && 'promote' || inputs.operation }}
+          FAILURE_INJECTION: ${{ github.event_name == 'push' && 'none' || inputs.failure_injection }}
+          PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
         run: |
           set -euo pipefail
-          test -n "$DEPLOYER_ROLE_ARN"
-          test -n "$ECS_CLUSTER_ARN"
-          test -n "$WEB_TARGET_GROUP_ARN"
-          jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$ECS_SUBNET_IDS"
-          jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$ECS_SECURITY_GROUP_IDS"
+          test "$AWS_REGION" = "eu-west-1"
+          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
+          test "$ECR_REPOSITORY_URI" = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+          test "$ECS_CLUSTER_ARN" = "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+          [[ "$WEB_TARGET_GROUP_ARN" =~ ^arn:aws:elasticloadbalancing:eu-west-1:817685572750:targetgroup/website-sandbox-web/[0-9a-f]{16}$ ]]
+          test "$WEB_SERVICE_NAME" = "website-sandbox-web"
+          test "$WORKER_SERVICE_NAME" = "website-sandbox-worker"
+          test "$WEB_FAMILY" = "website-sandbox-web"
+          test "$WORKER_FAMILY" = "website-sandbox-worker"
+          test "$MIGRATION_FAMILY" = "website-sandbox-migration"
+          jq -e '. == {"migration":"migration","web":"web","worker":"worker"}' <<< "$CONTAINER_NAMES"
+          test "$TASK_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-application"
+          test "$EXECUTION_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-execution"
+          test "$ASSIGN_PUBLIC_IP" = "true"
+          test "$WEB_DESIRED_COUNT" = "1"
+          test "$WORKER_DESIRED_COUNT" = "1"
+          test "$PROJECT_TAG" = "website"
+          test "$ENVIRONMENT_TAG" = "sandbox"
+          case "$FAILURE_INJECTION" in
+            none|migration|post_mutation_smoke) ;;
+            *) echo "Unsupported release failure injection" >&2; exit 1 ;;
+          esac
+          if [[ "$FAILURE_INJECTION" != "none" ]]; then
+            test "$OPERATION" = "promote"
+            test -n "$PRIOR_RELEASE_RECORD"
+          fi
+          jq -e 'type == "array" and length == 2 and all(.[]; type == "string" and test("^subnet-[0-9a-f]+$"))' <<< "$ECS_SUBNET_IDS"
+          jq -e 'type == "array" and length == 1 and all(.[]; type == "string" and test("^sg-[0-9a-f]+$"))' <<< "$ECS_SECURITY_GROUP_IDS"
+      - name: Verify current-main controller immediately before deployer OIDC
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            test "$controller" = "$RELEASE_SHA"
+            test "$GITHUB_SHA" = "$RELEASE_SHA"
+          fi
+          mkdir -p .tmp/deployment
+          date -u +%Y-%m-%dT%H:%M:%SZ > .tmp/deployment/current-main-before-oidc
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
           aws-region: ${{ vars.SANDBOX_AWS_REGION }}
           role-session-name: website-deployer-${{ github.run_id }}
-      - name: Promote or roll back one atomic web-and-worker release
+          role-duration-seconds: 3600
+      - name: Recheck current-main controller before recovery checkpoint capture
         env:
-          OPERATION: ${{ inputs.operation }}
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            test "$controller" = "$RELEASE_SHA"
+            test "$GITHUB_SHA" = "$RELEASE_SHA"
+          fi
+          date -u +%Y-%m-%dT%H:%M:%SZ > .tmp/deployment/current-main-before-checkpoint
+      - name: Capture the exact pre-mutation recovery checkpoint
+        env:
+          OPERATION: ${{ github.event_name == 'push' && 'promote' || inputs.operation }}
+          ACTIVE_SERVICE_PAIR: ${{ needs.auto-capture-prior.outputs.active_service_pair }}
+          PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
+          CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
+          SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
+          SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
+        run: |
+          set -euo pipefail
+          mapfile -t subnet_ids < <(jq -er '.[]' <<< "$SUBNET_IDS")
+          mapfile -t security_group_ids < <(jq -er '.[]' <<< "$SECURITY_GROUP_IDS")
+          runtime_args=(
+            --region "$AWS_REGION"
+            --cluster-arn "$CLUSTER_ARN"
+            --web-target-group-arn "$WEB_TARGET_GROUP_ARN"
+            --web-service-name "$WEB_SERVICE_NAME"
+            --worker-service-name "$WORKER_SERVICE_NAME"
+            --web-family "$WEB_FAMILY"
+            --worker-family "$WORKER_FAMILY"
+            --migration-family "$MIGRATION_FAMILY"
+            --web-container-name "$(jq -er '.web' <<< "$CONTAINER_NAMES")"
+            --worker-container-name "$(jq -er '.worker' <<< "$CONTAINER_NAMES")"
+            --migration-container-name "$(jq -er '.migration' <<< "$CONTAINER_NAMES")"
+            --task-role-arn "$TASK_ROLE_ARN"
+            --execution-role-arn "$EXECUTION_ROLE_ARN"
+            --assign-public-ip "$ASSIGN_PUBLIC_IP"
+            --timeout-seconds 180
+          )
+          for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done
+          for security_group_id in "${security_group_ids[@]}"; do
+            runtime_args+=(--security-group-id "$security_group_id")
+          done
+          expected_args=()
+          if [[ -n "$ACTIVE_SERVICE_PAIR" ]]; then
+            jq -ceS . <<< "$ACTIVE_SERVICE_PAIR" > .tmp/deployment/checkpoint-pair.json
+            expected_args=(--active-service-pair .tmp/deployment/checkpoint-pair.json)
+          elif [[ "$OPERATION" == "rollback" ]]; then
+            jq -ceS . <<< "$CURRENT_RELEASE_RECORD" > .tmp/deployment/checkpoint-prior.json
+            expected_args=(--prior-release-record .tmp/deployment/checkpoint-prior.json)
+          elif [[ -n "$PRIOR_RELEASE_RECORD" ]]; then
+            jq -ceS . <<< "$PRIOR_RELEASE_RECORD" > .tmp/deployment/checkpoint-prior.json
+            expected_args=(--prior-release-record .tmp/deployment/checkpoint-prior.json)
+          fi
+          uv run python -m deploy.cli capture-recovery \
+            "${runtime_args[@]}" \
+            --repository-uri "$REPOSITORY_URI" \
+            "${expected_args[@]}" \
+            --recovery-context-path .tmp/deployment/pre-mutation-recovery-context.json
+      - name: Preserve the exact pre-mutation incident checkpoint
+        timeout-minutes: 2
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-recovery-checkpoint-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/deployment/pre-mutation-recovery-context.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Recheck current-main controller immediately before release mutation
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          if [[ "$EVENT_NAME" == "push" ]]; then
+            test "$controller" = "$RELEASE_SHA"
+            test "$GITHUB_SHA" = "$RELEASE_SHA"
+          fi
+          date -u +%Y-%m-%dT%H:%M:%SZ > .tmp/deployment/current-main-before-mutation
+      - id: release
+        name: Promote or roll back one atomic web-and-worker release
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          OPERATION: ${{ github.event_name == 'push' && 'promote' || inputs.operation }}
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
           IMAGE_DIGEST: ${{ needs.publish.outputs.image_digest }}
+          ACTIVE_SERVICE_PAIR: ${{ needs.auto-capture-prior.outputs.active_service_pair }}
           PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
           TARGET_RELEASE_RECORD: ${{ inputs.target_release_record }}
           CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
@@ -379,6 +1015,7 @@ jobs:
           WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
           PROJECT_TAG: ${{ vars.SANDBOX_RESOURCE_PROJECT_TAG }}
           ENVIRONMENT_TAG: ${{ vars.SANDBOX_RESOURCE_ENVIRONMENT_TAG }}
+          FAILURE_INJECTION: ${{ github.event_name == 'push' && 'none' || inputs.failure_injection }}
         run: |
           set -euo pipefail
           mkdir -p .tmp/deployment .tmp/deployed-smoke
@@ -404,15 +1041,21 @@ jobs:
             --assign-public-ip "$ASSIGN_PUBLIC_IP"
             --base-url https://web.dtcdev.click
             --screenshot-directory .tmp/deployed-smoke
+            --timeout-seconds 180
           )
           for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done
           for security_group_id in "${security_group_ids[@]}"; do
             runtime_args+=(--security-group-id "$security_group_id")
           done
+          declare -p runtime_args > .tmp/deployment/runtime-args.sh
           if [[ "$OPERATION" == "promote" ]]; then
             prior_args=()
-            if [[ -n "$PRIOR_RELEASE_RECORD" ]]; then
-              PRIOR_RELEASE_RECORD="$PRIOR_RELEASE_RECORD" python -c 'import os, pathlib; pathlib.Path(".tmp/deployment/prior.json").write_text(os.environ["PRIOR_RELEASE_RECORD"] + "\n")'
+            if [[ "$EVENT_NAME" == "push" ]]; then
+              test -n "$ACTIVE_SERVICE_PAIR"
+              jq -ceS . <<< "$ACTIVE_SERVICE_PAIR" > .tmp/deployment/active-service-pair.json
+              prior_args=(--active-service-pair .tmp/deployment/active-service-pair.json)
+            elif [[ -n "$PRIOR_RELEASE_RECORD" ]]; then
+              jq -ceS . <<< "$PRIOR_RELEASE_RECORD" > .tmp/deployment/prior.json
               prior_args=(--prior-release-record .tmp/deployment/prior.json)
             fi
             uv run python -m deploy.cli promote \
@@ -424,30 +1067,521 @@ jobs:
               --worker-desired-count "$WORKER_DESIRED_COUNT" \
               --project-tag "$PROJECT_TAG" \
               --environment-tag "$ENVIRONMENT_TAG" \
+              --failure-injection "$FAILURE_INJECTION" \
               "${prior_args[@]}" \
+              --evidence-path .tmp/deployment/controller-evidence.json \
+              --recovery-context-path .tmp/deployment/recovery-context.json \
               --release-record-path .tmp/deployment/successful-release.json
           else
             test -n "$TARGET_RELEASE_RECORD"
             test -n "$CURRENT_RELEASE_RECORD"
-            TARGET_RELEASE_RECORD="$TARGET_RELEASE_RECORD" CURRENT_RELEASE_RECORD="$CURRENT_RELEASE_RECORD" python -c 'import json, os, pathlib; target=json.loads(os.environ["TARGET_RELEASE_RECORD"]); current=json.loads(os.environ["CURRENT_RELEASE_RECORD"]); assert target["source_sha"] == os.environ["RELEASE_SHA"] and target["image_digest"] == os.environ["IMAGE_DIGEST"]; pathlib.Path(".tmp/deployment/target.json").write_text(json.dumps(target) + "\n"); pathlib.Path(".tmp/deployment/current.json").write_text(json.dumps(current) + "\n")'
+            jq -ceS --arg sha "$RELEASE_SHA" --arg digest "$IMAGE_DIGEST" \
+              'select(.source_sha == $sha and .image_digest == $digest)' \
+              <<< "$TARGET_RELEASE_RECORD" > .tmp/deployment/target.json
+            jq -ceS . <<< "$CURRENT_RELEASE_RECORD" > .tmp/deployment/current.json
             uv run python -m deploy.cli rollback \
               "${runtime_args[@]}" \
               --repository-uri "$REPOSITORY_URI" \
               --target-release-record .tmp/deployment/target.json \
               --current-release-record .tmp/deployment/current.json \
+              --evidence-path .tmp/deployment/controller-evidence.json \
+              --recovery-context-path .tmp/deployment/recovery-context.json \
               --release-record-path .tmp/deployment/successful-release.json
           fi
-      - name: Preserve only the successful rollback-eligible release record
+      - id: evidence_builder
+        name: Build redacted deployment evidence on success or failure
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 1
+        env:
+          ACTIVE_SERVICE_PAIR: ${{ needs.auto-capture-prior.outputs.active_service_pair }}
+          CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
+          CONTROLLER_OUTCOME: ${{ steps.release.outcome }}
+          EVENT_NAME: ${{ github.event_name }}
+          IMAGE_DIGEST: ${{ needs.publish.outputs.image_digest }}
+          PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          GATE_RESOLVE: ${{ needs.resolve-release.result }}
+          GATE_QUALITY: ${{ needs.quality.result }}
+          GATE_DJANGO: ${{ needs.django.result }}
+          GATE_PLAYWRIGHT: ${{ needs.playwright.result }}
+          GATE_CONTAINER: ${{ needs.container.result }}
+          GATE_CAPTURE: ${{ needs.auto-capture-prior.result }}
+          GATE_PUBLISH: ${{ needs.publish.result }}
+          CAPTURE_BEFORE_OIDC_AT: ${{ needs.auto-capture-prior.outputs.before_oidc_at }}
+          CAPTURE_BEFORE_READ_AT: ${{ needs.auto-capture-prior.outputs.before_capture_at }}
+          PUBLISH_BEFORE_OIDC_AT: ${{ needs.publish.outputs.before_oidc_at }}
+          PUBLISH_BEFORE_WRITE_AT: ${{ needs.publish.outputs.before_publish_at }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/deployment
+          uv run --frozen python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          directory = Path(".tmp/deployment")
+          successful_path = directory / "successful-release.json"
+          successful = (
+              os.environ.get("CONTROLLER_OUTCOME") == "success"
+              and successful_path.exists()
+          )
+          prior_text = (
+              os.environ.get("ACTIVE_SERVICE_PAIR")
+              or os.environ.get("CURRENT_RELEASE_RECORD")
+              or os.environ.get("PRIOR_RELEASE_RECORD")
+          )
+          prior = json.loads(prior_text) if prior_text else None
+          released = json.loads(successful_path.read_text()) if successful else None
+          controller_path = directory / "controller-evidence.json"
+          controller = json.loads(controller_path.read_text()) if controller_path.exists() else {"stages": []}
+          http_path = Path(".tmp/deployed-smoke/http-evidence.json")
+          http_evidence = json.loads(http_path.read_text()) if http_path.exists() else None
+
+          def marker(name):
+              path = directory / name
+              return path.read_text().strip() if path.exists() else ""
+
+          current_main_checks = [
+              {"checkpoint": "capture_before_oidc", "result": "passed", "timestamp": os.environ.get("CAPTURE_BEFORE_OIDC_AT")}
+              if os.environ.get("CAPTURE_BEFORE_OIDC_AT") else
+              {"checkpoint": "capture_before_oidc", "result": "not_applicable", "timestamp": None},
+              {"checkpoint": "capture_before_read", "result": "passed", "timestamp": os.environ.get("CAPTURE_BEFORE_READ_AT")}
+              if os.environ.get("CAPTURE_BEFORE_READ_AT") else
+              {"checkpoint": "capture_before_read", "result": "not_applicable", "timestamp": None},
+              {"checkpoint": "publisher_before_oidc", "result": "passed" if os.environ.get("PUBLISH_BEFORE_OIDC_AT") else "not_proven", "timestamp": os.environ.get("PUBLISH_BEFORE_OIDC_AT") or None},
+              {"checkpoint": "publisher_before_write", "result": "passed" if os.environ.get("PUBLISH_BEFORE_WRITE_AT") else "not_proven", "timestamp": os.environ.get("PUBLISH_BEFORE_WRITE_AT") or None},
+              {"checkpoint": "deployer_before_oidc", "result": "passed" if marker("current-main-before-oidc") else "not_proven", "timestamp": marker("current-main-before-oidc") or None},
+              {"checkpoint": "deployer_before_checkpoint", "result": "passed" if marker("current-main-before-checkpoint") else "not_proven", "timestamp": marker("current-main-before-checkpoint") or None},
+              {"checkpoint": "deployer_before_mutation", "result": "passed" if marker("current-main-before-mutation") else "not_proven", "timestamp": marker("current-main-before-mutation") or None},
+          ]
+          gate_results = {
+              "source_resolution": os.environ["GATE_RESOLVE"],
+              "quality": os.environ["GATE_QUALITY"],
+              "deployment_contract": os.environ["GATE_QUALITY"],
+              "django_postgresql": os.environ["GATE_DJANGO"],
+              "playwright": os.environ["GATE_PLAYWRIGHT"],
+              "container": os.environ["GATE_CONTAINER"],
+              "automatic_prior_capture": os.environ["GATE_CAPTURE"],
+              "publisher": os.environ["GATE_PUBLISH"],
+          }
+          evidence = {
+              "run_id": os.environ["RUN_ID"],
+              "run_attempt": os.environ["RUN_ATTEMPT"],
+              "run_url": os.environ["RUN_URL"],
+              "event": os.environ["EVENT_NAME"],
+              "controller_sha": os.environ.get("GITHUB_SHA", ""),
+              "source_sha": os.environ.get("RELEASE_SHA", ""),
+              "image_digest": os.environ.get("IMAGE_DIGEST", ""),
+              "captured_prior": prior,
+              "released": released,
+              "gate_results": gate_results,
+              "current_main_checks": current_main_checks,
+              "http_smoke": http_evidence,
+              "result": (
+                  "controller_succeeded_pending_artifact_finalization"
+                  if successful else
+                  "failed_without_success_record"
+              ),
+              "stages": controller.get("stages", []),
+          }
+          (directory / "deployment-evidence.json").write_text(
+              json.dumps(evidence, indent=2, sort_keys=True) + "\n"
+          )
+          PY
+      - id: evidence_upload
+        name: Preserve redacted deployment evidence even for a failed release
+        if: always() && steps.evidence_builder.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-successful-release-${{ needs.resolve-release.outputs.release_sha }}
-          path: .tmp/deployment/successful-release.json
+          name: sandbox-deployment-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/deployment/deployment-evidence.json
           if-no-files-found: error
           retention-days: 90
-      - name: Preserve read-only browser evidence
+      - id: smoke_upload
+        name: Preserve read-only browser and HTTP evidence
+        if: always() && steps.release.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-read-only-smoke-${{ needs.resolve-release.outputs.release_sha }}
+          name: sandbox-read-only-smoke-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployed-smoke
           if-no-files-found: error
           retention-days: 30
+      - id: success_record_upload
+        name: Preserve only the successful rollback-eligible release record
+        if: >-
+          always() && steps.release.outcome == 'success' &&
+          steps.evidence_builder.outcome == 'success' &&
+          steps.evidence_upload.outcome == 'success' &&
+          steps.smoke_upload.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-successful-release-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
+          path: .tmp/deployment/successful-release.json
+          if-no-files-found: error
+          retention-days: 90
+      - id: finalization_recovery
+        name: Restore the exact prior pair when artifact finalization fails
+        if: >-
+          always() && steps.release.outcome == 'success' &&
+          (steps.evidence_builder.outcome != 'success' ||
+          steps.evidence_upload.outcome != 'success' ||
+          steps.smoke_upload.outcome != 'success' ||
+          steps.success_record_upload.outcome != 'success')
+        env:
+          FINALIZATION_EVIDENCE: ${{ steps.evidence_upload.outcome }}
+          FINALIZATION_SMOKE: ${{ steps.smoke_upload.outcome }}
+          FINALIZATION_RECORD: ${{ steps.success_record_upload.outcome }}
+        timeout-minutes: 12
+        run: |
+          set -euo pipefail
+          source .tmp/deployment/runtime-args.sh
+          restore_status=0
+          uv run python -m deploy.cli restore-finalization \
+            "${runtime_args[@]}" \
+            --recovery-context .tmp/deployment/recovery-context.json \
+            --failed-release-record .tmp/deployment/successful-release.json || restore_status=$?
+          RESTORE_STATUS="$restore_status" uv run --frozen python - <<'PY'
+          import datetime
+          import json
+          import os
+          from pathlib import Path
+
+          path = Path(".tmp/deployment/deployment-evidence.json")
+          payload = json.loads(path.read_text()) if path.exists() else {"stages": []}
+          restored = os.environ["RESTORE_STATUS"] == "0"
+          payload["result"] = (
+              "artifact_finalization_failed_compensated"
+              if restored else
+              "artifact_finalization_failed_recovery_failed"
+          )
+          payload["released"] = None
+          payload.setdefault("stages", []).append({
+              "stage": "artifact_finalization",
+              "result": "failed",
+              "timestamp": datetime.datetime.now(datetime.UTC).isoformat(),
+              "proof": {
+                  "evidence_upload": os.environ["FINALIZATION_EVIDENCE"],
+                  "smoke_upload": os.environ["FINALIZATION_SMOKE"],
+                  "release_record_upload": os.environ["FINALIZATION_RECORD"],
+                  "exact_pair_recovery": "passed" if restored else "failed",
+              },
+          })
+          path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+          PY
+          if [[ "$restore_status" == "0" ]]; then
+            rm .tmp/deployment/successful-release.json
+          fi
+          exit "$restore_status"
+      - name: Preserve finalization-failure recovery evidence
+        if: always() && steps.finalization_recovery.outcome != 'skipped'
+        continue-on-error: true
+        timeout-minutes: 2
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-deployment-finalization-failure-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/deployment/deployment-evidence.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Fail loudly after artifact finalization recovery
+        if: always() && steps.finalization_recovery.outcome != 'skipped'
+        run: |
+          echo "Release artifacts did not finalize; exact-pair recovery was required." >&2
+          exit 1
+
+  probe-contract:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'probe' &&
+      inputs.probe_sandbox == true &&
+      inputs.deploy_sandbox == false &&
+      github.ref == 'refs/heads/main'
+    needs: resolve-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: uv run ruff check deploy core/tests/test_deployment_*.py
+      - run: uv run ruff format --check deploy core/tests/test_deployment_*.py
+      - name: Verify probe and release-controller contracts
+        env:
+          DJANGO_SETTINGS_MODULE: website.settings.test
+        run: >-
+          uv run python manage.py test
+          core.tests.test_deployment_oidc_probe
+          core.tests.test_deployment_release
+          core.tests.test_deployment_workflow
+
+  probe-publisher:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'probe' &&
+      inputs.probe_sandbox == true &&
+      inputs.deploy_sandbox == false &&
+      github.ref == 'refs/heads/main'
+    needs: [resolve-release, probe-contract]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Validate exact publisher probe inputs
+        env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+          PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          test "$AWS_REGION" = "eu-west-1"
+          test "$ECR_REPOSITORY_NAME" = "website-sandbox"
+          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
+      - name: Verify current-main controller immediately before publisher probe OIDC
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          test "$RELEASE_SHA" = "$controller"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-session-name: website-publisher-probe-${{ github.run_id }}
+      - name: Probe publisher metadata and denied boundaries
+        env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m deploy.oidc_probe publisher \
+            --account-id 817685572750 \
+            --region "$AWS_REGION" \
+            --repository-name "$ECR_REPOSITORY_NAME" \
+            --probe-id "$GITHUB_RUN_ID"
+
+  probe-deployer:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'probe' &&
+      inputs.probe_sandbox == true &&
+      inputs.deploy_sandbox == false &&
+      github.ref == 'refs/heads/main'
+    needs: [resolve-release, probe-contract]
+    runs-on: ubuntu-latest
+    environment:
+      name: sandbox
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Validate exact deployer probe inputs
+        env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          DEPLOYER_ROLE_ARN: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
+          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+        run: |
+          set -euo pipefail
+          test "$AWS_REGION" = "eu-west-1"
+          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
+          test "$ECR_REPOSITORY_NAME" = "website-sandbox"
+          test "$ECS_CLUSTER_ARN" = "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
+          test "$WEB_SERVICE_NAME" = "website-sandbox-web"
+          test "$WORKER_SERVICE_NAME" = "website-sandbox-worker"
+          test "$WEB_FAMILY" = "website-sandbox-web"
+          test "$WORKER_FAMILY" = "website-sandbox-worker"
+          test "$MIGRATION_FAMILY" = "website-sandbox-migration"
+          [[ "$WEB_TARGET_GROUP_ARN" =~ ^arn:aws:elasticloadbalancing:eu-west-1:817685572750:targetgroup/website-sandbox-web/[0-9a-f]{16}$ ]]
+      - name: Verify current-main controller immediately before deployer probe OIDC
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          test "$RELEASE_SHA" = "$controller"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-session-name: website-deployer-probe-${{ github.run_id }}
+      - name: Probe deployer metadata and denied boundaries
+        env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m deploy.oidc_probe deployer \
+            --account-id 817685572750 \
+            --region "$AWS_REGION" \
+            --repository-name "$ECR_REPOSITORY_NAME" \
+            --cluster-arn "$ECS_CLUSTER_ARN" \
+            --web-target-group-arn "$WEB_TARGET_GROUP_ARN" \
+            --web-service-name "$WEB_SERVICE_NAME" \
+            --worker-service-name "$WORKER_SERVICE_NAME" \
+            --task-family "$WEB_FAMILY" \
+            --task-family "$WORKER_FAMILY" \
+            --task-family "$MIGRATION_FAMILY" \
+            --probe-id "$GITHUB_RUN_ID"
+
+  probe-wrong-main-claims:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'probe' &&
+      inputs.probe_sandbox == true &&
+      inputs.deploy_sandbox == false &&
+      github.ref == 'refs/heads/main'
+    needs: [resolve-release, probe-contract]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+      AWS_EC2_METADATA_DISABLED: true
+      DEPLOYER_ROLE_ARN: arn:aws:iam::817685572750:role/website-sandbox-github-deployer
+      PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+    steps:
+      - name: Validate exact wrong-claim probe inputs
+        run: |
+          set -euo pipefail
+          test "$AWS_REGION" = "eu-west-1"
+          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
+          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Verify current-main controller immediately before main-claim token request
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          test "$RELEASE_SHA" = "$controller"
+      - name: Require main-ref subject denial for the environment role
+        run: >-
+          uv run --frozen python -m deploy.oidc_claim_probe
+          --role-arn "$DEPLOYER_ROLE_ARN"
+          --audience sts.amazonaws.com
+          --claim-label main-subject-to-environment-role
+          --probe-id "$GITHUB_RUN_ID"
+      - name: Verify current-main controller immediately before wrong-audience token request
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          test "$RELEASE_SHA" = "$controller"
+      - name: Require wrong-audience denial for the publisher role
+        run: >-
+          uv run --frozen python -m deploy.oidc_claim_probe
+          --role-arn "$PUBLISHER_ROLE_ARN"
+          --audience dtc.invalid.example
+          --claim-label wrong-audience-to-main-role
+          --probe-id "$GITHUB_RUN_ID"
+
+  probe-wrong-environment-claim:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.operation == 'probe' &&
+      inputs.probe_sandbox == true &&
+      inputs.deploy_sandbox == false &&
+      github.ref == 'refs/heads/main'
+    needs: [resolve-release, probe-contract]
+    runs-on: ubuntu-latest
+    environment:
+      name: sandbox
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+      AWS_EC2_METADATA_DISABLED: true
+      PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+    steps:
+      - name: Validate exact environment-claim probe inputs
+        run: |
+          set -euo pipefail
+          test "$AWS_REGION" = "eu-west-1"
+          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Verify current-main controller immediately before environment-claim token request
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          controller="$(git rev-parse HEAD)"
+          test "$controller" = "$(git rev-parse refs/remotes/origin/main)"
+          test "$RELEASE_SHA" = "$controller"
+      - name: Require environment-subject denial for the main-ref role
+        run: >-
+          uv run --frozen python -m deploy.oidc_claim_probe
+          --role-arn "$PUBLISHER_ROLE_ARN"
+          --audience sts.amazonaws.com
+          --claim-label environment-subject-to-main-role
+          --probe-id "$GITHUB_RUN_ID"

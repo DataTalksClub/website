@@ -13,13 +13,22 @@ import boto3  # type: ignore[import-untyped]
 from deploy.contracts import (
     IMAGE_DIGEST_PATTERN,
     SOURCE_SHA_PATTERN,
+    ActiveServicePair,
     ReleaseContractError,
     ReleaseIdentity,
     ReleaseRecord,
     ServiceSnapshot,
 )
 from deploy.smoke import run_http_smoke, verify_health
-from deploy.task_definitions import TaskDefinitionConfig, assert_normalized_task_definitions
+from deploy.task_definitions import (
+    TaskDefinitionConfig,
+    assert_normalized_service_pair,
+    assert_normalized_task_definitions,
+)
+
+CONTROLLED_MIGRATION_FAILURE_COMMAND = ["__dtc_controlled_migration_failure__"]
+MIGRATION_SHUTDOWN_TIMEOUT_SECONDS = 120
+DEPLOYED_BROWSER_TIMEOUT_SECONDS = 180
 
 
 @dataclass(frozen=True)
@@ -37,7 +46,7 @@ class AwsReleaseConfig:
     assign_public_ip: bool
     base_url: str
     screenshot_directory: Path
-    timeout_seconds: int = 900
+    timeout_seconds: int = 180
     poll_seconds: int = 10
 
 
@@ -45,6 +54,7 @@ class AwsReleaseGateway:
     def __init__(self, config: AwsReleaseConfig) -> None:
         self.config = config
         self.ecs = boto3.client("ecs", region_name=config.region)
+        self.ecr = boto3.client("ecr", region_name=config.region)
         self.elbv2 = boto3.client("elbv2", region_name=config.region)
 
     def _service(self, workload: str) -> dict[str, Any]:
@@ -56,16 +66,26 @@ class AwsReleaseGateway:
         services = response.get("services", [])
         if failures or len(services) != 1:
             raise ReleaseContractError(
-                f"cannot describe exact {workload} service: {failures or 'missing service'}"
+                f"cannot describe exact {workload} service "
+                f"(failure_count={len(failures)}, service_count={len(services)})"
             )
         return services[0]
 
     def _task_definition(self, reference: str) -> dict[str, Any]:
+        task, _tags = self._task_definition_with_tags(reference)
+        return task
+
+    def _task_definition_with_tags(
+        self, reference: str
+    ) -> tuple[dict[str, Any], list[dict[str, str]]]:
         response = self.ecs.describe_task_definition(taskDefinition=reference, include=["TAGS"])
         task = response.get("taskDefinition")
         if not isinstance(task, dict):
             raise ReleaseContractError(f"task definition {reference} is missing")
-        return task
+        tags = response.get("tags")
+        if not isinstance(tags, list):
+            raise ReleaseContractError(f"task definition {reference} has no readable tags")
+        return task, tags
 
     def _identity(self, task_definition_arn: str, workload: str) -> tuple[str | None, str | None]:
         task = self._task_definition(task_definition_arn)
@@ -107,13 +127,13 @@ class AwsReleaseGateway:
     def source_task_definition(self, workload: str) -> dict[str, Any]:
         return self._task_definition(self.config.task_families[workload])
 
-    def verify_release_record(self, record: ReleaseRecord, identity: ReleaseIdentity) -> None:
-        references = {
-            "web": record.web_task_definition_arn,
-            "worker": record.worker_task_definition_arn,
-            "migration": record.migration_task_definition_arn,
-        }
+    def _managed_task_definitions(self, references: dict[str, str]) -> dict[str, dict[str, Any]]:
         tasks: dict[str, dict[str, Any]] = {}
+        expected_tags = {
+            "ReleaseManager": "DataTalksClub/website",
+            "Project": "website",
+            "Environment": "sandbox",
+        }
         for workload, reference in references.items():
             cluster_arn_parts = self.config.cluster_arn.split(":")
             family_prefix = (
@@ -122,7 +142,27 @@ class AwsReleaseGateway:
             )
             if not reference.startswith(family_prefix):
                 raise ReleaseContractError(f"release record {workload} family differs")
-            tasks[workload] = self._task_definition(reference)
+            task, raw_tags = self._task_definition_with_tags(reference)
+            if task.get("status") != "ACTIVE":
+                raise ReleaseContractError(
+                    f"release record {workload} task definition is not ACTIVE"
+                )
+            tags = {
+                item.get("key"): item.get("value") for item in raw_tags if isinstance(item, dict)
+            }
+            if tags != expected_tags or len(raw_tags) != len(expected_tags):
+                raise ReleaseContractError(f"release record {workload} management tags differ")
+            tasks[workload] = task
+        return tasks
+
+    def verify_release_record(self, record: ReleaseRecord, identity: ReleaseIdentity) -> None:
+        tasks = self._managed_task_definitions(
+            {
+                "web": record.web_task_definition_arn,
+                "worker": record.worker_task_definition_arn,
+                "migration": record.migration_task_definition_arn,
+            }
+        )
         assert_normalized_task_definitions(
             tasks,
             identity,
@@ -132,6 +172,98 @@ class AwsReleaseGateway:
                 task_role_arn=self.config.task_role_arn,
                 execution_role_arn=self.config.execution_role_arn,
             ),
+        )
+
+    def verify_active_service_pair(
+        self, pair: ActiveServicePair, identity: ReleaseIdentity
+    ) -> None:
+        tasks = self._managed_task_definitions(
+            {
+                "web": pair.web_task_definition_arn,
+                "worker": pair.worker_task_definition_arn,
+            }
+        )
+        assert_normalized_service_pair(
+            tasks,
+            identity,
+            TaskDefinitionConfig(
+                families=self.config.task_families,
+                container_names=self.config.container_names,
+                task_role_arn=self.config.task_role_arn,
+                execution_role_arn=self.config.execution_role_arn,
+            ),
+        )
+
+    def verify_image_digest_exists(
+        self,
+        repository_uri: str,
+        source_sha: str,
+        image_digest: str,
+    ) -> None:
+        expected_repository = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+        if repository_uri != expected_repository:
+            raise ReleaseContractError("active image repository is not the exact sandbox ECR")
+        repository_name = "website-sandbox"
+        tagged = self.ecr.describe_images(
+            repositoryName=repository_name,
+            imageIds=[{"imageTag": source_sha}],
+        )
+        tagged_details = tagged.get("imageDetails", [])
+        if len(tagged_details) != 1 or tagged_details[0].get("imageDigest") != image_digest:
+            raise ReleaseContractError(
+                "active source SHA tag does not resolve to the exact sandbox image digest"
+            )
+        described = self.ecr.describe_images(
+            repositoryName=repository_name,
+            imageIds=[{"imageDigest": image_digest}],
+        )
+        details = described.get("imageDetails", [])
+        if len(details) != 1 or details[0].get("imageDigest") != image_digest:
+            raise ReleaseContractError("active image digest is missing from exact sandbox ECR")
+        manifest = self.ecr.batch_get_image(
+            repositoryName=repository_name,
+            imageIds=[{"imageDigest": image_digest}],
+        )
+        images = manifest.get("images", [])
+        if (
+            manifest.get("failures")
+            or len(images) != 1
+            or images[0].get("imageId", {}).get("imageDigest") != image_digest
+            or not images[0].get("imageManifest")
+        ):
+            raise ReleaseContractError("active image manifest is missing from exact sandbox ECR")
+
+    def _stop_migration_and_prove_terminal(self, task_arn: str, reason: str) -> None:
+        stop_error: Exception | None = None
+        try:
+            self.ecs.stop_task(
+                cluster=self.config.cluster_arn,
+                task=task_arn,
+                reason="immutable release migration controller stop",
+            )
+        except Exception as error:
+            # A lost response is ambiguous: the stop may have reached ECS. Keep polling the
+            # exact task instead of abandoning a potentially running database migration.
+            stop_error = error
+
+        shutdown_deadline = time.monotonic() + MIGRATION_SHUTDOWN_TIMEOUT_SECONDS
+        while time.monotonic() < shutdown_deadline:
+            try:
+                observed = self.ecs.describe_tasks(
+                    cluster=self.config.cluster_arn,
+                    tasks=[task_arn],
+                )
+            except Exception:
+                time.sleep(self.config.poll_seconds)
+                continue
+            tasks = observed.get("tasks", [])
+            if not observed.get("failures") and len(tasks) == 1:
+                if tasks[0].get("taskArn") == task_arn and tasks[0].get("lastStatus") == "STOPPED":
+                    raise ReleaseContractError(f"migration {reason}; exact task is STOPPED")
+            time.sleep(self.config.poll_seconds)
+        raise ReleaseContractError(
+            f"migration {reason}; exact task terminal state could not be proven"
+            + (f" after stop error ({type(stop_error).__name__})" if stop_error is not None else "")
         )
 
     def register_task_definition(
@@ -148,32 +280,53 @@ class AwsReleaseGateway:
             raise ReleaseContractError(f"registration returned no {workload} task-definition ARN")
         return arn
 
-    def run_migration(self, task_definition_arn: str) -> None:
-        response = self.ecs.run_task(
-            cluster=self.config.cluster_arn,
-            taskDefinition=task_definition_arn,
-            count=1,
-            launchType="FARGATE",
-            networkConfiguration={
+    def run_migration(
+        self, task_definition_arn: str, *, inject_controlled_failure: bool = False
+    ) -> None:
+        run_arguments: dict[str, Any] = {
+            "cluster": self.config.cluster_arn,
+            "taskDefinition": task_definition_arn,
+            "count": 1,
+            "launchType": "FARGATE",
+            "networkConfiguration": {
                 "awsvpcConfiguration": {
                     "subnets": self.config.subnet_ids,
                     "securityGroups": self.config.security_group_ids,
                     "assignPublicIp": "ENABLED" if self.config.assign_public_ip else "DISABLED",
                 }
             },
+        }
+        if inject_controlled_failure:
+            run_arguments["overrides"] = {
+                "containerOverrides": [
+                    {
+                        "name": self.config.container_names["migration"],
+                        "command": CONTROLLED_MIGRATION_FAILURE_COMMAND,
+                    }
+                ]
+            }
+        response = self.ecs.run_task(
+            **run_arguments,
         )
         failures = response.get("failures", [])
         tasks = response.get("tasks", [])
         if failures or len(tasks) != 1 or not tasks[0].get("taskArn"):
             raise ReleaseContractError(
-                f"migration task launch failed: {failures or 'missing task ARN'}"
+                "migration task launch failed "
+                f"(failure_count={len(failures)}, task_count={len(tasks)})"
             )
         task_arn = tasks[0]["taskArn"]
         deadline = time.monotonic() + self.config.timeout_seconds
         while time.monotonic() < deadline:
-            observed = self.ecs.describe_tasks(cluster=self.config.cluster_arn, tasks=[task_arn])
+            try:
+                observed = self.ecs.describe_tasks(
+                    cluster=self.config.cluster_arn,
+                    tasks=[task_arn],
+                )
+            except Exception:
+                self._stop_migration_and_prove_terminal(task_arn, "task observation failed")
             if observed.get("failures") or len(observed.get("tasks", [])) != 1:
-                raise ReleaseContractError("migration task disappeared while waiting")
+                self._stop_migration_and_prove_terminal(task_arn, "task observation failed")
             task = observed["tasks"][0]
             if task.get("lastStatus") == "STOPPED":
                 containers = [
@@ -189,20 +342,23 @@ class AwsReleaseGateway:
                     )
                 return
             time.sleep(self.config.poll_seconds)
-        self.ecs.stop_task(
-            cluster=self.config.cluster_arn,
-            task=task_arn,
-            reason="immutable release migration timeout",
-        )
-        raise ReleaseContractError(f"migration timed out and was stopped: {task_arn}")
+        self._stop_migration_and_prove_terminal(task_arn, "timed out")
 
     def update_service(self, workload: str, task_definition_arn: str, desired_count: int) -> None:
+        arguments: dict[str, Any] = {
+            "cluster": self.config.cluster_arn,
+            "service": self.config.service_names[workload],
+            "taskDefinition": task_definition_arn,
+            "desiredCount": desired_count,
+            "forceNewDeployment": True,
+        }
+        if workload == "worker":
+            arguments["deploymentConfiguration"] = {
+                "minimumHealthyPercent": 0,
+                "maximumPercent": 100,
+            }
         self.ecs.update_service(
-            cluster=self.config.cluster_arn,
-            service=self.config.service_names[workload],
-            taskDefinition=task_definition_arn,
-            desiredCount=desired_count,
-            forceNewDeployment=True,
+            **arguments,
         )
 
     def wait_service_stable(self, workload: str, *, worker_singleton: bool = False) -> None:
@@ -276,7 +432,11 @@ class AwsReleaseGateway:
 
     def run_deployed_smoke(self, source_sha: str) -> None:
         try:
-            run_http_smoke(self.config.base_url, source_sha)
+            run_http_smoke(
+                self.config.base_url,
+                source_sha,
+                self.config.screenshot_directory / "http-evidence.json",
+            )
         except ReleaseContractError:
             raise
         except Exception as error:
@@ -303,8 +463,9 @@ class AwsReleaseGateway:
                     "DTC_SCREENSHOT_DIR": str(self.config.screenshot_directory),
                     "DJANGO_ALLOW_ASYNC_UNSAFE": "true",
                 },
+                timeout=DEPLOYED_BROWSER_TIMEOUT_SECONDS,
             )
-        except subprocess.CalledProcessError as error:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
             raise ReleaseContractError("deployed browser smoke failed") from error
 
     def _active_tasks(self, workload: str) -> list[dict[str, Any]]:
@@ -340,6 +501,21 @@ class AwsReleaseGateway:
                 or snapshot.pending_count != 0
             ):
                 raise ReleaseContractError(f"terminal {workload} running/pending counts differ")
+            service = self._service(workload)
+            primary = [
+                item for item in service.get("deployments", []) if item.get("status") == "PRIMARY"
+            ]
+            if len(primary) != 1:
+                raise ReleaseContractError(f"terminal {workload} has no unique PRIMARY deployment")
+            deployment = primary[0]
+            if (
+                deployment.get("taskDefinition") != expected_task_definitions[workload]
+                or int(deployment.get("desiredCount", -1)) != expected_desired_counts[workload]
+                or int(deployment.get("runningCount", -1)) != expected_desired_counts[workload]
+                or int(deployment.get("pendingCount", -1)) != 0
+                or deployment.get("rolloutState") != "COMPLETED"
+            ):
+                raise ReleaseContractError(f"terminal {workload} PRIMARY deployment is not stable")
             tasks = self._active_tasks(workload)
             if len(tasks) != expected_desired_counts[workload]:
                 raise ReleaseContractError(f"terminal {workload} active task count differs")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
@@ -25,12 +26,34 @@ REGISTERABLE_FIELDS = {
     "volumes",
 }
 REQUIRED_SECRET_NAMES = {"DATABASE_URL", "DJANGO_SECRET_KEY"}
+SECRET_ARN_PATTERNS = {
+    "DATABASE_URL": re.compile(
+        r"^arn:aws:secretsmanager:eu-west-1:817685572750:"
+        r"secret:website-sandbox/database-url-[A-Za-z0-9]{6}$"
+    ),
+    "DJANGO_SECRET_KEY": re.compile(
+        r"^arn:aws:secretsmanager:eu-west-1:817685572750:"
+        r"secret:website-sandbox/django-secret-key-[A-Za-z0-9]{6}$"
+    ),
+}
 SAFETY_ENVIRONMENT = {
     "DATAMAILER_SYNC_ON_USER_CREATE": "0",
     "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY": "0",
     "DATAMAILER_TRANSACTIONAL_DRY_RUN": "1",
     "DATAMAILER_URL": "",
     "DATAMAILER_API_KEY": "",
+}
+FIXED_NONSECRET_ENVIRONMENT = {
+    "CANONICAL_ORIGIN": "https://datatalks.club",
+    "DJANGO_ALLOWED_HOSTS": "web.dtcdev.click",
+    "DJANGO_CSRF_TRUSTED_ORIGINS": "https://web.dtcdev.click",
+    "DJANGO_SETTINGS_MODULE": "website.settings.development",
+    "DTC_ENVIRONMENT": "development",
+    "OBSERVABILITY_EVENT_BACKENDS": "log",
+    "WEB_CONCURRENCY": "2",
+    "AWS_DEFAULT_REGION": "eu-west-1",
+    "AWS_REGION": "eu-west-1",
+    **SAFETY_ENVIRONMENT,
 }
 COMMANDS = {
     "web": {"command": ["web"]},
@@ -99,13 +122,16 @@ def _secrets(container: dict[str, Any]) -> tuple[tuple[str, str], ...]:
         if not isinstance(name, str) or not isinstance(value, str) or not value:
             raise ReleaseContractError("secret names and references must be non-empty strings")
         result.append((name, value))
-    if len(result) != len(set(result)):
-        raise ReleaseContractError("secret references must be unique")
-    names = {name for name, _ in result}
-    if not REQUIRED_SECRET_NAMES.issubset(names):
+    names = [name for name, _ in result]
+    if len(names) != len(set(names)):
+        raise ReleaseContractError("secret names must be unique")
+    if set(names) != REQUIRED_SECRET_NAMES or len(result) != len(REQUIRED_SECRET_NAMES):
         raise ReleaseContractError(
-            "DATABASE_URL and DJANGO_SECRET_KEY secret references are required"
+            "exactly DATABASE_URL and DJANGO_SECRET_KEY secret references are required"
         )
+    for name, value in result:
+        if not SECRET_ARN_PATTERNS[name].fullmatch(value):
+            raise ReleaseContractError(f"{name} secret reference is not the exact sandbox ARN")
     return tuple(sorted(result))
 
 
@@ -129,8 +155,11 @@ def build_task_definitions(
             )
         container = _only_container(task, config.container_names[workload])
         source_environment = _environment(container)
-        for normalized_name in {"APP_VERSION", *SAFETY_ENVIRONMENT}:
-            source_environment.pop(normalized_name, None)
+        source_environment.pop("APP_VERSION", None)
+        if source_environment != FIXED_NONSECRET_ENVIRONMENT:
+            raise ReleaseContractError(
+                f"{workload} source environment differs from the exact sandbox contract"
+            )
         source_environments.append(source_environment)
         source_secrets.append(_secrets(container))
 
@@ -139,9 +168,10 @@ def build_task_definitions(
     if any(secrets != source_secrets[0] for secrets in source_secrets[1:]):
         raise ReleaseContractError("source workload secret references differ")
 
-    common_environment = (
-        source_environments[0] | SAFETY_ENVIRONMENT | {"APP_VERSION": identity.source_sha}
-    )
+    common_environment = {
+        **FIXED_NONSECRET_ENVIRONMENT,
+        "APP_VERSION": identity.source_sha,
+    }
     normalized: dict[str, dict[str, Any]] = {}
     for workload in WORKLOADS:
         source = source_tasks[workload].get("taskDefinition", source_tasks[workload])
@@ -168,14 +198,17 @@ def build_task_definitions(
     return normalized
 
 
-def assert_normalized_task_definitions(
+def _assert_normalized_workloads(
     tasks: dict[str, dict[str, Any]],
     identity: ReleaseIdentity,
     config: TaskDefinitionConfig,
+    workloads: tuple[str, ...],
 ) -> None:
+    if set(tasks) != set(workloads):
+        raise ReleaseContractError("normalized task set differs from the expected workloads")
     environments: list[dict[str, str]] = []
     secrets: list[tuple[tuple[str, str], ...]] = []
-    for workload in WORKLOADS:
+    for workload in workloads:
         task = tasks[workload]
         if task.get("family") != config.families[workload]:
             raise ReleaseContractError(f"{workload} family mismatch")
@@ -194,6 +227,12 @@ def assert_normalized_task_definitions(
         for name, value in SAFETY_ENVIRONMENT.items():
             if environment.get(name) != value:
                 raise ReleaseContractError(f"{workload} has unsafe {name}")
+        expected_environment = {
+            **FIXED_NONSECRET_ENVIRONMENT,
+            "APP_VERSION": identity.source_sha,
+        }
+        if environment != expected_environment:
+            raise ReleaseContractError(f"{workload} non-secret environment is not exact")
         environments.append(environment)
         secrets.append(_secrets(container))
         for field, expected in COMMANDS[workload].items():
@@ -205,3 +244,19 @@ def assert_normalized_task_definitions(
         raise ReleaseContractError("normalized non-secret environments differ")
     if len(set(secrets)) != 1:
         raise ReleaseContractError("normalized secret references differ")
+
+
+def assert_normalized_task_definitions(
+    tasks: dict[str, dict[str, Any]],
+    identity: ReleaseIdentity,
+    config: TaskDefinitionConfig,
+) -> None:
+    _assert_normalized_workloads(tasks, identity, config, WORKLOADS)
+
+
+def assert_normalized_service_pair(
+    tasks: dict[str, dict[str, Any]],
+    identity: ReleaseIdentity,
+    config: TaskDefinitionConfig,
+) -> None:
+    _assert_normalized_workloads(tasks, identity, config, ("web", "worker"))
