@@ -9,6 +9,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
 FROM python:3.13-slim AS runtime
+ARG SOURCE_SHA=dev
 COPY --from=uv /uv /uvx /bin/
 RUN groupadd --system --gid 10001 dtc \
     && useradd --system --uid 10001 --gid dtc --home-dir /app --shell /usr/sbin/nologin dtc
@@ -17,6 +18,7 @@ COPY --from=builder --chown=dtc:dtc /app/.venv /app/.venv
 COPY --chown=dtc:dtc . .
 ENV PATH="/app/.venv/bin:$PATH" \
     UV_CACHE_DIR=/app/.cache/uv \
+    APP_VERSION=$SOURCE_SHA \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=website.settings.production
@@ -24,6 +26,7 @@ RUN mkdir -p /app/.cache/uv \
     && DJANGO_SETTINGS_MODULE=website.settings.test uv run --no-sync python manage.py collectstatic --noinput \
     && chown -R dtc:dtc /app/.cache
 USER 10001:10001
+LABEL org.opencontainers.image.revision=$SOURCE_SHA
 EXPOSE 8000
 ENTRYPOINT ["./entrypoint.sh"]
 CMD ["web"]

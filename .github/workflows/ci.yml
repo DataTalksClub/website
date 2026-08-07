@@ -4,20 +4,103 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      release_sha:
+        description: Full 40-character source commit reachable from main
+        required: true
+        type: string
+      deploy_sandbox:
+        description: Assume the application roles and mutate the sandbox release
+        required: true
+        default: false
+        type: boolean
+      operation:
+        description: Promote a release or roll back to a successful release record
+        required: true
+        default: promote
+        type: choice
+        options: [promote, rollback]
+      prior_release_record:
+        description: Compact successful release JSON; empty only for first bootstrap
+        required: false
+        type: string
+      target_release_record:
+        description: Compact rollback-target release JSON; required for rollback
+        required: false
+        type: string
+      current_release_record:
+        description: Compact active release JSON; required for rollback
+        required: false
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: website-sandbox-release
+  cancel-in-progress: false
+
 jobs:
-  quality:
+  resolve-release:
     runs-on: ubuntu-latest
+    outputs:
+      release_sha: ${{ steps.release.outputs.release_sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: release
+        name: Validate immutable source selection
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_RELEASE_SHA: ${{ inputs.release_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+              echo "Manual releases must use the reviewed main workflow" >&2
+              exit 1
+            fi
+            candidate="$INPUT_RELEASE_SHA"
+          else
+            candidate="$GITHUB_SHA"
+          fi
+          if [[ ! "$candidate" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Release SHA must be exactly 40 lowercase hexadecimal characters" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin refs/heads/main:refs/remotes/origin/main
+          if ! git cat-file -e "${candidate}^{commit}"; then
+            echo "Release SHA is not an existing commit" >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse "${candidate}^{commit}")" != "$candidate" ]]; then
+            echo "Release SHA does not resolve exactly" >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$candidate" refs/remotes/origin/main; then
+            echo "Release SHA is not reachable from main" >&2
+            exit 1
+          fi
+          echo "release_sha=$candidate" >> "$GITHUB_OUTPUT"
+
+  quality:
+    needs: resolve-release
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .tmp/release-source
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/release-source
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
+      - run: uv lock --check
       - run: make lint
       - run: make format-check
       - run: make typecheck
@@ -26,6 +109,7 @@ jobs:
       - run: make deployment-check
 
   django:
+    needs: resolve-release
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -43,46 +127,327 @@ jobs:
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
       DATABASE_URL: postgresql://dtc:dtc-test-only@127.0.0.1:5432/dtc_test
+    defaults:
+      run:
+        working-directory: .tmp/release-source
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/release-source
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
+      - run: uv lock --check
       - run: uv run python manage.py migrate --noinput
       - run: make test
 
   playwright:
+    needs: resolve-release
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .tmp/release-source
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/release-source
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
+      - run: uv lock --check
       - run: uv run playwright install --with-deps chromium
       - run: make test-playwright-core
 
   container:
+    needs: resolve-release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build --tag dtc-website:test .
-      - name: Verify non-root runtime user
-        run: test "$(docker run --rm --entrypoint id dtc-website:test -u)" != "0"
-      - name: Smoke-test liveness
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/release-source
+      - name: Build the production image once for sandbox architecture
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
         run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64 \
+            --provenance=false \
+            --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+            --tag "dtc-website:$RELEASE_SHA" \
+            --load \
+            .tmp/release-source
+      - name: Verify image provenance, architecture, and exact runtime user
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          image="dtc-website:$RELEASE_SHA"
+          test "$(docker image inspect --format '{{.Architecture}}' "$image")" = "amd64"
+          test "$(docker image inspect --format '{{.Config.User}}' "$image")" = "10001:10001"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$RELEASE_SHA"
+          test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
+          test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
+      - name: Smoke-test liveness without publishing
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
           docker run --detach --name dtc-web \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
             --env DTC_USE_SQLITE=1 \
-            --publish 8000:8000 dtc-website:test web
+            --env "APP_VERSION=$RELEASE_SHA" \
+            --publish 8000:8000 "dtc-website:$RELEASE_SHA" web
           trap 'docker logs dtc-web; docker rm --force dtc-web' EXIT
           for attempt in $(seq 1 30); do
-            if curl --fail --silent http://127.0.0.1:8000/health/live; then
+            if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = "{\"status\": \"ok\", \"version\": \"$RELEASE_SHA\"}"; then
               exit 0
             fi
             sleep 1
           done
           exit 1
+      - name: Preserve the one tested image
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: docker image save --output .tmp/release-image.tar "dtc-website:$RELEASE_SHA"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-image-${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/release-image.tar
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.deploy_sandbox == true &&
+      github.ref == 'refs/heads/main'
+    needs: [resolve-release, quality, django, playwright, container]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image_digest: ${{ steps.publish.outputs.image_digest }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-image-${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp
+      - name: Validate publisher configuration
+        env:
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+          PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          test -n "$AWS_REGION"
+          test -n "$ECR_REPOSITORY_URI"
+          test -n "$ECR_REPOSITORY_NAME"
+          test -n "$PUBLISHER_ROLE_ARN"
+          test "${ECR_REPOSITORY_URI##*/}" = "$ECR_REPOSITORY_NAME"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-session-name: website-publisher-${{ github.run_id }}
+      - id: publish
+        name: Push once or prove the immutable SHA tag is the same build
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          docker image load --input .tmp/release-image.tar
+          local_config_digest="$(docker image inspect --format '{{.Id}}' "dtc-website:$RELEASE_SHA")"
+          if aws ecr describe-images \
+            --repository-name "$ECR_REPOSITORY_NAME" \
+            --image-ids "imageTag=$RELEASE_SHA" \
+            > .tmp/ecr-existing.json 2> .tmp/ecr-existing-error.txt; then
+            manifest="$(aws ecr batch-get-image \
+              --repository-name "$ECR_REPOSITORY_NAME" \
+              --image-ids "imageTag=$RELEASE_SHA" \
+              --query 'images[0].imageManifest' \
+              --output text)"
+            remote_config_digest="$(MANIFEST="$manifest" python -c 'import json, os; print(json.loads(os.environ["MANIFEST"])["config"]["digest"])')"
+            test "$remote_config_digest" = "$local_config_digest"
+          else
+            if ! grep -q 'ImageNotFoundException' .tmp/ecr-existing-error.txt; then
+              echo "Unable to prove whether the immutable release tag exists" >&2
+              exit 1
+            fi
+            if [[ "$OPERATION" == "rollback" ]]; then
+              echo "Rollback target image is missing; a rollback never republishes it" >&2
+              exit 1
+            fi
+            aws ecr get-login-password | docker login \
+              --username AWS \
+              --password-stdin "${ECR_REPOSITORY_URI%%/*}"
+            docker image tag "dtc-website:$RELEASE_SHA" "$ECR_REPOSITORY_URI:$RELEASE_SHA"
+            docker image push "$ECR_REPOSITORY_URI:$RELEASE_SHA"
+          fi
+          image_digest="$(aws ecr describe-images \
+            --repository-name "$ECR_REPOSITORY_NAME" \
+            --image-ids "imageTag=$RELEASE_SHA" \
+            --query 'imageDetails[0].imageDigest' \
+            --output text)"
+          if [[ ! "$image_digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "ECR did not resolve an immutable digest" >&2
+            exit 1
+          fi
+          manifest="$(aws ecr batch-get-image \
+            --repository-name "$ECR_REPOSITORY_NAME" \
+            --image-ids "imageDigest=$image_digest" \
+            --query 'images[0].imageManifest' \
+            --output text)"
+          remote_config_digest="$(MANIFEST="$manifest" python -c 'import json, os; print(json.loads(os.environ["MANIFEST"])["config"]["digest"])')"
+          test "$remote_config_digest" = "$local_config_digest"
+          echo "image_digest=$image_digest" >> "$GITHUB_OUTPUT"
+
+  deploy:
+    needs: [resolve-release, quality, django, playwright, container, publish]
+    runs-on: ubuntu-latest
+    environment:
+      name: sandbox
+      url: https://web.dtcdev.click
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: uv run playwright install --with-deps chromium
+      - name: Validate deployer configuration before assuming AWS
+        env:
+          DEPLOYER_ROLE_ARN: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
+          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
+          ECS_SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
+          ECS_SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOYER_ROLE_ARN"
+          test -n "$ECS_CLUSTER_ARN"
+          test -n "$WEB_TARGET_GROUP_ARN"
+          jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$ECS_SUBNET_IDS"
+          jq -e 'type == "array" and length > 0 and all(.[]; type == "string" and length > 0)' <<< "$ECS_SECURITY_GROUP_IDS"
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-session-name: website-deployer-${{ github.run_id }}
+      - name: Promote or roll back one atomic web-and-worker release
+        env:
+          OPERATION: ${{ inputs.operation }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          IMAGE_DIGEST: ${{ needs.publish.outputs.image_digest }}
+          PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
+          TARGET_RELEASE_RECORD: ${{ inputs.target_release_record }}
+          CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
+          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+          REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
+          SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
+          SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
+          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
+          PROJECT_TAG: ${{ vars.SANDBOX_RESOURCE_PROJECT_TAG }}
+          ENVIRONMENT_TAG: ${{ vars.SANDBOX_RESOURCE_ENVIRONMENT_TAG }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/deployment .tmp/deployed-smoke
+          mapfile -t subnet_ids < <(jq -er '.[]' <<< "$SUBNET_IDS")
+          mapfile -t security_group_ids < <(jq -er '.[]' <<< "$SECURITY_GROUP_IDS")
+          web_container="$(jq -er '.web' <<< "$CONTAINER_NAMES")"
+          worker_container="$(jq -er '.worker' <<< "$CONTAINER_NAMES")"
+          migration_container="$(jq -er '.migration' <<< "$CONTAINER_NAMES")"
+          runtime_args=(
+            --region "$AWS_REGION"
+            --cluster-arn "$CLUSTER_ARN"
+            --web-target-group-arn "$WEB_TARGET_GROUP_ARN"
+            --web-service-name "$WEB_SERVICE_NAME"
+            --worker-service-name "$WORKER_SERVICE_NAME"
+            --web-family "$WEB_FAMILY"
+            --worker-family "$WORKER_FAMILY"
+            --migration-family "$MIGRATION_FAMILY"
+            --web-container-name "$web_container"
+            --worker-container-name "$worker_container"
+            --migration-container-name "$migration_container"
+            --task-role-arn "$TASK_ROLE_ARN"
+            --execution-role-arn "$EXECUTION_ROLE_ARN"
+            --assign-public-ip "$ASSIGN_PUBLIC_IP"
+            --base-url https://web.dtcdev.click
+            --screenshot-directory .tmp/deployed-smoke
+          )
+          for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done
+          for security_group_id in "${security_group_ids[@]}"; do
+            runtime_args+=(--security-group-id "$security_group_id")
+          done
+          if [[ "$OPERATION" == "promote" ]]; then
+            prior_args=()
+            if [[ -n "$PRIOR_RELEASE_RECORD" ]]; then
+              PRIOR_RELEASE_RECORD="$PRIOR_RELEASE_RECORD" python -c 'import os, pathlib; pathlib.Path(".tmp/deployment/prior.json").write_text(os.environ["PRIOR_RELEASE_RECORD"] + "\n")'
+              prior_args=(--prior-release-record .tmp/deployment/prior.json)
+            fi
+            uv run python -m deploy.cli promote \
+              "${runtime_args[@]}" \
+              --source-sha "$RELEASE_SHA" \
+              --image-digest "$IMAGE_DIGEST" \
+              --repository-uri "$REPOSITORY_URI" \
+              --web-desired-count "$WEB_DESIRED_COUNT" \
+              --worker-desired-count "$WORKER_DESIRED_COUNT" \
+              --project-tag "$PROJECT_TAG" \
+              --environment-tag "$ENVIRONMENT_TAG" \
+              "${prior_args[@]}" \
+              --release-record-path .tmp/deployment/successful-release.json
+          else
+            test -n "$TARGET_RELEASE_RECORD"
+            test -n "$CURRENT_RELEASE_RECORD"
+            TARGET_RELEASE_RECORD="$TARGET_RELEASE_RECORD" CURRENT_RELEASE_RECORD="$CURRENT_RELEASE_RECORD" python -c 'import json, os, pathlib; target=json.loads(os.environ["TARGET_RELEASE_RECORD"]); current=json.loads(os.environ["CURRENT_RELEASE_RECORD"]); assert target["source_sha"] == os.environ["RELEASE_SHA"] and target["image_digest"] == os.environ["IMAGE_DIGEST"]; pathlib.Path(".tmp/deployment/target.json").write_text(json.dumps(target) + "\n"); pathlib.Path(".tmp/deployment/current.json").write_text(json.dumps(current) + "\n")'
+            uv run python -m deploy.cli rollback \
+              "${runtime_args[@]}" \
+              --repository-uri "$REPOSITORY_URI" \
+              --target-release-record .tmp/deployment/target.json \
+              --current-release-record .tmp/deployment/current.json \
+              --release-record-path .tmp/deployment/successful-release.json
+          fi
+      - name: Preserve only the successful rollback-eligible release record
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-successful-release-${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/deployment/successful-release.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Preserve read-only browser evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandbox-read-only-smoke-${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/deployed-smoke
+          if-no-files-found: error
+          retention-days: 30
