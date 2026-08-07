@@ -14,11 +14,16 @@ from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 
 from deploy.contracts import ReleaseContractError
 
-DENIAL_CODES = frozenset({"403", "AccessDenied", "AccessDeniedException", "UnauthorizedOperation"})
+SANDBOX_ACCOUNT_ID = "817685572750"
+SANDBOX_REGION = "eu-west-1"
+SANDBOX_REPOSITORY = "website-sandbox"
+STATE_BUCKET = "datamailer-sandbox-817685572750-us-east-1-tfstate"
+STATE_BUCKET_OWNER = SANDBOX_ACCOUNT_ID
+STATE_KEY = "sandbox/website/terraform.tfstate"
+S3_DENIAL_CODES = frozenset({"403", "AccessDenied", "AccessDeniedException"})
+ROUTE53_DENIAL_CODES = frozenset({"AccessDenied", "AccessDeniedException"})
 KMS_DENIAL_CODES = frozenset({"AccessDenied", "AccessDeniedException"})
 ECR_DELETE_DENIAL_CODES = frozenset({"AccessDenied", "AccessDeniedException"})
-STATE_KEY = "sandbox/website/terraform.tfstate"
-DATABASE_IDENTIFIER = "website-sandbox"
 ROUTE53_HOSTED_ZONE_ID = "Z05963572WVWFHDQZH5NE"
 KMS_KEY_ARN = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
 ROLE_NAMES = {
@@ -28,6 +33,33 @@ ROLE_NAMES = {
 WEB_TARGET_GROUP_ARN_PATTERN = re.compile(
     r"^arn:aws:elasticloadbalancing:eu-west-1:817685572750:"
     r"targetgroup/website-sandbox-web/[0-9a-f]{16}$"
+)
+PUBLISHER_LIVE_CALLS = frozenset(
+    {
+        ("ecr", "batch_delete_image"),
+        ("ecr", "describe_images"),
+        ("kms", "create_grant"),
+        ("route53", "change_resource_record_sets"),
+        ("s3", "head_object"),
+        ("sts", "get_caller_identity"),
+    }
+)
+LIVE_CALL_ALLOWLIST = {
+    "publisher": PUBLISHER_LIVE_CALLS,
+    "deployer": PUBLISHER_LIVE_CALLS
+    | {
+        ("ecs", "describe_clusters"),
+        ("ecs", "describe_services"),
+        ("ecs", "describe_task_definition"),
+        ("ecs", "list_tasks"),
+        ("elbv2", "describe_target_health"),
+    },
+}
+RETAINED_DENIAL_ACTIONS = (
+    "s3:GetObject",
+    "route53:ChangeResourceRecordSets",
+    "kms:CreateGrant",
+    "ecr:BatchDeleteImage",
 )
 
 
@@ -49,12 +81,14 @@ class ProbeConfig:
     def __post_init__(self) -> None:
         if self.role not in ROLE_NAMES:
             raise ReleaseContractError("OIDC probe role must be publisher or deployer")
-        if not re.fullmatch(r"[0-9]{12}", self.account_id):
-            raise ReleaseContractError("OIDC probe account ID must contain 12 digits")
-        if not re.fullmatch(r"[a-z]{2}-[a-z]+-[0-9]", self.region):
-            raise ReleaseContractError("OIDC probe region is invalid")
-        if not self.repository_name or not re.fullmatch(r"[0-9]{1,12}", self.probe_id):
-            raise ReleaseContractError("OIDC probe identifiers are invalid")
+        if self.account_id != SANDBOX_ACCOUNT_ID:
+            raise ReleaseContractError("OIDC probe account ID is not the exact sandbox account")
+        if self.region != SANDBOX_REGION:
+            raise ReleaseContractError("OIDC probe region is not the exact sandbox region")
+        if self.repository_name != SANDBOX_REPOSITORY:
+            raise ReleaseContractError("OIDC probe repository is not the exact sandbox repository")
+        if not re.fullmatch(r"[0-9]{1,12}", self.probe_id):
+            raise ReleaseContractError("OIDC probe ID is invalid")
         if self.hosted_zone_id != ROUTE53_HOSTED_ZONE_ID:
             raise ReleaseContractError("OIDC probe hosted-zone ID is not the exact sandbox zone")
         if self.kms_key_arn != KMS_KEY_ARN:
@@ -84,7 +118,7 @@ class ProbeConfig:
 
     @property
     def state_bucket(self) -> str:
-        return f"datamailer-sandbox-{self.account_id}-us-east-1-tfstate"
+        return STATE_BUCKET
 
 
 class OidcProbe:
@@ -92,11 +126,38 @@ class OidcProbe:
         self.config = config
         self._clients = clients or {}
         self._caller_arn: str | None = None
+        self._denial_index = 0
 
     def _client(self, service: str, *, region: str | None = None) -> Any:
+        allowed_services = {
+            allowed_service for allowed_service, _ in LIVE_CALL_ALLOWLIST[self.config.role]
+        }
+        if service not in allowed_services:
+            raise ReleaseContractError(f"AWS client is outside the OIDC probe allowlist: {service}")
+        requested_region = region or self.config.region
+        expected_region = "us-east-1" if service == "s3" else self.config.region
+        if requested_region != expected_region:
+            raise ReleaseContractError(
+                f"AWS client region is outside the OIDC probe contract: {service}"
+            )
         if service not in self._clients:
-            self._clients[service] = boto3.client(service, region_name=region or self.config.region)
+            self._clients[service] = boto3.client(service, region_name=requested_region)
         return self._clients[service]
+
+    def _call(
+        self,
+        service: str,
+        method: str,
+        *,
+        region: str | None = None,
+        **arguments: Any,
+    ) -> Any:
+        if (service, method) not in LIVE_CALL_ALLOWLIST[self.config.role]:
+            raise ReleaseContractError(
+                f"AWS operation is outside the OIDC probe allowlist: {service}.{method}"
+            )
+        operation = getattr(self._client(service, region=region), method)
+        return operation(**arguments)
 
     def _record(self, action: str, resource: str, result: str) -> None:
         print(
@@ -129,8 +190,16 @@ class OidcProbe:
         resource: str,
         operation: Callable[[], Any],
         *,
-        denial_codes: frozenset[str] = DENIAL_CODES,
+        denial_codes: frozenset[str],
     ) -> None:
+        if self._denial_index >= len(RETAINED_DENIAL_ACTIONS):
+            raise ReleaseContractError(f"unexpected extra OIDC denial action: {action}")
+        expected_action = RETAINED_DENIAL_ACTIONS[self._denial_index]
+        if action != expected_action:
+            raise ReleaseContractError(
+                f"OIDC denial action is out of order: expected {expected_action}, got {action}"
+            )
+        self._denial_index += 1
         try:
             operation()
         except ClientError as error:
@@ -149,7 +218,7 @@ class OidcProbe:
 
     def _identity(self) -> None:
         try:
-            response = self._client("sts").get_caller_identity()
+            response = self._call("sts", "get_caller_identity")
         except Exception as error:
             error_name = type(error).__name__
             raise ReleaseContractError(
@@ -164,20 +233,26 @@ class OidcProbe:
         self._record("sts:GetCallerIdentity", arn, "allowed")
 
     def _allowed_metadata(self) -> None:
-        ecr = self._client("ecr")
         self._allow(
             "ecr:DescribeImages",
             self.config.repository_name,
-            lambda: ecr.describe_images(repositoryName=self.config.repository_name),
+            lambda: self._call(
+                "ecr",
+                "describe_images",
+                repositoryName=self.config.repository_name,
+            ),
         )
         if self.config.role != "deployer":
             return
 
-        ecs = self._client("ecs")
         cluster_response = self._allow(
             "ecs:DescribeClusters",
             self.config.cluster,
-            lambda: ecs.describe_clusters(clusters=[self.config.cluster]),
+            lambda: self._call(
+                "ecs",
+                "describe_clusters",
+                clusters=[self.config.cluster],
+            ),
         )
         if cluster_response.get("failures") or len(cluster_response.get("clusters", [])) != 1:
             raise ReleaseContractError("exact ECS cluster metadata was not returned")
@@ -185,7 +260,9 @@ class OidcProbe:
         service_response = self._allow(
             "ecs:DescribeServices",
             ",".join(str(name) for name in service_names),
-            lambda: ecs.describe_services(
+            lambda: self._call(
+                "ecs",
+                "describe_services",
                 cluster=self.config.cluster,
                 services=service_names,
             ),
@@ -195,7 +272,11 @@ class OidcProbe:
         for family in self.config.task_families:
 
             def describe_task_definition(selected_family: str = family) -> Any:
-                return ecs.describe_task_definition(taskDefinition=selected_family)
+                return self._call(
+                    "ecs",
+                    "describe_task_definition",
+                    taskDefinition=selected_family,
+                )
 
             response = self._allow(
                 "ecs:DescribeTaskDefinition",
@@ -207,44 +288,36 @@ class OidcProbe:
         self._allow(
             "ecs:ListTasks",
             self.config.cluster,
-            lambda: ecs.list_tasks(cluster=self.config.cluster, desiredStatus="RUNNING"),
+            lambda: self._call(
+                "ecs",
+                "list_tasks",
+                cluster=self.config.cluster,
+                desiredStatus="RUNNING",
+            ),
         )
         self._allow(
             "elasticloadbalancing:DescribeTargetHealth",
             str(self.config.web_target_group_arn),
-            lambda: self._client("elbv2").describe_target_health(
-                TargetGroupArn=self.config.web_target_group_arn
+            lambda: self._call(
+                "elbv2",
+                "describe_target_health",
+                TargetGroupArn=self.config.web_target_group_arn,
             ),
         )
 
     def _denied_boundaries(self) -> None:
-        foreign_repository = f"website-sandbox-foreign-probe-{self.config.probe_id}"
-        production_repository = f"website-production-probe-{self.config.probe_id}"
-        for repository in (foreign_repository, production_repository):
-
-            def describe_denied_repository(selected_repository: str = repository) -> Any:
-                return self._client("ecr").describe_images(repositoryName=selected_repository)
-
-            self._deny(
-                "ecr:DescribeImages",
-                repository,
-                describe_denied_repository,
-            )
         self._deny(
             "s3:GetObject",
-            f"s3://{self.config.state_bucket}/{STATE_KEY}",
-            lambda: self._client("s3", region="us-east-1").head_object(
-                Bucket=self.config.state_bucket,
+            f"s3://{STATE_BUCKET}/{STATE_KEY}",
+            lambda: self._call(
+                "s3",
+                "head_object",
+                region="us-east-1",
+                Bucket=STATE_BUCKET,
                 Key=STATE_KEY,
+                ExpectedBucketOwner=STATE_BUCKET_OWNER,
             ),
-        )
-        self._deny(
-            "iam:UpdateRoleDescription",
-            f"website-sandbox-probe-denied-{self.config.probe_id}",
-            lambda: self._client("iam").update_role_description(
-                RoleName=f"website-sandbox-probe-denied-{self.config.probe_id}",
-                Description="OIDC denial probe",
-            ),
+            denial_codes=S3_DENIAL_CODES,
         )
         synthetic_dns_name = f"oidc-denial-probe-{self.config.probe_id}.dtcdev.click."
         synthetic_dns_value = f'"oidc-denial-probe-{self.config.probe_id}"'
@@ -260,54 +333,23 @@ class OidcProbe:
         self._deny(
             "route53:ChangeResourceRecordSets",
             self.config.hosted_zone_id,
-            lambda: self._client("route53").change_resource_record_sets(
+            lambda: self._call(
+                "route53",
+                "change_resource_record_sets",
                 HostedZoneId=self.config.hosted_zone_id,
                 ChangeBatch={
                     "Comment": "OIDC denial probe",
                     "Changes": [duplicate_delete, duplicate_delete],
                 },
             ),
-        )
-
-        distribution_id = "E0000000000000"
-        self._deny(
-            "cloudfront:CreateInvalidation",
-            distribution_id,
-            lambda: self._client("cloudfront", region="us-east-1").create_invalidation(
-                DistributionId=distribution_id,
-                InvalidationBatch={
-                    "Paths": {"Quantity": 1, "Items": ["/*"]},
-                    "CallerReference": f"denied-{self.config.probe_id}",
-                },
-            ),
-        )
-
-        target_group = (
-            "arn:aws:elasticloadbalancing:"
-            f"{self.config.region}:{self.config.account_id}:"
-            f"targetgroup/probe-denied-{self.config.probe_id}/0000000000000000"
-        )
-        self._deny(
-            "elasticloadbalancing:ModifyTargetGroupAttributes",
-            target_group,
-            lambda: self._client("elbv2").modify_target_group_attributes(
-                TargetGroupArn=target_group,
-                Attributes=[{"Key": "deregistration_delay.timeout_seconds", "Value": "300"}],
-            ),
-        )
-        self._deny(
-            "rds:ModifyDBInstance",
-            f"{DATABASE_IDENTIFIER}-probe-denied-{self.config.probe_id}",
-            lambda: self._client("rds").modify_db_instance(
-                DBInstanceIdentifier=f"{DATABASE_IDENTIFIER}-probe-denied-{self.config.probe_id}",
-                BackupRetentionPeriod=7,
-                ApplyImmediately=False,
-            ),
+            denial_codes=ROUTE53_DENIAL_CODES,
         )
         self._deny(
             "kms:CreateGrant",
             self.config.kms_key_arn,
-            lambda: self._client("kms").create_grant(
+            lambda: self._call(
+                "kms",
+                "create_grant",
                 KeyId=self.config.kms_key_arn,
                 GranteePrincipal=(
                     f"arn:aws:iam::{self.config.account_id}:role/{ROLE_NAMES[self.config.role]}"
@@ -321,12 +363,16 @@ class OidcProbe:
         self._deny(
             "ecr:BatchDeleteImage",
             self.config.repository_name,
-            lambda: self._client("ecr").batch_delete_image(
+            lambda: self._call(
+                "ecr",
+                "batch_delete_image",
                 repositoryName=self.config.repository_name,
                 imageIds=[{"imageDigest": f"sha256:{'0' * 64}"}],
             ),
             denial_codes=ECR_DELETE_DENIAL_CODES,
         )
+        if self._denial_index != len(RETAINED_DENIAL_ACTIONS):
+            raise ReleaseContractError("OIDC denial sequence is incomplete")
 
     def run(self) -> None:
         self._identity()
