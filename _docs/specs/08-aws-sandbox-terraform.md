@@ -4,7 +4,7 @@ Status: draft
 
 ## Deployment target
 
-- Development URL: `https://dev.dtcdev.click`.
+- Development URL: `https://web.dtcdev.click`.
 - AWS sandbox account: `817685572750`.
 - Primary runtime region: `eu-west-1`.
 - Transactional SES region: `us-east-1`.
@@ -21,7 +21,7 @@ The delegated `dtcdev.click` hosted zone is exactly:
 
 A second same-name Route 53 zone exists in the account. The website stack must accept/use the delegated zone ID explicitly and must never select a zone by name alone or create a new `dtcdev.click` zone. Terraform plan review fails if it proposes hosted-zone creation or changes registrar delegation.
 
-The website stack owns only its `dev.dtcdev.click` records and certificate-validation records.
+The website stack owns only its `web.dtcdev.click` records and certificate-validation records.
 
 ## Terraform layout
 
@@ -69,7 +69,7 @@ Use Terraform >= 1.6 and a constrained AWS provider version consistent with the 
 
 ### Edge and DNS
 
-- Route 53 alias for `dev.dtcdev.click`.
+- Route 53 alias for `web.dtcdev.click`.
 - ACM certificates in the region required by the selected edge/origin service.
 - CloudFront distribution for stable TLS/caching/security headers and future same-path asset caching.
 - AWS WAF managed/rate rules where cost is accepted; application-level protections remain required.
@@ -182,7 +182,7 @@ The redirect stack must import/reference the existing course-host DNS safely and
 
 - Sandbox Terraform plan creates only workload-owned resources and references the exact delegated zone ID.
 - No secrets, state, backend credentials, or real tfvars enter Git.
-- `dev.dtcdev.click` has valid TLS, health checks, noindex behavior, separate web/worker services, private RDS, and working asset paths.
+- `web.dtcdev.click` has valid TLS, health checks, noindex behavior, separate web/worker services, private RDS, and working asset paths.
 - GitHub Actions uses OIDC and deploys an immutable digest with migration/readiness gates.
 - Backups, alarms, recipient safeguards, and a rollback deploy are tested.
 - The same infrastructure definition can plan in the production account with environment-specific inputs and no sandbox resource/state dependency.

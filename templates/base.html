@@ -1,0 +1,22 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Learn, share, and grow with the DataTalks.Club community.">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core/site.css' %}">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{% url 'home' %}">{{ brand_name }}</a>
+      <nav aria-label="Primary">
+        {% if user.is_staff %}<a href="{% url 'studio:home' %}">Studio</a>{% endif %}
+      </nav>
+    </header>
+    <main>{% block content %}{% endblock %}</main>
+    <footer>DataTalks.Club · Learn together</footer>
+  </body>
+</html>

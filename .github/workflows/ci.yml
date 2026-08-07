@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: make lint
+      - run: make format-check
+      - run: make typecheck
+      - run: make migrations-check
+      - run: make django-check
+      - run: make deployment-check
+
+  django:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: dtc_test
+          POSTGRES_USER: dtc
+          POSTGRES_PASSWORD: dtc-test-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U dtc -d dtc_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DJANGO_SETTINGS_MODULE: website.settings.test
+      DATABASE_URL: postgresql://dtc:dtc-test-only@127.0.0.1:5432/dtc_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run python manage.py migrate --noinput
+      - run: make test
+
+  playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run playwright install --with-deps chromium
+      - run: make test-playwright-core
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --tag dtc-website:test .
+      - name: Verify non-root runtime user
+        run: test "$(docker run --rm --entrypoint id dtc-website:test -u)" != "0"
+      - name: Smoke-test liveness
+        run: |
+          docker run --detach --name dtc-web \
+            --env DJANGO_SETTINGS_MODULE=website.settings.local \
+            --env DTC_USE_SQLITE=1 \
+            --publish 8000:8000 dtc-website:test web
+          trap 'docker logs dtc-web; docker rm --force dtc-web' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health/live; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1

@@ -15,7 +15,7 @@ The following invariants govern every implementation slice:
 5. [HUMAN] Course is reusable identity and Cohort is a dated delivery. Existing curriculum and learner work remain cohort-owned in the consolidation release.
 6. [HUMAN] Every management operation has both a Studio entry point and an admin API operation backed by the same service, permission, validation, idempotency, and audit behavior.
 7. [INFERENCE django-email-6,aisl-reference] Registration and course email is driven by durable database intent, never by an unrecorded provider call in a web request.
-8. [INFERENCE dtc-aws-infra] Infrastructure is Terraform-managed, development runs at `dev.dtcdev.click` in sandbox account `817685572750`, and environment/account differences are variables rather than copied architecture.
+8. [INFERENCE dtc-aws-infra] Infrastructure is Terraform-managed, development runs at `web.dtcdev.click` in sandbox account `817685572750`, and environment/account differences are variables rather than copied architecture.
 
 The detailed normative specifications are indexed in [`_docs/specs/README.md`](../specs/README.md). If this guideline and a numbered specification conflict, stop and update both before implementation.
 
@@ -149,7 +149,7 @@ Terraform does not build images, run application migrations implicitly, import p
 7. Rehearse content/data sync, links/SEO, security, privacy, accessibility, performance, backups/restores, failure injection, cutover, and rollback.
 8. Cut production traffic only after every gate passes; activate the course-host redirect Lambda only after consumer-specific validation.
 
-Each slice must be deployable to `dev.dtcdev.click`, observable, rollback-safe, and accompanied by operator/API/authoring documentation.
+Each slice must be deployable to `web.dtcdev.click`, observable, rollback-safe, and accompanied by operator/API/authoring documentation.
 
 ## Verification
 

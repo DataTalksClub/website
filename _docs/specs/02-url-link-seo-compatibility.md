@@ -99,7 +99,7 @@ SEO enhancements, such as filling current FAQ metadata gaps, ship only after par
 
 ## Development and preview behavior
 
-Every response from `dev.dtcdev.click`, content previews, and unpublished course/cohort pages must:
+Every response from `web.dtcdev.click`, content previews, and unpublished course/cohort pages must:
 
 - include `X-Robots-Tag: noindex, nofollow`;
 - be disallowed in the development `robots.txt`;

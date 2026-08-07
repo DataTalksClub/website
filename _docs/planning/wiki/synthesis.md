@@ -40,7 +40,7 @@
 - [INFERENCE dtc-main-site,dtc-docs,dtc-faq,dtc-podwiki] Crawl the generated sites first and store a route/link/SEO manifest. Development uses production canonicals but is blocked from indexing.
 - [INFERENCE dtc-course-platform] Copy the course source and make its existing tests pass inside the unified project before structural edits. Then add a temporary CourseFamily parent, backfill a human-reviewed edition mapping, and use migration state/database operations to reach Course plus Cohort without re-creating course data.
 - [INFERENCE dtc-course-platform] Keep `courses.datatalks.club` serving compatibility views until browser and authenticated API consumers have migrated. Only then deploy a Terraform-managed redirect Lambda using an explicit path map and query preservation.
-- [INFERENCE aisl-reference] Deliver vertical slices to `dev.dtcdev.click`, use immutable content releases and application images for rollback, and do not retire the old sites until their individual compatibility gates pass.
+- [INFERENCE aisl-reference] Deliver vertical slices to `web.dtcdev.click`, use immutable content releases and application images for rollback, and do not retire the old sites until their individual compatibility gates pass.
 
 ## Dissent and unresolved choices
 

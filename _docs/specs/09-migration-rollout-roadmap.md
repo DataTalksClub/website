@@ -2,7 +2,7 @@
 
 Status: draft
 
-The migration is delivered as working vertical slices on `dev.dtcdev.click`. The existing main, docs, FAQ, Podwiki, and course platform remain deployable until their replacement passes its own compatibility gate.
+The migration is delivered as working vertical slices on `web.dtcdev.click`. The existing main, docs, FAQ, Podwiki, and course platform remain deployable until their replacement passes its own compatibility gate.
 
 ## Milestone 0 - Decisions and immutable inventories
 
@@ -28,7 +28,7 @@ Deliverables:
 - Studio shell, admin API shell, OIDC integration, permissions, capability registry, token model, and OpenAPI generation;
 - web/worker processes and durable job helpers;
 - Terraform `sandbox/website` stack and GitHub OIDC delivery pipeline;
-- `dev.dtcdev.click` deployment with TLS, noindex, logs, alarms, backups, and rollback image.
+- `web.dtcdev.click` deployment with TLS, noindex, logs, alarms, backups, and rollback image.
 - adopted course-platform source/migrations/tests mounted in the unified Django project, with its characterization suite passing before domain changes.
 
 Exit gate: authenticated Studio/API health capability works in development, unauthorized paths fail correctly, and no production data/content is loaded.
@@ -111,7 +111,7 @@ Deliverables:
 - DNS/edge cutover procedure, lowered TTL where useful, smoke checklist, owners, and rollback triggers;
 - Search Console/sitemap preparation without submitting development URLs.
 
-Exit gate: all release criteria pass on `dev.dtcdev.click`, open exceptions have explicit owner acceptance, and restore/rollback rehearsals succeed.
+Exit gate: all release criteria pass on `web.dtcdev.click`, open exceptions have explicit owner acceptance, and restore/rollback rehearsals succeed.
 
 ## Milestone 8 - Production cutover
 

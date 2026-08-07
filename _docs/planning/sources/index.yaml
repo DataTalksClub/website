@@ -67,7 +67,7 @@ sources:
     captured: 2026-08-07
     published:
     authority: primary
-    summary: Existing Terraform conventions and live sandbox facts for the dev.dtcdev.click deployment target.
+    summary: Existing Terraform conventions and live sandbox facts for the web.dtcdev.click deployment target.
     page: wiki/sources/dtc-aws-infra.md
     raw:
     relevance: 0.90

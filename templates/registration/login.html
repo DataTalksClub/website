@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Staff sign in · {{ brand_name }}{% endblock %}
+{% block content %}
+  <section class="panel narrow">
+    <p class="eyebrow">Staff access</p>
+    <h1>Sign in to Studio</h1>
+    {% if form.errors %}<p class="error" role="alert">The email or password was not accepted.</p>{% endif %}
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_username">Email</label>
+      <input id="id_username" name="username" type="email" autocomplete="email" required autofocus>
+      <label for="id_password">Password</label>
+      <input id="id_password" name="password" type="password" autocomplete="current-password" required>
+      <input type="hidden" name="next" value="{{ next }}">
+      <button type="submit">Sign in</button>
+    </form>
+  </section>
+{% endblock %}
