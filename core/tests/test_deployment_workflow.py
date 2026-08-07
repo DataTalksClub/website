@@ -531,9 +531,17 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         ):
             self.assertIn(expected, normalized_probe)
 
-    def test_sentinel_audit_covers_every_later_boundary_and_three_part_proof(self) -> None:
+    def test_sentinel_audit_covers_complete_sequence_and_three_part_proof(self) -> None:
         audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
         for action in (
+            "ecr:DescribeImages",
+            "s3:GetObject",
+            "iam:UpdateRoleDescription",
+            "route53:ChangeResourceRecordSets",
+            "cloudfront:CreateInvalidation",
+            "elasticloadbalancing:ModifyTargetGroupAttributes",
+            "rds:ModifyDBInstance",
+            "kms:CreateGrant",
             "secretsmanager:GetSecretValue",
             "ecs:DeregisterTaskDefinition",
             "ecr:BatchDeleteImage",
@@ -552,11 +560,34 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         ):
             self.assertIn(outcome, audit)
         self.assertGreaterEqual(audit.count("**Remove.**"), 5)
-        self.assertEqual(audit.count("**Retain.**"), 1)
-        self.assertIn("website absence tests", audit)
+        self.assertEqual(audit.count("**Retain.**"), 4)
+        self.assertIn("website live-call allowlist", audit)
         self.assertIn("aws-infra", audit)
         self.assertIn("simulate-principal-policy", audit)
         self.assertIn("positive controls", audit)
+        self.assertIn("ExpectedBucketOwner=817685572750", audit)
+        self.assertIn("exactly four calls, in order", audit)
+
+        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
+            "## Select and promote a release", maxsplit=1
+        )[0]
+        for expected in (
+            "ExpectedBucketOwner=817685572750",
+            "ecr:DescribeImages` on foreign and production-shaped repository ARNs",
+            "iam:UpdateRoleDescription` on each exact publisher/deployer role ARN",
+            "cloudfront:CreateInvalidation` on `<cloudfront-distribution-arn>`",
+            "elasticloadbalancing:ModifyTargetGroupAttributes` on exact web target-group ARN",
+            "rds:ModifyDBInstance` on exact website DB ARN",
+            "s3:GetObject` on exact state-object ARN",
+            "route53:ChangeResourceRecordSets` on exact hosted-zone ARN",
+            "kms:CreateGrant` on exact runtime-key ARN",
+            "ecr:BatchDeleteImage` on exact `website-sandbox` repository ARN",
+            "simulator covers identity policies only",
+            "ECR `website-sandbox` repository policy",
+            "S3 state-bucket policy",
+        ):
+            self.assertIn(expected, probe)
 
     def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
         runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()

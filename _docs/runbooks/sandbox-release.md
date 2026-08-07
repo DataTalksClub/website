@@ -81,6 +81,12 @@ and retain its digest as pre-probe evidence. An aggregate hosted-zone count is n
 for these six canonical full records. Also capture the exact KMS key's canonical grant inventory;
 the post-probe inventory must be byte-for-byte identical.
 
+As the operator, independently prove that S3 bucket
+`datamailer-sandbox-817685572750-us-east-1-tfstate` belongs to account `817685572750` and that exact
+key `sandbox/website/terraform.tfstate` exists before either application role is assumed. Do not
+read the state body. A missing object can appear as `403` when the caller lacks `ListBucket`, so
+the application-role HEAD denial is evidence only after this independent existence proof.
+
 The publisher probe has no GitHub environment and therefore receives the exact main-ref subject.
 The deployer probe uses `environment: sandbox` and therefore receives the exact sandbox subject.
 Each validates the expected account, region, role ARN, and non-secret resource inputs before role
@@ -121,24 +127,48 @@ separate exact web/worker statements with the exact website cluster and matching
 conditions; and allow `ecs:RunTask` only on the exact migration family with the exact website
 cluster condition. Both roles must omit `ecr:BatchDeleteImage`.
 
+For the matrix below, the exact state object is
+`arn:aws:s3:::datamailer-sandbox-817685572750-us-east-1-tfstate/sandbox/website/terraform.tfstate`;
+the exact zone is `arn:aws:route53:::hostedzone/Z05963572WVWFHDQZH5NE`; the exact key is
+`arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887`; the exact repository
+is `arn:aws:ecr:eu-west-1:817685572750:repository/website-sandbox`; and the exact database is
+`arn:aws:rds:eu-west-1:817685572750:db:website-sandbox`. The two exact role resources are
+`arn:aws:iam::817685572750:role/website-sandbox-github-publisher` and
+`arn:aws:iam::817685572750:role/website-sandbox-github-deployer`. Use deterministic simulator-only
+foreign and production ECR resource shapes under the same account and region; they are never live
+API targets.
+
 Run `aws iam simulate-principal-policy` as the operator, never as an application role, against
-every row below. Resolve `<database-secret-arn>` with Secrets Manager metadata only and resolve
-the three `<current-*-task-definition-arn>` values from the exact task-definition inventory; do
-not read a secret value. Supply the listed `ecs:cluster` and `ecs:task-definition` context entries
-for conditional rows. Capture only action, resource, `EvalDecision`, and missing-context names.
-Every negative row must be `implicitDeny`; every positive control must be `allowed` with no
-missing context. This positive-control requirement prevents a broken simulator invocation from
-being mistaken for proof of denial.
+every row below. Resolve `<database-secret-arn>` with Secrets Manager metadata only, the three
+`<current-*-task-definition-arn>` values from the exact task-definition inventory, and
+`<cloudfront-distribution-arn>` from the reviewed Terraform output; do not read a secret value.
+Supply the listed `ecs:cluster` and `ecs:task-definition` context entries for conditional rows.
+Expand every row naming multiple actions or resources into individual evaluations. Capture only
+role, action, resource, `EvalDecision`, and missing-context names. Every negative row must be
+`implicitDeny`; every positive control must be `allowed` with no missing context. This
+positive-control requirement prevents a broken simulator invocation from being mistaken for
+proof of denial.
 
 | Role | Action and resource | Context | Expected |
 | --- | --- | --- | --- |
 | publisher | `ecr:DescribeImages` on exact `website-sandbox` repository ARN | none | `allowed` positive control |
+| publisher | `ecr:DescribeImages` on foreign and production-shaped repository ARNs | none | `implicitDeny` |
+| publisher | `s3:GetObject` on exact state-object ARN | none | `implicitDeny` |
 | publisher | `secretsmanager:GetSecretValue` on `<database-secret-arn>` | none | `implicitDeny` |
 | publisher | `ecs:DeregisterTaskDefinition` on `*` | none | `implicitDeny` |
 | publisher | `ecs:DescribeServices` on exact website web service ARN | exact website `ecs:cluster` | `implicitDeny` |
 | publisher | `ecs:UpdateService` on exact website web service ARN | exact cluster and web task definition | `implicitDeny` |
 | publisher | `ecs:RunTask` on `<current-migration-task-definition-arn>` | exact website `ecs:cluster` | `implicitDeny` |
+| publisher | `iam:UpdateRoleDescription` on each exact publisher/deployer role ARN | none | `implicitDeny` |
+| publisher | `route53:ChangeResourceRecordSets` on exact hosted-zone ARN | none | `implicitDeny` |
+| publisher | `cloudfront:CreateInvalidation` on `<cloudfront-distribution-arn>` | none | `implicitDeny` |
+| publisher | `elasticloadbalancing:ModifyTargetGroupAttributes` on exact web target-group ARN | none | `implicitDeny` |
+| publisher | `rds:ModifyDBInstance` on exact website DB ARN | none | `implicitDeny` |
+| publisher | `kms:CreateGrant` on exact runtime-key ARN | none | `implicitDeny` |
+| publisher | `ecr:BatchDeleteImage` on exact `website-sandbox` repository ARN | none | `implicitDeny` |
 | deployer | `ecr:DescribeImages` on exact `website-sandbox` repository ARN | none | `allowed` positive control |
+| deployer | `ecr:DescribeImages` on foreign and production-shaped repository ARNs | none | `implicitDeny` |
+| deployer | `s3:GetObject` on exact state-object ARN | none | `implicitDeny` |
 | deployer | `secretsmanager:GetSecretValue` on `<database-secret-arn>` | none | `implicitDeny` |
 | deployer | `ecs:DeregisterTaskDefinition` on `*` | none | `implicitDeny` |
 | deployer | `ecs:DescribeServices` on each exact website web/worker service ARN | exact website `ecs:cluster` | `allowed` positive controls |
@@ -147,11 +177,24 @@ being mistaken for proof of denial.
 | deployer | `ecs:UpdateService` on foreign and production-shaped service ARNs | corresponding foreign/production cluster/family | `implicitDeny` |
 | deployer | `ecs:RunTask` on `<current-migration-task-definition-arn>` | exact website `ecs:cluster` | `allowed` positive control |
 | deployer | `ecs:RunTask` on foreign and production-shaped task-family ARNs | exact website `ecs:cluster` | `implicitDeny` |
+| deployer | `iam:UpdateRoleDescription` on each exact publisher/deployer role ARN | none | `implicitDeny` |
+| deployer | `route53:ChangeResourceRecordSets` on exact hosted-zone ARN | none | `implicitDeny` |
+| deployer | `cloudfront:CreateInvalidation` on `<cloudfront-distribution-arn>` | none | `implicitDeny` |
+| deployer | `elasticloadbalancing:ModifyTargetGroupAttributes` on exact web target-group ARN | none | `implicitDeny` |
+| deployer | `rds:ModifyDBInstance` on exact website DB ARN | none | `implicitDeny` |
+| deployer | `kms:CreateGrant` on exact runtime-key ARN | none | `implicitDeny` |
+| deployer | `ecr:BatchDeleteImage` on exact `website-sandbox` repository ARN | none | `implicitDeny` |
 
 Any extra policy, attached policy, wildcard, missing condition, unexpected simulator decision, or
 missing positive control stops issue #70 before OIDC. Store all scratch inputs and redacted output
 under the repository-local `.tmp/`; policy evidence must contain no session credentials or secret
 values.
+
+The simulator covers identity policies only. Canonically read the exact KMS key policy; require
+the ECR `website-sandbox` repository policy to be absent or byte-match its reviewed shape; and
+read the S3 state-bucket policy when operator authority permits. If a required resource-policy
+contribution cannot be established, stop. The bounded S3, Route 53, KMS, and ECR live calls later
+supply composite evidence that simulation alone cannot provide.
 
 Before the regional `DescribeTargetHealth` permission is assumed, the deployer job requires the
 Terraform output to match exactly
@@ -167,11 +210,13 @@ Neither the token nor an unexpectedly returned credential is printed or persiste
 
 Allowed calls are metadata-only: caller identity and exact-repository image metadata for the
 publisher; plus exact cluster, service, task-definition, running-task, and target-health metadata
-for the deployer. Safe denial probes cover Terraform-state metadata, IAM, CloudFront, ALB, RDS,
-the existing KMS key dry-run, and ECR deletion of a proven-absent all-zero digest from the exact
-existing repository. Unsafe missing-resource Secrets Manager and ECS sentinels were removed from
-the live probe and replaced by exact Terraform/IAM policy-contract tests; the full review and
-implemented dispositions are recorded in `_docs/audits/2026-08-07-oidc-denial-sentinels.md`.
+for the deployer. The live denial sequence is exactly: HEAD the independently proven existing
+Terraform-state object with `ExpectedBucketOwner=817685572750`; submit the transactional Route 53
+duplicate-delete batch; dry-run CreateGrant on the existing KMS key; and request deletion of a
+proven-absent all-zero digest from the exact existing ECR repository. Foreign ECR reads and
+mutation-shaped IAM, CloudFront, ELB, RDS, Secrets Manager, and ECS sentinels are removed and
+replaced by exact Terraform/IAM policy contracts plus the simulator matrix above. The full review
+and dispositions are recorded in `_docs/audits/2026-08-07-oidc-denial-sentinels.md`.
 Route 53 is the single narrow real-zone exception: the probe passes the
 exact non-secret `Z05963572WVWFHDQZH5NE` ID without listing or selecting zones, then submits one
 transactional request with exactly two byte-for-byte identical `DELETE` changes for the synthetic

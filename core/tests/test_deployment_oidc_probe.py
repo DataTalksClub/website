@@ -13,11 +13,20 @@ from django.test import SimpleTestCase
 from deploy.contracts import ReleaseContractError
 from deploy.oidc_claim_probe import prove_wrong_claim_denied
 from deploy.oidc_probe import (
-    DENIAL_CODES,
     ECR_DELETE_DENIAL_CODES,
     KMS_DENIAL_CODES,
     KMS_KEY_ARN,
+    LIVE_CALL_ALLOWLIST,
+    RETAINED_DENIAL_ACTIONS,
+    ROUTE53_DENIAL_CODES,
     ROUTE53_HOSTED_ZONE_ID,
+    S3_DENIAL_CODES,
+    SANDBOX_ACCOUNT_ID,
+    SANDBOX_REGION,
+    SANDBOX_REPOSITORY,
+    STATE_BUCKET,
+    STATE_BUCKET_OWNER,
+    STATE_KEY,
     OidcProbe,
     ProbeConfig,
     build_parser,
@@ -116,19 +125,7 @@ class FakeClaimSts:
 def clients(role: str) -> dict[str, FakeAwsClient]:
     return {
         service: FakeAwsClient(service, role)
-        for service in (
-            "cloudfront",
-            "ecr",
-            "ecs",
-            "elbv2",
-            "iam",
-            "kms",
-            "rds",
-            "route53",
-            "s3",
-            "secretsmanager",
-            "sts",
-        )
+        for service in {service for service, _method in LIVE_CALL_ALLOWLIST[role]}
     }
 
 
@@ -167,19 +164,19 @@ class OidcProbeTests(SimpleTestCase):
 
         allowed = [record["action"] for record in records if record["result"] == "allowed"]
         self.assertEqual(allowed, ["sts:GetCallerIdentity", "ecr:DescribeImages"])
-        denied = {record["action"] for record in records if record["result"] == "denied"}
+        denied = [record["action"] for record in records if record["result"] == "denied"]
+        self.assertEqual(denied, list(RETAINED_DENIAL_ACTIONS))
         self.assertEqual(
-            denied,
             {
-                "cloudfront:CreateInvalidation",
-                "ecr:BatchDeleteImage",
-                "ecr:DescribeImages",
-                "elasticloadbalancing:ModifyTargetGroupAttributes",
-                "iam:UpdateRoleDescription",
-                "kms:CreateGrant",
-                "rds:ModifyDBInstance",
-                "route53:ChangeResourceRecordSets",
-                "s3:GetObject",
+                service: [method for method, _arguments in client.calls]
+                for service, client in fake_clients.items()
+            },
+            {
+                "ecr": ["describe_images", "batch_delete_image"],
+                "kms": ["create_grant"],
+                "route53": ["change_resource_record_sets"],
+                "s3": ["head_object"],
+                "sts": ["get_caller_identity"],
             },
         )
         expected_fields = {"action", "caller_arn", "resource", "result", "role", "timestamp"}
@@ -190,22 +187,129 @@ class OidcProbeTests(SimpleTestCase):
         ecr_delete = fake_clients["ecr"].calls[-1]
         self.assertEqual(ecr_delete[0], "batch_delete_image")
         self.assertEqual(ecr_delete[1]["imageIds"], [{"imageDigest": f"sha256:{'0' * 64}"}])
-        cloudfront_probe = fake_clients["cloudfront"].calls[0]
-        self.assertEqual(cloudfront_probe[1]["DistributionId"], "E0000000000000")
+
+    def test_s3_head_request_is_exact_and_uses_the_state_region(self) -> None:
+        self.assertEqual(SANDBOX_ACCOUNT_ID, ACCOUNT_ID)
+        self.assertEqual(SANDBOX_REGION, REGION)
+        self.assertEqual(SANDBOX_REPOSITORY, REPOSITORY)
+        self.assertEqual(STATE_BUCKET, "datamailer-sandbox-817685572750-us-east-1-tfstate")
+        self.assertEqual(STATE_BUCKET_OWNER, ACCOUNT_ID)
+        self.assertEqual(STATE_KEY, "sandbox/website/terraform.tfstate")
+        created_clients: dict[str, FakeAwsClient] = {}
+
+        def client_factory(service: str, *, region_name: str) -> FakeAwsClient:
+            created_clients[service] = FakeAwsClient(service, "publisher")
+            return created_clients[service]
+
+        with (
+            patch("deploy.oidc_probe.boto3.client", side_effect=client_factory) as factory,
+            redirect_stdout(io.StringIO()),
+        ):
+            OidcProbe(config("publisher")).run()
+
+        factory.assert_any_call("s3", region_name="us-east-1")
         self.assertEqual(
-            cloudfront_probe[1]["InvalidationBatch"]["Paths"],
-            {"Quantity": 1, "Items": ["/*"]},
+            created_clients["s3"].calls,
+            [
+                (
+                    "head_object",
+                    {
+                        "Bucket": STATE_BUCKET,
+                        "Key": STATE_KEY,
+                        "ExpectedBucketOwner": STATE_BUCKET_OWNER,
+                    },
+                )
+            ],
         )
-        alb_probe = fake_clients["elbv2"].calls[0]
-        self.assertIn("targetgroup/probe-denied-12345/", alb_probe[1]["TargetGroupArn"])
-        self.assertEqual(
-            alb_probe[1]["Attributes"],
-            [{"Key": "deregistration_delay.timeout_seconds", "Value": "300"}],
+
+    def test_s3_head_accepts_only_exact_access_denial_codes(self) -> None:
+        self.assertEqual(S3_DENIAL_CODES, {"403", "AccessDenied", "AccessDeniedException"})
+        for code in sorted(S3_DENIAL_CODES):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["s3"].error_overrides["head_object"] = code
+
+                with redirect_stdout(io.StringIO()):
+                    OidcProbe(config("publisher"), fake_clients).run()
+
+                self.assertEqual(
+                    fake_clients["s3"].calls.count(
+                        (
+                            "head_object",
+                            {
+                                "Bucket": STATE_BUCKET,
+                                "Key": STATE_KEY,
+                                "ExpectedBucketOwner": STATE_BUCKET_OWNER,
+                            },
+                        )
+                    ),
+                    1,
+                )
+
+    def test_s3_head_notfound_validation_and_other_results_fail_closed(self) -> None:
+        for code in (
+            "400",
+            "401",
+            "404",
+            "NoSuchBucket",
+            "NoSuchKey",
+            "InvalidRequest",
+            "ValidationException",
+            "InternalError",
+            "UnauthorizedOperation",
+        ):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["s3"].error_overrides["head_object"] = code
+                output = io.StringIO()
+
+                with (
+                    self.assertRaisesMessage(
+                        ReleaseContractError,
+                        f"permission denial was not proven for s3:GetObject ({code})",
+                    ),
+                    redirect_stdout(output),
+                ):
+                    OidcProbe(config("publisher"), fake_clients).run()
+
+                self.assertEqual(len(fake_clients["s3"].calls), 1)
+                self.assertEqual(fake_clients["route53"].calls, [])
+                self.assertNotIn("redacted", output.getvalue())
+
+    def test_s3_head_transport_failure_and_success_fail_closed_without_leakage(self) -> None:
+        network_clients = clients("publisher")
+        network_clients["s3"].error_overrides["head_object"] = TimeoutError(
+            "sensitive-provider-detail"
         )
-        rds_probe = fake_clients["rds"].calls[0]
-        self.assertEqual(rds_probe[1]["DBInstanceIdentifier"], "website-sandbox-probe-denied-12345")
-        self.assertEqual(rds_probe[1]["BackupRetentionPeriod"], 7)
-        self.assertEqual(fake_clients["secretsmanager"].calls, [])
+        network_output = io.StringIO()
+        with (
+            self.assertRaisesMessage(
+                ReleaseContractError,
+                "permission denial probe failed for s3:GetObject (TimeoutError)",
+            ),
+            redirect_stdout(network_output),
+        ):
+            OidcProbe(config("publisher"), network_clients).run()
+        self.assertEqual(len(network_clients["s3"].calls), 1)
+        self.assertEqual(network_clients["route53"].calls, [])
+        self.assertNotIn("sensitive-provider-detail", network_output.getvalue())
+
+        success_clients = clients("publisher")
+        success_clients["s3"].response_overrides["head_object"] = {
+            "ETag": "must-not-log-state-etag"
+        }
+        success_output = io.StringIO()
+        with (
+            self.assertRaisesMessage(
+                ReleaseContractError,
+                "unsafe permission unexpectedly allowed: s3:GetObject",
+            ),
+            redirect_stdout(success_output),
+        ):
+            OidcProbe(config("publisher"), success_clients).run()
+        self.assertEqual(len(success_clients["s3"].calls), 1)
+        self.assertEqual(success_clients["route53"].calls, [])
+        self.assertNotIn("must-not-log-state-etag", success_output.getvalue())
 
     def test_kms_request_is_exact_nonmutating_and_once_only_for_each_role(self) -> None:
         for role in ("publisher", "deployer"):
@@ -415,17 +519,26 @@ class OidcProbeTests(SimpleTestCase):
 
     def test_removed_missing_resource_sentinels_are_never_called_for_either_role(self) -> None:
         removed_methods = {
+            "create_invalidation",
             "deregister_task_definition",
             "get_secret_value",
+            "modify_db_instance",
+            "modify_target_group_attributes",
             "run_task",
+            "update_role_description",
             "update_service",
         }
         removed_actions = {
+            "cloudfront:CreateInvalidation",
             "ecs:DeregisterTaskDefinition",
             "ecs:RunTask",
             "ecs:UpdateService",
+            "elasticloadbalancing:ModifyTargetGroupAttributes",
+            "iam:UpdateRoleDescription",
+            "rds:ModifyDBInstance",
             "secretsmanager:GetSecretValue",
         }
+        removed_clients = {"cloudfront", "iam", "rds", "secretsmanager"}
         for role in ("publisher", "deployer"):
             with self.subTest(role=role):
                 records, fake_clients = self.run_probe(role)
@@ -435,13 +548,88 @@ class OidcProbeTests(SimpleTestCase):
                     for method, _arguments in client.calls
                 }
                 actions = {record["action"] for record in records}
-                serialized_ecs_calls = json.dumps(fake_clients["ecs"].calls, sort_keys=True)
+                serialized_calls = json.dumps(
+                    {service: client.calls for service, client in fake_clients.items()},
+                    sort_keys=True,
+                )
+                described_repositories = [
+                    arguments["repositoryName"]
+                    for method, arguments in fake_clients["ecr"].calls
+                    if method == "describe_images"
+                ]
 
                 self.assertTrue(removed_methods.isdisjoint(methods))
                 self.assertTrue(removed_actions.isdisjoint(actions))
-                self.assertNotIn("999999999", serialized_ecs_calls)
-                self.assertNotIn("foreign-probe", serialized_ecs_calls)
-                self.assertNotIn("production-probe", serialized_ecs_calls)
+                self.assertTrue(removed_clients.isdisjoint(fake_clients))
+                self.assertEqual(described_repositories, [REPOSITORY])
+                for removed_marker in (
+                    "999999999",
+                    "E0000000000000",
+                    "foreign-probe",
+                    "probe-denied",
+                    "production-probe",
+                ):
+                    self.assertNotIn(removed_marker, serialized_calls)
+
+                if role == "publisher":
+                    self.assertNotIn("elbv2", fake_clients)
+                else:
+                    self.assertEqual(
+                        fake_clients["elbv2"].calls,
+                        [("describe_target_health", {"TargetGroupArn": TARGET_GROUP})],
+                    )
+
+    def test_runtime_allowlist_rejects_every_extra_client_and_action(self) -> None:
+        for role in ("publisher", "deployer"):
+            with self.subTest(role=role):
+                fake_clients = clients(role)
+                probe = OidcProbe(config(role), fake_clients)
+                for service in ("cloudfront", "iam", "rds", "secretsmanager"):
+                    with self.assertRaisesMessage(
+                        ReleaseContractError,
+                        f"AWS client is outside the OIDC probe allowlist: {service}",
+                    ):
+                        probe._client(service)
+                for service, method in (
+                    ("ecr", "delete_repository"),
+                    ("kms", "schedule_key_deletion"),
+                    ("route53", "create_hosted_zone"),
+                    ("s3", "delete_object"),
+                    ("elbv2", "modify_target_group_attributes"),
+                ):
+                    with self.assertRaisesMessage(
+                        ReleaseContractError,
+                        f"AWS operation is outside the OIDC probe allowlist: {service}.{method}",
+                    ):
+                        probe._call(service, method)
+
+                self.assertTrue(all(not client.calls for client in fake_clients.values()))
+
+    def test_denial_sequence_allowlist_rejects_reordered_and_extra_actions(self) -> None:
+        probe = OidcProbe(config("publisher"), clients("publisher"))
+        with self.assertRaisesMessage(
+            ReleaseContractError,
+            "OIDC denial action is out of order: expected s3:GetObject, got kms:CreateGrant",
+        ):
+            probe._deny(
+                "kms:CreateGrant",
+                KMS_KEY_ARN,
+                lambda: None,
+                denial_codes=KMS_DENIAL_CODES,
+            )
+
+        exhausted_probe = OidcProbe(config("publisher"), clients("publisher"))
+        exhausted_probe._denial_index = len(RETAINED_DENIAL_ACTIONS)
+        with self.assertRaisesMessage(
+            ReleaseContractError,
+            "unexpected extra OIDC denial action: s3:GetObject",
+        ):
+            exhausted_probe._deny(
+                "s3:GetObject",
+                f"s3://{STATE_BUCKET}/{STATE_KEY}",
+                lambda: None,
+                denial_codes=S3_DENIAL_CODES,
+            )
 
     def test_route53_request_is_one_exact_duplicate_delete_batch_without_managed_records(
         self,
@@ -486,7 +674,11 @@ class OidcProbeTests(SimpleTestCase):
         self.assertNotIn("oidc-denial-probe-12345", json.dumps(records))
 
     def test_route53_access_denial_codes_pass(self) -> None:
-        for code in sorted(DENIAL_CODES):
+        self.assertEqual(
+            ROUTE53_DENIAL_CODES,
+            {"AccessDenied", "AccessDeniedException"},
+        )
+        for code in sorted(ROUTE53_DENIAL_CODES):
             with self.subTest(code=code):
                 fake_clients = clients("publisher")
                 fake_clients["route53"].error_overrides["change_resource_record_sets"] = code
@@ -505,7 +697,13 @@ class OidcProbeTests(SimpleTestCase):
                 self.assertEqual(len(fake_clients["route53"].calls), 1)
 
     def test_route53_non_authorization_results_fail_closed(self) -> None:
-        for code in ("InvalidChangeBatch", "NoSuchHostedZone", "InternalError"):
+        for code in (
+            "403",
+            "UnauthorizedOperation",
+            "InvalidChangeBatch",
+            "NoSuchHostedZone",
+            "InternalError",
+        ):
             with self.subTest(code=code):
                 fake_clients = clients("publisher")
                 fake_clients["route53"].error_overrides["change_resource_record_sets"] = code
@@ -587,11 +785,9 @@ class OidcProbeTests(SimpleTestCase):
             for method, arguments in fake_clients["ecr"].calls
             if method == "describe_images" and arguments["repositoryName"] != REPOSITORY
         ]
-        self.assertEqual(
-            foreign_repositories,
-            ["website-sandbox-foreign-probe-12345", "website-production-probe-12345"],
-        )
+        self.assertEqual(foreign_repositories, [])
         denied_actions = [record["action"] for record in records if record["result"] == "denied"]
+        self.assertEqual(denied_actions, list(RETAINED_DENIAL_ACTIONS))
         self.assertNotIn("ecs:DescribeServices", denied_actions)
         self.assertNotIn("ecs:UpdateService", denied_actions)
         self.assertNotIn("ecs:RunTask", denied_actions)
@@ -697,6 +893,63 @@ class OidcProbeTests(SimpleTestCase):
 
         self.assertEqual(raised.exception.code, 1)
         client_factory.assert_not_called()
+
+    def test_nonexact_sandbox_scope_fails_before_any_aws_client_is_created(self) -> None:
+        exact_arguments = [
+            "oidc_probe.py",
+            "publisher",
+            "--account-id",
+            ACCOUNT_ID,
+            "--region",
+            REGION,
+            "--repository-name",
+            REPOSITORY,
+            "--probe-id",
+            "12345",
+            "--hosted-zone-id",
+            ROUTE53_HOSTED_ZONE_ID,
+            "--kms-key-arn",
+            KMS_KEY_ARN,
+        ]
+        for argument_index, nonexact_value, expected_message in (
+            (3, "000000000000", "OIDC probe account ID is not the exact sandbox account"),
+            (5, "eu-west-2", "OIDC probe region is not the exact sandbox region"),
+            (
+                7,
+                "website-production",
+                "OIDC probe repository is not the exact sandbox repository",
+            ),
+        ):
+            arguments = exact_arguments.copy()
+            arguments[argument_index] = nonexact_value
+            error_output = io.StringIO()
+            with (
+                self.subTest(argument_index=argument_index, nonexact_value=nonexact_value),
+                patch("sys.argv", arguments),
+                patch("deploy.oidc_probe.boto3.client") as client_factory,
+                redirect_stderr(error_output),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                main()
+
+            self.assertEqual(raised.exception.code, 1)
+            self.assertIn(expected_message, error_output.getvalue())
+            client_factory.assert_not_called()
+
+    def test_s3_client_rejects_every_region_except_us_east_1_before_creation(self) -> None:
+        probe = OidcProbe(config("publisher"))
+        for region in (None, REGION, "us-west-2"):
+            with (
+                self.subTest(region=region),
+                patch("deploy.oidc_probe.boto3.client") as client_factory,
+                self.assertRaisesMessage(
+                    ReleaseContractError,
+                    "AWS client region is outside the OIDC probe contract: s3",
+                ),
+            ):
+                probe._client("s3", region=region)
+
+            client_factory.assert_not_called()
 
     def test_probe_rejects_every_nonexact_kms_arn(self) -> None:
         invalid_key_arns = (

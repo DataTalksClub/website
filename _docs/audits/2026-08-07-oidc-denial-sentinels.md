@@ -1,17 +1,19 @@
 # OIDC denial-sentinel audit
 
 Date: 2026-08-07  
-Issue: [DataTalksClub/website#81](https://github.com/DataTalksClub/website/issues/81)  
+Issues: [DataTalksClub/website#81](https://github.com/DataTalksClub/website/issues/81),
+[DataTalksClub/website#83](https://github.com/DataTalksClub/website/issues/83)
 Status: implemented disposition; live verification remains gated by issue #70
 
 ## Purpose and decision rule
 
 The failed probe runs reached missing resources before they reached an authorization decision.
-This audit reviews every live denial sentinel after KMS. A sentinel is retained only when it uses
-the intended authorization resource, cannot mutate state even if unexpectedly authorized, and
-does not rely on a missing resource or invalid input being authorized before service validation.
-Only `AccessDenied` or `AccessDeniedException` proves a retained boundary. NotFound, validation,
-transport, other service errors, and a normal response all fail closed.
+The first remediation reviewed the sentinels after KMS; the complete-sequence review then found
+the same unsafe pattern in six earlier calls. This audit now covers every live denial request in
+execution order. A sentinel is retained only when its authorization resource exists, it cannot
+mutate state even if unexpectedly authorized, and service validation cannot hide the intended
+authorization result. Each retained service has its own accepted denial-code set. NotFound,
+validation, transport, other service errors, and a normal response all fail closed.
 
 The application-role policy authority is the Terraform-managed publisher and deployer inline
 policies in
@@ -19,16 +21,57 @@ policies in
 The live workflow does not replace that declarative contract. It provides narrowly bounded
 evidence where a service offers a genuinely non-mutating request.
 
-## Disposition summary
+## Complete live-sequence disposition
 
-| Sentinel | Authorization target | Target exists? | NotFound/validation path | If unexpectedly authorized | Implemented disposition |
-| --- | --- | --- | --- | --- | --- |
-| `secretsmanager:GetSecretValue` | run-scoped secret name | No | `ResourceNotFoundException`, invalid parameter/state, or decryption failure can precede useful authorization evidence | A normal response contains decrypted secret material | **Remove.** Enforce absence from both GitHub application-role policies; never read a real secret in the probe. |
-| `ecs:DeregisterTaskDefinition` | synthetic family revision `:999999999` | No | `ClientException` or `InvalidParameterException` is documented; the action has no resource-level authorization type | An existing target is marked `INACTIVE` | **Remove.** Enforce that neither application role allows the action. |
-| `ecr:BatchDeleteImage` | exact existing `website-sandbox` repository plus all-zero digest | Repository yes; digest proven absent | A valid missing digest is returned in an HTTP 200 `failures` list; invalid input may raise `InvalidParameterException` | The proven-absent digest deletes nothing | **Retain.** One exact request; AccessDenied only passes; every response/error other than AccessDenied fails. |
-| `ecs:DescribeServices` for foreign/production scopes | synthetic cluster and service | No | `ClusterNotFoundException` or a response-level `MISSING` failure can occur | Read-only, but no existing safe cross-scope target proves the boundary | **Remove.** Enforce publisher absence and deployer allowlist of the exact web/worker service ARNs. |
-| `ecs:UpdateService` for foreign/production scopes | synthetic cluster and service | No | cluster/service NotFound and parameter validation can occur | A real target can change count or trigger deployment | **Remove.** Enforce publisher absence and deployer exact-service, exact-cluster, exact-family statements. |
-| `ecs:RunTask` for foreign/production families | synthetic task revision plus synthetic networking | No | missing task definition, invalid subnet/security group, or other client validation can occur | A valid target can launch a billed task with side effects | **Remove.** Enforce publisher absence and deployer exact migration-family plus exact-cluster statement. |
+| Order | Sentinel | Authorization target | Target exists? | If unexpectedly authorized | Implemented disposition |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | foreign/production `ecr:DescribeImages` | synthetic repository ARNs | No | Read-only, but `RepositoryNotFoundException` can precede useful authorization evidence | **Remove.** Allow live describe only on exact `website-sandbox`; prove other repository shapes with policy tests and simulation. |
+| 2 | `s3:GetObject` through `HeadObject` | exact Terraform-state object | Must be independently proven before dispatch | Reads headers only; a missing object can also appear as `403` without ListBucket | **Retain.** Bind the exact bucket, key, `us-east-1`, and `ExpectedBucketOwner=817685572750`; accept only `403`, `AccessDenied`, or `AccessDeniedException`. |
+| 3 | `iam:UpdateRoleDescription` | run-scoped synthetic role | No | Changes an existing role description if a target collision occurs | **Remove.** Enforce absence and simulate against both exact application-role ARNs. |
+| 4 | `route53:ChangeResourceRecordSets` | exact existing hosted zone | Yes | The byte-identical duplicate deletes make the whole transactional batch invalid, so no record can change | **Retain.** Keep the exact request and exact-six-record pre/post comparison. |
+| 5 | `cloudfront:CreateInvalidation` | synthetic distribution | No | Creates an invalidation and can incur cost if a target collision occurs | **Remove.** Enforce absence and simulate against the exact website distribution ARN. |
+| 6 | `elasticloadbalancing:ModifyTargetGroupAttributes` | synthetic target-group ARN | No | Changes target-group behavior if a target collision occurs | **Remove.** Enforce absence and simulate against the exact website target group. |
+| 7 | `rds:ModifyDBInstance` | synthetic DB identifier | No | Records a database configuration change if a target collision occurs | **Remove.** Enforce absence and simulate against the exact website DB ARN. |
+| 8 | `kms:CreateGrant` | exact existing runtime key and exact existing grantee role | Yes | `DryRun=True` creates no grant; `DryRunOperationException` proves the request would have been authorized | **Retain.** Only `AccessDenied` or `AccessDeniedException` passes; compare canonical grants before and after. |
+| 9 | `ecr:BatchDeleteImage` | exact existing repository plus all-zero digest selector | Repository yes; digest proven absent | A normal missing-image response deletes nothing and still fails the probe | **Retain.** Only `AccessDenied` or `AccessDeniedException` passes; compare image inventory before and after. |
+
+The resulting live denial sequence is exactly four calls, in order: S3 HEAD, Route 53 duplicate
+delete, KMS dry-run, and ECR absent-digest delete. Any extra AWS client or denial action violates
+the executable allowlist. Before creating any client, configuration validation requires exact
+account `817685572750`, region `eu-west-1`, repository `website-sandbox`, hosted zone, KMS ARN,
+state bucket/key/owner, and S3 client region `us-east-1`.
+
+## Removed pre-KMS sentinels
+
+The ECR [`DescribeImages`](https://docs.aws.amazon.com/AmazonECR/latest/APIReference/API_DescribeImages.html)
+requests used nonexistent foreign and production-shaped repositories. Although the API is
+read-only, the repository is the authorization resource and a missing-repository result can hide
+the policy boundary. Live describe is now limited to exact `website-sandbox` metadata.
+
+[`UpdateRoleDescription`](https://docs.aws.amazon.com/IAM/latest/APIReference/API_UpdateRoleDescription.html),
+[`CreateInvalidation`](https://docs.aws.amazon.com/cloudfront/latest/APIReference/API_CreateInvalidation.html),
+[`ModifyTargetGroupAttributes`](https://docs.aws.amazon.com/elasticloadbalancing/latest/APIReference/API_ModifyTargetGroupAttributes.html),
+and [`ModifyDBInstance`](https://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_ModifyDBInstance.html)
+have no safe dry-run. Their synthetic resources could yield NotFound before authorization and a
+valid collision plus widened policy would mutate state or create an invalidation. The live probe
+therefore creates no IAM, CloudFront, or RDS client; ELB is used only for the deployer's allowed
+exact target-health read.
+
+## Retained S3 and Route 53 sentinels
+
+S3 [`HeadObject`](https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadObject.html) requires
+`s3:GetObject` but returns no object body. The operator must independently prove the exact state
+object and bucket owner immediately before dispatch because S3 can return a generic `403` for a
+missing object when the caller lacks `ListBucket`. The request uses the exact bucket
+`datamailer-sandbox-817685572750-us-east-1-tfstate`, key
+`sandbox/website/terraform.tfstate`, `us-east-1`, and `ExpectedBucketOwner=817685572750`.
+Only `403`, `AccessDenied`, and `AccessDeniedException` pass.
+
+Route 53 documents that a change batch is transactional and that deleting the same record twice
+is an invalid batch. The retained request uses the exact existing hosted zone and two
+byte-for-byte identical deletes for one run-scoped TXT record. Thus unexpected authorization
+still cannot apply a change. Only `AccessDenied` or `AccessDeniedException` passes;
+`InvalidChangeBatch`, `NoSuchHostedZone`, transport failure, and success fail closed.
 
 ## KMS prerequisite redesign
 
@@ -66,8 +109,11 @@ by either GitHub application role.
 
 ### ECS task-definition deregistration
 
-[`DeregisterTaskDefinition`](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_DeregisterTaskDefinition.html)
+The `ecs:DeregisterTaskDefinition` action
+([`DeregisterTaskDefinition`](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_DeregisterTaskDefinition.html))
 marks an existing revision `INACTIVE` and documents client/parameter failures for invalid input.
+Those failures include `ClientException` and `InvalidParameterException`; neither proves the
+authorization boundary.
 The ECS
 [`Service Authorization Reference`](https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonelasticcontainerservice.html)
 does not assign a resource type to this action, so a synthetic revision is not a reliable
@@ -100,7 +146,8 @@ The executable policy contract requires:
 
 ### ECS foreign/production task launch
 
-[`RunTask`](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html) starts tasks
+The `ecs:RunTask` action
+([`RunTask`](https://docs.aws.amazon.com/AmazonECS/latest/APIReference/API_RunTask.html)) starts tasks
 and has no dry-run. The former request combined absent family revisions with synthetic subnet and
 security-group IDs, so missing-resource or client validation could conceal authorization. A valid
 unexpectedly authorized request would launch a task and could incur cost or network/application
@@ -133,25 +180,36 @@ identical.
 
 The removed sentinels use a three-part proof without recreating an unsafe request:
 
-1. The website absence tests assert that `get_secret_value`, `deregister_task_definition`, foreign or
-   production `describe_services`, `update_service`, and `run_task` calls do not occur for either
-   probe role.
+1. The website live-call allowlist permits exactly the four ordered denial calls. It rejects
+   foreign or production ECR describe calls, `update_role_description`, `create_invalidation`,
+   `modify_target_group_attributes`, `modify_db_instance`, `get_secret_value`,
+   `deregister_task_definition`, foreign or production `describe_services`, `update_service`,
+   and `run_task` for both probe roles.
 2. Exact `aws-infra` tests evaluate the Terraform-generated publisher and deployer policies. They
    require deny by omission for Secrets Manager value reads and task-definition deregistration;
    exact service, cluster, and family allowlists for deployer Describe/Update/Run; publisher
-   omission of those ECS actions; and omission of ECR delete from both roles.
+   omission of those ECS actions; omission of IAM role updates, CloudFront invalidations, target
+   group changes, RDS changes, and ECR delete from both roles; and exact repository scope for ECR
+   describe.
 3. Before the live probe, the operator canonically reads back both deployed inline policies and
    runs the complete `aws iam simulate-principal-policy` matrix in the release runbook. Every
    negative row must return `implicitDeny`; exact positive controls must return `allowed` with no
    missing context. Any extra/attached policy, shape mismatch, unexpected decision, or failed
    positive control stops issue #70.
 
-Focused website tests independently exercise both retained sentinels so a preceding failure
-cannot hide the next boundary. They require only AccessDenied/AccessDeniedException for KMS and
-ECR; exercise representative NotFound, validation, transport, normal missing-image response,
-DryRunOperation, and success outcomes; and assert exact one-call requests. The workflow contract
-separately limits the KMS ARN to the two allowed probe jobs and validates it before role
-assumption.
+Focused website tests independently exercise all four retained sentinels so a preceding failure
+cannot hide the next boundary. They assert the exact S3 object and owner, exact Route 53 batch,
+exact KMS request, and exact ECR request; use service-specific denial codes; exercise
+representative NotFound, validation, transport, DryRunOperation, normal response, and success
+outcomes; and assert exact one-call requests. The workflow contract separately limits the KMS ARN
+to the two allowed probe jobs and validates it before role assumption.
+
+The IAM simulator provides identity-policy evidence only. Before dispatch, the operator must
+also canonically read the KMS key policy, prove the ECR repository policy is absent or has the
+exact reviewed shape, and read the S3 state-bucket policy when operator authority permits. If a
+required resource-policy contribution cannot be established, the preflight stops. The retained
+bounded live calls provide the final composite evidence; executing the readback or simulator is
+outside issue #83 and requires the separately authorized issue #81 Gate B.
 
 Before any new live probe, the operator must also satisfy the complete preflight and postflight in
 [`sandbox-release.md`](../runbooks/sandbox-release.md): exact policies and variables, zero runtime
