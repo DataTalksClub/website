@@ -1,2 +1,122 @@
 schema_version: 1
-sources: []
+sources:
+  - id: dtc-main-site
+    title: DataTalks.Club main website repository
+    type: repository
+    locator: https://github.com/DataTalksClub/datatalksclub.github.io/tree/ee43d3fa0929faf691178d79f19528e6f15a83e5
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Canonical source for the current main-site routes, people, posts, podcast, books, events, templates, and SEO behavior.
+    page: wiki/sources/dtc-main-site.md
+    raw:
+    relevance: 1.00
+    status: selected
+  - id: dtc-docs
+    title: DataTalks.Club docs repository
+    type: repository
+    locator: https://github.com/DataTalksClub/docs/tree/3f23e006ffdaa498bbc69697408853b6f5eb37dc
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Canonical source for the /docs hierarchy, navigation metadata, rendering features, and edit-on-GitHub behavior.
+    page: wiki/sources/dtc-docs.md
+    raw:
+    relevance: 1.00
+    status: selected
+  - id: dtc-faq
+    title: DataTalks.Club FAQ repository
+    type: repository
+    locator: https://github.com/DataTalksClub/faq/tree/c8da1deea9e24945922702994de101dd90a5380a
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Canonical source for FAQ pages, stable question anchors, and machine-readable JSON contracts.
+    page: wiki/sources/dtc-faq.md
+    raw:
+    relevance: 1.00
+    status: selected
+  - id: dtc-podwiki
+    title: DataTalks.Club Podwiki repository
+    type: repository
+    locator: https://github.com/DataTalksClub/podwiki/tree/988b79d0d655bf4755945c3118544cb9e0dbead6
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Canonical source for Podwiki pages, custom chips, graph data, search contracts, and SEO behavior.
+    page: wiki/sources/dtc-podwiki.md
+    raw:
+    relevance: 1.00
+    status: selected
+  - id: aisl-reference
+    title: AI Shipping Labs Django website
+    type: repository
+    locator: git@github.com:AI-Shipping-Labs/website.git@b3e5b23de428b67f8bed33476da19f4ecb2df515
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Reference implementation for Django structure, GitHub sync, Studio, operator API, events, email, jobs, and AWS deployment.
+    page: wiki/sources/aisl-reference.md
+    raw:
+    relevance: 0.95
+    status: selected
+  - id: dtc-aws-infra
+    title: DataTalksClub AWS infrastructure repository and sandbox account
+    type: repository
+    locator: git@github.com:DataTalksClub/aws-infra.git
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Existing Terraform conventions and live sandbox facts for the dev.dtcdev.click deployment target.
+    page: wiki/sources/dtc-aws-infra.md
+    raw:
+    relevance: 0.90
+    status: selected
+  - id: dtc-course-platform
+    title: DataTalksClub course management platform
+    type: repository
+    locator: https://github.com/DataTalksClub/course-management-platform/tree/98a235283904b4ef9ad29e196298540756cf1bcc
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Existing Django course platform with enrollment, homework, projects, peer review, scoring, leaderboards, certificates, communication, and administrative APIs.
+    page: wiki/sources/dtc-course-platform.md
+    raw:
+    relevance: 1.00
+    status: selected
+  - id: django-security-6
+    title: Security in Django 6.0
+    type: documentation
+    locator: https://docs.djangoproject.com/en/6.0/topics/security/
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Official baseline for CSRF, HTTPS, host validation, and common web security controls.
+    page: wiki/sources/django-security-6.md
+    raw:
+    relevance: 0.80
+    status: selected
+  - id: django-email-6
+    title: Sending email with Django 6.0
+    type: documentation
+    locator: https://docs.djangoproject.com/en/6.0/topics/email/
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Official email backend and multipart message behavior used as the framework-level email baseline.
+    page: wiki/sources/django-email-6.md
+    raw:
+    relevance: 0.75
+    status: selected
+  - id: github-webhook-validation
+    title: Validating GitHub webhook deliveries
+    type: documentation
+    locator: https://docs.github.com/en/webhooks/using-webhooks/validating-webhook-deliveries
+    captured: 2026-08-07
+    published:
+    authority: primary
+    summary: Official requirements for HMAC-SHA256 signature verification and secure webhook secret handling.
+    page: wiki/sources/github-webhook-validation.md
+    raw:
+    relevance: 0.80
+    status: selected
