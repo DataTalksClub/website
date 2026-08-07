@@ -3,11 +3,22 @@ import uuid
 from collections.abc import Callable
 
 from django.conf import settings
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponsePermanentRedirect
+from django.middleware.common import CommonMiddleware
 from django.utils.cache import patch_cache_control
 
 REQUEST_ID_PATTERN = re.compile(r"^[A-Za-z0-9._-]{1,128}$")
 PRIVATE_PREFIXES = ("/studio/", "/api/v1/admin/", "/accounts/")
+ALB_READINESS_PATH = "/health/ready"
+
+
+class ReadinessProbeCommonMiddleware(CommonMiddleware):
+    """Skip dynamic ALB target-host validation only for the readiness probe."""
+
+    def process_request(self, request: HttpRequest) -> HttpResponsePermanentRedirect | None:
+        if request.path_info == ALB_READINESS_PATH:
+            return None
+        return super().process_request(request)
 
 
 class RequestIdMiddleware:
