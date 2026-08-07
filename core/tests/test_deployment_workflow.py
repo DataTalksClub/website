@@ -401,6 +401,48 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             if job_name not in {"probe-publisher", "probe-deployer"}:
                 self.assertNotIn("SANDBOX_ROUTE53_HOSTED_ZONE_ID", str(job))
 
+    def test_kms_key_is_exactly_validated_and_wired_once_for_both_probe_roles_only(self) -> None:
+        workflow_path = ROOT / ".github/workflows/ci.yml"
+        workflow = workflow_path.read_text()
+        document = yaml.safe_load(workflow)
+        jobs = document["jobs"]
+        variable_expression = "${{ vars.SANDBOX_KMS_KEY_ARN }}"
+        exact_arn = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
+
+        for job_name, role in (
+            ("probe-publisher", "publisher"),
+            ("probe-deployer", "deployer"),
+        ):
+            with self.subTest(job_name=job_name):
+                steps = jobs[job_name]["steps"]
+                validation = next(
+                    step
+                    for step in steps
+                    if step.get("name") == f"Validate exact {role} probe inputs"
+                )
+                credential_index = next(
+                    index
+                    for index, step in enumerate(steps)
+                    if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
+                )
+                self.assertLess(steps.index(validation), credential_index)
+                self.assertEqual(validation["env"]["KMS_KEY_ARN"], variable_expression)
+                self.assertIn(f'test "$KMS_KEY_ARN" = "{exact_arn}"', validation["run"])
+
+                probe = next(
+                    step
+                    for step in steps
+                    if f"python -m deploy.oidc_probe {role}" in step.get("run", "")
+                )
+                self.assertEqual(probe["env"]["KMS_KEY_ARN"], variable_expression)
+                self.assertEqual(probe["run"].count('--kms-key-arn "$KMS_KEY_ARN"'), 1)
+
+        self.assertEqual(workflow.count("vars.SANDBOX_KMS_KEY_ARN"), 4)
+        self.assertEqual(workflow.count('--kms-key-arn "$KMS_KEY_ARN"'), 2)
+        for job_name, job in jobs.items():
+            if job_name not in {"probe-publisher", "probe-deployer"}:
+                self.assertNotIn("SANDBOX_KMS_KEY_ARN", str(job))
+
     def test_runbook_orders_probe_before_secret_population_and_releases(self) -> None:
         runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
         bootstrap = runbook.split("## One-time bootstrap", maxsplit=1)[1].split(
@@ -438,6 +480,83 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("canonical full record", normalized_probe)
         self.assertIn("exact six", normalized_probe)
         self.assertIn("byte-for-byte unchanged", normalized_probe)
+
+    def test_runbook_has_exact_variable_inventory_and_kms_probe_contract(self) -> None:
+        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        table = runbook.split("| GitHub variable |", maxsplit=1)[1].split(
+            "Do not export secret-container ARNs", maxsplit=1
+        )[0]
+        repository_variables = {
+            line.split("`", maxsplit=2)[1] for line in table.splitlines() if "| repository" in line
+        }
+        environment_variables = {
+            line.split("`", maxsplit=2)[1]
+            for line in table.splitlines()
+            if "| `sandbox` environment |" in line
+        }
+        self.assertEqual(
+            repository_variables,
+            {
+                "SANDBOX_AWS_REGION",
+                "SANDBOX_ECR_REPOSITORY_URI",
+                "SANDBOX_ECR_REPOSITORY_NAME",
+                "SANDBOX_PUBLISHER_ROLE_ARN",
+                "SANDBOX_ROUTE53_HOSTED_ZONE_ID",
+                "SANDBOX_KMS_KEY_ARN",
+            },
+        )
+        self.assertEqual(len(environment_variables), 18)
+        self.assertNotIn("SANDBOX_KMS_KEY_ARN", environment_variables)
+        self.assertNotIn("SANDBOX_ROUTE53_HOSTED_ZONE_ID", environment_variables)
+        self.assertIn("six repository rows", runbook)
+        self.assertIn("exact 18 environment rows", runbook)
+        self.assertIn("independent fail-closed `SANDBOX_AUTO_DEPLOY=false` switch", runbook)
+
+        probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
+            "## Select and promote a release", maxsplit=1
+        )[0]
+        normalized_probe = " ".join(probe.split())
+        exact_arn = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
+        for expected in (
+            "`SANDBOX_KMS_KEY_ARN`",
+            f"`{exact_arn}`",
+            '`Operations=["Decrypt"]`',
+            "`DryRun=True`",
+            "`DryRunOperationException`",
+            "`NotFoundException`",
+            "`AccessDeniedException`",
+            "grant inventory",
+            "before requesting OIDC credentials",
+            "pass it exactly once",
+        ):
+            self.assertIn(expected, normalized_probe)
+
+    def test_sentinel_audit_covers_every_later_boundary_and_three_part_proof(self) -> None:
+        audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
+        for action in (
+            "secretsmanager:GetSecretValue",
+            "ecs:DeregisterTaskDefinition",
+            "ecr:BatchDeleteImage",
+            "ecs:DescribeServices",
+            "ecs:UpdateService",
+            "ecs:RunTask",
+        ):
+            self.assertIn(f"`{action}`", audit)
+        for outcome in (
+            "ResourceNotFoundException",
+            "ClientException",
+            "InvalidParameterException",
+            "ClusterNotFoundException",
+            "MISSING",
+            "AccessDenied",
+        ):
+            self.assertIn(outcome, audit)
+        self.assertGreaterEqual(audit.count("**Remove.**"), 5)
+        self.assertEqual(audit.count("**Retain.**"), 1)
+        self.assertIn("website absence tests", audit)
+        self.assertIn("aws-infra", audit)
+        self.assertIn("simulate-principal-policy", audit)
+        self.assertIn("positive controls", audit)
 
     def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
         runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()

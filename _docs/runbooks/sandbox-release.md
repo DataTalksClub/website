@@ -17,12 +17,12 @@ database migration is forward-only: compensation and rollback never run a revers
    publisher/deployer trust policies and confirm their exact audience and immutable subjects.
    Confirm the GitHub `sandbox` environment permits only the `main` deployment branch.
 3. Configure the non-secret GitHub variables using the exact scope and accepted source below. The
-   release-control repository configuration consists of the five repository rows plus the
+   release-control repository configuration consists of the six repository rows plus the
    independent fail-closed `SANDBOX_AUTO_DEPLOY=false` switch. The `sandbox` environment contains
    the exact 18 environment rows and must not define or shadow
-   `SANDBOX_ROUTE53_HOSTED_ZONE_ID`. Environment values are available only to the deployer job;
-   repository values are available to both probe roles because the publisher deliberately has no
-   environment.
+   `SANDBOX_ROUTE53_HOSTED_ZONE_ID` or `SANDBOX_KMS_KEY_ARN`. Environment values are available only
+   to the deployer job; repository values are available to both probe roles because the publisher
+   deliberately has no environment.
 4. Complete the live OIDC probe hold point described below. All allowed sessions, wrong claims,
    metadata reads, and permission denials must pass before continuing.
 5. Only after the probe is green, populate `DATABASE_URL` and `DJANGO_SECRET_KEY` out of band. Do
@@ -38,6 +38,7 @@ database migration is forward-only: compensation and rollback never run a revers
 | `SANDBOX_ECR_REPOSITORY_NAME` | repository | Terraform output `ecr_repository_name` |
 | `SANDBOX_PUBLISHER_ROLE_ARN` | repository | Terraform output `github_publisher_role_arn` |
 | `SANDBOX_ROUTE53_HOSTED_ZONE_ID` | repository, probe-only | reviewed infrastructure input/invariant `Z05963572WVWFHDQZH5NE`; this is not a Terraform output and is never discovered by name |
+| `SANDBOX_KMS_KEY_ARN` | repository, probe-only | Terraform output `kms_key_arn`; it must equal `arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d-fc28b7813887` |
 | `SANDBOX_DEPLOYER_ROLE_ARN` | `sandbox` environment | Terraform output `github_deployer_role_arn` |
 | `SANDBOX_ECS_CLUSTER_ARN` | `sandbox` environment | Terraform output `ecs_cluster_arn` |
 | `SANDBOX_WEB_TARGET_GROUP_ARN` | `sandbox` environment | Terraform output `web_target_group_arn` |
@@ -72,12 +73,13 @@ deployment source, and focused release/probe tests.
 
 Immediately before dispatch, prove `SANDBOX_AUTO_DEPLOY=false`; exact local, remote, controller,
 and source `main`; the accepted main-only environment policy and exact role trusts/policies; the
-five repository variables and exact 18 unshadowed environment variables above; both ECS services
+six repository variables and exact 18 unshadowed environment variables above; both ECS services
 at desired/running/pending `0/0/0`; and zero tasks, images, target registrations, and secret
 versions. Capture a canonical, sorted full-record representation of each of the exact six
 website-owned DNS records, including name, type, TTL, and complete alias target or record values,
 and retain its digest as pre-probe evidence. An aggregate hosted-zone count is not a substitute
-for these six canonical full records.
+for these six canonical full records. Also capture the exact KMS key's canonical grant inventory;
+the post-probe inventory must be byte-for-byte identical.
 
 The publisher probe has no GitHub environment and therefore receives the exact main-ref subject.
 The deployer probe uses `environment: sandbox` and therefore receives the exact sandbox subject.
@@ -86,6 +88,70 @@ assumption. The wrong-claim jobs prove that a main-ref token cannot assume the d
 environment token cannot assume the publisher role, and a wrong-audience token cannot assume the
 publisher role. The non-environment wrong-claim job uses the validated fixed non-secret deployer
 ARN because environment-scoped variables are intentionally unavailable there.
+
+Both allowed role jobs validate the repository-only `SANDBOX_KMS_KEY_ARN` before requesting OIDC
+credentials and pass it exactly once to the probe. The probe validates the exact ARN again before
+creating any AWS client. Its value must equal
+`arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887`. The probe then calls
+`CreateGrant` exactly once with the existing probe role's IAM ARN as `GranteePrincipal`,
+`Operations=["Decrypt"]`, deterministic role-and-run-scoped name
+`oidc-denial-probe-<role>-<numeric-run-id>`, and `DryRun=True`. AWS KMS documents that a dry-run call
+always fails without creating a grant: only `AccessDenied` or `AccessDeniedException` proves this
+boundary. `DryRunOperationException` means the request was unexpectedly authorized. That result,
+`NotFoundException`, validation/invalid-ARN/key-state errors, any other service or transport error,
+and success all fail closed. The probe never logs a grant ID, grant token, raw exception, or
+provider response body.
+
+### Removed-sentinel policy gate
+
+The missing Secrets Manager and ECS sentinels are not live calls. Their replacement is a
+three-part proof: website tests assert the calls are absent; `DataTalksClub/aws-infra` tests assert
+the exact Terraform policy allowlists and deny-by-omission contract; and the operator performs a
+canonical deployed-policy readback plus an IAM simulator matrix before the live probe. The audit
+in `_docs/audits/2026-08-07-oidc-denial-sentinels.md` is normative for those dispositions.
+
+For each exact role name `website-sandbox-github-publisher` and
+`website-sandbox-github-deployer`, capture sorted output from `list-role-policies`,
+`list-attached-role-policies`, and `get-role-policy`. Require exactly the one Terraform-owned
+same-name inline policy, zero attached policies, and byte-for-byte canonical policy JSON matching
+the reviewed Terraform shape. The publisher must have no Secrets Manager or ECS permission. The
+deployer must omit `secretsmanager:GetSecretValue` and `ecs:DeregisterTaskDefinition`; allow
+`ecs:DescribeServices` only on exact web/worker service ARNs; allow `ecs:UpdateService` only in
+separate exact web/worker statements with the exact website cluster and matching task-family
+conditions; and allow `ecs:RunTask` only on the exact migration family with the exact website
+cluster condition. Both roles must omit `ecr:BatchDeleteImage`.
+
+Run `aws iam simulate-principal-policy` as the operator, never as an application role, against
+every row below. Resolve `<database-secret-arn>` with Secrets Manager metadata only and resolve
+the three `<current-*-task-definition-arn>` values from the exact task-definition inventory; do
+not read a secret value. Supply the listed `ecs:cluster` and `ecs:task-definition` context entries
+for conditional rows. Capture only action, resource, `EvalDecision`, and missing-context names.
+Every negative row must be `implicitDeny`; every positive control must be `allowed` with no
+missing context. This positive-control requirement prevents a broken simulator invocation from
+being mistaken for proof of denial.
+
+| Role | Action and resource | Context | Expected |
+| --- | --- | --- | --- |
+| publisher | `ecr:DescribeImages` on exact `website-sandbox` repository ARN | none | `allowed` positive control |
+| publisher | `secretsmanager:GetSecretValue` on `<database-secret-arn>` | none | `implicitDeny` |
+| publisher | `ecs:DeregisterTaskDefinition` on `*` | none | `implicitDeny` |
+| publisher | `ecs:DescribeServices` on exact website web service ARN | exact website `ecs:cluster` | `implicitDeny` |
+| publisher | `ecs:UpdateService` on exact website web service ARN | exact cluster and web task definition | `implicitDeny` |
+| publisher | `ecs:RunTask` on `<current-migration-task-definition-arn>` | exact website `ecs:cluster` | `implicitDeny` |
+| deployer | `ecr:DescribeImages` on exact `website-sandbox` repository ARN | none | `allowed` positive control |
+| deployer | `secretsmanager:GetSecretValue` on `<database-secret-arn>` | none | `implicitDeny` |
+| deployer | `ecs:DeregisterTaskDefinition` on `*` | none | `implicitDeny` |
+| deployer | `ecs:DescribeServices` on each exact website web/worker service ARN | exact website `ecs:cluster` | `allowed` positive controls |
+| deployer | `ecs:DescribeServices` on foreign and production-shaped service ARNs | corresponding foreign/production cluster | `implicitDeny` |
+| deployer | `ecs:UpdateService` on each exact website web/worker service ARN | exact cluster and matching `<current-*-task-definition-arn>` | `allowed` positive controls |
+| deployer | `ecs:UpdateService` on foreign and production-shaped service ARNs | corresponding foreign/production cluster/family | `implicitDeny` |
+| deployer | `ecs:RunTask` on `<current-migration-task-definition-arn>` | exact website `ecs:cluster` | `allowed` positive control |
+| deployer | `ecs:RunTask` on foreign and production-shaped task-family ARNs | exact website `ecs:cluster` | `implicitDeny` |
+
+Any extra policy, attached policy, wildcard, missing condition, unexpected simulator decision, or
+missing positive control stops issue #70 before OIDC. Store all scratch inputs and redacted output
+under the repository-local `.tmp/`; policy evidence must contain no session credentials or secret
+values.
 
 Before the regional `DescribeTargetHealth` permission is assumed, the deployer job requires the
 Terraform output to match exactly
@@ -102,9 +168,11 @@ Neither the token nor an unexpectedly returned credential is printed or persiste
 Allowed calls are metadata-only: caller identity and exact-repository image metadata for the
 publisher; plus exact cluster, service, task-definition, running-task, and target-health metadata
 for the deployer. Safe denial probes cover Terraform-state metadata, IAM, CloudFront, ALB, RDS,
-KMS, ECS deregistration, ECR deletion, and otherwise-allowed actions against cross-repository,
-cross-cluster/service, cross-family, and production-shaped scopes. Secret sentinels remain
-run-scoped and absent. Route 53 is the single narrow real-zone exception: the probe passes the
+the existing KMS key dry-run, and ECR deletion of a proven-absent all-zero digest from the exact
+existing repository. Unsafe missing-resource Secrets Manager and ECS sentinels were removed from
+the live probe and replaced by exact Terraform/IAM policy-contract tests; the full review and
+implemented dispositions are recorded in `_docs/audits/2026-08-07-oidc-denial-sentinels.md`.
+Route 53 is the single narrow real-zone exception: the probe passes the
 exact non-secret `Z05963572WVWFHDQZH5NE` ID without listing or selecting zones, then submits one
 transactional request with exactly two byte-for-byte identical `DELETE` changes for the synthetic
 TXT RRset `oidc-denial-probe-<numeric-run-id>.dtcdev.click.` and value
@@ -124,9 +192,10 @@ record, or artifact.
 
 After every probe result, including a red result, repeat the services/tasks/images/targets/secret
 version inventory and recapture the same exact six DNS records in the same canonical format.
-Require every zero-mutation invariant to remain zero and the six complete DNS records and digest
-to be byte-for-byte unchanged from the pre-probe evidence. Stop at the hold point on any mismatch;
-do not explain it with aggregate record-count drift or continue to secrets or a release.
+Require every zero-mutation invariant to remain zero, the six complete DNS records and digest to
+be byte-for-byte unchanged, and the exact KMS grant inventory to be byte-for-byte identical to
+pre-probe evidence. Stop at the hold point on any mismatch; do not explain it with aggregate
+record-count drift or continue to secrets or a release.
 
 ## Select and promote a release
 

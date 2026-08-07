@@ -14,6 +14,9 @@ from deploy.contracts import ReleaseContractError
 from deploy.oidc_claim_probe import prove_wrong_claim_denied
 from deploy.oidc_probe import (
     DENIAL_CODES,
+    ECR_DELETE_DENIAL_CODES,
+    KMS_DENIAL_CODES,
+    KMS_KEY_ARN,
     ROUTE53_HOSTED_ZONE_ID,
     OidcProbe,
     ProbeConfig,
@@ -137,6 +140,7 @@ def config(role: str) -> ProbeConfig:
         "repository_name": REPOSITORY,
         "probe_id": "12345",
         "hosted_zone_id": ROUTE53_HOSTED_ZONE_ID,
+        "kms_key_arn": KMS_KEY_ARN,
     }
     if role == "deployer":
         common |= {
@@ -170,14 +174,12 @@ class OidcProbeTests(SimpleTestCase):
                 "cloudfront:CreateInvalidation",
                 "ecr:BatchDeleteImage",
                 "ecr:DescribeImages",
-                "ecs:DeregisterTaskDefinition",
                 "elasticloadbalancing:ModifyTargetGroupAttributes",
                 "iam:UpdateRoleDescription",
                 "kms:CreateGrant",
                 "rds:ModifyDBInstance",
                 "route53:ChangeResourceRecordSets",
                 "s3:GetObject",
-                "secretsmanager:GetSecretValue",
             },
         )
         expected_fields = {"action", "caller_arn", "resource", "result", "role", "timestamp"}
@@ -188,9 +190,6 @@ class OidcProbeTests(SimpleTestCase):
         ecr_delete = fake_clients["ecr"].calls[-1]
         self.assertEqual(ecr_delete[0], "batch_delete_image")
         self.assertEqual(ecr_delete[1]["imageIds"], [{"imageDigest": f"sha256:{'0' * 64}"}])
-        secret_probe = fake_clients["secretsmanager"].calls[0]
-        self.assertEqual(secret_probe[1]["SecretId"], "website-sandbox/probe-denied-12345")
-        self.assertNotIn("VersionStage", secret_probe[1])
         cloudfront_probe = fake_clients["cloudfront"].calls[0]
         self.assertEqual(cloudfront_probe[1]["DistributionId"], "E0000000000000")
         self.assertEqual(
@@ -206,14 +205,243 @@ class OidcProbeTests(SimpleTestCase):
         rds_probe = fake_clients["rds"].calls[0]
         self.assertEqual(rds_probe[1]["DBInstanceIdentifier"], "website-sandbox-probe-denied-12345")
         self.assertEqual(rds_probe[1]["BackupRetentionPeriod"], 7)
-        kms_probe = fake_clients["kms"].calls[0]
-        self.assertEqual(kms_probe[1]["KeyId"], "00000000-0000-0000-0000-000000000000")
-        self.assertEqual(
-            kms_probe[1]["GranteePrincipal"],
-            "arn:aws:iam::817685572750:role/website-sandbox-probe-denied-12345",
+        self.assertEqual(fake_clients["secretsmanager"].calls, [])
+
+    def test_kms_request_is_exact_nonmutating_and_once_only_for_each_role(self) -> None:
+        for role in ("publisher", "deployer"):
+            with self.subTest(role=role):
+                records, fake_clients = self.run_probe(role)
+
+                self.assertEqual(len(fake_clients["kms"].calls), 1)
+                method, arguments = fake_clients["kms"].calls[0]
+                self.assertEqual(method, "create_grant")
+                self.assertEqual(
+                    arguments,
+                    {
+                        "KeyId": KMS_KEY_ARN,
+                        "GranteePrincipal": (
+                            f"arn:aws:iam::{ACCOUNT_ID}:role/website-sandbox-github-{role}"
+                        ),
+                        "Operations": ["Decrypt"],
+                        "Name": f"oidc-denial-probe-{role}-12345",
+                        "DryRun": True,
+                    },
+                )
+                kms_record = next(
+                    record for record in records if record["action"] == "kms:CreateGrant"
+                )
+                self.assertEqual(kms_record["resource"], KMS_KEY_ARN)
+                self.assertEqual(kms_record["result"], "denied")
+                self.assertNotIn("GrantId", json.dumps(records))
+                self.assertNotIn("GrantToken", json.dumps(records))
+
+    def test_kms_accepts_only_exact_access_denial_codes(self) -> None:
+        self.assertEqual(KMS_DENIAL_CODES, {"AccessDenied", "AccessDeniedException"})
+        for code in sorted(KMS_DENIAL_CODES):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["kms"].error_overrides["create_grant"] = code
+
+                with redirect_stdout(io.StringIO()):
+                    OidcProbe(config("publisher"), fake_clients).run()
+
+                self.assertEqual(len(fake_clients["kms"].calls), 1)
+
+    def test_kms_non_authorization_service_results_fail_closed(self) -> None:
+        for code in (
+            "403",
+            "UnauthorizedOperation",
+            "DryRunOperationException",
+            "NotFoundException",
+            "ValidationException",
+            "InvalidArnException",
+            "KMSInvalidStateException",
+            "DisabledException",
+            "KMSInternalException",
+        ):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["kms"].error_overrides["create_grant"] = code
+                output = io.StringIO()
+
+                with (
+                    self.assertRaisesMessage(
+                        ReleaseContractError,
+                        f"permission denial was not proven for kms:CreateGrant ({code})",
+                    ),
+                    redirect_stdout(output),
+                ):
+                    OidcProbe(config("publisher"), fake_clients).run()
+
+                self.assertEqual(len(fake_clients["kms"].calls), 1)
+                self.assertNotIn("redacted", output.getvalue())
+
+    def test_kms_transport_failure_and_success_fail_closed_without_response_leakage(self) -> None:
+        network_clients = clients("publisher")
+        network_clients["kms"].error_overrides["create_grant"] = TimeoutError(
+            "sensitive-provider-detail"
         )
-        ecs_probe = fake_clients["ecs"].calls[0]
-        self.assertEqual(ecs_probe[1]["taskDefinition"], "website-sandbox-web:999999999")
+        network_output = io.StringIO()
+        with (
+            self.assertRaisesMessage(
+                ReleaseContractError,
+                "permission denial probe failed for kms:CreateGrant (TimeoutError)",
+            ),
+            redirect_stdout(network_output),
+        ):
+            OidcProbe(config("publisher"), network_clients).run()
+        self.assertEqual(len(network_clients["kms"].calls), 1)
+        self.assertNotIn("sensitive-provider-detail", network_output.getvalue())
+
+        success_clients = clients("publisher")
+        success_clients["kms"].response_overrides["create_grant"] = {
+            "GrantId": "must-not-log-grant-id",
+            "GrantToken": "must-not-log-grant-token",
+        }
+        success_output = io.StringIO()
+        with (
+            self.assertRaisesMessage(
+                ReleaseContractError,
+                "unsafe permission unexpectedly allowed: kms:CreateGrant",
+            ),
+            redirect_stdout(success_output),
+        ):
+            OidcProbe(config("publisher"), success_clients).run()
+        self.assertEqual(len(success_clients["kms"].calls), 1)
+        self.assertNotIn("must-not-log", success_output.getvalue())
+
+    def test_retained_ecr_delete_is_exact_nonmutating_and_once_only(self) -> None:
+        records, fake_clients = self.run_probe("publisher")
+
+        delete_calls = [
+            arguments
+            for method, arguments in fake_clients["ecr"].calls
+            if method == "batch_delete_image"
+        ]
+        self.assertEqual(
+            delete_calls,
+            [
+                {
+                    "repositoryName": REPOSITORY,
+                    "imageIds": [{"imageDigest": f"sha256:{'0' * 64}"}],
+                }
+            ],
+        )
+        record = next(record for record in records if record["action"] == "ecr:BatchDeleteImage")
+        self.assertEqual(record["resource"], REPOSITORY)
+        self.assertNotIn(f"sha256:{'0' * 64}", json.dumps(records))
+
+    def test_retained_ecr_delete_access_denials_pass_independently(self) -> None:
+        self.assertEqual(ECR_DELETE_DENIAL_CODES, {"AccessDenied", "AccessDeniedException"})
+        for code in sorted(ECR_DELETE_DENIAL_CODES):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["ecr"].error_overrides["batch_delete_image"] = code
+
+                with redirect_stdout(io.StringIO()):
+                    OidcProbe(config("publisher"), fake_clients).run()
+
+                self.assertEqual(
+                    [call[0] for call in fake_clients["ecr"].calls].count("batch_delete_image"),
+                    1,
+                )
+
+    def test_retained_ecr_delete_notfound_validation_and_responses_fail_closed(self) -> None:
+        for code in (
+            "403",
+            "UnauthorizedOperation",
+            "RepositoryNotFoundException",
+            "ImageNotFoundException",
+            "ValidationException",
+        ):
+            with self.subTest(code=code):
+                fake_clients = clients("publisher")
+                fake_clients["ecr"].error_overrides["batch_delete_image"] = code
+                with (
+                    self.assertRaisesMessage(
+                        ReleaseContractError,
+                        f"permission denial was not proven for ecr:BatchDeleteImage ({code})",
+                    ),
+                    redirect_stdout(io.StringIO()),
+                ):
+                    OidcProbe(config("publisher"), fake_clients).run()
+
+        for response in (
+            {
+                "failures": [
+                    {
+                        "failureCode": "ImageNotFound",
+                        "failureReason": "must-not-log-provider-body",
+                    }
+                ],
+                "imageIds": [],
+            },
+            {"failures": [], "imageIds": [{"imageDigest": f"sha256:{'0' * 64}"}]},
+        ):
+            with self.subTest(response=response):
+                fake_clients = clients("publisher")
+                fake_clients["ecr"].response_overrides["batch_delete_image"] = response
+                output = io.StringIO()
+                with (
+                    self.assertRaisesMessage(
+                        ReleaseContractError,
+                        "unsafe permission unexpectedly allowed: ecr:BatchDeleteImage",
+                    ),
+                    redirect_stdout(output),
+                ):
+                    OidcProbe(config("publisher"), fake_clients).run()
+                self.assertNotIn("must-not-log-provider-body", output.getvalue())
+
+    def test_retained_ecr_delete_transport_failure_fails_without_detail_leakage(self) -> None:
+        fake_clients = clients("publisher")
+        fake_clients["ecr"].error_overrides["batch_delete_image"] = TimeoutError(
+            "sensitive-provider-detail"
+        )
+        output = io.StringIO()
+        with (
+            self.assertRaisesMessage(
+                ReleaseContractError,
+                "permission denial probe failed for ecr:BatchDeleteImage (TimeoutError)",
+            ),
+            redirect_stdout(output),
+        ):
+            OidcProbe(config("publisher"), fake_clients).run()
+
+        self.assertEqual(
+            [call[0] for call in fake_clients["ecr"].calls].count("batch_delete_image"),
+            1,
+        )
+        self.assertNotIn("sensitive-provider-detail", output.getvalue())
+
+    def test_removed_missing_resource_sentinels_are_never_called_for_either_role(self) -> None:
+        removed_methods = {
+            "deregister_task_definition",
+            "get_secret_value",
+            "run_task",
+            "update_service",
+        }
+        removed_actions = {
+            "ecs:DeregisterTaskDefinition",
+            "ecs:RunTask",
+            "ecs:UpdateService",
+            "secretsmanager:GetSecretValue",
+        }
+        for role in ("publisher", "deployer"):
+            with self.subTest(role=role):
+                records, fake_clients = self.run_probe(role)
+                methods = {
+                    method
+                    for client in fake_clients.values()
+                    for method, _arguments in client.calls
+                }
+                actions = {record["action"] for record in records}
+                serialized_ecs_calls = json.dumps(fake_clients["ecs"].calls, sort_keys=True)
+
+                self.assertTrue(removed_methods.isdisjoint(methods))
+                self.assertTrue(removed_actions.isdisjoint(actions))
+                self.assertNotIn("999999999", serialized_ecs_calls)
+                self.assertNotIn("foreign-probe", serialized_ecs_calls)
+                self.assertNotIn("production-probe", serialized_ecs_calls)
 
     def test_route53_request_is_one_exact_duplicate_delete_batch_without_managed_records(
         self,
@@ -364,9 +592,9 @@ class OidcProbeTests(SimpleTestCase):
             ["website-sandbox-foreign-probe-12345", "website-production-probe-12345"],
         )
         denied_actions = [record["action"] for record in records if record["result"] == "denied"]
-        self.assertEqual(denied_actions.count("ecs:DescribeServices"), 2)
-        self.assertEqual(denied_actions.count("ecs:UpdateService"), 2)
-        self.assertEqual(denied_actions.count("ecs:RunTask"), 2)
+        self.assertNotIn("ecs:DescribeServices", denied_actions)
+        self.assertNotIn("ecs:UpdateService", denied_actions)
+        self.assertNotIn("ecs:RunTask", denied_actions)
 
     def test_probe_fails_closed_when_denial_is_not_an_access_denial(self) -> None:
         fake_clients = clients("publisher")
@@ -389,6 +617,7 @@ class OidcProbeTests(SimpleTestCase):
                 repository_name=REPOSITORY,
                 probe_id="12345",
                 hosted_zone_id=ROUTE53_HOSTED_ZONE_ID,
+                kms_key_arn=KMS_KEY_ARN,
             )
 
     def test_probe_requires_the_exact_delegated_hosted_zone(self) -> None:
@@ -409,7 +638,7 @@ class OidcProbeTests(SimpleTestCase):
             ):
                 replace(config("publisher"), hosted_zone_id=hosted_zone_id)
 
-    def test_cli_requires_one_hosted_zone_value_and_rejects_repetition(self) -> None:
+    def test_cli_requires_once_only_hosted_zone_and_kms_values(self) -> None:
         common_arguments = [
             "publisher",
             "--account-id",
@@ -421,21 +650,24 @@ class OidcProbeTests(SimpleTestCase):
             "--probe-id",
             "12345",
         ]
-        for hosted_zone_arguments in (
-            [],
-            [
-                "--hosted-zone-id",
-                ROUTE53_HOSTED_ZONE_ID,
-                "--hosted-zone-id",
-                ROUTE53_HOSTED_ZONE_ID,
-            ],
+        valid_resource_arguments = [
+            "--hosted-zone-id",
+            ROUTE53_HOSTED_ZONE_ID,
+            "--kms-key-arn",
+            KMS_KEY_ARN,
+        ]
+        for resource_arguments in (
+            ["--kms-key-arn", KMS_KEY_ARN],
+            ["--hosted-zone-id", ROUTE53_HOSTED_ZONE_ID],
+            valid_resource_arguments + ["--hosted-zone-id", ROUTE53_HOSTED_ZONE_ID],
+            valid_resource_arguments + ["--kms-key-arn", KMS_KEY_ARN],
         ):
             with (
-                self.subTest(hosted_zone_arguments=hosted_zone_arguments),
+                self.subTest(resource_arguments=resource_arguments),
                 redirect_stderr(io.StringIO()),
                 self.assertRaises(SystemExit) as raised,
             ):
-                build_parser().parse_args(common_arguments + hosted_zone_arguments)
+                build_parser().parse_args(common_arguments + resource_arguments)
             self.assertEqual(raised.exception.code, 2)
 
     def test_invalid_cli_zone_fails_before_any_aws_client_is_created(self) -> None:
@@ -452,6 +684,8 @@ class OidcProbeTests(SimpleTestCase):
             "12345",
             "--hosted-zone-id",
             DUPLICATE_HOSTED_ZONE_ID,
+            "--kms-key-arn",
+            KMS_KEY_ARN,
         ]
         with (
             patch("sys.argv", arguments),
@@ -463,6 +697,94 @@ class OidcProbeTests(SimpleTestCase):
 
         self.assertEqual(raised.exception.code, 1)
         client_factory.assert_not_called()
+
+    def test_probe_rejects_every_nonexact_kms_arn(self) -> None:
+        invalid_key_arns = (
+            "",
+            "b9181223-d870-4bae-92d2-fc28b7813887",
+            KMS_KEY_ARN.replace("eu-west-1", "eu-west-2"),
+            KMS_KEY_ARN.replace(ACCOUNT_ID, "000000000000"),
+            KMS_KEY_ARN.replace("b9181223", "a0000000"),
+            KMS_KEY_ARN.upper(),
+            f"{KMS_KEY_ARN} ",
+        )
+        for kms_key_arn in invalid_key_arns:
+            with (
+                self.subTest(kms_key_arn=kms_key_arn),
+                self.assertRaisesMessage(
+                    ReleaseContractError,
+                    "OIDC probe KMS key ARN is not the exact sandbox key",
+                ),
+            ):
+                replace(config("publisher"), kms_key_arn=kms_key_arn)
+
+    def test_invalid_cli_kms_arn_fails_before_any_aws_client_is_created(self) -> None:
+        common_arguments = [
+            "oidc_probe.py",
+            "publisher",
+            "--account-id",
+            ACCOUNT_ID,
+            "--region",
+            REGION,
+            "--repository-name",
+            REPOSITORY,
+            "--probe-id",
+            "12345",
+            "--hosted-zone-id",
+            ROUTE53_HOSTED_ZONE_ID,
+        ]
+        invalid_key_arns = (
+            "",
+            "b9181223-d870-4bae-92d2-fc28b7813887",
+            KMS_KEY_ARN.replace("eu-west-1", "eu-west-2"),
+            KMS_KEY_ARN.replace(ACCOUNT_ID, "000000000000"),
+            KMS_KEY_ARN.replace("b9181223", "a0000000"),
+            KMS_KEY_ARN.upper(),
+            f"{KMS_KEY_ARN} ",
+        )
+        for kms_key_arn in invalid_key_arns:
+            with (
+                self.subTest(kms_key_arn=kms_key_arn),
+                patch("sys.argv", common_arguments + ["--kms-key-arn", kms_key_arn]),
+                patch("deploy.oidc_probe.boto3.client") as client_factory,
+                redirect_stderr(io.StringIO()),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                main()
+
+            self.assertEqual(raised.exception.code, 1)
+            client_factory.assert_not_called()
+
+    def test_missing_or_repeated_cli_kms_value_fails_before_aws_client_creation(self) -> None:
+        common_arguments = [
+            "oidc_probe.py",
+            "publisher",
+            "--account-id",
+            ACCOUNT_ID,
+            "--region",
+            REGION,
+            "--repository-name",
+            REPOSITORY,
+            "--probe-id",
+            "12345",
+            "--hosted-zone-id",
+            ROUTE53_HOSTED_ZONE_ID,
+        ]
+        for kms_arguments in (
+            [],
+            ["--kms-key-arn", KMS_KEY_ARN, "--kms-key-arn", KMS_KEY_ARN],
+        ):
+            with (
+                self.subTest(kms_arguments=kms_arguments),
+                patch("sys.argv", common_arguments + kms_arguments),
+                patch("deploy.oidc_probe.boto3.client") as client_factory,
+                redirect_stderr(io.StringIO()),
+                self.assertRaises(SystemExit) as raised,
+            ):
+                main()
+
+            self.assertEqual(raised.exception.code, 2)
+            client_factory.assert_not_called()
 
     def test_deployer_rejects_stale_or_unrelated_target_group_arns(self) -> None:
         invalid_arns = (

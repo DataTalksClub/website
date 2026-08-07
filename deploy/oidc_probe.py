@@ -14,10 +14,13 @@ from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 
 from deploy.contracts import ReleaseContractError
 
-DENIAL_CODES = {"403", "AccessDenied", "AccessDeniedException", "UnauthorizedOperation"}
+DENIAL_CODES = frozenset({"403", "AccessDenied", "AccessDeniedException", "UnauthorizedOperation"})
+KMS_DENIAL_CODES = frozenset({"AccessDenied", "AccessDeniedException"})
+ECR_DELETE_DENIAL_CODES = frozenset({"AccessDenied", "AccessDeniedException"})
 STATE_KEY = "sandbox/website/terraform.tfstate"
 DATABASE_IDENTIFIER = "website-sandbox"
 ROUTE53_HOSTED_ZONE_ID = "Z05963572WVWFHDQZH5NE"
+KMS_KEY_ARN = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
 ROLE_NAMES = {
     "publisher": "website-sandbox-github-publisher",
     "deployer": "website-sandbox-github-deployer",
@@ -36,6 +39,7 @@ class ProbeConfig:
     repository_name: str
     probe_id: str
     hosted_zone_id: str
+    kms_key_arn: str
     cluster_arn: str | None = None
     web_target_group_arn: str | None = None
     web_service_name: str | None = None
@@ -53,6 +57,8 @@ class ProbeConfig:
             raise ReleaseContractError("OIDC probe identifiers are invalid")
         if self.hosted_zone_id != ROUTE53_HOSTED_ZONE_ID:
             raise ReleaseContractError("OIDC probe hosted-zone ID is not the exact sandbox zone")
+        if self.kms_key_arn != KMS_KEY_ARN:
+            raise ReleaseContractError("OIDC probe KMS key ARN is not the exact sandbox key")
         if self.role == "deployer" and (
             not self.cluster_arn
             or not self.web_target_group_arn
@@ -117,12 +123,19 @@ class OidcProbe:
         self._record(action, resource, "allowed")
         return response
 
-    def _deny(self, action: str, resource: str, operation: Callable[[], Any]) -> None:
+    def _deny(
+        self,
+        action: str,
+        resource: str,
+        operation: Callable[[], Any],
+        *,
+        denial_codes: frozenset[str] = DENIAL_CODES,
+    ) -> None:
         try:
             operation()
         except ClientError as error:
             code = str(error.response.get("Error", {}).get("Code", ""))
-            if code not in DENIAL_CODES:
+            if code not in denial_codes:
                 raise ReleaseContractError(
                     f"permission denial was not proven for {action} ({code or 'unknown'})"
                 ) from error
@@ -293,35 +306,17 @@ class OidcProbe:
         )
         self._deny(
             "kms:CreateGrant",
-            "00000000-0000-0000-0000-000000000000",
+            self.config.kms_key_arn,
             lambda: self._client("kms").create_grant(
-                KeyId="00000000-0000-0000-0000-000000000000",
+                KeyId=self.config.kms_key_arn,
                 GranteePrincipal=(
-                    f"arn:aws:iam::{self.config.account_id}:"
-                    f"role/website-sandbox-probe-denied-{self.config.probe_id}"
+                    f"arn:aws:iam::{self.config.account_id}:role/{ROLE_NAMES[self.config.role]}"
                 ),
                 Operations=["Decrypt"],
-                Name=f"probe-denied-{self.config.probe_id}",
+                Name=f"oidc-denial-probe-{self.config.role}-{self.config.probe_id}",
+                DryRun=True,
             ),
-        )
-        missing_secret_name = f"website-sandbox/probe-denied-{self.config.probe_id}"
-        self._deny(
-            "secretsmanager:GetSecretValue",
-            missing_secret_name,
-            lambda: self._client("secretsmanager").get_secret_value(
-                SecretId=missing_secret_name,
-            ),
-        )
-
-        task_family = (
-            self.config.task_families[0] if self.config.task_families else "website-sandbox-web"
-        )
-        self._deny(
-            "ecs:DeregisterTaskDefinition",
-            f"{task_family}:999999999",
-            lambda: self._client("ecs").deregister_task_definition(
-                taskDefinition=f"{task_family}:999999999"
-            ),
+            denial_codes=KMS_DENIAL_CODES,
         )
         self._deny(
             "ecr:BatchDeleteImage",
@@ -330,78 +325,8 @@ class OidcProbe:
                 repositoryName=self.config.repository_name,
                 imageIds=[{"imageDigest": f"sha256:{'0' * 64}"}],
             ),
+            denial_codes=ECR_DELETE_DENIAL_CODES,
         )
-        if self.config.role == "deployer":
-            foreign_cluster = (
-                f"arn:aws:ecs:{self.config.region}:{self.config.account_id}:"
-                f"cluster/website-sandbox-foreign-probe-{self.config.probe_id}"
-            )
-            foreign_service = f"website-sandbox-foreign-probe-{self.config.probe_id}"
-            production_cluster = (
-                f"arn:aws:ecs:{self.config.region}:{self.config.account_id}:"
-                f"cluster/website-production-probe-{self.config.probe_id}"
-            )
-            production_service = f"website-production-probe-{self.config.probe_id}"
-            ecs = self._client("ecs")
-            for cluster, service in (
-                (foreign_cluster, foreign_service),
-                (production_cluster, production_service),
-            ):
-
-                def describe_denied_service(
-                    selected_cluster: str = cluster,
-                    selected_service: str = service,
-                ) -> Any:
-                    return ecs.describe_services(
-                        cluster=selected_cluster,
-                        services=[selected_service],
-                    )
-
-                def update_denied_service(
-                    selected_cluster: str = cluster,
-                    selected_service: str = service,
-                ) -> Any:
-                    return ecs.update_service(
-                        cluster=selected_cluster,
-                        service=selected_service,
-                        desiredCount=0,
-                    )
-
-                self._deny(
-                    "ecs:DescribeServices",
-                    f"{cluster}/{service}",
-                    describe_denied_service,
-                )
-                self._deny(
-                    "ecs:UpdateService",
-                    f"{cluster}/{service}",
-                    update_denied_service,
-                )
-
-            foreign_family = f"website-sandbox-foreign-probe-{self.config.probe_id}:999999999"
-            production_family = f"website-production-probe-{self.config.probe_id}:999999999"
-            for family in (foreign_family, production_family):
-
-                def run_denied_task(selected_family: str = family) -> Any:
-                    return ecs.run_task(
-                        cluster=self.config.cluster,
-                        taskDefinition=selected_family,
-                        count=1,
-                        launchType="FARGATE",
-                        networkConfiguration={
-                            "awsvpcConfiguration": {
-                                "subnets": ["subnet-00000000000000000"],
-                                "securityGroups": ["sg-00000000000000000"],
-                                "assignPublicIp": "DISABLED",
-                            }
-                        },
-                    )
-
-                self._deny(
-                    "ecs:RunTask",
-                    family,
-                    run_denied_task,
-                )
 
     def run(self) -> None:
         self._identity()
@@ -430,6 +355,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--repository-name", required=True)
     parser.add_argument("--probe-id", required=True)
     parser.add_argument("--hosted-zone-id", required=True, action=_StoreOnceAction)
+    parser.add_argument("--kms-key-arn", required=True, action=_StoreOnceAction)
     parser.add_argument("--cluster-arn")
     parser.add_argument("--web-target-group-arn")
     parser.add_argument("--web-service-name")
@@ -448,6 +374,7 @@ def main() -> None:
             repository_name=arguments.repository_name,
             probe_id=arguments.probe_id,
             hosted_zone_id=arguments.hosted_zone_id,
+            kms_key_arn=arguments.kms_key_arn,
             cluster_arn=arguments.cluster_arn,
             web_target_group_arn=arguments.web_target_group_arn,
             web_service_name=arguments.web_service_name,

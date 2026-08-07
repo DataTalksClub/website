@@ -1354,12 +1354,14 @@ jobs:
           AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
           ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
           HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
           PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
         run: |
           set -euo pipefail
           test "$AWS_REGION" = "eu-west-1"
           test "$ECR_REPOSITORY_NAME" = "website-sandbox"
           test "$HOSTED_ZONE_ID" = "Z05963572WVWFHDQZH5NE"
+          test "$KMS_KEY_ARN" = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
           test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
       - name: Verify current-main controller immediately before publisher probe OIDC
         env:
@@ -1380,6 +1382,7 @@ jobs:
           AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
           ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
           HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
         run: |
           set -euo pipefail
           uv run --frozen python -m deploy.oidc_probe publisher \
@@ -1387,6 +1390,7 @@ jobs:
             --region "$AWS_REGION" \
             --repository-name "$ECR_REPOSITORY_NAME" \
             --hosted-zone-id "$HOSTED_ZONE_ID" \
+            --kms-key-arn "$KMS_KEY_ARN" \
             --probe-id "$GITHUB_RUN_ID"
 
   probe-deployer:
@@ -1419,6 +1423,7 @@ jobs:
           ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
           ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
           HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
           WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
           WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
           WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
@@ -1432,6 +1437,7 @@ jobs:
           test "$ECR_REPOSITORY_NAME" = "website-sandbox"
           test "$ECS_CLUSTER_ARN" = "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
           test "$HOSTED_ZONE_ID" = "Z05963572WVWFHDQZH5NE"
+          test "$KMS_KEY_ARN" = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
           test "$WEB_SERVICE_NAME" = "website-sandbox-web"
           test "$WORKER_SERVICE_NAME" = "website-sandbox-worker"
           test "$WEB_FAMILY" = "website-sandbox-web"
@@ -1458,6 +1464,7 @@ jobs:
           ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
           ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
           HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
           WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
           WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
           WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
@@ -1471,6 +1478,7 @@ jobs:
             --region "$AWS_REGION" \
             --repository-name "$ECR_REPOSITORY_NAME" \
             --hosted-zone-id "$HOSTED_ZONE_ID" \
+            --kms-key-arn "$KMS_KEY_ARN" \
             --cluster-arn "$ECS_CLUSTER_ARN" \
             --web-target-group-arn "$WEB_TARGET_GROUP_ARN" \
             --web-service-name "$WEB_SERVICE_NAME" \
