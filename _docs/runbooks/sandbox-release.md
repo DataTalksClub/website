@@ -108,7 +108,7 @@ boundary. `DryRunOperationException` means the request was unexpectedly authoriz
 and success all fail closed. The probe never logs a grant ID, grant token, raw exception, or
 provider response body.
 
-### Removed-sentinel policy gate
+### Historical removed-sentinel policy gate (superseded; do not execute)
 
 The missing Secrets Manager and ECS sentinels are not live calls. Their replacement is a
 three-part proof: website tests assert the calls are absent; `DataTalksClub/aws-infra` tests assert
@@ -194,7 +194,286 @@ The simulator covers identity policies only. Canonically read the exact KMS key 
 the ECR `website-sandbox` repository policy to be absent or byte-match its reviewed shape; and
 read the S3 state-bucket policy when operator authority permits. If a required resource-policy
 contribution cannot be established, stop. The bounded S3, Route 53, KMS, and ECR live calls later
-supply composite evidence that simulation alone cannot provide.
+supply composite evidence that simulation alone cannot provide. This whole historical subsection,
+including its grouped simulator table and optional policy language, is retained only as incident
+context. It is not an executable procedure and is superseded by the Gate B contract below.
+
+### #81 Gate B — readback and simulator preflight
+
+Gate B is a separately PM-authorized, read-only operator step. It must finish with one offline
+`PASS` summary before Gate C is considered. A `STOP`, missing result, unreadable policy, unexpected
+allow, incomplete context, source mismatch, or ambiguous provider result never falls through to
+the OIDC probe. Closing issue #84 does not authorize this procedure.
+
+The tracked contract is `deploy/gate_b_manifest.json`, bound to website
+`07186fc9bf9cf353fa12b74e97018d7f951d0fe6` (tree
+`9621d51fd8952a6c12af5ea62b207aa07c988ac5`) and infrastructure
+`95d93f7e07ded19e482a0c6d6471fbd93fb608d8` (tree
+`1c38fdf6872a448d92e8191282525bafd3ab3410`). It contains independently rendered publisher,
+deployer, and KMS fixtures; exact identifiers; exact policy-absence results; readback assertions;
+and atomic simulator rows. Never copy a live policy into the expected side.
+
+`deploy.gate_b_evidence` is standard-library-only and performs no acquisition. It validates
+already filtered JSON beneath repository `.tmp/`; it has no boto3, network, subprocess, Terraform,
+GitHub API, or workflow integration. Before any acquisition, the authorized operator creates the
+repository `.tmp/` root and one capture directory with `umask 077` and mode `0700`, records one
+capture ID, and gives every raw and filtered input mode `0600`. Symlinks, lexical `..`, paths
+outside `.tmp/`, mixed capture IDs, and mixed source SHAs are rejected. Do not enable shell
+tracing.
+
+```bash
+umask 077
+mkdir -p -- ".tmp"
+chmod 0700 -- ".tmp"
+mkdir -m 0700 -- ".tmp/gate-b-${CAPTURE_ID}"
+mkdir -m 0700 -- ".tmp/gate-b-${CAPTURE_ID}/raw"
+test "$(stat -c '%a' ".tmp/gate-b-${CAPTURE_ID}")" = "700"
+uv run --frozen python -m deploy.gate_b_evidence manifest
+```
+
+The one local `bindings.json` comes only from the previously accepted bootstrap/output evidence;
+it is not live discovery. It binds CloudFront ID/domain/derived ARN, target-group suffix/ARN,
+three current task-definition revision ARNs, six secret ARN suffixes, task subnets and security
+groups, VPC and ALB DNS/zone, the exact six DNS records, and exact GitHub variable values. It also
+binds the separately PM-accepted operator account/ARN/user ID before the STS acquisition and then
+requires the returned caller identity to be byte-identical. The validator checks account, region,
+workload, family, and parent relationships. It rejects both IAM-role and STS assumed-role forms of
+the publisher, deployer, application-task, and execution-task roles as the operator. It never
+accepts role IDs, creation timestamps, KMS grant IDs, or guessed/list-discovered identifiers.
+
+Every input is one exact object envelope with only `schema_version`, `capture_id`, `website_sha`,
+`infra_sha`, `kind`, `payload`, and `payload_sha256`. The digest is lowercase SHA-256 of the compact
+UTF-8 JSON payload with recursively sorted object keys and fixed `,`/`:` separators. The exact
+bundle and nested field inventories are frozen in `readback_manifest.bundle_schemas` and
+`readback_manifest.field_schemas`; no unlisted field may be discarded or added. After deterministic
+field selection/renaming, write the envelope, `chmod 0600` it, and run its validator immediately.
+
+#### Literal acquisition allowlist
+
+Every command is read-only, uses the exact target shown or a value from the accepted binding,
+uses `--no-cli-pager --output json`, and writes only below the current `0700` capture directory.
+The operator must not add an unlisted command, discovery wildcard, `--debug`, policy input,
+resource-policy input, caller override, Terraform plan/apply/state-body read, `GetObject`,
+`GetSecretValue`, workflow dispatch, or mutation. A literal simulator resource `*` is allowed only
+for a frozen row whose accepted AWS action semantics require it.
+
+```bash
+gate_b_capture() {
+  name="$1"
+  shift
+  [[ "$name" =~ ^[A-Za-z0-9_-]+$ ]]
+  output=".tmp/gate-b-${CAPTURE_ID}/raw/${name}.json"
+  error=".tmp/gate-b-${CAPTURE_ID}/raw/${name}.error.txt"
+  status=".tmp/gate-b-${CAPTURE_ID}/raw/${name}.status.json"
+  set +e
+  "$@" >"$output" 2>"$error"
+  code="$?"
+  set -e
+  printf '{"exit_code":%s}\n' "$code" >"$status"
+  chmod 0600 -- "$output" "$error" "$status"
+}
+gate_b_capture sts-caller aws sts get-caller-identity --no-cli-pager --output json
+gate_b_capture iam-publisher-role aws iam get-role --role-name website-sandbox-github-publisher --no-cli-pager --output json
+gate_b_capture iam-publisher-inline-list aws iam list-role-policies --role-name website-sandbox-github-publisher --no-cli-pager --output json
+gate_b_capture iam-publisher-attached-list aws iam list-attached-role-policies --role-name website-sandbox-github-publisher --no-cli-pager --output json
+gate_b_capture iam-publisher-inline aws iam get-role-policy --role-name website-sandbox-github-publisher --policy-name website-sandbox-github-publisher --no-cli-pager --output json
+gate_b_capture iam-deployer-role aws iam get-role --role-name website-sandbox-github-deployer --no-cli-pager --output json
+gate_b_capture iam-deployer-inline-list aws iam list-role-policies --role-name website-sandbox-github-deployer --no-cli-pager --output json
+gate_b_capture iam-deployer-attached-list aws iam list-attached-role-policies --role-name website-sandbox-github-deployer --no-cli-pager --output json
+gate_b_capture iam-deployer-inline aws iam get-role-policy --role-name website-sandbox-github-deployer --policy-name website-sandbox-github-deployer --no-cli-pager --output json
+gate_b_capture kms-key aws kms describe-key --key-id arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887 --region eu-west-1 --no-cli-pager --output json
+gate_b_capture kms-alias aws kms describe-key --key-id alias/website-sandbox-runtime --region eu-west-1 --no-cli-pager --output json
+gate_b_capture kms-rotation aws kms get-key-rotation-status --key-id arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887 --region eu-west-1 --no-cli-pager --output json
+gate_b_capture kms-policy aws kms get-key-policy --key-id arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887 --policy-name default --region eu-west-1 --no-cli-pager --output json
+gate_b_capture kms-grants aws kms list-grants --key-id arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887 --max-items 1000 --region eu-west-1 --no-cli-pager --output json
+gate_b_capture s3-bucket aws s3api head-bucket --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-location aws s3api get-bucket-location --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-ownership aws s3api get-bucket-ownership-controls --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-encryption aws s3api get-bucket-encryption --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-versioning aws s3api get-bucket-versioning --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-public-access aws s3api get-public-access-block --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-policy aws s3api get-bucket-policy --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-state-object aws s3api head-object --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --key sandbox/website/terraform.tfstate --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture s3-lock-object aws s3api head-object --bucket datamailer-sandbox-817685572750-us-east-1-tfstate --key sandbox/website/terraform.tfstate.tflock --expected-bucket-owner 817685572750 --region us-east-1 --no-cli-pager --output json
+gate_b_capture ecr-repository aws ecr describe-repositories --repository-names website-sandbox --registry-id 817685572750 --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecr-images aws ecr describe-images --repository-name website-sandbox --registry-id 817685572750 --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecr-zero-digest aws ecr describe-images --repository-name website-sandbox --registry-id 817685572750 --image-ids imageDigest=sha256:0000000000000000000000000000000000000000000000000000000000000000 --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecr-repository-policy aws ecr get-repository-policy --repository-name website-sandbox --registry-id 817685572750 --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecr-registry-policy aws ecr get-registry-policy --region eu-west-1 --no-cli-pager --output json
+gate_b_capture cloudfront-distribution aws cloudfront get-distribution --id "${CLOUDFRONT_DISTRIBUTION_ID}" --no-cli-pager --output json --query '{Id:Distribution.Id,ARN:Distribution.ARN,Status:Distribution.Status,DomainName:Distribution.DomainName,Enabled:Distribution.DistributionConfig.Enabled,Aliases:Distribution.DistributionConfig.Aliases}'
+gate_b_capture target-group aws elbv2 describe-target-groups --target-group-arns "${WEB_TARGET_GROUP_ARN}" --region eu-west-1 --no-cli-pager --output json
+gate_b_capture target-health aws elbv2 describe-target-health --target-group-arn "${WEB_TARGET_GROUP_ARN}" --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-cluster aws ecs describe-clusters --clusters arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-services aws ecs describe-services --cluster arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox --services website-sandbox-web website-sandbox-worker --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-running-tasks aws ecs list-tasks --cluster arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox --desired-status RUNNING --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-pending-tasks aws ecs list-tasks --cluster arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox --desired-status PENDING --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-stopped-tasks aws ecs list-tasks --cluster arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox --desired-status STOPPED --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-web-task-definition aws ecs describe-task-definition --task-definition "${WEB_TASK_DEFINITION_ARN}" --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-worker-task-definition aws ecs describe-task-definition --task-definition "${WORKER_TASK_DEFINITION_ARN}" --region eu-west-1 --no-cli-pager --output json
+gate_b_capture ecs-migration-task-definition aws ecs describe-task-definition --task-definition "${MIGRATION_TASK_DEFINITION_ARN}" --region eu-west-1 --no-cli-pager --output json
+gate_b_capture rds-database aws rds describe-db-instances --db-instance-identifier website-sandbox --region eu-west-1 --no-cli-pager --output json
+```
+
+Run both following commands for each exact name: `website-sandbox/database-url`,
+`website-sandbox/django-secret-key`, `website-sandbox/github`, `website-sandbox/integrations`,
+`website-sandbox/oidc`, and `website-sandbox/webhook`. Substitute only that literal name; never use
+`list-secrets`.
+
+```bash
+gate_b_capture "secret-${EXACT_BOOTSTRAP_SECRET_KEY}-metadata" aws secretsmanager describe-secret --secret-id "${EXACT_BOOTSTRAP_SECRET_NAME}" --region eu-west-1 --no-cli-pager --output json --query '{ARN:ARN,Name:Name,Description:Description,KmsKeyId:KmsKeyId,RotationEnabled:RotationEnabled,OwningService:OwningService,PrimaryRegion:PrimaryRegion,DeletedDate:DeletedDate,VersionIdsToStages:VersionIdsToStages}'
+gate_b_capture "secret-${EXACT_BOOTSTRAP_SECRET_KEY}-policy" aws secretsmanager get-resource-policy --secret-id "${EXACT_BOOTSTRAP_SECRET_NAME}" --region eu-west-1 --no-cli-pager --output json
+```
+
+Run the first command below for each of the six already-bound record keys; the record name and type
+come byte-for-byte from `bindings.json`, and `--max-items 1` is accepted only when the returned
+record has that exact name/type. Run the repository-variable command for each of the seven exact
+manifest names and the environment-variable command for each of the 18 exact manifest names.
+These are exact-key reads, not list/name discovery.
+
+```bash
+gate_b_capture "route53-${EXACT_BOUND_RECORD_KEY}" aws route53 list-resource-record-sets --hosted-zone-id Z05963572WVWFHDQZH5NE --start-record-name "${EXACT_BOUND_RECORD_NAME}" --start-record-type "${EXACT_BOUND_RECORD_TYPE}" --max-items 1 --no-cli-pager --output json
+gate_b_capture "github-repository-${EXACT_REPOSITORY_VARIABLE_NAME}" gh variable get "${EXACT_REPOSITORY_VARIABLE_NAME}" --repo DataTalksClub/website --json name,value
+gate_b_capture "github-environment-${EXACT_ENVIRONMENT_VARIABLE_NAME}" gh variable get "${EXACT_ENVIRONMENT_VARIABLE_NAME}" --repo DataTalksClub/website --env sandbox --json name,value
+gate_b_capture github-sandbox-branch-policy gh api --method GET --header 'Accept: application/vnd.github+json' repos/DataTalksClub/website/environments/sandbox/deployment-branch-policies?per_page=100
+```
+
+The state-object HEAD response is the only current-state metadata source: canonicalize its
+non-body metadata and hash it for `state_metadata_sha256`. The lock-object request must return the
+exact missing-key result while the independently accepted address inventory remains exactly 98;
+no `terraform state`, state download, `GetObject`, plan, refresh, or apply is permitted.
+
+For each of the 90 literal manifest rows, use exactly one of these two command forms. Copy the row
+ID, exact role ARN for its `principal`, one action, one resolved resource, and its complete context
+from the validated manifest/binding pair. Use the first form only for `{}` context and the second
+only for a non-empty context. `--max-items 2` makes any pagination marker or more-than-one result a
+hard `STOP`; policy input, resource policy, caller ARN, extra action/resource, and omitted context
+are forbidden.
+
+```bash
+gate_b_capture "simulator-${EXACT_ROW_ID}" aws iam simulate-principal-policy --policy-source-arn "${EXACT_ROW_PRINCIPAL_ARN}" --action-names "${EXACT_ROW_ACTION}" --resource-arns "${EXACT_ROW_RESOURCE}" --max-items 2 --no-cli-pager --output json
+gate_b_capture "simulator-${EXACT_ROW_ID}" aws iam simulate-principal-policy --policy-source-arn "${EXACT_ROW_PRINCIPAL_ARN}" --action-names "${EXACT_ROW_ACTION}" --resource-arns "${EXACT_ROW_RESOURCE}" --context-entries "${EXACT_ROW_CONTEXT_ENTRIES_JSON}" --max-items 2 --no-cli-pager --output json
+```
+
+For the second form, sort context keys bytewise and map each `{key: value}` pair to exactly
+`{"ContextKeyName":key,"ContextKeyValues":[value],"ContextKeyType":type}`. `type` is `arn` when
+the value starts with `arn:` and `string` otherwise. The validator derives and compares that exact
+ordered array; no list-valued, inferred, omitted, or additional context entry is accepted.
+
+#### Deterministic filtered-bundle assembly
+
+Never give raw provider JSON to the validator. Assemble exactly four payloads by selecting and
+renaming only fields frozen in `readback_manifest.field_schemas`: STS becomes
+`caller_identity`; IAM role, inline-list, attached-list, and policy documents become the two exact
+role objects; KMS key/alias/rotation/policy/grants become `kms`; S3, ECR, the six secrets, and
+CloudFront become their same-named resource objects; ECS cluster/services/task definitions and
+task counts, ELB target group/health, and RDS become `runtime`; exact Route 53 reads become the
+sorted six-record array plus its canonical SHA-256; exact GitHub reads become the two maps and
+`["main"]`; and the state/lock evidence becomes `terraform`. `null` is retained where the schema
+requires it; it is never silently dropped.
+
+Each captured status must be zero except the four exact absence contracts, the absent zero digest,
+and absent lock object. For those, select only the parsed service error code into the documented
+`*_error` field; raw stderr never enters a bundle. Set `grant_inventory_truncated` and every
+simulator `is_truncated` to false only when the corresponding captured response has no next token.
+For each simulator result, copy the exact invocation into `request`, preserve its sole
+`EvaluationResults` member, and reject any response/provider field not mapped by the schema.
+Canonicalize the completed payload, calculate `payload_sha256`, write the seven-field envelope,
+and `chmod 0600` it. This mapping is exhaustive: if a source field is ambiguous, missing, plural
+where one is required, or cannot be mapped without an ad-hoc query, stop and return to PM rather
+than improvising.
+
+The field mapping is exact:
+
+| Filtered object | Captured source and mapping |
+| --- | --- |
+| `operator_identity` / `caller_identity` | STS `Account`, `Arn`, `UserId` → `account_id`, `arn`, `user_id`; both objects must be identical. |
+| each IAM `role` | `Role.RoleName/Arn/Path/MaxSessionDuration/AssumeRolePolicyDocument/PermissionsBoundary`, exact inline-list names/body, and attached-list entries → the eight frozen role fields; absent boundary → explicit `null`. |
+| `kms` | key metadata `Arn/KeyId/Enabled/KeyState/KeyManager/Origin/KeyUsage/KeySpec/MultiRegion`, alias target, rotation boolean, `default` policy, and complete `Grants`; absent next token → `grant_inventory_truncated=false`. |
+| `s3` | exact bucket/key/owner constants plus location (`null` means `us-east-1`), sole ownership rule, sole default encryption algorithm, versioning status, four public-access booleans, successful state HEAD, and exact policy error. |
+| `ecr` | sole repository `repositoryName/repositoryArn/registryId/imageTagMutability/encryptionConfiguration.kmsKey/imageScanningConfiguration.scanOnPush`, full image-list length, exact zero-digest error, and exact repository/registry policy errors. |
+| each `secret` | exact `ARN/Name/Description/KmsKeyId/RotationEnabled/OwningService/PrimaryRegion/DeletedDate/VersionIdsToStages` plus the exact ARN/name response whose `ResourcePolicy` member is absent; preserve explicit nulls. |
+| `cloudfront` | the filtered query's `Id/ARN/Status/DomainName/Enabled/Aliases.Items` plus bound Route 53 A/AAAA targets; no origin/header field is copied. |
+| `ecs_cluster` | sole cluster `clusterArn/clusterName/status/registeredContainerInstancesCount/runningTasksCount/pendingTasksCount/activeServicesCount`. |
+| each `ecs_service` | sole exact service `serviceArn/serviceName/status/desiredCount/runningCount/pendingCount/taskDefinition`. |
+| each `task_definition` | `taskDefinitionArn/family/revision/status/taskRoleArn/executionRoleArn` from the exact bound revision response. |
+| `target_group` / counts | sole target group `TargetGroupArn/TargetGroupName/Protocol/Port/VpcId/TargetType/HealthCheckPath`; health-description length → both `target_count` and zero-target proof. |
+| `database` | sole instance `DBInstanceIdentifier/DBInstanceArn/DBInstanceStatus/StorageEncrypted/KmsKeyId/PubliclyAccessible`. |
+| `dns_records` / `route53` | sole exact record from each exact-key read → six bound name/type/value objects in bound order; their compact canonical array supplies `records_sha256`, with exact zone and count. |
+| `github` | each exact returned name/value → the seven repository and 18 environment maps; the exact policy response must contain only `main` → `["main"]`. |
+| `terraform` | canonical non-body state HEAD metadata → `state_metadata_sha256`; accepted address inventory → `address_count=98`; exact missing lock object → `locked=false`. |
+| simulator result | exact row ID and invocation → `request`; response next-token absence → `is_truncated=false`; preserve the sole evaluation's action/resource/decision/missing-context fields only. |
+
+The RDS-managed master secret is outside the six bootstrap containers and this matrix; Gate B
+never discovers or reads it. Read the exact six Route 53 records using the accepted bound names
+and types, never a zone/name discovery. Preserve each complete record. GitHub evidence is filtered
+to seven repository variables, 18 `sandbox` variables, `SANDBOX_AUTO_DEPLOY=false`, no KMS/Route53
+shadow, and the one `main` branch policy.
+
+Expected absence is service-specific and accepted only after the exact resource exists and the
+operator has read authority: S3 `NoSuchBucketPolicy`, ECR
+`RepositoryPolicyNotFoundException`, ECR registry-v2 `RegistryPolicyNotFoundException`, and a
+successful Secrets Manager response with exact ARN/name and the `ResourcePolicy` member absent.
+An empty/null member, policy body, generic 403/AccessDenied/NotFound, IAM `NoSuchEntity`, KMS
+`NotFoundException`, Secrets Manager `ResourceNotFoundException`, or malformed response is `STOP`.
+S3 must be `BucketOwnerEnforced`, AES256, versioned, and have all four public-access blocks true.
+The all-zero digest must be absent from the existing exact ECR repository.
+
+#### Canonical policies, grants, and simulator rows
+
+IAM documents are RFC3986-decoded with `unquote`, never `unquote_plus`, and a schema-declared nested
+JSON string is parsed exactly one additional time. Canonicalization recursively sorts object keys;
+requires every statement to have a unique non-empty string `Sid`; sorts statements only by `Sid`;
+sorts only arrays for `Action`, `NotAction`, `Resource`, `NotResource`, Principal identifiers, and
+Condition values; preserves every other array order; and never coerces scalar/list forms. Expected
+and deployed canonical UTF-8 bytes must match. Output contains stable identifiers, `PASS`/`STOP`,
+and SHA-256 hashes—not policy bodies or provider payloads.
+
+Each application role must match its exact frozen name, ARN/account, `/` path, 3600-second session
+limit, trust, sole same-name inline policy, empty attached-policy list, and null permissions
+boundary. The manifest itself has a code-pinned canonical SHA-256, so changing a role, fixture,
+assertion, schema, source binding, or simulator row cannot redefine success.
+
+The exact KMS policy contains only account-root IAM enablement and the CloudWatch Logs statement
+for `/ecs/website-sandbox/{web,worker,migration}` and
+`/aws/rds/instance/website-sandbox/{postgresql,upgrade}`. Neither application role may occur in
+that policy or as a grant `GranteePrincipal`/`RetiringPrincipal`. Canonically hash the complete
+non-secret grant inventory as the Gate C baseline; legitimate service-owned grant IDs are dynamic,
+not fixtures, and the later post-probe inventory must be byte-for-byte identical. A next token,
+invalid grant principal, scalar/unknown operation, malformed constraint, or duplicate grant ID is
+`STOP`.
+
+Run one `aws iam simulate-principal-policy` invocation per manifest row as the operator, never as
+an application role. Each invocation has exactly one principal, one action, one resource, and only
+its listed context. Do not pass `--policy-input-list`, `--resource-policy`, or `--caller-arn`.
+Foreign/production rows are simulator-only and change exactly one resource or one context key from
+a known positive. `DescribeServices` has no cluster context. Web/worker, foreign/production, both
+role ARNs, all publisher ECR token/publish/read actions, both deployer ECR read actions,
+`UpdateService` service/cluster/family, `RunTask` family/cluster, and both exact `PassRole`
+resources plus its service dimension are atomic rows in the manifest.
+
+Every response contains exactly one `EvaluationResults` element echoing action/resource, the exact
+`allowed` or `implicitDeny` decision, and `MissingContextValues=[]`. Zero, duplicate, extra,
+partial, paginated/truncated, malformed, missing-context, or unexpected results are `STOP`.
+Simulation is identity-policy evidence only; it never substitutes for KMS, ECR repository plus
+registry, S3 ownership plus bucket policy, six secret policies, or later bounded Gate C calls.
+
+Run the offline modes in this order after assembling schema-defined filtered inputs. Every command
+exits nonzero on `STOP`; never continue after a nonzero exit.
+
+```bash
+uv run --frozen python -m deploy.gate_b_evidence bindings --input ".tmp/gate-b-${CAPTURE_ID}/bindings.json" --output ".tmp/gate-b-${CAPTURE_ID}/bindings.result.json"
+uv run --frozen python -m deploy.gate_b_evidence policies --bindings ".tmp/gate-b-${CAPTURE_ID}/bindings.json" --input ".tmp/gate-b-${CAPTURE_ID}/policies.json" --output ".tmp/gate-b-${CAPTURE_ID}/policies.result.json"
+uv run --frozen python -m deploy.gate_b_evidence resources --bindings ".tmp/gate-b-${CAPTURE_ID}/bindings.json" --input ".tmp/gate-b-${CAPTURE_ID}/resources.json" --output ".tmp/gate-b-${CAPTURE_ID}/resources.result.json"
+uv run --frozen python -m deploy.gate_b_evidence simulator --bindings ".tmp/gate-b-${CAPTURE_ID}/bindings.json" --input ".tmp/gate-b-${CAPTURE_ID}/simulator.json" --output ".tmp/gate-b-${CAPTURE_ID}/simulator.result.json"
+uv run --frozen python -m deploy.gate_b_evidence summary --bindings ".tmp/gate-b-${CAPTURE_ID}/bindings.result.json" --policies ".tmp/gate-b-${CAPTURE_ID}/policies.result.json" --resources ".tmp/gate-b-${CAPTURE_ID}/resources.result.json" --simulator ".tmp/gate-b-${CAPTURE_ID}/simulator.result.json" --output ".tmp/gate-b-${CAPTURE_ID}/summary.json"
+```
+
+Only the final filtered summary and hashes may reach GitHub. Never post raw input/policy JSON,
+provider responses, sensitive paths, origin custom headers, state bodies, OIDC tokens, session
+credentials, authorization headers, secret values, or registration data. A new PM decision is
+required after Gate B `PASS` before Gate C. The summary contains the canonical manifest hash, the
+four validated result-document hashes, the KMS grant-baseline hash, source/capture identity, and
+the exact bound caller identity—no raw evidence.
 
 Before the regional `DescribeTargetHealth` permission is assumed, the deployer job requires the
 Terraform output to match exactly
