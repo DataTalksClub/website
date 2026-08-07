@@ -91,9 +91,16 @@ class ReleaseRecord:
         validate_task_definition_arn(self.web_task_definition_arn)
         validate_task_definition_arn(self.worker_task_definition_arn)
         validate_task_definition_arn(self.migration_task_definition_arn)
-        if self.web_desired_count < 1 or self.worker_desired_count < 1:
-            raise ReleaseContractError("a successful release must run both services")
-        if not self.rollback_eligible:
+        if (
+            type(self.web_desired_count) is not int
+            or type(self.worker_desired_count) is not int
+            or self.web_desired_count != 1
+            or self.worker_desired_count != 1
+        ):
+            raise ReleaseContractError(
+                "a successful sandbox release requires web and worker exactly 1"
+            )
+        if self.rollback_eligible is not True:
             raise ReleaseContractError("only a fully successful release may be recorded")
 
     def write(self, path: Path) -> None:
@@ -109,10 +116,49 @@ class ReleaseRecord:
             raise ReleaseContractError(f"invalid release record {path}: {error}") from error
 
 
+@dataclass(frozen=True)
+class ActiveServicePair:
+    """A read-only auto-deploy prior without an unnecessary migration identifier."""
+
+    source_sha: str
+    image_digest: str
+    web_task_definition_arn: str
+    worker_task_definition_arn: str
+    web_desired_count: int
+    worker_desired_count: int
+
+    def __post_init__(self) -> None:
+        validate_source_sha(self.source_sha)
+        validate_image_digest(self.image_digest)
+        validate_task_definition_arn(self.web_task_definition_arn)
+        validate_task_definition_arn(self.worker_task_definition_arn)
+        if (
+            type(self.web_desired_count) is not int
+            or type(self.worker_desired_count) is not int
+            or self.web_desired_count != 1
+            or self.worker_desired_count != 1
+        ):
+            raise ReleaseContractError(
+                "an active sandbox service pair requires web and worker exactly 1"
+            )
+
+    def write(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(asdict(self), indent=2, sort_keys=True) + "\n")
+
+    @classmethod
+    def read(cls, path: Path) -> ActiveServicePair:
+        try:
+            payload: dict[str, Any] = json.loads(path.read_text())
+            return cls(**payload)
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise ReleaseContractError(f"invalid active service pair {path}: {error}") from error
+
+
 def validate_prior_pair(
     web: ServiceSnapshot,
     worker: ServiceSnapshot,
-    expected: ReleaseRecord | None,
+    expected: ReleaseRecord | ActiveServicePair | None,
 ) -> bool:
     """Validate the captured prior state and return whether this is first bootstrap."""
     if web.desired_count == 0 and worker.desired_count == 0:

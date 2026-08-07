@@ -80,6 +80,18 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
     page.screenshot(path=screenshot_directory / f"studio-sign-in-{dimensions}.png", full_page=True)
 
+    missing = page.goto(
+        f"{origin}/__dtc_deployed_smoke_missing__",
+        wait_until="networkidle",
+    )
+    assert missing is not None
+    assert missing.status == 404
+    assert missing.headers["x-robots-tag"] == ROBOTS_VALUE
+    expect(page.locator("body")).not_to_contain_text("Traceback")
+    expect(page.locator("body")).not_to_contain_text("Technical 404")
+    expect(page.locator("body")).not_to_contain_text("DEBUG=True")
+    page.screenshot(path=screenshot_directory / f"not-found-{dimensions}.png", full_page=True)
+
 
 def test_deployed_health_and_anonymous_admin_api_contracts(
     page: Page,
