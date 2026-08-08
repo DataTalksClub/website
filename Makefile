@@ -1,5 +1,6 @@
 .PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
-	test-core test test-playwright-core test-playwright migrate run worker
+	test-core test test-compatibility compatibility-source-artifacts-check \
+	compatibility-artifacts-check test-playwright-core test-playwright migrate run worker
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -11,22 +12,28 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/render_course_platform_inventory.py \
 	scripts/verify_course_platform_adoption.py
 
+COMPATIBILITY_PYTHON = \
+	compatibility \
+	scripts/build_legacy_manifest.py \
+	scripts/build_pinned_legacy_sources.py
+
 setup:
 	uv sync --locked
 	mkdir -p .tmp/screenshots
 	uv run playwright install chromium
 
 lint:
-	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON)
+	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
 
 format:
-	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON)
+	uv run ruff format . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
 
 format-check:
-	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON)
+	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
 
 typecheck:
 	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy \
+		$(COMPATIBILITY_PYTHON) \
 		scripts/capture_screenshots.py scripts/render_course_platform_inventory.py \
 		scripts/verify_course_platform_adoption.py
 
@@ -42,8 +49,23 @@ deployment-check:
 test-core:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test accounts core studio api --parallel
 
-test:
+test: test-compatibility
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test --parallel
+
+test-compatibility:
+	uv run pytest compatibility/tests -q
+
+compatibility-source-artifacts-check:
+	uv run python scripts/build_pinned_legacy_sources.py --check
+
+compatibility-artifacts-check:
+	uv run python scripts/build_legacy_manifest.py validate \
+		_docs/compatibility/legacy-manifest.jsonl
+	uv run python scripts/build_legacy_manifest.py compare \
+		_docs/compatibility/legacy-manifest.jsonl \
+		--output .tmp/compatibility/legacy-manifest-differences.check.json
+	cmp _docs/compatibility/legacy-manifest-differences.json \
+		.tmp/compatibility/legacy-manifest-differences.check.json
 
 test-playwright-core:
 	DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true uv run pytest playwright_tests -m core -v

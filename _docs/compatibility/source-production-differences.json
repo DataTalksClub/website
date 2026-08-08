@@ -1,0 +1,106 @@
+{
+  "course_route_contracts": 89,
+  "checked_manifest": {
+    "both_capture_rows": 2937,
+    "generated_at": "2026-08-08T05:55:00Z",
+    "manifest_rows": 2965,
+    "manifest_sha256": "94a6469530a290147e94f825eb981836e1358b9d0a72c7f50f0eda6d638e1d7f",
+    "production_capture_rows": 2965,
+    "production_input_sha256": "4c38d0fbd2a405e661b9aac55843201dc367e0b4e49a31b02d806d764788f9f3",
+    "production_only_rows": 28,
+    "schema_version": 2,
+    "source_capture_rows": 2937,
+    "source_input_sha256": "5600bc6d5e0d13196888054bd707e79a9bb3b3aa634121d8babcfb138774b78a",
+    "source_only_rows": 0,
+    "tool_version": "dtc-legacy-manifest-crawler/3"
+  },
+  "known_source_build_differences": [
+    {
+      "difference_id": "dtc-docs-build-tool-version",
+      "disposition": "source baseline uses the deployed workflow version; difference remains explicit",
+      "production_build_value": "deploy workflow and README v0.4.6, SHA-256 8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5",
+      "source_id": "dtc-docs",
+      "source_value": "Makefile default v0.4.7"
+    },
+    {
+      "difference_id": "dtc-faq-generation-time",
+      "disposition": "source build freezes only this value at 2000-01-01 00:00:00 and records the override; production comparison must report the footer difference",
+      "production_build_value": "deployment-time value",
+      "source_id": "dtc-faq",
+      "source_value": "generator embeds datetime.now() in rendered footer text"
+    },
+    {
+      "difference_id": "dtc-main-malformed-meta-browser-fingerprint",
+      "disposition": "known browser-parity exception; the shared deterministic extractor excludes hidden title text and malformed head-attribute tails from its text fingerprint",
+      "production_build_value": "Chromium exposes malformed head-attribute tail and body-title noise for this one document",
+      "source_id": "dtc-main-site",
+      "source_value": "_site/blog/ml-deployment-lambda.html contains an unescaped quoted meta-description value"
+    }
+  ],
+  "known_source_output_absences": [
+    {
+      "public_contract": "/docs/robots.txt",
+      "reason": "Configured machine contract has no generated-file counterpart at the pinned revision; production capture must resolve its actual behavior.",
+      "source_id": "dtc-docs"
+    },
+    {
+      "public_contract": "/podwiki/robots.txt",
+      "reason": "Configured machine contract has no generated-file counterpart at the pinned revision; production capture must resolve its actual behavior.",
+      "source_id": "dtc-podwiki"
+    }
+  ],
+  "production_capture": {
+    "client_redirect_rows": 2,
+    "error_rows": 0,
+    "http_redirect_chain_rows": 11,
+    "response_count": 2976,
+    "soft_404_rows": 9,
+    "status_counts": {
+      "200": 2951,
+      "401": 4,
+      "403": 2,
+      "404": 7,
+      "405": 1
+    },
+    "transfer_bytes": 258215736
+  },
+  "production_differences": [
+    {
+      "affected_urls": 2965,
+      "artifact": "legacy-manifest-differences.json",
+      "difference_count": 4918,
+      "difference_kind_counts": {
+        "asset_added": 17,
+        "asset_removed": 19,
+        "canonical_changed": 3,
+        "field_changed": 4805,
+        "fragment_added": 21,
+        "fragment_removed": 21,
+        "route_added": 28,
+        "route_removed": 4
+      },
+      "review_state": "unresolved",
+      "sha256": "72b2a68694b17c091ba09e29f1e44e2c052cd6d244b7c750abde3f66ad0cd4ff"
+    }
+  ],
+  "schema_version": 1,
+  "source_contract_inventories": {
+    "course_route_contracts": 89,
+    "faq_fragment_contracts": 1401,
+    "generated_path_rows": 2937,
+    "machine_contract_samples": 50,
+    "podwiki_graph_fragment_contracts": 1072
+  },
+  "source_path_rows": 2937,
+  "status": "source_and_production_capture_complete_differences_unresolved",
+  "unresolved": [
+    {
+      "item": "source/production compatibility differences",
+      "reason": "The 4,918 actionable differences remain proposed review work; no preserve row was automatically approved and no redirect or retirement was inferred."
+    },
+    {
+      "item": "authenticated course HTML/API probes",
+      "reason": "Not performed; no production credentials or production learner/operator data were used."
+    }
+  ]
+}

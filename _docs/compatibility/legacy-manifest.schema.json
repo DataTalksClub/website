@@ -1,0 +1,539 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datatalks.club/schemas/legacy-manifest-record-v2.json",
+  "title": "DataTalks.Club legacy compatibility manifest JSONL record",
+  "description": "Validate each JSONL record independently. The strict loader additionally enforces canonical JSONL encoding, one provenance record first, sorted unique records, matching capture URLs, redirect targets, and redaction of sensitive values.",
+  "oneOf": [
+    { "$ref": "#/$defs/provenance" },
+    { "$ref": "#/$defs/row" }
+  ],
+  "$defs": {
+    "plainString": {
+      "type": "string",
+      "pattern": "^(?!.*[\\u0000-\\u001f])(?:|\\S(?:.*\\S)?)$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!.*[\\u0000-\\u001f])\\S(?:.*\\S)?$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "emptyOrSha256": {
+      "oneOf": [
+        { "const": "" },
+        { "$ref": "#/$defs/sha256" }
+      ]
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https?://(?![^/?#]*@)[^\\s/?#]+(?:/[^\\s]*)?(?:\\?[^\\s]*)?(?:#[^\\s]*)?$"
+    },
+    "originUrl": {
+      "type": "string",
+      "pattern": "^https?://(?![^/?#]*@)[^\\s/?#]+/?$"
+    },
+    "sourcePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)[^\\u0000-\\u001f]+$"
+    },
+    "sourceRevision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "revision", "source_id"],
+      "properties": {
+        "repository": { "$ref": "#/$defs/url" },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{7,64}$"
+        },
+        "source_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9](?:[a-z0-9._-]{0,126}[a-z0-9])?$"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowlisted_hosts",
+        "crawl_policy_sha256",
+        "generated_at",
+        "production_origins",
+        "record_kind",
+        "schema_version",
+        "source_revisions",
+        "tool_version"
+      ],
+      "properties": {
+        "allowlisted_hosts": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$"
+          }
+        },
+        "crawl_policy_sha256": { "$ref": "#/$defs/emptyOrSha256" },
+        "generated_at": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?Z$"
+        },
+        "production_origins": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/originUrl" }
+        },
+        "record_kind": { "const": "provenance" },
+        "schema_version": { "const": 2 },
+        "source_revisions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sourceRevision" }
+        },
+        "tool_version": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "classification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "owner",
+        "reason",
+        "redirect_target",
+        "review_state",
+        "test_reference"
+      ],
+      "properties": {
+        "kind": { "enum": ["preserve", "redirect", "retire"] },
+        "owner": { "$ref": "#/$defs/plainString" },
+        "reason": { "$ref": "#/$defs/plainString" },
+        "redirect_target": {
+          "oneOf": [
+            { "const": "" },
+            { "$ref": "#/$defs/url" }
+          ]
+        },
+        "review_state": {
+          "enum": ["approved_exception", "approved_parity", "proposed_preserve"]
+        },
+        "test_reference": { "$ref": "#/$defs/plainString" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "const": "preserve" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": {
+              "owner": { "const": "" },
+              "reason": { "const": "" },
+              "redirect_target": { "const": "" },
+              "review_state": { "enum": ["approved_parity", "proposed_preserve"] },
+              "test_reference": { "const": "" }
+            }
+          },
+          "else": {
+            "properties": {
+              "owner": { "$ref": "#/$defs/nonEmptyString" },
+              "reason": { "$ref": "#/$defs/nonEmptyString" },
+              "review_state": { "const": "approved_exception" },
+              "test_reference": { "$ref": "#/$defs/nonEmptyString" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "kind": { "const": "redirect" } },
+            "required": ["kind"]
+          },
+          "then": {
+            "properties": { "redirect_target": { "$ref": "#/$defs/url" } }
+          },
+          "else": {
+            "properties": { "redirect_target": { "const": "" } }
+          }
+        }
+      ]
+    },
+    "redirectHop": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "url"],
+      "properties": {
+        "status": { "enum": [301, 302, 303, 307, 308] },
+        "url": { "$ref": "#/$defs/url" }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "url"],
+      "properties": {
+        "kind": { "enum": ["asset", "external_link", "form_action", "internal_link"] },
+        "url": { "$ref": "#/$defs/url" }
+      }
+    },
+    "structuredData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identifier", "type"],
+      "properties": {
+        "identifier": { "$ref": "#/$defs/plainString" },
+        "type": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alternates",
+        "canonical_url",
+        "client_redirect_url",
+        "description",
+        "first_heading",
+        "fragments",
+        "language",
+        "main_content_fingerprint",
+        "references",
+        "robots",
+        "social_metadata",
+        "soft_404",
+        "structured_data",
+        "title"
+      ],
+      "properties": {
+        "alternates": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              { "$ref": "#/$defs/nonEmptyString" },
+              { "$ref": "#/$defs/url" }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "canonical_url": {
+          "oneOf": [
+            { "const": "" },
+            { "$ref": "#/$defs/url" }
+          ]
+        },
+        "client_redirect_url": {
+          "oneOf": [
+            { "const": "" },
+            { "$ref": "#/$defs/url" }
+          ]
+        },
+        "description": { "$ref": "#/$defs/plainString" },
+        "first_heading": { "$ref": "#/$defs/plainString" },
+        "fragments": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "language": { "$ref": "#/$defs/plainString" },
+        "main_content_fingerprint": { "$ref": "#/$defs/emptyOrSha256" },
+        "references": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/reference" }
+        },
+        "robots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "social_metadata": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              { "$ref": "#/$defs/nonEmptyString" },
+              { "$ref": "#/$defs/plainString" }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "soft_404": { "type": "boolean" },
+        "structured_data": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/structuredData" }
+        },
+        "title": { "$ref": "#/$defs/plainString" }
+      }
+    },
+    "sitemapEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lastmod", "url"],
+      "properties": {
+        "lastmod": {
+          "type": "string",
+          "pattern": "^(?:|[0-9]{4}-[0-9]{2}-[0-9]{2}(?:T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\\.[0-9]+)?(?:Z|[+-][0-9]{2}:[0-9]{2}))?)$"
+        },
+        "url": { "$ref": "#/$defs/url" }
+      }
+    },
+    "sitemap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entries"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sitemapEntry" }
+        }
+      }
+    },
+    "emptyMetadata": {
+      "const": {
+        "alternates": [],
+        "canonical_url": "",
+        "client_redirect_url": "",
+        "description": "",
+        "first_heading": "",
+        "fragments": [],
+        "language": "",
+        "main_content_fingerprint": "",
+        "references": [],
+        "robots": [],
+        "social_metadata": [],
+        "soft_404": false,
+        "structured_data": [],
+        "title": ""
+      }
+    },
+    "capture": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "body_sha256",
+        "content_type",
+        "error_code",
+        "final_url",
+        "metadata",
+        "origin",
+        "redirect_chain",
+        "requested_url",
+        "response_count",
+        "response_content_language",
+        "response_last_modified",
+        "response_robots",
+        "sitemap",
+        "source_path",
+        "source_repository",
+        "status",
+        "transfer_bytes"
+      ],
+      "properties": {
+        "body_sha256": { "$ref": "#/$defs/emptyOrSha256" },
+        "content_type": { "$ref": "#/$defs/plainString" },
+        "error_code": {
+          "type": "string",
+          "pattern": "^(?:|[a-z][a-z0-9_]{0,127})$"
+        },
+        "final_url": { "$ref": "#/$defs/url" },
+        "metadata": { "$ref": "#/$defs/metadata" },
+        "origin": { "enum": ["production", "source"] },
+        "redirect_chain": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/redirectHop" }
+        },
+        "requested_url": { "$ref": "#/$defs/url" },
+        "response_count": { "type": "integer", "minimum": 0 },
+        "response_content_language": { "$ref": "#/$defs/plainString" },
+        "response_last_modified": { "$ref": "#/$defs/plainString" },
+        "response_robots": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "sitemap": { "$ref": "#/$defs/sitemap" },
+        "source_path": { "$ref": "#/$defs/plainString" },
+        "source_repository": {
+          "oneOf": [
+            { "const": "" },
+            { "$ref": "#/$defs/url" }
+          ]
+        },
+        "status": {
+          "oneOf": [
+            { "const": 0 },
+            { "type": "integer", "minimum": 100, "maximum": 599 }
+          ]
+        },
+        "transfer_bytes": { "type": "integer", "minimum": 0 }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "origin": { "const": "source" } },
+            "required": ["origin"]
+          },
+          "then": {
+            "properties": {
+              "source_path": { "$ref": "#/$defs/sourcePath" },
+              "source_repository": { "$ref": "#/$defs/url" }
+            }
+          },
+          "else": {
+            "properties": {
+              "source_path": { "const": "" },
+              "source_repository": { "const": "" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "status": { "const": 0 } },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "body_sha256": { "const": "" },
+              "content_type": { "const": "" },
+              "error_code": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,127}$"
+              },
+              "metadata": { "$ref": "#/$defs/emptyMetadata" },
+              "redirect_chain": { "const": [] },
+              "response_content_language": { "const": "" },
+              "response_last_modified": { "const": "" },
+              "response_robots": { "const": [] },
+              "sitemap": { "const": { "entries": [] } }
+            }
+          },
+          "else": {
+            "properties": { "error_code": { "const": "" } }
+          }
+        }
+      ]
+    },
+    "sourceCapture": {
+      "allOf": [
+        { "$ref": "#/$defs/capture" },
+        { "properties": { "origin": { "const": "source" } } }
+      ]
+    },
+    "productionCapture": {
+      "allOf": [
+        { "$ref": "#/$defs/capture" },
+        { "properties": { "origin": { "const": "production" } } }
+      ]
+    },
+    "row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "classification",
+        "production_capture",
+        "record_kind",
+        "schema_version",
+        "source_capture"
+      ],
+      "properties": {
+        "classification": { "$ref": "#/$defs/classification" },
+        "production_capture": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/productionCapture" }
+          ]
+        },
+        "record_kind": { "const": "compatibility_row" },
+        "schema_version": { "const": 2 },
+        "source_capture": {
+          "oneOf": [
+            { "type": "null" },
+            { "$ref": "#/$defs/sourceCapture" }
+          ]
+        }
+      },
+      "not": {
+        "properties": {
+          "production_capture": { "type": "null" },
+          "source_capture": { "type": "null" }
+        },
+        "required": ["production_capture", "source_capture"]
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "classification": {
+                "properties": { "kind": { "const": "redirect" } },
+                "required": ["kind"]
+              }
+            },
+            "required": ["classification"]
+          },
+          "then": {
+            "properties": {
+              "production_capture": {
+                "allOf": [
+                  { "$ref": "#/$defs/productionCapture" },
+                  {
+                    "properties": {
+                      "redirect_chain": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 1,
+                        "items": {
+                          "properties": { "status": { "enum": [301, 308] } },
+                          "required": ["status"]
+                        }
+                      },
+                      "status": { "type": "integer", "minimum": 200, "maximum": 299 }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "classification": {
+                "properties": { "kind": { "const": "retire" } },
+                "required": ["kind"]
+              }
+            },
+            "required": ["classification"]
+          },
+          "then": {
+            "properties": {
+              "production_capture": {
+                "allOf": [
+                  { "$ref": "#/$defs/productionCapture" },
+                  {
+                    "properties": {
+                      "redirect_chain": { "const": [] },
+                      "status": { "const": 410 }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datatalks.club/schemas/public-contract-v1.json",
+  "title": "DataTalks.Club public compatibility contract JSONL record",
+  "description": "Validate each JSONL row independently. public_reference and path are archival source spellings, including two known legacy paths with literal spaces; public_url and percent_encoded_public_reference are the whitespace-free canonical network spelling. JSON Schema cannot portably express cross-field canonical-encoding equality, so the canonical loader additionally enforces that equality, sorted unique contract IDs, overlapping machine-contract reconciliation, sensitive query/fragment rejection, and the proposed-preserve-only v1 state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "classification",
+    "contract_id",
+    "contract_kind",
+    "expected_status",
+    "fragment",
+    "machine_contract",
+    "path",
+    "percent_encoded_public_reference",
+    "public_reference",
+    "public_url",
+    "query",
+    "review_state",
+    "route_callback",
+    "route_name",
+    "route_pattern",
+    "route_urlconf",
+    "schema_version",
+    "source_id",
+    "source_locator",
+    "source_path",
+    "source_repository",
+    "source_revision"
+  ],
+  "properties": {
+    "classification": { "const": "preserve" },
+    "contract_id": {
+      "type": "string",
+      "pattern": "^contract-[0-9a-f]{24}$"
+    },
+    "contract_kind": {
+      "enum": [
+        "api",
+        "asset",
+        "calendar",
+        "fragment",
+        "html",
+        "json",
+        "path",
+        "query",
+        "text",
+        "xml"
+      ]
+    },
+    "expected_status": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "integer", "minimum": 100, "maximum": 599 }
+      ]
+    },
+    "fragment": { "type": "string", "pattern": "^[^\\s]*$" },
+    "machine_contract": { "type": "boolean" },
+    "path": {
+      "type": "string",
+      "description": "Exact archival source spelling; literal ASCII spaces can occur in two legacy paths.",
+      "pattern": "^/(?!/)(?:[^\\s]| )*$"
+    },
+    "percent_encoded_public_reference": {
+      "type": "string",
+      "description": "Canonical percent encoding of public_reference; cross-field equality is enforced by the canonical loader.",
+      "pattern": "^/(?!/)[^\\s]*$"
+    },
+    "public_reference": {
+      "type": "string",
+      "description": "Exact archival source spelling; literal ASCII spaces can occur only in legacy path text, never query or fragment data.",
+      "pattern": "^/(?!/)(?:[^\\s?#]| )*(?:\\?[^\\s#]*)?(?:#[^\\s]*)?$"
+    },
+    "public_url": {
+      "type": "string",
+      "description": "Fetchable canonical URL without userinfo or raw whitespace.",
+      "pattern": "^https://(?:datatalks\\.club|courses\\.datatalks\\.club)/(?!/)[^\\s]*$"
+    },
+    "query": { "type": "string", "pattern": "^[^\\s]*$" },
+    "review_state": { "const": "proposed_preserve" },
+    "route_callback": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "route_name": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "route_pattern": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "pattern": "^/" }
+      ]
+    },
+    "route_urlconf": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "schema_version": { "const": 1 },
+    "source_id": { "type": "string", "minLength": 1 },
+    "source_locator": { "type": "string", "minLength": 1 },
+    "source_path": {
+      "oneOf": [
+        { "type": "null" },
+        { "type": "string", "minLength": 1 }
+      ]
+    },
+    "source_repository": {
+      "type": "string",
+      "pattern": "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+\\.git$"
+    },
+    "source_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "route_pattern": { "type": "null" } },
+        "required": ["route_pattern"]
+      },
+      "then": {
+        "properties": {
+          "route_callback": { "type": "null" },
+          "route_name": { "type": "null" },
+          "route_urlconf": { "type": "null" }
+        }
+      },
+      "else": {
+        "properties": {
+          "route_callback": { "type": "string", "minLength": 1 },
+          "route_urlconf": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  ]
+}
