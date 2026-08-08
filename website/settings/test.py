@@ -26,8 +26,9 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 NOINDEX = True
 OBSERVABILITY_EVENT_BACKENDS = ["noop"]
 # Django's TransactionTestCase flushes tables with TRUNCATE. The core migration
-# also requires the connection's generated database name to start with `test_`,
-# so this code-owned opt-in cannot weaken a deployed database accidentally.
+# also requires either Django's generated `test_*` name or the explicitly
+# provisioned CI database `dtc_test`, so this code-owned opt-in cannot weaken a
+# deployed database merely because of its name.
 CORE_ALLOW_APPEND_ONLY_TEST_FLUSH = True
 Q_CLUSTER = {**Q_CLUSTER, "sync": True}  # noqa: F405
 MIDDLEWARE = [
