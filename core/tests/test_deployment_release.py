@@ -1077,8 +1077,14 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(200, private, b"Sign In"),
             Response(
                 401,
-                private,
-                b'{"error":{"code":"authentication_required","message":"Authentication required"}}',
+                private
+                | {
+                    "www-authenticate": "Bearer",
+                    "x-request-id": "request-smoke",
+                },
+                b'{"error":{"code":"authentication_required",'
+                b'"message":"Valid Bearer authentication is required.",'
+                b'"request_id":"request-smoke"}}',
             ),
             Response(404, noindex, b"Page not found"),
             Response(
@@ -1113,3 +1119,39 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             self.assertEqual(evidence["checks"][-1]["runtime_group"], "analytics")
             for forbidden in ("cookie", "authorization", "set-cookie", "response_body"):
                 self.assertNotIn(forbidden, persisted.lower())
+
+        invalid_admin_responses = (
+            (
+                Response(
+                    401,
+                    private | {"x-request-id": "request-smoke"},
+                    b'{"error":{"code":"authentication_required",'
+                    b'"message":"Valid Bearer authentication is required.",'
+                    b'"request_id":"request-smoke"}}',
+                ),
+                "lacks the Bearer challenge",
+            ),
+            (
+                Response(
+                    401,
+                    private
+                    | {
+                        "www-authenticate": "Bearer",
+                        "x-request-id": "request-smoke",
+                    },
+                    b'{"error":{"code":"authentication_required",'
+                    b'"message":"Valid Bearer authentication is required.",'
+                    b'"request_id":"different-request"}}',
+                ),
+                "payload differs",
+            ),
+        )
+        for admin_response, error_message in invalid_admin_responses:
+            with self.subTest(error_message=error_message):
+                invalid_responses = [*responses]
+                invalid_responses[6] = admin_response
+                with (
+                    patch("deploy.smoke._request", side_effect=invalid_responses),
+                    self.assertRaisesMessage(ReleaseContractError, error_message),
+                ):
+                    run_http_smoke("https://web.dtcdev.click", SHA_A)
