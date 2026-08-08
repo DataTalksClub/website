@@ -16,9 +16,9 @@ from core.audit_queries import (
     present_audit_event,
 )
 from core.services import ServiceContext
+from management_registry import CAPABILITY_REGISTRY
 
 from .auth import capability_required, staff_required
-from .registry import CAPABILITY_REGISTRY
 
 
 def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:

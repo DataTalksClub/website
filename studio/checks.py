@@ -3,8 +3,7 @@
 from django.core.checks import Error, Tags, register
 
 from core.capabilities import validate_capability
-
-from .registry import CAPABILITY_REGISTRY
+from management_registry import CAPABILITY_REGISTRY
 
 
 @register(Tags.security)

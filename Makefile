@@ -2,7 +2,7 @@
 	test-core test test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-content-postgresql test-playwright-core test-playwright migrate run worker \
-	terraform-seo-source-check
+	terraform-seo-source-check check-openapi check-management-parity
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -35,6 +35,7 @@ format-check:
 
 typecheck:
 	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy \
+		management_auth management_api management_registry.py \
 		$(COMPATIBILITY_PYTHON) \
 		scripts/capture_screenshots.py scripts/render_course_platform_inventory.py \
 		scripts/verify_course_platform_adoption.py
@@ -42,7 +43,7 @@ typecheck:
 migrations-check:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py makemigrations --check --dry-run
 
-django-check:
+django-check: check-openapi check-management-parity
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py check
 
 deployment-check:
@@ -58,7 +59,14 @@ terraform-seo-source-check:
 		--expected-commit "$(AWS_INFRA_EXPECTED_COMMIT)"
 
 test-core:
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test accounts core studio api --parallel
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test \
+		accounts core studio api management_auth management_api --parallel
+
+check-openapi:
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py generate_admin_openapi --check
+
+check-management-parity:
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py check_management_parity
 
 test-content:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests

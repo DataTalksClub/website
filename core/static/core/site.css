@@ -46,6 +46,9 @@ footer { color: #65708a; border-top: 1px solid #dce2ee; }
 .audit-detail div { padding: 1rem; border-radius: .5rem; background: #f5f7fb; }
 .audit-detail code { white-space: pre-wrap; word-break: break-word; }
 .pagination { display: flex; gap: 1rem; }
+.credential-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.one-time-secret { margin: 1.5rem 0; padding: 1.25rem; border: 2px solid #0b5fff; border-radius: .75rem; background: #eef4ff; }
+.one-time-secret code { display: block; margin: 1rem 0; padding: .8rem; border-radius: .45rem; background: #17223b; color: #fff; overflow-wrap: anywhere; }
 
 @media (max-width: 36rem) {
   .site-header { align-items: flex-start; gap: 1rem; }

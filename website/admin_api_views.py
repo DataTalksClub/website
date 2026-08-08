@@ -1,17 +1,5 @@
-from django.conf import settings
-from django.http import HttpRequest, JsonResponse
-from django.views.decorators.http import require_GET
+"""Compatibility import for the target-owned management health view."""
 
-from api.auth import staff_json_required
+from management_api.views import admin_health
 
-
-@staff_json_required
-@require_GET
-def admin_health(request: HttpRequest) -> JsonResponse:
-    return JsonResponse(
-        {
-            "status": "ok",
-            "version": settings.APP_VERSION,
-            "actor": getattr(request.user, "email", ""),
-        }
-    )
+__all__ = ("admin_health",)

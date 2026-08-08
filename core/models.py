@@ -23,17 +23,14 @@ class RevisionConflict(RuntimeError):
 
 class AppendOnlyQuerySet(models.QuerySet[Any]):
     def update(self, **kwargs: Any) -> int:
-        retention_field = {
-            AuditEvent: "actor",
-            OperationalSettingRevision: "changed_by",
-        }.get(self.model)
+        retention_fields = {
+            AuditEvent: frozenset({"actor", "api_principal"}),
+            OperationalSettingRevision: frozenset({"changed_by"}),
+        }.get(self.model, frozenset())
+        supplied_field = next(iter(kwargs), "").removesuffix("_id")
         if (
-            retention_field is not None
-            and set(kwargs)
-            in (
-                {retention_field},
-                {f"{retention_field}_id"},
-            )
+            len(kwargs) == 1
+            and supplied_field in retention_fields
             and next(iter(kwargs.values())) is None
         ):
             return super().update(**kwargs)
@@ -77,6 +74,13 @@ class AuditEvent(models.Model):
         related_name="audit_events",
     )
     actor_ref = models.CharField(max_length=128, blank=True)
+    api_principal = models.ForeignKey(
+        "management_auth.APIPrincipal",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="audit_events",
+    )
     action = models.CharField(max_length=128)
     target_type = models.CharField(max_length=128)
     target_id = models.UUIDField(null=True, blank=True)
@@ -328,6 +332,13 @@ class Operation(RevisionedModel):
         related_name="operations",
     )
     actor_ref = models.CharField(max_length=128, blank=True)
+    api_principal = models.ForeignKey(
+        "management_auth.APIPrincipal",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="operations",
+    )
     request_id = models.CharField(max_length=128, blank=True)
     correlation_id = models.CharField(max_length=128, blank=True)
     idempotency_key_hash = models.CharField(max_length=64, blank=True)

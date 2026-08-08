@@ -22,8 +22,7 @@ from accounts.studio_authorization import (
     authorize_studio_request,
 )
 from accounts.studio_sessions import session_reference
-
-from .registry import CAPABILITY_REGISTRY
+from management_registry import CAPABILITY_REGISTRY
 
 
 def _safe_login_redirect(request: HttpRequest) -> HttpResponseRedirect:

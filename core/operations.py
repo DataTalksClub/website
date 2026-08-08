@@ -5,12 +5,19 @@ import uuid
 from typing import Any, cast
 
 from django.db import transaction
+from django.db.models import QuerySet
 from django.utils import timezone
 
 from core.audit import AuditWriteContext, record_audit_event
 from core.context import AuditContext as ExecutionAuditContext
 from core.context import current_context
-from core.idempotency import JsonObject, canonical_json, canonical_json_object
+from core.idempotency import (
+    JsonObject,
+    canonical_json,
+    canonical_json_bytes,
+    canonical_json_object,
+)
+from core.limits import MAX_OPERATION_JSON_BYTES
 from core.models import AuditEvent, Operation, RevisionConflict, RevisionedModel
 from core.redaction import redact_value
 
@@ -34,13 +41,15 @@ def lock_revisioned[Revisioned: RevisionedModel](
     *,
     object_id: Any,
     expected_revision: int,
+    queryset: QuerySet[Revisioned] | None = None,
     using: str = "default",
 ) -> Revisioned:
     """Lock a revisioned row and reject stale compare-and-swap mutations."""
 
     if expected_revision < 1:
         raise ValueError("expected revision must be positive")
-    instance = model._default_manager.using(using).select_for_update().get(pk=object_id)
+    selected = queryset if queryset is not None else model._default_manager.all()
+    instance = selected.using(using).select_for_update().get(pk=object_id)
     if instance.revision != expected_revision:
         raise RevisionConflict(expected=expected_revision, actual=instance.revision)
     return instance
@@ -59,6 +68,7 @@ def _operation_write_context(
         )
         return AuditWriteContext(
             actor_id=operation.actor_id,
+            api_principal_id=operation.api_principal_id,
             actor_ref=operation.actor_ref,
             execution=execution,
             idempotency_key_hash=operation.idempotency_key_hash,
@@ -80,6 +90,11 @@ def _operation_write_context(
     )
     return AuditWriteContext(
         actor_id=context.actor_id if context.actor_id is not None else operation.actor_id,
+        api_principal_id=(
+            context.api_principal_id
+            if context.api_principal_id is not None
+            else operation.api_principal_id
+        ),
         actor_ref=context.actor_ref or operation.actor_ref,
         execution=execution,
         idempotency_key_hash=context.idempotency_key_hash or operation.idempotency_key_hash,
@@ -95,13 +110,18 @@ def _safe_message(message: str) -> str:
 
 
 def _safe_object(value: Any) -> JsonObject:
-    return canonical_json_object(redact_value(value))
+    normalized = canonical_json_object(redact_value(value))
+    if len(canonical_json_bytes(normalized)) > MAX_OPERATION_JSON_BYTES:
+        raise ValueError("operation result exceeds 65,536 bytes")
+    return normalized
 
 
 def _safe_errors(value: Any) -> list[Any]:
     normalized = canonical_json(redact_value(value))
     if not isinstance(normalized, list):
         raise ValueError("operation errors must be a JSON list")
+    if len(canonical_json_bytes(normalized)) > MAX_OPERATION_JSON_BYTES:
+        raise ValueError("operation errors exceed 65,536 bytes")
     return cast(list[Any], normalized)
 
 
@@ -152,6 +172,7 @@ def create_operation(
             progress_total=progress_total,
             message=_safe_message(message),
             actor_id=context.actor_id,
+            api_principal_id=context.api_principal_id,
             actor_ref=context.actor_ref,
             request_id=execution.request_id if execution and execution.request_id else "",
             correlation_id=(
@@ -283,6 +304,7 @@ def request_operation_cancellation(
     operation_id: uuid.UUID,
     expected_revision: int,
     context: AuditWriteContext | None = None,
+    queryset: QuerySet[Operation] | None = None,
     using: str = "default",
 ) -> Operation:
     with transaction.atomic(using=using):
@@ -290,6 +312,7 @@ def request_operation_cancellation(
             Operation,
             object_id=operation_id,
             expected_revision=expected_revision,
+            queryset=queryset,
             using=using,
         )
         if operation.status in Operation.TERMINAL_STATUSES:
