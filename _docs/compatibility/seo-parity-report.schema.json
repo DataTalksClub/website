@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://datatalks.club/schemas/seo-parity-report-v1.json",
+  "title": "SEO compatibility parity report",
+  "description": "A deterministic, value-free PASS or BLOCKED report bound to exact evidence, expectations, target state, scope, and counts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "blocking_finding_count",
+    "complete",
+    "differences_sha256",
+    "expectation_count",
+    "expectation_set_sha256",
+    "findings",
+    "manifest_sha256",
+    "matched_count",
+    "observation_count",
+    "public_contracts_sha256",
+    "record_kind",
+    "schema_version",
+    "scope",
+    "status",
+    "target",
+    "warning_finding_count"
+  ],
+  "properties": {
+    "record_kind": { "const": "seo_parity_report" },
+    "schema_version": { "const": 1 },
+    "status": { "enum": ["BLOCKED", "PASS"] },
+    "target": { "$ref": "#/$defs/targetBinding" },
+    "manifest_sha256": { "$ref": "#/$defs/sha256" },
+    "differences_sha256": { "$ref": "#/$defs/sha256" },
+    "public_contracts_sha256": { "$ref": "#/$defs/sha256" },
+    "expectation_set_sha256": { "$ref": "#/$defs/sha256" },
+    "scope": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/stableId" }
+    },
+    "complete": { "type": "boolean" },
+    "expectation_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+    "observation_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+    "matched_count": { "type": "integer", "minimum": 0, "maximum": 100000 },
+    "blocking_finding_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000
+    },
+    "warning_finding_count": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100000
+    },
+    "findings": {
+      "type": "array",
+      "maxItems": 100000,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/finding" }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "stableId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._:-]{0,127}$"
+    },
+    "bindingId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$"
+    },
+    "targetBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_sha256",
+        "parser_version",
+        "projection_sha256",
+        "release_id",
+        "route_sha256",
+        "target_id",
+        "target_origin"
+      ],
+      "properties": {
+        "target_id": { "$ref": "#/$defs/stableId" },
+        "target_origin": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^https://[^/\\s?#]+$"
+        },
+        "release_id": { "$ref": "#/$defs/bindingId" },
+        "parser_version": { "$ref": "#/$defs/bindingId" },
+        "route_sha256": { "$ref": "#/$defs/sha256" },
+        "asset_sha256": { "$ref": "#/$defs/sha256" },
+        "projection_sha256": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "field",
+        "finding_id",
+        "required_action",
+        "scope",
+        "severity",
+        "subject_id"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "pattern": "^finding-[0-9a-f]{24}$"
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,127}$"
+        },
+        "severity": { "enum": ["blocking", "warning"] },
+        "scope": { "$ref": "#/$defs/stableId" },
+        "subject_id": {
+          "type": "string",
+          "pattern": "^(?:[a-z0-9][a-z0-9._:-]{0,127}|(?:expectation|contract)-[0-9a-f]{24})$"
+        },
+        "field": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9_.$:\\[\\]-]+$"
+        },
+        "required_action": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,127}$"
+        }
+      }
+    }
+  }
+}

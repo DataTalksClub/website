@@ -21,7 +21,9 @@ from urllib.parse import parse_qsl, unquote, urlsplit
 
 from compatibility.redaction import (
     fragment_requires_redaction,
+    has_malformed_percent_escape,
     is_url_valued_social_key,
+    text_contains_unredacted_private_data,
     url_contains_unredacted_sensitive_value,
 )
 
@@ -149,6 +151,8 @@ def _validate_http_url(value: object, field_name: str, *, allow_empty: bool = Fa
         return url
     if any(character.isspace() for character in url):
         raise ManifestValidationError(f"{field_name}_contains_raw_whitespace")
+    if has_malformed_percent_escape(url):
+        raise ManifestValidationError(f"{field_name}_has_malformed_percent_escape")
     parts = urlsplit(url)
     if parts.scheme not in {"http", "https"} or not parts.hostname:
         raise ManifestValidationError(f"{field_name}_must_be_absolute_http_url")
@@ -166,6 +170,9 @@ def _validate_http_url(value: object, field_name: str, *, allow_empty: bool = Fa
         raise ManifestValidationError(f"{field_name}_has_invalid_encoding") from exc
     if any(ord(character) < 0x20 for character in decoded_url):
         raise ManifestValidationError(f"{field_name}_contains_control_character")
+    decoded_path = _ASSET_SCALE_SUFFIX_RE.sub("", unquote(parts.path))
+    if text_contains_unredacted_private_data(decoded_path):
+        raise ManifestValidationError(f"{field_name}_contains_credential")
     _reject_private_value(decoded_url, field_name)
     for query_key, query_value in parse_qsl(parts.query, keep_blank_values=True):
         if _is_sensitive_query_key(query_key) and not _REDACTED_DIGEST_RE.fullmatch(query_value):
@@ -1219,6 +1226,34 @@ def _decode_sitemap(record: Mapping[str, object]) -> SitemapState:
     return SitemapState(tuple(entries))
 
 
+def encode_page_metadata(metadata: PageMetadata) -> dict[str, object]:
+    """Expose the canonical #34 metadata vocabulary to later parity gates."""
+
+    if type(metadata) is not PageMetadata:
+        raise ManifestValidationError("page_metadata_must_be_page_metadata")
+    return _encode_metadata(metadata)
+
+
+def decode_page_metadata(record: Mapping[str, object]) -> PageMetadata:
+    """Decode strict metadata without widening the manifest field contract."""
+
+    return _decode_metadata(record)
+
+
+def encode_sitemap_state(sitemap: SitemapState) -> dict[str, object]:
+    """Expose the canonical #34 sitemap vocabulary to later parity gates."""
+
+    if type(sitemap) is not SitemapState:
+        raise ManifestValidationError("sitemap_must_be_sitemap_state")
+    return _encode_sitemap(sitemap)
+
+
+def decode_sitemap_state(record: Mapping[str, object]) -> SitemapState:
+    """Decode strict sitemap state without widening the manifest field contract."""
+
+    return _decode_sitemap(record)
+
+
 def _validate_json_values(value: object) -> None:
     if isinstance(value, float) and not math.isfinite(value):
         raise ManifestValidationError("manifest_contains_non_finite_number")
@@ -1251,6 +1286,10 @@ __all__ = [
     "SitemapState",
     "SourceRevision",
     "StructuredData",
+    "decode_page_metadata",
+    "decode_sitemap_state",
     "dumps_jsonl",
+    "encode_page_metadata",
+    "encode_sitemap_state",
     "loads_jsonl",
 ]

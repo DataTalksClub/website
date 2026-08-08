@@ -16,6 +16,19 @@ _OPAQUE = re.compile(
 )
 _REDACTED = re.compile(r"^redacted-sha256-[0-9a-f]{64}$")
 _PERCENT_ESCAPE = re.compile(r"%[0-9A-Fa-f]{2}")
+_INVALID_PERCENT_ESCAPE = re.compile(r"%(?![0-9A-Fa-f]{2})")
+_PRIVATE_EMAIL = re.compile(r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
+_ASSET_SCALE_SUFFIX = re.compile(r"@\d+(?:\.\d+)?x\.(?:avif|gif|jpe?g|png|svg|webp)\b", re.I)
+_PRIVATE_CREDENTIAL = re.compile(
+    r"(?i)(?:bearer\s+[A-Za-z0-9._~+/=-]{8,}|"
+    r"gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|"
+    r"(?:AKIA|ASIA)[A-Z0-9]{16}|"
+    r"eyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}|"
+    r"-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----|"
+    r"(?:access[_-]?token|api[_-]?key|authorization|password|refresh[_-]?token|"
+    r"secret|session|signature)\s*[:=]\s*"
+    r"(?!redacted-sha256-[0-9a-f]{64}(?:$|[&#\s]))\S+)"
+)
 _SOCIAL_URL_KEYS = frozenset(
     {
         "og:audio",
@@ -42,6 +55,19 @@ def redacted_value(value: str) -> str:
 
 def is_redacted_value(value: str) -> bool:
     return _REDACTED.fullmatch(value) is not None
+
+
+def text_contains_unredacted_private_data(value: str) -> bool:
+    """Detect personal or credential-shaped text before durable serialization."""
+
+    email_candidate = _ASSET_SCALE_SUFFIX.sub("", value)
+    return bool(_PRIVATE_EMAIL.search(email_candidate) or _PRIVATE_CREDENTIAL.search(value))
+
+
+def has_malformed_percent_escape(value: str) -> bool:
+    """Return whether a URL-like value contains a non-triplet percent escape."""
+
+    return _INVALID_PERCENT_ESCAPE.search(value) is not None
 
 
 def value_requires_redaction(key: str, value: str) -> bool:

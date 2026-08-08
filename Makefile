@@ -1,6 +1,7 @@
 .PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-compatibility compatibility-source-artifacts-check \
-	compatibility-artifacts-check test-playwright-core test-playwright migrate run worker
+	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
+	test-playwright-core test-playwright migrate run worker
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -66,6 +67,26 @@ compatibility-artifacts-check:
 		--output .tmp/compatibility/legacy-manifest-differences.check.json
 	cmp _docs/compatibility/legacy-manifest-differences.json \
 		.tmp/compatibility/legacy-manifest-differences.check.json
+
+check-links:
+	uv run pytest compatibility/tests/test_links.py compatibility/tests/test_runtime.py -q
+
+check-seo:
+	uv run pytest compatibility/tests/test_expectations.py compatibility/tests/test_report.py \
+		compatibility/tests/test_target.py compatibility/tests/test_parity.py \
+		compatibility/tests/test_monitoring.py -q
+
+compatibility-real-gate-blocked-check:
+	mkdir -p .tmp/compatibility
+	rm -f .tmp/compatibility/checked-real-seo-parity-report.json
+	@if DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py compatibility_gate \
+		--route-sha256 0000000000000000000000000000000000000000000000000000000000000000 \
+		--asset-sha256 1111111111111111111111111111111111111111111111111111111111111111 \
+		--projection-sha256 2222222222222222222222222222222222222222222222222222222222222222 \
+		--output .tmp/compatibility/checked-real-seo-parity-report.json; then \
+		echo "Unapproved checked inputs unexpectedly passed" >&2; exit 1; \
+	fi
+	uv run python -c 'import hashlib,json,pathlib; root=pathlib.Path("_docs/compatibility"); p=json.load(open(".tmp/compatibility/checked-real-seo-parity-report.json", encoding="utf-8")); digest=lambda name: hashlib.sha256((root/name).read_bytes()).hexdigest(); assert p["status"] == "BLOCKED" and p["expectation_count"] == 0; assert p["manifest_sha256"] == digest("legacy-manifest.jsonl"); assert p["differences_sha256"] == digest("legacy-manifest-differences.json"); assert p["public_contracts_sha256"] == digest("public-contracts.jsonl")'
 
 test-playwright-core:
 	DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true uv run pytest playwright_tests -m core -v

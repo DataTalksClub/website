@@ -140,6 +140,9 @@ def _validate(
         minimum_length = schema.get("minLength")
         if isinstance(minimum_length, int) and len(value) < minimum_length:
             raise RecordSchemaError(f"{path}:string_too_short")
+        maximum_length = schema.get("maxLength")
+        if isinstance(maximum_length, int) and len(value) > maximum_length:
+            raise RecordSchemaError(f"{path}:string_too_long")
         pattern = schema.get("pattern")
         if isinstance(pattern, str) and re.search(pattern, value) is None:
             raise RecordSchemaError(f"{path}:pattern_mismatch")

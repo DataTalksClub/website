@@ -82,6 +82,38 @@ SHA-256 digest is
 Every manifest row is still `preserve` with `review_state=proposed_preserve`; the comparison did
 not automatically approve parity, a redirect, or a retirement.
 
+## Django parity gate
+
+Issue #35 adds a separate approved-target contract rather than changing this observation evidence.
+`approved-expectation.schema.json` describes reviewed preserve, redirect, and retirement records
+bound to the exact manifest, difference-ledger, and public-contract digests. A preserve requires
+`approved_parity`; a redirect or retirement requires `approved_exception` plus an owner, reason,
+and focused test. Target observations and reports use `target-observation.schema.json` and
+`seo-parity-report.schema.json`.
+
+The generic gate captures anonymous GET responses through Django without network access, retains
+the exact input path/query spelling, compares server-rendered metadata/content/links/assets and
+sitemap state, and emits only stable value-free findings. Its runtime registry exposes only
+approved one-hop 301/308 and direct 410 decisions; an unknown path remains a normal 404. Local
+captures suppress runtime monitoring through an internal context marker that an HTTP client cannot
+set. Runtime events use known contract IDs or low-cardinality unknown/external groups and never
+record raw queries, fragments, unknown paths, referrers, user IDs, or response bodies.
+
+The checked real inputs intentionally have no approved expectation sidecar yet. This must remain a
+nonzero `BLOCKED` result until adapter issues produce independently reviewed expectations:
+
+```console
+make check-links
+make check-seo
+make compatibility-real-gate-blocked-check
+```
+
+The last target succeeds only when the management command exits nonzero and its report says
+`BLOCKED` with zero approved expectations. A fixture `PASS` is never whole-site or cutover approval.
+WSGI routes on decoded `PATH_INFO`; `raw_network_reference` preserves collector evidence, while any
+contract that depends on encoded separators still requires a deployed edge test. External URLs are
+compared byte-for-byte but are not contacted by this activation gate.
+
 CI parses both checked artifacts strictly, validates their schemas, re-encodes the manifest,
 recomputes the comparison, verifies exact URL sets and digests, and checks source metadata
 invariants. The same verification is available offline:
