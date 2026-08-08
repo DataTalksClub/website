@@ -1781,13 +1781,15 @@ class GateBOperatorTests(SimpleTestCase):
 
 class GateBRawCaptureTests(SimpleTestCase):
     def setUp(self) -> None:
+        self.capture_started = datetime.now(UTC).replace(microsecond=0)
+        self.capture_id = f"{self.capture_started:%Y%m%dT%H%M%SZ}-012345abcdef"
         (ROOT / ".tmp").mkdir(mode=0o700, exist_ok=True)
         (ROOT / ".tmp").chmod(0o700)
         self.temporary = Path(tempfile.mkdtemp(dir=ROOT / ".tmp"))
         self.temporary.chmod(0o700)
         self.tmp_root = self.temporary / "private-root"
         self.tmp_root.mkdir(mode=0o700)
-        self.capture_dir = self.tmp_root / f"gate-b-{CAPTURE_ID}"
+        self.capture_dir = self.tmp_root / f"gate-b-{self.capture_id}"
         self.capture_dir.mkdir(mode=0o700)
         self.raw_dir = self.capture_dir / "raw"
         self.raw_dir.mkdir(mode=0o700)
@@ -1809,15 +1811,15 @@ class GateBRawCaptureTests(SimpleTestCase):
         }
         status_doc = {
             "schema_version": 1,
-            "capture_id": CAPTURE_ID,
+            "capture_id": self.capture_id,
             "command_id": spec["id"],
             "sequence": spec["sequence"],
             "phase": spec["phase"],
             "provider": spec["provider"],
             "argv_sha256": assembler._canonical_sha256(spec["argv"]),
             "graph_sha256": graph_hash,
-            "started_at": CAPTURE_STARTED.isoformat().replace("+00:00", "Z"),
-            "finished_at": (CAPTURE_STARTED + timedelta(seconds=1))
+            "started_at": self.capture_started.isoformat().replace("+00:00", "Z"),
+            "finished_at": (self.capture_started + timedelta(seconds=1))
             .isoformat()
             .replace("+00:00", "Z"),
             "exit_code": 0,
@@ -1973,7 +1975,7 @@ class GateBRawCaptureTests(SimpleTestCase):
         contract = load_contract()
         seed = load_seed()
         manifest = load_manifest()
-        bindings = operator._provisional_bindings(seed, manifest, CAPTURE_ID)
+        bindings = operator._provisional_bindings(seed, manifest, self.capture_id)
         specs = assembler.complete_operation_specs(contract, manifest, bindings)
         graph_hash = assembler.execution_graph_sha256(specs)
         by_argv = {tuple(item["argv"]): item for item in specs}
@@ -2009,7 +2011,7 @@ class GateBRawCaptureTests(SimpleTestCase):
             specs[0],
             contract,
             frozen,
-            CAPTURE_ID,
+            self.capture_id,
             self.raw_dir,
             graph_hash,
             runner=runner,
@@ -2018,7 +2020,7 @@ class GateBRawCaptureTests(SimpleTestCase):
             specs[1:84],
             contract,
             frozen,
-            CAPTURE_ID,
+            self.capture_id,
             self.raw_dir,
             graph_hash,
             runner=runner,
@@ -2027,7 +2029,7 @@ class GateBRawCaptureTests(SimpleTestCase):
             specs[84:],
             contract,
             frozen,
-            CAPTURE_ID,
+            self.capture_id,
             self.raw_dir,
             graph_hash,
             runner=runner,
@@ -2214,7 +2216,7 @@ class GateBRawCaptureTests(SimpleTestCase):
                 specs,
                 contract,
                 credentials(),
-                CAPTURE_ID,
+                self.capture_id,
                 self.raw_dir,
                 "0" * 64,
                 runner=mock.Mock(),
