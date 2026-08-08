@@ -4,7 +4,7 @@ import json
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 SOURCE_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 IMAGE_DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -17,6 +17,18 @@ RELEASE_MANAGER = "DataTalksClub/website"
 
 class ReleaseContractError(RuntimeError):
     """Raised when a release input or observed runtime state is unsafe."""
+
+
+def _validate_count(value: object, *, context: str) -> int:
+    if type(value) is not int or value < 0:
+        raise ReleaseContractError(f"{context} must be a nonnegative integer")
+    return value
+
+
+def _validate_deployment_id(value: object, *, context: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ReleaseContractError(f"{context} must be a non-empty string")
+    return value
 
 
 def validate_source_sha(value: str) -> str:
@@ -67,11 +79,84 @@ class ServiceSnapshot:
     pending_count: int
     source_sha: str | None
     image_digest: str | None
+    primary_deployment_id: str
 
     def __post_init__(self) -> None:
         validate_task_definition_arn(self.task_definition_arn)
-        if min(self.desired_count, self.running_count, self.pending_count) < 0:
-            raise ReleaseContractError("ECS service counts cannot be negative")
+        for field, value in (
+            ("desired count", self.desired_count),
+            ("running count", self.running_count),
+            ("pending count", self.pending_count),
+        ):
+            _validate_count(value, context=f"ECS service {field}")
+        _validate_deployment_id(
+            self.primary_deployment_id,
+            context="ECS PRIMARY deployment ID",
+        )
+
+
+@dataclass(frozen=True)
+class ServiceTarget:
+    task_definition_arn: str
+    desired_count: int
+
+    def __post_init__(self) -> None:
+        validate_task_definition_arn(self.task_definition_arn)
+        _validate_count(self.desired_count, context="service target desired count")
+
+
+@dataclass(frozen=True)
+class ServicePredecessor:
+    target: ServiceTarget
+    primary_deployment_id: str
+    role: Literal["terminal", "attempted"]
+
+    def __post_init__(self) -> None:
+        if type(self.target) is not ServiceTarget:
+            raise ReleaseContractError("service predecessor target differs")
+        _validate_deployment_id(
+            self.primary_deployment_id,
+            context="predecessor PRIMARY deployment ID",
+        )
+        if self.role not in {"terminal", "attempted"}:
+            raise ReleaseContractError("service predecessor role differs")
+
+
+@dataclass(frozen=True)
+class ServiceUpdateReceipt:
+    workload: str
+    configured_service_identity: str
+    target: ServiceTarget
+    primary_deployment_id: str
+    predecessors: tuple[ServicePredecessor, ...]
+
+    def __post_init__(self) -> None:
+        if self.workload not in {"web", "worker"}:
+            raise ReleaseContractError("service update receipt workload differs")
+        if (
+            not isinstance(self.configured_service_identity, str)
+            or not self.configured_service_identity.strip()
+        ):
+            raise ReleaseContractError("service update receipt identity is empty")
+        if type(self.target) is not ServiceTarget:
+            raise ReleaseContractError("service update receipt target differs")
+        if type(self.predecessors) is not tuple or any(
+            type(item) is not ServicePredecessor for item in self.predecessors
+        ):
+            raise ReleaseContractError("service update receipt predecessors differ")
+        terminal_count = sum(item.role == "terminal" for item in self.predecessors)
+        attempted_count = sum(item.role == "attempted" for item in self.predecessors)
+        if terminal_count != 1 or attempted_count > 1:
+            raise ReleaseContractError("service update receipt predecessor phase differs")
+        _validate_deployment_id(
+            self.primary_deployment_id,
+            context="receipt PRIMARY deployment ID",
+        )
+        predecessor_ids = [item.primary_deployment_id for item in self.predecessors]
+        if len(predecessor_ids) != len(set(predecessor_ids)):
+            raise ReleaseContractError("service update receipt has duplicate predecessor IDs")
+        if self.primary_deployment_id in predecessor_ids:
+            raise ReleaseContractError("service update receipt reused a predecessor ID")
 
 
 @dataclass(frozen=True)

@@ -972,6 +972,44 @@ separate public readiness/liveness gate follows ECS stabilization and must repor
 SHA. Worker completion retains the same terminal requirements plus no more than one running plus
 pending task; queue activity, heartbeat, or a processed job is not completion.
 
+Every service mutation is receipt-bound. Before `UpdateService`, the controller records that exact
+workload as attempted and supplies its captured terminal predecessor: the exact task-definition
+ARN, desired count, and unique PRIMARY deployment ID. The response must identify the configured
+service, the requested target tuple, and one new non-empty PRIMARY deployment ID. That ID must
+differ even for a same-ARN/count force-new deployment. All response deployments must be the exact
+receipt target or an exact phase predecessor; a third ID, task-definition/count cross-pair,
+malformed count, failed target, or old completed PRIMARY returned as the new deployment fails the
+mutation.
+
+Subsequent service reads may temporarily cross the service-level and PRIMARY target tuples or
+return an exact captured predecessor after the receipt has already appeared. These recognized
+replica-ordering states are poll-only. They never prove success, change the receipt, or reset the
+monotonic deadline. Success requires the receipt's PRIMARY ID and requested tuple to be
+`COMPLETED` with exact desired/running/pending counts in both the service and PRIMARY deployment.
+The public health/SHA gate starts only afterward.
+
+Run `31276422372` attempt 1 on 2026-08-08 supplied the adoption-consistency evidence: migration
+passed, but the first read less than one second after `UpdateService` still showed the exact prior
+deployment, and strict target-only validation failed before ECS could publish the new PRIMARY.
+Compensation then encountered the inverse replica-ordering window. This run remains failed; it is
+not evidence of a successful release.
+
+If an attempted `UpdateService` response is lost or invalid, recovery uses the same absolute
+180-second per-service deadline for candidate reconciliation and the restorative receipt wait.
+It polls only the captured terminal tuple and the actually attempted target until that target is
+observed as the unique PRIMARY and its deployment ID can be bound. The deadline is finite,
+inclusive, cannot exceed the general-stage maximum, and is never restarted between capture and
+restore. A speculative workload that was never invoked is absent from the recovery allowlist.
+An attempted candidate may be failed while its restorative receipt replaces it, but the recovery
+receipt itself may not fail. Every restorative call must return a new receipt, including an
+`A -> A` force-new recovery; old `A COMPLETED` is always a predecessor, never recovery success.
+
+For triage, compare redacted service/PRIMARY tuples and deployment IDs against the recorded receipt
+and phase predecessors. Do not retry the mutation, add an unrecognized identity, pre-sleep before
+the first observation, or infer adoption from a running task, target health, logs, or an old
+completed deployment. A candidate that never becomes the unique PRIMARY by the shared recovery
+deadline, or any third/cross-paired identity, leaves recovery failed closed for operator review.
+
 The conservative critical-stage recovery envelope is
 `180 + 120 + 240 + 180 + 420 + 180 + 360 + 720 = 2400` seconds: migration observation,
 stopped-migration terminal proof, web stabilization, public readiness/liveness, worker

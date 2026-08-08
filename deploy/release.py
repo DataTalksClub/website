@@ -12,7 +12,10 @@ from deploy.contracts import (
     ReleaseContractError,
     ReleaseIdentity,
     ReleaseRecord,
+    ServicePredecessor,
     ServiceSnapshot,
+    ServiceTarget,
+    ServiceUpdateReceipt,
     validate_image_digest,
     validate_prior_pair,
     validate_source_sha,
@@ -103,8 +106,21 @@ class ReleaseGateway(Protocol):
     ) -> None: ...
 
     def update_service(
-        self, workload: str, task_definition_arn: str, desired_count: int
-    ) -> None: ...
+        self,
+        workload: str,
+        target: ServiceTarget,
+        predecessors: tuple[ServicePredecessor, ...],
+    ) -> ServiceUpdateReceipt: ...
+
+    def capture_attempted_predecessor(
+        self,
+        workload: str,
+        attempted_target: ServiceTarget,
+        terminal_predecessor: ServicePredecessor,
+        deadline: float,
+    ) -> ServicePredecessor: ...
+
+    def service_stabilization_deadline(self) -> float: ...
 
     @property
     def web_stabilization_timeout_seconds(self) -> int: ...
@@ -114,12 +130,11 @@ class ReleaseGateway(Protocol):
 
     def wait_service_stable(
         self,
-        workload: str,
+        receipt: ServiceUpdateReceipt,
         *,
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
-        expected_task_definition_arn: str | None = None,
-        expected_desired_count: int | None = None,
+        deadline: float | None = None,
     ) -> None: ...
 
     def verify_public_web(self, source_sha: str) -> None: ...
@@ -358,36 +373,55 @@ def capture_recovery_context(
 
 def _compensate(
     gateway: ReleaseGateway,
-    web: ServiceSnapshot,
-    worker: ServiceSnapshot,
+    restore_targets: dict[str, ServiceTarget],
+    terminal_predecessors: dict[str, ServicePredecessor],
     prior_identity: ReleaseIdentity | None,
+    attempted: dict[str, ServiceTarget | ServicePredecessor],
 ) -> None:
     recovery = (
-        f"web={web.task_definition_arn} desired={web.desired_count}; "
-        f"worker={worker.task_definition_arn} desired={worker.desired_count}"
+        f"web={restore_targets['web'].task_definition_arn} "
+        f"desired={restore_targets['web'].desired_count}; "
+        f"worker={restore_targets['worker'].task_definition_arn} "
+        f"desired={restore_targets['worker'].desired_count}"
     )
     errors: list[str] = []
-    for workload, snapshot in (("web", web), ("worker", worker)):
+    for workload in ("web", "worker"):
+        terminal = terminal_predecessors[workload]
+        phase_predecessors = [terminal]
+        restore_target = restore_targets[workload]
         try:
-            gateway.update_service(workload, snapshot.task_definition_arn, snapshot.desired_count)
+            deadline = gateway.service_stabilization_deadline()
+            attempted_state = attempted.get(workload)
+            if type(attempted_state) is ServiceTarget:
+                captured = gateway.capture_attempted_predecessor(
+                    workload,
+                    attempted_state,
+                    terminal,
+                    deadline,
+                )
+                phase_predecessors.append(captured)
+            elif type(attempted_state) is ServicePredecessor:
+                phase_predecessors.append(attempted_state)
+            receipt = gateway.update_service(
+                workload,
+                restore_target,
+                tuple(phase_predecessors),
+            )
         except Exception as error:
             errors.append(f"update {workload}: {type(error).__name__}")
-    snapshots = {"web": web, "worker": worker}
-    for workload in ("web", "worker"):
+            continue
         try:
-            snapshot = snapshots[workload]
             gateway.wait_service_stable(
-                workload,
+                receipt,
                 worker_singleton=workload == "worker",
-                expected_task_definition_arn=snapshot.task_definition_arn,
-                expected_desired_count=snapshot.desired_count,
+                deadline=deadline,
             )
         except Exception as error:
             errors.append(f"wait {workload}: {type(error).__name__}")
     try:
         gateway.verify_terminal(
-            {"web": web.task_definition_arn, "worker": worker.task_definition_arn},
-            {"web": web.desired_count, "worker": worker.desired_count},
+            {workload: target.task_definition_arn for workload, target in restore_targets.items()},
+            {workload: target.desired_count for workload, target in restore_targets.items()},
             prior_identity,
         )
     except Exception as error:
@@ -403,6 +437,26 @@ def _compensate(
             f"{recovery}; "
             f"causes: {'; '.join(errors)}"
         )
+
+
+def _restore_phase_from_snapshots(
+    web: ServiceSnapshot,
+    worker: ServiceSnapshot,
+) -> tuple[dict[str, ServiceTarget], dict[str, ServicePredecessor]]:
+    snapshots = {"web": web, "worker": worker}
+    targets = {
+        workload: ServiceTarget(snapshot.task_definition_arn, snapshot.desired_count)
+        for workload, snapshot in snapshots.items()
+    }
+    predecessors = {
+        workload: ServicePredecessor(
+            targets[workload],
+            snapshot.primary_deployment_id,
+            "terminal",
+        )
+        for workload, snapshot in snapshots.items()
+    }
+    return targets, predecessors
 
 
 def _recapture_prior_before_mutation(
@@ -573,6 +627,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
     )
     _record_evidence(config.evidence_path, "pre_update_gate", "passed")
     mutated = False
+    attempted: dict[str, ServiceTarget | ServicePredecessor] = {}
     active_stage = "web"
     try:
         _record_evidence(
@@ -582,12 +637,30 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             {"stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds},
         )
         mutated = True
-        gateway.update_service("web", registered["web"], config.web_desired_count)
-        gateway.wait_service_stable(
+        web_target = ServiceTarget(registered["web"], config.web_desired_count)
+        attempted["web"] = web_target
+        web_receipt = gateway.update_service(
             "web",
+            web_target,
+            (
+                ServicePredecessor(
+                    ServiceTarget(
+                        prior_web.task_definition_arn,
+                        prior_web.desired_count,
+                    ),
+                    prior_web.primary_deployment_id,
+                    "terminal",
+                ),
+            ),
+        )
+        attempted["web"] = ServicePredecessor(
+            web_receipt.target,
+            web_receipt.primary_deployment_id,
+            "attempted",
+        )
+        gateway.wait_service_stable(
+            web_receipt,
             timeout_seconds=gateway.web_stabilization_timeout_seconds,
-            expected_task_definition_arn=registered["web"],
-            expected_desired_count=config.web_desired_count,
         )
         gateway.verify_public_web(config.identity.source_sha)
         _record_evidence(
@@ -598,6 +671,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "task_definition_arn": registered["web"],
                 "desired_count": config.web_desired_count,
                 "source_sha": config.identity.source_sha,
+                "primary_deployment_id": web_receipt.primary_deployment_id,
                 "ecs_stable": True,
                 "alb_ready": True,
                 "readiness": True,
@@ -613,13 +687,31 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             "started",
             {"stabilization_timeout_seconds": gateway.worker_stabilization_timeout_seconds},
         )
-        gateway.update_service("worker", registered["worker"], config.worker_desired_count)
-        gateway.wait_service_stable(
+        worker_target = ServiceTarget(registered["worker"], config.worker_desired_count)
+        attempted["worker"] = worker_target
+        worker_receipt = gateway.update_service(
             "worker",
+            worker_target,
+            (
+                ServicePredecessor(
+                    ServiceTarget(
+                        prior_worker.task_definition_arn,
+                        prior_worker.desired_count,
+                    ),
+                    prior_worker.primary_deployment_id,
+                    "terminal",
+                ),
+            ),
+        )
+        attempted["worker"] = ServicePredecessor(
+            worker_receipt.target,
+            worker_receipt.primary_deployment_id,
+            "attempted",
+        )
+        gateway.wait_service_stable(
+            worker_receipt,
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
-            expected_task_definition_arn=registered["worker"],
-            expected_desired_count=config.worker_desired_count,
         )
         _record_evidence(
             config.evidence_path,
@@ -628,6 +720,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             {
                 "task_definition_arn": registered["worker"],
                 "desired_count": config.worker_desired_count,
+                "primary_deployment_id": worker_receipt.primary_deployment_id,
                 "singleton": True,
                 "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
             },
@@ -704,7 +797,17 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                     "compensation",
                     "started",
                 )
-                _compensate(gateway, prior_web, prior_worker, prior_identity)
+                restore_targets, terminal_predecessors = _restore_phase_from_snapshots(
+                    prior_web,
+                    prior_worker,
+                )
+                _compensate(
+                    gateway,
+                    restore_targets,
+                    terminal_predecessors,
+                    prior_identity,
+                    attempted,
+                )
                 _record_recovery_evidence(
                     config.evidence_path,
                     "compensation",
@@ -813,6 +916,7 @@ def rollback(
     )
     _record_evidence(evidence_path, "migration", "skipped", {"operation": "rollback"})
     mutated = False
+    attempted: dict[str, ServiceTarget | ServicePredecessor] = {}
     active_stage = "web"
     try:
         _record_evidence(
@@ -822,12 +926,30 @@ def rollback(
             {"stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds},
         )
         mutated = True
-        gateway.update_service("web", target.web_task_definition_arn, target.web_desired_count)
-        gateway.wait_service_stable(
+        web_target = ServiceTarget(target.web_task_definition_arn, target.web_desired_count)
+        attempted["web"] = web_target
+        web_receipt = gateway.update_service(
             "web",
+            web_target,
+            (
+                ServicePredecessor(
+                    ServiceTarget(
+                        current_web.task_definition_arn,
+                        current_web.desired_count,
+                    ),
+                    current_web.primary_deployment_id,
+                    "terminal",
+                ),
+            ),
+        )
+        attempted["web"] = ServicePredecessor(
+            web_receipt.target,
+            web_receipt.primary_deployment_id,
+            "attempted",
+        )
+        gateway.wait_service_stable(
+            web_receipt,
             timeout_seconds=gateway.web_stabilization_timeout_seconds,
-            expected_task_definition_arn=target.web_task_definition_arn,
-            expected_desired_count=target.web_desired_count,
         )
         gateway.verify_public_web(target.source_sha)
         _record_evidence(
@@ -838,6 +960,7 @@ def rollback(
                 "task_definition_arn": target.web_task_definition_arn,
                 "desired_count": target.web_desired_count,
                 "source_sha": target.source_sha,
+                "primary_deployment_id": web_receipt.primary_deployment_id,
                 "ecs_stable": True,
                 "alb_ready": True,
                 "readiness": True,
@@ -852,15 +975,34 @@ def rollback(
             "started",
             {"stabilization_timeout_seconds": gateway.worker_stabilization_timeout_seconds},
         )
-        gateway.update_service(
-            "worker", target.worker_task_definition_arn, target.worker_desired_count
+        worker_target = ServiceTarget(
+            target.worker_task_definition_arn,
+            target.worker_desired_count,
+        )
+        attempted["worker"] = worker_target
+        worker_receipt = gateway.update_service(
+            "worker",
+            worker_target,
+            (
+                ServicePredecessor(
+                    ServiceTarget(
+                        current_worker.task_definition_arn,
+                        current_worker.desired_count,
+                    ),
+                    current_worker.primary_deployment_id,
+                    "terminal",
+                ),
+            ),
+        )
+        attempted["worker"] = ServicePredecessor(
+            worker_receipt.target,
+            worker_receipt.primary_deployment_id,
+            "attempted",
         )
         gateway.wait_service_stable(
-            "worker",
+            worker_receipt,
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
-            expected_task_definition_arn=target.worker_task_definition_arn,
-            expected_desired_count=target.worker_desired_count,
         )
         _record_evidence(
             evidence_path,
@@ -869,6 +1011,7 @@ def rollback(
             {
                 "task_definition_arn": target.worker_task_definition_arn,
                 "desired_count": target.worker_desired_count,
+                "primary_deployment_id": worker_receipt.primary_deployment_id,
                 "singleton": True,
                 "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
             },
@@ -932,7 +1075,17 @@ def rollback(
         if mutated:
             try:
                 _record_recovery_evidence(evidence_path, "compensation", "started")
-                _compensate(gateway, current_web, current_worker, current_identity)
+                restore_targets, terminal_predecessors = _restore_phase_from_snapshots(
+                    current_web,
+                    current_worker,
+                )
+                _compensate(
+                    gateway,
+                    restore_targets,
+                    terminal_predecessors,
+                    current_identity,
+                    attempted,
+                )
                 _record_recovery_evidence(
                     evidence_path,
                     "compensation",
@@ -1011,22 +1164,32 @@ def restore_after_finalization_failure(
             prior_identity.image_digest,
         )
 
-    prior_web = ServiceSnapshot(
-        service_name=current_web.service_name,
-        task_definition_arn=context.web_task_definition_arn,
-        desired_count=context.web_desired_count,
-        running_count=context.web_desired_count,
-        pending_count=0,
-        source_sha=context.source_sha,
-        image_digest=context.image_digest,
+    restore_targets = {
+        "web": ServiceTarget(
+            context.web_task_definition_arn,
+            context.web_desired_count,
+        ),
+        "worker": ServiceTarget(
+            context.worker_task_definition_arn,
+            context.worker_desired_count,
+        ),
+    }
+    terminal_predecessors = {
+        "web": ServicePredecessor(
+            ServiceTarget(current_web.task_definition_arn, current_web.desired_count),
+            current_web.primary_deployment_id,
+            "terminal",
+        ),
+        "worker": ServicePredecessor(
+            ServiceTarget(current_worker.task_definition_arn, current_worker.desired_count),
+            current_worker.primary_deployment_id,
+            "terminal",
+        ),
+    }
+    _compensate(
+        gateway,
+        restore_targets,
+        terminal_predecessors,
+        prior_identity,
+        {},
     )
-    prior_worker = ServiceSnapshot(
-        service_name=current_worker.service_name,
-        task_definition_arn=context.worker_task_definition_arn,
-        desired_count=context.worker_desired_count,
-        running_count=context.worker_desired_count,
-        pending_count=0,
-        source_sha=context.source_sha,
-        image_digest=context.image_digest,
-    )
-    _compensate(gateway, prior_web, prior_worker, prior_identity)
