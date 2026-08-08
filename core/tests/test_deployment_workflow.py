@@ -730,7 +730,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
 
         unchanged_hashes = {
             ".github/workflows/ci.yml": (
-                "6932845a0f919c816a086bdcf5976d38bb1195ee75af4d118e6fd4b962e11ac9"
+                "0a2d97843ad8045375258af0a96464e32aba1feb19f83c3b20f61f415bb8211c"
             ),
             "deploy/oidc_probe.py": (
                 "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
@@ -897,7 +897,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 "4dd65a576f3bd3d3bd2dff41170ee161f45ffe5362a4e4e1f8af0feabc081027"
             ),
             ".github/workflows/ci.yml": (
-                "6932845a0f919c816a086bdcf5976d38bb1195ee75af4d118e6fd4b962e11ac9"
+                "0a2d97843ad8045375258af0a96464e32aba1feb19f83c3b20f61f415bb8211c"
             ),
             "deploy/oidc_probe.py": (
                 "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
@@ -999,6 +999,34 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("Rollback requires reuse with no failure injection", workflow)
         self.assertIn("published-image record independently of deployment", workflow)
         self.assertNotIn("terraform apply", workflow)
+
+    def test_release_image_builds_and_verifies_the_runtime_static_manifest(self) -> None:
+        dockerfile = (ROOT / "Dockerfile").read_text()
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        manifest_gate = workflow.split(
+            "- name: Verify the built runtime static manifest", maxsplit=1
+        )[1].split("- name: Smoke-test liveness without publishing", maxsplit=1)[0]
+
+        self.assertIn("DJANGO_SETTINGS_MODULE=website.settings.collectstatic", dockerfile)
+        self.assertNotIn(
+            "DJANGO_SETTINGS_MODULE=website.settings.test "
+            "uv run --no-sync python manage.py collectstatic",
+            dockerfile,
+        )
+        self.assertIn("python -m scripts.verify_static_manifest", manifest_gate)
+        self.assertIn("website.settings.collectstatic", manifest_gate)
+        self.assertIn("website.settings.test", manifest_gate)
+        self.assertIn("malformed.json", manifest_gate)
+        self.assertIn("missing-entry.json", manifest_gate)
+        self.assertIn("target=/app/staticfiles,readonly", manifest_gate)
+        self.assertLess(
+            workflow.index("- name: Verify the built runtime static manifest"),
+            workflow.index("- name: Preserve the one tested image"),
+        )
+        self.assertIn(
+            "curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/",
+            workflow,
+        )
 
     def test_serving_entrypoint_never_runs_migrations(self) -> None:
         entrypoint = (ROOT / "entrypoint.sh").read_text()

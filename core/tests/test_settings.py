@@ -187,3 +187,58 @@ class ProductionSettingsTests(SimpleTestCase):
     def test_sqlite_is_not_an_implicit_local_fallback(self) -> None:
         with patch.dict(os.environ, {}, clear=True), self.assertRaises(ImproperlyConfigured):
             database_from_environment(allow_sqlite=True)
+
+
+class CollectstaticSettingsTests(SimpleTestCase):
+    def import_collectstatic_settings(
+        self, *, environment_name: str | None = None
+    ) -> subprocess.CompletedProcess[str]:
+        environment = os.environ.copy()
+        for name in (
+            "DATABASE_URL",
+            "DJANGO_ALLOWED_HOSTS",
+            "DJANGO_CSRF_TRUSTED_ORIGINS",
+            "DJANGO_SECRET_KEY",
+            "DJANGO_SETTINGS_MODULE",
+            "DTC_ENVIRONMENT",
+        ):
+            environment.pop(name, None)
+        if environment_name is not None:
+            environment["DTC_ENVIRONMENT"] = environment_name
+        command = (
+            "import json; import website.settings.collectstatic as s; "
+            "print(json.dumps({"
+            "'backend': s.STORAGES['staticfiles']['BACKEND'], "
+            "'database': s.DATABASES['default']['ENGINE']"
+            "}))"
+        )
+        return subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=os.getcwd(),
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    def test_collectstatic_settings_are_self_contained_and_use_runtime_manifest_storage(
+        self,
+    ) -> None:
+        result = self.import_collectstatic_settings()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(result.stdout),
+            {
+                "backend": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+                "database": "django.db.backends.sqlite3",
+            },
+        )
+
+    def test_collectstatic_settings_reject_deployed_environments(self) -> None:
+        for environment_name in ("development", "production"):
+            with self.subTest(environment_name=environment_name):
+                result = self.import_collectstatic_settings(environment_name=environment_name)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("Collectstatic settings are build-only", result.stderr)
