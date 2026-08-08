@@ -205,6 +205,144 @@ Gate B is a separately PM-authorized, read-only operator step. It must finish wi
 allow, incomplete context, source mismatch, or ambiguous provider result never falls through to
 the OIDC probe. Closing issue #84 does not authorize this procedure.
 
+After #85, the only executable Gate B procedure is the sealed operator described below. The older
+literal command forms and field mapping retained later in this section are contract provenance for
+auditors; they are not commands to copy, expand, or run manually. Manual capture, manual simulator
+row expansion, and manual construction of a filtered envelope are forbidden.
+
+#### #85 sealed operator procedure
+
+The operator is bound to two tracked, non-secret, code-pinned inputs:
+
+- `deploy/gate_b_binding_seed.json` freezes the accepted CloudFront, target-group, task-definition,
+  secret-container ARN, network, DNS, GitHub configuration, Terraform address-count, and parent
+  operator-role facts recovered from the accepted bootstrap/output evidence. It never discovers
+  or refreshes a binding from a live response. Its simplified six-record binding array and the
+  earlier complete Route 53 evidence have separate canonical hashes. The normalized full-record
+  digest is `c224be2350342c319c09d07ec1672fd867b48d30c7a8b7587b78758b5e2ebda8`; the earlier
+  1,242-byte source-capture digest
+  `4cadb0505d61e04a7e652b7f2c2e303bfa573407a65dffc30d9fbf6d2708b0e7` remains provenance only
+  and is not recomputed or replaced by the normalized digest.
+- `deploy/gate_b_execution_contract.json` binds the unchanged #84 manifest, validator, and
+  simulator matrix to the exact tools, child environments, safety limits, five absence results,
+  84 readback operations, and deterministic recipe for 90 simulator operations.
+
+The graph contains exactly 174 evidence operations: 58 AWS readbacks including STS, 26 exact-key
+GitHub reads, and 90 IAM simulations. The renderer produces structured argument arrays, never a
+shell string. It exposes no arbitrary executable, action, resource, policy, caller, environment,
+retry, or resume input. Exact-key/list calls prove a seeded target; they cannot select or replace
+one. Any live mismatch is `STOP`, not permission to rewrite the seed.
+
+Offline planning is safe before the credential gate opens. From the exact accepted website
+controller checkout, create only the private root, select one new capture ID matching
+`YYYYMMDDTHHMMSSZ-12lowerhex`, and verify the code-pinned graph:
+
+```bash
+umask 077
+mkdir -p -- ".tmp"
+chmod 0700 -- ".tmp"
+uv run --frozen python -m deploy.gate_b_operator plan --seed deploy/gate_b_binding_seed.json --contract deploy/gate_b_execution_contract.json
+```
+
+The plan command is offline and prints only stable IDs, counts, `PASS`/`STOP`, and hashes. It does
+not resolve credentials, call AWS or GitHub, create a capture, or run the #84 evidence chain. PM
+must bind its exact seed, execution-graph, manifest, source, configuration, and tool hashes before
+authorizing the following command once:
+
+```bash
+uv run --frozen python -m deploy.gate_b_operator capture --seed deploy/gate_b_binding_seed.json --contract deploy/gate_b_execution_contract.json --capture-id "${CAPTURE_ID}"
+```
+
+The capture command creates `.tmp/gate-b-${CAPTURE_ID}` and every child directory at mode `0700`.
+Every private file is a single-link regular file owned by the effective operator, created with
+exclusive/no-follow semantics at mode `0600`. A pre-existing output, symlink, hard link, lexical or
+resolved escape, wrong owner/mode, mixed capture, size violation, timeout, interrupt, or incomplete
+inventory is `STOP`.
+The timestamp prefix of the capture ID must remain within five seconds of the first command and
+all status times must fit the sealed 900-second capture window, 31-second per-command envelope,
+and identity/readback/simulator phase order. Old triplets renamed into a new capture cannot pass.
+The operator checks the capture clock immediately before and immediately after credential vending;
+if either check is stale, it stops before the STS identity command.
+
+The accepted AWS Gate credential process is validated and resolved exactly once. Its temporary
+access key, secret key, session token, and expiration remain in operator memory and never enter an
+argument, file, log, hash, error, or GitHub child. The operator requires at least 840 seconds of
+remaining lifetime initially, rejects a vended lifetime above the accepted 900 seconds, and
+retains a hard 120-second reserve before each provider command; it never refreshes credentials.
+The private AWS Gate environment file is never content-hashed or read into the operator; its
+validated descriptor is held only for the one credential subprocess. The first AWS operation is
+the graph's exact
+`sts:GetCallerIdentity` call. Before any resource or GitHub read, the operator requires account
+`817685572750`, parent role `phone-aws-sandbox-role`, role ID `AROA34YO3VSHI2OCVBKTW`, and the same
+`phone-sandbox-[0-9a-f]{8}` session suffix in the STS ARN and user ID. It seals that exact returned
+triple into `bindings.json`, then runs the unchanged #84 binding validator. A failure stops before
+operation two. Every remaining AWS child receives the same in-memory credential triple; GitHub
+children receive none of it.
+
+Before credential vending, the operator opens and verifies the credential interpreter/script,
+AWS virtual-environment interpreter/entry point, and GitHub binary, and holds their exact inodes
+for the full capture. Provider execution is limited to the complete authorized graph. The AWS
+interpreter retains the accepted virtual-environment path as `argv[0]` while executing the held
+interpreter descriptor, so its module context remains intact. The execution boundary permits the
+credential argv once, permits only STS before the binding validator seals the identity, and permits
+each remaining graph argv once with its exact working directory, timeout, and environment.
+Timeout, interrupt, selector failure, first phase failure, and output overflow kill and reap every
+active child process group before the worker pool is joined.
+
+AWS children use the frozen AWS CLI path, explicit output arguments, the exact region frozen in
+their sanitized environment, direct temporary credentials, disabled instance metadata, and null
+shared config/credential files. GitHub children
+use the frozen `gh` path and accepted local GitHub configuration without an AWS variable. Both
+environments exclude inherited profiles, endpoints, web-identity/container providers, proxies,
+debug/pager controls, and caller-supplied overrides. Each child uses `shell=False`, closed stdin,
+the fixed repository working directory, bounded output, and the contract timeout. Exit-zero
+captures require an empty error channel. An accepted absence requires empty response output and
+one anchored AWS CLI error matching the exact graph node.
+
+Each operation produces one private stdout/stderr/status triplet bound to its command ID, order,
+argument hash, graph hash, capture ID, phase, timestamps, exit code, and exact stdout/stderr hashes.
+`deploy.gate_b_assembler` has no network or subprocess capability. It requires the exact triplet
+inventory. The operator parses results for immediate phase gating; the assembler independently
+re-parses the exact base64-wrapped bytes and anchored AWS error form as final authority, applies only frozen
+per-command selectors, and maps the capture deterministically into the unchanged #84 bindings,
+policies, resources, and simulator envelopes. CloudFront origin headers and Secrets Manager
+value-bearing fields are filtered by the literal CLI projection before persistence. ECR images,
+ECS task ARNs, and target-health entries use count/type projections; only an array input,
+nonnegative integer count, and absent continuation token pass. Unknown or ambiguous fields,
+cardinality, or pagination stop assembly.
+Route 53 accepts only the exact record array plus an optional nonempty AWS CLI `NextToken`; native
+service pagination fields, malformed tokens, and any record not equal to the sealed full record stop.
+Before either online or standalone `PASS`, the operator re-reads `bindings.json` and
+`bindings.result.json` and requires both sealed files to parse exactly as the recomputed documents.
+
+Only these five nonzero results are accepted, each for its exact service, operation, and seeded
+target:
+
+| Evidence | Exact accepted code |
+| --- | --- |
+| S3 bucket policy | `NoSuchBucketPolicy` |
+| S3 state lock `HeadObject` | `404` |
+| ECR all-zero digest | `ImageNotFoundException` |
+| ECR repository policy | `RepositoryPolicyNotFoundException` |
+| ECR registry-v2 policy | `RegistryPolicyNotFoundException` |
+
+For the lock, `403`, `NoSuchKey`, generic `NotFound`, success, a transport failure, or any other
+result is `STOP`. A Secrets Manager resource-policy absence is not a sixth error: all six calls
+must exit zero, return the exact ARN/name, and omit `ResourcePolicy`. An error, null/empty member,
+or policy body stops.
+
+The operator gates its phases by running the unchanged #84 validators in order: manifest and
+sealed bindings before readback; policies and resources before simulation; then simulator and
+summary. It also writes `execution-attestation.json`, which binds the seed, graph, raw inventory,
+four envelopes/results, final summary, operation counts, and sealed parent role. Only the final
+filtered summary, execution attestation, and their hashes may reach GitHub. The stdout/stderr
+triplets, provider JSON, policy bodies, credentials, provider messages, state metadata details,
+custom headers, and paths remain private below the capture directory.
+
+A timeout, expiry reserve, unexpected result, assembler/validator `STOP`, or incomplete attempt
+consumes the authorization. Do not resume, retry, open a second capture, or fall through to Gate C.
+A complete `PASS` still requires a new PM review and separate Gate C-only authorization.
+
 The tracked contract is `deploy/gate_b_manifest.json`, bound to website
 `07186fc9bf9cf353fa12b74e97018d7f951d0fe6` (tree
 `9621d51fd8952a6c12af5ea62b207aa07c988ac5`) and infrastructure
@@ -215,11 +353,11 @@ and atomic simulator rows. Never copy a live policy into the expected side.
 
 `deploy.gate_b_evidence` is standard-library-only and performs no acquisition. It validates
 already filtered JSON beneath repository `.tmp/`; it has no boto3, network, subprocess, Terraform,
-GitHub API, or workflow integration. Before any acquisition, the authorized operator creates the
-repository `.tmp/` root and one capture directory with `umask 077` and mode `0700`, records one
-capture ID, and gives every raw and filtered input mode `0600`. Symlinks, lexical `..`, paths
-outside `.tmp/`, mixed capture IDs, and mixed source SHAs are rejected. Do not enable shell
-tracing.
+GitHub API, or workflow integration. The following #84 bootstrap block is retained only to explain
+the validator's original private-file assumptions; do not execute it. The #85 operator owns
+capture-directory creation and invokes the validator. It enforces `umask 077`, mode `0700`
+directories, mode `0600` files, one capture ID, no symlink/hardlink/path escape, and one source
+binding. Do not enable shell tracing.
 
 ```bash
 umask 077
@@ -231,15 +369,18 @@ test "$(stat -c '%a' ".tmp/gate-b-${CAPTURE_ID}")" = "700"
 uv run --frozen python -m deploy.gate_b_evidence manifest
 ```
 
-The one local `bindings.json` comes only from the previously accepted bootstrap/output evidence;
-it is not live discovery. It binds CloudFront ID/domain/derived ARN, target-group suffix/ARN,
-three current task-definition revision ARNs, six secret ARN suffixes, task subnets and security
-groups, VPC and ALB DNS/zone, the exact six DNS records, and exact GitHub variable values. It also
-binds the separately PM-accepted operator account/ARN/user ID before the STS acquisition and then
-requires the returned caller identity to be byte-identical. The validator checks account, region,
-workload, family, and parent relationships. It rejects both IAM-role and STS assumed-role forms of
-the publisher, deployer, application-task, and execution-task roles as the operator. It never
-accepts role IDs, creation timestamps, KMS grant IDs, or guessed/list-discovered identifiers.
+The final local `bindings.json` still contains only the #84 envelope fields and accepted
+bootstrap/output values; it is never live discovery. It binds CloudFront ID/domain/derived ARN,
+target-group suffix/ARN, three current task-definition revision ARNs, six secret ARN suffixes,
+task subnets and security groups, VPC and ALB DNS/zone, the exact six DNS records, and exact GitHub
+variable values. The old assumption that PM could know a dynamic AWS Gate STS ARN/user ID before
+credential vending is superseded by the sealed #85 sequence above: PM accepts the exact parent
+contract, then the first STS capture supplies the exact triple before operation two. The unchanged
+validator still requires the returned caller identity to equal the sealed binding byte-for-byte,
+checks account, region, workload, family, and parent relationships, and rejects both IAM-role and
+STS assumed-role forms of the publisher, deployer, application-task, and execution-task roles as
+the operator. It never accepts creation timestamps, KMS grant IDs, or guessed/list-discovered
+identifiers.
 
 Every input is one exact object envelope with only `schema_version`, `capture_id`, `website_sha`,
 `infra_sha`, `kind`, `payload`, and `payload_sha256`. The digest is lowercase SHA-256 of the compact
@@ -248,14 +389,15 @@ bundle and nested field inventories are frozen in `readback_manifest.bundle_sche
 `readback_manifest.field_schemas`; no unlisted field may be discarded or added. After deterministic
 field selection/renaming, write the envelope, `chmod 0600` it, and run its validator immediately.
 
-#### Literal acquisition allowlist
+#### Superseded literal acquisition provenance
 
-Every command is read-only, uses the exact target shown or a value from the accepted binding,
-uses `--no-cli-pager --output json`, and writes only below the current `0700` capture directory.
-The operator must not add an unlisted command, discovery wildcard, `--debug`, policy input,
+The following #84 forms explain the provenance of the machine-owned graph. Do not copy or execute
+this block. The #85 execution contract expands every value and the bounded operator is the only
+authorized executor. It uses `--no-cli-pager --output json`, exact seeded targets, and the private
+capture directory. An unlisted command, discovery wildcard, `--debug`, policy input,
 resource-policy input, caller override, Terraform plan/apply/state-body read, `GetObject`,
-`GetSecretValue`, workflow dispatch, or mutation. A literal simulator resource `*` is allowed only
-for a frozen row whose accepted AWS action semantics require it.
+`GetSecretValue`, workflow dispatch, or mutation remains forbidden. A literal simulator resource
+`*` is accepted only for a frozen row whose AWS action semantics require it.
 
 ```bash
 gate_b_capture() {

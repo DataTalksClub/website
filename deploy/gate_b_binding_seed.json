@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "seed_id": "website-sandbox-gate-b-binding-v1",
+  "source_binding": {
+    "website_sha": "07186fc9bf9cf353fa12b74e97018d7f951d0fe6",
+    "website_tree": "9621d51fd8952a6c12af5ea62b207aa07c988ac5",
+    "infra_sha": "95d93f7e07ded19e482a0c6d6471fbd93fb608d8",
+    "infra_tree": "1c38fdf6872a448d92e8191282525bafd3ab3410"
+  },
+  "cloudfront": {
+    "distribution_id": "E1LBMEDVYOFND9",
+    "distribution_arn": "arn:aws:cloudfront::817685572750:distribution/E1LBMEDVYOFND9",
+    "domain_name": "d3gb5jeh0h8cok.cloudfront.net"
+  },
+  "target_group": {
+    "arn": "arn:aws:elasticloadbalancing:eu-west-1:817685572750:targetgroup/website-sandbox-web/754d8e17c29cc336",
+    "suffix": "754d8e17c29cc336"
+  },
+  "task_definitions": {
+    "migration": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-migration:1",
+    "web": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:1",
+    "worker": "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:1"
+  },
+  "secret_arns": {
+    "database_url": "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-lifagE",
+    "django_secret_key": "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/django-secret-key-f7Lplx",
+    "github": "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/github-9j6niD",
+    "integrations": "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/integrations-WbbOvB",
+    "oidc": "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/oidc-tBGfnP",
+    "webhook": "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/webhook-nop3SI"
+  },
+  "network": {
+    "alb_dns_name": "website-sandbox-alb-1589058189.eu-west-1.elb.amazonaws.com",
+    "alb_zone_id": "Z32O12XQLNTSW2",
+    "security_group_ids": [
+      "sg-0641397bd1c2083f0"
+    ],
+    "subnet_ids": [
+      "subnet-0614747082352aecf",
+      "subnet-001e1960dcfc4fa60"
+    ],
+    "vpc_id": "vpc-073b9948956c96c98"
+  },
+  "dns_records": [
+    {
+      "name": "_1833b8750e68fdafc2c53100ee77c8cb.origin.web.dtcdev.click.",
+      "type": "CNAME",
+      "value": "_52e6ada79f77b1f79d142ca2f6514312.jkddzztszm.acm-validations.aws."
+    },
+    {
+      "name": "_6ce15a90015bc0ee9fa736d91625d8ce.web.dtcdev.click.",
+      "type": "CNAME",
+      "value": "_0cb8ba7fbb4dd124e87af5ce8d8aadb3.jkddzztszm.acm-validations.aws."
+    },
+    {
+      "name": "origin.web.dtcdev.click.",
+      "type": "A",
+      "value": "website-sandbox-alb-1589058189.eu-west-1.elb.amazonaws.com."
+    },
+    {
+      "name": "origin.web.dtcdev.click.",
+      "type": "AAAA",
+      "value": "website-sandbox-alb-1589058189.eu-west-1.elb.amazonaws.com."
+    },
+    {
+      "name": "web.dtcdev.click.",
+      "type": "A",
+      "value": "d3gb5jeh0h8cok.cloudfront.net."
+    },
+    {
+      "name": "web.dtcdev.click.",
+      "type": "AAAA",
+      "value": "d3gb5jeh0h8cok.cloudfront.net."
+    }
+  ],
+  "dns_records_sha256": "ca635e3809cfef4187a0b83c1fc2e4acf8b1191d1ef6dd7fa9bc1b8c83a8d83c",
+  "normalized_dns_full_records": [
+    {
+      "Name": "_1833b8750e68fdafc2c53100ee77c8cb.origin.web.dtcdev.click.",
+      "Type": "CNAME",
+      "TTL": 300,
+      "ResourceRecords": [
+        {
+          "Value": "_52e6ada79f77b1f79d142ca2f6514312.jkddzztszm.acm-validations.aws."
+        }
+      ]
+    },
+    {
+      "Name": "_6ce15a90015bc0ee9fa736d91625d8ce.web.dtcdev.click.",
+      "Type": "CNAME",
+      "TTL": 300,
+      "ResourceRecords": [
+        {
+          "Value": "_0cb8ba7fbb4dd124e87af5ce8d8aadb3.jkddzztszm.acm-validations.aws."
+        }
+      ]
+    },
+    {
+      "Name": "origin.web.dtcdev.click.",
+      "Type": "A",
+      "AliasTarget": {
+        "HostedZoneId": "Z32O12XQLNTSW2",
+        "DNSName": "website-sandbox-alb-1589058189.eu-west-1.elb.amazonaws.com.",
+        "EvaluateTargetHealth": false
+      }
+    },
+    {
+      "Name": "origin.web.dtcdev.click.",
+      "Type": "AAAA",
+      "AliasTarget": {
+        "HostedZoneId": "Z32O12XQLNTSW2",
+        "DNSName": "website-sandbox-alb-1589058189.eu-west-1.elb.amazonaws.com.",
+        "EvaluateTargetHealth": false
+      }
+    },
+    {
+      "Name": "web.dtcdev.click.",
+      "Type": "A",
+      "AliasTarget": {
+        "HostedZoneId": "Z2FDTNDATAQYW2",
+        "DNSName": "d3gb5jeh0h8cok.cloudfront.net.",
+        "EvaluateTargetHealth": false
+      }
+    },
+    {
+      "Name": "web.dtcdev.click.",
+      "Type": "AAAA",
+      "AliasTarget": {
+        "HostedZoneId": "Z2FDTNDATAQYW2",
+        "DNSName": "d3gb5jeh0h8cok.cloudfront.net.",
+        "EvaluateTargetHealth": false
+      }
+    }
+  ],
+  "normalized_dns_full_records_sha256": "c224be2350342c319c09d07ec1672fd867b48d30c7a8b7587b78758b5e2ebda8",
+  "source_dns_full_records_bytes": 1242,
+  "source_dns_full_records_sha256": "4cadb0505d61e04a7e652b7f2c2e303bfa573407a65dffc30d9fbf6d2708b0e7",
+  "github_repository_variables": {
+    "SANDBOX_AUTO_DEPLOY": "false",
+    "SANDBOX_AWS_REGION": "eu-west-1",
+    "SANDBOX_ECR_REPOSITORY_NAME": "website-sandbox",
+    "SANDBOX_ECR_REPOSITORY_URI": "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+    "SANDBOX_KMS_KEY_ARN": "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887",
+    "SANDBOX_PUBLISHER_ROLE_ARN": "arn:aws:iam::817685572750:role/website-sandbox-github-publisher",
+    "SANDBOX_ROUTE53_HOSTED_ZONE_ID": "Z05963572WVWFHDQZH5NE"
+  },
+  "github_environment_variables": {
+    "SANDBOX_DEPLOYER_ROLE_ARN": "arn:aws:iam::817685572750:role/website-sandbox-github-deployer",
+    "SANDBOX_ECS_ASSIGN_PUBLIC_IP": "true",
+    "SANDBOX_ECS_CLUSTER_ARN": "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox",
+    "SANDBOX_ECS_CONTAINER_NAMES": "{\"migration\":\"migration\",\"web\":\"web\",\"worker\":\"worker\"}",
+    "SANDBOX_ECS_EXECUTION_ROLE_ARN": "arn:aws:iam::817685572750:role/website-sandbox-task-execution",
+    "SANDBOX_ECS_MIGRATION_TASK_FAMILY": "website-sandbox-migration",
+    "SANDBOX_ECS_SECURITY_GROUP_IDS": "[\"sg-0641397bd1c2083f0\"]",
+    "SANDBOX_ECS_SUBNET_IDS": "[\"subnet-0614747082352aecf\",\"subnet-001e1960dcfc4fa60\"]",
+    "SANDBOX_ECS_TASK_ROLE_ARN": "arn:aws:iam::817685572750:role/website-sandbox-task-application",
+    "SANDBOX_ECS_WEB_SERVICE_NAME": "website-sandbox-web",
+    "SANDBOX_ECS_WEB_TASK_FAMILY": "website-sandbox-web",
+    "SANDBOX_ECS_WORKER_SERVICE_NAME": "website-sandbox-worker",
+    "SANDBOX_ECS_WORKER_TASK_FAMILY": "website-sandbox-worker",
+    "SANDBOX_RESOURCE_ENVIRONMENT_TAG": "sandbox",
+    "SANDBOX_RESOURCE_PROJECT_TAG": "website",
+    "SANDBOX_WEB_RELEASE_DESIRED_COUNT": "1",
+    "SANDBOX_WEB_TARGET_GROUP_ARN": "arn:aws:elasticloadbalancing:eu-west-1:817685572750:targetgroup/website-sandbox-web/754d8e17c29cc336",
+    "SANDBOX_WORKER_RELEASE_DESIRED_COUNT": "1"
+  },
+  "operator_parent": {
+    "account_id": "817685572750",
+    "role_arn": "arn:aws:iam::817685572750:role/phone-aws-sandbox-role",
+    "role_id": "AROA34YO3VSHI2OCVBKTW",
+    "session_name_pattern": "^phone-sandbox-[0-9a-f]{8}$",
+    "forbidden_role_names": [
+      "website-sandbox-github-publisher",
+      "website-sandbox-github-deployer",
+      "website-sandbox-task-application",
+      "website-sandbox-task-execution"
+    ]
+  },
+  "terraform_address_count": 98
+}

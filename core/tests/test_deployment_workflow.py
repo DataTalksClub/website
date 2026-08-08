@@ -750,6 +750,187 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertNotIn("gate_b_evidence", workflow)
 
+    def test_gate_b_operator_contract_is_exact_and_workflow_isolated(self) -> None:
+        seed_path = ROOT / "deploy/gate_b_binding_seed.json"
+        contract_path = ROOT / "deploy/gate_b_execution_contract.json"
+        seed = json.loads(seed_path.read_text())
+        contract = json.loads(contract_path.read_text())
+
+        self.assertEqual(seed["schema_version"], 1)
+        self.assertEqual(seed["seed_id"], "website-sandbox-gate-b-binding-v1")
+        self.assertEqual(contract["schema_version"], 1)
+        self.assertEqual(contract["contract_id"], "website-sandbox-gate-b-execution-v1")
+        self.assertEqual(seed["source_binding"], contract["source_binding"])
+        self.assertEqual(
+            hashlib.sha256(seed_path.read_bytes()).hexdigest(),
+            contract["bindings"]["seed_file_sha256"],
+        )
+        canonical_seed = json.dumps(seed, sort_keys=True, separators=(",", ":")).encode()
+        self.assertEqual(
+            hashlib.sha256(canonical_seed).hexdigest(),
+            contract["bindings"]["seed_canonical_sha256"],
+        )
+        canonical_dns = json.dumps(
+            seed["dns_records"], sort_keys=True, separators=(",", ":")
+        ).encode()
+        self.assertEqual(hashlib.sha256(canonical_dns).hexdigest(), seed["dns_records_sha256"])
+        canonical_full_dns = json.dumps(
+            seed["normalized_dns_full_records"], sort_keys=True, separators=(",", ":")
+        ).encode()
+        self.assertEqual(
+            hashlib.sha256(canonical_full_dns).hexdigest(),
+            seed["normalized_dns_full_records_sha256"],
+        )
+        self.assertEqual(seed["source_dns_full_records_bytes"], 1242)
+        self.assertEqual(
+            seed["source_dns_full_records_sha256"],
+            "4cadb0505d61e04a7e652b7f2c2e303bfa573407a65dffc30d9fbf6d2708b0e7",
+        )
+        self.assertEqual(len(seed["secret_arns"]), 6)
+        self.assertEqual(len(seed["dns_records"]), 6)
+        self.assertEqual(len(seed["normalized_dns_full_records"]), 6)
+        self.assertEqual(len(seed["github_repository_variables"]), 7)
+        self.assertEqual(len(seed["github_environment_variables"]), 18)
+        self.assertEqual(seed["github_repository_variables"]["SANDBOX_AUTO_DEPLOY"], "false")
+        self.assertEqual(
+            seed["operator_parent"],
+            {
+                "account_id": "817685572750",
+                "forbidden_role_names": [
+                    "website-sandbox-github-publisher",
+                    "website-sandbox-github-deployer",
+                    "website-sandbox-task-application",
+                    "website-sandbox-task-execution",
+                ],
+                "role_arn": "arn:aws:iam::817685572750:role/phone-aws-sandbox-role",
+                "role_id": "AROA34YO3VSHI2OCVBKTW",
+                "session_name_pattern": "^phone-sandbox-[0-9a-f]{8}$",
+            },
+        )
+
+        graph = contract["graph"]
+        operations = graph["operations"]
+        self.assertEqual(graph["provider_operation_count"], 174)
+        self.assertEqual(graph["non_simulator_operation_count"], 84)
+        self.assertEqual(graph["aws_readback_operation_count"], 58)
+        self.assertEqual(graph["github_operation_count"], 26)
+        self.assertEqual(graph["simulator_operation_count"], 90)
+        self.assertEqual(graph["expected_nonzero_count"], 5)
+        self.assertEqual(len(operations), 84)
+        self.assertEqual([item["sequence"] for item in operations], list(range(1, 85)))
+        self.assertEqual(len({item["id"] for item in operations}), 84)
+        self.assertEqual(operations[0]["id"], "sts-caller")
+        self.assertEqual(operations[0]["phase"], "identity")
+        self.assertEqual(
+            operations[0]["argv"][1:],
+            ["sts", "get-caller-identity", "--no-cli-pager", "--output", "json"],
+        )
+        self.assertEqual(sum(item["provider"] == "aws" for item in operations), 58)
+        self.assertEqual(sum(item["provider"] == "github" for item in operations), 26)
+        self.assertEqual(
+            sum(item["expected"]["exit_code"] == "nonzero" for item in operations),
+            5,
+        )
+        expected_absences = {
+            "s3-policy": "NoSuchBucketPolicy",
+            "s3-lock-object": "404",
+            "ecr-zero-digest": "ImageNotFoundException",
+            "ecr-repository-policy": "RepositoryPolicyNotFoundException",
+            "ecr-registry-policy": "RegistryPolicyNotFoundException",
+        }
+        self.assertEqual(
+            {
+                item["id"]: item["expected"]["error_code"]
+                for item in operations
+                if item["expected"]["exit_code"] == "nonzero"
+            },
+            expected_absences,
+        )
+        self.assertEqual(
+            graph["simulator_recipe"]["source_sha256"],
+            "838fa6daca8b0760350e13a60e5e42fa059cbf51f5526749098b5a6aeafd9ad1",
+        )
+        self.assertEqual(graph["simulator_recipe"]["count"], 90)
+        self.assertEqual(contract["credential_process"]["resolve_count"], 1)
+        self.assertEqual(contract["credential_process"]["minimum_ttl_seconds_at_start"], 840)
+        self.assertEqual(contract["credential_process"]["hard_reserve_seconds"], 120)
+        self.assertFalse(contract["credential_process"]["refresh_allowed"])
+        self.assertEqual(
+            contract["child_environments"]["aws_fixed_values"]["AWS_CONFIG_FILE"],
+            "/dev/null",
+        )
+        self.assertEqual(
+            contract["child_environments"]["aws_fixed_values"]["AWS_SHARED_CREDENTIALS_FILE"],
+            "/dev/null",
+        )
+        self.assertFalse(contract["limits"]["resume_allowed"])
+        self.assertEqual(contract["limits"]["retry_count"], 0)
+        self.assertTrue(contract["limits"]["require_owner_euid"])
+        self.assertTrue(contract["limits"]["require_single_link"])
+        self.assertEqual(contract["limits"]["success_stderr"], "empty")
+        self.assertEqual(contract["limits"]["accepted_error_stdout"], "empty")
+
+        commands = "\n".join(" ".join(item["argv"]) for item in operations).lower()
+        for forbidden in (
+            " s3api get-object ",
+            " secretsmanager get-secret-value ",
+            "terraform ",
+            "workflow run",
+            "--debug",
+            "--policy-input-list",
+            "--resource-policy",
+            "--caller-arn",
+        ):
+            self.assertNotIn(forbidden, commands)
+
+        frozen_hashes = {
+            "_docs/audits/2026-08-07-oidc-denial-sentinels.md": (
+                "8c4e9b6701d670bac87853254d66b2399e379e79b072409690c68acb3a3e9696"
+            ),
+            "deploy/gate_b_evidence.py": (
+                "52d93e9b2757c75c4ec633ac2d903fdce658b107481382025c22bf0f9d276b68"
+            ),
+            "deploy/gate_b_manifest.json": (
+                "c96f710091adfc0e9c85ed02329238f374118766f46f630ea956794015987985"
+            ),
+            "core/tests/test_gate_b_evidence.py": (
+                "4dd65a576f3bd3d3bd2dff41170ee161f45ffe5362a4e4e1f8af0feabc081027"
+            ),
+            ".github/workflows/ci.yml": (
+                "6932845a0f919c816a086bdcf5976d38bb1195ee75af4d118e6fd4b962e11ac9"
+            ),
+            "deploy/oidc_probe.py": (
+                "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
+            ),
+            "deploy/oidc_claim_probe.py": (
+                "693b1844e5e1c40709ce368ecb6bef22814a5912ceaa635288f0d0204a75ba28"
+            ),
+            "core/tests/test_deployment_oidc_probe.py": (
+                "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
+            ),
+            "pyproject.toml": ("892b36023b1f984616bf1424d8bdeeeef38984b58570ecf422689814d2504be9"),
+            "uv.lock": "2f429a2e0edad55dc14b3a70c0697304ce11a832c93431558073fbdca514cb10",
+        }
+        for relative_path, expected_hash in frozen_hashes.items():
+            self.assertEqual(
+                hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest(),
+                expected_hash,
+            )
+
+        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        audit = (ROOT / "_docs/audits/2026-08-08-gate-b-operator-execution.md").read_text()
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        for required in (
+            "#85 sealed operator procedure",
+            "exactly 174 evidence operations",
+            "resolved exactly once",
+            "execution-attestation.json",
+            "does not authorize",
+        ):
+            self.assertIn(required, f"{runbook}\n{audit}")
+        self.assertNotIn("gate_b_operator", workflow)
+        self.assertNotIn("gate_b_assembler", workflow)
+
     def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
         runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
         drills_position = runbook.index("## Controlled failure drills")
