@@ -118,9 +118,11 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     "core.middleware.PrivateSurfaceMiddleware",
     "core.middleware.NoIndexMiddleware",
+    "compatibility.monitoring.CompatibilityMonitoringMiddleware",
 ]
 
 ROOT_URLCONF = "website.urls"
+APPEND_SLASH = False
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
@@ -232,6 +234,7 @@ Q_CLUSTER = {
 }
 
 NOINDEX = False
+COMPATIBILITY_CONTRACT_PATHS: dict[str, str] = {}
 REQUIRED_BOOTSTRAP_SETTINGS = ("SECRET_KEY", "ALLOWED_HOSTS", "DATABASES")
 
 SECURE_CONTENT_TYPE_NOSNIFF = True
