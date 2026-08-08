@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 from argparse import Namespace
+from itertools import permutations
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
@@ -1258,6 +1259,7 @@ class FakeWorkerServiceEcs:
                     "desiredCount": 1,
                     "runningCount": 1,
                     "pendingCount": 0,
+                    "failedTasks": 0,
                     "rolloutState": "COMPLETED",
                 }
             ]
@@ -1270,21 +1272,32 @@ class FakeServiceSequenceEcs:
         services: list[dict[str, object]],
         *,
         update_response: dict[str, object] | None = None,
+        clock: FakeWorkerClock | None = None,
+        update_delay: float = 0,
+        describe_delays: list[float] | None = None,
     ) -> None:
         self.services = services
         self.update_response = update_response
         self.describe_calls = 0
         self.update_calls = 0
+        self.clock = clock
+        self.update_delay = update_delay
+        self.describe_delays = describe_delays or []
 
     def describe_services(self, **kwargs):  # type: ignore[no-untyped-def]
         del kwargs
-        index = min(self.describe_calls, len(self.services) - 1)
+        call_index = self.describe_calls
+        index = min(call_index, len(self.services) - 1)
         self.describe_calls += 1
+        if self.clock is not None and call_index < len(self.describe_delays):
+            self.clock.current += self.describe_delays[call_index]
         return {"failures": [], "services": [json.loads(json.dumps(self.services[index]))]}
 
     def update_service(self, **kwargs):  # type: ignore[no-untyped-def]
         del kwargs
         self.update_calls += 1
+        if self.clock is not None:
+            self.clock.current += self.update_delay
         return json.loads(json.dumps(self.update_response))
 
 
@@ -1311,12 +1324,16 @@ class WorkerStabilizationContractTests(SimpleTestCase):
                     "desiredCount": 1,
                     "runningCount": 1,
                     "pendingCount": 0,
+                    "failedTasks": 0,
                     "rolloutState": "IN_PROGRESS",
                 }
             ],
         }
 
-    def gateway(self, ecs: FakeWorkerServiceEcs) -> AwsReleaseGateway:
+    def gateway(
+        self,
+        ecs: FakeWorkerServiceEcs | FakeServiceSequenceEcs,
+    ) -> AwsReleaseGateway:
         gateway = AwsReleaseGateway.__new__(AwsReleaseGateway)
         gateway.config = AwsReleaseConfig(
             region="eu-west-1",
@@ -1379,7 +1396,7 @@ class WorkerStabilizationContractTests(SimpleTestCase):
     def test_singleton_in_progress_through_worker_max_times_out_exactly(self) -> None:
         clock = FakeWorkerClock()
         ecs = FakeWorkerServiceEcs(clock, self.in_progress_service())
-        with self.assertRaisesMessage(ReleaseContractError, "worker service did not reach"):
+        with self.assertRaisesMessage(ReleaseContractError, "deadline expired"):
             self.wait(self.gateway(ecs), clock)
 
         self.assertEqual(clock.current, WORKER_STABILIZATION_TIMEOUT_SECONDS)
@@ -1423,23 +1440,36 @@ class WorkerStabilizationContractTests(SimpleTestCase):
         self,
     ) -> None:
         clock = FakeWorkerClock()
-        ecs = FakeWorkerServiceEcs(
-            clock,
-            self.web_in_progress_service(),
-            complete_at=WEB_STABILIZATION_TIMEOUT_SECONDS,
+        terminal = self.web_in_progress_service()
+        terminal.update({"desiredCount": 1, "runningCount": 1, "pendingCount": 0})
+        deployments = terminal["deployments"]
+        assert isinstance(deployments, list)
+        deployments[0].update(
+            {
+                "desiredCount": 1,
+                "runningCount": 1,
+                "pendingCount": 0,
+                "failedTasks": 0,
+                "rolloutState": "COMPLETED",
+            }
+        )
+        ecs = FakeServiceSequenceEcs(
+            [terminal],
+            clock=clock,
+            describe_delays=[WEB_STABILIZATION_TIMEOUT_SECONDS],
         )
 
         self.wait_web(self.gateway(ecs), clock)
 
         self.assertEqual(clock.current, WEB_STABILIZATION_TIMEOUT_SECONDS)
-        self.assertEqual(ecs.describe_calls, 25)
-        self.assertEqual(len(clock.sleep_calls), 24)
+        self.assertEqual(ecs.describe_calls, 1)
+        self.assertEqual(clock.sleep_calls, [])
 
     def test_web_in_progress_on_final_observation_fails_without_another_poll(self) -> None:
         clock = FakeWorkerClock()
         ecs = FakeWorkerServiceEcs(clock, self.web_in_progress_service())
 
-        with self.assertRaisesMessage(ReleaseContractError, "web service did not reach"):
+        with self.assertRaisesMessage(ReleaseContractError, "deadline expired"):
             self.wait_web(self.gateway(ecs), clock)
 
         self.assertEqual(clock.current, WEB_STABILIZATION_TIMEOUT_SECONDS)
@@ -1709,6 +1739,15 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
                     )
         with self.assertRaises(ReleaseContractError):
             ServicePredecessor(object(), "ecs-svc/web-a", "terminal")  # type: ignore[arg-type]
+        with self.assertRaises(ReleaseContractError):
+            ServiceUpdateReceipt(
+                "web",
+                "web",
+                target,
+                "ecs-svc/web-b",
+                (terminal,),
+                "raw-provider-payload",  # type: ignore[arg-type]
+            )
 
     def test_update_response_returns_exact_receipt_and_rejects_invalid_shapes(self) -> None:
         target = ServiceTarget(self.WEB_B, 1)
@@ -1733,6 +1772,8 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
         receipt = self.gateway(ecs).update_service("web", target, (terminal,))
         self.assertEqual(receipt.primary_deployment_id, "ecs-svc/web-b")
         self.assertEqual(receipt.target, target)
+        self.assertEqual(receipt.binding_reason, "complete_receipt")
+        self.assertEqual(ecs.describe_calls, 0)
 
         invalid_services: dict[str, dict[str, object]] = {
             "wrong service": valid_service | {"serviceName": "other"},
@@ -1751,6 +1792,19 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
                         self.WEB_C,
                         1,
                         "ecs-svc/web-c",
+                        status="ACTIVE",
+                    ),
+                ]
+            },
+            "multiple new candidates": valid_service
+            | {
+                "deployments": [
+                    candidate,
+                    old,
+                    self.deployment(
+                        self.WEB_B,
+                        1,
+                        "ecs-svc/web-b-other",
                         status="ACTIVE",
                     ),
                 ]
@@ -1783,8 +1837,20 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
         same_target_ecs = FakeServiceSequenceEcs(
             [old_completed], update_response={"service": old_completed}
         )
-        with self.assertRaisesMessage(ReleaseContractError, "reused"):
-            self.gateway(same_target_ecs).update_service("web", same_target, (terminal,))
+        clock = FakeWorkerClock()
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+            self.assertRaisesMessage(ReleaseContractError, "deadline expired"),
+        ):
+            self.gateway(same_target_ecs).update_service(
+                "web",
+                same_target,
+                (terminal,),
+                deadline=1.0,
+            )
+        self.assertEqual(same_target_ecs.describe_calls, 2)
+        self.assertEqual(clock.sleep_calls, [1])
 
     def test_update_rejects_unsafe_predecessor_shape_before_side_effect(self) -> None:
         target = ServiceTarget(self.WEB_B, 1)
@@ -1794,6 +1860,597 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
             with self.assertRaises(ReleaseContractError):
                 self.gateway(ecs).update_service("web", target, predecessors)
             self.assertEqual(ecs.update_calls, 0)
+
+    def test_exact_zero_count_initialization_binds_and_only_terminal_state_succeeds(
+        self,
+    ) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        candidate = self.deployment(
+            self.WEB_B,
+            0,
+            "ecs-svc/web-b",
+            running_count=0,
+            pending_count=0,
+        )
+        old = self.deployment(
+            self.WEB_A,
+            1,
+            "ecs-svc/web-a",
+            status="ACTIVE",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        initialization = self.service(
+            target,
+            ServiceTarget(self.WEB_B, 0),
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+            primary_running=0,
+            primary_pending=0,
+            deployments=[candidate, old],
+        )
+        terminal_service = self.service(
+            target,
+            target,
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+            primary_running=1,
+            primary_pending=0,
+            rollout_state="COMPLETED",
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [initialization, terminal_service],
+            update_response={"service": initialization},
+        )
+        gateway = self.gateway(ecs)
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+        ):
+            deadline = gateway.service_stabilization_deadline(WEB_STABILIZATION_TIMEOUT_SECONDS)
+            receipt = gateway.update_service(
+                "web",
+                target,
+                (terminal,),
+                deadline=deadline,
+                timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
+            )
+            self.assertEqual(receipt.target, target)
+            self.assertEqual(receipt.primary_deployment_id, "ecs-svc/web-b")
+            self.assertEqual(receipt.binding_reason, "zero_count_initialization")
+            self.assertEqual(ecs.describe_calls, 0)
+            gateway.wait_service_stable(
+                receipt,
+                timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
+                deadline=deadline,
+            )
+        self.assertEqual(ecs.describe_calls, 2)
+        self.assertEqual(clock.sleep_calls, [10])
+
+    def test_partial_acknowledgement_reconciles_immediately_on_the_original_deadline(
+        self,
+    ) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        old = self.service(
+            terminal.target,
+            terminal.target,
+            terminal.primary_deployment_id,
+            service_running=1,
+            service_pending=0,
+            primary_running=1,
+            primary_pending=0,
+            rollout_state="COMPLETED",
+        )
+        crossed = self.service(
+            terminal.target,
+            target,
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [old, crossed],
+            update_response={"service": {"serviceName": "web"}},
+        )
+        gateway = self.gateway(ecs)
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+        ):
+            deadline = 30.0
+            receipt = gateway.update_service(
+                "web",
+                target,
+                (terminal,),
+                deadline=deadline,
+                timeout_seconds=30,
+            )
+        self.assertEqual(receipt.primary_deployment_id, "ecs-svc/web-b")
+        self.assertEqual(receipt.binding_reason, "partial_acknowledgement_reconciled")
+        self.assertEqual(ecs.describe_calls, 2)
+        self.assertEqual(clock.sleep_calls, [10])
+        self.assertEqual(clock.current, 10)
+
+    def test_bound_zero_count_initialization_times_out_without_becoming_success(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        initialization = self.service(
+            target,
+            ServiceTarget(self.WEB_B, 0),
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+            primary_running=0,
+            primary_pending=0,
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [initialization],
+            update_response={"service": initialization},
+        )
+        gateway = self.gateway(ecs)
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+        ):
+            receipt = gateway.update_service(
+                "web",
+                target,
+                (terminal,),
+                deadline=20.0,
+                timeout_seconds=20,
+            )
+            with self.assertRaisesMessage(ReleaseContractError, "deadline expired"):
+                gateway.wait_service_stable(
+                    receipt,
+                    timeout_seconds=20,
+                    deadline=20.0,
+                )
+        self.assertEqual(clock.current, 20)
+        self.assertEqual(ecs.describe_calls, 3)
+        self.assertEqual(clock.sleep_calls, [10, 10])
+
+    def test_partial_acknowledgement_expires_on_inclusive_deadline_without_identity(
+        self,
+    ) -> None:
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        stale = self.service(
+            terminal.target,
+            terminal.target,
+            terminal.primary_deployment_id,
+            service_running=1,
+            service_pending=0,
+            primary_running=1,
+            primary_pending=0,
+            rollout_state="COMPLETED",
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs([stale], update_response={})
+        gateway = self.gateway(ecs, poll_seconds=17)
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+            self.assertRaisesMessage(ReleaseContractError, "deadline expired") as caught,
+        ):
+            gateway.update_service(
+                "web",
+                ServiceTarget(self.WEB_B, 1),
+                (terminal,),
+                deadline=30.0,
+                timeout_seconds=30,
+            )
+        self.assertEqual(caught.exception.reason_code, "receipt_deadline_expired")
+        self.assertEqual(ecs.describe_calls, 3)
+        self.assertEqual(clock.sleep_calls, [17, 13])
+        self.assertEqual(clock.current, 30)
+
+    def test_zero_count_candidate_without_id_is_never_synthesized_from_the_request(
+        self,
+    ) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        candidate = self.deployment(
+            self.WEB_B,
+            0,
+            "ecs-svc/web-b",
+            running_count=0,
+            pending_count=0,
+        )
+        candidate.pop("id")
+        old = self.deployment(
+            self.WEB_A,
+            1,
+            terminal.primary_deployment_id,
+            status="ACTIVE",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        service = self.service(
+            target,
+            ServiceTarget(self.WEB_B, 0),
+            "unused",
+            service_running=1,
+            service_pending=0,
+            deployments=[candidate, old],
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs([service], update_response={"service": service})
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+            self.assertRaisesMessage(ReleaseContractError, "deadline expired"),
+        ):
+            self.gateway(ecs).update_service(
+                "web",
+                target,
+                (terminal,),
+                deadline=1.0,
+            )
+        self.assertEqual(ecs.describe_calls, 2)
+        self.assertEqual(clock.sleep_calls, [1])
+
+    def test_zero_count_candidate_contradictions_fail_on_the_first_response(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        old = self.deployment(
+            self.WEB_A,
+            1,
+            "ecs-svc/web-a",
+            status="ACTIVE",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        base_candidate = self.deployment(
+            self.WEB_B,
+            0,
+            "ecs-svc/web-b",
+            running_count=0,
+            pending_count=0,
+        )
+        cases = {
+            "service zero": self.service(
+                ServiceTarget(self.WEB_B, 0),
+                ServiceTarget(self.WEB_B, 0),
+                "ecs-svc/web-b",
+                service_running=0,
+                service_pending=0,
+                primary_running=0,
+                primary_pending=0,
+                deployments=[base_candidate, old],
+            ),
+            "candidate running": self.service(
+                target,
+                ServiceTarget(self.WEB_B, 0),
+                "ecs-svc/web-b",
+                service_running=1,
+                service_pending=0,
+                deployments=[base_candidate | {"runningCount": 1}, old],
+            ),
+            "candidate pending": self.service(
+                target,
+                ServiceTarget(self.WEB_B, 0),
+                "ecs-svc/web-b",
+                service_running=1,
+                service_pending=0,
+                deployments=[base_candidate | {"pendingCount": 1}, old],
+            ),
+            "candidate failed": self.service(
+                target,
+                ServiceTarget(self.WEB_B, 0),
+                "ecs-svc/web-b",
+                service_running=1,
+                service_pending=0,
+                deployments=[base_candidate | {"failedTasks": 1}, old],
+            ),
+            "candidate completed": self.service(
+                target,
+                ServiceTarget(self.WEB_B, 0),
+                "ecs-svc/web-b",
+                service_running=1,
+                service_pending=0,
+                deployments=[base_candidate | {"rolloutState": "COMPLETED"}, old],
+            ),
+        }
+        for name, service in cases.items():
+            ecs = FakeServiceSequenceEcs([], update_response={"service": service})
+            with self.subTest(name=name), self.assertRaises(ReleaseContractError):
+                self.gateway(ecs).update_service("web", target, (terminal,))
+            self.assertEqual(ecs.describe_calls, 0)
+
+    def test_present_malformed_acknowledgement_counts_fail_without_reconciliation(
+        self,
+    ) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        valid = self.service(target, target, "ecs-svc/web-b")
+        for location, fields in (
+            ("service", ("desiredCount", "runningCount", "pendingCount")),
+            (
+                "candidate",
+                ("desiredCount", "runningCount", "pendingCount", "failedTasks"),
+            ),
+        ):
+            for field in fields:
+                for malformed in (True, "1", -1):
+                    service = json.loads(json.dumps(valid))
+                    document = service
+                    if location == "candidate":
+                        deployments = service["deployments"]
+                        assert isinstance(deployments, list)
+                        document = deployments[0]
+                    assert isinstance(document, dict)
+                    document[field] = malformed
+                    ecs = FakeServiceSequenceEcs([], update_response={"service": service})
+                    with (
+                        self.subTest(
+                            location=location,
+                            field=field,
+                            malformed=malformed,
+                        ),
+                        self.assertRaises(ReleaseContractError),
+                    ):
+                        self.gateway(ecs).update_service("web", target, (terminal,))
+                    self.assertEqual(ecs.describe_calls, 0)
+
+    def test_bootstrap_and_same_target_force_new_accept_only_new_initialization_id(
+        self,
+    ) -> None:
+        for name, predecessor_target, target in (
+            (
+                "bootstrap",
+                ServiceTarget(self.WEB_A, 0),
+                ServiceTarget(self.WEB_B, 1),
+            ),
+            (
+                "same-target",
+                ServiceTarget(self.WEB_A, 1),
+                ServiceTarget(self.WEB_A, 1),
+            ),
+        ):
+            terminal = ServicePredecessor(
+                predecessor_target,
+                f"ecs-svc/{name}-old",
+                "terminal",
+            )
+            candidate_id = f"ecs-svc/{name}-new"
+            candidate = self.deployment(
+                target.task_definition_arn,
+                0,
+                candidate_id,
+                running_count=0,
+                pending_count=0,
+            )
+            old = self.deployment(
+                predecessor_target.task_definition_arn,
+                predecessor_target.desired_count,
+                terminal.primary_deployment_id,
+                status="ACTIVE",
+                rollout_state="COMPLETED",
+                running_count=predecessor_target.desired_count,
+                pending_count=0,
+            )
+            initialization = self.service(
+                target,
+                ServiceTarget(target.task_definition_arn, 0),
+                candidate_id,
+                service_running=predecessor_target.desired_count,
+                service_pending=0,
+                primary_running=0,
+                primary_pending=0,
+                deployments=[candidate, old],
+            )
+            ecs = FakeServiceSequenceEcs([], update_response={"service": initialization})
+            with self.subTest(name=name):
+                receipt = self.gateway(ecs).update_service("web", target, (terminal,))
+                self.assertEqual(receipt.primary_deployment_id, candidate_id)
+                self.assertNotEqual(receipt.primary_deployment_id, terminal.primary_deployment_id)
+                self.assertEqual(receipt.binding_reason, "zero_count_initialization")
+
+    def test_restorative_and_worker_initialization_use_the_same_strict_receipt_rules(
+        self,
+    ) -> None:
+        restore = ServiceTarget(self.WEB_A, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a-old",
+            "terminal",
+        )
+        attempted = ServicePredecessor(
+            ServiceTarget(self.WEB_B, 1),
+            "ecs-svc/web-b",
+            "attempted",
+        )
+        candidate = self.deployment(
+            self.WEB_A,
+            0,
+            "ecs-svc/web-a-restore",
+            running_count=0,
+            pending_count=0,
+        )
+        failed_attempt = self.deployment(
+            self.WEB_B,
+            1,
+            attempted.primary_deployment_id,
+            status="ACTIVE",
+            rollout_state="FAILED",
+            failed_tasks=1,
+            running_count=0,
+            pending_count=0,
+        )
+        service = self.service(
+            restore,
+            ServiceTarget(self.WEB_A, 0),
+            "ecs-svc/web-a-restore",
+            service_running=0,
+            service_pending=1,
+            primary_running=0,
+            primary_pending=0,
+            deployments=[candidate, failed_attempt],
+        )
+        receipt = self.gateway(
+            FakeServiceSequenceEcs([], update_response={"service": service})
+        ).update_service("web", restore, (terminal, attempted))
+        self.assertEqual(receipt.binding_reason, "zero_count_initialization")
+
+        worker_a = ServiceTarget(WorkerStabilizationContractTests.WORKER_A, 1)
+        worker_b = ServiceTarget(WorkerStabilizationContractTests.WORKER_B, 1)
+        worker_terminal = ServicePredecessor(worker_a, "ecs-svc/worker-a", "terminal")
+        worker_candidate = self.deployment(
+            worker_b.task_definition_arn,
+            0,
+            "ecs-svc/worker-b",
+            running_count=1,
+            pending_count=0,
+        )
+        worker_service = self.service(
+            worker_b,
+            ServiceTarget(worker_b.task_definition_arn, 0),
+            "ecs-svc/worker-b",
+            service_name="worker",
+            service_running=1,
+            service_pending=0,
+            deployments=[worker_candidate],
+        )
+        ecs = FakeServiceSequenceEcs([], update_response={"service": worker_service})
+        with self.assertRaises(ReleaseContractError):
+            self.gateway(ecs).update_service("worker", worker_b, (worker_terminal,))
+        self.assertEqual(ecs.describe_calls, 0)
+
+    def test_partial_worker_counts_enforce_per_deployment_and_aggregate_singleton(
+        self,
+    ) -> None:
+        worker_a = ServiceTarget(WorkerStabilizationContractTests.WORKER_A, 1)
+        worker_b = ServiceTarget(WorkerStabilizationContractTests.WORKER_B, 1)
+        terminal = ServicePredecessor(worker_a, "ecs-svc/worker-a", "terminal")
+        candidate = self.deployment(
+            worker_b.task_definition_arn,
+            1,
+            "ecs-svc/worker-b",
+            running_count=1,
+            pending_count=0,
+        )
+        candidate.pop("pendingCount")
+        old = self.deployment(
+            worker_a.task_definition_arn,
+            1,
+            terminal.primary_deployment_id,
+            status="ACTIVE",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        cases = {
+            "partial per-deployment lower bound": [candidate | {"runningCount": 2}],
+            "partial aggregate lower bound": [candidate, old],
+        }
+        for name, deployments in cases.items():
+            service = self.service(
+                worker_b,
+                worker_b,
+                "ecs-svc/worker-b",
+                service_name="worker",
+                service_running=1,
+                service_pending=0,
+                deployments=deployments,
+            )
+            ecs = FakeServiceSequenceEcs([], update_response={"service": service})
+            with self.subTest(name=name), self.assertRaises(ReleaseContractError):
+                self.gateway(ecs).update_service("worker", worker_b, (terminal,))
+            self.assertEqual(ecs.describe_calls, 0)
+
+    def test_recovery_captures_and_replaces_an_attempted_zero_count_initialization(
+        self,
+    ) -> None:
+        restore = ServiceTarget(self.WEB_A, 1)
+        attempted_target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(restore, "ecs-svc/web-a", "terminal")
+        attempted_initialization = self.deployment(
+            self.WEB_B,
+            0,
+            "ecs-svc/web-b",
+            running_count=0,
+            pending_count=0,
+        )
+        observed_attempt = self.service(
+            attempted_target,
+            ServiceTarget(self.WEB_B, 0),
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+            primary_running=0,
+            primary_pending=0,
+            deployments=[attempted_initialization],
+        )
+        gateway = self.gateway(FakeServiceSequenceEcs([observed_attempt]))
+        captured = gateway.capture_attempted_predecessor(
+            "web",
+            attempted_target,
+            terminal,
+            gateway.service_stabilization_deadline(),
+        )
+        self.assertEqual(captured.target, attempted_target)
+        self.assertEqual(captured.primary_deployment_id, "ecs-svc/web-b")
+
+        restorative_candidate = self.deployment(
+            self.WEB_A,
+            0,
+            "ecs-svc/web-a-restore",
+            running_count=0,
+            pending_count=0,
+        )
+        attempted_active = attempted_initialization | {"status": "ACTIVE"}
+        restorative_service = self.service(
+            restore,
+            ServiceTarget(self.WEB_A, 0),
+            "ecs-svc/web-a-restore",
+            service_running=0,
+            service_pending=1,
+            primary_running=0,
+            primary_pending=0,
+            deployments=[restorative_candidate, attempted_active],
+        )
+        receipt = self.gateway(
+            FakeServiceSequenceEcs([], update_response={"service": restorative_service})
+        ).update_service("web", restore, (terminal, captured))
+        self.assertEqual(receipt.primary_deployment_id, "ecs-svc/web-a-restore")
+        self.assertEqual(receipt.binding_reason, "zero_count_initialization")
 
     def test_worker_receipt_rejects_service_and_cross_deployment_overlap(self) -> None:
         worker_a = ServiceTarget(WorkerStabilizationContractTests.WORKER_A, 1)
@@ -1915,7 +2572,7 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
         with (
             patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
             patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
-            self.assertRaisesMessage(ReleaseContractError, "did not reach"),
+            self.assertRaisesMessage(ReleaseContractError, "deadline expired"),
         ):
             self.gateway(ecs, poll_seconds=17).wait_service_stable(
                 self.receipt(), timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS
@@ -1941,6 +2598,15 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
             ),
             "alien arn": self.service(ServiceTarget(self.WEB_C, 1), target, "ecs-svc/web-b"),
             "unrecognized same target id": self.service(target, target, "ecs-svc/web-other"),
+            "unrecognized zero-count target id": self.service(
+                target,
+                ServiceTarget(self.WEB_B, 0),
+                "ecs-svc/web-other",
+                service_running=0,
+                service_pending=1,
+                primary_running=0,
+                primary_pending=0,
+            ),
         }
         for name, service in cases.items():
             clock = FakeWorkerClock()
@@ -2021,7 +2687,7 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
         with (
             patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
             patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
-            self.assertRaisesMessage(ReleaseContractError, "did not reach"),
+            self.assertRaisesMessage(ReleaseContractError, "deadline expired"),
         ):
             self.gateway(ecs).wait_service_stable(self.receipt())
         self.assertEqual(clock.current, MAX_STAGE_TIMEOUT_SECONDS)
@@ -2147,7 +2813,7 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
                 target_id="ecs-svc/web-recovery",
                 attempted=predecessor,
             )
-            with self.assertRaisesMessage(ReleaseContractError, "did not reach"):
+            with self.assertRaisesMessage(ReleaseContractError, "deadline expired"):
                 gateway.wait_service_stable(recovery_receipt, deadline=deadline)
         self.assertEqual(clock.current, MAX_STAGE_TIMEOUT_SECONDS)
         self.assertEqual(len(clock.sleep_calls), 18)
@@ -2204,7 +2870,11 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
                 ),
             ]
         }
-        with self.assertRaisesMessage(ReleaseContractError, "third"):
+        third_clock = FakeWorkerClock()
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=third_clock.monotonic),
+            self.assertRaisesMessage(ReleaseContractError, "third"),
+        ):
             self.gateway(FakeServiceSequenceEcs([third])).capture_attempted_predecessor(
                 "web", attempted, terminal, 180.0
             )
@@ -2231,6 +2901,564 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
                     )
                 with self.subTest(wait=invalid), self.assertRaises(ReleaseContractError):
                     gateway.wait_service_stable(self.receipt(), deadline=invalid)
+
+    def test_partial_alien_task_definitions_fail_before_reconciliation(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        responses = {
+            "service task definition without count": {
+                "serviceName": "web",
+                "taskDefinition": self.WEB_C,
+            },
+            "deployment task definition without id": {
+                "serviceName": "web",
+                "deployments": [{"taskDefinition": self.WEB_C}],
+            },
+            "service count without task definition": {
+                "serviceName": "web",
+                "desiredCount": 2,
+            },
+            "deployment count without identity": {
+                "serviceName": "web",
+                "deployments": [{"desiredCount": 2}],
+            },
+            "present null service identity": {
+                "serviceName": None,
+            },
+            "present null service task definition": {
+                "serviceName": "web",
+                "taskDefinition": None,
+            },
+            "present null deployment status": {
+                "serviceName": "web",
+                "deployments": [{"status": None}],
+            },
+            "present null deployment task definition": {
+                "serviceName": "web",
+                "deployments": [{"taskDefinition": None}],
+            },
+            "present null deployment rollout state": {
+                "serviceName": "web",
+                "deployments": [{"rolloutState": None}],
+            },
+        }
+        for name, service in responses.items():
+            clock = FakeWorkerClock()
+            ecs = FakeServiceSequenceEcs([], update_response={"service": service})
+            with (
+                self.subTest(name=name),
+                patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+                patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+                self.assertRaises(ReleaseContractError) as caught,
+            ):
+                self.gateway(ecs).update_service(
+                    "web",
+                    target,
+                    (terminal,),
+                    deadline=30.0,
+                    timeout_seconds=30,
+                )
+            self.assertEqual(caught.exception.reason_code, "contract_contradiction")
+            self.assertEqual(ecs.describe_calls, 0)
+            self.assertEqual(clock.sleep_calls, [])
+
+    def test_idless_partial_deployment_must_extend_to_an_allowed_phase_shape(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 0),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        cases = {
+            "predecessor arn target count cross-pair": {
+                "taskDefinition": self.WEB_A,
+                "desiredCount": 1,
+            },
+            "initialization running count": {
+                "taskDefinition": self.WEB_B,
+                "desiredCount": 0,
+                "runningCount": 1,
+                "rolloutState": "IN_PROGRESS",
+            },
+            "initialization pending count": {
+                "taskDefinition": self.WEB_B,
+                "desiredCount": 0,
+                "pendingCount": 1,
+                "rolloutState": "IN_PROGRESS",
+            },
+            "initialization failed count": {
+                "taskDefinition": self.WEB_B,
+                "desiredCount": 0,
+                "failedTasks": 1,
+                "rolloutState": "IN_PROGRESS",
+            },
+            "completed initialization": {
+                "taskDefinition": self.WEB_B,
+                "desiredCount": 0,
+                "runningCount": 0,
+                "pendingCount": 0,
+                "failedTasks": 0,
+                "rolloutState": "COMPLETED",
+            },
+            "failed target": {
+                "taskDefinition": self.WEB_B,
+                "desiredCount": 1,
+                "rolloutState": "FAILED",
+            },
+            "positive target failed count": {
+                "taskDefinition": self.WEB_B,
+                "desiredCount": 1,
+                "failedTasks": 1,
+            },
+            "completed target running count": {
+                "taskDefinition": self.WEB_B,
+                "desiredCount": 1,
+                "runningCount": 0,
+                "pendingCount": 0,
+                "failedTasks": 0,
+                "rolloutState": "COMPLETED",
+            },
+        }
+        for name, deployment in cases.items():
+            clock = FakeWorkerClock()
+            ecs = FakeServiceSequenceEcs(
+                [],
+                update_response={
+                    "service": {
+                        "serviceName": "web",
+                        "deployments": [deployment],
+                    }
+                },
+            )
+            with (
+                self.subTest(name=name),
+                patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+                patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+                self.assertRaises(ReleaseContractError) as caught,
+            ):
+                self.gateway(ecs).update_service(
+                    "web",
+                    target,
+                    (terminal,),
+                    deadline=1.0,
+                )
+            self.assertEqual(caught.exception.reason_code, "contract_contradiction")
+            self.assertEqual(ecs.describe_calls, 0)
+            self.assertEqual(clock.sleep_calls, [])
+
+    def test_partial_candidate_projections_fit_one_candidate_slot_in_every_order(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        candidate = self.deployment(self.WEB_B, 1, "ecs-svc/web-b")
+        idless_target = self.deployment(
+            self.WEB_B,
+            1,
+            "unused",
+            status="ACTIVE",
+        )
+        idless_target.pop("id")
+        second_idless_target = idless_target | {"pendingCount": 0}
+        predecessor = self.deployment(
+            self.WEB_A,
+            1,
+            terminal.primary_deployment_id,
+            status="ACTIVE",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        cases = {
+            "explicit and ID-less target-only": (candidate, idless_target, predecessor),
+            "two ID-less target-only": (
+                idless_target,
+                second_idless_target,
+                predecessor | {"status": "PRIMARY"},
+            ),
+        }
+        for name, deployments in cases.items():
+            for order in permutations(deployments):
+                clock = FakeWorkerClock()
+                partial = {
+                    "serviceName": "web",
+                    "deployments": list(order),
+                }
+                ecs = FakeServiceSequenceEcs([], update_response={"service": partial})
+                with (
+                    self.subTest(name=name, order=tuple(item.get("id") for item in order)),
+                    patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+                    patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+                    self.assertRaises(ReleaseContractError) as caught,
+                ):
+                    self.gateway(ecs).update_service(
+                        "web",
+                        target,
+                        (terminal,),
+                        deadline=30.0,
+                        timeout_seconds=30,
+                    )
+                self.assertEqual(caught.exception.reason_code, "contract_contradiction")
+                self.assertEqual(ecs.update_calls, 1)
+                self.assertEqual(ecs.describe_calls, 0)
+                self.assertEqual(clock.sleep_calls, [])
+
+    def test_one_ambiguous_idless_projection_still_reconciles_to_an_exact_receipt(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        candidate = self.deployment(self.WEB_B, 1, "ecs-svc/web-b")
+        predecessor = self.deployment(
+            self.WEB_A,
+            1,
+            terminal.primary_deployment_id,
+            status="ACTIVE",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        complete = self.service(
+            target,
+            target,
+            "ecs-svc/web-b",
+            deployments=[candidate, predecessor],
+        )
+        partial = {
+            "serviceName": "web",
+            "deployments": [{"desiredCount": 1}],
+        }
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs([complete], update_response={"service": partial})
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+        ):
+            receipt = self.gateway(ecs).update_service(
+                "web",
+                target,
+                (terminal,),
+                deadline=30.0,
+                timeout_seconds=30,
+            )
+        self.assertEqual(receipt.primary_deployment_id, "ecs-svc/web-b")
+        self.assertEqual(receipt.binding_reason, "partial_acknowledgement_reconciled")
+        self.assertEqual(ecs.describe_calls, 1)
+        self.assertEqual(clock.sleep_calls, [])
+
+    def test_update_service_duration_consumes_deadline_and_equality_gets_one_final_read(
+        self,
+    ) -> None:
+        cases = (
+            (
+                "replacement",
+                ServiceTarget(self.WEB_B, 1),
+                ServicePredecessor(
+                    ServiceTarget(self.WEB_A, 1),
+                    "ecs-svc/web-a",
+                    "terminal",
+                ),
+                "ecs-svc/web-b",
+            ),
+            (
+                "same-target",
+                ServiceTarget(self.WEB_A, 1),
+                ServicePredecessor(
+                    ServiceTarget(self.WEB_A, 1),
+                    "ecs-svc/web-a",
+                    "terminal",
+                ),
+                "ecs-svc/web-a-new",
+            ),
+        )
+        for case, target, terminal, candidate_id in cases:
+            complete = self.service(
+                target,
+                target,
+                candidate_id,
+                service_running=1,
+                service_pending=0,
+                primary_running=1,
+                primary_pending=0,
+                rollout_state="COMPLETED",
+            )
+            for timing, delay in (("after", 31), ("equality", 30)):
+                clock = FakeWorkerClock()
+                ecs = FakeServiceSequenceEcs(
+                    [complete],
+                    update_response={"service": complete},
+                    clock=clock,
+                    update_delay=delay,
+                )
+                gateway = self.gateway(ecs)
+                with (
+                    self.subTest(case=case, timing=timing),
+                    patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+                    patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+                ):
+                    if timing == "after":
+                        with self.assertRaises(ReleaseContractError) as caught:
+                            gateway.update_service(
+                                "web",
+                                target,
+                                (terminal,),
+                                deadline=30.0,
+                                timeout_seconds=30,
+                            )
+                        self.assertEqual(
+                            caught.exception.reason_code,
+                            "receipt_deadline_expired",
+                        )
+                    else:
+                        receipt = gateway.update_service(
+                            "web",
+                            target,
+                            (terminal,),
+                            deadline=30.0,
+                            timeout_seconds=30,
+                        )
+                        self.assertFalse(receipt.terminal_observed)
+                        gateway.wait_service_stable(
+                            receipt,
+                            timeout_seconds=30,
+                            deadline=30.0,
+                        )
+                self.assertEqual(ecs.describe_calls, 0 if timing == "after" else 1)
+
+    def test_reconciliation_terminal_at_equality_is_carried_without_second_describe(
+        self,
+    ) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        terminal_service = self.service(
+            target,
+            target,
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+            primary_running=1,
+            primary_pending=0,
+            rollout_state="COMPLETED",
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [terminal_service],
+            update_response={"service": {"serviceName": "web"}},
+            clock=clock,
+            describe_delays=[30],
+        )
+        gateway = self.gateway(ecs)
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+        ):
+            receipt = gateway.update_service(
+                "web",
+                target,
+                (terminal,),
+                deadline=30.0,
+                timeout_seconds=30,
+            )
+            self.assertTrue(receipt.terminal_observed)
+            gateway.wait_service_stable(
+                receipt,
+                timeout_seconds=30,
+                deadline=30.0,
+            )
+        self.assertEqual(clock.current, 30)
+        self.assertEqual(ecs.describe_calls, 1)
+        self.assertEqual(clock.sleep_calls, [])
+
+    def test_reconciliation_in_progress_at_equality_cannot_start_second_describe(
+        self,
+    ) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        in_progress = self.service(target, target, "ecs-svc/web-b")
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [in_progress],
+            update_response={"service": {"serviceName": "web"}},
+            clock=clock,
+            describe_delays=[30],
+        )
+        gateway = self.gateway(ecs)
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+        ):
+            with self.assertRaises(ReleaseContractError) as caught:
+                gateway.update_service(
+                    "web",
+                    target,
+                    (terminal,),
+                    deadline=30.0,
+                    timeout_seconds=30,
+                )
+        self.assertEqual(caught.exception.reason_code, "receipt_deadline_expired")
+        self.assertEqual(ecs.describe_calls, 1)
+
+    def test_invalid_final_read_fails_without_another_call_or_sleep(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        failed = self.service(
+            target,
+            target,
+            "ecs-svc/web-b",
+            rollout_state="FAILED",
+            failed_tasks=1,
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [failed],
+            clock=clock,
+            describe_delays=[30],
+        )
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+            self.assertRaises(ReleaseContractError) as caught,
+        ):
+            self.gateway(ecs).wait_service_stable(
+                self.receipt(),
+                timeout_seconds=30,
+                deadline=30.0,
+            )
+        self.assertEqual(caught.exception.reason_code, "contract_contradiction")
+        self.assertEqual(ecs.describe_calls, 1)
+        self.assertEqual(clock.sleep_calls, [])
+
+    def test_read_returning_after_deadline_is_discarded(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        complete = self.service(
+            target,
+            target,
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+            primary_running=1,
+            primary_pending=0,
+            rollout_state="COMPLETED",
+        )
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [complete],
+            clock=clock,
+            describe_delays=[31],
+        )
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+            self.assertRaises(ReleaseContractError) as caught,
+        ):
+            self.gateway(ecs).wait_service_stable(
+                self.receipt(),
+                timeout_seconds=30,
+                deadline=30.0,
+            )
+        self.assertEqual(caught.exception.reason_code, "receipt_deadline_expired")
+        self.assertEqual(ecs.describe_calls, 1)
+        self.assertEqual(clock.sleep_calls, [])
+
+    def test_recovery_capture_at_equality_cannot_issue_restorative_update(self) -> None:
+        attempted = ServiceTarget(self.WEB_B, 1)
+        terminal = ServicePredecessor(
+            ServiceTarget(self.WEB_A, 1),
+            "ecs-svc/web-a",
+            "terminal",
+        )
+        observed = self.service(attempted, attempted, "ecs-svc/web-b")
+        clock = FakeWorkerClock()
+        ecs = FakeServiceSequenceEcs(
+            [observed],
+            update_response={"service": observed},
+            clock=clock,
+            describe_delays=[30],
+        )
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+            self.assertRaises(ReleaseContractError) as caught,
+        ):
+            self.gateway(ecs).capture_attempted_predecessor(
+                "web",
+                attempted,
+                terminal,
+                30.0,
+            )
+        self.assertEqual(caught.exception.reason_code, "receipt_deadline_expired")
+        self.assertEqual(ecs.describe_calls, 1)
+        self.assertEqual(ecs.update_calls, 0)
+
+    def test_terminal_requires_explicit_failed_tasks_and_valid_extra_status(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        primary = self.deployment(
+            self.WEB_B,
+            1,
+            "ecs-svc/web-b",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        missing_failed = primary.copy()
+        missing_failed.pop("failedTasks")
+        invalid_extra = self.deployment(
+            self.WEB_A,
+            1,
+            "ecs-svc/web-a",
+            status="ACTIVE",
+            rollout_state="COMPLETED",
+            running_count=1,
+            pending_count=0,
+        )
+        invalid_extra.pop("status")
+        services = {
+            "missing failedTasks": self.service(
+                target,
+                target,
+                "ecs-svc/web-b",
+                service_running=1,
+                service_pending=0,
+                deployments=[missing_failed],
+            ),
+            "missing extra status": self.service(
+                target,
+                target,
+                "ecs-svc/web-b",
+                service_running=1,
+                service_pending=0,
+                deployments=[primary, invalid_extra],
+            ),
+        }
+        for name, service in services.items():
+            clock = FakeWorkerClock()
+            with (
+                self.subTest(name=name),
+                patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+                patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+                self.assertRaises(ReleaseContractError),
+            ):
+                self.gateway(FakeServiceSequenceEcs([service])).wait_service_stable(
+                    self.receipt(),
+                    timeout_seconds=30,
+                    deadline=30.0,
+                )
+            self.assertEqual(clock.current, 0)
 
 
 class WorkerTimeoutCliContractTests(SimpleTestCase):

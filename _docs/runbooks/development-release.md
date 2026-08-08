@@ -746,10 +746,12 @@ replace them with name searches.
 ## Automatic compensation
 
 A migration launch failure, timeout, missing exit code, or nonzero exit changes no service. A
-failure after the web update attempts restoration of **both** prior exact service task-definition
-ARNs and desired counts, even if worker had not moved. It waits for both services, enforces at
-most one running/pending worker, validates prior digest/SHA, and verifies prior public health.
-The database remains migrated forward.
+failure after web mutation restores the prior exact web task definition, count, and receipt-bound
+deployment ID. If worker `UpdateService` was actually invoked, its restoration is receipt-bound as
+well. If worker was untouched, compensation issues no worker mutation and instead read-only proves
+its captured task definition, count, PRIMARY deployment ID, terminal state, and singleton bound as
+part of the exact pair. It then validates the prior digest/SHA and public health. The database
+remains migrated forward.
 
 The workflow concurrency group is `website-development-release` with cancellation disabled. Never
 cancel an in-progress release to start another one.
@@ -959,9 +961,11 @@ promotion or rollback that intentionally starts/replaces web receives the explic
 240-second web-stabilization budget; 240 seconds is also its hard maximum. Only a forward promotion
 or rollback that starts/replaces the singleton worker receives the separate explicit, code-owned
 420-second worker-stabilization budget; 420 seconds is also its hard maximum. Neither value is a
-workflow-dispatch input or an arbitrary operator override. The controller makes one final ECS
-service observation at the monotonic deadline and never sleeps or polls again afterward. Exact
-completion in that observation succeeds; an incomplete or invalid observation fails.
+workflow-dispatch input or an arbitrary operator override. A mutating `UpdateService` call starts
+only while time remains. Read-only polling makes exactly one final ECS service observation at the
+monotonic deadline and never sleeps or polls again afterward. Exact completion in that observation
+succeeds; an incomplete or invalid observation fails. Any response returned after the deadline is
+discarded.
 
 Web completion still requires its expected task-definition ARN and desired count, exactly one
 `PRIMARY` deployment with that definition and count, exact service and primary running/pending
@@ -974,12 +978,28 @@ pending task; queue activity, heartbeat, or a processed job is not completion.
 
 Every service mutation is receipt-bound. Before `UpdateService`, the controller records that exact
 workload as attempted and supplies its captured terminal predecessor: the exact task-definition
-ARN, desired count, and unique PRIMARY deployment ID. The response must identify the configured
-service, the requested target tuple, and one new non-empty PRIMARY deployment ID. That ID must
-differ even for a same-ARN/count force-new deployment. All response deployments must be the exact
-receipt target or an exact phase predecessor; a third ID, task-definition/count cross-pair,
-malformed count, failed target, or old completed PRIMARY returned as the new deployment fails the
-mutation.
+ARN, desired count, and unique PRIMARY deployment ID. The controller establishes the phase's
+absolute monotonic deadline before the API call. The acknowledgement, any immediate reconciliation,
+and receipt-bound stabilization share that deadline; none may reset it.
+
+A complete acknowledgement binds one new non-empty deployment ID for the requested task-definition
+ARN. The immutable receipt target remains the requested tuple. For a positive requested count, ECS
+may initially return that exact new PRIMARY at deployment-level desired/running/pending/failed
+`0/0/0/0` and `IN_PROGRESS`, while the service-level tuple already has the requested count. That
+AWS initialization shape binds identity but is poll-only. It does not rewrite `B/1` to `B/0`, prove
+stabilization, start public health, or permit the worker mutation.
+
+A structurally partial acknowledgement is reconciled with an immediate `DescribeServices` call;
+there is no preliminary sleep. Every present member must be correctly typed, and the complete set
+of present deployment members must be extendable to at least one allowed target, initialization,
+or predecessor shape. Omitting an ID or another member cannot hide an already-provable tuple,
+count, or rollout-state contradiction. Genuinely missing information remains unknown, and missing
+identity is never synthesized from the request. Reconciliation may bind only one exact new target
+deployment ID distinct from every predecessor ID. A third ID, multiple candidates,
+task-definition/count cross-pair, malformed present member, failed target, positive failed tasks,
+or completed-inexact target fails immediately. A service-level zero target for a positive request,
+or a zero-count candidate with a positive running, pending, or failed-task count or a state other
+than `IN_PROGRESS`, is also an immediate contradiction.
 
 Subsequent service reads may temporarily cross the service-level and PRIMARY target tuples or
 return an exact captured predecessor after the receipt has already appeared. These recognized
@@ -994,21 +1014,47 @@ deployment, and strict target-only validation failed before ECS could publish th
 Compensation then encountered the inverse replica-ordering window. This run remains failed; it is
 not evidence of a successful release.
 
+Run `31279458131` attempt 1 on 2026-08-08 supplied the initialization evidence. Its exact new web
+PRIMARY acknowledgement carried the requested task-definition ARN and a new deployment ID, but the
+deployment still reported `0/0/0/0 IN_PROGRESS` while service desired count was 1. The old receipt
+parser rejected that provider-valid acknowledgement, and both restorative acknowledgements hit the
+same false negative. The run remains failed even though the candidate web task appeared publicly
+later: it produced no accepted receipt, worker proof, terminal pair, smoke result, or successful
+release record.
+
 If an attempted `UpdateService` response is lost or invalid, recovery uses the same absolute
 180-second per-service deadline for candidate reconciliation and the restorative receipt wait.
 It polls only the captured terminal tuple and the actually attempted target until that target is
-observed as the unique PRIMARY and its deployment ID can be bound. The deadline is finite,
-inclusive, cannot exceed the general-stage maximum, and is never restarted between capture and
-restore. A speculative workload that was never invoked is absent from the recovery allowlist.
+observed as the unique PRIMARY and its deployment ID can be bound while time remains. The deadline
+is finite, cannot exceed the general-stage maximum, and is never restarted between capture and
+restore. A capture that returns exactly at the deadline cannot start the restorative mutation. A
+speculative workload that was never invoked is absent from the recovery allowlist.
 An attempted candidate may be failed while its restorative receipt replaces it, but the recovery
 receipt itself may not fail. Every restorative call must return a new receipt, including an
 `A -> A` force-new recovery; old `A COMPLETED` is always a predecessor, never recovery success.
+If web fails before worker `UpdateService` is invoked, compensation does not force a new worker
+deployment. It read-only verifies the captured worker's exact terminal tuple and singleton state as
+part of the final pair proof. Once worker mutation was actually attempted, its restoration remains
+receipt-bound. Artifact-finalization recovery intentionally restores both workloads because both
+belong to the failed release that had already reached terminal proof.
 
 For triage, compare redacted service/PRIMARY tuples and deployment IDs against the recorded receipt
-and phase predecessors. Do not retry the mutation, add an unrecognized identity, pre-sleep before
+and phase predecessors. Forward, rollback, compensation, and artifact-finalization recovery expose
+each bound receipt using only its workload, deployment ID, allowlisted binding reason, and whether
+an exact terminal reconciliation observation was carried. The summary is recorded before waiting,
+so it remains available after a post-binding failure. Evidence uses only allowlisted reason codes
+for complete binding, zero-count initialization, partial acknowledgement reconciliation,
+contradiction, and receipt deadline expiry; it never stores the raw provider payload. Do not retry
+the mutation, add an unrecognized identity, pre-sleep before
 the first observation, or infer adoption from a running task, target health, logs, or an old
 completed deployment. A candidate that never becomes the unique PRIMARY by the shared recovery
 deadline, or any third/cross-paired identity, leaves recovery failed closed for operator review.
+
+Restorative failure classification retains `receipt_deadline_expired` only when every observed
+restorative error is that allowlisted deadline reason. If any workload, terminal, or health error is
+`contract_contradiction`, that contradiction takes precedence. A generic exception or an unknown
+reason is also collapsed to `contract_contradiction`; raw exception messages and provider payloads
+are never propagated into evidence or CLI output.
 
 The conservative critical-stage recovery envelope is
 `180 + 120 + 240 + 180 + 420 + 180 + 360 + 720 = 2400` seconds: migration observation,

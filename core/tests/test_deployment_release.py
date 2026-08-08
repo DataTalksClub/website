@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import io
 import tempfile
-from contextlib import redirect_stderr
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -204,7 +204,11 @@ class FakeGateway:
         workload: str,
         target: ServiceTarget,
         predecessors: tuple[ServicePredecessor, ...],
+        *,
+        deadline: float | None = None,
+        timeout_seconds: int | None = None,
     ) -> ServiceUpdateReceipt:
+        del deadline, timeout_seconds
         self.operations.append(
             f"update:{workload}:{target.task_definition_arn}:{target.desired_count}"
         )
@@ -259,8 +263,8 @@ class FakeGateway:
             )
         raise ReleaseContractError("attempted deployment was not observed")
 
-    def service_stabilization_deadline(self) -> float:
-        return 180.0
+    def service_stabilization_deadline(self, timeout_seconds: int | None = None) -> float:
+        return float(180 if timeout_seconds is None else timeout_seconds)
 
     def wait_service_stable(
         self,
@@ -293,9 +297,27 @@ class FakeGateway:
         expected_task_definitions: dict[str, str],
         expected_desired_counts: dict[str, int],
         expected_identity: ReleaseIdentity | None,
+        expected_primary_deployment_ids: dict[str, str] | None = None,
     ) -> None:
-        del expected_desired_counts, expected_identity
         self.operations.append("terminal")
+        for workload, snapshot in self.snapshots.items():
+            if (
+                snapshot.task_definition_arn != expected_task_definitions[workload]
+                or snapshot.desired_count != expected_desired_counts[workload]
+                or snapshot.running_count != expected_desired_counts[workload]
+                or snapshot.pending_count != 0
+            ):
+                raise ReleaseContractError(f"terminal {workload} target differs")
+            if (
+                expected_primary_deployment_ids is not None
+                and snapshot.primary_deployment_id != expected_primary_deployment_ids[workload]
+            ):
+                raise ReleaseContractError(f"terminal {workload} receipt ID differs")
+            if expected_identity is not None and (
+                snapshot.source_sha != expected_identity.source_sha
+                or snapshot.image_digest != expected_identity.image_digest
+            ):
+                raise ReleaseContractError(f"terminal {workload} identity differs")
         if any(value.endswith(":2") for value in expected_task_definitions.values()):
             self._fail("terminal")
 
@@ -452,6 +474,9 @@ class PromotionTests(SimpleTestCase):
                 [proof["stabilization_timeout_seconds"] for proof in web_proofs],
                 [240, 240],
             )
+            self.assertEqual(web_proofs[-1]["receipt_binding"], "complete_receipt")
+            worker_proofs = [item["proof"] for item in stages if item["stage"] == "worker"]
+            self.assertEqual(worker_proofs[-1]["receipt_binding"], "complete_receipt")
         migration = next(
             i for i, value in enumerate(gateway.operations) if value.startswith("migrate:")
         )
@@ -713,7 +738,7 @@ class PromotionTests(SimpleTestCase):
         self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
         self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
 
-    def test_each_postmutation_failure_compensates_both_exact_prior_services(self) -> None:
+    def test_each_postmutation_failure_restores_only_attempted_services(self) -> None:
         for failure in (
             "update:web",
             "wait:web",
@@ -728,7 +753,11 @@ class PromotionTests(SimpleTestCase):
                 with self.assertRaises(ReleaseContractError):
                     promote(gateway, self._config(directory, prior=successful_record()))
                 self.assertIn(f"update:web:{arn('web', 1)}:1", gateway.operations)
-                self.assertIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
+                worker_restore = f"update:worker:{arn('worker', 1)}:1"
+                if failure in {"update:worker", "wait:worker", "smoke", "terminal"}:
+                    self.assertIn(worker_restore, gateway.operations)
+                else:
+                    self.assertNotIn(worker_restore, gateway.operations)
                 self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
                 self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
                 self.assertFalse((Path(directory) / "release.json").exists())
@@ -783,13 +812,9 @@ class PromotionTests(SimpleTestCase):
             if value.startswith("wait:") and ":timeout=None:" in value
         ]
         self.assertIn(forward_wait, gateway.operations)
-        self.assertEqual(len(recovery_waits), 2)
+        self.assertEqual(len(recovery_waits), 1)
         self.assertIn(
             f"wait:web:singleton=False:timeout=None:task={arn('web', 1)}:desired=1",
-            recovery_waits,
-        )
-        self.assertIn(
-            f"wait:worker:singleton=True:timeout=None:task={arn('worker', 1)}:desired=1",
             recovery_waits,
         )
         self.assertFalse(any(":timeout=240:" in value for value in recovery_waits))
@@ -799,7 +824,7 @@ class PromotionTests(SimpleTestCase):
             "update-predecessors:web:ecs-svc/web-1,ecs-svc/web-2",
             gateway.operations,
         )
-        self.assertIn(
+        self.assertNotIn(
             "update-predecessors:worker:ecs-svc/worker-1",
             gateway.operations,
         )
@@ -811,6 +836,80 @@ class PromotionTests(SimpleTestCase):
         )
         self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
         self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
+
+    def test_web_compensation_rejects_a_changed_untouched_worker_receipt_id(self) -> None:
+        gateway = FakeGateway(bootstrap=False, fail_once="wait:web")
+        original_wait = gateway.wait_service_stable
+
+        def change_untouched_worker_after_web_restore(
+            receipt: ServiceUpdateReceipt,
+            *,
+            worker_singleton: bool = False,
+            timeout_seconds: int | None = None,
+            deadline: float | None = None,
+        ) -> None:
+            original_wait(
+                receipt,
+                worker_singleton=worker_singleton,
+                timeout_seconds=timeout_seconds,
+                deadline=deadline,
+            )
+            if receipt.workload == "web" and receipt.target.task_definition_arn.endswith(":1"):
+                worker = gateway.snapshots["worker"]
+                gateway.snapshots["worker"] = ServiceSnapshot(
+                    service_name=worker.service_name,
+                    task_definition_arn=worker.task_definition_arn,
+                    desired_count=worker.desired_count,
+                    running_count=worker.running_count,
+                    pending_count=worker.pending_count,
+                    source_sha=worker.source_sha,
+                    image_digest=worker.image_digest,
+                    primary_deployment_id="ecs-svc/worker-alien",
+                )
+
+        gateway.wait_service_stable = change_untouched_worker_after_web_restore  # type: ignore[method-assign]
+        with (
+            self._temporary_directory() as directory,
+            self.assertRaisesMessage(
+                CompensationError,
+                "terminal verification",
+            ),
+        ):
+            promote(gateway, self._config(directory, prior=successful_record()))
+
+        self.assertNotIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
+        self.assertNotIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
+        self.assertIn("terminal", gateway.operations)
+
+    def test_failed_stage_evidence_uses_only_the_allowlisted_reason_code(self) -> None:
+        gateway = FakeGateway(bootstrap=False, fail_once="wait:web")
+        with self._temporary_directory() as directory:
+            config = self._config(directory, prior=successful_record())
+            with self.assertRaises(ReleaseContractError):
+                promote(gateway, config)
+            assert config.evidence_path is not None
+            records = __import__("json").loads(config.evidence_path.read_text())["stages"]
+        failure = next(
+            item for item in records if item["stage"] == "web" and item["result"] == "failed"
+        )
+        receipt = next(item for item in records if item["stage"] == "web_receipt")
+        self.assertLess(records.index(receipt), records.index(failure))
+        self.assertEqual(receipt["result"], "bound")
+        self.assertEqual(
+            receipt["proof"],
+            {
+                "primary_deployment_id": "ecs-svc/web-2",
+                "receipt_binding": "complete_receipt",
+                "terminal_observed": False,
+            },
+        )
+        self.assertEqual(
+            failure["proof"],
+            {
+                "error_class": "ReleaseContractError",
+                "reason_code": "contract_contradiction",
+            },
+        )
 
     def test_release_record_write_failure_compensates_and_records_actual_stage_evidence(
         self,
@@ -835,6 +934,27 @@ class PromotionTests(SimpleTestCase):
                 ("compensation", "passed"),
                 {(item["stage"], item["result"]) for item in records},
             )
+            compensation_receipts = [
+                item for item in records if item["stage"] == "compensation_receipt"
+            ]
+            self.assertEqual(
+                [item["proof"] for item in compensation_receipts],
+                [
+                    {
+                        "workload": "web",
+                        "receipt_id": "ecs-svc/web-4",
+                        "receipt_binding": "complete_receipt",
+                        "carried_terminal": False,
+                    },
+                    {
+                        "workload": "worker",
+                        "receipt_id": "ecs-svc/worker-5",
+                        "receipt_binding": "complete_receipt",
+                        "carried_terminal": False,
+                    },
+                ],
+            )
+            self.assertTrue(all(item["result"] == "bound" for item in compensation_receipts))
             self.assertNotIn("sentinel-secret", evidence.read_text())
         self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
         self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
@@ -890,12 +1010,21 @@ class PromotionTests(SimpleTestCase):
                 workload: str,
                 target: ServiceTarget,
                 predecessors: tuple[ServicePredecessor, ...],
+                *,
+                deadline: float | None = None,
+                timeout_seconds: int | None = None,
             ) -> ServiceUpdateReceipt:
                 if target.task_definition_arn.endswith(":1"):
                     restoring["value"] = True
                     if selected_failure == "update":
                         raise RuntimeError("sentinel-secret-must-not-leak")
-                return original_update(workload, target, predecessors)
+                return original_update(
+                    workload,
+                    target,
+                    predecessors,
+                    deadline=deadline,
+                    timeout_seconds=timeout_seconds,
+                )
 
             def wait_with_secret_failure(
                 receipt: ServiceUpdateReceipt,
@@ -934,11 +1063,32 @@ class PromotionTests(SimpleTestCase):
             with (
                 self.subTest(failure_point=failure_point),
                 self._temporary_directory() as directory,
-                self.assertRaises(CompensationError) as caught,
             ):
-                promote(gateway, self._config(directory, prior=successful_record()))
+                config = self._config(directory, prior=successful_record())
+                with self.assertRaises(CompensationError) as caught:
+                    promote(gateway, config)
+                assert config.evidence_path is not None
+                evidence_text = config.evidence_path.read_text()
+                evidence = __import__("json").loads(evidence_text)
             self.assertNotIn("sentinel-secret-must-not-leak", str(caught.exception))
             self.assertIn("RuntimeError", str(caught.exception))
+            self.assertEqual(caught.exception.reason_code, "contract_contradiction")
+            self.assertNotIn("sentinel-secret-must-not-leak", evidence_text)
+            recorded_receipts = [
+                item["proof"]
+                for item in evidence["stages"]
+                if item["stage"] == "compensation_receipt"
+            ]
+            self.assertEqual(
+                recorded_receipts,
+                [item.as_evidence() for item in caught.exception.receipt_summaries],
+            )
+            self.assertTrue(
+                all(
+                    set(item) == {"workload", "receipt_id", "receipt_binding", "carried_terminal"}
+                    for item in recorded_receipts
+                )
+            )
 
             parser = argparse.ArgumentParser()
             parser.parse_args = lambda: SimpleNamespace(  # type: ignore[assignment]
@@ -954,6 +1104,58 @@ class PromotionTests(SimpleTestCase):
                 release_cli_main()
             self.assertNotIn("sentinel-secret-must-not-leak", stderr.getvalue())
             self.assertIn("RuntimeError", stderr.getvalue())
+
+    def test_compensation_preserves_deadline_reason_without_raw_failure_text(self) -> None:
+        gateway = FakeGateway(bootstrap=False, fail_once="smoke")
+        original_wait = gateway.wait_service_stable
+
+        def expire_restorative_wait(
+            receipt: ServiceUpdateReceipt,
+            *,
+            worker_singleton: bool = False,
+            timeout_seconds: int | None = None,
+            deadline: float | None = None,
+        ) -> None:
+            if receipt.target.task_definition_arn.endswith(":1"):
+                raise ReleaseContractError(
+                    "sentinel-provider-deadline-payload-must-not-leak",
+                    reason_code="receipt_deadline_expired",
+                )
+            original_wait(
+                receipt,
+                worker_singleton=worker_singleton,
+                timeout_seconds=timeout_seconds,
+                deadline=deadline,
+            )
+
+        gateway.wait_service_stable = expire_restorative_wait  # type: ignore[method-assign]
+        with self._temporary_directory() as directory:
+            config = self._config(directory, prior=successful_record())
+            with self.assertRaises(CompensationError) as caught:
+                promote(gateway, config)
+            assert config.evidence_path is not None
+            evidence_text = config.evidence_path.read_text()
+            stages = __import__("json").loads(evidence_text)["stages"]
+        self.assertEqual(caught.exception.reason_code, "receipt_deadline_expired")
+        self.assertIn("reason_code=receipt_deadline_expired", str(caught.exception))
+        self.assertNotIn("sentinel-provider-deadline-payload", str(caught.exception))
+        self.assertNotIn("sentinel-provider-deadline-payload", evidence_text)
+        compensation_failure = next(
+            item
+            for item in stages
+            if item["stage"] == "compensation" and item["result"] == "failed"
+        )
+        self.assertEqual(
+            compensation_failure["proof"],
+            {
+                "error_class": "CompensationError",
+                "reason_code": "receipt_deadline_expired",
+            },
+        )
+        self.assertEqual(
+            [item.workload for item in caught.exception.receipt_summaries],
+            ["web", "worker"],
+        )
 
     def test_compensation_runs_when_its_evidence_marker_cannot_be_written(self) -> None:
         import deploy.release as release_module
@@ -973,7 +1175,7 @@ class PromotionTests(SimpleTestCase):
         ):
             promote(gateway, self._config(directory, prior=successful_record()))
         self.assertIn(f"update:web:{arn('web', 1)}:1", gateway.operations)
-        self.assertIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
+        self.assertNotIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
         self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
         self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
 
@@ -1155,15 +1357,13 @@ class PromotionTests(SimpleTestCase):
             for value in gateway.operations
             if value.startswith("wait:") and ":timeout=None:" in value
         ]
-        self.assertEqual(len(recovery_waits), 2)
+        self.assertEqual(len(recovery_waits), 1)
         self.assertIn(
             f"wait:web:singleton=False:timeout=None:task={arn('web', 1)}:desired=1",
             recovery_waits,
         )
-        self.assertIn(
-            f"wait:worker:singleton=True:timeout=None:task={arn('worker', 1)}:desired=1",
-            recovery_waits,
-        )
+        self.assertNotIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
+        self.assertNotIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
         self.assertNotIn(f"health:{SHA_B}", gateway.operations)
         self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
         self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
@@ -1199,7 +1399,24 @@ class PromotionTests(SimpleTestCase):
                     ),
                 )
             with self.subTest(count=context.web_desired_count):
-                restore_after_finalization_failure(gateway, context, failed)
+                summaries = restore_after_finalization_failure(gateway, context, failed)
+                self.assertEqual(
+                    [item.as_evidence() for item in summaries],
+                    [
+                        {
+                            "workload": "web",
+                            "receipt_id": "ecs-svc/web-4",
+                            "receipt_binding": "complete_receipt",
+                            "carried_terminal": False,
+                        },
+                        {
+                            "workload": "worker",
+                            "receipt_id": "ecs-svc/worker-5",
+                            "receipt_binding": "complete_receipt",
+                            "carried_terminal": False,
+                        },
+                    ],
+                )
                 self.assertEqual(
                     gateway.snapshots["web"].task_definition_arn,
                     context.web_task_definition_arn,
@@ -1235,6 +1452,179 @@ class PromotionTests(SimpleTestCase):
                 )
                 self.assertIn("wait-receipt:web:ecs-svc/web-4", gateway.operations)
                 self.assertIn("wait-receipt:worker:ecs-svc/worker-5", gateway.operations)
+
+    def test_finalization_postbinding_failure_exposes_only_safe_receipt_summaries(self) -> None:
+        failed = ReleaseRecord(
+            source_sha=SHA_B,
+            image_digest=DIGEST_B,
+            web_task_definition_arn=arn("web", 2),
+            worker_task_definition_arn=arn("worker", 2),
+            migration_task_definition_arn=arn("migration", 2),
+            web_desired_count=1,
+            worker_desired_count=1,
+            rollback_eligible=True,
+        )
+        context = RecoveryContext(
+            REPOSITORY,
+            SHA_A,
+            DIGEST_A,
+            arn("web", 1),
+            arn("worker", 1),
+            1,
+            1,
+        )
+        gateway = FakeGateway(bootstrap=False)
+        for workload in ("web", "worker"):
+            snapshot = gateway.snapshots[workload]
+            gateway.update_service(
+                workload,
+                ServiceTarget(arn(workload, 2), 1),
+                (
+                    ServicePredecessor(
+                        ServiceTarget(snapshot.task_definition_arn, snapshot.desired_count),
+                        snapshot.primary_deployment_id,
+                        "terminal",
+                    ),
+                ),
+            )
+        original_wait = gateway.wait_service_stable
+
+        def fail_restorative_web_wait(
+            receipt: ServiceUpdateReceipt,
+            *,
+            worker_singleton: bool = False,
+            timeout_seconds: int | None = None,
+            deadline: float | None = None,
+        ) -> None:
+            if receipt.workload == "web" and receipt.target.task_definition_arn.endswith(":1"):
+                raise RuntimeError("sentinel-provider-payload-must-not-leak")
+            original_wait(
+                receipt,
+                worker_singleton=worker_singleton,
+                timeout_seconds=timeout_seconds,
+                deadline=deadline,
+            )
+
+        gateway.wait_service_stable = fail_restorative_web_wait  # type: ignore[method-assign]
+        with self.assertRaises(CompensationError) as caught:
+            restore_after_finalization_failure(gateway, context, failed)
+        self.assertNotIn("sentinel-provider-payload-must-not-leak", str(caught.exception))
+        self.assertEqual(
+            [item.as_evidence() for item in caught.exception.receipt_summaries],
+            [
+                {
+                    "workload": "web",
+                    "receipt_id": "ecs-svc/web-4",
+                    "receipt_binding": "complete_receipt",
+                    "carried_terminal": False,
+                },
+                {
+                    "workload": "worker",
+                    "receipt_id": "ecs-svc/worker-5",
+                    "receipt_binding": "complete_receipt",
+                    "carried_terminal": False,
+                },
+            ],
+        )
+
+    def test_finalization_failure_uses_safe_deterministic_restorative_reason(self) -> None:
+        failed = ReleaseRecord(
+            source_sha=SHA_B,
+            image_digest=DIGEST_B,
+            web_task_definition_arn=arn("web", 2),
+            worker_task_definition_arn=arn("worker", 2),
+            migration_task_definition_arn=arn("migration", 2),
+            web_desired_count=1,
+            worker_desired_count=1,
+            rollback_eligible=True,
+        )
+        context = RecoveryContext(
+            REPOSITORY,
+            SHA_A,
+            DIGEST_A,
+            arn("web", 1),
+            arn("worker", 1),
+            1,
+            1,
+        )
+        cases = (
+            ("deadline", "receipt_deadline_expired"),
+            ("mixed", "contract_contradiction"),
+            ("unknown", "contract_contradiction"),
+        )
+        for failure_kind, expected_reason in cases:
+            gateway = FakeGateway(bootstrap=False)
+            for workload in ("web", "worker"):
+                snapshot = gateway.snapshots[workload]
+                gateway.update_service(
+                    workload,
+                    ServiceTarget(arn(workload, 2), 1),
+                    (
+                        ServicePredecessor(
+                            ServiceTarget(snapshot.task_definition_arn, snapshot.desired_count),
+                            snapshot.primary_deployment_id,
+                            "terminal",
+                        ),
+                    ),
+                )
+            original_wait = gateway.wait_service_stable
+
+            def fail_restorative_wait(
+                receipt: ServiceUpdateReceipt,
+                *,
+                worker_singleton: bool = False,
+                timeout_seconds: int | None = None,
+                deadline: float | None = None,
+                selected_failure_kind: str = failure_kind,
+                selected_original_wait: Any = original_wait,
+            ) -> None:
+                if receipt.target.task_definition_arn.endswith(":1"):
+                    if selected_failure_kind == "mixed" and receipt.workload == "worker":
+                        raise ReleaseContractError(
+                            "sentinel-provider-contradiction-payload-must-not-leak"
+                        )
+                    error = ReleaseContractError(
+                        "sentinel-provider-deadline-payload-must-not-leak",
+                        reason_code="receipt_deadline_expired",
+                    )
+                    if selected_failure_kind == "unknown" and receipt.workload == "worker":
+                        error.reason_code = "unknown_provider_reason"  # type: ignore[assignment]
+                    raise error
+                selected_original_wait(
+                    receipt,
+                    worker_singleton=worker_singleton,
+                    timeout_seconds=timeout_seconds,
+                    deadline=deadline,
+                )
+
+            gateway.wait_service_stable = fail_restorative_wait  # type: ignore[method-assign]
+            with (
+                self.subTest(failure_kind=failure_kind),
+                self.assertRaises(CompensationError) as caught,
+            ):
+                restore_after_finalization_failure(gateway, context, failed)
+            self.assertEqual(caught.exception.reason_code, expected_reason)
+            self.assertIn(f"reason_code={expected_reason}", str(caught.exception))
+            self.assertNotIn("sentinel-provider", str(caught.exception))
+            self.assertEqual(
+                [item.workload for item in caught.exception.receipt_summaries],
+                ["web", "worker"],
+            )
+
+            parser = argparse.ArgumentParser()
+            parser.parse_args = lambda: SimpleNamespace(  # type: ignore[assignment]
+                handler=lambda _arguments: (_ for _ in ()).throw(caught.exception),
+                command="restore-finalization",
+            )
+            stderr = io.StringIO()
+            with (
+                patch("deploy.cli.build_parser", return_value=parser),
+                redirect_stderr(stderr),
+                self.assertRaises(SystemExit),
+            ):
+                release_cli_main()
+            self.assertIn(f"reason_code={expected_reason}", stderr.getvalue())
+            self.assertNotIn("sentinel-provider", stderr.getvalue())
 
     def test_finalization_recovery_rejects_a_stale_live_pair_before_update(self) -> None:
         gateway = FakeGateway(bootstrap=False)
@@ -1278,6 +1668,31 @@ class PromotionTests(SimpleTestCase):
             release_cli_main()
         self.assertIn("RuntimeError", stderr.getvalue())
         self.assertNotIn("sentinel-secret-must-not-leak", stderr.getvalue())
+
+    def test_cli_finalization_success_exposes_only_safe_receipt_summaries(self) -> None:
+        parser = argparse.ArgumentParser()
+        payload = {
+            "status": "restored_prior",
+            "release": SHA_A,
+            "image_digest": DIGEST_A,
+            "restorative_receipts": [
+                {
+                    "workload": "web",
+                    "receipt_id": "ecs-svc/web-restore",
+                    "receipt_binding": "partial_acknowledgement_reconciled",
+                    "carried_terminal": True,
+                }
+            ],
+        }
+        parser.parse_args = lambda: SimpleNamespace(  # type: ignore[assignment]
+            handler=lambda _arguments: payload,
+            command="restore-finalization",
+        )
+        stdout = io.StringIO()
+        with patch("deploy.cli.build_parser", return_value=parser), redirect_stdout(stdout):
+            release_cli_main()
+        self.assertEqual(__import__("json").loads(stdout.getvalue()), payload)
+        self.assertNotIn("sentinel-provider-payload", stdout.getvalue())
 
 
 class RemoteSmokeSafetyTests(SimpleTestCase):

@@ -15,8 +15,35 @@ PLACEHOLDER_DIGEST = f"sha256:{'1' * 64}"
 RELEASE_MANAGER = "DataTalksClub/website"
 
 
+RELEASE_FAILURE_REASON_CODES = {
+    "contract_contradiction",
+    "receipt_deadline_expired",
+}
+ReleaseFailureReason = Literal[
+    "contract_contradiction",
+    "receipt_deadline_expired",
+]
+SERVICE_RECEIPT_BINDING_REASONS = {
+    "complete_receipt",
+    "zero_count_initialization",
+    "partial_acknowledgement_reconciled",
+    "partial_acknowledgement_zero_count_initialization",
+}
+
+
 class ReleaseContractError(RuntimeError):
     """Raised when a release input or observed runtime state is unsafe."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        reason_code: ReleaseFailureReason = "contract_contradiction",
+    ) -> None:
+        if reason_code not in RELEASE_FAILURE_REASON_CODES:
+            raise ValueError("release failure reason code is not allowlisted")
+        super().__init__(message)
+        self.reason_code = reason_code
 
 
 def _validate_count(value: object, *, context: str) -> int:
@@ -129,6 +156,13 @@ class ServiceUpdateReceipt:
     target: ServiceTarget
     primary_deployment_id: str
     predecessors: tuple[ServicePredecessor, ...]
+    binding_reason: Literal[
+        "complete_receipt",
+        "zero_count_initialization",
+        "partial_acknowledgement_reconciled",
+        "partial_acknowledgement_zero_count_initialization",
+    ] = "complete_receipt"
+    terminal_observed: bool = False
 
     def __post_init__(self) -> None:
         if self.workload not in {"web", "worker"}:
@@ -157,6 +191,12 @@ class ServiceUpdateReceipt:
             raise ReleaseContractError("service update receipt has duplicate predecessor IDs")
         if self.primary_deployment_id in predecessor_ids:
             raise ReleaseContractError("service update receipt reused a predecessor ID")
+        if self.binding_reason not in SERVICE_RECEIPT_BINDING_REASONS:
+            raise ReleaseContractError("service update receipt binding reason differs")
+        if type(self.terminal_observed) is not bool:
+            raise ReleaseContractError("service update receipt terminal observation differs")
+        if self.terminal_observed and self.binding_reason != "partial_acknowledgement_reconciled":
+            raise ReleaseContractError("service update receipt terminal attribution differs")
 
 
 @dataclass(frozen=True)
