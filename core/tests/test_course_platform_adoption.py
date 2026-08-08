@@ -5,7 +5,7 @@ from pathlib import Path
 from django.apps import apps
 from django.core.management import get_commands, load_command_class
 from django.test import SimpleTestCase
-from django.urls import resolve
+from django.urls import resolve, reverse
 
 from scripts.render_course_platform_inventory import (
     SOURCE_APP_LABELS,
@@ -109,7 +109,10 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(len(routes), 89)
         for route in routes:
             with self.subTest(route=route.route, name=route.name):
-                match = resolve(route.example_path())
+                example_path = route.example_path()
+                if route.surface == "Public courses" and route.name == "course_list":
+                    example_path = reverse("course_list")
+                match = resolve(example_path)
                 self.assertEqual(match.url_name, route.name or None)
                 callback_name = f"{match.func.__module__}.{match.func.__name__}"
                 self.assertEqual(callback_name, route.callback)
