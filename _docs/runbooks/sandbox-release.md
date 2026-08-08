@@ -266,9 +266,13 @@ if either check is stale, it stops before the STS identity command.
 
 The accepted AWS Gate credential process is validated and resolved exactly once. Its temporary
 access key, secret key, session token, and expiration remain in operator memory and never enter an
-argument, file, log, hash, error, or GitHub child. The operator requires at least 840 seconds of
-remaining lifetime initially, rejects a vended lifetime above the accepted 900 seconds, and
-retains a hard 120-second reserve before each provider command; it never refreshes credentials.
+argument, file, log, hash, error, or GitHub child. The code-pinned expiration grammar accepts
+exactly the second-precision UTC forms `YYYY-MM-DDTHH:MM:SSZ` and
+`YYYY-MM-DDTHH:MM:SS+00:00`; both normalize to the same aware UTC instant. Other offsets,
+fractional seconds, noncanonical ISO 8601 forms, malformed calendar values, and surrounding or
+trailing data are `STOP`. The operator requires 840 through 900 seconds of remaining lifetime
+initially and retains a hard 120-second reserve before each provider command; it never retries or
+refreshes credentials.
 The private AWS Gate environment file is never content-hashed or read into the operator; its
 validated descriptor is held only for the one credential subprocess. The first AWS operation is
 the graph's exact

@@ -65,6 +65,15 @@ def credentials(expiration: datetime | None = None) -> operator.FrozenCredential
     )
 
 
+def credential_expiration(value: datetime, encoding: str) -> str:
+    provider_shape = value.astimezone(UTC).isoformat()
+    if encoding == "provider":
+        return provider_shape
+    if encoding == "z":
+        return provider_shape.replace("+00:00", "Z")
+    raise AssertionError(f"unsupported test encoding: {encoding}")
+
+
 def accepted_provider_responses(
     seed: dict[str, Any], manifest: dict[str, Any], bindings: dict[str, Any]
 ) -> dict[str, dict[str, Any]]:
@@ -346,6 +355,32 @@ class GateBContractTests(SimpleTestCase):
             assembler.EXPECTED_CONTRACT_FILE_SHA256,
         )
 
+    def test_stale_execution_contract_file_and_canonical_hashes_fail_closed(self) -> None:
+        (ROOT / ".tmp").mkdir(mode=0o700, exist_ok=True)
+        (ROOT / ".tmp").chmod(0o700)
+        with tempfile.TemporaryDirectory(dir=ROOT / ".tmp") as temporary:
+            path = Path(temporary) / "gate-b-contract.json"
+            path.write_bytes(
+                assembler.CONTRACT_PATH.read_bytes().replace(
+                    b"YYYY-MM-DDTHH:MM:SS+00:00",
+                    b"YYYY-MM-DDTHH:MM:SS-00:00",
+                    1,
+                )
+            )
+            with self.assertRaisesRegex(
+                assembler.AssemblyError, "execution-contract-code-pin-mismatch"
+            ):
+                assembler.load_execution_contract(path)
+
+            tampered_file_hash = hashlib.sha256(path.read_bytes()).hexdigest()
+            with (
+                mock.patch.object(assembler, "EXPECTED_CONTRACT_FILE_SHA256", tampered_file_hash),
+                self.assertRaisesRegex(
+                    assembler.AssemblyError, "execution-contract-code-pin-mismatch"
+                ),
+            ):
+                assembler.load_execution_contract(path)
+
     def test_contract_freezes_review_binding_and_complete_graph(self) -> None:
         accepted = self.contract["accepted_execution_binding"]
         self.assertEqual(
@@ -357,6 +392,12 @@ class GateBContractTests(SimpleTestCase):
             },
         )
         self.assertEqual(accepted["infrastructure"]["green_run_id"], 31221824132)
+        credential = self.contract["credential_process"]
+        self.assertEqual(credential["expiration_grammar"], assembler.CREDENTIAL_EXPIRATION_GRAMMAR)
+        self.assertEqual(
+            credential["accepted_expiration_encodings"],
+            list(assembler.CREDENTIAL_EXPIRATION_ENCODINGS),
+        )
         graph = self.contract["graph"]
         self.assertEqual(len(graph["operations"]), 84)
         self.assertEqual(graph["provider_operation_count"], 174)
@@ -869,7 +910,15 @@ class GateBContractTests(SimpleTestCase):
 
     def test_contract_mutations_fail_closed(self) -> None:
         mutations: list[dict[str, Any]] = []
-        for mutate in ("binding", "identity", "error", "config", "retry"):
+        for mutate in (
+            "binding",
+            "identity",
+            "error",
+            "config",
+            "expiration-grammar",
+            "expiration-encodings",
+            "retry",
+        ):
             changed = copy.deepcopy(self.contract)
             if mutate == "binding":
                 changed["accepted_execution_binding"]["website"]["green_run_id"] += 1
@@ -881,10 +930,24 @@ class GateBContractTests(SimpleTestCase):
                 changed["child_environments"]["aws_fixed_values"]["AWS_CONFIG_FILE"] = (
                     "/home/alexey/.aws/config"
                 )
+            elif mutate == "expiration-grammar":
+                changed["credential_process"]["expiration_grammar"] = ".*"
+            elif mutate == "expiration-encodings":
+                changed["credential_process"]["accepted_expiration_encodings"].append(
+                    "YYYY-MM-DDTHH:MM:SS-00:00"
+                )
             else:
                 changed["limits"]["retry_count"] = 1
             mutations.append(changed)
-        names = ("binding", "identity", "error", "config", "retry")
+        names = (
+            "binding",
+            "identity",
+            "error",
+            "config",
+            "expiration-grammar",
+            "expiration-encodings",
+            "retry",
+        )
         for name, changed in zip(names, mutations, strict=True):
             with self.subTest(mutation=name), self.assertRaises(assembler.AssemblyError):
                 assembler.validate_execution_contract(changed, self.seed, self.manifest)
@@ -1175,6 +1238,51 @@ class GateBOperatorTests(SimpleTestCase):
         self.assertNotIn("GH_TOKEN", github)
         self.assertNotIn("GITHUB_TOKEN", github)
 
+    def test_credential_expiration_grammar_accepts_only_two_canonical_utc_forms(self) -> None:
+        instant = datetime(2026, 8, 8, 12, 34, 56, tzinfo=UTC)
+        accepted = (
+            credential_expiration(instant, "provider"),
+            credential_expiration(instant, "z"),
+        )
+        for value in accepted:
+            with self.subTest(accepted=value):
+                parsed = operator._parse_expiration(value)
+                self.assertEqual(parsed, instant)
+                self.assertIs(parsed.tzinfo, UTC)
+
+        rejected: tuple[Any, ...] = (
+            "2026-08-08T12:34:56+01:00",
+            "2026-08-08T12:34:56-00:00",
+            "2026-08-08T12:34:56+0000",
+            "2026-08-08T12:34:56+00",
+            "2026-08-08T12:34:56z",
+            "2026-08-08T12:34:56",
+            "2026-08-08 12:34:56Z",
+            "20260808T123456Z",
+            "2026-08T12:34:56Z",
+            "2026-08-08T12:34Z",
+            "2026-08-08T12:34:56.000000Z",
+            "2026-08-08T12:34:60Z",
+            " 2026-08-08T12:34:56Z",
+            "2026-08-08T12:34:56Z ",
+            "2026-08-08T12:34:56Ztrailing",
+            "2026-02-30T12:34:56Z",
+            "2026-08-08T24:34:56Z",
+            "0000-08-08T12:34:56Z",
+            None,
+            True,
+            1,
+            b"2026-08-08T12:34:56Z",
+            ["2026-08-08T12:34:56Z"],
+            {"Expiration": "2026-08-08T12:34:56Z"},
+        )
+        for value in rejected:
+            with (
+                self.subTest(rejected=value),
+                self.assertRaisesRegex(operator.OperatorError, "invalid-credential-response"),
+            ):
+                operator._parse_expiration(value)
+
     def test_credential_process_runs_once_and_never_persists_credentials(self) -> None:
         (ROOT / ".tmp").mkdir(mode=0o700, exist_ok=True)
         (ROOT / ".tmp").chmod(0o700)
@@ -1242,7 +1350,7 @@ class GateBOperatorTests(SimpleTestCase):
                 "AccessKeyId": "ASIAAAAAAAAAAAAAAAAA",
                 "SecretAccessKey": "secret-access-key-canary",
                 "SessionToken": "session-token-canary",
-                "Expiration": (now + timedelta(minutes=15)).isoformat().replace("+00:00", "Z"),
+                "Expiration": (now + timedelta(minutes=15)).isoformat(),
             }
             calls: list[tuple[Sequence[str], dict[str, str]]] = []
 
@@ -1266,23 +1374,52 @@ class GateBOperatorTests(SimpleTestCase):
 
             self.assertEqual(len(calls), 1)
             self.assertEqual(result.access_key_id, output["AccessKeyId"])
+            self.assertEqual(result.expiration, now + timedelta(minutes=15))
+            self.assertIs(result.expiration.tzinfo, UTC)
             self.assertEqual(
                 set(calls[0][1]),
                 {"HOME", "LANG", "LC_ALL", "TZ", "NO_COLOR", "PATH"},
             )
             for path in directory.iterdir():
                 self.assertNotIn(output["AccessKeyId"], path.read_text())
+                self.assertNotIn(output["SecretAccessKey"], path.read_text())
                 self.assertNotIn(output["SessionToken"], path.read_text())
 
-            output["Expiration"] = (now + timedelta(seconds=901)).isoformat().replace("+00:00", "Z")
-            with self.assertRaisesRegex(
-                operator.OperatorError, "credential-lifetime-out-of-contract"
-            ):
-                operator.load_frozen_credentials(changed, runner=runner, now=now)
-            output["Expiration"] = (now + timedelta(minutes=15)).isoformat().replace("+00:00", "Z")
+            for encoding in ("provider", "z"):
+                for seconds, accepted_lifetime in (
+                    (-1, False),
+                    (839, False),
+                    (840, True),
+                    (900, True),
+                    (901, False),
+                ):
+                    output["Expiration"] = credential_expiration(
+                        now + timedelta(seconds=seconds), encoding
+                    )
+                    call_count = len(calls)
+                    if accepted_lifetime:
+                        bounded = operator.load_frozen_credentials(changed, runner=runner, now=now)
+                        self.assertEqual(bounded.expiration, now + timedelta(seconds=seconds))
+                    else:
+                        with self.assertRaisesRegex(
+                            operator.OperatorError, "credential-lifetime-out-of-contract"
+                        ):
+                            operator.load_frozen_credentials(changed, runner=runner, now=now)
+                    self.assertEqual(len(calls), call_count + 1)
+
+            output["Expiration"] = credential_expiration(now + timedelta(minutes=15), "provider")
             output["Version"] = True
+            call_count = len(calls)
             with self.assertRaisesRegex(operator.OperatorError, "invalid-credential-response"):
                 operator.load_frozen_credentials(changed, runner=runner, now=now)
+            self.assertEqual(len(calls), call_count + 1)
+
+            output["Version"] = 1
+            output["Expiration"] = "2026-08-08T12:15:00.000000Z"
+            call_count = len(calls)
+            with self.assertRaisesRegex(operator.OperatorError, "invalid-credential-response"):
+                operator.load_frozen_credentials(changed, runner=runner, now=now)
+            self.assertEqual(len(calls), call_count + 1)
 
     def test_ttl_reserve_and_exact_provider_result_rules(self) -> None:
         spec = copy.deepcopy(self.contract["graph"]["operations"][0])
@@ -1292,6 +1429,16 @@ class GateBOperatorTests(SimpleTestCase):
         with self.assertRaisesRegex(operator.OperatorError, "credential-reserve-crossed"):
             operator.run_exact_argv(spec, self.contract, expiring, runner=runner, now=now)
         runner.assert_not_called()
+
+        runner.return_value = subprocess.CompletedProcess(spec["argv"], 0, stdout=b"{}", stderr=b"")
+        operator.run_exact_argv(
+            spec,
+            self.contract,
+            credentials(now + timedelta(seconds=120)),
+            runner=runner,
+            now=now,
+        )
+        runner.assert_called_once()
 
         runner.return_value = subprocess.CompletedProcess(
             spec["argv"], 0, stdout=b"{}", stderr=b"warning\n"
@@ -1745,6 +1892,44 @@ class GateBOperatorTests(SimpleTestCase):
         self.assertEqual(code, 1)
         self.assertEqual(stderr.getvalue(), "gate-b-assembly-stop\n")
 
+    def test_main_keeps_credential_response_failures_generic_and_secret_safe(self) -> None:
+        stdout = mock.Mock()
+        stdout.buffer = io.BytesIO()
+        stderr = io.StringIO()
+        raw_response = evidence.canonical_json_bytes(
+            {
+                "Version": 1,
+                "AccessKeyId": REDACTION_CANARIES[0],
+                "SecretAccessKey": REDACTION_CANARIES[1],
+                "SessionToken": REDACTION_CANARIES[2],
+                "Expiration": "2026-08-08T12:34:56.000000Z",
+            }
+        )
+
+        def rejected_response(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            del args, kwargs
+            self.assertTrue(
+                all(canary.encode() in raw_response for canary in REDACTION_CANARIES[:3])
+            )
+            try:
+                operator._parse_expiration("2026-08-08T12:34:56.000000Z")
+            except operator.OperatorError as exc:
+                self.assertTrue(all(canary not in str(exc) for canary in REDACTION_CANARIES[:3]))
+                raise
+            raise AssertionError("non-canonical expiration unexpectedly passed")
+
+        with (
+            mock.patch.object(operator, "run_gate_b", side_effect=rejected_response),
+            mock.patch.object(operator.sys, "stdout", stdout),
+            redirect_stderr(stderr),
+        ):
+            code = operator.main(["capture", "--capture-id", CAPTURE_ID])
+
+        self.assertEqual(code, 1)
+        self.assertEqual(stdout.buffer.getvalue(), b"")
+        self.assertEqual(stderr.getvalue(), "gate-b-operator-stop\n")
+        self.assertTrue(all(canary not in stderr.getvalue() for canary in REDACTION_CANARIES[:3]))
+
     def test_plan_cli_is_offline_and_reports_exact_counts(self) -> None:
         stdout = mock.Mock()
         stdout.buffer = io.BytesIO()
@@ -1769,6 +1954,17 @@ class GateBOperatorTests(SimpleTestCase):
         self.assertEqual(
             result["execution_contract_canonical_sha256"],
             assembler.EXPECTED_CONTRACT_CANONICAL_SHA256,
+        )
+        self.assertEqual(
+            result["execution_contract_file_sha256"],
+            assembler.EXPECTED_CONTRACT_FILE_SHA256,
+        )
+        self.assertEqual(
+            result["tool_contract_sha256"],
+            assembler._canonical_sha256(self.contract["tools"]),
+        )
+        self.assertEqual(
+            result["accepted_execution_binding"], self.contract["accepted_execution_binding"]
         )
         self.assertEqual(
             result["manifest_sha256"],
