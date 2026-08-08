@@ -1,9 +1,47 @@
-{% extends "base.html" %}
+{% extends "core/base.html" %}
+{% block title %}Welcome to DataTalks.Club{% endblock %}
 {% block content %}
   <section class="hero">
-    <p class="eyebrow">Community-powered learning</p>
-    <h1>Learn, share, and grow together.</h1>
-    <p class="lede">This is the new home for DataTalks.Club courses, events, articles, podcasts, and community knowledge.</p>
-    <p class="foundation-note">The foundation is running. Community content will arrive through the migration milestones.</p>
+    <p class="eyebrow">Global data community</p>
+    <h1>The place to talk about data</h1>
+    <h2>Global online community of data science professionals, ML engineers, and AI practitioners</h2>
+    <p class="lede">Learn from practical courses, join weekly events, hear from industry experts, and share what you know with people around the world.</p>
+    <div class="hero-actions">
+      <a class="button primary" href="https://datatalks.club/slack.html">Join our community</a>
+      <a class="button secondary" href="{% url 'course_list' %}">Explore free courses</a>
+    </div>
+  </section>
+
+  <section class="value-grid" aria-label="What you can do in DataTalks.Club">
+    <article>
+      <p class="card-number" aria-hidden="true">01</p>
+      <h3>Talk about data</h3>
+      <p>Discuss data science, machine learning, engineering, and AI with practitioners at every level.</p>
+    </article>
+    <article>
+      <p class="card-number" aria-hidden="true">02</p>
+      <h3>Learn together</h3>
+      <p>Attend community events and build real projects through free, open courses.</p>
+    </article>
+    <article>
+      <p class="card-number" aria-hidden="true">03</p>
+      <h3>Grow your career</h3>
+      <p>Ask career questions, learn from peers, and help others take their next step.</p>
+    </article>
+  </section>
+
+  <section class="explore-section">
+    <div class="section-heading">
+      <p class="eyebrow">Explore the club</p>
+      <h2>One community, many ways to take part</h2>
+    </div>
+    <div class="explore-grid">
+      <a href="https://datatalks.club/events.html"><strong>Events</strong><span>Weekly talks, workshops, and webinars</span></a>
+      <a href="https://datatalks.club/podcast.html"><strong>Podcast</strong><span>Conversations with data and AI practitioners</span></a>
+      <a href="{% url 'course_list' %}"><strong>Courses</strong><span>Free, practical, community-powered learning</span></a>
+      <a href="https://datatalks.club/articles.html"><strong>Articles</strong><span>Guides and lessons written by the community</span></a>
+      <a href="https://datatalks.club/podwiki/"><strong>Wiki</strong><span>Connected notes from podcast conversations</span></a>
+      <a href="https://datatalks.club/books.html"><strong>Books</strong><span>Book discussions with authors and readers</span></a>
+    </div>
   </section>
 {% endblock %}

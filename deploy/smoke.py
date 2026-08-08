@@ -127,11 +127,18 @@ def run_http_smoke(
     _assert_status(home, 200, "/")
     _assert_noindex(home, "/")
     html = home.body.decode("utf-8")
-    for expected in ("Learn data skills. For free. Together.",):
+    for expected in (
+        "Welcome to DataTalks.Club",
+        "The place to talk about data",
+        "Global online community of data science professionals, ML engineers, and AI practitioners",
+    ):
         if expected not in html:
             raise ReleaseContractError(f"home page lacks expected content: {expected}")
-    if 'rel="canonical"' in html:
-        raise ReleaseContractError("adopted course discovery has a guessed canonical")
+    canonical = '<link rel="canonical" href="https://datatalks.club/">'
+    if html.count(canonical) != 1 or html.count('rel="canonical"') != 1:
+        raise ReleaseContractError("home page production canonical differs")
+    if "Learn data skills. For free. Together." in html:
+        raise ReleaseContractError("home page regressed to adopted course discovery")
     lowered = html.lower()
     if "traceback" in lowered or "page not found" in lowered or "debug=true" in lowered:
         raise ReleaseContractError("home page contains debug or 404 output")
@@ -145,9 +152,21 @@ def run_http_smoke(
     _assert_status(mapped, 200, "/unified/")
     _assert_noindex(mapped, "/unified/")
     mapped_html = mapped.body.decode("utf-8")
-    canonical = '<link rel="canonical" href="https://datatalks.club/">'
     if mapped_html.count(canonical) != 1 or mapped_html.count('rel="canonical"') != 1:
         raise ReleaseContractError("explicit production canonical differs")
+    if "The place to talk about data" not in mapped_html:
+        raise ReleaseContractError("unified compatibility page lacks the main-site identity")
+
+    courses = _request(origin, "/courses/")
+    _assert_status(courses, 200, "/courses/")
+    _assert_noindex(courses, "/courses/")
+    courses_html = courses.body.decode("utf-8")
+    if "Learn data skills. For free. Together." not in courses_html:
+        raise ReleaseContractError("course discovery lacks expected content")
+    if "The place to talk about data" in courses_html:
+        raise ReleaseContractError("course discovery regressed to the main-site home")
+    if 'rel="canonical"' in courses_html:
+        raise ReleaseContractError("adopted course discovery has a guessed canonical")
 
     studio = _request(origin, "/studio/")
     if studio.status not in {301, 302, 303, 307, 308}:
@@ -232,12 +251,25 @@ def run_http_smoke(
                 "database": True,
                 "migrations": True,
             },
-            {"path": "/", "status": 200, "noindex": True, "canonical_absent": True},
+            {
+                "path": "/",
+                "status": 200,
+                "noindex": True,
+                "main_site_identity": True,
+                "explicit_canonical": True,
+            },
             {
                 "path": "/unified/",
                 "status": 200,
                 "noindex": True,
                 "explicit_canonical": True,
+            },
+            {
+                "path": "/courses/",
+                "status": 200,
+                "noindex": True,
+                "course_discovery": True,
+                "canonical_absent": True,
             },
             {
                 "path": "/studio/",

@@ -1061,13 +1061,24 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"Learn data skills. For free. Together."
-                b'<link rel="stylesheet" href="/static/courses.fixture.css">',
+                b"<title>Welcome to DataTalks.Club</title>"
+                b"The place to talk about data"
+                b"Global online community of data science professionals, ML engineers, "
+                b"and AI practitioners"
+                b'<link rel="canonical" href="https://datatalks.club/">'
+                b'<link rel="stylesheet" href="/static/core.fixture.css">',
             ),
             Response(
                 200,
                 noindex,
-                b'Foundation page<link rel="canonical" href="https://datatalks.club/">',
+                b"The place to talk about data"
+                b'<link rel="canonical" href="https://datatalks.club/">',
+            ),
+            Response(
+                200,
+                noindex,
+                b"Learn data skills. For free. Together."
+                b'<link rel="stylesheet" href="/static/courses.fixture.css">',
             ),
             Response(
                 302,
@@ -1111,7 +1122,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     "/__dtc_deployed_smoke_missing__",
                     "/robots.txt",
                     "/sitemap.xml",
-                    "/static/courses.fixture.css",
+                    "/static/core.fixture.css",
                 ],
             )
             persisted = path.read_text()
@@ -1119,6 +1130,38 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             self.assertEqual(evidence["checks"][-1]["runtime_group"], "analytics")
             for forbidden in ("cookie", "authorization", "set-cookie", "response_body"):
                 self.assertNotIn(forbidden, persisted.lower())
+
+        invalid_surface_responses = (
+            (
+                2,
+                Response(
+                    200,
+                    noindex,
+                    b"Learn data skills. For free. Together."
+                    b'<link rel="stylesheet" href="/static/core.fixture.css">',
+                ),
+                "home page lacks expected content",
+            ),
+            (
+                4,
+                Response(
+                    200,
+                    noindex,
+                    b"The place to talk about data"
+                    b'<link rel="stylesheet" href="/static/courses.fixture.css">',
+                ),
+                "course discovery lacks expected content",
+            ),
+        )
+        for response_index, invalid_response, error_message in invalid_surface_responses:
+            with self.subTest(error_message=error_message):
+                invalid_responses = [*responses]
+                invalid_responses[response_index] = invalid_response
+                with (
+                    patch("deploy.smoke._request", side_effect=invalid_responses),
+                    self.assertRaisesMessage(ReleaseContractError, error_message),
+                ):
+                    run_http_smoke("https://web.dtcdev.click", SHA_A)
 
         invalid_admin_responses = (
             (
@@ -1149,7 +1192,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
         for admin_response, error_message in invalid_admin_responses:
             with self.subTest(error_message=error_message):
                 invalid_responses = [*responses]
-                invalid_responses[6] = admin_response
+                invalid_responses[7] = admin_response
                 with (
                     patch("deploy.smoke._request", side_effect=invalid_responses),
                     self.assertRaisesMessage(ReleaseContractError, error_message),

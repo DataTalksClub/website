@@ -7,7 +7,11 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   roots out of autoformat/static-style rewrites while explicitly checking target-owned integration
   shims; copied behavior is instead guarded by checksums and its unchanged characterization suite;
 - `website/settings/base.py` and `website/settings/test.py`: adopted apps, middleware/context processor, CustomUser identity, compatibility/provider defaults, dedicated copied-template directory, and test-safe behavior;
-- `website/urls.py`: source-compatible HTML, account, API, cadmin, admin/loginas routes alongside the unified scaffold routes;
+- `website/urls.py`: source-compatible HTML, account, API, cadmin, admin/loginas routes alongside
+  the unified scaffold routes; issue #95 restores the main-site root, moves global course discovery
+  to `/courses/`, exposes the complete copied URLconf under the explicit `courses` namespace, and
+  retains global non-empty legacy course reversals/inbound paths without modifying the copied
+  URLconf or its outbound-link behavior;
 - `website/admin_api_urls.py`: target-owned compatibility shim preserving the scaffold's
   namespaced `/api/v1/admin/health` route while the adopted compatibility API remains at `/api/`;
 - `website/admin_api_views.py`: target-owned compatibility shim preserving the scaffold's
