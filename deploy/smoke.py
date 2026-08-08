@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import ssl
 import urllib.error
 import urllib.parse
@@ -11,10 +12,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from core.source_policy import analytics_runtime_violations
 from deploy.contracts import ReleaseContractError, validate_source_sha
 
 SANDBOX_ORIGIN = "https://web.dtcdev.click"
 ROBOTS_VALUE = "noindex, nofollow"
+ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
+SITEMAP_BODY = (
+    b'<?xml version="1.0" encoding="UTF-8"?>\n'
+    b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
+)
+_STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
 
 
 @dataclass(frozen=True)
@@ -66,6 +74,10 @@ def _assert_private(response: Response, path: str) -> None:
     }
     if not {"private", "no-store"}.issubset(directives):
         raise ReleaseContractError(f"{path} must be private, no-store")
+    if "public" in directives or any(
+        item.startswith("s-maxage=") and item != "s-maxage=0" for item in directives
+    ):
+        raise ReleaseContractError(f"{path} permits shared caching")
 
 
 def _assert_status(response: Response, expected: int, path: str) -> None:
@@ -115,15 +127,27 @@ def run_http_smoke(
     _assert_status(home, 200, "/")
     _assert_noindex(home, "/")
     html = home.body.decode("utf-8")
-    for expected in (
-        "Learn data skills. For free. Together.",
-        '<link rel="canonical" href="https://datatalks.club/">',
-    ):
+    for expected in ("Learn data skills. For free. Together.",):
         if expected not in html:
             raise ReleaseContractError(f"home page lacks expected content: {expected}")
+    if 'rel="canonical"' in html:
+        raise ReleaseContractError("adopted course discovery has a guessed canonical")
     lowered = html.lower()
     if "traceback" in lowered or "page not found" in lowered or "debug=true" in lowered:
         raise ReleaseContractError("home page contains debug or 404 output")
+    if analytics_runtime_violations(html=html, request_urls=(), cookie_names=()):
+        raise ReleaseContractError("home page contains production analytics")
+    static_match = _STATIC_REFERENCE.search(html)
+    if static_match is None:
+        raise ReleaseContractError("home page lacks an application static reference")
+
+    mapped = _request(origin, "/unified/")
+    _assert_status(mapped, 200, "/unified/")
+    _assert_noindex(mapped, "/unified/")
+    mapped_html = mapped.body.decode("utf-8")
+    canonical = '<link rel="canonical" href="https://datatalks.club/">'
+    if mapped_html.count(canonical) != 1 or mapped_html.count('rel="canonical"') != 1:
+        raise ReleaseContractError("explicit production canonical differs")
 
     studio = _request(origin, "/studio/")
     if studio.status not in {301, 302, 303, 307, 308}:
@@ -165,6 +189,29 @@ def run_http_smoke(
     missing_html = missing.body.decode("utf-8", errors="replace").lower()
     if any(marker in missing_html for marker in ("traceback", "technical 404", "debug=true")):
         raise ReleaseContractError("missing page exposes debug output")
+    if 'rel="canonical"' in missing_html:
+        raise ReleaseContractError("missing page has a canonical")
+
+    robots = _request(origin, "/robots.txt")
+    _assert_status(robots, 200, "/robots.txt")
+    _assert_noindex(robots, "/robots.txt")
+    if robots.headers.get("content-type") != "text/plain; charset=utf-8":
+        raise ReleaseContractError("robots content type differs")
+    if robots.body != ROBOTS_BODY:
+        raise ReleaseContractError("robots body differs")
+
+    sitemap = _request(origin, "/sitemap.xml")
+    _assert_status(sitemap, 200, "/sitemap.xml")
+    _assert_noindex(sitemap, "/sitemap.xml")
+    if sitemap.headers.get("content-type") != "application/xml; charset=utf-8":
+        raise ReleaseContractError("sitemap content type differs")
+    if sitemap.body != SITEMAP_BODY:
+        raise ReleaseContractError("sitemap body differs")
+
+    static_path = static_match.group("path")
+    static_response = _request(origin, static_path)
+    _assert_status(static_response, 200, "static asset")
+    _assert_noindex(static_response, "static asset")
 
     evidence: dict[str, Any] = {
         "generated_at": datetime.now(UTC).isoformat(),
@@ -181,7 +228,13 @@ def run_http_smoke(
                 "database": True,
                 "migrations": True,
             },
-            {"path": "/", "status": 200, "noindex": True, "canonical": True},
+            {"path": "/", "status": 200, "noindex": True, "canonical_absent": True},
+            {
+                "path": "/unified/",
+                "status": 200,
+                "noindex": True,
+                "explicit_canonical": True,
+            },
             {
                 "path": "/studio/",
                 "status": studio.status,
@@ -203,6 +256,10 @@ def run_http_smoke(
                 "anonymous_denial": True,
             },
             {"path": missing_path, "status": 404, "noindex": True, "debug_safe": True},
+            {"path": "/robots.txt", "status": 200, "noindex": True, "exact_body": True},
+            {"path": "/sitemap.xml", "status": 200, "noindex": True, "empty": True},
+            {"path_group": "static", "status": 200, "noindex": True},
+            {"runtime_group": "analytics", "denied": True},
         ],
     }
     if evidence_path is not None:

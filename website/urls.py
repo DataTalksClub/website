@@ -5,6 +5,8 @@ from django.urls import include, path
 from core import views as core_views
 
 urlpatterns = [
+    path("robots.txt", core_views.robots, name="development-robots"),
+    path("sitemap.xml", core_views.sitemap, name="development-sitemap"),
     path("unified/", core_views.home, name="home"),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),

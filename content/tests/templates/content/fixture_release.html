@@ -1,3 +1,4 @@
+{% load seo %}
 <!doctype html>
 <html lang="en">
   <head>
@@ -6,7 +7,7 @@
     <title>{{ document.seo_title|default:document.title }}</title>
     <meta name="description" content="{{ document.seo_description }}">
     {% if document.noindex %}<meta name="robots" content="noindex">{% endif %}
-    <link rel="canonical" href="{{ document.canonical_url }}">
+    {% canonical_link document.canonical_url %}
     <style>
       :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; }
       body { margin: 0; background: #eff6ff; color: #172554; }

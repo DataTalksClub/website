@@ -95,10 +95,9 @@ def soft_404(_request: HttpRequest) -> HttpResponse:
     )
 
 
-def staging_canonical(_request: HttpRequest) -> HttpResponse:
+def staging_page(_request: HttpRequest) -> HttpResponse:
     return HttpResponse(
-        '<html><head><title>Staging</title><link rel="canonical" '
-        'href="https://web.dtcdev.click/staging/"></head><body><main><h1>Staging</h1>'
+        "<html><head><title>Staging</title></head><body><main><h1>Staging</h1>"
         "<p>Visible body</p></main></body></html>",
         content_type="text/html",
     )
@@ -160,7 +159,7 @@ urlpatterns = [
     path("gone", gone),
     path("server-error", server_error),
     path("soft-404", soft_404),
-    path("staging/", staging_canonical),
+    path("staging/", staging_page),
     path("js-only/", js_only),
     path("robots.txt", robots),
     path("sitemap.xml", sitemap),

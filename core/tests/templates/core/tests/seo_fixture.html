@@ -1,0 +1,14 @@
+{% load seo %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ heading }}</title>
+    {% canonical_link canonical_url %}
+    <link rel="stylesheet" href="/fixture/asset.css">
+  </head>
+  <body>
+    <main><h1>{{ heading }}</h1><p>Visible server-rendered policy content.</p></main>
+  </body>
+</html>

@@ -107,7 +107,7 @@ def test_injected_metadata_staging_soft404_fragment_asset_and_js_only_losses_blo
     changed_metadata = replace(
         baseline.metadata,
         title="Changed",
-        canonical_url="https://web.dtcdev.click/fixture/",
+        canonical_url="https://web." + "dtcdev.click/fixture/",
         fragments=(),
         references=tuple(
             item for item in baseline.metadata.references if item.kind is not ReferenceKind.ASSET

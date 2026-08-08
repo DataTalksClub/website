@@ -12,7 +12,7 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   namespaced `/api/v1/admin/health` route while the adopted compatibility API remains at `/api/`;
 - `website/admin_api_views.py`: target-owned compatibility shim preserving the scaffold's
   staff-gated, versioned admin-health response without modifying copied CMP API behavior;
-- `course_platform_templates/base.html`: target canonical-link integration only; recorded separately in `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`;
+- `course_platform_templates/base.html`: target validated explicit-only canonical-link integration; recorded separately in `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`;
 - target scaffold Django and Playwright tests/configuration where the adopted `accounts.CustomUser`, course homepage, and source sign-in surface supersede placeholder scaffold contracts;
 - `core/tests/test_course_platform_adoption.py`,
   `scripts/render_course_platform_inventory.py`,

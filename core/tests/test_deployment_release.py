@@ -1012,7 +1012,12 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 200,
                 noindex,
                 b"Learn data skills. For free. Together."
-                b'<link rel="canonical" href="https://datatalks.club/">',
+                b'<link rel="stylesheet" href="/static/courses.fixture.css">',
+            ),
+            Response(
+                200,
+                noindex,
+                b'Foundation page<link rel="canonical" href="https://datatalks.club/">',
             ),
             Response(
                 302,
@@ -1026,6 +1031,18 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 b'{"error":{"code":"authentication_required","message":"Authentication required"}}',
             ),
             Response(404, noindex, b"Page not found"),
+            Response(
+                200,
+                noindex | {"content-type": "text/plain; charset=utf-8"},
+                b"User-agent: *\nDisallow: /\n",
+            ),
+            Response(
+                200,
+                noindex | {"content-type": "application/xml; charset=utf-8"},
+                b'<?xml version="1.0" encoding="UTF-8"?>\n'
+                b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n',
+            ),
+            Response(200, noindex | {"content-type": "text/css"}, b"body{}"),
         ]
         Path(".tmp").mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
@@ -1033,11 +1050,16 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             with patch("deploy.smoke._request", side_effect=responses) as request:
                 evidence = run_http_smoke("https://web.dtcdev.click", SHA_A, path)
             self.assertEqual(
-                [call.args[1] for call in request.call_args_list][-1],
-                "/__dtc_deployed_smoke_missing__",
+                [call.args[1] for call in request.call_args_list][-4:],
+                [
+                    "/__dtc_deployed_smoke_missing__",
+                    "/robots.txt",
+                    "/sitemap.xml",
+                    "/static/courses.fixture.css",
+                ],
             )
             persisted = path.read_text()
             self.assertEqual(__import__("json").loads(persisted), evidence)
-            self.assertEqual(evidence["checks"][-1]["status"], 404)
+            self.assertEqual(evidence["checks"][-1]["runtime_group"], "analytics")
             for forbidden in ("cookie", "authorization", "set-cookie", "response_body"):
                 self.assertNotIn(forbidden, persisted.lower())

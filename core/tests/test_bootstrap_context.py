@@ -57,8 +57,14 @@ class BootstrapParserTests(SimpleTestCase):
         environment.update(
             {
                 "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",
-                "DJANGO_ALLOWED_HOSTS": "example.invalid",
-                "DJANGO_CSRF_TRUSTED_ORIGINS": "https://example.invalid",
+                "DJANGO_ALLOWED_HOSTS": (
+                    "web.dtcdev.click" if module == "development" else "example.invalid"
+                ),
+                "DJANGO_CSRF_TRUSTED_ORIGINS": (
+                    "https://web.dtcdev.click"
+                    if module == "development"
+                    else "https://example.invalid"
+                ),
                 "DJANGO_SECRET_KEY": "strong-test-only-secret-" + "x" * 48,
                 "DTC_ENVIRONMENT": module,
             }

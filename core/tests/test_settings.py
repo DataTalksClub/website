@@ -122,6 +122,59 @@ class ProductionSettingsTests(SimpleTestCase):
         )
         self.assertIn(example_line.partition("=")[2], UNSAFE_SECRET_KEYS)
 
+    def test_development_accepts_only_the_exact_host_and_trusted_origin(self) -> None:
+        base_environment = os.environ.copy()
+        base_environment.update(
+            {
+                "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",
+                "DJANGO_SECRET_KEY": secrets.token_urlsafe(64),
+                "DTC_ENVIRONMENT": "development",
+            }
+        )
+        command = (
+            "import json; import website.settings.development as s; "
+            "print(json.dumps([s.ALLOWED_HOSTS, s.CSRF_TRUSTED_ORIGINS, "
+            "s.SECURE_PROXY_SSL_HEADER]))"
+        )
+        accepted_environment = {
+            **base_environment,
+            "DJANGO_ALLOWED_HOSTS": "web.dtcdev.click",
+            "DJANGO_CSRF_TRUSTED_ORIGINS": "https://web.dtcdev.click",
+        }
+        accepted = subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=os.getcwd(),
+            env=accepted_environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        self.assertEqual(
+            json.loads(accepted.stdout),
+            [
+                ["web.dtcdev.click"],
+                ["https://web.dtcdev.click"],
+                ["HTTP_X_FORWARDED_PROTO", "https"],
+            ],
+        )
+
+        for name, value in (
+            ("DJANGO_ALLOWED_HOSTS", "web.dtcdev.click,unrelated.invalid"),
+            ("DJANGO_CSRF_TRUSTED_ORIGINS", "https://unrelated.invalid"),
+        ):
+            with self.subTest(name=name):
+                rejected = subprocess.run(
+                    [sys.executable, "-c", command],
+                    cwd=os.getcwd(),
+                    env={**accepted_environment, name: value},
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertIn(f"exact {name}", rejected.stderr)
+
     def test_database_url_selects_postgresql(self) -> None:
         with patch.dict(
             os.environ,

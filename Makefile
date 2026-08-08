@@ -1,7 +1,8 @@
 .PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
-	test-content test-content-postgresql test-playwright-core test-playwright migrate run worker
+	test-content test-content-postgresql test-playwright-core test-playwright migrate run worker \
+	terraform-seo-source-check
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -46,6 +47,15 @@ django-check:
 
 deployment-check:
 	DTC_ENVIRONMENT=production DJANGO_SETTINGS_MODULE=website.settings.production DJANGO_SECRET_KEY="$$(uv run python -c 'import secrets; print(secrets.token_urlsafe(64))')" DATABASE_URL=postgresql://check:check@127.0.0.1:5432/check DJANGO_ALLOWED_HOSTS=example.invalid DJANGO_CSRF_TRUSTED_ORIGINS=https://example.invalid uv run python manage.py check --deploy --fail-level ERROR
+
+terraform-seo-source-check:
+	@test -n "$(AWS_INFRA_REPOSITORY)" || (echo "AWS_INFRA_REPOSITORY is required" >&2; exit 2)
+	@test -n "$(AWS_INFRA_REVISION)" || (echo "AWS_INFRA_REVISION is required" >&2; exit 2)
+	@test -n "$(AWS_INFRA_EXPECTED_COMMIT)" || (echo "AWS_INFRA_EXPECTED_COMMIT is required" >&2; exit 2)
+	uv run python -m scripts.verify_development_seo_terraform \
+		--repository "$(AWS_INFRA_REPOSITORY)" \
+		--revision "$(AWS_INFRA_REVISION)" \
+		--expected-commit "$(AWS_INFRA_EXPECTED_COMMIT)"
 
 test-core:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test accounts core studio api --parallel

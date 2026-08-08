@@ -104,7 +104,9 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "course_management.middleware.HealthCheckMiddleware",
+    # This policy must wrap short-circuits from health, SecurityMiddleware,
+    # WhiteNoise, URL resolution, and error handlers.
+    "core.middleware.ResponsePolicyMiddleware",
     "course_management.middleware.ObservabilityExceptionMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -116,8 +118,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
-    "core.middleware.PrivateSurfaceMiddleware",
-    "core.middleware.NoIndexMiddleware",
     "compatibility.monitoring.CompatibilityMonitoringMiddleware",
 ]
 
