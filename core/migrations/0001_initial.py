@@ -16,6 +16,15 @@ APPEND_ONLY_GUARDS = (
     ),
 )
 
+APPEND_ONLY_EXPLICIT_TEST_DATABASE_NAMES = frozenset({"dtc_test"})
+
+
+def is_append_only_test_database(database_name):
+    return (
+        database_name in APPEND_ONLY_EXPLICIT_TEST_DATABASE_NAMES
+        or database_name.startswith("test_")
+    )
+
 
 def install_append_only_guards(apps, schema_editor):
     del apps
@@ -26,7 +35,7 @@ def install_append_only_guards(apps, schema_editor):
     allow_test_flush = bool(
         getattr(settings, "CORE_ALLOW_APPEND_ONLY_TEST_FLUSH", False)
     )
-    if allow_test_flush and not database_name.startswith("test_"):
+    if allow_test_flush and not is_append_only_test_database(database_name):
         raise RuntimeError("append-only test flush requires a Django test database")
     for table, function, retention_column in APPEND_ONLY_GUARDS:
         trigger = f"{function}_trigger"

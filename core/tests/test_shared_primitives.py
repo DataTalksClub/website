@@ -688,19 +688,50 @@ class SchemaConstraintTests(TransactionTestCase):
         source = migration.read_text()
         self.assertIn("BEFORE TRUNCATE", source)
         self.assertIn("CORE_ALLOW_APPEND_ONLY_TEST_FLUSH", source)
+        self.assertIn('frozenset({"dtc_test"})', source)
         self.assertIn('database_name.startswith("test_")', source)
         self.assertIn("truncate_trigger", source)
 
         migration_module = import_module("core.migrations.0001_initial")
-        schema_editor = mock.Mock()
-        schema_editor.connection.vendor = "postgresql"
-        schema_editor.connection.settings_dict = {"NAME": "production"}
-        with (
-            override_settings(CORE_ALLOW_APPEND_ONLY_TEST_FLUSH=True),
-            self.assertRaisesRegex(RuntimeError, "requires a Django test database"),
+
+        def schema_editor_for(database_name: str):
+            schema_editor = mock.Mock()
+            schema_editor.connection.vendor = "postgresql"
+            schema_editor.connection.settings_dict = {"NAME": database_name}
+            schema_editor.connection.ops.quote_name.side_effect = lambda value: f'"{value}"'
+            return schema_editor
+
+        for database_name in ("dtc_test", "test_dtc_test", "test_dtc_test_1"):
+            with self.subTest(database_name=database_name):
+                schema_editor = schema_editor_for(database_name)
+                with override_settings(CORE_ALLOW_APPEND_ONLY_TEST_FLUSH=True):
+                    migration_module.install_append_only_guards(None, schema_editor)
+                statements = "\n".join(
+                    str(call.args[0]) for call in schema_editor.execute.call_args_list
+                )
+                self.assertNotIn("BEFORE TRUNCATE", statements)
+                self.assertIn("BEFORE UPDATE OR DELETE", statements)
+
+        for database_name in (
+            "production",
+            "website_test",
+            "dtc_test_1",
+            "dtc_test_backup",
         ):
+            with self.subTest(database_name=database_name):
+                schema_editor = schema_editor_for(database_name)
+                with (
+                    override_settings(CORE_ALLOW_APPEND_ONLY_TEST_FLUSH=True),
+                    self.assertRaisesRegex(RuntimeError, "requires a Django test database"),
+                ):
+                    migration_module.install_append_only_guards(None, schema_editor)
+                schema_editor.execute.assert_not_called()
+
+        schema_editor = schema_editor_for("dtc_test")
+        with override_settings(CORE_ALLOW_APPEND_ONLY_TEST_FLUSH=False):
             migration_module.install_append_only_guards(None, schema_editor)
-        schema_editor.execute.assert_not_called()
+        statements = "\n".join(str(call.args[0]) for call in schema_editor.execute.call_args_list)
+        self.assertIn("BEFORE TRUNCATE", statements)
 
     @skipUnlessDBFeature("has_select_for_update")
     def test_postgresql_production_truncate_guards_reject_and_reapply(self) -> None:

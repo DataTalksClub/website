@@ -71,9 +71,11 @@ dispatch models remain owned by their named `core` or `jobs` modules. Domain cod
 services instead of importing presentation or worker code.
 
 PostgreSQL row and statement triggers reject application `UPDATE`, `DELETE`, and `TRUNCATE` of
-append-only audit evidence. The test settings module explicitly opts into omitting the truncate
-trigger, and the migration accepts that opt-in only for a Django-generated database whose name has
-the `test_` prefix, so `TransactionTestCase` can flush without weakening a deployed database.
+append-only audit evidence. The code-owned test settings module explicitly opts into omitting the
+truncate trigger, and the migration accepts that opt-in only for the ephemeral CI database
+`dtc_test` or a Django-generated database whose name has the `test_` prefix. A database name alone
+never enables the exception, so `TransactionTestCase` can flush without weakening a deployed
+database.
 Production maintenance must use an explicitly reviewed privileged procedure. These triggers harden
 normal application and operator paths, but they do not protect against a database table owner who
 deliberately drops or disables them.
