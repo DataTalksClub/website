@@ -1,15 +1,20 @@
 import os
 from pathlib import Path
-from typing import Any, NoReturn, cast
+from typing import Any, NoReturn
 
-import dj_database_url
 from django.core.exceptions import ImproperlyConfigured
-from dotenv import load_dotenv
 
-from course_management import settings as course_platform_settings
+from core.bootstrap import (
+    RuntimeEnvironment,
+    database_configuration,
+    parse_bool,
+    parse_environment,
+    parse_list,
+    parse_secret,
+)
+from website.loginas_policy import can_login_as
 
 BASE_DIR = Path(__file__).resolve().parents[2]
-load_dotenv(BASE_DIR / ".env")
 
 LOCAL_DEVELOPMENT_SECRET_KEY = "dtc-local-only-insecure-secret-key"
 TEST_SECRET_KEY = "dtc-tests-only-secret-key-not-for-deployment"
@@ -24,14 +29,11 @@ UNSAFE_SECRET_KEYS = frozenset(
 
 
 def env_list(name: str, default: str = "") -> list[str]:
-    return [item.strip() for item in os.getenv(name, default).split(",") if item.strip()]
+    return list(parse_list(name, os.getenv(name, default)))
 
 
 def env_flag(name: str, default: bool = False) -> bool:
-    raw = os.getenv(name)
-    if raw is None:
-        return default
-    return raw.strip().lower() in {"1", "true", "yes", "on"}
+    return parse_bool(name, os.getenv(name), default=default)
 
 
 def missing(name: str) -> NoReturn:
@@ -39,34 +41,35 @@ def missing(name: str) -> NoReturn:
 
 
 def secure_secret_from_environment(name: str = "DJANGO_SECRET_KEY") -> str:
-    value = os.getenv(name)
-    if not value or not value.strip():
-        missing(name)
-    if value.strip() in UNSAFE_SECRET_KEYS or value.strip().startswith("django-insecure-"):
-        raise ImproperlyConfigured(f"Required bootstrap setting {name} uses a known unsafe value")
-    return value
+    return parse_secret(name, os.getenv(name), forbidden_values=UNSAFE_SECRET_KEYS)
 
 
-def database_from_environment(*, allow_sqlite: bool = False) -> dict[str, Any]:
+def database_from_environment(
+    *,
+    environment: RuntimeEnvironment = RuntimeEnvironment.LOCAL,
+    allow_sqlite: bool = False,
+) -> dict[str, Any]:
     if allow_sqlite and env_flag("DTC_USE_SQLITE"):
         sqlite_path = os.getenv("DTC_SQLITE_PATH", "db.sqlite3")
         path = Path(sqlite_path)
         if not path.is_absolute():
             path = BASE_DIR / path
-        return {"ENGINE": "django.db.backends.sqlite3", "NAME": path}
+        return database_configuration(
+            environment=environment,
+            database_url=None,
+            sqlite_fallback=path,
+        )
 
-    database_url = os.getenv("DATABASE_URL")
-    if not database_url:
-        missing("DATABASE_URL")
-    return cast(
-        dict[str, Any],
-        dj_database_url.parse(database_url, conn_max_age=60, conn_health_checks=True),
+    return database_configuration(
+        environment=environment,
+        database_url=os.getenv("DATABASE_URL"),
     )
 
 
 SITE_NAME = "DataTalks.Club"
 APP_VERSION = os.getenv("APP_VERSION", "dev")
-ENVIRONMENT = os.getenv("DTC_ENVIRONMENT", "local")
+RUNTIME_ENVIRONMENT = parse_environment(os.getenv("DTC_ENVIRONMENT"))
+ENVIRONMENT = RUNTIME_ENVIRONMENT.value
 CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://datatalks.club").rstrip("/")
 
 INSTALLED_APPS = [
@@ -156,7 +159,7 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 SOCIALACCOUNT_PROVIDERS = {
     "github": {"SCOPE": ["user:email"], "VERIFIED_EMAIL": True},
 }
-CAN_LOGIN_AS = course_platform_settings.can_login_as
+CAN_LOGIN_AS = can_login_as
 
 UNFOLD = {
     "SITE_HEADER": "Course Management",
@@ -216,6 +219,10 @@ DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = env_flag("DATAMAILER_OUTBOX_DISPATCH_IM
 Q_CLUSTER = {
     "name": "dtc-website",
     "workers": 2,
+    # Recurring schedules are registered and evaluated only by the leased
+    # scheduler-owner command. Ordinary qclusters must never contend as
+    # implicit scheduler owners.
+    "scheduler": False,
     "timeout": 300,
     "retry": 360,
     "max_attempts": 3,

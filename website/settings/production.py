@@ -1,5 +1,8 @@
+from core.bootstrap import require_environment
+
 from .base import *  # noqa: F403
 
+require_environment(RUNTIME_ENVIRONMENT, RuntimeEnvironment.PRODUCTION)  # noqa: F405
 DEBUG = False
 ENVIRONMENT = "production"
 SECRET_KEY = secure_secret_from_environment()  # noqa: F405
@@ -9,7 +12,11 @@ if not ALLOWED_HOSTS:
 CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")  # noqa: F405
 if not CSRF_TRUSTED_ORIGINS:
     missing("DJANGO_CSRF_TRUSTED_ORIGINS")  # noqa: F405
-DATABASES = {"default": database_from_environment()}  # noqa: F405
+DATABASES = {
+    "default": database_from_environment(  # noqa: F405
+        environment=RuntimeEnvironment.PRODUCTION,  # noqa: F405
+    )
+}
 
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True

@@ -58,4 +58,4 @@ run:
 	uv run python manage.py runserver 0.0.0.0:8000
 
 worker:
-	uv run python manage.py qcluster
+	uv run python manage.py run_job_worker

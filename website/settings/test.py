@@ -8,7 +8,11 @@ ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost"]
 
 if os.getenv("DATABASE_URL"):
-    DATABASES = {"default": database_from_environment()}  # noqa: F405
+    DATABASES = {
+        "default": database_from_environment(  # noqa: F405
+            environment=RuntimeEnvironment.TEST,  # noqa: F405
+        )
+    }
 else:
     DATABASES = {
         "default": {
@@ -21,6 +25,10 @@ PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 NOINDEX = True
 OBSERVABILITY_EVENT_BACKENDS = ["noop"]
+# Django's TransactionTestCase flushes tables with TRUNCATE. The core migration
+# also requires the connection's generated database name to start with `test_`,
+# so this code-owned opt-in cannot weaken a deployed database accidentally.
+CORE_ALLOW_APPEND_ONLY_TEST_FLUSH = True
 Q_CLUSTER = {**Q_CLUSTER, "sync": True}  # noqa: F405
 MIDDLEWARE = [
     middleware

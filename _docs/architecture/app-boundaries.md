@@ -1,5 +1,8 @@
 # Django app boundaries
 
+Shared bootstrap, execution-context, redaction, command/query, and durable-work conventions are
+defined in [`shared-primitives.md`](shared-primitives.md).
+
 The website is one deployable Django project. Dependencies point from presentation and orchestration toward domain applications and `core`; domain apps do not import Studio or API code.
 
 ```text
