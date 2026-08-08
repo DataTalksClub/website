@@ -15,7 +15,9 @@ from deploy import cli as deployment_cli
 from deploy.aws_gateway import (
     CONTROLLED_MIGRATION_FAILURE_COMMAND,
     MAX_STAGE_TIMEOUT_SECONDS,
+    MAX_WEB_STABILIZATION_TIMEOUT_SECONDS,
     MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS,
+    WEB_STABILIZATION_TIMEOUT_SECONDS,
     WORKER_STABILIZATION_TIMEOUT_SECONDS,
     AwsReleaseConfig,
     AwsReleaseGateway,
@@ -307,10 +309,19 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         release = next(step for step in deploy_steps if step.get("id") == "release")
         self.assertIn("--timeout-seconds 180", release["run"])
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        self.assertEqual(workflow.count("--timeout-seconds 180"), 2)
+        self.assertEqual(
+            workflow.count("--web-stabilization-timeout-seconds 240"),
+            2,
+        )
         self.assertEqual(
             workflow.count("--worker-stabilization-timeout-seconds 420"),
             2,
         )
+        dispatch = workflow.split("workflow_dispatch:", maxsplit=1)[1].split(
+            "\npermissions:", maxsplit=1
+        )[0]
+        self.assertNotIn("stabilization-timeout", dispatch)
         recovery = next(step for step in deploy_steps if step.get("id") == "finalization_recovery")
         self.assertEqual(recovery["timeout-minutes"], 12)
         critical_upload_minutes = sum(
@@ -322,17 +333,17 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         worst_case_seconds = (
             180
             + 120
-            + 180
+            + WEB_STABILIZATION_TIMEOUT_SECONDS
             + 180
             + WORKER_STABILIZATION_TIMEOUT_SECONDS
             + 180
             + critical_upload_minutes * 60
             + recovery["timeout-minutes"] * 60
         )
-        self.assertEqual(worst_case_seconds, 2340)
+        self.assertEqual(worst_case_seconds, 2400)
         self.assertGreaterEqual(3600 - worst_case_seconds, 20 * 60)
         runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
-        self.assertIn("3600 - 2340 = 1260", runbook)
+        self.assertIn("3600 - 2400 = 1200", runbook)
 
     def test_reuse_path_cannot_build_load_login_or_push_and_keeps_publish_artifact(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
@@ -1194,11 +1205,13 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
 class FakeWorkerClock:
     def __init__(self) -> None:
         self.current = 0.0
+        self.sleep_calls: list[float] = []
 
     def monotonic(self) -> float:
         return self.current
 
     def sleep(self, seconds: float) -> None:
+        self.sleep_calls.append(seconds)
         self.current += seconds
 
 
@@ -1224,6 +1237,11 @@ class FakeWorkerServiceEcs:
             service["deployments"] = [
                 {
                     "status": "PRIMARY",
+                    **(
+                        {"taskDefinition": service["taskDefinition"]}
+                        if "taskDefinition" in service
+                        else {}
+                    ),
                     "desiredCount": 1,
                     "runningCount": 1,
                     "pendingCount": 0,
@@ -1270,6 +1288,7 @@ class WorkerStabilizationContractTests(SimpleTestCase):
             base_url="https://web.dtcdev.click",
             screenshot_directory=Path(".tmp/deployed-smoke"),
             timeout_seconds=MAX_STAGE_TIMEOUT_SECONDS,
+            web_stabilization_timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
             worker_stabilization_timeout_seconds=WORKER_STABILIZATION_TIMEOUT_SECONDS,
             poll_seconds=10,
         )
@@ -1304,7 +1323,126 @@ class WorkerStabilizationContractTests(SimpleTestCase):
             self.wait(self.gateway(ecs), clock)
 
         self.assertEqual(clock.current, WORKER_STABILIZATION_TIMEOUT_SECONDS)
-        self.assertEqual(ecs.describe_calls, 42)
+        self.assertEqual(ecs.describe_calls, 43)
+
+    def wait_web(self, gateway: AwsReleaseGateway, clock: FakeWorkerClock) -> None:
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            patch("deploy.aws_gateway.time.sleep", side_effect=clock.sleep),
+        ):
+            gateway.wait_service_stable(
+                "web",
+                timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
+                expected_task_definition_arn="web:2",
+                expected_desired_count=1,
+            )
+
+    @classmethod
+    def web_in_progress_service(cls) -> dict[str, object]:
+        service = cls.in_progress_service()
+        service["taskDefinition"] = "web:2"
+        deployments = service["deployments"]
+        assert isinstance(deployments, list)
+        deployments[0]["taskDefinition"] = "web:2"
+        return service
+
+    def test_web_completion_on_inclusive_final_observation_succeeds_without_later_poll(
+        self,
+    ) -> None:
+        clock = FakeWorkerClock()
+        ecs = FakeWorkerServiceEcs(
+            clock,
+            self.web_in_progress_service(),
+            complete_at=WEB_STABILIZATION_TIMEOUT_SECONDS,
+        )
+
+        self.wait_web(self.gateway(ecs), clock)
+
+        self.assertEqual(clock.current, WEB_STABILIZATION_TIMEOUT_SECONDS)
+        self.assertEqual(ecs.describe_calls, 25)
+        self.assertEqual(len(clock.sleep_calls), 24)
+
+    def test_web_in_progress_on_final_observation_fails_without_another_poll(self) -> None:
+        clock = FakeWorkerClock()
+        ecs = FakeWorkerServiceEcs(clock, self.web_in_progress_service())
+
+        with self.assertRaisesMessage(ReleaseContractError, "web service did not reach"):
+            self.wait_web(self.gateway(ecs), clock)
+
+        self.assertEqual(clock.current, WEB_STABILIZATION_TIMEOUT_SECONDS)
+        self.assertEqual(ecs.describe_calls, 25)
+        self.assertEqual(len(clock.sleep_calls), 24)
+
+    def test_known_bad_web_states_fail_immediately(self) -> None:
+        base = self.web_in_progress_service()
+        primary = base["deployments"]
+        assert isinstance(primary, list)
+        cases = {
+            "missing primary": base | {"deployments": []},
+            "duplicate primary": base | {"deployments": primary * 2},
+            "failed rollout": base | {"deployments": [primary[0] | {"rolloutState": "FAILED"}]},
+            "crashing task": base | {"deployments": [primary[0] | {"failedTasks": 1}]},
+            "wrong service task definition": base | {"taskDefinition": "web:3"},
+            "mixed primary task definition": base
+            | {"deployments": [primary[0] | {"taskDefinition": "web:3"}]},
+            "wrong desired count": base | {"desiredCount": 2},
+            "completed with inexact counts": base
+            | {"deployments": [primary[0] | {"rolloutState": "COMPLETED", "runningCount": 0}]},
+        }
+        for name, service in cases.items():
+            clock = FakeWorkerClock()
+            ecs = FakeWorkerServiceEcs(clock, service)
+            with self.subTest(name=name), self.assertRaises(ReleaseContractError):
+                self.wait_web(self.gateway(ecs), clock)
+            self.assertEqual(clock.current, 0)
+            self.assertEqual(ecs.describe_calls, 1)
+
+    def test_missing_or_malformed_required_web_counts_fail_immediately(self) -> None:
+        invalid_values = {
+            "missing": None,
+            "boolean": True,
+            "string": "1",
+            "negative": -1,
+        }
+        for location in ("service", "primary"):
+            for field in ("desiredCount", "runningCount", "pendingCount"):
+                for invalid_name, invalid_value in invalid_values.items():
+                    service = json.loads(json.dumps(self.web_in_progress_service()))
+                    document = service
+                    if location == "primary":
+                        deployments = service["deployments"]
+                        assert isinstance(deployments, list)
+                        document = deployments[0]
+                    assert isinstance(document, dict)
+                    if invalid_name == "missing":
+                        document.pop(field)
+                    else:
+                        document[field] = invalid_value
+                    clock = FakeWorkerClock()
+                    ecs = FakeWorkerServiceEcs(clock, service)
+                    with (
+                        self.subTest(location=location, field=field, invalid=invalid_name),
+                        self.assertRaisesMessage(ReleaseContractError, field),
+                    ):
+                        self.wait_web(self.gateway(ecs), clock)
+                    self.assertEqual(clock.current, 0)
+                    self.assertEqual(ecs.describe_calls, 1)
+
+    def test_malformed_optional_failed_task_count_fails_immediately(self) -> None:
+        for invalid in (True, "1", -1):
+            service = json.loads(json.dumps(self.web_in_progress_service()))
+            deployments = service["deployments"]
+            assert isinstance(deployments, list)
+            deployments[0]["failedTasks"] = invalid
+            clock = FakeWorkerClock()
+            ecs = FakeWorkerServiceEcs(clock, service)
+            with (
+                self.subTest(invalid=invalid),
+                self.assertRaisesMessage(ReleaseContractError, "failedTasks"),
+            ):
+                self.wait_web(self.gateway(ecs), clock)
+            self.assertEqual(clock.current, 0)
+            self.assertEqual(ecs.describe_calls, 1)
 
     def test_known_bad_worker_states_fail_immediately(self) -> None:
         base = self.in_progress_service()
@@ -1385,6 +1523,7 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
             "base_url": "https://web.dtcdev.click",
             "screenshot_directory": Path(".tmp/deployed-smoke"),
             "timeout_seconds": MAX_STAGE_TIMEOUT_SECONDS,
+            "web_stabilization_timeout_seconds": WEB_STABILIZATION_TIMEOUT_SECONDS,
             "worker_stabilization_timeout_seconds": WORKER_STABILIZATION_TIMEOUT_SECONDS,
             "poll_seconds": 10,
         }
@@ -1396,15 +1535,27 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
                 self.namespace(**overrides)
             )
 
-    def test_cli_defaults_preserve_general_timeout_and_use_reviewed_worker_max(self) -> None:
+    def test_cli_defaults_preserve_three_distinct_reviewed_budgets(self) -> None:
         config = self.build_config()
         self.assertEqual(config.timeout_seconds, 180)
+        self.assertEqual(config.web_stabilization_timeout_seconds, 240)
         self.assertEqual(config.worker_stabilization_timeout_seconds, 420)
+        self.assertEqual(WEB_STABILIZATION_TIMEOUT_SECONDS, 240)
+        self.assertEqual(MAX_WEB_STABILIZATION_TIMEOUT_SECONDS, 240)
         self.assertEqual(WORKER_STABILIZATION_TIMEOUT_SECONDS, 420)
         self.assertEqual(MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS, 420)
 
     def test_cli_rejects_invalid_worker_timeout_values(self) -> None:
         cases = (
+            ({"web_stabilization_timeout_seconds": True}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": 0}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": -1}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": "bad"}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": 241}, "recovery-safe maximum"),
+            (
+                {"web_stabilization_timeout_seconds": 5, "poll_seconds": 10},
+                "poll interval must not exceed the web",
+            ),
             ({"worker_stabilization_timeout_seconds": 0}, "positive integers"),
             ({"worker_stabilization_timeout_seconds": -1}, "positive integers"),
             ({"worker_stabilization_timeout_seconds": "bad"}, "positive integers"),
@@ -1421,6 +1572,93 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
                 self.assertRaisesMessage(ReleaseContractError, message),
             ):
                 self.build_config(**overrides)
+
+    def test_typed_config_rejects_invalid_web_timeout_values(self) -> None:
+        values = self.namespace().__dict__
+        config_values = {
+            "region": values["region"],
+            "cluster_arn": values["cluster_arn"],
+            "web_target_group_arn": values["web_target_group_arn"],
+            "service_names": {"web": "web", "worker": "worker"},
+            "task_families": {"web": "web", "worker": "worker", "migration": "migration"},
+            "container_names": {
+                "web": "web",
+                "worker": "worker",
+                "migration": "migration",
+            },
+            "task_role_arn": values["task_role_arn"],
+            "execution_role_arn": values["execution_role_arn"],
+            "subnet_ids": values["subnet_id"],
+            "security_group_ids": values["security_group_id"],
+            "assign_public_ip": values["assign_public_ip"],
+            "base_url": values["base_url"],
+            "screenshot_directory": values["screenshot_directory"],
+        }
+        cases = (
+            ({"web_stabilization_timeout_seconds": True}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": "bad"}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": 0}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": -1}, "positive integers"),
+            ({"web_stabilization_timeout_seconds": 241}, "recovery-safe maximum"),
+            (
+                {"web_stabilization_timeout_seconds": 5, "poll_seconds": 10},
+                "poll interval must not exceed the web",
+            ),
+        )
+        for overrides, message in cases:
+            with (
+                self.subTest(overrides=overrides),
+                self.assertRaisesMessage(ReleaseContractError, message),
+            ):
+                AwsReleaseConfig(**(config_values | overrides))  # type: ignore[arg-type]
+
+    def test_real_cli_parser_rejects_malformed_web_timeout(self) -> None:
+        runtime_arguments = [
+            "--region",
+            "eu-west-1",
+            "--cluster-arn",
+            "cluster",
+            "--web-target-group-arn",
+            "target-group",
+            "--web-service-name",
+            "web",
+            "--worker-service-name",
+            "worker",
+            "--web-family",
+            "web",
+            "--worker-family",
+            "worker",
+            "--migration-family",
+            "migration",
+            "--web-container-name",
+            "web",
+            "--worker-container-name",
+            "worker",
+            "--migration-container-name",
+            "migration",
+            "--task-role-arn",
+            "task-role",
+            "--execution-role-arn",
+            "execution-role",
+            "--subnet-id",
+            "subnet-1",
+            "--security-group-id",
+            "sg-1",
+            "--assign-public-ip",
+            "true",
+            "--web-stabilization-timeout-seconds",
+            "malformed",
+            "--repository-uri",
+            "repository",
+            "--expected-web-count",
+            "1",
+            "--expected-worker-count",
+            "1",
+            "--release-record-path",
+            ".tmp/release.json",
+        ]
+        with self.assertRaises(SystemExit):
+            deployment_cli.build_parser().parse_args(["capture-current", *runtime_arguments])
 
 
 class FakeMigrationEcs:

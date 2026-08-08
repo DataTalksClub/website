@@ -122,6 +122,7 @@ def active_pair(source_sha: str = SHA_A, digest: str = DIGEST_A) -> ActiveServic
 
 
 class FakeGateway:
+    web_stabilization_timeout_seconds = 240
     worker_stabilization_timeout_seconds = 420
 
     def __init__(self, *, bootstrap: bool, fail_once: str | None = None) -> None:
@@ -211,9 +212,12 @@ class FakeGateway:
         *,
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
+        expected_task_definition_arn: str | None = None,
+        expected_desired_count: int | None = None,
     ) -> None:
         self.operations.append(
-            f"wait:{workload}:singleton={worker_singleton}:timeout={timeout_seconds}"
+            f"wait:{workload}:singleton={worker_singleton}:timeout={timeout_seconds}:"
+            f"task={expected_task_definition_arn}:desired={expected_desired_count}"
         )
         self._fail(f"wait:{workload}")
 
@@ -379,8 +383,16 @@ class PromotionTests(SimpleTestCase):
         gateway = FakeGateway(bootstrap=True)
         Path(".tmp").mkdir(exist_ok=True)
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
-            record = promote(gateway, self._config(directory, prior=None))
+            config = self._config(directory, prior=None)
+            record = promote(gateway, config)
             self.assertEqual(ReleaseRecord.read(Path(directory) / "release.json"), record)
+            assert config.evidence_path is not None
+            stages = __import__("json").loads(config.evidence_path.read_text())["stages"]
+            web_proofs = [item["proof"] for item in stages if item["stage"] == "web"]
+            self.assertEqual(
+                [proof["stabilization_timeout_seconds"] for proof in web_proofs],
+                [240, 240],
+            )
         migration = next(
             i for i, value in enumerate(gateway.operations) if value.startswith("migrate:")
         )
@@ -401,7 +413,19 @@ class PromotionTests(SimpleTestCase):
         self.assertLess(pre_mutation_web_capture, pre_mutation_worker_capture)
         self.assertLess(pre_mutation_worker_capture, web)
         self.assertLess(web, worker)
-        self.assertIn("wait:worker:singleton=True:timeout=420", gateway.operations)
+        web_wait = f"wait:web:singleton=False:timeout=240:task={arn('web', 2)}:desired=1"
+        health = f"health:{SHA_B}"
+        worker_wait = f"wait:worker:singleton=True:timeout=420:task={arn('worker', 2)}:desired=1"
+        self.assertIn(web_wait, gateway.operations)
+        self.assertIn(worker_wait, gateway.operations)
+        self.assertLess(gateway.operations.index(web_wait), gateway.operations.index(health))
+        self.assertLess(gateway.operations.index(health), gateway.operations.index(worker_wait))
+        self.assertTrue(
+            any(
+                value.startswith("wait:worker:singleton=True:timeout=420:")
+                for value in gateway.operations
+            )
+        )
 
     def test_bootstrap_recovery_context_discards_valid_looking_placeholder_identity(self) -> None:
         gateway = FakeGateway(bootstrap=True)
@@ -657,13 +681,55 @@ class PromotionTests(SimpleTestCase):
                 promote(gateway, self._config(directory, prior=successful_record()))
             self.assertFalse(release_path.exists())
 
-        forward_wait = "wait:worker:singleton=True:timeout=420"
-        recovery_wait = "wait:worker:singleton=True:timeout=None"
-        self.assertIn(forward_wait, gateway.operations)
-        self.assertIn(recovery_wait, gateway.operations)
+        forward_wait = next(
+            value
+            for value in gateway.operations
+            if value.startswith("wait:worker:singleton=True:timeout=420:")
+        )
+        recovery_wait = next(
+            value
+            for value in gateway.operations
+            if value.startswith("wait:worker:singleton=True:timeout=None:")
+        )
         self.assertLess(
             gateway.operations.index(forward_wait),
             gateway.operations.index(recovery_wait),
+        )
+        self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
+        self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
+
+    def test_web_timeout_uses_extended_forward_budget_and_default_compensation_budget(
+        self,
+    ) -> None:
+        gateway = FakeGateway(bootstrap=False, fail_once="wait:web")
+        with self._temporary_directory() as directory:
+            release_path = Path(directory) / "release.json"
+            with self.assertRaisesMessage(ReleaseContractError, "injected wait:web"):
+                promote(gateway, self._config(directory, prior=successful_record()))
+            self.assertFalse(release_path.exists())
+
+        forward_wait = f"wait:web:singleton=False:timeout=240:task={arn('web', 2)}:desired=1"
+        recovery_waits = [
+            value
+            for value in gateway.operations
+            if value.startswith("wait:") and ":timeout=None:" in value
+        ]
+        self.assertIn(forward_wait, gateway.operations)
+        self.assertEqual(len(recovery_waits), 2)
+        self.assertIn(
+            f"wait:web:singleton=False:timeout=None:task={arn('web', 1)}:desired=1",
+            recovery_waits,
+        )
+        self.assertIn(
+            f"wait:worker:singleton=True:timeout=None:task={arn('worker', 1)}:desired=1",
+            recovery_waits,
+        )
+        self.assertFalse(any(":timeout=240:" in value for value in recovery_waits))
+        self.assertNotIn(f"health:{SHA_B}", gateway.operations)
+        self.assertNotIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
+        self.assertLess(
+            gateway.operations.index(forward_wait),
+            gateway.operations.index(recovery_waits[0]),
         )
         self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
         self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
@@ -712,12 +778,16 @@ class PromotionTests(SimpleTestCase):
             *,
             worker_singleton: bool = False,
             timeout_seconds: int | None = None,
+            expected_task_definition_arn: str | None = None,
+            expected_desired_count: int | None = None,
         ) -> None:
             try:
                 original_wait(
                     workload,
                     worker_singleton=worker_singleton,
                     timeout_seconds=timeout_seconds,
+                    expected_task_definition_arn=expected_task_definition_arn,
+                    expected_desired_count=expected_desired_count,
                 )
             except ReleaseContractError:
                 gateway.fail_once = "compensation"
@@ -754,6 +824,8 @@ class PromotionTests(SimpleTestCase):
                 *,
                 worker_singleton: bool = False,
                 timeout_seconds: int | None = None,
+                expected_task_definition_arn: str | None = None,
+                expected_desired_count: int | None = None,
             ) -> None:
                 if restoring["value"] and selected_failure == "wait":
                     raise RuntimeError("sentinel-secret-must-not-leak")
@@ -761,6 +833,8 @@ class PromotionTests(SimpleTestCase):
                     workload,
                     worker_singleton=worker_singleton,
                     timeout_seconds=timeout_seconds,
+                    expected_task_definition_arn=expected_task_definition_arn,
+                    expected_desired_count=expected_desired_count,
                 )
 
             def terminal_with_secret_failure(*args, **kwargs):  # type: ignore[no-untyped-def]
@@ -930,7 +1004,16 @@ class PromotionTests(SimpleTestCase):
             gateway.operations.index(f"update:web:{arn('web', 2)}:1"),
             gateway.operations.index(f"update:worker:{arn('worker', 2)}:1"),
         )
-        self.assertIn("wait:worker:singleton=True:timeout=420", gateway.operations)
+        self.assertIn(
+            f"wait:web:singleton=False:timeout=240:task={arn('web', 2)}:desired=1",
+            gateway.operations,
+        )
+        self.assertTrue(
+            any(
+                value.startswith("wait:worker:singleton=True:timeout=420:")
+                for value in gateway.operations
+            )
+        )
 
     def test_each_rollback_failure_compensates_to_current_exact_pair(self) -> None:
         current = successful_record()
@@ -966,6 +1049,47 @@ class PromotionTests(SimpleTestCase):
                 self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
                 self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
 
+    def test_rollback_web_timeout_compensates_with_general_service_budget(self) -> None:
+        current = successful_record()
+        target = ReleaseRecord(
+            source_sha=SHA_B,
+            image_digest=DIGEST_B,
+            web_task_definition_arn=arn("web", 2),
+            worker_task_definition_arn=arn("worker", 2),
+            migration_task_definition_arn=arn("migration", 2),
+            web_desired_count=1,
+            worker_desired_count=1,
+            rollback_eligible=True,
+        )
+        gateway = FakeGateway(bootstrap=False, fail_once="wait:web")
+        with self._temporary_directory() as directory:
+            release_path = Path(directory) / "release.json"
+            with self.assertRaisesMessage(ReleaseContractError, "injected wait:web"):
+                rollback(gateway, target, current, REPOSITORY, release_path)
+            self.assertFalse(release_path.exists())
+
+        self.assertIn(
+            f"wait:web:singleton=False:timeout=240:task={arn('web', 2)}:desired=1",
+            gateway.operations,
+        )
+        recovery_waits = [
+            value
+            for value in gateway.operations
+            if value.startswith("wait:") and ":timeout=None:" in value
+        ]
+        self.assertEqual(len(recovery_waits), 2)
+        self.assertIn(
+            f"wait:web:singleton=False:timeout=None:task={arn('web', 1)}:desired=1",
+            recovery_waits,
+        )
+        self.assertIn(
+            f"wait:worker:singleton=True:timeout=None:task={arn('worker', 1)}:desired=1",
+            recovery_waits,
+        )
+        self.assertNotIn(f"health:{SHA_B}", gateway.operations)
+        self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
+        self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
+
     def test_finalization_recovery_restores_enabled_and_bootstrap_pairs(self) -> None:
         failed = ReleaseRecord(
             source_sha=SHA_B,
@@ -994,6 +1118,14 @@ class PromotionTests(SimpleTestCase):
                 self.assertEqual(
                     gateway.snapshots["worker"].desired_count,
                     context.worker_desired_count,
+                )
+                self.assertFalse(any(":timeout=240:" in value for value in gateway.operations))
+                self.assertTrue(
+                    all(
+                        ":timeout=None:" in value
+                        for value in gateway.operations
+                        if value.startswith("wait:")
+                    )
                 )
 
     def test_finalization_recovery_rejects_a_stale_live_pair_before_update(self) -> None:
