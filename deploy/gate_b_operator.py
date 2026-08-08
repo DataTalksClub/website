@@ -511,15 +511,14 @@ def _validate_configured_credential_process(contract: dict[str, Any]) -> None:
 
 
 def _parse_expiration(value: Any) -> datetime:
-    if not isinstance(value, str) or not value.endswith("Z"):
+    if not isinstance(value, str) or not assembler.CREDENTIAL_EXPIRATION_PATTERN.fullmatch(value):
         _fail("invalid-credential-response")
+    timestamp = value[:-1] if value.endswith("Z") else value[:-6]
     try:
-        result = datetime.fromisoformat(value.removesuffix("Z") + "+00:00")
+        result = datetime.strptime(timestamp, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=UTC)
     except ValueError as exc:
         raise OperatorError("invalid-credential-response") from exc
-    if result.tzinfo is None:
-        _fail("invalid-credential-response")
-    return result.astimezone(UTC)
+    return result
 
 
 def load_frozen_credentials(

@@ -52,6 +52,15 @@ AWS Gate environment file is never read into Python, hashed, logged, or persiste
 mode/owner/link check opens it without following the final symlink, and that exact descriptor is
 held through the sole credential subprocess.
 
+The accepted provider serializes an aware UTC expiration with Python `datetime.isoformat()`, so
+its canonical response ends in `+00:00`. The execution contract therefore code-pins exactly the
+second-precision UTC encodings `YYYY-MM-DDTHH:MM:SS+00:00` and
+`YYYY-MM-DDTHH:MM:SSZ`. The operator applies that explicit grammar before calendar parsing,
+normalizes either form to the same aware UTC instant, and rejects every other offset, precision,
+separator, whitespace, trailing, partial, or malformed representation. This compatibility rule
+does not change the inclusive 840-to-900-second lifetime, 120-second reserve, single resolution,
+or no-persistence boundary.
+
 It seals that returned triple into the existing #84 bindings envelope, creates the file
 exclusively at mode `0600`, and runs the unchanged binding validator. Every later AWS child gets
 the same in-memory credentials. GitHub children receive no AWS credential variables. A second

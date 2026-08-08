@@ -28,13 +28,21 @@ CAPTURE_ID_PATTERN = re.compile(r"[0-9]{8}T[0-9]{6}Z-[0-9a-f]{12}")
 STATUS_TIME_PATTERN = re.compile(
     r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,6})?Z"
 )
+CREDENTIAL_EXPIRATION_GRAMMAR = (
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:Z|\+00:00)"
+)
+CREDENTIAL_EXPIRATION_PATTERN = re.compile(CREDENTIAL_EXPIRATION_GRAMMAR)
+CREDENTIAL_EXPIRATION_ENCODINGS = (
+    "YYYY-MM-DDTHH:MM:SSZ",
+    "YYYY-MM-DDTHH:MM:SS+00:00",
+)
 SESSION_PATTERN = re.compile(r"phone-sandbox-[0-9a-f]{8}")
 HEX_64_PATTERN = re.compile(r"[0-9a-f]{64}")
 EXPECTED_SEED_FILE_SHA256 = "6a32cfabcad8c3cf18d5de8d46b30d970f8e85dd0a65a0cac700762eb4b6f52b"
 EXPECTED_SEED_CANONICAL_SHA256 = "dcc02b49de0107aca1ce87dc7cdad18b3080f913e9281033449bbf14cab112dc"
-EXPECTED_CONTRACT_FILE_SHA256 = "0ebe83419b36447f6381310f741f766100e5f6bd280df3924e701367692a821f"
+EXPECTED_CONTRACT_FILE_SHA256 = "8cf5b62e78ee617d46c1338452caf493cd60e1ffa93169c2a026feab6d300342"
 EXPECTED_CONTRACT_CANONICAL_SHA256 = (
-    "4de588493479fbc7d7a45a304cb20418ea2b0d777595ac8f00dfcd22c519c3c1"
+    "2c54ce2bc300a4611c9bfc53141c8f3fcfad84e074944936031dee1c92589eb9"
 )
 EXPECTED_RESOLVED_GRAPH_SHA256 = "2cfbe086383df8f96353980fe08eb0d0e877095a3e82cb743ce3488f02a8594a"
 
@@ -476,6 +484,8 @@ def validate_execution_contract(
         "config_mode": "0600",
         "env_path": "/home/alexey/.config/aws-gate/env",
         "env_mode": "0600",
+        "expiration_grammar": CREDENTIAL_EXPIRATION_GRAMMAR,
+        "accepted_expiration_encodings": list(CREDENTIAL_EXPIRATION_ENCODINGS),
         "resolve_count": 1,
         "accepted_duration_seconds": 900,
         "minimum_ttl_seconds_at_start": 840,
