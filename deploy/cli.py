@@ -6,7 +6,9 @@ from pathlib import Path
 
 from deploy.aws_gateway import (
     MAX_STAGE_TIMEOUT_SECONDS,
+    MAX_WEB_STABILIZATION_TIMEOUT_SECONDS,
     MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS,
+    WEB_STABILIZATION_TIMEOUT_SECONDS,
     WORKER_STABILIZATION_TIMEOUT_SECONDS,
     AwsReleaseConfig,
     AwsReleaseGateway,
@@ -53,6 +55,11 @@ def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--screenshot-directory", type=Path, default=Path(".tmp/deployed-smoke"))
     parser.add_argument("--timeout-seconds", type=int, default=MAX_STAGE_TIMEOUT_SECONDS)
     parser.add_argument(
+        "--web-stabilization-timeout-seconds",
+        type=int,
+        default=WEB_STABILIZATION_TIMEOUT_SECONDS,
+    )
+    parser.add_argument(
         "--worker-stabilization-timeout-seconds",
         type=int,
         default=WORKER_STABILIZATION_TIMEOUT_SECONDS,
@@ -63,19 +70,25 @@ def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
 def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
     if (
         type(arguments.timeout_seconds) is not int
+        or type(arguments.web_stabilization_timeout_seconds) is not int
         or type(arguments.worker_stabilization_timeout_seconds) is not int
         or type(arguments.poll_seconds) is not int
         or arguments.timeout_seconds < 1
+        or arguments.web_stabilization_timeout_seconds < 1
         or arguments.worker_stabilization_timeout_seconds < 1
         or arguments.poll_seconds < 1
     ):
         raise ReleaseContractError("timeouts must be positive integers")
     if arguments.timeout_seconds > MAX_STAGE_TIMEOUT_SECONDS:
         raise ReleaseContractError("development stage timeout exceeds the recovery-safe maximum")
+    if arguments.web_stabilization_timeout_seconds > MAX_WEB_STABILIZATION_TIMEOUT_SECONDS:
+        raise ReleaseContractError("web stabilization timeout exceeds the recovery-safe maximum")
     if arguments.worker_stabilization_timeout_seconds > MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS:
         raise ReleaseContractError("worker stabilization timeout exceeds the recovery-safe maximum")
     if arguments.poll_seconds > arguments.timeout_seconds:
         raise ReleaseContractError("poll interval must not exceed the stage timeout")
+    if arguments.poll_seconds > arguments.web_stabilization_timeout_seconds:
+        raise ReleaseContractError("poll interval must not exceed the web stabilization timeout")
     if arguments.poll_seconds > arguments.worker_stabilization_timeout_seconds:
         raise ReleaseContractError("poll interval must not exceed the worker stabilization timeout")
     return AwsReleaseGateway(
@@ -105,6 +118,7 @@ def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
             base_url=arguments.base_url,
             screenshot_directory=arguments.screenshot_directory,
             timeout_seconds=arguments.timeout_seconds,
+            web_stabilization_timeout_seconds=arguments.web_stabilization_timeout_seconds,
             worker_stabilization_timeout_seconds=(arguments.worker_stabilization_timeout_seconds),
             poll_seconds=arguments.poll_seconds,
         )

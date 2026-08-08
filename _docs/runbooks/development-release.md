@@ -954,23 +954,42 @@ The normal automatic sequence is quality/deployment-contract, Django with Postgr
 one tested image, exact active-pair capture, immutable publication, migration exit `0`, stable and
 healthy web with exact SHA, singleton worker, read-only HTTP/browser smoke (including safe 404),
 terminal exact-pair verification, and artifact finalization. The deployer session is fixed at 3600
-seconds. The general forward-stage and compensation wait remains 180 seconds. Only a forward
-promotion or rollback that starts/replaces the singleton worker receives the explicit, code-owned
-420-second worker-stabilization budget; 420 seconds is also its hard maximum. The controller still
-requires one unique `PRIMARY` deployment, exact service and primary desired/running/pending counts,
-`rolloutState=COMPLETED`, and no more than one running plus pending worker. A running task, queue
-activity, heartbeat, or processed job is not completion.
+seconds. The general stage, public-health, and compensation wait remains 180 seconds. A forward
+promotion or rollback that intentionally starts/replaces web receives the explicit, code-owned
+240-second web-stabilization budget; 240 seconds is also its hard maximum. Only a forward promotion
+or rollback that starts/replaces the singleton worker receives the separate explicit, code-owned
+420-second worker-stabilization budget; 420 seconds is also its hard maximum. Neither value is a
+workflow-dispatch input or an arbitrary operator override. The controller makes one final ECS
+service observation at the monotonic deadline and never sleeps or polls again afterward. Exact
+completion in that observation succeeds; an incomplete or invalid observation fails.
 
-The recovery-safe worst-case envelope is `180 + 120 + 180 + 180 + 420 + 180 + 360 + 720 = 2340`
-seconds: migration observation, stopped-migration terminal proof, web stabilization, public
-readiness/liveness, worker stabilization, deployed browser smoke, three critical two-minute
-artifact uploads, and the 12-minute finalization-recovery cap. This deliberately conservative sum
-includes mutually exclusive migration-stop and later recovery work. It leaves `3600 - 2340 = 1260`
-seconds (21 minutes) of the fixed deployer session, exceeding the required 20-minute recovery
-reserve. Automatic compensation and finalization recovery do not inherit the 420-second forward
-worker budget: their exact-pair service waits stay at 180 seconds and remain inside the separate
-12-minute recovery cap. Do not raise either timeout in workflow inputs or code. If 420 seconds is
-insufficient, disable automatic deployment and file/groom another issue with new evidence.
+Web completion still requires its expected task-definition ARN and desired count, exactly one
+`PRIMARY` deployment with that definition and count, exact service and primary running/pending
+counts, and `rolloutState=COMPLETED`. Missing or duplicate primary deployments, `FAILED`, failed
+tasks, a wrong/mixed task definition, a wrong desired count, or `COMPLETED` with inexact counts fail
+immediately. A running task, ALB response, or partial target health is never ECS completion. The
+separate public readiness/liveness gate follows ECS stabilization and must report the exact source
+SHA. Worker completion retains the same terminal requirements plus no more than one running plus
+pending task; queue activity, heartbeat, or a processed job is not completion.
+
+The conservative critical-stage recovery envelope is
+`180 + 120 + 240 + 180 + 420 + 180 + 360 + 720 = 2400` seconds: migration observation,
+stopped-migration terminal proof, web stabilization, public readiness/liveness, worker
+stabilization, deployed browser smoke, three critical two-minute artifact uploads, and the
+12-minute finalization-recovery cap. This deliberately conservative sum includes mutually
+exclusive migration-stop and later recovery work. It leaves `3600 - 2400 = 1200` seconds (20
+minutes) of the fixed deployer session for recovery. Automatic compensation and finalization
+recovery inherit neither forward stabilization budget: their exact-pair service waits stay at 180
+seconds and remain inside the separate 12-minute recovery cap. Migration observation, public
+health, browser smoke, and artifact finalization likewise retain their existing independent
+bounds. Do not raise any timeout in workflow inputs or code. If either reviewed stabilization
+value is insufficient, disable automatic deployment and file/groom another issue with new
+evidence.
+
+The 240-second value comes from failed development run `31273789396` attempt 1 on 2026-08-08. Its
+web stage failed after about 187 seconds under the old 180-second controller budget, while recent
+successful web stages took approximately 158, 168, and 180 seconds. That evidence shows the old
+bound had no reliable ECS control-plane margin; it does not reinterpret the failed run as success.
 
 The 420-second value comes from development run `31261677137` on 2026-08-08. Its singleton worker
 was running and processing the durable relay while ECS kept the unique primary deployment

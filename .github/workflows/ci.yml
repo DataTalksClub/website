@@ -961,6 +961,7 @@ jobs:
             --execution-role-arn "$EXECUTION_ROLE_ARN"
             --assign-public-ip "$ASSIGN_PUBLIC_IP"
             --timeout-seconds 180
+            --web-stabilization-timeout-seconds 240
             --worker-stabilization-timeout-seconds 420
           )
           for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done
@@ -1062,6 +1063,7 @@ jobs:
             --base-url https://web.dtcdev.click
             --screenshot-directory .tmp/deployed-smoke
             --timeout-seconds 180
+            --web-stabilization-timeout-seconds 240
             --worker-stabilization-timeout-seconds 420
           )
           for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done

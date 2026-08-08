@@ -107,6 +107,9 @@ class ReleaseGateway(Protocol):
     ) -> None: ...
 
     @property
+    def web_stabilization_timeout_seconds(self) -> int: ...
+
+    @property
     def worker_stabilization_timeout_seconds(self) -> int: ...
 
     def wait_service_stable(
@@ -115,6 +118,8 @@ class ReleaseGateway(Protocol):
         *,
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
+        expected_task_definition_arn: str | None = None,
+        expected_desired_count: int | None = None,
     ) -> None: ...
 
     def verify_public_web(self, source_sha: str) -> None: ...
@@ -367,9 +372,16 @@ def _compensate(
             gateway.update_service(workload, snapshot.task_definition_arn, snapshot.desired_count)
         except Exception as error:
             errors.append(f"update {workload}: {type(error).__name__}")
+    snapshots = {"web": web, "worker": worker}
     for workload in ("web", "worker"):
         try:
-            gateway.wait_service_stable(workload, worker_singleton=workload == "worker")
+            snapshot = snapshots[workload]
+            gateway.wait_service_stable(
+                workload,
+                worker_singleton=workload == "worker",
+                expected_task_definition_arn=snapshot.task_definition_arn,
+                expected_desired_count=snapshot.desired_count,
+            )
         except Exception as error:
             errors.append(f"wait {workload}: {type(error).__name__}")
     try:
@@ -563,10 +575,20 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
     mutated = False
     active_stage = "web"
     try:
-        _record_evidence(config.evidence_path, "web", "started")
+        _record_evidence(
+            config.evidence_path,
+            "web",
+            "started",
+            {"stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds},
+        )
         mutated = True
         gateway.update_service("web", registered["web"], config.web_desired_count)
-        gateway.wait_service_stable("web")
+        gateway.wait_service_stable(
+            "web",
+            timeout_seconds=gateway.web_stabilization_timeout_seconds,
+            expected_task_definition_arn=registered["web"],
+            expected_desired_count=config.web_desired_count,
+        )
         gateway.verify_public_web(config.identity.source_sha)
         _record_evidence(
             config.evidence_path,
@@ -580,6 +602,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "alb_ready": True,
                 "readiness": True,
                 "liveness": True,
+                "stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds,
             },
         )
 
@@ -595,6 +618,8 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             "worker",
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+            expected_task_definition_arn=registered["worker"],
+            expected_desired_count=config.worker_desired_count,
         )
         _record_evidence(
             config.evidence_path,
@@ -790,10 +815,20 @@ def rollback(
     mutated = False
     active_stage = "web"
     try:
-        _record_evidence(evidence_path, "web", "started")
+        _record_evidence(
+            evidence_path,
+            "web",
+            "started",
+            {"stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds},
+        )
         mutated = True
         gateway.update_service("web", target.web_task_definition_arn, target.web_desired_count)
-        gateway.wait_service_stable("web")
+        gateway.wait_service_stable(
+            "web",
+            timeout_seconds=gateway.web_stabilization_timeout_seconds,
+            expected_task_definition_arn=target.web_task_definition_arn,
+            expected_desired_count=target.web_desired_count,
+        )
         gateway.verify_public_web(target.source_sha)
         _record_evidence(
             evidence_path,
@@ -807,6 +842,7 @@ def rollback(
                 "alb_ready": True,
                 "readiness": True,
                 "liveness": True,
+                "stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds,
             },
         )
         active_stage = "worker"
@@ -823,6 +859,8 @@ def rollback(
             "worker",
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+            expected_task_definition_arn=target.worker_task_definition_arn,
+            expected_desired_count=target.worker_desired_count,
         )
         _record_evidence(
             evidence_path,

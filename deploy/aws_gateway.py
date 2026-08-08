@@ -35,6 +35,8 @@ CONTROLLED_MIGRATION_FAILURE_COMMAND = ["__dtc_controlled_migration_failure__"]
 MIGRATION_SHUTDOWN_TIMEOUT_SECONDS = 120
 DEPLOYED_BROWSER_TIMEOUT_SECONDS = 180
 MAX_STAGE_TIMEOUT_SECONDS = 180
+WEB_STABILIZATION_TIMEOUT_SECONDS = 240
+MAX_WEB_STABILIZATION_TIMEOUT_SECONDS = 240
 WORKER_STABILIZATION_TIMEOUT_SECONDS = 420
 MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS = 420
 
@@ -55,12 +57,14 @@ class AwsReleaseConfig:
     base_url: str
     screenshot_directory: Path
     timeout_seconds: int = MAX_STAGE_TIMEOUT_SECONDS
+    web_stabilization_timeout_seconds: int = WEB_STABILIZATION_TIMEOUT_SECONDS
     worker_stabilization_timeout_seconds: int = WORKER_STABILIZATION_TIMEOUT_SECONDS
     poll_seconds: int = 10
 
     def __post_init__(self) -> None:
         integer_timeouts = {
             "stage": self.timeout_seconds,
+            "web stabilization": self.web_stabilization_timeout_seconds,
             "worker stabilization": self.worker_stabilization_timeout_seconds,
             "poll": self.poll_seconds,
         }
@@ -70,12 +74,20 @@ class AwsReleaseConfig:
             raise ReleaseContractError(
                 "development stage timeout exceeds the recovery-safe maximum"
             )
+        if self.web_stabilization_timeout_seconds > MAX_WEB_STABILIZATION_TIMEOUT_SECONDS:
+            raise ReleaseContractError(
+                "web stabilization timeout exceeds the recovery-safe maximum"
+            )
         if self.worker_stabilization_timeout_seconds > MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS:
             raise ReleaseContractError(
                 "worker stabilization timeout exceeds the recovery-safe maximum"
             )
         if self.poll_seconds > self.timeout_seconds:
             raise ReleaseContractError("poll interval must not exceed the stage timeout")
+        if self.poll_seconds > self.web_stabilization_timeout_seconds:
+            raise ReleaseContractError(
+                "poll interval must not exceed the web stabilization timeout"
+            )
         if self.poll_seconds > self.worker_stabilization_timeout_seconds:
             raise ReleaseContractError(
                 "poll interval must not exceed the worker stabilization timeout"
@@ -88,6 +100,10 @@ class AwsReleaseGateway:
         self.ecs = boto3.client("ecs", region_name=config.region)
         self.ecr = boto3.client("ecr", region_name=config.region)
         self.elbv2 = boto3.client("elbv2", region_name=config.region)
+
+    @property
+    def web_stabilization_timeout_seconds(self) -> int:
+        return self.config.web_stabilization_timeout_seconds
 
     @property
     def worker_stabilization_timeout_seconds(self) -> int:
@@ -397,32 +413,63 @@ class AwsReleaseGateway:
             **arguments,
         )
 
+    @staticmethod
+    def _required_service_count(document: dict[str, Any], field: str, *, context: str) -> int:
+        value = document.get(field)
+        if type(value) is not int or value < 0:
+            raise ReleaseContractError(f"{context} {field} is not a nonnegative integer")
+        return value
+
     def wait_service_stable(
         self,
         workload: str,
         *,
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
+        expected_task_definition_arn: str | None = None,
+        expected_desired_count: int | None = None,
     ) -> None:
         if timeout_seconds is not None:
-            if workload != "worker" or not worker_singleton:
+            if workload == "web" and not worker_singleton:
+                maximum = self.config.web_stabilization_timeout_seconds
+            elif workload == "worker" and worker_singleton:
+                maximum = self.config.worker_stabilization_timeout_seconds
+            else:
                 raise ReleaseContractError(
-                    "the worker stabilization timeout is restricted to singleton worker waits"
+                    "extended stabilization timeouts are restricted to forward web "
+                    "or singleton worker waits"
                 )
-            if (
-                type(timeout_seconds) is not int
-                or timeout_seconds < 1
-                or timeout_seconds > self.config.worker_stabilization_timeout_seconds
-            ):
-                raise ReleaseContractError("invalid worker stabilization timeout override")
+            if type(timeout_seconds) is not int or timeout_seconds < 1 or timeout_seconds > maximum:
+                raise ReleaseContractError(f"invalid {workload} stabilization timeout override")
+        if (expected_task_definition_arn is None) != (expected_desired_count is None):
+            raise ReleaseContractError(
+                "service stabilization expected task definition and desired count together"
+            )
+        if expected_desired_count is not None and (
+            type(expected_desired_count) is not int or expected_desired_count < 0
+        ):
+            raise ReleaseContractError("invalid expected service desired count")
         deadline = time.monotonic() + (
             self.config.timeout_seconds if timeout_seconds is None else timeout_seconds
         )
-        while time.monotonic() < deadline:
+        while True:
             service = self._service(workload)
-            running = int(service.get("runningCount", 0))
-            pending = int(service.get("pendingCount", 0))
-            desired = int(service.get("desiredCount", 0))
+            desired = self._required_service_count(
+                service, "desiredCount", context=f"{workload} service"
+            )
+            running = self._required_service_count(
+                service, "runningCount", context=f"{workload} service"
+            )
+            pending = self._required_service_count(
+                service, "pendingCount", context=f"{workload} service"
+            )
+            if expected_task_definition_arn is not None and (
+                service.get("taskDefinition") != expected_task_definition_arn
+                or desired != expected_desired_count
+            ):
+                raise ReleaseContractError(
+                    f"{workload} service task definition or desired count differs"
+                )
             if worker_singleton and running + pending > 1:
                 raise ReleaseContractError("worker rollout exceeded one running/pending task")
             primary = [
@@ -430,17 +477,46 @@ class AwsReleaseGateway:
             ]
             if len(primary) != 1:
                 raise ReleaseContractError(f"{workload} service has no unique primary deployment")
-            if primary[0].get("rolloutState") == "FAILED":
+            deployment = primary[0]
+            primary_desired = self._required_service_count(
+                deployment, "desiredCount", context=f"{workload} primary deployment"
+            )
+            primary_running = self._required_service_count(
+                deployment, "runningCount", context=f"{workload} primary deployment"
+            )
+            primary_pending = self._required_service_count(
+                deployment, "pendingCount", context=f"{workload} primary deployment"
+            )
+            failed_tasks = deployment.get("failedTasks", 0)
+            if type(failed_tasks) is not int or failed_tasks < 0:
+                raise ReleaseContractError(
+                    f"{workload} primary deployment failedTasks is not a nonnegative integer"
+                )
+            if deployment.get("rolloutState") == "FAILED":
                 raise ReleaseContractError(f"{workload} ECS deployment failed")
+            if failed_tasks > 0:
+                raise ReleaseContractError(f"{workload} ECS deployment has failed tasks")
+            if expected_task_definition_arn is not None and (
+                deployment.get("taskDefinition") != expected_task_definition_arn
+                or primary_desired != expected_desired_count
+            ):
+                raise ReleaseContractError(
+                    f"{workload} primary task definition or desired count differs"
+                )
             if (
                 running == desired
                 and pending == 0
-                and primary[0].get("runningCount") == desired
-                and primary[0].get("pendingCount", 0) == 0
-                and primary[0].get("rolloutState") == "COMPLETED"
+                and primary_running == desired
+                and primary_pending == 0
+                and deployment.get("rolloutState") == "COMPLETED"
             ):
                 return
-            time.sleep(self.config.poll_seconds)
+            if deployment.get("rolloutState") == "COMPLETED":
+                raise ReleaseContractError(f"{workload} completed with inexact counts")
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            time.sleep(min(self.config.poll_seconds, remaining))
         raise ReleaseContractError(f"{workload} service did not reach steady state")
 
     def verify_public_web(self, source_sha: str) -> None:
