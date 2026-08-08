@@ -22,9 +22,9 @@ h1 { margin: .4rem 0 1rem; font-size: clamp(2.35rem, 8vw, 5.5rem); line-height: 
 .panel h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
 form { display: grid; gap: .75rem; margin-top: 1.5rem; }
 label { font-weight: 650; }
-input { width: 100%; padding: .8rem; border: 1px solid #aeb8ca; border-radius: .45rem; font: inherit; }
+input, select { width: 100%; padding: .8rem; border: 1px solid #aeb8ca; border-radius: .45rem; background: #fff; font: inherit; }
 button { width: fit-content; padding: .75rem 1.15rem; border: 0; border-radius: .45rem; color: #fff; background: #0b5fff; font: inherit; font-weight: 700; cursor: pointer; }
-button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid #ffbf47; outline-offset: 3px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #ffbf47; outline-offset: 3px; }
 button.secondary { color: #17223b; background: #e8edf5; }
 .error { padding: .75rem; border-left: .3rem solid #b42318; background: #fff0ee; }
 .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; margin: 2rem 0; }
@@ -32,6 +32,20 @@ button.secondary { color: #17223b; background: #e8edf5; }
 .status-grid dt { color: #65708a; font-size: .85rem; }
 .status-grid dd { margin: .25rem 0 0; font-weight: 750; }
 footer { color: #65708a; border-top: 1px solid #dce2ee; }
+.studio-navigation { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0 2rem; }
+.studio-navigation a { padding: .6rem .8rem; border-radius: .45rem; background: #e8efff; font-weight: 700; }
+.audit-filters { grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); align-items: end; }
+.audit-filter-field { display: grid; gap: .45rem; min-width: 0; }
+.audit-cards { display: grid; gap: 1rem; margin: 1.5rem 0; }
+.audit-card { padding: 1rem; border: 1px solid #dce2ee; border-radius: .65rem; background: #f8faff; overflow-wrap: anywhere; }
+.audit-card h2 { margin-top: 0; font-size: 1.1rem; }
+.audit-card dl, .audit-detail { display: grid; gap: .75rem; }
+.audit-card dl div, .audit-detail div { min-width: 0; }
+.audit-card dt, .audit-detail dt { color: #65708a; font-size: .82rem; font-weight: 700; text-transform: uppercase; }
+.audit-card dd, .audit-detail dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
+.audit-detail div { padding: 1rem; border-radius: .5rem; background: #f5f7fb; }
+.audit-detail code { white-space: pre-wrap; word-break: break-word; }
+.pagination { display: flex; gap: 1rem; }
 
 @media (max-width: 36rem) {
   .site-header { align-items: flex-start; gap: 1rem; }

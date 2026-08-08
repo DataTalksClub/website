@@ -1,0 +1,18 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>{% block title %}Studio · DataTalks.Club{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core/site.css' %}">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{% url 'studio:home' %}">DataTalks.Club Studio</a>
+    </header>
+    <main id="main-content">{% block content %}{% endblock %}</main>
+    <footer>DataTalks.Club · Private staff workspace</footer>
+  </body>
+</html>

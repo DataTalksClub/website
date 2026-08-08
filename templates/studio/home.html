@@ -1,10 +1,17 @@
-{% extends "base.html" %}
+{% extends "studio/base.html" %}
 {% block title %}Studio · {{ brand_name }}{% endblock %}
 {% block content %}
   <section class="panel">
     <p class="eyebrow">Staff workspace</p>
     <h1>Studio</h1>
-    <p>Operational tools will appear here as their domain milestones are implemented.</p>
+    <p>Choose an available workspace. Sections appear only when your assigned capabilities allow them.</p>
+    <nav aria-label="Studio sections" class="studio-navigation">
+      {% for item in studio_navigation %}
+        <a href="{% url item.route %}">{{ item.label }}</a>
+      {% empty %}
+        <p>You do not have any Studio sections assigned.</p>
+      {% endfor %}
+    </nav>
     <dl class="status-grid">
       <div><dt>Application</dt><dd>Ready</dd></div>
       <div><dt>Version</dt><dd>{{ app_version }}</dd></div>

@@ -1,0 +1,58 @@
+{% extends "studio/base.html" %}
+{% block title %}Audit · Studio · {{ brand_name }}{% endblock %}
+{% block content %}
+  <section class="panel studio-panel">
+    <p class="eyebrow">Studio · Read only</p>
+    <h1>Audit events</h1>
+    <nav aria-label="Studio sections" class="studio-navigation">
+      {% for item in studio_navigation %}<a href="{% url item.route %}">{{ item.label }}</a>{% endfor %}
+    </nav>
+    <form method="get" class="audit-filters">
+      <div class="audit-filter-field">
+        <label for="audit-action">Action</label>
+        <input id="audit-action" name="action" value="{{ filters.action|default:'' }}">
+      </div>
+      <div class="audit-filter-field">
+        <label for="audit-outcome">Outcome</label>
+        <select id="audit-outcome" name="outcome">
+          <option value="">Any outcome</option>
+          <option value="succeeded" {% if filters.outcome == "succeeded" %}selected{% endif %}>Succeeded</option>
+          <option value="denied" {% if filters.outcome == "denied" %}selected{% endif %}>Denied</option>
+          <option value="failed" {% if filters.outcome == "failed" %}selected{% endif %}>Failed</option>
+        </select>
+      </div>
+      <div class="audit-filter-field">
+        <label for="audit-target-type">Target type</label>
+        <input id="audit-target-type" name="target_type" value="{{ filters.target_type|default:'' }}">
+      </div>
+      <div class="audit-filter-field">
+        <label for="audit-request-id">Request ID</label>
+        <input id="audit-request-id" name="request_id" value="{{ filters.request_id|default:'' }}">
+      </div>
+      <div class="audit-filter-field">
+        <label for="audit-correlation-id">Correlation ID</label>
+        <input id="audit-correlation-id" name="correlation_id" value="{{ filters.correlation_id|default:'' }}">
+      </div>
+      <button type="submit">Apply filters</button>
+    </form>
+    <p>{{ audit_page.total_count }} event{{ audit_page.total_count|pluralize }} · page {{ audit_page.number }} of {{ audit_page.total_pages }}</p>
+    <div class="audit-cards">
+      {% for event_id, event in events %}
+        <article class="audit-card">
+          <h2><a href="{% url 'studio:audit-detail' event_id=event_id %}">{{ event.action }}</a></h2>
+          <dl>
+            <div><dt>Outcome</dt><dd>{{ event.outcome }}</dd></div>
+            <div><dt>Target</dt><dd>{{ event.target_type }}</dd></div>
+            <div><dt>Recorded</dt><dd><time datetime="{{ event.created_at }}">{{ event.created_at }}</time></dd></div>
+          </dl>
+        </article>
+      {% empty %}
+        <p>No audit events match these filters.</p>
+      {% endfor %}
+    </div>
+    <nav aria-label="Audit pages" class="pagination">
+      {% if audit_page.has_previous %}<a href="{% querystring page=audit_page.number|add:'-1' %}">Previous</a>{% endif %}
+      {% if audit_page.has_next %}<a href="{% querystring page=audit_page.number|add:'1' %}">Next</a>{% endif %}
+    </nav>
+  </section>
+{% endblock %}
