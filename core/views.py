@@ -7,6 +7,8 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
+from content.review_projection import event_groups, review_projection
+
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
 DEVELOPMENT_SITEMAP_BODY = (
     '<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -15,12 +17,19 @@ DEVELOPMENT_SITEMAP_BODY = (
 
 
 def home(request: HttpRequest):
-    # This foundation page is the established production-home equivalent.
-    # Adopted course routes remain intentionally unmapped until issue #53.
+    projection = review_projection()
+    events = event_groups()
     return render(
         request,
         "core/home.html",
-        {"canonical_url": "https://datatalks.club/"},
+        {
+            "canonical_url": "https://datatalks.club/",
+            "upcoming_events": events.upcoming[:3],
+            "recent_events": events.recent[:1],
+            "course": projection["course"],
+            "article": projection["article"],
+            "podcast": projection["podcast"],
+        },
     )
 
 

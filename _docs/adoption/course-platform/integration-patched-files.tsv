@@ -1,2 +1,2 @@
 destination_path	size_bytes	sha256	rationale
-course_platform_templates/base.html	11014	52d11cce5696c2746ab82beabe6fd5dac6838d5226bd496bbc11d9f233fd4588	Use the unified site's validated explicit-only canonical policy without altering CMP business behavior.
+course_platform_templates/base.html	13945	6090e1aa591433d2d43c29fb26e1a3169b55d9a65af43d65b19a308cd9bd3728	Use the unified canonical policy and shared accessible local site navigation while preserving CMP account, preference, and business behavior.

@@ -1,0 +1,47 @@
+{% extends "core/base.html" %}
+{% block title %}{{ cohort.title }} — DataTalks.Club{% endblock %}
+{% block content %}
+  {% url 'course-family-ai-dev-tools' as hub_url %}
+  {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label=course.title current_label=cohort.title %}
+  <article
+    class="max-w-4xl"
+    data-source-repository="{{ provenance.repository }}"
+    data-source-revision="{{ provenance.revision }}"
+    data-source-path="{{ provenance.source_path }}"
+    data-platform-source-repository="{{ platform_provenance.repository }}"
+    data-platform-source-revision="{{ platform_provenance.revision }}"
+    data-platform-source-path="{{ platform_provenance.source_path }}"
+  >
+    <span class="app-badge app-badge-info app-badge-upper">2026 cohort</span>
+    <h1 class="mt-3 text-3xl font-semibold sm:text-4xl">{{ cohort.title }}</h1>
+    <p class="mt-4 text-lg app-text">
+      Starts {{ cohort.start_display }} · {{ cohort.format }} · {{ cohort.price }}
+    </p>
+    <p class="mt-5 max-w-3xl leading-8 app-text">{{ cohort.description }}</p>
+    <div class="mt-7 flex flex-wrap gap-3">
+      <a
+        class="primer-button primer-button-primary"
+        href="{% url 'course-registration-preview-ai-dev-tools-2026' %}"
+      >
+        Registration preview
+      </a>
+      <a
+        class="primer-button primer-button-secondary"
+        href="{% url 'docs-ai-dev-tools-getting-started' %}"
+      >
+        Getting started
+      </a>
+      {% if legacy_course %}
+        <a
+          class="primer-button primer-button-secondary"
+          href="{% url 'courses:course' course_slug=legacy_course.slug %}"
+        >
+          Open the existing course workspace
+        </a>
+      {% endif %}
+    </div>
+    <aside class="mt-8 rounded-md border app-border app-surface-muted p-4 app-text">
+      {{ cohort.notice }}
+    </aside>
+  </article>
+{% endblock %}

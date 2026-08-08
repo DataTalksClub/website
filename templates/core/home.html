@@ -1,47 +1,125 @@
 {% extends "core/base.html" %}
 {% block title %}Welcome to DataTalks.Club{% endblock %}
 {% block content %}
-  <section class="hero">
-    <p class="eyebrow">Global data community</p>
-    <h1>The place to talk about data</h1>
-    <h2>Global online community of data science professionals, ML engineers, and AI practitioners</h2>
-    <p class="lede">Learn from practical courses, join weekly events, hear from industry experts, and share what you know with people around the world.</p>
-    <div class="hero-actions">
-      <a class="button primary" href="https://datatalks.club/slack.html">Join our community</a>
-      <a class="button secondary" href="{% url 'course_list' %}">Explore free courses</a>
+  <section class="py-6 md:py-10">
+    <div class="max-w-4xl">
+      <p class="text-sm font-semibold uppercase tracking-wide app-muted">Global data community</p>
+      <h1 class="mt-3 text-4xl font-semibold leading-tight sm:text-5xl md:text-6xl">The place to talk about data</h1>
+      <p class="mt-5 max-w-3xl text-lg leading-8 app-text md:text-xl">
+        Global online community of data science professionals, ML engineers, and AI practitioners.
+      </p>
+      <p class="mt-4 max-w-3xl text-base leading-7 app-text">
+        Learn from practical courses, join weekly events, hear from industry experts, and share what
+        you know with people around the world.
+      </p>
+      <div class="mt-7 flex flex-wrap gap-3">
+        <a class="primer-button primer-button-primary" href="{% url 'events' %}">Explore upcoming events</a>
+        <a class="primer-button primer-button-secondary" href="{% url 'course_list' %}">Explore free courses</a>
+        <a class="primer-button primer-button-secondary" href="{% url 'slack' %}">Join our community</a>
+      </div>
     </div>
   </section>
 
-  <section class="value-grid" aria-label="What you can do in DataTalks.Club">
-    <article>
-      <p class="card-number" aria-hidden="true">01</p>
-      <h3>Talk about data</h3>
-      <p>Discuss data science, machine learning, engineering, and AI with practitioners at every level.</p>
-    </article>
-    <article>
-      <p class="card-number" aria-hidden="true">02</p>
-      <h3>Learn together</h3>
-      <p>Attend community events and build real projects through free, open courses.</p>
-    </article>
-    <article>
-      <p class="card-number" aria-hidden="true">03</p>
-      <h3>Grow your career</h3>
-      <p>Ask career questions, learn from peers, and help others take their next step.</p>
-    </article>
+  <section class="mt-8 border-y app-border py-8" aria-labelledby="home-events-heading">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-wide app-muted">Learn live</p>
+        <h2 id="home-events-heading" class="mt-2 text-2xl font-semibold md:text-3xl">
+          Events
+        </h2>
+      </div>
+      <a class="app-link" href="{% url 'events' %}">See all events →</a>
+    </div>
+    {% if upcoming_events %}
+      <div class="mt-5 grid gap-4 lg:grid-cols-3">
+        {% for event in upcoming_events %}
+          <article class="rounded-md border app-border p-5">
+            <p class="text-sm app-muted">{{ event.starts_at|date:"M j, Y, H:i T" }}</p>
+            <h3 class="mt-2 text-lg font-semibold">
+              <a class="app-link" href="{% url 'events' %}#{{ event.id }}">
+                {{ event.title }}
+              </a>
+            </h3>
+            <p class="mt-2 text-sm app-text">{{ event.type }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="mt-5 app-text">No upcoming events are listed in the current source snapshot.</p>
+      {% for event in recent_events %}
+        <p class="mt-3">
+          <a class="app-link" href="{% url 'events' %}#{{ event.id }}">
+            Watch a recent event: {{ event.title }}
+          </a>
+        </p>
+      {% endfor %}
+    {% endif %}
   </section>
 
-  <section class="explore-section">
-    <div class="section-heading">
-      <p class="eyebrow">Explore the club</p>
-      <h2>One community, many ways to take part</h2>
+  <section class="py-10" aria-labelledby="home-courses-heading">
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.55fr)] lg:items-start">
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-wide app-muted">Learn by building</p>
+        <h2 id="home-courses-heading" class="mt-2 text-2xl font-semibold md:text-3xl">
+          Courses and cohorts
+        </h2>
+        <p class="mt-4 max-w-3xl leading-7 app-text">
+          Free, practical courses with a community around them. A course is the long-lived subject;
+          each cohort is a dated learning experience.
+        </p>
+        <a class="mt-5 inline-block app-link" href="{% url 'course_list' %}">
+          Browse all courses →
+        </a>
+      </div>
+      <article class="rounded-md border app-border app-surface-muted p-5">
+        <span class="app-badge app-badge-info app-badge-upper">2026 cohort</span>
+        <h3 class="mt-3 text-xl font-semibold">
+          <a class="app-link" href="{% url 'course-family-ai-dev-tools' %}">
+            {{ course.title }}
+          </a>
+        </h3>
+        <p class="mt-2 leading-7 app-text">{{ course.summary }}</p>
+        <p class="mt-3 text-sm app-muted">Starts August 31, 2026</p>
+        <a
+          class="primer-button primer-button-secondary mt-4"
+          href="{% url 'course-cohort-ai-dev-tools-2026' %}"
+        >
+          View cohort
+        </a>
+      </article>
     </div>
-    <div class="explore-grid">
-      <a href="https://datatalks.club/events.html"><strong>Events</strong><span>Weekly talks, workshops, and webinars</span></a>
-      <a href="https://datatalks.club/podcast.html"><strong>Podcast</strong><span>Conversations with data and AI practitioners</span></a>
-      <a href="{% url 'course_list' %}"><strong>Courses</strong><span>Free, practical, community-powered learning</span></a>
-      <a href="https://datatalks.club/articles.html"><strong>Articles</strong><span>Guides and lessons written by the community</span></a>
-      <a href="https://datatalks.club/podwiki/"><strong>Wiki</strong><span>Connected notes from podcast conversations</span></a>
-      <a href="https://datatalks.club/books.html"><strong>Books</strong><span>Book discussions with authors and readers</span></a>
+  </section>
+
+  <section class="border-t app-border py-10" aria-labelledby="home-community-heading">
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Explore the club</p>
+    <h2 id="home-community-heading" class="mt-2 text-2xl font-semibold md:text-3xl">
+      One community, many ways to take part
+    </h2>
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <a class="rounded-md border app-border p-5 app-link" href="{% url 'articles' %}">
+        <strong class="block text-lg">Articles</strong>
+        <span class="mt-2 block app-text">Guides and lessons written by the community</span>
+      </a>
+      <a class="rounded-md border app-border p-5 app-link" href="{% url 'podcast' %}">
+        <strong class="block text-lg">Podcast</strong>
+        <span class="mt-2 block app-text">Conversations with data and AI practitioners</span>
+      </a>
+      <a class="rounded-md border app-border p-5 app-link" href="{% url 'podwiki-home' %}">
+        <strong class="block text-lg">Podcast Wiki</strong>
+        <span class="mt-2 block app-text">Connected notes from podcast conversations</span>
+      </a>
+      <a class="rounded-md border app-border p-5 app-link" href="{% url 'books' %}">
+        <strong class="block text-lg">Books</strong>
+        <span class="mt-2 block app-text">Book discussions with authors and readers</span>
+      </a>
+      <a class="rounded-md border app-border p-5 app-link" href="{% url 'docs-home' %}">
+        <strong class="block text-lg">Documentation</strong>
+        <span class="mt-2 block app-text">Course setup and learning guides</span>
+      </a>
+      <a class="rounded-md border app-border p-5 app-link" href="{% url 'faq-home' %}">
+        <strong class="block text-lg">FAQ</strong>
+        <span class="mt-2 block app-text">Answers to common course questions</span>
+      </a>
     </div>
   </section>
 {% endblock %}

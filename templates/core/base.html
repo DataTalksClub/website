@@ -1,47 +1,22 @@
-{% load seo static %}
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="DataTalks.Club is the place to talk about data. Join the global community of data science professionals, ML engineers, and AI practitioners. Access free courses, weekly podcasts, webinars, workshops, and book discussions with industry experts.">
-    {% canonical_link canonical_url %}
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="DataTalks.Club">
-    <meta property="og:title" content="Welcome to DataTalks.Club">
-    <meta property="og:description" content="DataTalks.Club is the place to talk about data. Join the global community of data science professionals, ML engineers, and AI practitioners.">
-    <meta property="og:url" content="https://datatalks.club/">
-    <meta property="og:image" content="https://datatalks.club/images/cover.jpg">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:site" content="@DataTalksClub">
-    <meta name="twitter:title" content="Welcome to DataTalks.Club">
-    <meta name="twitter:image" content="https://datatalks.club/images/cover.jpg">
-    <title>{% block title %}Welcome to DataTalks.Club{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'core/site.css' %}">
-  </head>
-  <body>
-    <a class="skip-link" href="#main-content">Skip to content</a>
-    <header class="site-header">
-      <a class="brand" href="{% url 'home' %}">DataTalks.Club</a>
-      <nav class="primary-navigation" aria-label="Primary">
-        <a href="https://datatalks.club/articles.html">Articles</a>
-        <a href="https://datatalks.club/slack.html">Slack</a>
-        <a href="https://datatalks.club/events.html">Events</a>
-        <a href="https://datatalks.club/podcast.html">Podcast</a>
-        <a href="https://datatalks.club/podwiki/">Wiki</a>
-        <a href="https://datatalks.club/books.html">Books</a>
-        <a href="{% url 'course_list' %}">Courses</a>
-        {% if user.is_staff %}<a href="{% url 'studio:home' %}">Studio</a>{% endif %}
-      </nav>
-    </header>
-    <main id="main-content">{% block content %}{% endblock %}</main>
-    <footer class="site-footer">
-      <span>DataTalks.Club · The place to talk about data</span>
-      <nav aria-label="Community links">
-        <a href="https://github.com/DataTalksClub/datatalksclub.github.io">GitHub</a>
-        <a href="https://www.youtube.com/c/DataTalksClub">YouTube</a>
-        <a href="https://www.linkedin.com/company/datatalks-club/">LinkedIn</a>
-      </nav>
-    </footer>
-  </body>
-</html>
+{% extends "base.html" %}
+{% block title %}Welcome to DataTalks.Club{% endblock %}
+{% block head_meta %}
+  <meta
+    name="description"
+    content="{{ seo_description|default:'DataTalks.Club is the place to talk about data. Join free courses, weekly events, podcasts, and community learning.' }}"
+  >
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DataTalks.Club">
+  <meta
+    property="og:title"
+    content="{{ seo_title|default:'Welcome to DataTalks.Club' }}"
+  >
+  <meta
+    property="og:description"
+    content="{{ seo_description|default:'The global community of data science professionals, ML engineers, and AI practitioners.' }}"
+  >
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@DataTalksClub">
+{% endblock %}
+{% block breadcrumbs_nav %}{% endblock %}

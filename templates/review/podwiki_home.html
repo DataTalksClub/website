@@ -1,0 +1,51 @@
+{% extends "core/base.html" %}
+{% block title %}Podcast Wiki — DataTalks.Club{% endblock %}
+{% block content %}
+  <header>
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Connected knowledge</p>
+    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">DataTalks.Club Podcast Wiki</h1>
+    <p class="mt-4 max-w-3xl leading-7 app-text">
+      Explore topic, episode, people, and book connections.
+    </p>
+  </header>
+  <form class="mt-8 max-w-2xl" method="get" action="{% url 'podwiki-search' %}">
+    <label class="block font-semibold app-heading" for="podwiki-query">Search the wiki</label>
+    <div class="mt-2 flex gap-2">
+      <input
+        class="min-w-0 flex-1 rounded-md border app-border app-surface px-3 py-2 app-text"
+        id="podwiki-query"
+        name="q"
+        placeholder="Search RAG, career transitions, feature stores..."
+      >
+      <button class="primer-button primer-button-primary" type="submit">Search</button>
+    </div>
+  </form>
+  <section class="mt-10 grid gap-4 md:grid-cols-3">
+    <article class="rounded-md border app-border p-5">
+      <h2 class="text-xl font-semibold">Graph</h2>
+      <p class="mt-2 app-text">Explore topic, episode, people, and book connections.</p>
+    </article>
+    <article class="rounded-md border app-border p-5">
+      <h2 class="text-xl font-semibold">Search</h2>
+      <p class="mt-2 app-text">Find wiki pages, guides, summaries, people, and books.</p>
+    </article>
+    <article class="rounded-md border app-border p-5">
+      <h2 class="text-xl font-semibold">Wiki pages</h2>
+      <p class="mt-2 app-text">Foundational topic hubs that anchor the rest of the wiki.</p>
+    </article>
+  </section>
+  <section
+    class="mt-10"
+    data-source-repository="{{ provenance.repository }}"
+    data-source-revision="{{ provenance.revision }}"
+    data-source-path="{{ provenance.source_path }}"
+  >
+    <h2 class="text-2xl font-semibold">Featured topic</h2>
+    <h3 class="mt-3 text-xl font-semibold">
+      <a class="app-link" href="{% url 'podwiki-ai-coding-tools' %}">
+        {{ podwiki.title }}
+      </a>
+    </h3>
+    <p class="mt-2 max-w-3xl leading-7 app-text">{{ podwiki.summary }}</p>
+  </section>
+{% endblock %}

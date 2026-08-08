@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% block title %}Courses — DataTalks.Club{% endblock %}
+{% block head_meta %}
+    <meta name="description"
+          content="Free, practical, community-powered courses from DataTalks.Club.">
+{% endblock %}
+{% block content %}
+    {% url 'course-family-ai-dev-tools' as ai_dev_tools_family_url %}
+    {% url 'course-cohort-ai-dev-tools-2026' as ai_dev_tools_cohort_url %}
+    <section class="home-hero py-6 md:py-10">
+        <div class="max-w-3xl">
+            <h1 class="text-3xl font-semibold leading-tight tracking-normal sm:text-4xl md:text-5xl">
+                Learn data skills. For free. Together.
+            </h1>
+            <p class="mt-4 max-w-2xl text-base leading-7 app-text md:text-lg md:leading-8">
+                Community-created courses with practical homework, projects, public leaderboards, and peer review.
+            </p>
+        </div>
+    </section>
+    {% if SHOW_WRAPPED %}
+        <section class="mb-8 border-y app-border py-6">
+            <div class="max-w-3xl">
+                <h2 class="text-xl font-semibold md:text-2xl">DataTalks.Club Wrapped 2025</h2>
+                <p class="mt-2 text-base leading-7 app-text">
+                    Check out your year of learning in review: statistics, course progress, and your 2025 leaderboard rank.
+                </p>
+                <a href="{% url 'wrapped' 2025 %}"
+                   class="mt-4 inline-flex items-center font-medium app-link">
+                    View your 2025 wrapped <span class="ml-2" aria-hidden="true">&rarr;</span>
+                </a>
+            </div>
+        </section>
+    {% endif %}
+    {% if ai_dev_tools_family_url and ai_dev_tools_cohort_url %}
+        <section class="mb-8 border-y app-border py-6" aria-labelledby="course-families-heading">
+            <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course family</p>
+            <h2 id="course-families-heading" class="mt-2 text-2xl font-semibold md:text-3xl">
+                <a href="{{ ai_dev_tools_family_url }}" class="app-link">
+                    AI Dev Tools Zoomcamp
+                </a>
+            </h2>
+            <p class="mt-2 max-w-3xl text-base leading-7 app-text">
+                A free, hands-on course on AI-native software engineering and disciplined use of coding agents.
+            </p>
+            <p class="mt-2 text-sm app-muted">2026 cohort starts August 31, 2026</p>
+            <a href="{{ ai_dev_tools_cohort_url }}"
+               class="primer-button primer-button-secondary mt-4">
+                Explore the 2026 cohort
+            </a>
+        </section>
+    {% endif %}
+    <div id="courses" class="border-t app-border pt-8">
+        <section>
+            <p class="text-sm font-semibold uppercase tracking-wide app-muted">Start now</p>
+            <h2 class="mt-2 text-2xl font-semibold md:text-3xl">Active courses</h2>
+            <p class="mt-1 text-sm app-muted">Courses listed here are open for participation and assignment submissions.</p>
+        </section>
+
+        {% if active_courses %}
+            <section class="mt-6 divide-y app-divide">
+                {% for course in active_courses %}
+                    {% include 'courses/_course_list_card.html' %}
+                {% endfor %}
+            </section>
+        {% else %}
+            <p class="mt-6 text-base app-text">No active cohort coursework right now.</p>
+        {% endif %}
+
+        {% if open_registration_courses %}
+            <section class="mt-10">
+                <p class="text-sm font-semibold uppercase tracking-wide app-muted">Enroll now</p>
+                <h2 class="mt-2 text-2xl font-semibold md:text-3xl">Open registration</h2>
+                <p class="mt-1 text-sm app-muted">These courses haven't started yet and are open for registration.</p>
+            </section>
+            <section class="mt-6 divide-y app-divide">
+                {% for course in open_registration_courses %}
+                    {% include 'courses/_course_list_card.html' with badge_label='Registration open' badge_class='app-badge-info' %}
+                {% endfor %}
+            </section>
+        {% endif %}
+
+        {% if archive_groups %}
+            <section class="mt-8 border-t app-border pt-8">
+                <div>
+                    <h2 class="text-xl font-semibold md:text-2xl">Course archive</h2>
+                    <p class="mt-1 text-sm app-muted">Past cohorts remain open for self check; late submissions are not possible.</p>
+                </div>
+                <div class="mt-5 space-y-7">
+                    {% for group in archive_groups %}
+                        <section>
+                            <h3 class="text-sm font-semibold uppercase tracking-wide app-muted">{{ group.year }}</h3>
+                            <div class="mt-2 divide-y app-divide">
+                                {% for course in group.courses %}
+                                    <a href="{% url 'course' course.slug %}"
+                                       class="group grid gap-2 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+                                        <div class="min-w-0">
+                                            <h4 class="text-lg font-semibold app-link md:text-xl">
+                                                {{ course.title }}
+                                                {% if course.is_enrolled %}
+                                                    <span class="ml-2 app-badge app-badge-upper app-badge-info">Enrolled</span>
+                                                {% endif %}
+                                            </h4>
+                                            <p class="mt-1 max-w-3xl text-sm leading-6 app-text">{{ course.home_outcome }}</p>
+                                        </div>
+                                        <span class="hidden shrink-0 app-link md:block" aria-hidden="true">&rarr;</span>
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </section>
+                    {% endfor %}
+                </div>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}
