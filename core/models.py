@@ -123,6 +123,43 @@ class AuditEvent(models.Model):
         raise AppendOnlyViolation("audit events cannot be deleted")
 
 
+class StaffSession(models.Model):
+    """Provider-neutral Studio session reference; it never stores a browser cookie key."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="studio_staff_sessions",
+    )
+    authenticated_at = models.DateTimeField()
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-authenticated_at", "-id")
+        permissions = (
+            ("access_studio", "Can access Studio"),
+            ("browse_audit", "Can browse Studio audit events"),
+            ("execute_high_risk_fixture", "Can execute the test-only high-risk fixture"),
+        )
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(revoked_at__isnull=True) | Q(revoked_at__gte=F("authenticated_at")),
+                name="core_staff_session_revoked_after_auth",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("user", "revoked_at", "-authenticated_at"),
+                name="core_staff_session_user",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"staff-session:{self.id}"
+
+
 class OperationalSetting(RevisionedModel):
     class ValueType(models.TextChoices):
         BOOLEAN = "boolean", "Boolean"

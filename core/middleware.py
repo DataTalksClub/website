@@ -131,9 +131,10 @@ class ResponsePolicyMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
-        if settings.NOINDEX:
+        private_surface = _is_private_surface(request)
+        if settings.NOINDEX or private_surface:
             # Assignment replaces a downstream value instead of appending a second field.
             response["X-Robots-Tag"] = ROBOTS_HEADER_VALUE
-        if _is_authenticated_request(request) or _is_private_surface(request):
+        if _is_authenticated_request(request) or private_surface:
             apply_private_no_store(response)
         return response

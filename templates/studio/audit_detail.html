@@ -1,0 +1,17 @@
+{% extends "studio/base.html" %}
+{% block title %}Audit event · Studio · {{ brand_name }}{% endblock %}
+{% block content %}
+  <section class="panel studio-panel">
+    <p class="eyebrow">Studio · Immutable · Read only</p>
+    <h1>Audit event</h1>
+    <nav aria-label="Studio sections" class="studio-navigation">
+      {% for item in studio_navigation %}<a href="{% url item.route %}">{{ item.label }}</a>{% endfor %}
+    </nav>
+    <p><a href="{% url 'studio:audit-list' %}">Back to audit events</a></p>
+    <dl class="audit-detail">
+      {% for label, value in event.items %}
+        <div><dt>{{ label|title }}</dt><dd><code>{{ value }}</code></dd></div>
+      {% endfor %}
+    </dl>
+  </section>
+{% endblock %}
