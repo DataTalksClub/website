@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ document.seo_title|default:document.title }}</title>
+    <meta name="description" content="{{ document.seo_description }}">
+    {% if document.noindex %}<meta name="robots" content="noindex">{% endif %}
+    <link rel="canonical" href="{{ document.canonical_url }}">
+    <style>
+      :root { color-scheme: light; font-family: Inter, system-ui, sans-serif; }
+      body { margin: 0; background: #eff6ff; color: #172554; }
+      main { width: min(760px, calc(100% - 2rem)); margin: 3rem auto; padding: 2rem;
+             box-sizing: border-box; background: white; border-radius: 1rem;
+             box-shadow: 0 18px 50px rgb(30 64 175 / 12%); }
+      h1 { margin-top: 0; font-size: clamp(1.8rem, 6vw, 3rem); }
+      .release-marker { display: inline-block; padding: .4rem .7rem; border-radius: 2rem;
+                        background: #dbeafe; font-family: ui-monospace, monospace; }
+      img { display: block; max-width: 100%; height: auto; margin-top: 1.5rem; }
+      @media (max-width: 520px) { main { margin: 1rem auto; padding: 1.25rem; } }
+    </style>
+  </head>
+  <body>
+    <main data-content-kind="{{ document.content_kind }}" data-stable-key="{{ document.stable_key }}">
+      {{ document.rendered_html|safe }}
+    </main>
+  </body>
+</html>

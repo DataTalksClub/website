@@ -1,7 +1,7 @@
 .PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
-	test-playwright-core test-playwright migrate run worker
+	test-content test-content-postgresql test-playwright-core test-playwright migrate run worker
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -49,6 +49,13 @@ deployment-check:
 
 test-core:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test accounts core studio api --parallel
+
+test-content:
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests
+
+test-content-postgresql:
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python -c 'import django; django.setup(); from django.db import connection; assert connection.vendor == "postgresql", "DATABASE_URL must select PostgreSQL"'
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests.test_postgresql -v 2
 
 test: test-compatibility
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test --parallel
