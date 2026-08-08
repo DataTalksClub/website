@@ -55,7 +55,7 @@ test-content:
 
 test-content-postgresql:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python -c 'import django; django.setup(); from django.db import connection; assert connection.vendor == "postgresql", "DATABASE_URL must select PostgreSQL"'
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests.test_postgresql -v 2
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests -v 2
 
 test: test-compatibility
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test --parallel
