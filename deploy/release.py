@@ -99,7 +99,16 @@ class ReleaseGateway(Protocol):
         self, workload: str, task_definition_arn: str, desired_count: int
     ) -> None: ...
 
-    def wait_service_stable(self, workload: str, *, worker_singleton: bool = False) -> None: ...
+    @property
+    def worker_stabilization_timeout_seconds(self) -> int: ...
+
+    def wait_service_stable(
+        self,
+        workload: str,
+        *,
+        worker_singleton: bool = False,
+        timeout_seconds: int | None = None,
+    ) -> None: ...
 
     def verify_public_web(self, source_sha: str) -> None: ...
 
@@ -568,9 +577,18 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         )
 
         active_stage = "worker"
-        _record_evidence(config.evidence_path, "worker", "started")
+        _record_evidence(
+            config.evidence_path,
+            "worker",
+            "started",
+            {"stabilization_timeout_seconds": gateway.worker_stabilization_timeout_seconds},
+        )
         gateway.update_service("worker", registered["worker"], config.worker_desired_count)
-        gateway.wait_service_stable("worker", worker_singleton=True)
+        gateway.wait_service_stable(
+            "worker",
+            worker_singleton=True,
+            timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+        )
         _record_evidence(
             config.evidence_path,
             "worker",
@@ -579,6 +597,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "task_definition_arn": registered["worker"],
                 "desired_count": config.worker_desired_count,
                 "singleton": True,
+                "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
             },
         )
         active_stage = "smoke"
@@ -784,11 +803,20 @@ def rollback(
             },
         )
         active_stage = "worker"
-        _record_evidence(evidence_path, "worker", "started")
+        _record_evidence(
+            evidence_path,
+            "worker",
+            "started",
+            {"stabilization_timeout_seconds": gateway.worker_stabilization_timeout_seconds},
+        )
         gateway.update_service(
             "worker", target.worker_task_definition_arn, target.worker_desired_count
         )
-        gateway.wait_service_stable("worker", worker_singleton=True)
+        gateway.wait_service_stable(
+            "worker",
+            worker_singleton=True,
+            timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+        )
         _record_evidence(
             evidence_path,
             "worker",
@@ -797,6 +825,7 @@ def rollback(
                 "task_definition_arn": target.worker_task_definition_arn,
                 "desired_count": target.worker_desired_count,
                 "singleton": True,
+                "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
             },
         )
         active_stage = "smoke"

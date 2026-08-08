@@ -29,6 +29,9 @@ from deploy.task_definitions import (
 CONTROLLED_MIGRATION_FAILURE_COMMAND = ["__dtc_controlled_migration_failure__"]
 MIGRATION_SHUTDOWN_TIMEOUT_SECONDS = 120
 DEPLOYED_BROWSER_TIMEOUT_SECONDS = 180
+MAX_STAGE_TIMEOUT_SECONDS = 180
+WORKER_STABILIZATION_TIMEOUT_SECONDS = 420
+MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS = 420
 
 
 @dataclass(frozen=True)
@@ -46,8 +49,30 @@ class AwsReleaseConfig:
     assign_public_ip: bool
     base_url: str
     screenshot_directory: Path
-    timeout_seconds: int = 180
+    timeout_seconds: int = MAX_STAGE_TIMEOUT_SECONDS
+    worker_stabilization_timeout_seconds: int = WORKER_STABILIZATION_TIMEOUT_SECONDS
     poll_seconds: int = 10
+
+    def __post_init__(self) -> None:
+        integer_timeouts = {
+            "stage": self.timeout_seconds,
+            "worker stabilization": self.worker_stabilization_timeout_seconds,
+            "poll": self.poll_seconds,
+        }
+        if any(type(value) is not int or value < 1 for value in integer_timeouts.values()):
+            raise ReleaseContractError("timeouts must be positive integers")
+        if self.timeout_seconds > MAX_STAGE_TIMEOUT_SECONDS:
+            raise ReleaseContractError("sandbox stage timeout exceeds the recovery-safe maximum")
+        if self.worker_stabilization_timeout_seconds > MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS:
+            raise ReleaseContractError(
+                "worker stabilization timeout exceeds the recovery-safe maximum"
+            )
+        if self.poll_seconds > self.timeout_seconds:
+            raise ReleaseContractError("poll interval must not exceed the stage timeout")
+        if self.poll_seconds > self.worker_stabilization_timeout_seconds:
+            raise ReleaseContractError(
+                "poll interval must not exceed the worker stabilization timeout"
+            )
 
 
 class AwsReleaseGateway:
@@ -56,6 +81,10 @@ class AwsReleaseGateway:
         self.ecs = boto3.client("ecs", region_name=config.region)
         self.ecr = boto3.client("ecr", region_name=config.region)
         self.elbv2 = boto3.client("elbv2", region_name=config.region)
+
+    @property
+    def worker_stabilization_timeout_seconds(self) -> int:
+        return self.config.worker_stabilization_timeout_seconds
 
     def _service(self, workload: str) -> dict[str, Any]:
         response = self.ecs.describe_services(
@@ -361,8 +390,27 @@ class AwsReleaseGateway:
             **arguments,
         )
 
-    def wait_service_stable(self, workload: str, *, worker_singleton: bool = False) -> None:
-        deadline = time.monotonic() + self.config.timeout_seconds
+    def wait_service_stable(
+        self,
+        workload: str,
+        *,
+        worker_singleton: bool = False,
+        timeout_seconds: int | None = None,
+    ) -> None:
+        if timeout_seconds is not None:
+            if workload != "worker" or not worker_singleton:
+                raise ReleaseContractError(
+                    "the worker stabilization timeout is restricted to singleton worker waits"
+                )
+            if (
+                type(timeout_seconds) is not int
+                or timeout_seconds < 1
+                or timeout_seconds > self.config.worker_stabilization_timeout_seconds
+            ):
+                raise ReleaseContractError("invalid worker stabilization timeout override")
+        deadline = time.monotonic() + (
+            self.config.timeout_seconds if timeout_seconds is None else timeout_seconds
+        )
         while time.monotonic() < deadline:
             service = self._service(workload)
             running = int(service.get("runningCount", 0))

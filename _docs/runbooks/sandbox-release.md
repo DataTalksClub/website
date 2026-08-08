@@ -945,11 +945,31 @@ The normal automatic sequence is quality/deployment-contract, Django with Postgr
 one tested image, exact active-pair capture, immutable publication, migration exit `0`, stable and
 healthy web with exact SHA, singleton worker, read-only HTTP/browser smoke (including safe 404),
 terminal exact-pair verification, and artifact finalization. The deployer session is fixed at 3600
-seconds. Forward stage waits are capped at 180 seconds, a stopped migration gets a separate
-120-second terminal-proof budget, browser smoke is capped at 180 seconds, each critical artifact
-upload is capped at two minutes, and finalization recovery is capped at 12 minutes. This
-conservative sequential envelope retains more than 20 minutes of the role session for recovery;
-operators must not raise these limits ad hoc.
+seconds. The general forward-stage and compensation wait remains 180 seconds. Only a forward
+promotion or rollback that starts/replaces the singleton worker receives the explicit, code-owned
+420-second worker-stabilization budget; 420 seconds is also its hard maximum. The controller still
+requires one unique `PRIMARY` deployment, exact service and primary desired/running/pending counts,
+`rolloutState=COMPLETED`, and no more than one running plus pending worker. A running task, queue
+activity, heartbeat, or processed job is not completion.
+
+The recovery-safe worst-case envelope is `180 + 120 + 180 + 180 + 420 + 180 + 360 + 720 = 2340`
+seconds: migration observation, stopped-migration terminal proof, web stabilization, public
+readiness/liveness, worker stabilization, deployed browser smoke, three critical two-minute
+artifact uploads, and the 12-minute finalization-recovery cap. This deliberately conservative sum
+includes mutually exclusive migration-stop and later recovery work. It leaves `3600 - 2340 = 1260`
+seconds (21 minutes) of the fixed deployer session, exceeding the required 20-minute recovery
+reserve. Automatic compensation and finalization recovery do not inherit the 420-second forward
+worker budget: their exact-pair service waits stay at 180 seconds and remain inside the separate
+12-minute recovery cap. Do not raise either timeout in workflow inputs or code. If 420 seconds is
+insufficient, disable automatic deployment and file/groom another issue with new evidence.
+
+The 420-second value comes from development run `31261677137` on 2026-08-08. Its singleton worker
+was running and processing the durable relay while ECS kept the unique primary deployment
+`IN_PROGRESS` beyond the old 180-second shared window. For timeout triage, inspect only bounded ECS
+service deployment/count fields, exact task-definition/task status and recent service events, plus
+redacted startup logs. A duplicate/missing primary, `FAILED` rollout, more than one running/pending
+worker, mixed task definitions, nonterminal counts, or missing exact digest/SHA proof is a failure;
+logs must never override it.
 
 ### Automatic failure triage
 
