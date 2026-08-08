@@ -174,10 +174,14 @@ def run_http_smoke(
     _assert_private(admin, "/api/v1/admin/health")
     if "location" in admin.headers:
         raise ReleaseContractError("anonymous admin API health redirected")
-    if admin.json() != {
+    if admin.headers.get("www-authenticate") != "Bearer":
+        raise ReleaseContractError("anonymous admin API health lacks the Bearer challenge")
+    request_id = admin.headers.get("x-request-id", "")
+    if not request_id or admin.json() != {
         "error": {
             "code": "authentication_required",
-            "message": "Authentication required",
+            "message": "Valid Bearer authentication is required.",
+            "request_id": request_id,
         }
     }:
         raise ReleaseContractError("anonymous admin API health payload differs")
@@ -254,6 +258,8 @@ def run_http_smoke(
                 "noindex": True,
                 "private_no_store": True,
                 "anonymous_denial": True,
+                "bearer_challenge": True,
+                "request_id": True,
             },
             {"path": missing_path, "status": 404, "noindex": True, "debug_safe": True},
             {"path": "/robots.txt", "status": 200, "noindex": True, "exact_body": True},

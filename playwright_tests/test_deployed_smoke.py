@@ -151,10 +151,14 @@ def test_deployed_health_and_anonymous_admin_api_contracts(
     assert "location" not in admin.headers
     assert admin.headers["x-robots-tag"] == ROBOTS_VALUE
     assert_private_no_store(admin.headers)
+    assert admin.headers["www-authenticate"] == "Bearer"
+    request_id = admin.headers["x-request-id"]
+    assert request_id
     assert admin.json() == {
         "error": {
             "code": "authentication_required",
-            "message": "Authentication required",
+            "message": "Valid Bearer authentication is required.",
+            "request_id": request_id,
         }
     }
 
