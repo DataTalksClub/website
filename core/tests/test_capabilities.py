@@ -14,15 +14,37 @@ from core.capabilities import (
     IdempotencyPolicy,
     ServiceKind,
 )
+from management_auth.fixture_capabilities import (
+    BULK_FIXTURE,
+    CREDENTIAL_CREATE_FIXTURE,
+    CREDENTIAL_REVOKE_FIXTURE,
+    CREDENTIAL_ROTATE_FIXTURE,
+)
 from studio.registry import STUDIO_HOME
 
 
 class CapabilityRegistryTests(SimpleTestCase):
+    def test_fixture_writable_allowlists_are_literal_and_bounded(self) -> None:
+        self.assertEqual(
+            CREDENTIAL_CREATE_FIXTURE.admin_api.writable_fields,
+            ("target_principal_id", "name", "scopes", "confirmed"),
+        )
+        self.assertEqual(
+            CREDENTIAL_ROTATE_FIXTURE.admin_api.writable_fields,
+            ("expected_revision", "overlap_seconds", "confirmed"),
+        )
+        self.assertEqual(
+            CREDENTIAL_REVOKE_FIXTURE.admin_api.writable_fields,
+            ("expected_revision", "confirmed"),
+        )
+        self.assertEqual(BULK_FIXTURE.admin_api.writable_fields, ("items", "confirmed"))
+
     def test_representative_read_capability_is_complete_and_checkable(self) -> None:
         registry = CapabilityRegistry((STUDIO_HOME,))
 
         self.assertEqual(registry.require("studio.home.read"), STUDIO_HOME)
-        self.assertTrue(STUDIO_HOME.admin_api.test_only)
+        self.assertFalse(STUDIO_HOME.admin_api.test_only)
+        self.assertEqual(STUDIO_HOME.admin_api.scopes, ("studio.home.read",))
         self.assertFalse(STUDIO_HOME.studio.test_only)
         self.assertEqual([error for error in run_checks() if error.id == "studio.E001"], [])
 
@@ -91,7 +113,11 @@ class CapabilityRegistryTests(SimpleTestCase):
             replace(STUDIO_HOME, object_scope=cast(Any, "not-callable")),
             replace(STUDIO_HOME, field_policy=cast(Any, "not-callable")),
             replace(STUDIO_HOME, test_only=True),
-            replace(STUDIO_HOME, studio=replace(STUDIO_HOME.studio, test_only=True)),
+            replace(
+                STUDIO_HOME,
+                studio=replace(STUDIO_HOME.studio, test_only=True),
+                admin_api=replace(STUDIO_HOME.admin_api, test_only=True),
+            ),
             replace(
                 STUDIO_HOME,
                 key="studio.high-risk.read",

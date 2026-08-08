@@ -48,6 +48,17 @@ class AdapterMetadata:
     method: str
     operation_id: str
     test_only: bool = False
+    scopes: tuple[str, ...] = ()
+    request_schema: str | None = None
+    result_schema: str | None = None
+    writable_fields: tuple[str, ...] = ()
+    filter_fields: tuple[str, ...] = ()
+    sort_fields: tuple[str, ...] = ()
+    paginated: bool = False
+    rate_class: str | None = None
+    rate_cost: int = 1
+    success_status: int = 200
+    operation_behavior: str = "immediate"
 
 
 @dataclass(frozen=True, slots=True)
@@ -102,6 +113,48 @@ def _validate_adapter(
         errors.append(f"{name} operation ID is missing or invalid")
     if not isinstance(adapter.test_only, bool):
         errors.append(f"{name} test-only metadata is invalid")
+    if not isinstance(adapter.scopes, tuple) or any(
+        not isinstance(scope, str) or _KEY.fullmatch(scope) is None for scope in adapter.scopes
+    ):
+        errors.append(f"{name} scopes are invalid")
+    if len(set(adapter.scopes)) != len(adapter.scopes):
+        errors.append(f"{name} scopes are duplicated")
+    for field_name, fields in (
+        ("writable", adapter.writable_fields),
+        ("filter", adapter.filter_fields),
+        ("sort", adapter.sort_fields),
+    ):
+        if not isinstance(fields, tuple) or any(
+            not isinstance(field, str) or not field or len(field) > 128 for field in fields
+        ):
+            errors.append(f"{name} {field_name} fields are invalid")
+        elif len(set(fields)) != len(fields):
+            errors.append(f"{name} {field_name} fields are duplicated")
+    if not isinstance(adapter.paginated, bool):
+        errors.append(f"{name} pagination metadata is invalid")
+    if adapter.rate_class not in {None, "read", "write"}:
+        errors.append(f"{name} rate class is invalid")
+    if (
+        not isinstance(adapter.rate_cost, int)
+        or isinstance(adapter.rate_cost, bool)
+        or not 1 <= adapter.rate_cost <= 10
+    ):
+        errors.append(f"{name} rate cost is invalid")
+    if (
+        not isinstance(adapter.success_status, int)
+        or isinstance(adapter.success_status, bool)
+        or not 200 <= adapter.success_status <= 299
+    ):
+        errors.append(f"{name} success status is invalid")
+    if adapter.operation_behavior not in {"immediate", "resource"}:
+        errors.append(f"{name} operation behavior is invalid")
+    if name.endswith("admin API") and not adapter.test_only:
+        if not adapter.scopes:
+            errors.append(f"{name} scopes are missing")
+        if not isinstance(adapter.result_schema, str) or not adapter.result_schema:
+            errors.append(f"{name} result schema is missing")
+        if adapter.rate_class not in {"read", "write"}:
+            errors.append(f"{name} rate class is missing")
     return True
 
 

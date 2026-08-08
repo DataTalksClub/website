@@ -22,6 +22,7 @@ class AuditWriteContext:
     """Writer-only provenance composed with the canonical execution context."""
 
     actor_id: Any | None = None
+    api_principal_id: uuid.UUID | None = None
     actor_ref: str = ""
     execution: ExecutionAuditContext | None = None
     idempotency_key_hash: str = ""
@@ -33,6 +34,7 @@ class AuditWriteContext:
         service_context: ServiceContext,
         *,
         actor_id: Any | None = None,
+        api_principal_id: uuid.UUID | None = None,
         idempotency_key_hash: str = "",
         source_ip_class: str = "",
     ) -> AuditWriteContext:
@@ -40,6 +42,7 @@ class AuditWriteContext:
 
         return cls(
             actor_id=actor_id,
+            api_principal_id=api_principal_id,
             actor_ref=service_context.actor_ref or "",
             execution=ExecutionAuditContext(
                 request_id=service_context.request_id,
@@ -61,6 +64,8 @@ class AuditWriteContext:
                 validate_context_id(name, value)
         if self.actor_ref:
             validate_actor_ref(self.actor_ref)
+        if self.api_principal_id is not None and not isinstance(self.api_principal_id, uuid.UUID):
+            raise ValueError("api_principal_id must be a UUID")
         if self.idempotency_key_hash and not _SHA256.fullmatch(self.idempotency_key_hash):
             raise ValueError("idempotency_key_hash must be a lowercase SHA-256 digest")
         if self.source_ip_class not in _SOURCE_IP_CLASSES:
@@ -112,6 +117,7 @@ def record_audit_event(
 
     return AuditEvent.objects.using(using).create(
         actor_id=context.actor_id,
+        api_principal_id=context.api_principal_id,
         actor_ref=context.actor_ref,
         action=action,
         target_type=target_type,

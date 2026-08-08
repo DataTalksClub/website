@@ -1,3 +1,3 @@
 destination_path	classification	size_bytes	sha256	rationale
-website/admin_api_urls.py	target-owned compatibility shim	161	d3de986495a8bfd6a2abbb82cab663b35278b0ae49334ec8377ca886b844ddc2	Preserve the scaffold's namespaced /api/v1/admin/health route while the adopted compatibility API remains mounted at /api/.
-website/admin_api_views.py	target-owned compatibility shim	451	093156560f09ddb7dadfe326f0fc9fbaef4fa32c4105d4d1a758eb43a0ae5690	Preserve the scaffold's staff-gated versioned admin health response without modifying copied CMP API behavior.
+website/admin_api_urls.py	target-owned compatibility shim	77	b53ed9cbdfa0948eec09931df0b751ade98ab40cf305ced9faacee341442d9a8	Preserve the namespaced /api/v1/admin/ route while delegating only to the isolated target-owned management API; copied compatibility API remains at /api/.
+website/admin_api_views.py	target-owned compatibility shim	148	e7c632def245eedf8824f1a3966db3050f2382042ae5c98f85dd9a1684bf7d80	Preserve the scaffold health import while enforcing the new Bearer/capability view without changing copied CMP API behavior.

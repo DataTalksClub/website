@@ -83,6 +83,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "loginas",
     "django_q",
+    "management_auth.apps.ManagementAuthConfig",
     "core.apps.CoreConfig",
     "accounts.apps.AccountsConfig",
     "content.apps.ContentConfig",
@@ -91,6 +92,7 @@ INSTALLED_APPS = [
     "events.apps.EventsConfig",
     "email_app.apps.EmailAppConfig",
     "studio.apps.StudioConfig",
+    "management_api.apps.ManagementAPIConfig",
     "api.apps.ApiConfig",
     "jobs.apps.JobsConfig",
     "data.apps.DataConfig",
@@ -107,6 +109,7 @@ MIDDLEWARE = [
     # This policy must wrap short-circuits from health, SecurityMiddleware,
     # WhiteNoise, URL resolution, and error handlers.
     "core.middleware.ResponsePolicyMiddleware",
+    "management_api.middleware.AdminAPIResponseMiddleware",
     "course_management.middleware.ObservabilityExceptionMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
