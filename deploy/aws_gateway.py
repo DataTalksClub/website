@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import os
 import subprocess
 import sys
@@ -17,7 +18,10 @@ from deploy.contracts import (
     ReleaseContractError,
     ReleaseIdentity,
     ReleaseRecord,
+    ServicePredecessor,
     ServiceSnapshot,
+    ServiceTarget,
+    ServiceUpdateReceipt,
 )
 from deploy.legacy_development_compatibility import (
     ECR_REPOSITORY_NAME,
@@ -109,6 +113,20 @@ class AwsReleaseGateway:
     def worker_stabilization_timeout_seconds(self) -> int:
         return self.config.worker_stabilization_timeout_seconds
 
+    def service_stabilization_deadline(self) -> float:
+        return time.monotonic() + self.config.timeout_seconds
+
+    def _validate_recovery_deadline(self, deadline: object) -> float:
+        now = time.monotonic()
+        if (
+            isinstance(deadline, bool)
+            or not isinstance(deadline, (int, float))
+            or not math.isfinite(deadline)
+            or deadline > now + self.config.timeout_seconds
+        ):
+            raise ReleaseContractError("recovery stabilization deadline differs")
+        return float(deadline)
+
     def _service(self, workload: str) -> dict[str, Any]:
         response = self.ecs.describe_services(
             cluster=self.config.cluster_arn,
@@ -162,18 +180,39 @@ class AwsReleaseGateway:
 
     def capture_service(self, workload: str) -> ServiceSnapshot:
         service = self._service(workload)
-        task_definition_arn = service.get("taskDefinition")
-        if not isinstance(task_definition_arn, str):
-            raise ReleaseContractError(f"{workload} service has no task definition")
+        self._validate_service_identity(workload, service)
+        target, running_count, pending_count = self._service_target_and_counts(workload, service)
+        deployments = self._deployments(workload, service)
+        primary = [item for item in deployments if item.get("status") == "PRIMARY"]
+        if len(primary) != 1:
+            raise ReleaseContractError(f"{workload} service has no unique primary deployment")
+        deployment = primary[0]
+        primary_target, primary_running, primary_pending, failed_tasks = (
+            self._deployment_target_and_counts(workload, deployment)
+        )
+        primary_id = self._deployment_id(workload, deployment)
+        if primary_target != target:
+            raise ReleaseContractError(f"{workload} captured service and PRIMARY targets differ")
+        if deployment.get("rolloutState") != "COMPLETED" or failed_tasks:
+            raise ReleaseContractError(f"{workload} captured PRIMARY is not terminal")
+        if (
+            running_count != target.desired_count
+            or pending_count != 0
+            or primary_running != target.desired_count
+            or primary_pending != 0
+        ):
+            raise ReleaseContractError(f"{workload} captured terminal counts differ")
+        task_definition_arn = target.task_definition_arn
         source_sha, image_digest = self._identity(task_definition_arn, workload)
         return ServiceSnapshot(
             service_name=self.config.service_names[workload],
             task_definition_arn=task_definition_arn,
-            desired_count=int(service.get("desiredCount", 0)),
-            running_count=int(service.get("runningCount", 0)),
-            pending_count=int(service.get("pendingCount", 0)),
+            desired_count=target.desired_count,
+            running_count=running_count,
+            pending_count=pending_count,
             source_sha=source_sha,
             image_digest=image_digest,
+            primary_deployment_id=primary_id,
         )
 
     def source_task_definition(self, workload: str) -> dict[str, Any]:
@@ -396,12 +435,28 @@ class AwsReleaseGateway:
             time.sleep(self.config.poll_seconds)
         self._stop_migration_and_prove_terminal(task_arn, "timed out")
 
-    def update_service(self, workload: str, task_definition_arn: str, desired_count: int) -> None:
+    def update_service(
+        self,
+        workload: str,
+        target: ServiceTarget,
+        predecessors: tuple[ServicePredecessor, ...],
+    ) -> ServiceUpdateReceipt:
+        if type(target) is not ServiceTarget:
+            raise ReleaseContractError("service update target differs")
+        if type(predecessors) is not tuple or any(
+            type(item) is not ServicePredecessor for item in predecessors
+        ):
+            raise ReleaseContractError("service update predecessors differ")
+        if (
+            sum(item.role == "terminal" for item in predecessors) != 1
+            or sum(item.role == "attempted" for item in predecessors) > 1
+        ):
+            raise ReleaseContractError("service update predecessor phase differs")
         arguments: dict[str, Any] = {
             "cluster": self.config.cluster_arn,
             "service": self.config.service_names[workload],
-            "taskDefinition": task_definition_arn,
-            "desiredCount": desired_count,
+            "taskDefinition": target.task_definition_arn,
+            "desiredCount": target.desired_count,
             "forceNewDeployment": True,
         }
         if workload == "worker":
@@ -409,9 +464,13 @@ class AwsReleaseGateway:
                 "minimumHealthyPercent": 0,
                 "maximumPercent": 100,
             }
-        self.ecs.update_service(
+        response = self.ecs.update_service(
             **arguments,
         )
+        service = response.get("service")
+        if not isinstance(service, dict):
+            raise ReleaseContractError(f"{workload} update returned no service")
+        return self._receipt_from_service(workload, service, target, predecessors)
 
     @staticmethod
     def _required_service_count(document: dict[str, Any], field: str, *, context: str) -> int:
@@ -420,15 +479,268 @@ class AwsReleaseGateway:
             raise ReleaseContractError(f"{context} {field} is not a nonnegative integer")
         return value
 
-    def wait_service_stable(
+    def _validate_service_identity(self, workload: str, service: dict[str, Any]) -> None:
+        configured = self.config.service_names[workload]
+        field = "serviceArn" if configured.startswith("arn:") else "serviceName"
+        if service.get(field) != configured:
+            raise ReleaseContractError(f"{workload} service identity differs")
+
+    @staticmethod
+    def _deployment_id(workload: str, deployment: dict[str, Any]) -> str:
+        deployment_id = deployment.get("id")
+        if not isinstance(deployment_id, str) or not deployment_id.strip():
+            raise ReleaseContractError(f"{workload} deployment ID is missing")
+        return deployment_id
+
+    @staticmethod
+    def _deployments(workload: str, service: dict[str, Any]) -> list[dict[str, Any]]:
+        deployments = service.get("deployments")
+        if not isinstance(deployments, list) or any(
+            not isinstance(item, dict) for item in deployments
+        ):
+            raise ReleaseContractError(f"{workload} service deployments are malformed")
+        return deployments
+
+    def _service_target_and_counts(
+        self, workload: str, service: dict[str, Any]
+    ) -> tuple[ServiceTarget, int, int]:
+        task_definition_arn = service.get("taskDefinition")
+        if not isinstance(task_definition_arn, str):
+            raise ReleaseContractError(f"{workload} service has no task definition")
+        desired = self._required_service_count(
+            service, "desiredCount", context=f"{workload} service"
+        )
+        running = self._required_service_count(
+            service, "runningCount", context=f"{workload} service"
+        )
+        pending = self._required_service_count(
+            service, "pendingCount", context=f"{workload} service"
+        )
+        return ServiceTarget(task_definition_arn, desired), running, pending
+
+    def _deployment_target_and_counts(
+        self, workload: str, deployment: dict[str, Any]
+    ) -> tuple[ServiceTarget, int, int, int]:
+        task_definition_arn = deployment.get("taskDefinition")
+        if not isinstance(task_definition_arn, str):
+            raise ReleaseContractError(f"{workload} deployment has no task definition")
+        desired = self._required_service_count(
+            deployment, "desiredCount", context=f"{workload} deployment"
+        )
+        running = self._required_service_count(
+            deployment, "runningCount", context=f"{workload} deployment"
+        )
+        pending = self._required_service_count(
+            deployment, "pendingCount", context=f"{workload} deployment"
+        )
+        failed_tasks = deployment.get("failedTasks", 0)
+        if type(failed_tasks) is not int or failed_tasks < 0:
+            raise ReleaseContractError(
+                f"{workload} deployment failedTasks is not a nonnegative integer"
+            )
+        return ServiceTarget(task_definition_arn, desired), running, pending, failed_tasks
+
+    def _receipt_from_service(
         self,
         workload: str,
+        service: dict[str, Any],
+        target: ServiceTarget,
+        predecessors: tuple[ServicePredecessor, ...],
+    ) -> ServiceUpdateReceipt:
+        self._validate_service_identity(workload, service)
+        service_target, service_running, service_pending = self._service_target_and_counts(
+            workload, service
+        )
+        if service_target != target:
+            raise ReleaseContractError(f"{workload} update service target differs")
+        if workload == "worker" and service_running + service_pending > 1:
+            raise ReleaseContractError("worker update exceeded singleton bounds")
+        deployments = self._deployments(workload, service)
+        primary = [item for item in deployments if item.get("status") == "PRIMARY"]
+        if len(primary) != 1:
+            raise ReleaseContractError(f"{workload} update has no unique PRIMARY deployment")
+        primary_deployment = primary[0]
+        primary_id = self._deployment_id(workload, primary_deployment)
+        primary_target, primary_running, primary_pending, failed_tasks = (
+            self._deployment_target_and_counts(workload, primary_deployment)
+        )
+        if primary_target != target:
+            raise ReleaseContractError(f"{workload} update PRIMARY target differs")
+        receipt = ServiceUpdateReceipt(
+            workload=workload,
+            configured_service_identity=self.config.service_names[workload],
+            target=target,
+            primary_deployment_id=primary_id,
+            predecessors=predecessors,
+        )
+        self._validate_deployment_allowlist(workload, deployments, receipt)
+        rollout_state = primary_deployment.get("rolloutState")
+        if rollout_state not in {"IN_PROGRESS", "COMPLETED"}:
+            raise ReleaseContractError(f"{workload} update PRIMARY rollout state differs")
+        if failed_tasks > 0:
+            raise ReleaseContractError(f"{workload} update PRIMARY has failed tasks")
+        if rollout_state == "COMPLETED" and (
+            service_running != target.desired_count
+            or service_pending != 0
+            or primary_running != target.desired_count
+            or primary_pending != 0
+        ):
+            raise ReleaseContractError(f"{workload} update completed with inexact counts")
+        return receipt
+
+    def _validate_deployment_allowlist(
+        self,
+        workload: str,
+        deployments: list[dict[str, Any]],
+        receipt: ServiceUpdateReceipt,
+    ) -> None:
+        recognized = {
+            receipt.primary_deployment_id: receipt.target,
+            **{
+                predecessor.primary_deployment_id: predecessor.target
+                for predecessor in receipt.predecessors
+            },
+        }
+        predecessor_roles = {item.primary_deployment_id: item.role for item in receipt.predecessors}
+        worker_tasks = 0
+        for deployment in deployments:
+            deployment_id = self._deployment_id(workload, deployment)
+            deployment_target, running, pending, failed = self._deployment_target_and_counts(
+                workload, deployment
+            )
+            if deployment_id not in recognized or recognized[deployment_id] != deployment_target:
+                raise ReleaseContractError(
+                    f"{workload} deployment identity is outside the phase allowlist"
+                )
+            rollout_state = deployment.get("rolloutState")
+            if rollout_state not in {"IN_PROGRESS", "COMPLETED", "FAILED"}:
+                raise ReleaseContractError(f"{workload} deployment rollout state differs")
+            if deployment_id == receipt.primary_deployment_id:
+                if rollout_state == "FAILED" or failed > 0:
+                    raise ReleaseContractError(f"{workload} receipt deployment failed")
+                if rollout_state == "COMPLETED" and (
+                    running != receipt.target.desired_count or pending != 0
+                ):
+                    raise ReleaseContractError(
+                        f"{workload} receipt deployment completed with inexact counts"
+                    )
+            elif predecessor_roles[deployment_id] == "terminal" and (
+                rollout_state == "FAILED" or failed > 0
+            ):
+                raise ReleaseContractError(f"{workload} terminal predecessor failed")
+            worker_tasks += running + pending
+            if workload == "worker" and running + pending > 1:
+                raise ReleaseContractError("worker deployment exceeded one running/pending task")
+        if workload == "worker" and worker_tasks > 1:
+            raise ReleaseContractError("worker deployments exceeded singleton bounds")
+
+    def capture_attempted_predecessor(
+        self,
+        workload: str,
+        attempted_target: ServiceTarget,
+        terminal_predecessor: ServicePredecessor,
+        deadline: float,
+    ) -> ServicePredecessor:
+        deadline = self._validate_recovery_deadline(deadline)
+        while True:
+            service = self._service(workload)
+            self._validate_service_identity(workload, service)
+            service_target, running, pending = self._service_target_and_counts(workload, service)
+            if service_target not in {terminal_predecessor.target, attempted_target}:
+                raise ReleaseContractError(
+                    f"{workload} recovery capture service target is outside the attempted phase"
+                )
+            if workload == "worker" and running + pending > 1:
+                raise ReleaseContractError("worker recovery capture exceeded singleton bounds")
+            deployments = self._deployments(workload, service)
+            primary = [item for item in deployments if item.get("status") == "PRIMARY"]
+            if len(primary) != 1:
+                raise ReleaseContractError(
+                    f"{workload} recovery capture has no unique PRIMARY deployment"
+                )
+            candidate_ids: set[str] = set()
+            worker_tasks = 0
+            for item in deployments:
+                item_id = self._deployment_id(workload, item)
+                item_target, item_running, item_pending, item_failed = (
+                    self._deployment_target_and_counts(workload, item)
+                )
+                item_state = item.get("rolloutState")
+                if item.get("status") not in {"PRIMARY", "ACTIVE"} or item_state not in {
+                    "IN_PROGRESS",
+                    "COMPLETED",
+                    "FAILED",
+                }:
+                    raise ReleaseContractError(
+                        f"{workload} recovery capture deployment state differs"
+                    )
+                worker_tasks += item_running + item_pending
+                if item_id == terminal_predecessor.primary_deployment_id:
+                    if item_target != terminal_predecessor.target:
+                        raise ReleaseContractError(
+                            f"{workload} recovery capture cross-paired terminal identity"
+                        )
+                    if item_state == "FAILED" or item_failed > 0:
+                        raise ReleaseContractError(
+                            f"{workload} recovery capture terminal predecessor failed"
+                        )
+                elif item_target == attempted_target:
+                    candidate_ids.add(item_id)
+                else:
+                    raise ReleaseContractError(
+                        f"{workload} recovery capture found a third deployment identity"
+                    )
+            if len(candidate_ids) > 1:
+                raise ReleaseContractError(
+                    f"{workload} recovery capture found multiple attempted identities"
+                )
+            if workload == "worker" and worker_tasks > 1:
+                raise ReleaseContractError("worker recovery capture exceeded singleton bounds")
+
+            deployment = primary[0]
+            primary_id = self._deployment_id(workload, deployment)
+            primary_target, primary_running, primary_pending, failed_tasks = (
+                self._deployment_target_and_counts(workload, deployment)
+            )
+            if primary_id == terminal_predecessor.primary_deployment_id:
+                if primary_target != terminal_predecessor.target:
+                    raise ReleaseContractError(
+                        f"{workload} recovery capture cross-paired terminal identity"
+                    )
+                if service_target == terminal_predecessor.target:
+                    if (
+                        deployment.get("rolloutState") != "COMPLETED"
+                        or failed_tasks
+                        or primary_running != terminal_predecessor.target.desired_count
+                        or primary_pending != 0
+                    ):
+                        raise ReleaseContractError(
+                            f"{workload} recovery capture terminal state differs"
+                        )
+            elif primary_target == attempted_target:
+                return ServicePredecessor(attempted_target, primary_id, "attempted")
+            else:
+                raise ReleaseContractError(
+                    f"{workload} recovery capture found an unrecognized PRIMARY identity"
+                )
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ReleaseContractError(
+                    f"{workload} recovery capture did not identify the attempted deployment"
+                )
+            time.sleep(min(self.config.poll_seconds, remaining))
+
+    def wait_service_stable(
+        self,
+        receipt: ServiceUpdateReceipt,
         *,
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
-        expected_task_definition_arn: str | None = None,
-        expected_desired_count: int | None = None,
+        deadline: float | None = None,
     ) -> None:
+        workload = receipt.workload
+        if receipt.configured_service_identity != self.config.service_names[workload]:
+            raise ReleaseContractError("service stabilization receipt identity differs")
         if timeout_seconds is not None:
             if workload == "web" and not worker_singleton:
                 maximum = self.config.web_stabilization_timeout_seconds
@@ -441,78 +753,73 @@ class AwsReleaseGateway:
                 )
             if type(timeout_seconds) is not int or timeout_seconds < 1 or timeout_seconds > maximum:
                 raise ReleaseContractError(f"invalid {workload} stabilization timeout override")
-        if (expected_task_definition_arn is None) != (expected_desired_count is None):
-            raise ReleaseContractError(
-                "service stabilization expected task definition and desired count together"
+        if deadline is not None and timeout_seconds is not None:
+            raise ReleaseContractError("service stabilization has multiple deadline sources")
+        if deadline is None:
+            deadline = time.monotonic() + (
+                self.config.timeout_seconds if timeout_seconds is None else timeout_seconds
             )
-        if expected_desired_count is not None and (
-            type(expected_desired_count) is not int or expected_desired_count < 0
-        ):
-            raise ReleaseContractError("invalid expected service desired count")
-        deadline = time.monotonic() + (
-            self.config.timeout_seconds if timeout_seconds is None else timeout_seconds
-        )
+        else:
+            deadline = self._validate_recovery_deadline(deadline)
         while True:
             service = self._service(workload)
-            desired = self._required_service_count(
-                service, "desiredCount", context=f"{workload} service"
-            )
-            running = self._required_service_count(
-                service, "runningCount", context=f"{workload} service"
-            )
-            pending = self._required_service_count(
-                service, "pendingCount", context=f"{workload} service"
-            )
-            if expected_task_definition_arn is not None and (
-                service.get("taskDefinition") != expected_task_definition_arn
-                or desired != expected_desired_count
-            ):
+            self._validate_service_identity(workload, service)
+            service_target, running, pending = self._service_target_and_counts(workload, service)
+            recognized_targets = {receipt.target} | {item.target for item in receipt.predecessors}
+            if service_target not in recognized_targets:
                 raise ReleaseContractError(
-                    f"{workload} service task definition or desired count differs"
+                    f"{workload} service target is outside the phase allowlist"
                 )
             if worker_singleton and running + pending > 1:
                 raise ReleaseContractError("worker rollout exceeded one running/pending task")
-            primary = [
-                item for item in service.get("deployments", []) if item.get("status") == "PRIMARY"
-            ]
+            deployments = self._deployments(workload, service)
+            self._validate_deployment_allowlist(workload, deployments, receipt)
+            primary = [item for item in deployments if item.get("status") == "PRIMARY"]
             if len(primary) != 1:
                 raise ReleaseContractError(f"{workload} service has no unique primary deployment")
             deployment = primary[0]
-            primary_desired = self._required_service_count(
-                deployment, "desiredCount", context=f"{workload} primary deployment"
+            primary_id = self._deployment_id(workload, deployment)
+            primary_target, primary_running, primary_pending, failed_tasks = (
+                self._deployment_target_and_counts(workload, deployment)
             )
-            primary_running = self._required_service_count(
-                deployment, "runningCount", context=f"{workload} primary deployment"
+            rollout_state = deployment.get("rolloutState")
+            if rollout_state not in {"IN_PROGRESS", "COMPLETED", "FAILED"}:
+                raise ReleaseContractError(f"{workload} PRIMARY rollout state differs")
+            predecessor = next(
+                (item for item in receipt.predecessors if item.primary_deployment_id == primary_id),
+                None,
             )
-            primary_pending = self._required_service_count(
-                deployment, "pendingCount", context=f"{workload} primary deployment"
-            )
-            failed_tasks = deployment.get("failedTasks", 0)
-            if type(failed_tasks) is not int or failed_tasks < 0:
-                raise ReleaseContractError(
-                    f"{workload} primary deployment failedTasks is not a nonnegative integer"
-                )
-            if deployment.get("rolloutState") == "FAILED":
-                raise ReleaseContractError(f"{workload} ECS deployment failed")
-            if failed_tasks > 0:
-                raise ReleaseContractError(f"{workload} ECS deployment has failed tasks")
-            if expected_task_definition_arn is not None and (
-                deployment.get("taskDefinition") != expected_task_definition_arn
-                or primary_desired != expected_desired_count
-            ):
-                raise ReleaseContractError(
-                    f"{workload} primary task definition or desired count differs"
-                )
-            if (
-                running == desired
-                and pending == 0
-                and primary_running == desired
-                and primary_pending == 0
-                and deployment.get("rolloutState") == "COMPLETED"
-            ):
-                return
-            if deployment.get("rolloutState") == "COMPLETED":
-                raise ReleaseContractError(f"{workload} completed with inexact counts")
+            is_target = primary_id == receipt.primary_deployment_id
+            if is_target:
+                if rollout_state == "FAILED":
+                    raise ReleaseContractError(f"{workload} receipt deployment failed")
+                if failed_tasks > 0:
+                    raise ReleaseContractError(f"{workload} receipt deployment has failed tasks")
+                if rollout_state == "COMPLETED" and (
+                    primary_running != receipt.target.desired_count or primary_pending != 0
+                ):
+                    raise ReleaseContractError(
+                        f"{workload} receipt deployment completed with inexact counts"
+                    )
+                if service_target == receipt.target and rollout_state == "COMPLETED":
+                    if (
+                        running != receipt.target.desired_count
+                        or pending != 0
+                        or primary_target != receipt.target
+                    ):
+                        raise ReleaseContractError(f"{workload} completed with inexact counts")
+                    return
+            elif predecessor is None:
+                raise ReleaseContractError(f"{workload} PRIMARY deployment ID is unrecognized")
+            elif predecessor.role == "terminal":
+                if (
+                    rollout_state != "COMPLETED"
+                    or failed_tasks > 0
+                    or primary_running != predecessor.target.desired_count
+                    or primary_pending != 0
+                ):
+                    raise ReleaseContractError(f"{workload} terminal predecessor state differs")
+            # An actually attempted predecessor may be failed while recovery replaces it.
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 break

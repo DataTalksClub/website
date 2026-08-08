@@ -18,7 +18,10 @@ from deploy.contracts import (
     ReleaseContractError,
     ReleaseIdentity,
     ReleaseRecord,
+    ServicePredecessor,
     ServiceSnapshot,
+    ServiceTarget,
+    ServiceUpdateReceipt,
 )
 from deploy.release import (
     RELEASE_A_SHA,
@@ -59,6 +62,10 @@ DJANGO_SECRET_ARN = (
 
 def arn(workload: str, revision: int) -> str:
     return f"arn:aws:ecs:eu-west-1:817685572750:task-definition/{FAMILIES[workload]}:{revision}"
+
+
+def deployment_id(workload: str, revision: int) -> str:
+    return f"ecs-svc/{workload}-{revision}"
 
 
 def task_document(workload: str, source_sha: str = "bootstrap-disabled") -> dict[str, Any]:
@@ -138,11 +145,13 @@ class FakeGateway:
                 pending_count=0,
                 source_sha=source,
                 image_digest=digest,
+                primary_deployment_id=deployment_id(workload, 1),
             )
             for workload in ("web", "worker")
         }
         self.fail_once = fail_once
         self.operations: list[str] = []
+        self.update_number = 1
 
     def _fail(self, point: str) -> None:
         if self.fail_once == point:
@@ -190,35 +199,85 @@ class FakeGateway:
             raise ReleaseContractError("controlled migration exited nonzero (97)")
         self._fail("migration")
 
-    def update_service(self, workload: str, task_definition_arn: str, desired_count: int) -> None:
-        self.operations.append(f"update:{workload}:{task_definition_arn}:{desired_count}")
-        if self.fail_once == "compensation" and task_definition_arn.endswith(":1"):
+    def update_service(
+        self,
+        workload: str,
+        target: ServiceTarget,
+        predecessors: tuple[ServicePredecessor, ...],
+    ) -> ServiceUpdateReceipt:
+        self.operations.append(
+            f"update:{workload}:{target.task_definition_arn}:{target.desired_count}"
+        )
+        self.operations.append(
+            f"update-predecessors:{workload}:"
+            f"{','.join(item.primary_deployment_id for item in predecessors)}"
+        )
+        if self.fail_once == "compensation" and target.task_definition_arn.endswith(":1"):
             self._fail("compensation")
-        if task_definition_arn.endswith(":2"):
-            self._fail(f"update:{workload}")
+        lose_response = self.fail_once == f"update:{workload}"
+        self.update_number += 1
+        receipt_id = deployment_id(workload, self.update_number)
         self.snapshots[workload] = ServiceSnapshot(
             service_name=f"service-{workload}",
-            task_definition_arn=task_definition_arn,
-            desired_count=desired_count,
-            running_count=desired_count,
+            task_definition_arn=target.task_definition_arn,
+            desired_count=target.desired_count,
+            running_count=target.desired_count,
             pending_count=0,
-            source_sha=SHA_B if task_definition_arn.endswith(":2") else SHA_A,
-            image_digest=DIGEST_B if task_definition_arn.endswith(":2") else DIGEST_A,
+            source_sha=SHA_B if target.task_definition_arn.endswith(":2") else SHA_A,
+            image_digest=DIGEST_B if target.task_definition_arn.endswith(":2") else DIGEST_A,
+            primary_deployment_id=receipt_id,
         )
+        if lose_response:
+            self._fail(f"update:{workload}")
+        return ServiceUpdateReceipt(
+            workload,
+            f"service-{workload}",
+            target,
+            receipt_id,
+            predecessors,
+        )
+
+    def capture_attempted_predecessor(
+        self,
+        workload: str,
+        attempted_target: ServiceTarget,
+        terminal_predecessor: ServicePredecessor,
+        deadline: float,
+    ) -> ServicePredecessor:
+        del deadline
+        self.operations.append(f"capture-attempted:{workload}")
+        snapshot = self.snapshots[workload]
+        if (
+            snapshot.task_definition_arn == attempted_target.task_definition_arn
+            and snapshot.desired_count == attempted_target.desired_count
+            and snapshot.primary_deployment_id != terminal_predecessor.primary_deployment_id
+        ):
+            return ServicePredecessor(
+                attempted_target,
+                snapshot.primary_deployment_id,
+                "attempted",
+            )
+        raise ReleaseContractError("attempted deployment was not observed")
+
+    def service_stabilization_deadline(self) -> float:
+        return 180.0
 
     def wait_service_stable(
         self,
-        workload: str,
+        receipt: ServiceUpdateReceipt,
         *,
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
-        expected_task_definition_arn: str | None = None,
-        expected_desired_count: int | None = None,
+        deadline: float | None = None,
     ) -> None:
+        del deadline
+        workload = receipt.workload
         self.operations.append(
             f"wait:{workload}:singleton={worker_singleton}:timeout={timeout_seconds}:"
-            f"task={expected_task_definition_arn}:desired={expected_desired_count}"
+            f"task={receipt.target.task_definition_arn}:"
+            f"desired={receipt.target.desired_count}"
         )
+        self.operations.append(f"wait-receipt:{workload}:{receipt.primary_deployment_id}")
         self._fail(f"wait:{workload}")
 
     def verify_public_web(self, source_sha: str) -> None:
@@ -439,6 +498,7 @@ class PromotionTests(SimpleTestCase):
                 pending_count=0,
                 source_sha="0" * 40,
                 image_digest=PLACEHOLDER_DIGEST,
+                primary_deployment_id=snapshot.primary_deployment_id,
             )
         with self._temporary_directory() as directory:
             config = self._config(directory, prior=None)
@@ -486,6 +546,7 @@ class PromotionTests(SimpleTestCase):
                     pending_count=0,
                     source_sha=SHA_B,
                     image_digest=DIGEST_B,
+                    primary_deployment_id=deployment_id("worker", 2),
                 )
             return result
 
@@ -515,6 +576,7 @@ class PromotionTests(SimpleTestCase):
                 pending_count=0,
                 source_sha=SHA_B,
                 image_digest=DIGEST_B,
+                primary_deployment_id=deployment_id("worker", 2),
             )
 
         gateway.run_migration = migration_then_external_change  # type: ignore[method-assign]
@@ -670,6 +732,12 @@ class PromotionTests(SimpleTestCase):
                 self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
                 self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
                 self.assertFalse((Path(directory) / "release.json").exists())
+                if failure == "update:web":
+                    self.assertIn("capture-attempted:web", gateway.operations)
+                    self.assertIn(
+                        "update-predecessors:web:ecs-svc/web-1,ecs-svc/web-2",
+                        gateway.operations,
+                    )
 
     def test_worker_timeout_uses_extended_forward_budget_and_default_compensation_budget(
         self,
@@ -727,6 +795,16 @@ class PromotionTests(SimpleTestCase):
         self.assertFalse(any(":timeout=240:" in value for value in recovery_waits))
         self.assertNotIn(f"health:{SHA_B}", gateway.operations)
         self.assertNotIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
+        self.assertIn(
+            "update-predecessors:web:ecs-svc/web-1,ecs-svc/web-2",
+            gateway.operations,
+        )
+        self.assertIn(
+            "update-predecessors:worker:ecs-svc/worker-1",
+            gateway.operations,
+        )
+        self.assertNotIn("ecs-svc/worker-2", "\n".join(gateway.operations))
+        self.assertNotIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
         self.assertLess(
             gateway.operations.index(forward_wait),
             gateway.operations.index(recovery_waits[0]),
@@ -774,20 +852,18 @@ class PromotionTests(SimpleTestCase):
         original_wait = gateway.wait_service_stable
 
         def fail_then_break_compensation(
-            workload: str,
+            receipt: ServiceUpdateReceipt,
             *,
             worker_singleton: bool = False,
             timeout_seconds: int | None = None,
-            expected_task_definition_arn: str | None = None,
-            expected_desired_count: int | None = None,
+            deadline: float | None = None,
         ) -> None:
             try:
                 original_wait(
-                    workload,
+                    receipt,
                     worker_singleton=worker_singleton,
                     timeout_seconds=timeout_seconds,
-                    expected_task_definition_arn=expected_task_definition_arn,
-                    expected_desired_count=expected_desired_count,
+                    deadline=deadline,
                 )
             except ReleaseContractError:
                 gateway.fail_once = "compensation"
@@ -811,30 +887,30 @@ class PromotionTests(SimpleTestCase):
             original_health = gateway.verify_public_web
 
             def update_with_secret_failure(
-                workload: str, task_definition_arn: str, desired_count: int
-            ) -> None:
-                if task_definition_arn.endswith(":1"):
+                workload: str,
+                target: ServiceTarget,
+                predecessors: tuple[ServicePredecessor, ...],
+            ) -> ServiceUpdateReceipt:
+                if target.task_definition_arn.endswith(":1"):
                     restoring["value"] = True
                     if selected_failure == "update":
                         raise RuntimeError("sentinel-secret-must-not-leak")
-                original_update(workload, task_definition_arn, desired_count)
+                return original_update(workload, target, predecessors)
 
             def wait_with_secret_failure(
-                workload: str,
+                receipt: ServiceUpdateReceipt,
                 *,
                 worker_singleton: bool = False,
                 timeout_seconds: int | None = None,
-                expected_task_definition_arn: str | None = None,
-                expected_desired_count: int | None = None,
+                deadline: float | None = None,
             ) -> None:
                 if restoring["value"] and selected_failure == "wait":
                     raise RuntimeError("sentinel-secret-must-not-leak")
                 original_wait(
-                    workload,
+                    receipt,
                     worker_singleton=worker_singleton,
                     timeout_seconds=timeout_seconds,
-                    expected_task_definition_arn=expected_task_definition_arn,
-                    expected_desired_count=expected_desired_count,
+                    deadline=deadline,
                 )
 
             def terminal_with_secret_failure(*args, **kwargs):  # type: ignore[no-untyped-def]
@@ -930,6 +1006,7 @@ class PromotionTests(SimpleTestCase):
             pending_count=1,
             source_sha=SHA_A,
             image_digest=DIGEST_A,
+            primary_deployment_id=deployment_id("web", 1),
         )
         mixed = FakeGateway(bootstrap=False)
         mixed.snapshots["worker"] = ServiceSnapshot(
@@ -940,6 +1017,7 @@ class PromotionTests(SimpleTestCase):
             pending_count=0,
             source_sha="c" * 40,
             image_digest=DIGEST_A,
+            primary_deployment_id=deployment_id("worker", 1),
         )
 
         cases = (
@@ -1107,8 +1185,19 @@ class PromotionTests(SimpleTestCase):
         )
         for context in contexts:
             gateway = FakeGateway(bootstrap=False)
-            gateway.update_service("web", arn("web", 2), 1)
-            gateway.update_service("worker", arn("worker", 2), 1)
+            for workload in ("web", "worker"):
+                snapshot = gateway.snapshots[workload]
+                gateway.update_service(
+                    workload,
+                    ServiceTarget(arn(workload, 2), 1),
+                    (
+                        ServicePredecessor(
+                            ServiceTarget(snapshot.task_definition_arn, snapshot.desired_count),
+                            snapshot.primary_deployment_id,
+                            "terminal",
+                        ),
+                    ),
+                )
             with self.subTest(count=context.web_desired_count):
                 restore_after_finalization_failure(gateway, context, failed)
                 self.assertEqual(
@@ -1127,6 +1216,25 @@ class PromotionTests(SimpleTestCase):
                         if value.startswith("wait:")
                     )
                 )
+                restore_web_update = (
+                    f"update:web:{context.web_task_definition_arn}:{context.web_desired_count}"
+                )
+                restore_worker_update = (
+                    f"update:worker:{context.worker_task_definition_arn}:"
+                    f"{context.worker_desired_count}"
+                )
+                self.assertIn(restore_web_update, gateway.operations)
+                self.assertIn(restore_worker_update, gateway.operations)
+                self.assertIn(
+                    "update-predecessors:web:ecs-svc/web-2",
+                    gateway.operations,
+                )
+                self.assertIn(
+                    "update-predecessors:worker:ecs-svc/worker-3",
+                    gateway.operations,
+                )
+                self.assertIn("wait-receipt:web:ecs-svc/web-4", gateway.operations)
+                self.assertIn("wait-receipt:worker:ecs-svc/worker-5", gateway.operations)
 
     def test_finalization_recovery_rejects_a_stale_live_pair_before_update(self) -> None:
         gateway = FakeGateway(bootstrap=False)
