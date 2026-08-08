@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+import subprocess
 from argparse import Namespace
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -26,6 +28,8 @@ from deploy.task_definitions import (
 )
 
 ROOT = Path(__file__).resolve().parents[2]
+HISTORICAL_WORKFLOW_COMMIT = "91490f0d3f172327a400c9edf5b441265890f897"
+HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334caf42f9b2524850d"
 DATABASE_SECRET_ARN = (
     "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-Ab12Cd"
 )
@@ -35,13 +39,125 @@ DJANGO_SECRET_ARN = (
 
 
 class DeploymentWorkflowContractTests(SimpleTestCase):
+    def test_django_gate_fetches_history_for_frozen_evidence_tests(self) -> None:
+        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        checkout = next(
+            step
+            for step in document["jobs"]["django"]["steps"]
+            if step.get("uses") == "actions/checkout@v4"
+        )
+        self.assertEqual(checkout["with"]["fetch-depth"], 0)
+        self.assertEqual(checkout["with"]["path"], ".tmp/release-source")
+
+    def test_prior_capture_validates_every_physical_value_before_oidc(self) -> None:
+        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        steps = document["jobs"]["auto-capture-prior"]["steps"]
+        validation = next(
+            step
+            for step in steps
+            if step.get("name") == "Validate automatic prior-capture configuration"
+        )
+        self.assertEqual(
+            set(validation["env"]),
+            {
+                "AWS_REGION",
+                "DEPLOYER_ROLE_ARN",
+                "ECR_REPOSITORY_URI",
+                "ECS_CLUSTER_ARN",
+                "WEB_TARGET_GROUP_ARN",
+                "WEB_SERVICE_NAME",
+                "WORKER_SERVICE_NAME",
+                "WEB_FAMILY",
+                "WORKER_FAMILY",
+                "MIGRATION_FAMILY",
+                "CONTAINER_NAMES",
+                "TASK_ROLE_ARN",
+                "EXECUTION_ROLE_ARN",
+                "ECS_SUBNET_IDS",
+                "ECS_SECURITY_GROUP_IDS",
+                "ASSIGN_PUBLIC_IP",
+                "WEB_DESIRED_COUNT",
+                "WORKER_DESIRED_COUNT",
+            },
+        )
+        validation_index = steps.index(validation)
+        oidc_index = next(
+            index
+            for index, step in enumerate(steps)
+            if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
+        )
+        self.assertLess(validation_index, oidc_index)
+
+    def test_every_compatibility_validator_runs_after_checkout_and_uv_setup(self) -> None:
+        document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+        validators = 0
+        for job_name, job in document["jobs"].items():
+            steps = job.get("steps", [])
+            for index, step in enumerate(steps):
+                if "deploy.legacy_development_compatibility" not in step.get("run", ""):
+                    continue
+                validators += 1
+                prior = steps[:index]
+                self.assertTrue(
+                    any(item.get("uses") == "actions/checkout@v4" for item in prior),
+                    job_name,
+                )
+                self.assertTrue(
+                    any(item.get("uses") == "astral-sh/setup-uv@v6" for item in prior),
+                    job_name,
+                )
+                self.assertTrue(
+                    any(item.get("run") == "uv sync --locked" for item in prior),
+                    job_name,
+                )
+        self.assertEqual(validators, 8)
+
+    def test_workflow_reads_the_complete_development_variable_contract_only(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        names = set(re.findall(r"vars\.(DEVELOPMENT_[A-Z0-9_]+)", workflow))
+        self.assertEqual(
+            names,
+            {
+                "DEVELOPMENT_AUTO_DEPLOY",
+                "DEVELOPMENT_AWS_REGION",
+                "DEVELOPMENT_DEPLOYER_ROLE_ARN",
+                "DEVELOPMENT_ECR_REPOSITORY_NAME",
+                "DEVELOPMENT_ECR_REPOSITORY_URI",
+                "DEVELOPMENT_ECS_ASSIGN_PUBLIC_IP",
+                "DEVELOPMENT_ECS_CLUSTER_ARN",
+                "DEVELOPMENT_ECS_CONTAINER_NAMES",
+                "DEVELOPMENT_ECS_EXECUTION_ROLE_ARN",
+                "DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY",
+                "DEVELOPMENT_ECS_SECURITY_GROUP_IDS",
+                "DEVELOPMENT_ECS_SUBNET_IDS",
+                "DEVELOPMENT_ECS_TASK_ROLE_ARN",
+                "DEVELOPMENT_ECS_WEB_SERVICE_NAME",
+                "DEVELOPMENT_ECS_WEB_TASK_FAMILY",
+                "DEVELOPMENT_ECS_WORKER_SERVICE_NAME",
+                "DEVELOPMENT_ECS_WORKER_TASK_FAMILY",
+                "DEVELOPMENT_KMS_KEY_ARN",
+                "DEVELOPMENT_PUBLISHER_ROLE_ARN",
+                "DEVELOPMENT_RESOURCE_ENVIRONMENT_TAG",
+                "DEVELOPMENT_RESOURCE_PROJECT_TAG",
+                "DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID",
+                "DEVELOPMENT_WEB_RELEASE_DESIRED_COUNT",
+                "DEVELOPMENT_WEB_TARGET_GROUP_ARN",
+                "DEVELOPMENT_WORKER_RELEASE_DESIRED_COUNT",
+            },
+        )
+        self.assertNotIn("vars." + "SANDBOX_", workflow)
+
     def test_workflow_is_serialized_main_only_and_disabled_without_explicit_dispatch(self) -> None:
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
 
         self.assertNotIn("pull_request", workflow)
-        self.assertIn("group: website-sandbox-release", workflow)
+        self.assertIn("group: website-development-release", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
-        self.assertIn("deploy_sandbox:", workflow)
+        self.assertIn("deploy_development:", workflow)
+        self.assertIn("probe_development:", workflow)
+        self.assertNotIn("deploy_" + "sandbox", workflow)
+        self.assertNotIn("probe_" + "sandbox", workflow)
+        self.assertNotIn("vars." + "SANDBOX_", workflow)
         self.assertIn("default: false", workflow)
         self.assertIn("github.event_name == 'workflow_dispatch'", workflow)
         self.assertIn("github.ref == 'refs/heads/main'", workflow)
@@ -215,7 +331,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         self.assertEqual(worst_case_seconds, 2340)
         self.assertGreaterEqual(3600 - worst_case_seconds, 20 * 60)
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         self.assertIn("3600 - 2340 = 1260", runbook)
 
     def test_reuse_path_cannot_build_load_login_or_push_and_keeps_publish_artifact(self) -> None:
@@ -250,7 +366,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("aws ecr describe-images", reuse)
         self.assertIn("aws ecr batch-get-image", reuse)
         self.assertIn("imageManifest | fromjson | .config.digest", reuse)
-        self.assertIn("sandbox-published-image-", publish)
+        self.assertIn("development-published-image-", publish)
         self.assertIn("retention-days: 90", publish)
         self.assertLess(
             publish.index("Preserve the published-image record independently of deployment"),
@@ -269,7 +385,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         capture = workflow.split("\n  auto-capture-prior:\n", maxsplit=1)[1].split(
             "\n  publish:\n", maxsplit=1
         )[0]
-        self.assertEqual(workflow.count("vars.SANDBOX_AUTO_DEPLOY == 'true'"), 3)
+        self.assertEqual(workflow.count("vars.DEVELOPMENT_AUTO_DEPLOY == 'true'"), 3)
         self.assertIn("github.event_name == 'push'", publish)
         self.assertIn("github.event_name == 'push'", deploy)
         for section, label in (
@@ -299,7 +415,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         dispatch = workflow.split("workflow_dispatch:", maxsplit=1)[1].split(
             "\npermissions:", maxsplit=1
         )[0]
-        self.assertIn("probe_sandbox:", dispatch)
+        self.assertIn("probe_development:", dispatch)
         self.assertIn("options: [promote, rollback, probe]", dispatch)
         self.assertIn("Workflow controller is not the current main commit", workflow)
         self.assertIn("OIDC probes run only from the current main source", workflow)
@@ -325,13 +441,11 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
 
         wrong_claims = workflow.split("\n  probe-wrong-main-claims:\n", maxsplit=1)[1]
-        self.assertIn("Validate exact wrong-claim probe inputs", wrong_claims)
-        self.assertIn(
-            "arn:aws:iam::817685572750:role/website-sandbox-github-deployer",
-            wrong_claims,
-        )
+        self.assertIn("Select and validate exact wrong-claim probe inputs", wrong_claims)
+        self.assertIn("deploy.legacy_development_compatibility", wrong_claims)
+        self.assertNotIn("website-" + "sandbox-github-deployer", wrong_claims)
         self.assertNotIn("continue-on-error: true", wrong_claims)
-        self.assertIn("deploy.oidc_claim_probe", wrong_claims)
+        self.assertIn("deploy.development_oidc_claim_probe", wrong_claims)
         self.assertIn("--audience dtc.invalid.example", wrong_claims)
         self.assertIn("AWS_EC2_METADATA_DISABLED: true", wrong_claims)
 
@@ -362,7 +476,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             token_indexes = [
                 index
                 for index, step in enumerate(steps)
-                if "deploy.oidc_claim_probe" in step.get("run", "")
+                if "deploy.development_oidc_claim_probe" in step.get("run", "")
             ]
             self.assertTrue(token_indexes)
             for index in token_indexes:
@@ -380,11 +494,10 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "- name: Validate exact deployer probe inputs", maxsplit=1
         )[1].split("- uses: aws-actions/configure-aws-credentials@v4", maxsplit=1)[0]
 
-        exact_pattern = (
-            "^arn:aws:elasticloadbalancing:eu-west-1:817685572750:"
-            "targetgroup/website-sandbox-web/[0-9a-f]{16}$"
+        self.assertIn(
+            "deploy.legacy_development_compatibility deployer-probe",
+            validation,
         )
-        self.assertIn(exact_pattern, validation)
         self.assertNotIn('test -n "$WEB_TARGET_GROUP_ARN"', validation)
 
     def test_route53_zone_is_exactly_validated_for_both_probe_roles_only(self) -> None:
@@ -392,7 +505,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         workflow = workflow_path.read_text()
         document = yaml.safe_load(workflow)
         jobs = document["jobs"]
-        variable_expression = "${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}"
+        variable_expression = "${{ vars.DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID }}"
 
         for job_name, role in (
             ("probe-publisher", "publisher"),
@@ -409,32 +522,27 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             )
             self.assertLess(steps.index(validation), credential_index)
             self.assertEqual(validation["env"]["HOSTED_ZONE_ID"], variable_expression)
-            self.assertIn(
-                'test "$HOSTED_ZONE_ID" = "Z05963572WVWFHDQZH5NE"',
-                validation["run"],
-            )
+            self.assertIn("deploy.legacy_development_compatibility", validation["run"])
 
             probe = next(
                 step
                 for step in steps
-                if f"python -m deploy.oidc_probe {role}" in step.get("run", "")
+                if f"python -m deploy.development_oidc_probe {role}" in step.get("run", "")
             )
             self.assertEqual(probe["env"]["HOSTED_ZONE_ID"], variable_expression)
             self.assertIn('--hosted-zone-id "$HOSTED_ZONE_ID"', probe["run"])
 
-        self.assertEqual(workflow.count("vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID"), 4)
+        self.assertEqual(workflow.count("vars.DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID"), 4)
         for job_name, job in jobs.items():
             if job_name not in {"probe-publisher", "probe-deployer"}:
-                self.assertNotIn("SANDBOX_ROUTE53_HOSTED_ZONE_ID", str(job))
+                self.assertNotIn("DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID", str(job))
 
     def test_kms_key_is_exactly_validated_and_wired_once_for_both_probe_roles_only(self) -> None:
         workflow_path = ROOT / ".github/workflows/ci.yml"
         workflow = workflow_path.read_text()
         document = yaml.safe_load(workflow)
         jobs = document["jobs"]
-        variable_expression = "${{ vars.SANDBOX_KMS_KEY_ARN }}"
-        exact_arn = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
-
+        variable_expression = "${{ vars.DEVELOPMENT_KMS_KEY_ARN }}"
         for job_name, role in (
             ("probe-publisher", "publisher"),
             ("probe-deployer", "deployer"),
@@ -453,24 +561,24 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 )
                 self.assertLess(steps.index(validation), credential_index)
                 self.assertEqual(validation["env"]["KMS_KEY_ARN"], variable_expression)
-                self.assertIn(f'test "$KMS_KEY_ARN" = "{exact_arn}"', validation["run"])
+                self.assertIn("deploy.legacy_development_compatibility", validation["run"])
 
                 probe = next(
                     step
                     for step in steps
-                    if f"python -m deploy.oidc_probe {role}" in step.get("run", "")
+                    if f"python -m deploy.development_oidc_probe {role}" in step.get("run", "")
                 )
                 self.assertEqual(probe["env"]["KMS_KEY_ARN"], variable_expression)
                 self.assertEqual(probe["run"].count('--kms-key-arn "$KMS_KEY_ARN"'), 1)
 
-        self.assertEqual(workflow.count("vars.SANDBOX_KMS_KEY_ARN"), 4)
+        self.assertEqual(workflow.count("vars.DEVELOPMENT_KMS_KEY_ARN"), 4)
         self.assertEqual(workflow.count('--kms-key-arn "$KMS_KEY_ARN"'), 2)
         for job_name, job in jobs.items():
             if job_name not in {"probe-publisher", "probe-deployer"}:
-                self.assertNotIn("SANDBOX_KMS_KEY_ARN", str(job))
+                self.assertNotIn("DEVELOPMENT_KMS_KEY_ARN", str(job))
 
     def test_runbook_orders_probe_before_secret_population_and_releases(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         bootstrap = runbook.split("## One-time bootstrap", maxsplit=1)[1].split(
             "## Post-bootstrap OIDC probe", maxsplit=1
         )[0]
@@ -489,13 +597,13 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertNotIn("Populate the required Secrets Manager values", bootstrap)
 
     def test_runbook_documents_exact_route53_probe_and_pre_post_evidence(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
             "## Select and promote a release", maxsplit=1
         )[0]
         normalized_probe = " ".join(probe.split())
 
-        self.assertIn("`SANDBOX_ROUTE53_HOSTED_ZONE_ID`", runbook)
+        self.assertIn("`DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID`", runbook)
         self.assertIn("`Z05963572WVWFHDQZH5NE`", runbook)
         self.assertIn("not a Terraform output", runbook)
         self.assertIn("exactly two byte-for-byte identical `DELETE` changes", normalized_probe)
@@ -508,7 +616,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("byte-for-byte unchanged", normalized_probe)
 
     def test_runbook_has_exact_variable_inventory_and_kms_probe_contract(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         table = runbook.split("| GitHub variable |", maxsplit=1)[1].split(
             "Do not export secret-container ARNs", maxsplit=1
         )[0]
@@ -518,25 +626,25 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         environment_variables = {
             line.split("`", maxsplit=2)[1]
             for line in table.splitlines()
-            if "| `sandbox` environment |" in line
+            if "| legacy GitHub environment `sandbox` |" in line
         }
         self.assertEqual(
             repository_variables,
             {
-                "SANDBOX_AWS_REGION",
-                "SANDBOX_ECR_REPOSITORY_URI",
-                "SANDBOX_ECR_REPOSITORY_NAME",
-                "SANDBOX_PUBLISHER_ROLE_ARN",
-                "SANDBOX_ROUTE53_HOSTED_ZONE_ID",
-                "SANDBOX_KMS_KEY_ARN",
+                "DEVELOPMENT_AWS_REGION",
+                "DEVELOPMENT_ECR_REPOSITORY_URI",
+                "DEVELOPMENT_ECR_REPOSITORY_NAME",
+                "DEVELOPMENT_PUBLISHER_ROLE_ARN",
+                "DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID",
+                "DEVELOPMENT_KMS_KEY_ARN",
             },
         )
         self.assertEqual(len(environment_variables), 18)
-        self.assertNotIn("SANDBOX_KMS_KEY_ARN", environment_variables)
-        self.assertNotIn("SANDBOX_ROUTE53_HOSTED_ZONE_ID", environment_variables)
+        self.assertNotIn("DEVELOPMENT_KMS_KEY_ARN", environment_variables)
+        self.assertNotIn("DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID", environment_variables)
         self.assertIn("six repository rows", runbook)
         self.assertIn("exact 18 environment rows", runbook)
-        self.assertIn("independent fail-closed `SANDBOX_AUTO_DEPLOY=false` switch", runbook)
+        self.assertIn("independent fail-closed `DEVELOPMENT_AUTO_DEPLOY=false` switch", runbook)
 
         probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
             "## Select and promote a release", maxsplit=1
@@ -544,7 +652,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         normalized_probe = " ".join(probe.split())
         exact_arn = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
         for expected in (
-            "`SANDBOX_KMS_KEY_ARN`",
+            "`DEVELOPMENT_KMS_KEY_ARN`",
             f"`{exact_arn}`",
             '`Operations=["Decrypt"]`',
             "`DryRun=True`",
@@ -594,7 +702,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("ExpectedBucketOwner=817685572750", audit)
         self.assertIn("exactly four calls, in order", audit)
 
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         probe = runbook.split("## Post-bootstrap OIDC probe", maxsplit=1)[1].split(
             "## Select and promote a release", maxsplit=1
         )[0]
@@ -616,7 +724,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             self.assertIn(expected, probe)
 
     def test_gate_b_evidence_contract_is_atomic_offline_and_workflow_isolated(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         audit = (ROOT / "_docs/audits/2026-08-07-oidc-denial-sentinels.md").read_text()
         manifest = json.loads((ROOT / "deploy/gate_b_manifest.json").read_text())
         gate = runbook.split("### #81 Gate B — readback and simulator preflight", maxsplit=1)[
@@ -753,9 +861,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 self.assertEqual(parent["resource"], row["resource"])
 
         unchanged_hashes = {
-            ".github/workflows/ci.yml": (
-                "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334caf42f9b2524850d"
-            ),
             "deploy/oidc_probe.py": (
                 "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
             ),
@@ -771,6 +876,19 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         for relative_path, expected_hash in unchanged_hashes.items():
             actual_hash = hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest()
             self.assertEqual(actual_hash, expected_hash)
+        historical_workflow = subprocess.run(
+            [
+                "git",
+                "show",
+                f"{HISTORICAL_WORKFLOW_COMMIT}:.github/workflows/ci.yml",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        self.assertEqual(
+            hashlib.sha256(historical_workflow).hexdigest(), HISTORICAL_WORKFLOW_SHA256
+        )
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         self.assertNotIn("gate_b_evidence", workflow)
 
@@ -920,9 +1038,6 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "core/tests/test_gate_b_evidence.py": (
                 "4dd65a576f3bd3d3bd2dff41170ee161f45ffe5362a4e4e1f8af0feabc081027"
             ),
-            ".github/workflows/ci.yml": (
-                "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334caf42f9b2524850d"
-            ),
             "deploy/oidc_probe.py": (
                 "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff"
             ),
@@ -940,8 +1055,21 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest(),
                 expected_hash,
             )
+        historical_workflow = subprocess.run(
+            [
+                "git",
+                "show",
+                f"{HISTORICAL_WORKFLOW_COMMIT}:.github/workflows/ci.yml",
+            ],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        ).stdout
+        self.assertEqual(
+            hashlib.sha256(historical_workflow).hexdigest(), HISTORICAL_WORKFLOW_SHA256
+        )
 
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         audit = (ROOT / "_docs/audits/2026-08-08-gate-b-operator-execution.md").read_text()
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         for required in (
@@ -956,7 +1084,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertNotIn("gate_b_assembler", workflow)
 
     def test_runbook_reconciles_only_after_all_b_exercises_and_final_promotion(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
         drills_position = runbook.index("## Controlled failure drills")
         rollback_position = runbook.index("## Manual immutable rollback")
         reconciliation_position = runbook.index("## Final release-B Terraform reconciliation")
@@ -969,9 +1097,9 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("clean promotion of the already-built B digest", reconciliation)
         self.assertIn("second and final plan", reconciliation)
         self.assertIn("e2b93beb1544170b6177ba55ea8fd6530b2e57a3", reconciliation)
-        self.assertIn("SANDBOX_AUTO_DEPLOY=true", reconciliation)
+        self.assertIn("DEVELOPMENT_AUTO_DEPLOY=true", reconciliation)
         self.assertIn(
-            "repository-level variable must exist and be exactly `SANDBOX_AUTO_DEPLOY=false`",
+            "repository-level variable must exist and be exactly `DEVELOPMENT_AUTO_DEPLOY=false`",
             reconciliation,
         )
         self.assertIn(
@@ -979,13 +1107,15 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             " ".join(reconciliation.split()),
         )
         self.assertIn("Never delete this repository variable", reconciliation)
-        self.assertNotIn("gh variable delete SANDBOX_AUTO_DEPLOY", runbook)
+        self.assertNotIn("gh variable delete DEVELOPMENT_AUTO_DEPLOY", runbook)
         self.assertNotIn("After first bootstrap succeeds, set Terraform", runbook)
 
     def test_runbook_documents_build_once_records_reuse_and_safe_auto_capture(self) -> None:
-        runbook = (ROOT / "_docs/runbooks/sandbox-release.md").read_text()
+        runbook = (ROOT / "_docs/runbooks/development-release.md").read_text()
 
-        self.assertIn("sandbox-published-image-e2b93beb1544170b6177ba55ea8fd6530b2e57a3", runbook)
+        self.assertIn(
+            "development-published-image-e2b93beb1544170b6177ba55ea8fd6530b2e57a3", runbook
+        )
         self.assertIn("only release-B build/push run", runbook)
         self.assertIn("performs no Docker build, load, login, pull, or push", runbook)
         self.assertIn("is **not** a successful or rollback-eligible release record", runbook)

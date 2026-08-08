@@ -74,9 +74,9 @@ Recommendation: PostgreSQL search for public site/docs/FAQ/Podwiki in MVP while 
 
 ## 14. Development network cost
 
-Recommendation: dedicated two-AZ VPC, public ALB and tightly restricted public-IP ECS tasks, isolated private RDS, and no NAT gateway in sandbox. Production uses private tasks and production-grade egress.
+Recommendation: dedicated two-AZ VPC, public ALB and tightly restricted public-IP ECS tasks, isolated private RDS, and no NAT gateway in development. Production uses private tasks and production-grade egress.
 
-Alternative: NAT-backed private tasks in sandbox more closely mirror production but add recurring cost.
+Alternative: NAT-backed private tasks in development more closely mirror production but add recurring cost.
 
 ## 15. Service and recovery targets
 

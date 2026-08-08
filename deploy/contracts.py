@@ -98,7 +98,7 @@ class ReleaseRecord:
             or self.worker_desired_count != 1
         ):
             raise ReleaseContractError(
-                "a successful sandbox release requires web and worker exactly 1"
+                "a successful development release requires web and worker exactly 1"
             )
         if self.rollback_eligible is not True:
             raise ReleaseContractError("only a fully successful release may be recorded")
@@ -139,7 +139,7 @@ class ActiveServicePair:
             or self.worker_desired_count != 1
         ):
             raise ReleaseContractError(
-                "an active sandbox service pair requires web and worker exactly 1"
+                "an active development service pair requires web and worker exactly 1"
             )
 
     def write(self, path: Path) -> None:

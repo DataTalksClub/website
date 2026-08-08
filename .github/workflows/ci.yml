@@ -9,12 +9,12 @@ on:
         description: Full 40-character source commit reachable from main
         required: true
         type: string
-      deploy_sandbox:
-        description: Assume the application roles and mutate the sandbox release
+      deploy_development:
+        description: Assume the application roles and mutate the development release
         required: true
         default: false
         type: boolean
-      probe_sandbox:
+      probe_development:
         description: Assume application roles only for the non-mutating OIDC probe
         required: true
         default: false
@@ -57,7 +57,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: website-sandbox-release
+  group: website-development-release
   cancel-in-progress: false
 
 jobs:
@@ -69,13 +69,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
       - id: release
         name: Validate immutable source selection
         env:
           EVENT_NAME: ${{ github.event_name }}
           INPUT_RELEASE_SHA: ${{ inputs.release_sha }}
-          INPUT_DEPLOY_SANDBOX: ${{ inputs.deploy_sandbox }}
-          INPUT_PROBE_SANDBOX: ${{ inputs.probe_sandbox }}
+          INPUT_DEPLOY_DEVELOPMENT: ${{ inputs.deploy_development }}
+          INPUT_PROBE_DEVELOPMENT: ${{ inputs.probe_development }}
           INPUT_OPERATION: ${{ inputs.operation }}
           INPUT_FAILURE_INJECTION: ${{ inputs.failure_injection }}
           INPUT_REUSE_EXISTING_IMAGE: ${{ inputs.reuse_existing_image }}
@@ -85,7 +91,7 @@ jobs:
           INPUT_CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
           RELEASE_A_SHA: 0f0ae208526fa2e76848cf4f5a87bd4aa26687ec
           RELEASE_B_SHA: e2b93beb1544170b6177ba55ea8fd6530b2e57a3
-          SANDBOX_REPOSITORY_URI: 817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox
+          DEVELOPMENT_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
@@ -103,20 +109,8 @@ jobs:
               *) echo "Unsupported release failure injection" >&2; exit 1 ;;
             esac
             validate_release_record() {
-              jq -e '
-                type == "object" and
-                keys == ["image_digest", "migration_task_definition_arn", "rollback_eligible", "source_sha", "web_desired_count", "web_task_definition_arn", "worker_desired_count", "worker_task_definition_arn"] and
-                (.source_sha | type == "string" and test("^[0-9a-f]{40}$")) and
-                (.image_digest | type == "string" and test("^sha256:[0-9a-f]{64}$")) and
-                .image_digest != "sha256:1111111111111111111111111111111111111111111111111111111111111111" and
-                .image_digest != "sha256:0000000000000000000000000000000000000000000000000000000000000000" and
-                (.web_task_definition_arn | type == "string" and test("^arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:[1-9][0-9]*$")) and
-                (.worker_task_definition_arn | type == "string" and test("^arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:[1-9][0-9]*$")) and
-                (.migration_task_definition_arn | type == "string" and test("^arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-migration:[1-9][0-9]*$")) and
-                (.web_desired_count | type == "number" and . == 1) and
-                (.worker_desired_count | type == "number" and . == 1) and
-                .rollback_eligible == true
-              ' <<< "$1" > /dev/null
+              uv run --frozen python -m deploy.legacy_development_compatibility \
+                release-record <<< "$1"
             }
             prior_source=""
             if [[ -n "$INPUT_PRIOR_RELEASE_RECORD" ]]; then
@@ -152,7 +146,7 @@ jobs:
               fi
               jq -e \
                 --arg source_sha "$candidate" \
-                --arg repository_uri "$SANDBOX_REPOSITORY_URI" '
+                --arg repository_uri "$DEVELOPMENT_REPOSITORY_URI" '
                 type == "object" and
                 keys == ["image_config_digest", "image_digest", "platform", "repository_uri", "source_sha", "user"] and
                 .source_sha == $source_sha and
@@ -187,8 +181,8 @@ jobs:
               fi
             fi
             if [[ "$INPUT_OPERATION" == "probe" ]]; then
-              if [[ "$INPUT_PROBE_SANDBOX" != "true" || "$INPUT_DEPLOY_SANDBOX" != "false" ]]; then
-                echo "Probe requires probe_sandbox=true and deploy_sandbox=false" >&2
+              if [[ "$INPUT_PROBE_DEVELOPMENT" != "true" || "$INPUT_DEPLOY_DEVELOPMENT" != "false" ]]; then
+                echo "Probe requires probe_development=true and deploy_development=false" >&2
                 exit 1
               fi
               if [[ "$INPUT_FAILURE_INJECTION" != "none" ]]; then
@@ -199,8 +193,8 @@ jobs:
                 echo "Probe accepts no image reuse or release record" >&2
                 exit 1
               fi
-            elif [[ "$INPUT_PROBE_SANDBOX" != "false" ]]; then
-              echo "probe_sandbox is valid only for operation=probe" >&2
+            elif [[ "$INPUT_PROBE_DEVELOPMENT" != "false" ]]; then
+              echo "probe_development is valid only for operation=probe" >&2
               exit 1
             fi
             if [[ "$INPUT_OPERATION" == "rollback" ]]; then
@@ -225,7 +219,7 @@ jobs:
               echo "Promotion rejects rollback target/current inputs" >&2
               exit 1
             fi
-            if [[ "$INPUT_DEPLOY_SANDBOX" == "true" && "$INPUT_OPERATION" == "promote" ]]; then
+            if [[ "$INPUT_DEPLOY_DEVELOPMENT" == "true" && "$INPUT_OPERATION" == "promote" ]]; then
               if [[ "$candidate" == "$RELEASE_A_SHA" ]]; then
                 if [[ "$INPUT_FAILURE_INJECTION" != "none" || -n "$prior_source" ]]; then
                   echo "Initial release A requires no prior release" >&2
@@ -290,6 +284,7 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
+      - run: make terminology-check
       - run: make lint
       - run: make format-check
       - run: make typecheck
@@ -325,6 +320,7 @@ jobs:
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -387,7 +383,7 @@ jobs:
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
-      - name: Build the production image once for sandbox architecture
+      - name: Build the production image once for development architecture
         if: >-
           (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
           steps.image-cache.outputs.cache-hit != 'true'
@@ -502,7 +498,7 @@ jobs:
   auto-capture-prior:
     if: >-
       github.event_name == 'push' &&
-      vars.SANDBOX_AUTO_DEPLOY == 'true' &&
+      vars.DEVELOPMENT_AUTO_DEPLOY == 'true' &&
       github.ref == 'refs/heads/main'
     needs: [resolve-release, quality, django, playwright, container]
     runs-on: ubuntu-latest
@@ -527,34 +523,27 @@ jobs:
       - run: uv lock --check
       - name: Validate automatic prior-capture configuration
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          DEPLOYER_ROLE_ARN: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
-          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
-          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
-          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
-          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
-          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
-          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
-          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
-          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
-          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
-          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
-          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          DEPLOYER_ROLE_ARN: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
+          ECR_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          ECS_CLUSTER_ARN: ${{ vars.DEVELOPMENT_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.DEVELOPMENT_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.DEVELOPMENT_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.DEVELOPMENT_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.DEVELOPMENT_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_EXECUTION_ROLE_ARN }}
+          ECS_SUBNET_IDS: ${{ vars.DEVELOPMENT_ECS_SUBNET_IDS }}
+          ECS_SECURITY_GROUP_IDS: ${{ vars.DEVELOPMENT_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.DEVELOPMENT_ECS_ASSIGN_PUBLIC_IP }}
+          WEB_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WORKER_RELEASE_DESIRED_COUNT }}
         run: |
           set -euo pipefail
-          test "$AWS_REGION" = "eu-west-1"
-          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
-          test "$ECR_REPOSITORY_URI" = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
-          test "$ECS_CLUSTER_ARN" = "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
-          test "$WEB_SERVICE_NAME" = "website-sandbox-web"
-          test "$WORKER_SERVICE_NAME" = "website-sandbox-worker"
-          test "$WEB_FAMILY" = "website-sandbox-web"
-          test "$WORKER_FAMILY" = "website-sandbox-worker"
-          test "$TASK_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-application"
-          test "$EXECUTION_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-execution"
-          test "$WEB_DESIRED_COUNT" = "1"
-          test "$WORKER_DESIRED_COUNT" = "1"
-          jq -e '. == {"migration":"migration","web":"web","worker":"worker"}' <<< "$CONTAINER_NAMES"
+          uv run --frozen python -m deploy.legacy_development_compatibility prior-capture
       - id: capture-before-oidc
         name: Verify current-main controller immediately before prior-capture OIDC
         env:
@@ -568,8 +557,8 @@ jobs:
           echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
-          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-to-assume: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
           role-session-name: website-prior-capture-${{ github.run_id }}
       - id: capture-before-read
         name: Recheck current-main controller immediately before active-pair capture
@@ -585,23 +574,23 @@ jobs:
       - id: capture
         name: Capture the exact managed active web-worker pair
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
-          CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
-          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
-          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
-          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
-          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
-          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
-          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
-          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
-          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
-          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
-          SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
-          SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
-          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
-          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
-          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          CLUSTER_ARN: ${{ vars.DEVELOPMENT_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.DEVELOPMENT_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.DEVELOPMENT_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.DEVELOPMENT_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.DEVELOPMENT_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_EXECUTION_ROLE_ARN }}
+          SUBNET_IDS: ${{ vars.DEVELOPMENT_ECS_SUBNET_IDS }}
+          SECURITY_GROUP_IDS: ${{ vars.DEVELOPMENT_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.DEVELOPMENT_ECS_ASSIGN_PUBLIC_IP }}
+          WEB_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WORKER_RELEASE_DESIRED_COUNT }}
         run: |
           set -euo pipefail
           mkdir -p .tmp/deployment
@@ -648,9 +637,9 @@ jobs:
       needs.django.result == 'success' &&
       needs.playwright.result == 'success' &&
       needs.container.result == 'success' &&
-      ((github.event_name == 'push' && vars.SANDBOX_AUTO_DEPLOY == 'true' &&
+      ((github.event_name == 'push' && vars.DEVELOPMENT_AUTO_DEPLOY == 'true' &&
       needs.auto-capture-prior.result == 'success') ||
-      (github.event_name == 'workflow_dispatch' && inputs.deploy_sandbox == true &&
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_development == true &&
       inputs.operation != 'probe' && needs.auto-capture-prior.result == 'skipped')) &&
       github.ref == 'refs/heads/main'
     needs: [resolve-release, quality, django, playwright, container, auto-capture-prior]
@@ -666,6 +655,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
       - uses: actions/download-artifact@v4
         if: github.event_name == 'push' || inputs.reuse_existing_image == false
         with:
@@ -673,18 +668,15 @@ jobs:
           path: .tmp
       - name: Validate publisher configuration
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
-          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
-          PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          ECR_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
+          PUBLISHER_ROLE_ARN: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
           PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
           REUSE_EXISTING_IMAGE: ${{ inputs.reuse_existing_image }}
         run: |
           set -euo pipefail
-          test "$AWS_REGION" = "eu-west-1"
-          test "$ECR_REPOSITORY_URI" = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
-          test "$ECR_REPOSITORY_NAME" = "website-sandbox"
-          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
+          uv run --frozen python -m deploy.legacy_development_compatibility publisher
           if [[ "$REUSE_EXISTING_IMAGE" == "true" ]]; then
             test "$(jq -er '.repository_uri' <<< "$PUBLISHED_IMAGE_RECORD")" = "$ECR_REPOSITORY_URI"
           fi
@@ -705,8 +697,8 @@ jobs:
           echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
-          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-to-assume: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
+          aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
           role-session-name: website-publisher-${{ github.run_id }}
       - id: publisher-before-write
         name: Recheck current-main controller immediately before ECR access
@@ -727,8 +719,8 @@ jobs:
         if: github.event_name == 'push' || inputs.reuse_existing_image == false
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
-          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
-          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
+          ECR_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
         run: |
           set -euo pipefail
           docker image load --input .tmp/release-image.tar
@@ -785,8 +777,8 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.reuse_existing_image == true
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
-          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
-          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
+          ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
+          ECR_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
           PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
         run: |
           set -euo pipefail
@@ -822,7 +814,7 @@ jobs:
       - name: Preserve the published-image record independently of deployment
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-published-image-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
+          name: development-published-image-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
           path: .tmp/published-image.json
           if-no-files-found: error
           retention-days: 90
@@ -831,9 +823,9 @@ jobs:
     if: >-
       always() &&
       needs.publish.result == 'success' &&
-      ((github.event_name == 'push' && vars.SANDBOX_AUTO_DEPLOY == 'true' &&
+      ((github.event_name == 'push' && vars.DEVELOPMENT_AUTO_DEPLOY == 'true' &&
       needs.auto-capture-prior.result == 'success') ||
-      (github.event_name == 'workflow_dispatch' && inputs.deploy_sandbox == true &&
+      (github.event_name == 'workflow_dispatch' && inputs.deploy_development == true &&
       inputs.operation != 'probe' && needs.auto-capture-prior.result == 'skipped')) &&
       github.ref == 'refs/heads/main'
     needs: [resolve-release, quality, django, playwright, container, auto-capture-prior, publish]
@@ -857,49 +849,32 @@ jobs:
       - run: uv run playwright install --with-deps chromium
       - name: Validate deployer configuration before assuming AWS
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          DEPLOYER_ROLE_ARN: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
-          ECR_REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
-          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
-          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
-          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
-          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
-          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
-          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
-          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
-          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
-          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
-          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
-          ECS_SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
-          ECS_SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
-          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
-          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
-          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
-          PROJECT_TAG: ${{ vars.SANDBOX_RESOURCE_PROJECT_TAG }}
-          ENVIRONMENT_TAG: ${{ vars.SANDBOX_RESOURCE_ENVIRONMENT_TAG }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          DEPLOYER_ROLE_ARN: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
+          ECR_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          ECS_CLUSTER_ARN: ${{ vars.DEVELOPMENT_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.DEVELOPMENT_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.DEVELOPMENT_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.DEVELOPMENT_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.DEVELOPMENT_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_EXECUTION_ROLE_ARN }}
+          ECS_SUBNET_IDS: ${{ vars.DEVELOPMENT_ECS_SUBNET_IDS }}
+          ECS_SECURITY_GROUP_IDS: ${{ vars.DEVELOPMENT_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.DEVELOPMENT_ECS_ASSIGN_PUBLIC_IP }}
+          WEB_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WORKER_RELEASE_DESIRED_COUNT }}
+          PROJECT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_PROJECT_TAG }}
+          ENVIRONMENT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_ENVIRONMENT_TAG }}
           OPERATION: ${{ github.event_name == 'push' && 'promote' || inputs.operation }}
           FAILURE_INJECTION: ${{ github.event_name == 'push' && 'none' || inputs.failure_injection }}
           PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
         run: |
           set -euo pipefail
-          test "$AWS_REGION" = "eu-west-1"
-          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
-          test "$ECR_REPOSITORY_URI" = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
-          test "$ECS_CLUSTER_ARN" = "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
-          [[ "$WEB_TARGET_GROUP_ARN" =~ ^arn:aws:elasticloadbalancing:eu-west-1:817685572750:targetgroup/website-sandbox-web/[0-9a-f]{16}$ ]]
-          test "$WEB_SERVICE_NAME" = "website-sandbox-web"
-          test "$WORKER_SERVICE_NAME" = "website-sandbox-worker"
-          test "$WEB_FAMILY" = "website-sandbox-web"
-          test "$WORKER_FAMILY" = "website-sandbox-worker"
-          test "$MIGRATION_FAMILY" = "website-sandbox-migration"
-          jq -e '. == {"migration":"migration","web":"web","worker":"worker"}' <<< "$CONTAINER_NAMES"
-          test "$TASK_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-application"
-          test "$EXECUTION_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-task-execution"
-          test "$ASSIGN_PUBLIC_IP" = "true"
-          test "$WEB_DESIRED_COUNT" = "1"
-          test "$WORKER_DESIRED_COUNT" = "1"
-          test "$PROJECT_TAG" = "website"
-          test "$ENVIRONMENT_TAG" = "sandbox"
+          uv run --frozen python -m deploy.legacy_development_compatibility deployer
           case "$FAILURE_INJECTION" in
             none|migration|post_mutation_smoke) ;;
             *) echo "Unsupported release failure injection" >&2; exit 1 ;;
@@ -927,8 +902,8 @@ jobs:
           date -u +%Y-%m-%dT%H:%M:%SZ > .tmp/deployment/current-main-before-oidc
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
-          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-to-assume: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
           role-session-name: website-deployer-${{ github.run_id }}
           role-duration-seconds: 3600
       - name: Recheck current-main controller before recovery checkpoint capture
@@ -951,21 +926,21 @@ jobs:
           ACTIVE_SERVICE_PAIR: ${{ needs.auto-capture-prior.outputs.active_service_pair }}
           PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
           CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
-          CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
-          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
-          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
-          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
-          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
-          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
-          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
-          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
-          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
-          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
-          SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
-          SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
-          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          CLUSTER_ARN: ${{ vars.DEVELOPMENT_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.DEVELOPMENT_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.DEVELOPMENT_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.DEVELOPMENT_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.DEVELOPMENT_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_EXECUTION_ROLE_ARN }}
+          SUBNET_IDS: ${{ vars.DEVELOPMENT_ECS_SUBNET_IDS }}
+          SECURITY_GROUP_IDS: ${{ vars.DEVELOPMENT_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.DEVELOPMENT_ECS_ASSIGN_PUBLIC_IP }}
         run: |
           set -euo pipefail
           mapfile -t subnet_ids < <(jq -er '.[]' <<< "$SUBNET_IDS")
@@ -1012,7 +987,7 @@ jobs:
         timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-recovery-checkpoint-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: development-recovery-checkpoint-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/pre-mutation-recovery-context.json
           if-no-files-found: error
           retention-days: 90
@@ -1041,25 +1016,25 @@ jobs:
           PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
           TARGET_RELEASE_RECORD: ${{ inputs.target_release_record }}
           CURRENT_RELEASE_RECORD: ${{ inputs.current_release_record }}
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          REPOSITORY_URI: ${{ vars.SANDBOX_ECR_REPOSITORY_URI }}
-          CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
-          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
-          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
-          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
-          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
-          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
-          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
-          CONTAINER_NAMES: ${{ vars.SANDBOX_ECS_CONTAINER_NAMES }}
-          TASK_ROLE_ARN: ${{ vars.SANDBOX_ECS_TASK_ROLE_ARN }}
-          EXECUTION_ROLE_ARN: ${{ vars.SANDBOX_ECS_EXECUTION_ROLE_ARN }}
-          SUBNET_IDS: ${{ vars.SANDBOX_ECS_SUBNET_IDS }}
-          SECURITY_GROUP_IDS: ${{ vars.SANDBOX_ECS_SECURITY_GROUP_IDS }}
-          ASSIGN_PUBLIC_IP: ${{ vars.SANDBOX_ECS_ASSIGN_PUBLIC_IP }}
-          WEB_DESIRED_COUNT: ${{ vars.SANDBOX_WEB_RELEASE_DESIRED_COUNT }}
-          WORKER_DESIRED_COUNT: ${{ vars.SANDBOX_WORKER_RELEASE_DESIRED_COUNT }}
-          PROJECT_TAG: ${{ vars.SANDBOX_RESOURCE_PROJECT_TAG }}
-          ENVIRONMENT_TAG: ${{ vars.SANDBOX_RESOURCE_ENVIRONMENT_TAG }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          CLUSTER_ARN: ${{ vars.DEVELOPMENT_ECS_CLUSTER_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.DEVELOPMENT_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.DEVELOPMENT_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.DEVELOPMENT_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY }}
+          CONTAINER_NAMES: ${{ vars.DEVELOPMENT_ECS_CONTAINER_NAMES }}
+          TASK_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_TASK_ROLE_ARN }}
+          EXECUTION_ROLE_ARN: ${{ vars.DEVELOPMENT_ECS_EXECUTION_ROLE_ARN }}
+          SUBNET_IDS: ${{ vars.DEVELOPMENT_ECS_SUBNET_IDS }}
+          SECURITY_GROUP_IDS: ${{ vars.DEVELOPMENT_ECS_SECURITY_GROUP_IDS }}
+          ASSIGN_PUBLIC_IP: ${{ vars.DEVELOPMENT_ECS_ASSIGN_PUBLIC_IP }}
+          WEB_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WEB_RELEASE_DESIRED_COUNT }}
+          WORKER_DESIRED_COUNT: ${{ vars.DEVELOPMENT_WORKER_RELEASE_DESIRED_COUNT }}
+          PROJECT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_PROJECT_TAG }}
+          ENVIRONMENT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_ENVIRONMENT_TAG }}
           FAILURE_INJECTION: ${{ github.event_name == 'push' && 'none' || inputs.failure_injection }}
         run: |
           set -euo pipefail
@@ -1245,7 +1220,7 @@ jobs:
         timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-deployment-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: development-deployment-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/deployment-evidence.json
           if-no-files-found: error
           retention-days: 90
@@ -1256,7 +1231,7 @@ jobs:
         timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-read-only-smoke-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
+          name: development-read-only-smoke-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployed-smoke
           if-no-files-found: error
           retention-days: 30
@@ -1271,7 +1246,7 @@ jobs:
         timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-successful-release-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
+          name: development-successful-release-${{ needs.resolve-release.outputs.release_sha }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/successful-release.json
           if-no-files-found: error
           retention-days: 90
@@ -1334,7 +1309,7 @@ jobs:
         timeout-minutes: 2
         uses: actions/upload-artifact@v4
         with:
-          name: sandbox-deployment-finalization-failure-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: development-deployment-finalization-failure-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/deployment/deployment-evidence.json
           if-no-files-found: error
           retention-days: 90
@@ -1348,8 +1323,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.operation == 'probe' &&
-      inputs.probe_sandbox == true &&
-      inputs.deploy_sandbox == false &&
+      inputs.probe_development == true &&
+      inputs.deploy_development == false &&
       github.ref == 'refs/heads/main'
     needs: resolve-release
     runs-on: ubuntu-latest
@@ -1378,8 +1353,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.operation == 'probe' &&
-      inputs.probe_sandbox == true &&
-      inputs.deploy_sandbox == false &&
+      inputs.probe_development == true &&
+      inputs.deploy_development == false &&
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
@@ -1397,18 +1372,14 @@ jobs:
       - run: uv sync --locked
       - name: Validate exact publisher probe inputs
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
-          HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
-          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
-          PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
+          HOSTED_ZONE_ID: ${{ vars.DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.DEVELOPMENT_KMS_KEY_ARN }}
+          PUBLISHER_ROLE_ARN: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
         run: |
           set -euo pipefail
-          test "$AWS_REGION" = "eu-west-1"
-          test "$ECR_REPOSITORY_NAME" = "website-sandbox"
-          test "$HOSTED_ZONE_ID" = "Z05963572WVWFHDQZH5NE"
-          test "$KMS_KEY_ARN" = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
-          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
+          uv run --frozen python -m deploy.legacy_development_compatibility publisher-probe
       - name: Verify current-main controller immediately before publisher probe OIDC
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
@@ -1420,18 +1391,18 @@ jobs:
           test "$RELEASE_SHA" = "$controller"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
-          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-to-assume: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
+          aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
           role-session-name: website-publisher-probe-${{ github.run_id }}
       - name: Probe publisher metadata and denied boundaries
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
-          HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
-          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
+          HOSTED_ZONE_ID: ${{ vars.DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.DEVELOPMENT_KMS_KEY_ARN }}
         run: |
           set -euo pipefail
-          uv run --frozen python -m deploy.oidc_probe publisher \
+          uv run --frozen python -m deploy.development_oidc_probe publisher \
             --account-id 817685572750 \
             --region "$AWS_REGION" \
             --repository-name "$ECR_REPOSITORY_NAME" \
@@ -1443,8 +1414,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.operation == 'probe' &&
-      inputs.probe_sandbox == true &&
-      inputs.deploy_sandbox == false &&
+      inputs.probe_development == true &&
+      inputs.deploy_development == false &&
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
@@ -1464,32 +1435,21 @@ jobs:
       - run: uv sync --locked
       - name: Validate exact deployer probe inputs
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          DEPLOYER_ROLE_ARN: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
-          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
-          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
-          HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
-          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
-          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
-          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
-          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
-          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
-          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
-          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          DEPLOYER_ROLE_ARN: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
+          ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
+          ECS_CLUSTER_ARN: ${{ vars.DEVELOPMENT_ECS_CLUSTER_ARN }}
+          HOSTED_ZONE_ID: ${{ vars.DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.DEVELOPMENT_KMS_KEY_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.DEVELOPMENT_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.DEVELOPMENT_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.DEVELOPMENT_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY }}
         run: |
           set -euo pipefail
-          test "$AWS_REGION" = "eu-west-1"
-          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
-          test "$ECR_REPOSITORY_NAME" = "website-sandbox"
-          test "$ECS_CLUSTER_ARN" = "arn:aws:ecs:eu-west-1:817685572750:cluster/website-sandbox"
-          test "$HOSTED_ZONE_ID" = "Z05963572WVWFHDQZH5NE"
-          test "$KMS_KEY_ARN" = "arn:aws:kms:eu-west-1:817685572750:key/b9181223-d870-4bae-92d2-fc28b7813887"
-          test "$WEB_SERVICE_NAME" = "website-sandbox-web"
-          test "$WORKER_SERVICE_NAME" = "website-sandbox-worker"
-          test "$WEB_FAMILY" = "website-sandbox-web"
-          test "$WORKER_FAMILY" = "website-sandbox-worker"
-          test "$MIGRATION_FAMILY" = "website-sandbox-migration"
-          [[ "$WEB_TARGET_GROUP_ARN" =~ ^arn:aws:elasticloadbalancing:eu-west-1:817685572750:targetgroup/website-sandbox-web/[0-9a-f]{16}$ ]]
+          uv run --frozen python -m deploy.legacy_development_compatibility deployer-probe
       - name: Verify current-main controller immediately before deployer probe OIDC
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
@@ -1501,25 +1461,25 @@ jobs:
           test "$RELEASE_SHA" = "$controller"
       - uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.SANDBOX_DEPLOYER_ROLE_ARN }}
-          aws-region: ${{ vars.SANDBOX_AWS_REGION }}
+          role-to-assume: ${{ vars.DEVELOPMENT_DEPLOYER_ROLE_ARN }}
+          aws-region: ${{ vars.DEVELOPMENT_AWS_REGION }}
           role-session-name: website-deployer-probe-${{ github.run_id }}
       - name: Probe deployer metadata and denied boundaries
         env:
-          AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
-          ECR_REPOSITORY_NAME: ${{ vars.SANDBOX_ECR_REPOSITORY_NAME }}
-          ECS_CLUSTER_ARN: ${{ vars.SANDBOX_ECS_CLUSTER_ARN }}
-          HOSTED_ZONE_ID: ${{ vars.SANDBOX_ROUTE53_HOSTED_ZONE_ID }}
-          KMS_KEY_ARN: ${{ vars.SANDBOX_KMS_KEY_ARN }}
-          WEB_TARGET_GROUP_ARN: ${{ vars.SANDBOX_WEB_TARGET_GROUP_ARN }}
-          WEB_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WEB_SERVICE_NAME }}
-          WORKER_SERVICE_NAME: ${{ vars.SANDBOX_ECS_WORKER_SERVICE_NAME }}
-          WEB_FAMILY: ${{ vars.SANDBOX_ECS_WEB_TASK_FAMILY }}
-          WORKER_FAMILY: ${{ vars.SANDBOX_ECS_WORKER_TASK_FAMILY }}
-          MIGRATION_FAMILY: ${{ vars.SANDBOX_ECS_MIGRATION_TASK_FAMILY }}
+          AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
+          ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
+          ECS_CLUSTER_ARN: ${{ vars.DEVELOPMENT_ECS_CLUSTER_ARN }}
+          HOSTED_ZONE_ID: ${{ vars.DEVELOPMENT_ROUTE53_HOSTED_ZONE_ID }}
+          KMS_KEY_ARN: ${{ vars.DEVELOPMENT_KMS_KEY_ARN }}
+          WEB_TARGET_GROUP_ARN: ${{ vars.DEVELOPMENT_WEB_TARGET_GROUP_ARN }}
+          WEB_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WEB_SERVICE_NAME }}
+          WORKER_SERVICE_NAME: ${{ vars.DEVELOPMENT_ECS_WORKER_SERVICE_NAME }}
+          WEB_FAMILY: ${{ vars.DEVELOPMENT_ECS_WEB_TASK_FAMILY }}
+          WORKER_FAMILY: ${{ vars.DEVELOPMENT_ECS_WORKER_TASK_FAMILY }}
+          MIGRATION_FAMILY: ${{ vars.DEVELOPMENT_ECS_MIGRATION_TASK_FAMILY }}
         run: |
           set -euo pipefail
-          uv run --frozen python -m deploy.oidc_probe deployer \
+          uv run --frozen python -m deploy.development_oidc_probe deployer \
             --account-id 817685572750 \
             --region "$AWS_REGION" \
             --repository-name "$ECR_REPOSITORY_NAME" \
@@ -1538,8 +1498,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.operation == 'probe' &&
-      inputs.probe_sandbox == true &&
-      inputs.deploy_sandbox == false &&
+      inputs.probe_development == true &&
+      inputs.deploy_development == false &&
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
@@ -1547,17 +1507,10 @@ jobs:
       contents: read
       id-token: write
     env:
-      AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+      AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
       AWS_EC2_METADATA_DISABLED: true
-      DEPLOYER_ROLE_ARN: arn:aws:iam::817685572750:role/website-sandbox-github-deployer
-      PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+      PUBLISHER_ROLE_ARN: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
     steps:
-      - name: Validate exact wrong-claim probe inputs
-        run: |
-          set -euo pipefail
-          test "$AWS_REGION" = "eu-west-1"
-          test "$DEPLOYER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-deployer"
-          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -1566,6 +1519,12 @@ jobs:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
+      - name: Select and validate exact wrong-claim probe inputs
+        run: |
+          set -euo pipefail
+          deployer_role="$(uv run --frozen python -c 'from deploy.legacy_development_compatibility import DEPLOYER_ROLE_ARN; print(DEPLOYER_ROLE_ARN)')"
+          DEPLOYER_ROLE_ARN="$deployer_role" uv run --frozen python -m deploy.legacy_development_compatibility main-claim-probe
+          printf 'DEPLOYER_ROLE_ARN=%s\n' "$deployer_role" >> "$GITHUB_ENV"
       - name: Verify current-main controller immediately before main-claim token request
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
@@ -1577,7 +1536,7 @@ jobs:
           test "$RELEASE_SHA" = "$controller"
       - name: Require main-ref subject denial for the environment role
         run: >-
-          uv run --frozen python -m deploy.oidc_claim_probe
+          uv run --frozen python -m deploy.development_oidc_claim_probe
           --role-arn "$DEPLOYER_ROLE_ARN"
           --audience sts.amazonaws.com
           --claim-label main-subject-to-environment-role
@@ -1593,7 +1552,7 @@ jobs:
           test "$RELEASE_SHA" = "$controller"
       - name: Require wrong-audience denial for the publisher role
         run: >-
-          uv run --frozen python -m deploy.oidc_claim_probe
+          uv run --frozen python -m deploy.development_oidc_claim_probe
           --role-arn "$PUBLISHER_ROLE_ARN"
           --audience dtc.invalid.example
           --claim-label wrong-audience-to-main-role
@@ -1603,8 +1562,8 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' &&
       inputs.operation == 'probe' &&
-      inputs.probe_sandbox == true &&
-      inputs.deploy_sandbox == false &&
+      inputs.probe_development == true &&
+      inputs.deploy_development == false &&
       github.ref == 'refs/heads/main'
     needs: [resolve-release, probe-contract]
     runs-on: ubuntu-latest
@@ -1614,15 +1573,10 @@ jobs:
       contents: read
       id-token: write
     env:
-      AWS_REGION: ${{ vars.SANDBOX_AWS_REGION }}
+      AWS_REGION: ${{ vars.DEVELOPMENT_AWS_REGION }}
       AWS_EC2_METADATA_DISABLED: true
-      PUBLISHER_ROLE_ARN: ${{ vars.SANDBOX_PUBLISHER_ROLE_ARN }}
+      PUBLISHER_ROLE_ARN: ${{ vars.DEVELOPMENT_PUBLISHER_ROLE_ARN }}
     steps:
-      - name: Validate exact environment-claim probe inputs
-        run: |
-          set -euo pipefail
-          test "$AWS_REGION" = "eu-west-1"
-          test "$PUBLISHER_ROLE_ARN" = "arn:aws:iam::817685572750:role/website-sandbox-github-publisher"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -1631,6 +1585,10 @@ jobs:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
+      - name: Validate exact environment-claim probe inputs
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m deploy.legacy_development_compatibility environment-claim-probe
       - name: Verify current-main controller immediately before environment-claim token request
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
@@ -1642,7 +1600,7 @@ jobs:
           test "$RELEASE_SHA" = "$controller"
       - name: Require environment-subject denial for the main-ref role
         run: >-
-          uv run --frozen python -m deploy.oidc_claim_probe
+          uv run --frozen python -m deploy.development_oidc_claim_probe
           --role-arn "$PUBLISHER_ROLE_ARN"
           --audience sts.amazonaws.com
           --claim-label environment-subject-to-main-role

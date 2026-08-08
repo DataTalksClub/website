@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-import re
 from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any
 
 from deploy.contracts import ReleaseContractError, ReleaseIdentity
+from deploy.legacy_development_compatibility import (
+    DATABASE_SECRET_ARN_PATTERN,
+    DJANGO_SECRET_ARN_PATTERN,
+)
 
 WORKLOADS = ("web", "worker", "migration")
 REGISTERABLE_FIELDS = {
@@ -27,14 +30,8 @@ REGISTERABLE_FIELDS = {
 }
 REQUIRED_SECRET_NAMES = {"DATABASE_URL", "DJANGO_SECRET_KEY"}
 SECRET_ARN_PATTERNS = {
-    "DATABASE_URL": re.compile(
-        r"^arn:aws:secretsmanager:eu-west-1:817685572750:"
-        r"secret:website-sandbox/database-url-[A-Za-z0-9]{6}$"
-    ),
-    "DJANGO_SECRET_KEY": re.compile(
-        r"^arn:aws:secretsmanager:eu-west-1:817685572750:"
-        r"secret:website-sandbox/django-secret-key-[A-Za-z0-9]{6}$"
-    ),
+    "DATABASE_URL": DATABASE_SECRET_ARN_PATTERN,
+    "DJANGO_SECRET_KEY": DJANGO_SECRET_ARN_PATTERN,
 }
 SAFETY_ENVIRONMENT = {
     "DATAMAILER_SYNC_ON_USER_CREATE": "0",
@@ -131,7 +128,9 @@ def _secrets(container: dict[str, Any]) -> tuple[tuple[str, str], ...]:
         )
     for name, value in result:
         if not SECRET_ARN_PATTERNS[name].fullmatch(value):
-            raise ReleaseContractError(f"{name} secret reference is not the exact sandbox ARN")
+            raise ReleaseContractError(
+                f"{name} secret reference is outside the development boundary"
+            )
     return tuple(sorted(result))
 
 
@@ -158,7 +157,7 @@ def build_task_definitions(
         source_environment.pop("APP_VERSION", None)
         if source_environment != FIXED_NONSECRET_ENVIRONMENT:
             raise ReleaseContractError(
-                f"{workload} source environment differs from the exact sandbox contract"
+                f"{workload} source environment differs from the development contract"
             )
         source_environments.append(source_environment)
         source_secrets.append(_secrets(container))

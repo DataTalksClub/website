@@ -61,13 +61,13 @@ sources:
     relevance: 0.95
     status: selected
   - id: dtc-aws-infra
-    title: DataTalksClub AWS infrastructure repository and sandbox account
+    title: DataTalksClub AWS infrastructure repository and development deployment
     type: repository
     locator: git@github.com:DataTalksClub/aws-infra.git
     captured: 2026-08-07
     published:
     authority: primary
-    summary: Existing Terraform conventions and live sandbox facts for the web.dtcdev.click deployment target.
+    summary: Existing Terraform conventions and live development facts for the web.dtcdev.click deployment target.
     page: wiki/sources/dtc-aws-infra.md
     raw:
     relevance: 0.90

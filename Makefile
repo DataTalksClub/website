@@ -2,7 +2,7 @@
 	test-core test test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-content-postgresql test-playwright-core test-playwright migrate run worker \
-	terraform-seo-source-check check-openapi check-management-parity
+	terraform-seo-source-check terminology-check check-openapi check-management-parity
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -48,6 +48,9 @@ django-check: check-openapi check-management-parity
 
 deployment-check:
 	DTC_ENVIRONMENT=production DJANGO_SETTINGS_MODULE=website.settings.production DJANGO_SECRET_KEY="$$(uv run python -c 'import secrets; print(secrets.token_urlsafe(64))')" DATABASE_URL=postgresql://check:check@127.0.0.1:5432/check DJANGO_ALLOWED_HOSTS=example.invalid DJANGO_CSRF_TRUSTED_ORIGINS=https://example.invalid uv run python manage.py check --deploy --fail-level ERROR
+
+terminology-check:
+	uv run python scripts/check_development_terminology.py
 
 terraform-seo-source-check:
 	@test -n "$(AWS_INFRA_REPOSITORY)" || (echo "AWS_INFRA_REPOSITORY is required" >&2; exit 2)

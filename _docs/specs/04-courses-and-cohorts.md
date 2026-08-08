@@ -189,7 +189,7 @@ After all browser links and API consumers are migrated:
 - retain direct compatibility responses or postpone redirect for authenticated API routes when authorization would be dropped;
 - monitor unknown paths before and after switch and retain a rollback target.
 
-The Lambda stack belongs in `DataTalksClub/aws-infra` as its own small production workload and can be rehearsed on a sandbox hostname first.
+The Lambda stack belongs in `DataTalksClub/aws-infra` as its own small production workload and can be rehearsed on a development hostname first.
 
 ## High-risk migration checks
 

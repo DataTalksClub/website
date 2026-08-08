@@ -6,10 +6,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from deploy.contracts import ReleaseContractError, validate_source_sha
+from deploy.legacy_development_compatibility import TERRAFORM_ROOT
+
+DEVELOPMENT_TERRAFORM_VARS_PATH = f"{TERRAFORM_ROOT}/terraform.tfvars.example"
 
 REQUIRED_TERRAFORM_PATHS = (
     "modules/django-website/edge.tf",
-    "sandbox/website/terraform.tfvars.example",
+    DEVELOPMENT_TERRAFORM_VARS_PATH,
     "tests/fixtures/website-production/main.tf",
 )
 TRUSTED_REVISION = "origin/main"
@@ -184,20 +187,20 @@ def validate_terraform_seo_source(
     if set(sources) != set(REQUIRED_TERRAFORM_PATHS):
         raise ReleaseContractError("Terraform source set is incomplete")
     edge = _strip_comments(sources["modules/django-website/edge.tf"])
-    sandbox = _strip_comments(sources["sandbox/website/terraform.tfvars.example"])
+    development = _strip_comments(sources[DEVELOPMENT_TERRAFORM_VARS_PATH])
     production = _strip_comments(sources["tests/fixtures/website-production/main.tf"])
 
     _require_assignment(
-        sandbox,
+        development,
         "hostname",
         '"web\\.dtcdev\\.click"',
-        "sandbox viewer host differs",
+        "development viewer host differs",
     )
     _require_assignment(
-        sandbox,
+        development,
         "robots_header_value",
         '"noindex, nofollow"',
-        "sandbox robots value differs",
+        "development robots value differs",
     )
     distributions = re.findall(
         r'(?m)^\s*resource\s+"aws_cloudfront_distribution"\s+"[^"\n]+"\s*\{',

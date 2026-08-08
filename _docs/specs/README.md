@@ -6,7 +6,10 @@ Status: draft for owner review
 
 Rebuild DataTalks.Club as one Django application without losing the URLs, links, content behavior, or search equity of the current sites. Integrate the existing course-management platform with an explicit `Course -> Cohort` model. Add accountless event registration, transactional email, a custom staff workspace called Studio, and an admin-only API covering every management operation.
 
-The development environment will run at `web.dtcdev.click` in the DataTalksClub AWS sandbox account. Infrastructure will be Terraform-managed in the `DataTalksClub/aws-infra` repository and structured for later instantiation in the production account.
+The development environment runs at `web.dtcdev.click` in AWS account `817685572750`.
+Infrastructure is Terraform-managed in `DataTalksClub/aws-infra` and structured for later
+instantiation in a separate production account. Live physical names are catalogued in the
+[development compatibility boundary](../compatibility/development-legacy-identifiers.md).
 
 ## Fixed requirements
 
@@ -65,7 +68,7 @@ flowchart LR
 - [05 - Events, registration, and email](05-events-registration-email.md)
 - [06 - Studio and admin API](06-studio-and-admin-api.md)
 - [07 - Security, privacy, accessibility, and operations](07-security-privacy-operations.md)
-- [08 - AWS sandbox and Terraform](08-aws-sandbox-terraform.md)
+- [08 - AWS development deployment and Terraform](08-aws-development-terraform.md)
 - [09 - Migration, rollout, and roadmap](09-migration-rollout-roadmap.md)
 - [10 - Verification strategy](10-verification-strategy.md)
 - [Open decisions](open-decisions.md)
