@@ -8,8 +8,10 @@ from typing import Any, Protocol
 
 from deploy.contracts import (
     RELEASE_MANAGER,
+    SERVICE_RECEIPT_BINDING_REASONS,
     ActiveServicePair,
     ReleaseContractError,
+    ReleaseFailureReason,
     ReleaseIdentity,
     ReleaseRecord,
     ServicePredecessor,
@@ -63,7 +65,10 @@ def _record_evidence(
 
 def _record_failed_stage(path: Path | None, stage: str, error: Exception) -> None:
     try:
-        _record_evidence(path, stage, "failed", {"error_class": type(error).__name__})
+        proof = {"error_class": type(error).__name__}
+        if isinstance(error, ReleaseContractError):
+            proof["reason_code"] = error.reason_code
+        _record_evidence(path, stage, "failed", proof)
     except Exception:
         # Evidence must never mask the release error or prevent exact-pair recovery.
         pass
@@ -110,6 +115,9 @@ class ReleaseGateway(Protocol):
         workload: str,
         target: ServiceTarget,
         predecessors: tuple[ServicePredecessor, ...],
+        *,
+        deadline: float | None = None,
+        timeout_seconds: int | None = None,
     ) -> ServiceUpdateReceipt: ...
 
     def capture_attempted_predecessor(
@@ -120,7 +128,7 @@ class ReleaseGateway(Protocol):
         deadline: float,
     ) -> ServicePredecessor: ...
 
-    def service_stabilization_deadline(self) -> float: ...
+    def service_stabilization_deadline(self, timeout_seconds: int | None = None) -> float: ...
 
     @property
     def web_stabilization_timeout_seconds(self) -> int: ...
@@ -146,6 +154,7 @@ class ReleaseGateway(Protocol):
         expected_task_definitions: dict[str, str],
         expected_desired_counts: dict[str, int],
         expected_identity: ReleaseIdentity | None,
+        expected_primary_deployment_ids: dict[str, str] | None = None,
     ) -> None: ...
 
 
@@ -191,8 +200,71 @@ class PromotionConfig:
                 )
 
 
+@dataclass(frozen=True)
+class RestorativeReceiptSummary:
+    workload: str
+    receipt_id: str
+    receipt_binding: str
+    carried_terminal: bool
+
+    def __post_init__(self) -> None:
+        if self.workload not in {"web", "worker"}:
+            raise ReleaseContractError("restorative receipt workload differs")
+        if not isinstance(self.receipt_id, str) or not self.receipt_id.strip():
+            raise ReleaseContractError("restorative receipt ID differs")
+        if self.receipt_binding not in SERVICE_RECEIPT_BINDING_REASONS:
+            raise ReleaseContractError("restorative receipt binding reason differs")
+        if type(self.carried_terminal) is not bool:
+            raise ReleaseContractError("restorative receipt terminal observation differs")
+
+    @classmethod
+    def from_receipt(cls, receipt: ServiceUpdateReceipt) -> RestorativeReceiptSummary:
+        return cls(
+            workload=receipt.workload,
+            receipt_id=receipt.primary_deployment_id,
+            receipt_binding=receipt.binding_reason,
+            carried_terminal=receipt.terminal_observed,
+        )
+
+    def as_evidence(self) -> dict[str, object]:
+        return asdict(self)
+
+
 class CompensationError(ReleaseContractError):
     """Raised when a release fails and exact-state compensation also fails."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        receipt_summaries: tuple[RestorativeReceiptSummary, ...] = (),
+        reason_code: ReleaseFailureReason = "contract_contradiction",
+    ) -> None:
+        self.receipt_summaries = receipt_summaries
+        message = f"{message}; reason_code={reason_code}"
+        if receipt_summaries:
+            safe_receipts = [item.as_evidence() for item in receipt_summaries]
+            message = f"{message}; restorative_receipts={json.dumps(safe_receipts, sort_keys=True)}"
+        super().__init__(message, reason_code=reason_code)
+
+
+def _restorative_error_reason(error: Exception) -> ReleaseFailureReason:
+    if isinstance(error, ReleaseContractError):
+        if error.reason_code == "receipt_deadline_expired":
+            return "receipt_deadline_expired"
+        if error.reason_code == "contract_contradiction":
+            return "contract_contradiction"
+    return "contract_contradiction"
+
+
+def _combined_restorative_reason(
+    reasons: list[ReleaseFailureReason],
+) -> ReleaseFailureReason:
+    if "contract_contradiction" in reasons:
+        return "contract_contradiction"
+    if "receipt_deadline_expired" in reasons:
+        return "receipt_deadline_expired"
+    return "contract_contradiction"
 
 
 @dataclass(frozen=True)
@@ -377,7 +449,11 @@ def _compensate(
     terminal_predecessors: dict[str, ServicePredecessor],
     prior_identity: ReleaseIdentity | None,
     attempted: dict[str, ServiceTarget | ServicePredecessor],
-) -> None:
+    *,
+    restore_workloads: frozenset[str] | None = None,
+    evidence_path: Path | None = None,
+    evidence_stage: str = "compensation_receipt",
+) -> tuple[RestorativeReceiptSummary, ...]:
     recovery = (
         f"web={restore_targets['web'].task_definition_arn} "
         f"desired={restore_targets['web'].desired_count}; "
@@ -385,7 +461,18 @@ def _compensate(
         f"desired={restore_targets['worker'].desired_count}"
     )
     errors: list[str] = []
+    error_reasons: list[ReleaseFailureReason] = []
+    workloads = frozenset(attempted) if restore_workloads is None else restore_workloads
+    if not workloads <= {"web", "worker"}:
+        raise ReleaseContractError("compensation workload allowlist differs")
+    expected_primary_deployment_ids = {
+        workload: predecessor.primary_deployment_id
+        for workload, predecessor in terminal_predecessors.items()
+    }
+    receipt_summaries: list[RestorativeReceiptSummary] = []
     for workload in ("web", "worker"):
+        if workload not in workloads:
+            continue
         terminal = terminal_predecessors[workload]
         phase_predecessors = [terminal]
         restore_target = restore_targets[workload]
@@ -406,9 +493,20 @@ def _compensate(
                 workload,
                 restore_target,
                 tuple(phase_predecessors),
+                deadline=deadline,
             )
+            summary = RestorativeReceiptSummary.from_receipt(receipt)
+            receipt_summaries.append(summary)
+            _record_recovery_evidence(
+                evidence_path,
+                evidence_stage,
+                "bound",
+                summary.as_evidence(),
+            )
+            expected_primary_deployment_ids[workload] = receipt.primary_deployment_id
         except Exception as error:
             errors.append(f"update {workload}: {type(error).__name__}")
+            error_reasons.append(_restorative_error_reason(error))
             continue
         try:
             gateway.wait_service_stable(
@@ -418,25 +516,32 @@ def _compensate(
             )
         except Exception as error:
             errors.append(f"wait {workload}: {type(error).__name__}")
+            error_reasons.append(_restorative_error_reason(error))
     try:
         gateway.verify_terminal(
             {workload: target.task_definition_arn for workload, target in restore_targets.items()},
             {workload: target.desired_count for workload, target in restore_targets.items()},
             prior_identity,
+            expected_primary_deployment_ids,
         )
     except Exception as error:
         errors.append(f"terminal verification: {type(error).__name__}")
+        error_reasons.append(_restorative_error_reason(error))
     if prior_identity is not None:
         try:
             gateway.verify_public_web(prior_identity.source_sha)
         except Exception as error:
             errors.append(f"public health: {type(error).__name__}")
+            error_reasons.append(_restorative_error_reason(error))
     if errors:
         raise CompensationError(
             "automatic compensation failed; recover with exact non-secret identifiers: "
             f"{recovery}; "
-            f"causes: {'; '.join(errors)}"
+            f"causes: {'; '.join(errors)}",
+            receipt_summaries=tuple(receipt_summaries),
+            reason_code=_combined_restorative_reason(error_reasons),
         )
+    return tuple(receipt_summaries)
 
 
 def _restore_phase_from_snapshots(
@@ -639,6 +744,9 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         mutated = True
         web_target = ServiceTarget(registered["web"], config.web_desired_count)
         attempted["web"] = web_target
+        web_deadline = gateway.service_stabilization_deadline(
+            gateway.web_stabilization_timeout_seconds
+        )
         web_receipt = gateway.update_service(
             "web",
             web_target,
@@ -652,6 +760,18 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                     "terminal",
                 ),
             ),
+            deadline=web_deadline,
+            timeout_seconds=gateway.web_stabilization_timeout_seconds,
+        )
+        _record_evidence(
+            config.evidence_path,
+            "web_receipt",
+            "bound",
+            {
+                "primary_deployment_id": web_receipt.primary_deployment_id,
+                "receipt_binding": web_receipt.binding_reason,
+                "terminal_observed": web_receipt.terminal_observed,
+            },
         )
         attempted["web"] = ServicePredecessor(
             web_receipt.target,
@@ -661,6 +781,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         gateway.wait_service_stable(
             web_receipt,
             timeout_seconds=gateway.web_stabilization_timeout_seconds,
+            deadline=web_deadline,
         )
         gateway.verify_public_web(config.identity.source_sha)
         _record_evidence(
@@ -672,6 +793,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "desired_count": config.web_desired_count,
                 "source_sha": config.identity.source_sha,
                 "primary_deployment_id": web_receipt.primary_deployment_id,
+                "receipt_binding": web_receipt.binding_reason,
                 "ecs_stable": True,
                 "alb_ready": True,
                 "readiness": True,
@@ -689,6 +811,9 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         )
         worker_target = ServiceTarget(registered["worker"], config.worker_desired_count)
         attempted["worker"] = worker_target
+        worker_deadline = gateway.service_stabilization_deadline(
+            gateway.worker_stabilization_timeout_seconds
+        )
         worker_receipt = gateway.update_service(
             "worker",
             worker_target,
@@ -702,6 +827,18 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                     "terminal",
                 ),
             ),
+            deadline=worker_deadline,
+            timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+        )
+        _record_evidence(
+            config.evidence_path,
+            "worker_receipt",
+            "bound",
+            {
+                "primary_deployment_id": worker_receipt.primary_deployment_id,
+                "receipt_binding": worker_receipt.binding_reason,
+                "terminal_observed": worker_receipt.terminal_observed,
+            },
         )
         attempted["worker"] = ServicePredecessor(
             worker_receipt.target,
@@ -712,6 +849,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             worker_receipt,
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+            deadline=worker_deadline,
         )
         _record_evidence(
             config.evidence_path,
@@ -721,6 +859,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "task_definition_arn": registered["worker"],
                 "desired_count": config.worker_desired_count,
                 "primary_deployment_id": worker_receipt.primary_deployment_id,
+                "receipt_binding": worker_receipt.binding_reason,
                 "singleton": True,
                 "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
             },
@@ -745,6 +884,10 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "worker": config.worker_desired_count,
             },
             config.identity,
+            {
+                "web": web_receipt.primary_deployment_id,
+                "worker": worker_receipt.primary_deployment_id,
+            },
         )
         _record_evidence(
             config.evidence_path,
@@ -807,6 +950,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                     terminal_predecessors,
                     prior_identity,
                     attempted,
+                    evidence_path=config.evidence_path,
                 )
                 _record_recovery_evidence(
                     config.evidence_path,
@@ -928,6 +1072,9 @@ def rollback(
         mutated = True
         web_target = ServiceTarget(target.web_task_definition_arn, target.web_desired_count)
         attempted["web"] = web_target
+        web_deadline = gateway.service_stabilization_deadline(
+            gateway.web_stabilization_timeout_seconds
+        )
         web_receipt = gateway.update_service(
             "web",
             web_target,
@@ -941,6 +1088,18 @@ def rollback(
                     "terminal",
                 ),
             ),
+            deadline=web_deadline,
+            timeout_seconds=gateway.web_stabilization_timeout_seconds,
+        )
+        _record_evidence(
+            evidence_path,
+            "web_receipt",
+            "bound",
+            {
+                "primary_deployment_id": web_receipt.primary_deployment_id,
+                "receipt_binding": web_receipt.binding_reason,
+                "terminal_observed": web_receipt.terminal_observed,
+            },
         )
         attempted["web"] = ServicePredecessor(
             web_receipt.target,
@@ -950,6 +1109,7 @@ def rollback(
         gateway.wait_service_stable(
             web_receipt,
             timeout_seconds=gateway.web_stabilization_timeout_seconds,
+            deadline=web_deadline,
         )
         gateway.verify_public_web(target.source_sha)
         _record_evidence(
@@ -961,6 +1121,7 @@ def rollback(
                 "desired_count": target.web_desired_count,
                 "source_sha": target.source_sha,
                 "primary_deployment_id": web_receipt.primary_deployment_id,
+                "receipt_binding": web_receipt.binding_reason,
                 "ecs_stable": True,
                 "alb_ready": True,
                 "readiness": True,
@@ -980,6 +1141,9 @@ def rollback(
             target.worker_desired_count,
         )
         attempted["worker"] = worker_target
+        worker_deadline = gateway.service_stabilization_deadline(
+            gateway.worker_stabilization_timeout_seconds
+        )
         worker_receipt = gateway.update_service(
             "worker",
             worker_target,
@@ -993,6 +1157,18 @@ def rollback(
                     "terminal",
                 ),
             ),
+            deadline=worker_deadline,
+            timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+        )
+        _record_evidence(
+            evidence_path,
+            "worker_receipt",
+            "bound",
+            {
+                "primary_deployment_id": worker_receipt.primary_deployment_id,
+                "receipt_binding": worker_receipt.binding_reason,
+                "terminal_observed": worker_receipt.terminal_observed,
+            },
         )
         attempted["worker"] = ServicePredecessor(
             worker_receipt.target,
@@ -1003,6 +1179,7 @@ def rollback(
             worker_receipt,
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+            deadline=worker_deadline,
         )
         _record_evidence(
             evidence_path,
@@ -1012,6 +1189,7 @@ def rollback(
                 "task_definition_arn": target.worker_task_definition_arn,
                 "desired_count": target.worker_desired_count,
                 "primary_deployment_id": worker_receipt.primary_deployment_id,
+                "receipt_binding": worker_receipt.binding_reason,
                 "singleton": True,
                 "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
             },
@@ -1037,6 +1215,10 @@ def rollback(
                 "worker": target.worker_desired_count,
             },
             target_identity,
+            {
+                "web": web_receipt.primary_deployment_id,
+                "worker": worker_receipt.primary_deployment_id,
+            },
         )
         _record_evidence(
             evidence_path,
@@ -1085,6 +1267,7 @@ def rollback(
                     terminal_predecessors,
                     current_identity,
                     attempted,
+                    evidence_path=evidence_path,
                 )
                 _record_recovery_evidence(
                     evidence_path,
@@ -1119,7 +1302,7 @@ def restore_after_finalization_failure(
     gateway: ReleaseGateway,
     context: RecoveryContext,
     failed_release: ReleaseRecord,
-) -> None:
+) -> tuple[RestorativeReceiptSummary, ...]:
     """Restore the exact pre-release pair after a detectable artifact finalization failure."""
     failed_identity = ReleaseIdentity(
         source_sha=failed_release.source_sha,
@@ -1186,10 +1369,12 @@ def restore_after_finalization_failure(
             "terminal",
         ),
     }
-    _compensate(
+    return _compensate(
         gateway,
         restore_targets,
         terminal_predecessors,
         prior_identity,
         {},
+        restore_workloads=frozenset({"web", "worker"}),
+        evidence_stage="finalization_receipt",
     )

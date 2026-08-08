@@ -186,15 +186,20 @@ def _rollback(arguments: argparse.Namespace) -> ReleaseRecord:
     )
 
 
-def _restore_finalization(arguments: argparse.Namespace) -> RecoveryContext:
+def _restore_finalization(arguments: argparse.Namespace) -> dict[str, object]:
     failed_release = ReleaseRecord.read(arguments.failed_release_record)
     context = RecoveryContext.read(arguments.recovery_context)
-    restore_after_finalization_failure(
+    receipts = restore_after_finalization_failure(
         _gateway(arguments),
         context,
         failed_release,
     )
-    return context
+    return {
+        "status": "restored_prior",
+        "release": context.source_sha or "bootstrap-disabled",
+        "image_digest": context.image_digest,
+        "restorative_receipts": [item.as_evidence() for item in receipts],
+    }
 
 
 def _capture_current(arguments: argparse.Namespace) -> ActiveServicePair:
@@ -292,16 +297,7 @@ def main() -> None:
     except Exception as error:
         parser.exit(1, f"release failed safely: AWS operation failed ({type(error).__name__})\n")
     if arguments.command == "restore-finalization":
-        print(
-            json.dumps(
-                {
-                    "status": "restored_prior",
-                    "release": record.source_sha or "bootstrap-disabled",
-                    "image_digest": record.image_digest,
-                },
-                sort_keys=True,
-            )
-        )
+        print(json.dumps(record, sort_keys=True))
     elif arguments.command == "capture-recovery":
         print(json.dumps({"status": "recovery_checkpoint_captured"}, sort_keys=True))
     else:
