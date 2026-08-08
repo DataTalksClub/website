@@ -419,6 +419,49 @@ jobs:
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$RELEASE_SHA"
           test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
           test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
+      - name: Verify the built runtime static manifest
+        if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
+        env:
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          image="dtc-website:$RELEASE_SHA"
+          fixtures="$PWD/.tmp/static-manifest-fixtures"
+          mkdir -p "$fixtures/absent"
+          printf '{\n' > "$fixtures/malformed.json"
+          printf '{"paths": {}, "version": "1.1", "hash": "fixture"}\n' > "$fixtures/missing-entry.json"
+
+          verify_manifest() {
+            settings_module="$1"
+            shift
+            docker run --rm \
+              --entrypoint sh \
+              --env "DJANGO_SETTINGS_MODULE=$settings_module" \
+              "$@" \
+              "$image" -c 'uv run --no-sync python -m scripts.verify_static_manifest'
+          }
+
+          verify_manifest website.settings.collectstatic
+
+          if verify_manifest website.settings.collectstatic \
+            --mount "type=bind,source=$fixtures/absent,target=/app/staticfiles,readonly"; then
+            echo "Static verification accepted an absent manifest." >&2
+            exit 1
+          fi
+          if verify_manifest website.settings.collectstatic \
+            --mount "type=bind,source=$fixtures/malformed.json,target=/app/staticfiles/staticfiles.json,readonly"; then
+            echo "Static verification accepted a malformed manifest." >&2
+            exit 1
+          fi
+          if verify_manifest website.settings.collectstatic \
+            --mount "type=bind,source=$fixtures/missing-entry.json,target=/app/staticfiles/staticfiles.json,readonly"; then
+            echo "Static verification accepted a manifest without courses.css." >&2
+            exit 1
+          fi
+          if verify_manifest website.settings.test; then
+            echo "Static verification accepted an incompatible storage backend." >&2
+            exit 1
+          fi
       - name: Smoke-test liveness without publishing
         if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         env:
@@ -433,6 +476,7 @@ jobs:
           trap 'docker logs dtc-web; docker rm --force dtc-web' EXIT
           for attempt in $(seq 1 30); do
             if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = "{\"status\": \"ok\", \"version\": \"$RELEASE_SHA\"}"; then
+              curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
               exit 0
             fi
             sleep 1

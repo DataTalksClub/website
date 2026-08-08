@@ -23,7 +23,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
     DJANGO_SETTINGS_MODULE=website.settings.production
 RUN mkdir -p /app/.cache/uv \
-    && DJANGO_SETTINGS_MODULE=website.settings.test uv run --no-sync python manage.py collectstatic --noinput \
+    && DJANGO_SETTINGS_MODULE=website.settings.collectstatic uv run --no-sync python manage.py collectstatic --noinput \
     && chown -R dtc:dtc /app/.cache
 USER 10001:10001
 LABEL org.opencontainers.image.revision=$SOURCE_SHA
