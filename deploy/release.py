@@ -18,12 +18,19 @@ from deploy.contracts import (
     validate_source_sha,
     validate_task_definition_arn,
 )
+from deploy.legacy_development_compatibility import (
+    ECR_REPOSITORY_URI as DEVELOPMENT_REPOSITORY_URI,
+)
+from deploy.legacy_development_compatibility import (
+    WEB_TASK_FAMILY,
+    WORKER_TASK_FAMILY,
+    task_definition_arn_prefix,
+)
 from deploy.task_definitions import TaskDefinitionConfig, build_task_definitions
 
 FAILURE_INJECTIONS = {"none", "migration", "post_mutation_smoke"}
 RELEASE_A_SHA = "0f0ae208526fa2e76848cf4f5a87bd4aa26687ec"
 RELEASE_B_SHA = "e2b93beb1544170b6177ba55ea8fd6530b2e57a3"
-SANDBOX_REPOSITORY_URI = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
 
 
 def _record_evidence(
@@ -143,7 +150,7 @@ class PromotionConfig:
             or self.web_desired_count != 1
             or self.worker_desired_count != 1
         ):
-            raise ReleaseContractError("sandbox promotion requires web and worker exactly 1")
+            raise ReleaseContractError("development promotion requires web and worker exactly 1")
         if not self.project_tag or not self.environment_tag:
             raise ReleaseContractError("Project and Environment registration tags are required")
         if self.failure_injection not in FAILURE_INJECTIONS:
@@ -179,16 +186,16 @@ class RecoveryContext:
     worker_desired_count: int
 
     def __post_init__(self) -> None:
-        if self.repository_uri != SANDBOX_REPOSITORY_URI:
-            raise ReleaseContractError("recovery context repository is not exact sandbox ECR")
+        if self.repository_uri != DEVELOPMENT_REPOSITORY_URI:
+            raise ReleaseContractError(
+                "recovery context repository is outside the development boundary"
+            )
         validate_task_definition_arn(self.web_task_definition_arn)
         validate_task_definition_arn(self.worker_task_definition_arn)
-        if not self.web_task_definition_arn.startswith(
-            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:"
-        ):
+        if not self.web_task_definition_arn.startswith(task_definition_arn_prefix(WEB_TASK_FAMILY)):
             raise ReleaseContractError("recovery context web task family differs")
         if not self.worker_task_definition_arn.startswith(
-            "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:"
+            task_definition_arn_prefix(WORKER_TASK_FAMILY)
         ):
             raise ReleaseContractError("recovery context worker task family differs")
         counts = (self.web_desired_count, self.worker_desired_count)

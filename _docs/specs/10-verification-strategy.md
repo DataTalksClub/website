@@ -49,7 +49,7 @@ Tests that create real data are clearly tagged and cannot target a shared enviro
 
 ### Infrastructure and deployment tests
 
-- Terraform format/validate/static checks and sandbox plan review;
+- Terraform format/validate/static checks and development plan review;
 - policy checks preventing hosted-zone creation, public RDS, open task ports, unencrypted data, wildcard deploy permissions, and committed secrets;
 - container non-root/runtime checks and vulnerability scan;
 - migration dry run and `makemigrations --check`;

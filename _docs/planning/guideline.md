@@ -15,7 +15,7 @@ The following invariants govern every implementation slice:
 5. [HUMAN] Course is reusable identity and Cohort is a dated delivery. Existing curriculum and learner work remain cohort-owned in the consolidation release.
 6. [HUMAN] Every management operation has both a Studio entry point and an admin API operation backed by the same service, permission, validation, idempotency, and audit behavior.
 7. [INFERENCE django-email-6,aisl-reference] Registration and course email is driven by durable database intent, never by an unrecorded provider call in a web request.
-8. [INFERENCE dtc-aws-infra] Infrastructure is Terraform-managed, development runs at `web.dtcdev.click` in sandbox account `817685572750`, and environment/account differences are variables rather than copied architecture.
+8. [INFERENCE dtc-aws-infra] Infrastructure is Terraform-managed, development runs at `web.dtcdev.click` in AWS account `817685572750`, and environment/account differences are variables rather than copied architecture.
 
 The detailed normative specifications are indexed in [`_docs/specs/README.md`](../specs/README.md). If this guideline and a numbered specification conflict, stop and update both before implementation.
 
@@ -108,7 +108,7 @@ Registration is accountless. Normalize email, rate-limit and CSRF-protect submis
 
 All messages start as a committed `EmailDelivery` with purpose, recipient snapshot, template revision, context hash, idempotency key, status, and correlation IDs. Workers lease rows, render plain-text plus HTML, call an environment-specific backend, and record attempts/provider IDs/events. Model queued, leased, sent, delivered, failed, suppressed, cancelled, and provider-acknowledgement-ambiguous states. Retries use backoff and idempotency; ambiguous sends prefer a rare duplicate to silently missing a critical message, and operators can inspect/reconcile them.
 
-Use console/in-memory backends for local/tests and SES in `us-east-1` for sandbox after verifying identity/configuration. Retain Datamailer as a migration adapter until existing list/template/idempotency behavior is mapped and old outboxes are drained/frozen.
+Use console/in-memory backends for local/tests and SES in `us-east-1` for development after verifying identity/configuration. Retain Datamailer as a migration adapter until existing list/template/idempotency behavior is mapped and old outboxes are drained/frozen.
 
 ## Studio, API, permissions, and audit
 
@@ -132,16 +132,16 @@ Expose liveness/readiness, structured logs with request/job IDs, metrics for lat
 
 ## AWS and Terraform
 
-Keep infrastructure implementation in `DataTalksClub/aws-infra`, one state root per workload/environment. Re-read live inventory before planning because it can change. In sandbox, explicitly reference hosted-zone ID `Z05963572WVWFHDQZH5NE`; never create or select `dtcdev.click` by name alone.
+Keep infrastructure implementation in `DataTalksClub/aws-infra`, one state root per workload/environment. Re-read live inventory before planning because it can change. In development, explicitly reference hosted-zone ID `Z05963572WVWFHDQZH5NE`; never create or select `dtcdev.click` by name alone.
 
-The website stack includes ECR, ECS/Fargate web and worker services, one-off migration task, ALB/TLS, PostgreSQL, Secrets Manager/SSM, CloudWatch logs/alarms, S3 content assets, SES permissions, Route 53 record, backup/retention controls, and GitHub OIDC least-privilege deployment. Sandbox may use a cost-adjusted network shape, but modules/variables expose account, region, zones, network IDs, DNS zone/name, scaling/sizing, retention, deletion protection, sender identity, alarm topics, and tags for production instantiation.
+The website stack includes ECR, ECS/Fargate web and worker services, one-off migration task, ALB/TLS, PostgreSQL, Secrets Manager/SSM, CloudWatch logs/alarms, S3 content assets, SES permissions, Route 53 record, backup/retention controls, and GitHub OIDC least-privilege deployment. Development may use a cost-adjusted network shape, but modules/variables expose account, region, zones, network IDs, DNS zone/name, scaling/sizing, retention, deletion protection, sender identity, alarm topics, and tags for production instantiation.
 
-Terraform does not build images, run application migrations implicitly, import production data, or manage editorial content. Delivery order is image -> migration task -> web health -> worker, with rollback to an immutable prior image. The eventual course-host redirect is a separate small production root/module with path-map artifact, logs/alarms, rollback origin, and a sandbox rehearsal hostname.
+Terraform does not build images, run application migrations implicitly, import production data, or manage editorial content. Delivery order is image -> migration task -> web health -> worker, with rollback to an immutable prior image. The eventual course-host redirect is a separate small production root/module with path-map artifact, logs/alarms, rollback origin, and a development rehearsal hostname.
 
 ## Delivery order and gates
 
 1. Approve defaults, capture immutable URL/content/course/data inventories, and classify all management actions.
-2. Establish the `uv` Django foundation, adopted course baseline, Studio/API shells, permissions/audit, web/worker image, and sandbox Terraform deployment.
+2. Establish the `uv` Django foundation, adopted course baseline, Studio/API shells, permissions/audit, web/worker image, and development Terraform deployment.
 3. Build manifest tooling and migrate main-site GitHub content with atomic sync and exact compatibility.
 4. Add docs, FAQ, and Podwiki adapters and search-contract parity.
 5. Execute Course/Cohort expand-and-contract, compatibility routing, learner flows, and complete Studio/API management parity using existing tests as the baseline.
@@ -165,6 +165,6 @@ The project is not ready for production merely because pages render. Completion 
 - [OPEN] Confirm production sender/reply-to identity and long-term SES versus Datamailer role.
 - [OPEN] Approve privacy contact, minors policy, educational-record retention, anonymization/deletion, and provisional SLO/RPO/RTO values.
 - [OPEN] Confirm the timezone for legacy naive timestamps.
-- [OPEN] Accept the recommended sandbox network/cost shape and the PostgreSQL Podwiki search replacement subject to parity.
+- [OPEN] Accept the recommended development network/cost shape and the PostgreSQL Podwiki search replacement subject to parity.
 
 Implementation may begin with the reversible foundation and inventories while these are open. Production data import, external email, indexable traffic, and the course-host redirect may not.

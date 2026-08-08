@@ -19,6 +19,11 @@ from deploy.contracts import (
     ReleaseRecord,
     ServiceSnapshot,
 )
+from deploy.legacy_development_compatibility import (
+    ECR_REPOSITORY_NAME,
+    ECR_REPOSITORY_URI,
+    RESOURCE_ENVIRONMENT_TAG,
+)
 from deploy.smoke import run_http_smoke, verify_health
 from deploy.task_definitions import (
     TaskDefinitionConfig,
@@ -62,7 +67,9 @@ class AwsReleaseConfig:
         if any(type(value) is not int or value < 1 for value in integer_timeouts.values()):
             raise ReleaseContractError("timeouts must be positive integers")
         if self.timeout_seconds > MAX_STAGE_TIMEOUT_SECONDS:
-            raise ReleaseContractError("sandbox stage timeout exceeds the recovery-safe maximum")
+            raise ReleaseContractError(
+                "development stage timeout exceeds the recovery-safe maximum"
+            )
         if self.worker_stabilization_timeout_seconds > MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS:
             raise ReleaseContractError(
                 "worker stabilization timeout exceeds the recovery-safe maximum"
@@ -161,7 +168,7 @@ class AwsReleaseGateway:
         expected_tags = {
             "ReleaseManager": "DataTalksClub/website",
             "Project": "website",
-            "Environment": "sandbox",
+            "Environment": RESOURCE_ENVIRONMENT_TAG,
         }
         for workload, reference in references.items():
             cluster_arn_parts = self.config.cluster_arn.split(":")
@@ -229,28 +236,28 @@ class AwsReleaseGateway:
         source_sha: str,
         image_digest: str,
     ) -> None:
-        expected_repository = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
-        if repository_uri != expected_repository:
-            raise ReleaseContractError("active image repository is not the exact sandbox ECR")
-        repository_name = "website-sandbox"
+        if repository_uri != ECR_REPOSITORY_URI:
+            raise ReleaseContractError(
+                "active image repository is outside the development boundary"
+            )
         tagged = self.ecr.describe_images(
-            repositoryName=repository_name,
+            repositoryName=ECR_REPOSITORY_NAME,
             imageIds=[{"imageTag": source_sha}],
         )
         tagged_details = tagged.get("imageDetails", [])
         if len(tagged_details) != 1 or tagged_details[0].get("imageDigest") != image_digest:
             raise ReleaseContractError(
-                "active source SHA tag does not resolve to the exact sandbox image digest"
+                "active source SHA tag does not resolve to the exact development image digest"
             )
         described = self.ecr.describe_images(
-            repositoryName=repository_name,
+            repositoryName=ECR_REPOSITORY_NAME,
             imageIds=[{"imageDigest": image_digest}],
         )
         details = described.get("imageDetails", [])
         if len(details) != 1 or details[0].get("imageDigest") != image_digest:
-            raise ReleaseContractError("active image digest is missing from exact sandbox ECR")
+            raise ReleaseContractError("active image digest is missing from development ECR")
         manifest = self.ecr.batch_get_image(
-            repositoryName=repository_name,
+            repositoryName=ECR_REPOSITORY_NAME,
             imageIds=[{"imageDigest": image_digest}],
         )
         images = manifest.get("images", [])
@@ -260,7 +267,7 @@ class AwsReleaseGateway:
             or images[0].get("imageId", {}).get("imageDigest") != image_digest
             or not images[0].get("imageManifest")
         ):
-            raise ReleaseContractError("active image manifest is missing from exact sandbox ECR")
+            raise ReleaseContractError("active image manifest is missing from development ECR")
 
     def _stop_migration_and_prove_terminal(self, task_arn: str, reason: str) -> None:
         stop_error: Exception | None = None

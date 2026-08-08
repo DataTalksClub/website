@@ -14,8 +14,8 @@ from typing import Any
 
 from core.source_policy import analytics_runtime_violations
 from deploy.contracts import ReleaseContractError, validate_source_sha
+from deploy.legacy_development_compatibility import ORIGIN as DEVELOPMENT_ORIGIN
 
-SANDBOX_ORIGIN = "https://web.dtcdev.click"
 ROBOTS_VALUE = "noindex, nofollow"
 ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
 SITEMAP_BODY = (
@@ -87,8 +87,8 @@ def _assert_status(response: Response, expected: int, path: str) -> None:
 
 def validate_origin(origin: str) -> str:
     normalized = origin.rstrip("/")
-    if normalized != SANDBOX_ORIGIN:
-        raise ReleaseContractError(f"deployed smoke is restricted to {SANDBOX_ORIGIN}")
+    if normalized != DEVELOPMENT_ORIGIN:
+        raise ReleaseContractError(f"deployed smoke is restricted to {DEVELOPMENT_ORIGIN}")
     return normalized
 
 
@@ -176,7 +176,7 @@ def run_http_smoke(
     location = studio.headers.get("location", "")
     parsed = urllib.parse.urlparse(location)
     if parsed.netloc and f"{parsed.scheme}://{parsed.netloc}" != origin:
-        raise ReleaseContractError("/studio/ redirected away from the sandbox origin")
+        raise ReleaseContractError("/studio/ redirected away from the development origin")
     if parsed.path != "/accounts/login/" or parsed.query != "next=%2Fstudio%2F":
         raise ReleaseContractError("/studio/ redirect target is not the exact sign-in route")
 
@@ -309,8 +309,8 @@ def run_http_smoke(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Run the read-only sandbox HTTP smoke")
-    parser.add_argument("--base-url", default=SANDBOX_ORIGIN)
+    parser = argparse.ArgumentParser(description="Run the read-only development HTTP smoke")
+    parser.add_argument("--base-url", default=DEVELOPMENT_ORIGIN)
     parser.add_argument("--source-sha", required=True)
     arguments = parser.parse_args()
     run_http_smoke(arguments.base_url, arguments.source_sha)

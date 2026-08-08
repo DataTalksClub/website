@@ -10,7 +10,7 @@
 - [HUMAN] Use `uv` for Python dependency management and command execution.
 - [HUMAN] Preserve links so the migration does not harm SEO.
 - [HUMAN] A person profile is the canonical entity reused for guests, speakers, hosts, authors, and other public roles.
-- [HUMAN] Deploy the development environment to `web.dtcdev.click` in AWS account `817685572750` and manage it with Terraform in the sandbox infrastructure tree.
+- [HUMAN] Deploy the development environment to `web.dtcdev.click` in AWS account `817685572750` and manage it with Terraform in the existing infrastructure tree.
 - [HUMAN] Design Terraform so the workload can later be instantiated in the production AWS account.
 - [HUMAN] Integrate the existing DataTalksClub course-management platform into this application so courses and the public website are one website.
 - [HUMAN] Replace the existing course-edition model with an explicit `Course -> Cohort` structure.

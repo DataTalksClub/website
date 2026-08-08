@@ -47,7 +47,7 @@ The plan has not been approved by the owner. The draft asks the owner to accept 
 4. Which production sender/reply-to identities and delivery provider should be used after the Datamailer transition?
 5. What privacy contact, minors policy, educational-record retention, deletion/anonymization, SLO, RPO, and RTO apply?
 6. Is `Europe/Berlin` correct for legacy naive timestamps?
-7. Are the recommended no-NAT sandbox network and PostgreSQL Podwiki search acceptable subject to parity tests?
+7. Are the recommended no-NAT development network and PostgreSQL Podwiki search acceptable subject to parity tests?
 
 Recommended defaults are written into the specifications so implementation can proceed predictably after approval, but they are not recorded as human decisions yet.
 

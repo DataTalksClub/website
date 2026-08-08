@@ -8,7 +8,7 @@ import pytest
 from playwright.sync_api import Page, expect
 
 from deploy.contracts import validate_source_sha
-from deploy.smoke import ROBOTS_VALUE, SANDBOX_ORIGIN
+from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
 
 pytestmark = pytest.mark.core
 
@@ -20,7 +20,7 @@ def deployed_config() -> tuple[str, str, Path]:
     screenshot_directory = os.getenv("DTC_SCREENSHOT_DIR")
     if not origin and not source_sha and not screenshot_directory:
         pytest.skip("deployed read-only smoke is enabled only by explicit safe configuration")
-    assert origin == SANDBOX_ORIGIN
+    assert origin == DEVELOPMENT_ORIGIN
     assert source_sha is not None
     validate_source_sha(source_sha)
     assert screenshot_directory is not None

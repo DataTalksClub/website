@@ -71,7 +71,7 @@ def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
     ):
         raise ReleaseContractError("timeouts must be positive integers")
     if arguments.timeout_seconds > MAX_STAGE_TIMEOUT_SECONDS:
-        raise ReleaseContractError("sandbox stage timeout exceeds the recovery-safe maximum")
+        raise ReleaseContractError("development stage timeout exceeds the recovery-safe maximum")
     if arguments.worker_stabilization_timeout_seconds > MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS:
         raise ReleaseContractError("worker stabilization timeout exceeds the recovery-safe maximum")
     if arguments.poll_seconds > arguments.timeout_seconds:

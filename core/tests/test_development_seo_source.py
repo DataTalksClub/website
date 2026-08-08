@@ -23,6 +23,7 @@ from core.source_policy import (
 from course_management.observability.events import event_properties
 from deploy.contracts import ReleaseContractError
 from deploy.development_seo_policy import (
+    DEVELOPMENT_TERRAFORM_VARS_PATH,
     REQUIRED_TERRAFORM_PATHS,
     validate_terraform_seo_source,
     validate_trusted_repository_identity,
@@ -92,7 +93,7 @@ resource "aws_cloudfront_distribution" "this" {
 """
     return {
         "modules/django-website/edge.tf": edge,
-        "sandbox/website/terraform.tfvars.example": (
+        DEVELOPMENT_TERRAFORM_VARS_PATH: (
             'hostname = "web.dtcdev.click"\nrobots_header_value = "noindex, nofollow"\n'
         ),
         "tests/fixtures/website-production/main.tf": "robots_header_value = null\n",
@@ -229,8 +230,8 @@ class TerraformSourcePolicyTests(SimpleTestCase):
 
     def test_each_terraform_source_regression_fails_closed(self) -> None:
         cases = (
-            ("sandbox/website/terraform.tfvars.example", "web.dtcdev.click", "other.invalid"),
-            ("sandbox/website/terraform.tfvars.example", "noindex, nofollow", "index, follow"),
+            (DEVELOPMENT_TERRAFORM_VARS_PATH, "web.dtcdev.click", "other.invalid"),
+            (DEVELOPMENT_TERRAFORM_VARS_PATH, "noindex, nofollow", "index, follow"),
             ("modules/django-website/edge.tf", "override = true", "override = false"),
             (
                 "modules/django-website/edge.tf",
@@ -265,7 +266,7 @@ class TerraformSourcePolicyTests(SimpleTestCase):
         mutations = []
 
         duplicate = terraform_fixture()
-        duplicate["sandbox/website/terraform.tfvars.example"] += 'hostname = "evil.invalid"\n'
+        duplicate[DEVELOPMENT_TERRAFORM_VARS_PATH] += 'hostname = "evil.invalid"\n'
         mutations.append(duplicate)
 
         commented = terraform_fixture()

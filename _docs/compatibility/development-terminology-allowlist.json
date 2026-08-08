@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "self_reason": "This inventory necessarily spells the former name in regexes; the checker parses but does not scan this policy file.",
+  "legacy_paths": [
+    {
+      "path": "_docs/runbooks/sandbox-release.md",
+      "class": "legacy_path",
+      "reason": "Small compatibility notice preserves inbound links to the former runbook path.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/specs/08-aws-sandbox-terraform.md",
+      "class": "legacy_path",
+      "reason": "Small compatibility notice preserves inbound links to the former specification path.",
+      "follow_up": "#94",
+      "expected_count": 1
+    }
+  ],
+  "whole_files": [
+    {
+      "path": "_docs/audits/2026-08-07-oidc-denial-sentinels.md",
+      "sha256": "8c4e9b6701d670bac87853254d66b2399e379e79b072409690c68acb3a3e9696",
+      "class": "frozen_historical",
+      "reason": "Timestamped OIDC denial audit retains its exact historical wording.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 8
+    },
+    {
+      "path": "_docs/audits/2026-08-08-gate-b-operator-execution.md",
+      "sha256": "1c2c231e401e630a2907fd8bbc75d06c25ec7e1059646a95bd584810244afe6f",
+      "class": "frozen_historical",
+      "reason": "Timestamped Gate-B execution audit retains its exact historical wording.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 4
+    },
+    {
+      "path": "_docs/compatibility/faq-fragment-contracts.jsonl",
+      "sha256": "489ca0db5fd87406d27841748a0dfb8d9ec43bfb2a029ee054335871f625e37c",
+      "class": "captured_compatibility",
+      "reason": "Captured FAQ compatibility data retains source bytes.",
+      "follow_up": "none; immutable capture",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/compatibility/legacy-manifest.jsonl",
+      "sha256": "94a6469530a290147e94f825eb981836e1358b9d0a72c7f50f0eda6d638e1d7f",
+      "class": "captured_compatibility",
+      "reason": "Captured public-route inventory retains source bytes.",
+      "follow_up": "none; immutable capture",
+      "expected_count": 8
+    },
+    {
+      "path": "_docs/compatibility/public-contracts.jsonl",
+      "sha256": "50f875806217865ef35b74f58ed885c4b5c832284391dbea7f84344d3416f66d",
+      "class": "captured_compatibility",
+      "reason": "Captured public-contract inventory retains source bytes.",
+      "follow_up": "none; immutable capture",
+      "expected_count": 2
+    },
+    {
+      "path": "deploy/gate_b_binding_seed.json",
+      "sha256": "6a32cfabcad8c3cf18d5de8d46b30d970f8e85dd0a65a0cac700762eb4b6f52b",
+      "class": "frozen_historical",
+      "reason": "Pinned Gate-B binding seed is hash-bound immutable evidence.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 61
+    },
+    {
+      "path": "deploy/gate_b_execution_contract.json",
+      "sha256": "8cf5b62e78ee617d46c1338452caf493cd60e1ffa93169c2a026feab6d300342",
+      "class": "frozen_historical",
+      "reason": "Pinned Gate-B execution contract is hash-bound immutable evidence.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 195
+    },
+    {
+      "path": "deploy/gate_b_manifest.json",
+      "sha256": "c96f710091adfc0e9c85ed02329238f374118766f46f630ea956794015987985",
+      "class": "frozen_historical",
+      "reason": "Pinned Gate-B manifest is hash-bound immutable evidence.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 168
+    },
+    {
+      "path": "deploy/gate_b_evidence.py",
+      "sha256": "52d93e9b2757c75c4ec633ac2d903fdce658b107481382025c22bf0f9d276b68",
+      "class": "frozen_historical",
+      "reason": "Gate-B evidence reader source is hash-bound by the frozen contract.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 45
+    },
+    {
+      "path": "core/tests/test_gate_b_evidence.py",
+      "sha256": "4dd65a576f3bd3d3bd2dff41170ee161f45ffe5362a4e4e1f8af0feabc081027",
+      "class": "frozen_historical",
+      "reason": "Gate-B evidence tests are hash-bound by the frozen contract.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 71
+    },
+    {
+      "path": "deploy/oidc_probe.py",
+      "sha256": "10f38b3c3df04c763f0e09ffe6128fc9d9fe174c4f3f7f161600992fcd84e2ff",
+      "class": "legacy_schema_reader",
+      "reason": "Hash-bound OIDC probe remains the exact legacy-identifier adapter behind a development entry point.",
+      "follow_up": "#94",
+      "expected_count": 21
+    },
+    {
+      "path": "deploy/oidc_claim_probe.py",
+      "sha256": "693b1844e5e1c40709ce368ecb6bef22814a5912ceaa635288f0d0204a75ba28",
+      "class": "legacy_schema_reader",
+      "reason": "Hash-bound wrong-claim probe retains exact physical role patterns.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "core/tests/test_deployment_oidc_probe.py",
+      "sha256": "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92",
+      "class": "legacy_contract_test",
+      "reason": "Hash-bound probe tests prove exact legacy evidence and physical values remain readable.",
+      "follow_up": "#94",
+      "expected_count": 30
+    },
+    {
+      "path": "deploy/gate_b_assembler.py",
+      "sha256": "f3d7a431b1cba8e9eb12e1a511f60beb5b70d0d14560d3df4f5428e42f3ad7f7",
+      "class": "legacy_schema_reader",
+      "reason": "Gate-B assembler reads the pinned legacy schema without rewriting it.",
+      "follow_up": "#94",
+      "expected_count": 18
+    },
+    {
+      "path": "deploy/gate_b_operator.py",
+      "sha256": "487d7266022d4c36b48d0891e8821b0c55d0b0c81062c14c54d69085eba01a33",
+      "class": "legacy_schema_reader",
+      "reason": "Gate-B operator reads exact historical bindings and physical identifiers.",
+      "follow_up": "#94",
+      "expected_count": 3
+    },
+    {
+      "path": "core/tests/test_gate_b_operator.py",
+      "sha256": "f4de8251fe38e0595e246fa5db6ba63914bb5a7f788c6ba0fd171587edb624a2",
+      "class": "legacy_contract_test",
+      "reason": "Gate-B operator tests prove exact historical bindings remain readable.",
+      "follow_up": "#94",
+      "expected_count": 35
+    },
+    {
+      "path": "_docs/compatibility/development-legacy-identifiers.md",
+      "sha256": "7b6e30853e867c925069a393cb16720c047462684422825cc039cf6a5e37c142",
+      "class": "compatibility_note",
+      "reason": "Evergreen note explicitly documents former terminology and every retained identifier class.",
+      "follow_up": "#94",
+      "expected_count": 9
+    },
+    {
+      "path": "deploy/legacy_development_compatibility.py",
+      "sha256": "097ebbccb9e44909cfbda6de61176b0a9f19f6df50cf8cbf5aa808895e23bd31",
+      "class": "legacy_physical_boundary",
+      "reason": "Single executable boundary owns exact live physical identifiers for development.",
+      "follow_up": "#94",
+      "expected_count": 5
+    },
+    {
+      "path": "_docs/runbooks/sandbox-release.md",
+      "sha256": "163beb97eb7b508ecaa456d023b1a5620c54db8504557d4d6fa473294d9d61cb",
+      "class": "legacy_link_notice",
+      "reason": "Small command-free notice preserves the former runbook link.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/specs/08-aws-sandbox-terraform.md",
+      "sha256": "c0ae69b792e73d0a7d4f14222b25bc529b1c994ddcfa7e4d60951a5fff44e38d",
+      "class": "legacy_link_notice",
+      "reason": "Small non-normative notice preserves the former specification link.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "core/tests/test_deployment_release.py",
+      "sha256": "bf7b7650e4396c821fab95753b34baff1cf81ee819a2001fa7bb5cacf45fceb4",
+      "class": "legacy_contract_test",
+      "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
+      "follow_up": "#94",
+      "expected_count": 5
+    },
+    {
+      "path": "core/tests/test_deployment_workflow.py",
+      "sha256": "1cbc06f7733b1b0c252b0d4e3c8289669c15616c4b2007d5a325e5e6fc17618a",
+      "class": "legacy_contract_test",
+      "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, and exact physical values.",
+      "follow_up": "#94",
+      "expected_count": 27
+    }
+  ],
+  "rules": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "pattern": "name:\\s+sandbox",
+      "class": "legacy_physical_identifier",
+      "reason": "Four jobs must retain the exact GitHub environment name and OIDC subject until trust migration.",
+      "follow_up": "#94",
+      "expected_count": 4
+    },
+    {
+      "path": "_docs/runbooks/development-release.md",
+      "pattern": "(?:sandbox/website|website-sandbox|datamailer-sandbox|phone-aws-sandbox|phone-sandbox|github-sandbox|environments/sandbox|--env sandbox|environment: sandbox|Environment=sandbox|`sandbox`)",
+      "class": "legacy_physical_identifier",
+      "reason": "Canonical runbook documents exact live physical identifiers and the legacy GitHub environment.",
+      "follow_up": "#94",
+      "expected_count": 88
+    },
+    {
+      "path": "_docs/specs/08-aws-development-terraform.md",
+      "pattern": "(?:sandbox/|website-sandbox)",
+      "class": "legacy_physical_identifier",
+      "reason": "Canonical specification names the unchanged Terraform root and AWS namespace.",
+      "follow_up": "#94",
+      "expected_count": 4
+    },
+    {
+      "path": "_docs/specs/09-migration-rollout-roadmap.md",
+      "pattern": "sandbox/website",
+      "class": "legacy_physical_identifier",
+      "reason": "Roadmap references the existing Terraform root without renaming state.",
+      "follow_up": "#94",
+      "expected_count": 1
+    }
+  ]
+}

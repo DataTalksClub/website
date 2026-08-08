@@ -1041,7 +1041,7 @@ class PromotionTests(SimpleTestCase):
 
 
 class RemoteSmokeSafetyTests(SimpleTestCase):
-    def test_remote_smoke_is_restricted_to_the_exact_sandbox_origin(self) -> None:
+    def test_remote_smoke_is_restricted_to_the_exact_development_origin(self) -> None:
         self.assertEqual(validate_origin("https://web.dtcdev.click/"), "https://web.dtcdev.click")
         for origin in ("http://web.dtcdev.click", "https://example.com"):
             with self.subTest(origin=origin), self.assertRaises(ReleaseContractError):

@@ -19,7 +19,7 @@ Deliverables:
 
 Exit gate: no public route, source content kind, current course workflow, or management action is unclassified.
 
-## Milestone 1 - Foundation and sandbox
+## Milestone 1 - Foundation and development
 
 Deliverables:
 
@@ -96,7 +96,7 @@ Deliverables:
 - versioned Studio/API email templates and preview/test/publish/rollback;
 - durable email delivery/attempt/event/suppression model and SES adapter;
 - event and course message purposes, bulk operation resources, delivery diagnostics, and alerts;
-- SES sandbox safeguards and one controlled real delivery smoke test.
+- SES development safeguards and one controlled real delivery smoke test.
 
 Exit gate: registration, course communication, event changes, retries, provider events, ambiguity, suppression, and role/PII controls pass fault-injection and browser tests.
 

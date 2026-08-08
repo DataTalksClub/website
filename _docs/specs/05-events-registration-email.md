@@ -128,7 +128,7 @@ States: `pending`, `leased`, `provider_accepted`, `delivered`, `retryable`, `amb
 
 ## Amazon SES
 
-- Development sends from a verified `dtcdev.click` identity in `us-east-1`, where the sandbox account already has SES production access.
+- Development sends from a verified `dtcdev.click` identity in `us-east-1`, where AWS account `817685572750` already has SES production access.
 - Application runtime can remain in `eu-west-1`; the SES adapter uses its configured provider region explicitly.
 - SPF, DKIM, DMARC, configuration sets, event destinations, quotas, and suppression behavior are Terraform-managed or referenced without taking ownership of unrelated shared identities.
 - Development defaults to an allowlist/test recipients for rehearsals. Automated tests use console/in-memory delivery or SES simulator addresses.

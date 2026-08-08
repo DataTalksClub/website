@@ -22,7 +22,7 @@
 - [FACT dtc-course-platform] About 760 Django tests and 48 end-to-end tests provide a characterization baseline for the course adoption, including corner cases that a clean-room rewrite could miss.
 - [FACT dtc-course-platform] Some important uniqueness rules currently live in view logic, so data preflight and expand-and-contract migrations must precede new database constraints.
 - [FACT aisl-reference] The reference implementation demonstrates commit-aware content sync, separate Studio behavior, hashed operator tokens, OpenAPI coverage, jobs, email/event patterns, and AWS deployment separation.
-- [FACT dtc-aws-infra] The sandbox account is `817685572750`, the default application region is `eu-west-1`, and the delegated `dtcdev.click` zone has the explicit ID `Z05963572WVWFHDQZH5NE`; another same-name zone makes name-only lookup unsafe.
+- [FACT dtc-aws-infra] The development deployment uses AWS account `817685572750`, the default application region is `eu-west-1`, and the delegated `dtcdev.click` zone has the explicit ID `Z05963572WVWFHDQZH5NE`; another same-name zone makes name-only lookup unsafe.
 
 ## Resulting boundaries
 
