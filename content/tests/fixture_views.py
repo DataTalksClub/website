@@ -15,7 +15,11 @@ from core.services import ServiceContext
 
 _CONTEXT = ServiceContext(correlation_id="content-browser-fixture")
 _TEMPLATE_DIRECTORY = Path(__file__).parent / "templates"
-_ENGINE = Engine(dirs=[str(_TEMPLATE_DIRECTORY)], debug=False)
+_ENGINE = Engine(
+    dirs=[str(_TEMPLATE_DIRECTORY)],
+    debug=False,
+    libraries={"seo": "core.templatetags.seo"},
+)
 
 
 def fixture_document(_request: HttpRequest) -> HttpResponse:

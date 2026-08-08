@@ -17,8 +17,8 @@ class HealthTests(TestCase):
         NOINDEX=True,
         CANONICAL_ORIGIN="https://datatalks.club",
     )
-    def test_development_hostname_is_allowed_noindex_and_uses_production_canonical(self) -> None:
-        response = self.client.get("/", headers={"host": "web.dtcdev.click"})
+    def test_development_hostname_is_allowed_noindex_and_uses_explicit_canonical(self) -> None:
+        response = self.client.get("/unified/", headers={"host": "web.dtcdev.click"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
         self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
@@ -74,11 +74,19 @@ class HealthTests(TestCase):
                 self.assertEqual(response.headers["Location"], f"https://web.dtcdev.click{path}")
 
     @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
-    def test_private_target_host_is_not_allowed_outside_exact_readiness_path(self) -> None:
-        for path in ("/", reverse("health-live"), f"{reverse('health-ready')}/"):
-            with self.subTest(path=path):
-                response = self.client.get(path, headers={"host": "10.0.0.10:8000"})
-                self.assertEqual(response.status_code, 400)
+    def test_unrelated_hosts_are_not_allowed_outside_exact_readiness_path(self) -> None:
+        for host in ("10.0.0.10:8000", "unrelated.invalid"):
+            for path in (
+                "/",
+                "/ping",
+                "/ping-extra",
+                reverse("health-live"),
+                f"{reverse('health-ready')}/",
+            ):
+                with self.subTest(host=host, path=path):
+                    response = self.client.get(path, headers={"host": host})
+                    self.assertEqual(response.status_code, 400)
+                    self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
 
     @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
     def test_public_https_health_and_page_requests_do_not_redirect(self) -> None:

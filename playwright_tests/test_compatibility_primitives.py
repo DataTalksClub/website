@@ -112,16 +112,14 @@ def test_fixture_exercises_exact_case_unicode_query_and_slash_contracts(
     assert response.status == status
 
 
-def test_diagnostic_pages_expose_staging_canonical_and_js_only_shell(
+def test_diagnostic_pages_omit_staging_canonical_and_expose_js_only_shell(
     browser: Browser,
     page: Page,
     live_server,
 ) -> None:
     staging = page.goto(f"{live_server.url}/staging/")
     assert staging is not None
-    expect(page.locator('link[rel="canonical"]')).to_have_attribute(
-        "href", "https://web.dtcdev.click/staging/"
-    )
+    expect(page.locator('link[rel="canonical"]')).to_have_count(0)
 
     context = browser.new_context(java_script_enabled=False)
     try:

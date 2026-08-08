@@ -33,6 +33,26 @@ def deployed_config() -> tuple[str, str, Path]:
 def assert_private_no_store(headers: dict[str, str]) -> None:
     directives = {item.strip().lower() for item in headers.get("cache-control", "").split(",")}
     assert {"private", "no-store"}.issubset(directives)
+    assert "public" not in directives
+    assert not any(item.startswith("s-maxage=") and item != "s-maxage=0" for item in directives)
+
+
+def assert_no_analytics(page: Page, request_urls: list[str]) -> None:
+    analytics_hosts = ("googletagmanager.com", "google-analytics.com")
+    assert not any(
+        any(
+            host == urlparse(url).hostname or (urlparse(url).hostname or "").endswith(f".{host}")
+            for host in analytics_hosts
+        )
+        for url in request_urls
+    )
+    cookie_names = {cookie["name"] for cookie in page.context.cookies()}
+    assert not any(
+        name in {"_ga", "_gid", "_gat"} or name.startswith("_gcl_") for name in cookie_names
+    )
+    storage = page.evaluate("[...Object.keys(localStorage), ...Object.keys(sessionStorage)]")
+    assert not any(key in {"_ga", "_gid", "_gat"} or key.startswith("_gcl_") for key in storage)
+    assert not page.context.service_workers
 
 
 @pytest.mark.parametrize(
@@ -45,6 +65,8 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
 ) -> None:
     origin, _source_sha, screenshot_directory = deployed_config
     page.set_viewport_size(viewport)
+    request_urls: list[str] = []
+    page.on("request", lambda request: request_urls.append(request.url))
 
     home = page.goto(origin, wait_until="networkidle")
     assert home is not None
@@ -54,14 +76,21 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(
         page.get_by_role("heading", name="Learn data skills. For free. Together.")
     ).to_be_visible()
-    expect(page.locator('link[rel="canonical"]')).to_have_attribute(
-        "href", "https://datatalks.club/"
-    )
+    expect(page.locator('link[rel="canonical"]')).to_have_count(0)
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Page not found")
     assert page.locator('link[rel="stylesheet"]').count() > 0
     dimensions = f"{viewport['width']}x{viewport['height']}"
     page.screenshot(path=screenshot_directory / f"home-{dimensions}.png", full_page=True)
+
+    mapped = page.goto(f"{origin}/unified/", wait_until="networkidle")
+    assert mapped is not None
+    assert mapped.status == 200
+    assert mapped.headers["x-robots-tag"] == ROBOTS_VALUE
+    expect(page.locator('link[rel="canonical"]')).to_have_count(1)
+    expect(page.locator('link[rel="canonical"]')).to_have_attribute(
+        "href", "https://datatalks.club/"
+    )
 
     initial = page.request.get(f"{origin}/studio/", max_redirects=0)
     assert initial.status in {301, 302, 303, 307, 308}
@@ -78,6 +107,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     assert login.headers["x-robots-tag"] == ROBOTS_VALUE
     assert_private_no_store(login.headers)
     expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
+    expect(page.locator('link[rel="canonical"]')).to_have_count(0)
     page.screenshot(path=screenshot_directory / f"studio-sign-in-{dimensions}.png", full_page=True)
 
     missing = page.goto(
@@ -90,7 +120,9 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Technical 404")
     expect(page.locator("body")).not_to_contain_text("DEBUG=True")
+    expect(page.locator('link[rel="canonical"]')).to_have_count(0)
     page.screenshot(path=screenshot_directory / f"not-found-{dimensions}.png", full_page=True)
+    assert_no_analytics(page, request_urls)
 
 
 def test_deployed_health_and_anonymous_admin_api_contracts(
@@ -125,3 +157,28 @@ def test_deployed_health_and_anonymous_admin_api_contracts(
             "message": "Authentication required",
         }
     }
+
+    robots = page.request.get(f"{origin}/robots.txt", max_redirects=0)
+    assert robots.status == 200
+    assert robots.headers["x-robots-tag"] == ROBOTS_VALUE
+    assert robots.headers["content-type"] == "text/plain; charset=utf-8"
+    assert robots.body() == b"User-agent: *\nDisallow: /\n"
+
+    sitemap = page.request.get(f"{origin}/sitemap.xml", max_redirects=0)
+    assert sitemap.status == 200
+    assert sitemap.headers["x-robots-tag"] == ROBOTS_VALUE
+    assert sitemap.headers["content-type"] == "application/xml; charset=utf-8"
+    assert sitemap.body() == (
+        b'<?xml version="1.0" encoding="UTF-8"?>\n'
+        b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
+    )
+
+    home = page.goto(origin)
+    assert home is not None
+    static_href = page.locator('link[rel="stylesheet"][href^="/static/"]').first.get_attribute(
+        "href"
+    )
+    assert static_href is not None
+    static_response = page.request.get(f"{origin}{static_href}", max_redirects=0)
+    assert static_response.status == 200
+    assert static_response.headers["x-robots-tag"] == ROBOTS_VALUE

@@ -3,13 +3,49 @@ from typing import Any
 from django.conf import settings
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.http import HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_safe
+
+DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
+DEVELOPMENT_SITEMAP_BODY = (
+    '<?xml version="1.0" encoding="UTF-8"?>\n'
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
+)
 
 
 def home(request: HttpRequest):
-    return render(request, "core/home.html")
+    # This foundation page is the established production-home equivalent.
+    # Adopted course routes remain intentionally unmapped until issue #53.
+    return render(
+        request,
+        "core/home.html",
+        {"canonical_url": "https://datatalks.club/"},
+    )
+
+
+def _development_seo_response(body: str, content_type: str) -> HttpResponse:
+    if not settings.NOINDEX:
+        raise Http404
+    return HttpResponse(body, content_type=content_type)
+
+
+@require_safe
+def robots(request: HttpRequest) -> HttpResponse:
+    del request
+    return _development_seo_response(
+        DEVELOPMENT_ROBOTS_BODY,
+        "text/plain; charset=utf-8",
+    )
+
+
+@require_safe
+def sitemap(request: HttpRequest) -> HttpResponse:
+    del request
+    return _development_seo_response(
+        DEVELOPMENT_SITEMAP_BODY,
+        "application/xml; charset=utf-8",
+    )
 
 
 @require_GET

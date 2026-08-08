@@ -1,3 +1,5 @@
+from django.core.exceptions import ImproperlyConfigured
+
 from core.bootstrap import require_environment
 
 from .base import *  # noqa: F403
@@ -6,10 +8,16 @@ require_environment(RUNTIME_ENVIRONMENT, RuntimeEnvironment.DEVELOPMENT)  # noqa
 DEBUG = False
 ENVIRONMENT = "development"
 SECRET_KEY = secure_secret_from_environment()  # noqa: F405
-ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "web.dtcdev.click")  # noqa: F405
+DEVELOPMENT_HOSTNAME = "web.dtcdev.click"
+DEVELOPMENT_ORIGIN = f"https://{DEVELOPMENT_HOSTNAME}"
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", DEVELOPMENT_HOSTNAME)  # noqa: F405
+if ALLOWED_HOSTS != [DEVELOPMENT_HOSTNAME]:
+    raise ImproperlyConfigured("Development requires the exact DJANGO_ALLOWED_HOSTS value")
 CSRF_TRUSTED_ORIGINS = env_list(  # noqa: F405
-    "DJANGO_CSRF_TRUSTED_ORIGINS", "https://web.dtcdev.click"
+    "DJANGO_CSRF_TRUSTED_ORIGINS", DEVELOPMENT_ORIGIN
 )
+if CSRF_TRUSTED_ORIGINS != [DEVELOPMENT_ORIGIN]:
+    raise ImproperlyConfigured("Development requires the exact DJANGO_CSRF_TRUSTED_ORIGINS value")
 DATABASES = {
     "default": database_from_environment(  # noqa: F405
         environment=RuntimeEnvironment.DEVELOPMENT,  # noqa: F405
