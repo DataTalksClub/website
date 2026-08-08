@@ -392,24 +392,54 @@ class ContentLifecycleTests(TestCase):
         source.refresh_from_db()
         self.assertEqual(source.active_release_id, v2.id)
 
-        # SQLite mirrors the service guard even though only PostgreSQL blocks this direct bypass.
-        ContentRelease.objects.filter(pk=v2.id).update(sequence=100)
-        ContentRelease.objects.filter(pk=stale.id).update(
-            sequence=99,
-            based_on_release_id=v2.id,
-        )
-        source.refresh_from_db()
-        stale.refresh_from_db()
-        with self.assertRaises(ContentLifecycleError):
-            activate_content_release(
-                ActivateContentRelease(
-                    source.id,
-                    stale.id,
-                    source.revision,
-                    stale.revision,
+        current = ContentRelease.objects.get(pk=v2.id)
+        candidate = ContentRelease.objects.get(pk=stale.id)
+        stored_sequences = (current.sequence, candidate.sequence)
+        stored_candidate_base_id = candidate.based_on_release_id
+        stored_statuses = (current.status, candidate.status)
+        stored_revisions = (current.revision, candidate.revision)
+        stored_audit_count = AuditEvent.objects.count()
+        candidate.based_on_release_id = current.id
+        for candidate_sequence in (current.sequence - 1, current.sequence):
+            candidate.sequence = candidate_sequence
+            with (
+                self.subTest(candidate_sequence=candidate_sequence),
+                patch(
+                    "content.services._lock_swap_releases",
+                    return_value=(current, candidate),
                 ),
-                context=CONTEXT,
+                self.assertRaisesRegex(
+                    ContentLifecycleError,
+                    "normal activation sequence must increase",
+                ),
+            ):
+                activate_content_release(
+                    ActivateContentRelease(
+                        source.id,
+                        candidate.id,
+                        source.revision,
+                        candidate.revision,
+                    ),
+                    context=CONTEXT,
+                )
+            persisted_current = ContentRelease.objects.get(pk=current.id)
+            persisted_candidate = ContentRelease.objects.get(pk=candidate.id)
+            self.assertEqual(
+                (persisted_current.status, persisted_candidate.status),
+                stored_statuses,
             )
+            self.assertEqual(
+                (persisted_current.revision, persisted_candidate.revision),
+                stored_revisions,
+            )
+            self.assertEqual(AuditEvent.objects.count(), stored_audit_count)
+
+        source.refresh_from_db()
+        v2.refresh_from_db()
+        stale.refresh_from_db()
+        self.assertEqual(source.active_release_id, v2.id)
+        self.assertEqual((v2.sequence, stale.sequence), stored_sequences)
+        self.assertEqual(stale.based_on_release_id, stored_candidate_base_id)
 
     def test_invalid_and_failed_releases_never_activate_or_roll_back(self) -> None:
         source = make_source()
