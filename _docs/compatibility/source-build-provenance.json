@@ -1,0 +1,89 @@
+{
+  "baseline_date": "2026-08-08",
+  "classification_default": "preserve",
+  "records": [
+    {
+      "build_tool": "copied-django-urlconf",
+      "build_tool_sha256": null,
+      "build_tool_version": "issue-30-adoption",
+      "deterministic_overrides": [
+        "authenticated-production-probes-not-performed"
+      ],
+      "output_directory": null,
+      "output_file_count": 0,
+      "output_tree_sha256": null,
+      "path_prefix": "/",
+      "public_base_url": "https://courses.datatalks.club/",
+      "repository": "https://github.com/DataTalksClub/course-management-platform.git",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_id": "dtc-course-platform",
+      "source_kind": "django_route_contracts"
+    },
+    {
+      "build_tool": "rustkyll-linux-amd64",
+      "build_tool_sha256": "8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5",
+      "build_tool_version": "v0.4.6",
+      "deterministic_overrides": [
+        "deploy-workflow-version-over-makefile-v0.4.7"
+      ],
+      "output_directory": "_site",
+      "output_file_count": 174,
+      "output_tree_sha256": "d8fb88fa17eaf2052ef2fb1b788b649921a485fe4b7d74c86c3d17e17fca147b",
+      "path_prefix": "/docs",
+      "public_base_url": "https://datatalks.club/docs",
+      "repository": "https://github.com/DataTalksClub/docs.git",
+      "revision": "3f23e006ffdaa498bbc69697408853b6f5eb37dc",
+      "source_id": "dtc-docs",
+      "source_kind": "rustkyll_release"
+    },
+    {
+      "build_tool": "uv-run-frozen-website-generator",
+      "build_tool_sha256": "f8070e0954a5bca6e7bd58c76854fd51b906b47a5d5f93b7423541ef436dc8f8",
+      "build_tool_version": "Python 3.13 + website/uv.lock",
+      "deterministic_overrides": [
+        "generation_time=2000-01-01 00:00:00"
+      ],
+      "output_directory": "_site",
+      "output_file_count": 152,
+      "output_tree_sha256": "a54dbc8e1b5f47167a667ea571930665b11af17ce15dc672e77354d9ccf60671",
+      "path_prefix": "/faq",
+      "public_base_url": "https://datatalks.club/faq",
+      "repository": "https://github.com/DataTalksClub/faq.git",
+      "revision": "c8da1deea9e24945922702994de101dd90a5380a",
+      "source_id": "dtc-faq",
+      "source_kind": "faq_python"
+    },
+    {
+      "build_tool": "rustkyll-linux-amd64",
+      "build_tool_sha256": "8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5",
+      "build_tool_version": "v0.4.6",
+      "deterministic_overrides": [],
+      "output_directory": "_site",
+      "output_file_count": 2301,
+      "output_tree_sha256": "73832f78c743ac51407e553acd3fbe0da5784e169ea3bde4dbd2f37b56d9dbb1",
+      "path_prefix": "/",
+      "public_base_url": "https://datatalks.club/",
+      "repository": "https://github.com/DataTalksClub/datatalksclub.github.io.git",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
+      "source_id": "dtc-main-site",
+      "source_kind": "rustkyll_release"
+    },
+    {
+      "build_tool": "rustkyll-pypi",
+      "build_tool_sha256": null,
+      "build_tool_version": "0.5.0",
+      "deterministic_overrides": [],
+      "output_directory": "_site",
+      "output_file_count": 310,
+      "output_tree_sha256": "912f8d2123ea56bf0fe6d9b16f68e1c5f2a49b391d2bd726a8d08d7663fd3b0e",
+      "path_prefix": "/podwiki",
+      "public_base_url": "https://datatalks.club/podwiki",
+      "repository": "https://github.com/DataTalksClub/podwiki.git",
+      "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6",
+      "source_id": "dtc-podwiki",
+      "source_kind": "rustkyll_pypi"
+    }
+  ],
+  "schema_version": 1,
+  "source_path_rows": 2937
+}
