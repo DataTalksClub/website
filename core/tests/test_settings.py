@@ -61,14 +61,15 @@ class ProductionSettingsTests(SimpleTestCase):
             check=False,
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("Required bootstrap setting", result.stderr)
+        self.assertIn("Invalid bootstrap setting DJANGO_SECRET_KEY", result.stderr)
 
     def test_production_rejects_known_unsafe_secret_values(self) -> None:
         for secret in (LOCAL_DEVELOPMENT_SECRET_KEY, EXAMPLE_SECRET_KEY, TEST_SECRET_KEY):
             with self.subTest(secret=secret):
                 result = self.import_production_settings(secret)
                 self.assertNotEqual(result.returncode, 0)
-                self.assertIn("uses a known unsafe value", result.stderr)
+                self.assertIn("Invalid bootstrap setting DJANGO_SECRET_KEY", result.stderr)
+                self.assertNotIn(secret, result.stderr)
 
     def test_production_accepts_a_real_strong_secret(self) -> None:
         result = self.import_production_settings(secrets.token_urlsafe(64))
@@ -101,10 +102,11 @@ class ProductionSettingsTests(SimpleTestCase):
         }
         for module in ("development", "production"):
             with self.subTest(module=module):
+                module_environment = {**environment, "DTC_ENVIRONMENT": module}
                 result = subprocess.run(
                     [sys.executable, "-c", command, module],
                     cwd=os.getcwd(),
-                    env=environment,
+                    env=module_environment,
                     capture_output=True,
                     text=True,
                     check=False,
