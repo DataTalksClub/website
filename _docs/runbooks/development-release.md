@@ -955,8 +955,10 @@ published-image, successful-release, read-only-smoke, and deployment-evidence ar
 The normal automatic sequence is quality/deployment-contract, Django with isolated SQLite,
 Playwright,
 one tested image, exact active-pair capture, immutable publication, migration exit `0`, stable and
-healthy web with exact SHA, singleton worker, read-only HTTP/browser smoke (including safe 404),
-terminal exact-pair verification, and artifact finalization. The deployer session is fixed at 3600
+receipt-bound web, two same-binding runtime/target observations around exact-SHA public health,
+singleton worker with continuous binding revalidation, a final pre-smoke binding proof, read-only
+HTTP/browser smoke (including safe 404), terminal same-binding exact-pair verification, and
+artifact finalization. The deployer session is fixed at 3600
 seconds. The general stage and public-health budgets remain 180 seconds. A forward
 promotion or rollback that intentionally starts/replaces web receives the explicit, code-owned
 240-second web-stabilization budget; 240 seconds is also its hard maximum. Only a forward promotion
@@ -976,9 +978,85 @@ Web completion still requires its expected task-definition ARN and desired count
 counts, and `rolloutState=COMPLETED`. Missing or duplicate primary deployments, `FAILED`, failed
 tasks, a wrong/mixed task definition, a wrong desired count, or `COMPLETED` with inexact counts fail
 immediately. A running task, ALB response, or partial target health is never ECS completion. The
-separate public readiness/liveness gate follows ECS stabilization and must report the exact source
-SHA. Worker completion retains the same terminal requirements plus no more than one running plus
-pending task; queue activity, heartbeat, or a processed job is not completion.
+coherent public-runtime gate below follows ECS stabilization and must report the exact source SHA.
+Worker completion retains the same terminal requirements plus no more than one running plus pending
+task; queue activity, heartbeat, or a processed job is not completion.
+
+### Coherent web runtime and target binding
+
+Forward promotion and immutable rollback do not treat service counts, generic target counts, and
+public health as disconnected proofs. After the receipt-bound web service reaches its exact
+terminal predicate, the controller has one fixed 180-second absolute public/coherence deadline. It
+performs this ordered chain:
+
+1. Re-read the configured service and the receipt's unique `PRIMARY`; require exact `1/1/0`
+   service counts, exact `1/1/0/0 COMPLETED` deployment counts, and only already-allowlisted
+   zero-work predecessor remnants.
+2. Fully paginate `ListTasks` for the exact cluster/service with `desiredStatus=RUNNING`, then
+   `DescribeTasks` every deduplicated returned ARN. Require one authoritative
+   `RUNNING/RUNNING/HEALTHY` task and one healthy web container on the receipt's exact task
+   definition.
+3. Read that exact task definition. Require one web container, exactly one `APP_VERSION` equal to
+   the source SHA, the exact development repository plus immutable digest, the runtime container's
+   same `imageDigest`, and no task override of `APP_VERSION`.
+4. Join its sole attached Elastic Network Interface to the container's matching attachment and
+   private IPv4 address in the literal RFC1918 `10/8`, `172.16/12`, or `192.168/16` blocks. The
+   broader Python `is_private` classification is not accepted: documentation, shared, loopback,
+   link-local, unspecified, multicast, reserved, global, and IPv6 addresses fail closed. Join the
+   sole unambiguous `awsvpc` host/container port to the target port.
+5. Read the exact target group. Require one unique target tuple for that private address and port
+   in literal `healthy` state. Every other unique target must be a non-candidate in literal
+   `draining` state.
+6. Freeze the receipt ID, task definition, exact task ARN, digest, network attachment/interface,
+   private address, and target tuple as one in-memory binding; verify public liveness and readiness
+   for the exact source SHA; then repeat the complete chain against that same frozen binding.
+
+The controller never adopts a replacement, even when it uses the same task definition, digest, or
+SHA. The second complete sample must match the first task, interface, address, port, target, and
+fingerprint. Only after sample B passes may the singleton worker be changed.
+
+| Observation | Classification | Controller action |
+| --- | --- | --- |
+| Before the first binding, inventory is empty or all described tasks are recently stopped | retryable convergence | Poll immediately, then sleep only `min(poll interval, remaining)` under the same 180-second deadline. |
+| Before the first binding, the exact candidate target is absent or not yet healthy | retryable convergence | Keep the same deadline; it never proves success. |
+| Public live/ready is unavailable, not ready, or does not report the exact SHA | retryable convergence | Keep the same deadline and require sample B afterward. |
+| After binding, the frozen task is temporarily missing or described stopped with no replacement | retryable stale read | It cannot prove a worker phase; later reads may validate only the same frozen task. |
+| Wrong, duplicate, mixed, pending, or unhealthy active task/container | contradiction | Fail immediately. |
+| Malformed/looped pagination, task membership mismatch, provider API failure, wrong definition/image/digest/SHA, or `APP_VERSION` override | contradiction | Fail immediately without exposing the provider payload. |
+| Missing/duplicate/detached ENI, attachment/interface disagreement, address outside literal RFC1918, ambiguous port, or changed ENI | contradiction | Fail immediately. |
+| Duplicate target tuple, wrong candidate mapping, alien healthy/non-draining target, or a frozen candidate no longer healthy | contradiction | Fail immediately. |
+| Different active task, digest, ENI, address, port, or target after binding | contradiction | Fail immediately; never rebind. |
+
+The first observation is immediate. The deadline is not reset by pagination, task or definition
+reads, target health, public health, sample B, or an error. A response after the deadline is
+discarded. When more stages remain, an observation exactly at the deadline cannot start them. The
+second coherent sample alone may complete exactly at the deadline; an incomplete final sample
+expires with no later sleep or read.
+
+The frozen binding is then carried through one absolute 420-second worker phase. The controller
+revalidates it immediately before `UpdateService(worker)`, after the update acknowledgement,
+during every immediate receipt-reconciliation read, and after every worker stabilization read.
+This includes a terminal acknowledgement and the inclusive final observation. One polling round
+observes worker receipt state and the frozen web binding, then uses at most the existing single
+bounded sleep. Web proof adds no deadline, reset, independent retry budget, or independent sleep.
+A stale frozen-task read cannot make the worker successful; a replacement or target contradiction
+fails immediately. Worker success requires the exact worker terminal state followed by a coherent
+read of that same web binding, so deployed HTTP/browser smoke cannot start first.
+
+After read-only smoke, the normal exact-pair terminal gate revalidates the same frozen web binding
+again under the existing 180-second general-stage bound. Only then may the release record become
+rollback-eligible. Promotion and rollback have identical ordering. A pre-worker failure restores
+only the attempted web service and read-only proves that the captured worker remained exact and
+untouched. A failure after worker mutation uses the existing #102 exact-pair compensation
+coordinator; its `240/420/720` receipt ordering and recovery budgets are unchanged.
+
+Coherence evidence contains only stage/result/timestamp, receipt ID, expected task-definition ARN,
+expected SHA/digest, safe counts, observation count, fixed deadline budget, boolean check results,
+one SHA-256 binding fingerprint, and allowlisted error class/reason code. It never contains task
+ARNs, attachment or ENI IDs, private addresses, target tuples, target-health descriptions,
+container environment/overrides, raw AWS responses, request metadata, or provider messages. During
+triage, compare the fingerprint across web, worker, and final terminal stages. A missing or changed
+fingerprint is a release-safety failure; do not inspect or publish the raw binding to explain it.
 
 Every service mutation is receipt-bound. Before `UpdateService`, the controller records that exact
 workload as attempted and supplies its captured terminal predecessor: the exact task-definition
@@ -1074,7 +1152,9 @@ public health, smoke, or a successful-release record.
 
 Run `31289994036` on 2026-08-09 failed at the deployed HTTP smoke because the smoke assertion for
 the intentional `/courses/` production canonical was stale. The new web task was healthy and
-served the exact candidate SHA; this was not an ECS rollout failure. Automatic compensation began
+served the exact candidate SHA; read-only diagnosis found no task, image, ENI, or ALB identity
+drift. The coherent-binding control above closes a separate latent safety gap and does not
+reclassify that run as an ECS rollout failure. Automatic compensation began
 after that failure, spent about 160 seconds restoring and serially waiting for web, then issued the
 worker restore under the unrelated 180-second general-stage budget. The controller timed out about
 183 seconds into that worker wait. ECS later converged to the exact captured worker about 280
