@@ -165,8 +165,9 @@ def run_http_smoke(
         raise ReleaseContractError("course discovery lacks expected content")
     if "The place to talk about data" in courses_html:
         raise ReleaseContractError("course discovery regressed to the main-site home")
-    if 'rel="canonical"' in courses_html:
-        raise ReleaseContractError("adopted course discovery has a guessed canonical")
+    courses_canonical = '<link rel="canonical" href="https://datatalks.club/courses/">'
+    if courses_html.count(courses_canonical) != 1 or courses_html.count('rel="canonical"') != 1:
+        raise ReleaseContractError("course discovery production canonical differs")
 
     studio = _request(origin, "/studio/")
     if studio.status not in {301, 302, 303, 307, 308}:
@@ -269,7 +270,7 @@ def run_http_smoke(
                 "status": 200,
                 "noindex": True,
                 "course_discovery": True,
-                "canonical_absent": True,
+                "exact_canonical": True,
             },
             {
                 "path": "/studio/",
