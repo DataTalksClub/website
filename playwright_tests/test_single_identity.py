@@ -106,7 +106,7 @@ def test_signed_out_login_and_explicit_reauthentication_are_one_safe_flow(
 
     login.click()
     expect(page).to_have_url(f"{live_server.url}/accounts/login/?next=%2F")
-    expect(page.get_by_role("heading", name="Sign in")).to_be_visible()
+    expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
     expect(page.get_by_text("No login providers configured")).to_be_visible()
     page.screenshot(
         path=_screenshot_path("returning-login", viewport),
@@ -137,7 +137,7 @@ def test_chromium_cannot_normalize_anonymous_next_into_an_auth_transition(
 
             assert response is not None and response.status == 200
             expect(page).to_have_url(f"{live_server.url}/accounts/login/?next=%2F")
-            expect(page.get_by_role("heading", name="Sign in")).to_be_visible()
+            expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
 
 
 def test_chromium_keeps_authenticated_identity_through_canonical_next_matrix(

@@ -153,7 +153,7 @@ def test_anonymous_staff_member_reaches_safe_sign_in_flow(page: Page, live_serve
     assert response.status == 200
     expect(page).to_have_url(f"{live_server.url}/accounts/login/?next=%2Fstudio%2F")
     expect(page.get_by_role("link", name="DataTalks.Club")).to_be_visible()
-    expect(page.get_by_role("heading", name="Sign in")).to_be_visible()
+    expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
     expect(
         page.get_by_text("Use the login already connected to your DataTalks.Club account.")
     ).to_be_visible()
