@@ -7,8 +7,11 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from deploy.contracts import (
+    RECOVERY_PHASE_TIMEOUT_SECONDS,
     RELEASE_MANAGER,
     SERVICE_RECEIPT_BINDING_REASONS,
+    WEB_RECOVERY_TIMEOUT_SECONDS,
+    WORKER_RECOVERY_TIMEOUT_SECONDS,
     ActiveServicePair,
     ReleaseContractError,
     ReleaseFailureReason,
@@ -130,11 +133,26 @@ class ReleaseGateway(Protocol):
 
     def service_stabilization_deadline(self, timeout_seconds: int | None = None) -> float: ...
 
+    def recovery_phase_deadline(self) -> float: ...
+
+    def recovery_workload_deadline(self, workload: str, phase_deadline: float) -> float: ...
+
+    def ensure_recovery_phase(self, phase_deadline: float) -> None: ...
+
     @property
     def web_stabilization_timeout_seconds(self) -> int: ...
 
     @property
     def worker_stabilization_timeout_seconds(self) -> int: ...
+
+    @property
+    def web_recovery_timeout_seconds(self) -> int: ...
+
+    @property
+    def worker_recovery_timeout_seconds(self) -> int: ...
+
+    @property
+    def recovery_phase_timeout_seconds(self) -> int: ...
 
     def wait_service_stable(
         self,
@@ -145,7 +163,26 @@ class ReleaseGateway(Protocol):
         deadline: float | None = None,
     ) -> None: ...
 
-    def verify_public_web(self, source_sha: str) -> None: ...
+    def observe_recovery_receipt(
+        self,
+        receipt: ServiceUpdateReceipt,
+        *,
+        workload_deadline: float,
+        phase_deadline: float,
+    ) -> bool: ...
+
+    def sleep_recovery_round(
+        self,
+        workload_deadlines: dict[str, float],
+        phase_deadline: float,
+    ) -> None: ...
+
+    def verify_public_web(
+        self,
+        source_sha: str,
+        *,
+        phase_deadline: float | None = None,
+    ) -> None: ...
 
     def run_deployed_smoke(self, source_sha: str) -> None: ...
 
@@ -156,6 +193,8 @@ class ReleaseGateway(Protocol):
         expected_identity: ReleaseIdentity | None,
         expected_primary_deployment_ids: dict[str, str] | None = None,
         allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
+        *,
+        phase_deadline: float | None = None,
     ) -> None: ...
 
 
@@ -461,11 +500,76 @@ def _compensate(
         f"worker={restore_targets['worker'].task_definition_arn} "
         f"desired={restore_targets['worker'].desired_count}"
     )
+    workloads = frozenset(attempted) if restore_workloads is None else restore_workloads
+    if type(workloads) is not frozenset or not workloads or not workloads <= {"web", "worker"}:
+        raise ReleaseContractError("compensation workload allowlist differs")
+    if set(restore_targets) != {"web", "worker"} or any(
+        type(target) is not ServiceTarget for target in restore_targets.values()
+    ):
+        raise ReleaseContractError("compensation restore target pair differs")
+    if set(terminal_predecessors) != {"web", "worker"} or any(
+        type(predecessor) is not ServicePredecessor
+        for predecessor in terminal_predecessors.values()
+    ):
+        raise ReleaseContractError("compensation terminal predecessor pair differs")
+    if not set(attempted) <= {"web", "worker"} or any(
+        type(state) not in {ServiceTarget, ServicePredecessor} for state in attempted.values()
+    ):
+        raise ReleaseContractError("compensation attempted workload state differs")
+    if any(terminal_predecessors[workload].role != "terminal" for workload in ("web", "worker")):
+        raise ReleaseContractError("compensation captured predecessor role differs")
+    recovery_budgets = {
+        "web": gateway.web_recovery_timeout_seconds,
+        "worker": gateway.worker_recovery_timeout_seconds,
+        "phase": gateway.recovery_phase_timeout_seconds,
+    }
+    if any(type(value) is not int for value in recovery_budgets.values()) or recovery_budgets != {
+        "web": WEB_RECOVERY_TIMEOUT_SECONDS,
+        "worker": WORKER_RECOVERY_TIMEOUT_SECONDS,
+        "phase": RECOVERY_PHASE_TIMEOUT_SECONDS,
+    }:
+        raise ReleaseContractError("compensation recovery budgets differ")
+
     errors: list[str] = []
     error_reasons: list[ReleaseFailureReason] = []
-    workloads = frozenset(attempted) if restore_workloads is None else restore_workloads
-    if not workloads <= {"web", "worker"}:
-        raise ReleaseContractError("compensation workload allowlist differs")
+    workload_outcomes: dict[str, str] = {
+        workload: "passed" if workload not in workloads else "pending"
+        for workload in ("web", "worker")
+    }
+    intentionally_untouched = {
+        workload: workload not in workloads for workload in ("web", "worker")
+    }
+
+    def retain_error(label: str, error: Exception, *, workload: str | None = None) -> None:
+        reason = _restorative_error_reason(error)
+        errors.append(f"{label}: {type(error).__name__}")
+        error_reasons.append(reason)
+        if workload is not None:
+            workload_outcomes[workload] = reason
+
+    phase_deadline = gateway.recovery_phase_deadline()
+    _record_recovery_evidence(
+        evidence_path,
+        "recovery_plan",
+        "accepted",
+        {
+            "mode": (
+                "artifact_finalization"
+                if evidence_stage == "finalization_receipt"
+                else "automatic_compensation"
+            ),
+            "web_recovery_seconds": WEB_RECOVERY_TIMEOUT_SECONDS,
+            "worker_recovery_seconds": WORKER_RECOVERY_TIMEOUT_SECONDS,
+            "phase_recovery_seconds": RECOVERY_PHASE_TIMEOUT_SECONDS,
+            "restore_initiation_order": ["web", "worker"],
+            "cooperative_observation_order": ["web", "worker"],
+            "eligible_workloads": [
+                workload for workload in ("web", "worker") if workload in workloads
+            ],
+            "intentionally_untouched": intentionally_untouched,
+        },
+    )
+
     expected_primary_deployment_ids = {
         workload: predecessor.primary_deployment_id
         for workload, predecessor in terminal_predecessors.items()
@@ -475,14 +579,21 @@ def _compensate(
         "worker": (),
     }
     receipt_summaries: list[RestorativeReceiptSummary] = []
+    receipts: dict[str, ServiceUpdateReceipt] = {}
+    workload_deadlines: dict[str, float] = {}
+    phase_predecessors_by_workload: dict[str, tuple[ServicePredecessor, ...]] = {}
+
+    # Reconcile every ambiguous attempted mutation before restorative updates begin. This keeps
+    # the subsequent web -> worker restorative receipts back-to-back even when a lost provider
+    # acknowledgement requires bounded observation.
     for workload in ("web", "worker"):
         if workload not in workloads:
             continue
         terminal = terminal_predecessors[workload]
         phase_predecessors = [terminal]
-        restore_target = restore_targets[workload]
         try:
-            deadline = gateway.service_stabilization_deadline()
+            deadline = gateway.recovery_workload_deadline(workload, phase_deadline)
+            workload_deadlines[workload] = deadline
             attempted_state = attempted.get(workload)
             if type(attempted_state) is ServiceTarget:
                 captured = gateway.capture_attempted_predecessor(
@@ -494,35 +605,91 @@ def _compensate(
                 phase_predecessors.append(captured)
             elif type(attempted_state) is ServicePredecessor:
                 phase_predecessors.append(attempted_state)
+            phase_predecessors_by_workload[workload] = tuple(phase_predecessors)
+        except Exception as error:
+            retain_error(f"prepare {workload}", error, workload=workload)
+
+    # Do not add evidence writes, waits, health checks, terminal proof, or deliberate sleeps
+    # between these successfully bound restorative receipts.
+    for workload in ("web", "worker"):
+        if workload not in workloads or workload_outcomes[workload] != "pending":
+            continue
+        try:
+            deadline = workload_deadlines[workload]
+            restore_target = restore_targets[workload]
             receipt = gateway.update_service(
                 workload,
                 restore_target,
-                tuple(phase_predecessors),
+                phase_predecessors_by_workload[workload],
                 deadline=deadline,
+                timeout_seconds=recovery_budgets[workload],
             )
             summary = RestorativeReceiptSummary.from_receipt(receipt)
             receipt_summaries.append(summary)
-            _record_recovery_evidence(
-                evidence_path,
-                evidence_stage,
-                "bound",
-                summary.as_evidence(),
-            )
+            receipts[workload] = receipt
             expected_primary_deployment_ids[workload] = receipt.primary_deployment_id
             allowed_terminal_predecessors[workload] = receipt.predecessors
         except Exception as error:
-            errors.append(f"update {workload}: {type(error).__name__}")
-            error_reasons.append(_restorative_error_reason(error))
-            continue
-        try:
-            gateway.wait_service_stable(
-                receipt,
-                worker_singleton=workload == "worker",
-                deadline=deadline,
-            )
-        except Exception as error:
-            errors.append(f"wait {workload}: {type(error).__name__}")
-            error_reasons.append(_restorative_error_reason(error))
+            retain_error(f"bind {workload}", error, workload=workload)
+
+    for summary in receipt_summaries:
+        _record_recovery_evidence(
+            evidence_path,
+            evidence_stage,
+            "bound",
+            summary.as_evidence(),
+        )
+    _record_recovery_evidence(
+        evidence_path,
+        "recovery_initiation",
+        "completed",
+        {
+            "attempted_before_observation": True,
+            "bound_workloads": [workload for workload in ("web", "worker") if workload in receipts],
+        },
+    )
+
+    pending = {workload for workload in ("web", "worker") if workload in receipts}
+    while pending:
+        for workload in ("web", "worker"):
+            if workload not in pending:
+                continue
+            try:
+                if gateway.observe_recovery_receipt(
+                    receipts[workload],
+                    workload_deadline=workload_deadlines[workload],
+                    phase_deadline=phase_deadline,
+                ):
+                    workload_outcomes[workload] = "passed"
+                    pending.remove(workload)
+            except Exception as error:
+                retain_error(f"observe {workload}", error, workload=workload)
+                pending.remove(workload)
+        if pending:
+            try:
+                gateway.sleep_recovery_round(
+                    {workload: workload_deadlines[workload] for workload in pending},
+                    phase_deadline,
+                )
+            except Exception as error:
+                for workload in ("web", "worker"):
+                    if workload in pending:
+                        retain_error("cooperative recovery poll", error, workload=workload)
+                pending.clear()
+
+    for workload in ("web", "worker"):
+        _record_recovery_evidence(
+            evidence_path,
+            "recovery_workload",
+            workload_outcomes[workload],
+            {
+                "workload": workload,
+                "outcome": workload_outcomes[workload],
+                "intentionally_untouched": intentionally_untouched[workload],
+            },
+        )
+
+    terminal_passed = False
     try:
         gateway.verify_terminal(
             {workload: target.task_definition_arn for workload, target in restore_targets.items()},
@@ -530,16 +697,57 @@ def _compensate(
             prior_identity,
             expected_primary_deployment_ids,
             allowed_terminal_predecessors,
+            phase_deadline=phase_deadline,
         )
+        terminal_passed = True
     except Exception as error:
-        errors.append(f"terminal verification: {type(error).__name__}")
-        error_reasons.append(_restorative_error_reason(error))
+        retain_error("terminal verification", error)
+    _record_recovery_evidence(
+        evidence_path,
+        "recovery_terminal_pair",
+        "passed" if terminal_passed else "contract_contradiction",
+        {
+            "exact_pair": terminal_passed,
+            "worker_singleton": terminal_passed,
+        },
+    )
+
+    public_passed = prior_identity is None
     if prior_identity is not None:
         try:
-            gateway.verify_public_web(prior_identity.source_sha)
+            gateway.verify_public_web(
+                prior_identity.source_sha,
+                phase_deadline=phase_deadline,
+            )
+            public_passed = True
         except Exception as error:
-            errors.append(f"public health: {type(error).__name__}")
-            error_reasons.append(_restorative_error_reason(error))
+            retain_error("public health", error)
+    _record_recovery_evidence(
+        evidence_path,
+        "recovery_public_health",
+        "skipped" if prior_identity is None else ("passed" if public_passed else "failed"),
+        {
+            "applicable": prior_identity is not None,
+            "exact_prior_sha_ready": public_passed if prior_identity is not None else None,
+        },
+    )
+    try:
+        gateway.ensure_recovery_phase(phase_deadline)
+    except Exception as error:
+        retain_error("recovery phase", error)
+
+    total_result = "passed" if not errors else _combined_restorative_reason(error_reasons)
+    _record_recovery_evidence(
+        evidence_path,
+        "recovery_total",
+        total_result,
+        {
+            "terminal_pair": terminal_passed,
+            "public_health": public_passed,
+            "worker_singleton": terminal_passed,
+            "intentionally_untouched": intentionally_untouched,
+        },
+    )
     if errors:
         raise CompensationError(
             "automatic compensation failed; recover with exact non-secret identifiers: "
@@ -1317,6 +1525,7 @@ def restore_after_finalization_failure(
     gateway: ReleaseGateway,
     context: RecoveryContext,
     failed_release: ReleaseRecord,
+    evidence_path: Path | None = None,
 ) -> tuple[RestorativeReceiptSummary, ...]:
     """Restore the exact pre-release pair after a detectable artifact finalization failure."""
     failed_identity = ReleaseIdentity(
@@ -1391,5 +1600,6 @@ def restore_after_finalization_failure(
         prior_identity,
         {},
         restore_workloads=frozenset({"web", "worker"}),
+        evidence_path=evidence_path,
         evidence_stage="finalization_receipt",
     )

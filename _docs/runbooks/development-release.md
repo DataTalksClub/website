@@ -956,7 +956,7 @@ The normal automatic sequence is quality/deployment-contract, Django with Postgr
 one tested image, exact active-pair capture, immutable publication, migration exit `0`, stable and
 healthy web with exact SHA, singleton worker, read-only HTTP/browser smoke (including safe 404),
 terminal exact-pair verification, and artifact finalization. The deployer session is fixed at 3600
-seconds. The general stage, public-health, and compensation wait remains 180 seconds. A forward
+seconds. The general stage and public-health budgets remain 180 seconds. A forward
 promotion or rollback that intentionally starts/replaces web receives the explicit, code-owned
 240-second web-stabilization budget; 240 seconds is also its hard maximum. Only a forward promotion
 or rollback that starts/replaces the singleton worker receives the separate explicit, code-owned
@@ -965,7 +965,10 @@ workflow-dispatch input or an arbitrary operator override. A mutating `UpdateSer
 only while time remains. Read-only polling makes exactly one final ECS service observation at the
 monotonic deadline and never sleeps or polls again afterward. Exact completion in that observation
 succeeds; an incomplete or invalid observation fails. Any response returned after the deadline is
-discarded.
+discarded. Recovery has separate fixed code-owned bounds: 240 seconds for web, 420 seconds for the
+singleton worker, and 720 seconds for the complete recovery phase. Those values are fixed workflow
+arguments with matching hard maxima; they are not dispatch inputs, repository variables,
+environment overrides, or permission for a larger operator value.
 
 Web completion still requires its expected task-definition ARN and desired count, exactly one
 `PRIMARY` deployment with that definition and count, exact service and primary running/pending
@@ -1002,7 +1005,7 @@ ARN. The immutable receipt target remains the requested tuple. For a positive re
 may initially return that exact new PRIMARY at deployment-level desired/running/pending/failed
 `0/0/0/0` and `IN_PROGRESS`, while the service-level tuple already has the requested count. That
 AWS initialization shape binds identity but is poll-only. It does not rewrite `B/1` to `B/0`, prove
-stabilization, start public health, or permit the worker mutation.
+stabilization, start public health, or, during forward rollout, permit the worker mutation.
 
 A structurally partial acknowledgement is reconciled with an immediate `DescribeServices` call;
 there is no preliminary sleep. Every present member must be correctly typed, and the complete set
@@ -1068,14 +1071,54 @@ remained the untouched exact prior singleton. This run remains failed; ultimate 
 not a release success and does not substitute for a bound restorative receipt, terminal proof,
 public health, smoke, or a successful-release record.
 
+Run `31289994036` on 2026-08-09 failed at the deployed HTTP smoke because the smoke assertion for
+the intentional `/courses/` production canonical was stale. The new web task was healthy and
+served the exact candidate SHA; this was not an ECS rollout failure. Automatic compensation began
+after that failure, spent about 160 seconds restoring and serially waiting for web, then issued the
+worker restore under the unrelated 180-second general-stage budget. The controller timed out about
+183 seconds into that worker wait. ECS later converged to the exact captured worker about 280
+seconds after its restore began, inside the accepted 420-second singleton-worker behavior. The run
+and its compensation remain failed: later convergence supplied neither a timely worker receipt
+proof nor the required terminal pair and public-health proof.
+
 If an attempted `UpdateService` response is lost or invalid, recovery uses the same absolute
-180-second per-service deadline for candidate reconciliation and the restorative receipt wait.
+per-workload deadline for candidate reconciliation, restorative receipt acquisition, and
+stabilization: web uses exactly 240 seconds and worker exactly 420 seconds. One absolute 720-second
+phase deadline starts before the first attempted-predecessor observation or recovery mutation. A
+workload deadline is `min(workload recovery start + workload budget, phase deadline)` and is never
+reset by acknowledgement, reconciliation, polling, error handling, terminal proof, health proof,
+or evidence handling.
 It polls only the captured terminal identity under the same bounded retirement rules and the
 actually attempted target until that target is observed as the unique PRIMARY and its deployment ID
-can be bound while time remains. The deadline is finite, cannot exceed the general-stage maximum,
-and is never restarted between capture and restore. A capture that returns exactly at the deadline
+can be bound while time remains. Both ambiguous attempted identities are reconciled in fixed
+`web -> worker` order before restorative mutation, so a reconciliation wait cannot split the two
+restorative updates. The controller then issues and binds the exact web restore followed immediately
+by the exact worker restore. It performs no stabilization wait, public-health check, terminal
+proof, evidence write/upload, or deliberate sleep between those two successfully bound restores;
+only receipt acknowledgement and its immediate exact reconciliation belong to binding. A capture
+that returns exactly at its workload deadline
 cannot start the restorative mutation. A speculative workload that was never invoked is absent from
 the recovery allowlist.
+
+After all eligible restore bindings have been attempted, the controller observes the retained
+receipts cooperatively in single-threaded `web -> worker` rounds. There are no threads, processes,
+async calls, concurrent SDK mutations, or blind retries. Each pending workload receives one
+observation per round against its own receipt, predecessor set, and absolute deadline. The
+controller sleeps at most once after a round, bounded by the poll interval, the earliest pending
+workload deadline, and the phase deadline. Completion or failure removes only that workload from
+later rounds; it cannot consume, reset, or suppress the other workload's observation. Equality is
+inclusive: an exact terminal response on the workload deadline passes. An incomplete response on
+that final read expires, no later sleep/read is allowed, and any provider response returned after
+the workload or phase deadline is rejected.
+
+An isolated workload binding or observation error is retained while the other already-authorized
+restore proceeds within its own deadline. The failed mutation is never retried and identity is
+never inferred from later convergence. Invalid prior context, workload allowlist, budget, or a
+global attribution contradiction stops further mutation. Any retained error makes total recovery
+fail even if later read-only state appears converged. A contradiction or unknown error has
+precedence over deadline expiry; `receipt_deadline_expired` is retained only when every recovery
+error is that allowlisted reason.
+
 An attempted candidate may be failed while its restorative receipt replaces it, but the recovery
 receipt itself may not fail. Every restorative call must return a new receipt, including an
 `A -> A` force-new recovery; the old `A` deployment is always a predecessor, never recovery success.
@@ -1091,16 +1134,43 @@ part of the final pair proof. Once worker mutation was actually attempted, its r
 receipt-bound. Artifact-finalization recovery intentionally restores both workloads because both
 belong to the failed release that had already reached terminal proof.
 
+Only after all receipt observations finish does the controller perform one exact terminal pair
+proof and, for a non-bootstrap prior release, exact prior-SHA public readiness/liveness. Success
+requires one newly bound receipt for every mutated workload, each receipt as the unique exact
+`PRIMARY` with `COMPLETED`, exact task definition and desired/running/pending counts, zero failed
+tasks, and only absent or exact recognized zero-work predecessors. The terminal pair must bind both
+exact captured task definitions/counts/receipt IDs, active task definitions, image digest, source
+identity, and the singleton worker. Bootstrap `0/0` skips public health but still proves exact zero
+terminal state. Missing or duplicate receipts/PRIMARYs, third or cross-paired identities, unsafe
+predecessors, failed tasks/rollouts, inexact counts, SHA/readiness mismatch, phase expiry, or any
+unclassified error fails closed. Ultimate ECS convergence is not a substitute.
+
+Compensation never creates or preserves a rollback-eligible success record. An exact restored pair
+does not change the original promotion or rollback failure: that release still ends red.
+Artifact-finalization recovery removes the local failed-release record only after this complete
+exact recovery passes and also ends red.
+
+At worker capture, acknowledgement, every cooperative observation, and terminal proof, service
+`running + pending` and the sum across all recognized deployments must each remain at most one.
+Final active-task proof requires exactly the captured worker task when desired count is one and no
+task for bootstrap. Any transient or final overlap is an immediate contradiction and cannot be
+masked by a later singleton read.
+
 For triage, compare redacted service/PRIMARY tuples and deployment IDs against the recorded receipt
 and phase predecessors. Forward, rollback, compensation, and artifact-finalization recovery expose
-each bound receipt using only its workload, deployment ID, allowlisted binding reason, and whether
+the fixed plan (`240/420/720`, restore order, eligible and intentionally untouched workloads), each
+bound receipt using only its workload, deployment ID, allowlisted binding reason, and whether
 an exact terminal reconciliation observation was carried. The summary is recorded before waiting,
-so it remains available after a post-binding failure. Evidence uses only allowlisted reason codes
+but after every eligible binding has been attempted, so it remains available after a post-binding
+failure without splitting the web/worker restore sequence. Per-workload evidence reports only
+`passed`, `receipt_deadline_expired`, or `contract_contradiction` plus the intentionally-untouched
+boolean. Terminal-pair, public-health, worker-singleton, and total results are separate safe facts.
+Evidence uses only allowlisted reason codes
 for complete binding, zero-count initialization, partial acknowledgement reconciliation,
 contradiction, and receipt deadline expiry; it never stores the raw provider payload. Do not retry
 the mutation, add an unrecognized identity, pre-sleep before
 the first observation, or infer adoption from a running task, target health, logs, or an old
-completed deployment. A candidate that never becomes the unique PRIMARY by the shared recovery
+completed deployment. A candidate that never becomes the unique PRIMARY by its workload recovery
 deadline, or any third/cross-paired identity, leaves recovery failed closed for operator review.
 
 Restorative failure classification retains `receipt_deadline_expired` only when every observed
@@ -1109,6 +1179,12 @@ restorative error is that allowlisted deadline reason. If any workload, terminal
 reason is also collapsed to `contract_contradiction`; raw exception messages and provider payloads
 are never propagated into evidence or CLI output.
 
+Recovery evidence, CLI output, exception text, and artifacts never contain raw AWS responses,
+provider exception messages, request/response bodies, URLs with query strings, headers, cookies,
+credentials, tokens, environment values, task logs, or recovery-context contents. Exact
+task-definition ARNs, deployment IDs, desired/count tuples, booleans, and the documented reason
+codes are the complete safe operator allowlist.
+
 The conservative critical-stage recovery envelope is
 `180 + 120 + 240 + 180 + 420 + 180 + 360 + 720 = 2400` seconds: migration observation,
 stopped-migration terminal proof, web stabilization, public readiness/liveness, worker
@@ -1116,8 +1192,9 @@ stabilization, deployed browser smoke, three critical two-minute artifact upload
 12-minute finalization-recovery cap. This deliberately conservative sum includes mutually
 exclusive migration-stop and later recovery work. It leaves `3600 - 2400 = 1200` seconds (20
 minutes) of the fixed deployer session for recovery. Automatic compensation and finalization
-recovery inherit neither forward stabilization budget: their exact-pair service waits stay at 180
-seconds and remain inside the separate 12-minute recovery cap. Migration observation, public
+recovery use the same mutually exclusive 720-second phase cap, with the separate fixed 240-second
+web and 420-second singleton-worker recovery deadlines inside it. They do not inherit or alter the
+forward stabilization waits. Migration observation, public
 health, browser smoke, and artifact finalization likewise retain their existing independent
 bounds. Do not raise any timeout in workflow inputs or code. If either reviewed stabilization
 value is insufficient, disable automatic deployment and file/groom another issue with new

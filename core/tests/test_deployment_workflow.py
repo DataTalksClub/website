@@ -16,10 +16,16 @@ from django.test import SimpleTestCase
 from deploy import cli as deployment_cli
 from deploy.aws_gateway import (
     CONTROLLED_MIGRATION_FAILURE_COMMAND,
+    MAX_RECOVERY_PHASE_TIMEOUT_SECONDS,
     MAX_STAGE_TIMEOUT_SECONDS,
+    MAX_WEB_RECOVERY_TIMEOUT_SECONDS,
     MAX_WEB_STABILIZATION_TIMEOUT_SECONDS,
+    MAX_WORKER_RECOVERY_TIMEOUT_SECONDS,
     MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS,
+    RECOVERY_PHASE_TIMEOUT_SECONDS,
+    WEB_RECOVERY_TIMEOUT_SECONDS,
     WEB_STABILIZATION_TIMEOUT_SECONDS,
+    WORKER_RECOVERY_TIMEOUT_SECONDS,
     WORKER_STABILIZATION_TIMEOUT_SECONDS,
     AwsReleaseConfig,
     AwsReleaseGateway,
@@ -273,6 +279,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("steps.release.outcome == 'success'", recovery["if"])
         self.assertIn("restore-finalization", recovery["run"])
         self.assertIn("recovery-context.json", recovery["run"])
+        self.assertIn("--evidence-path .tmp/deployment/deployment-evidence.json", recovery["run"])
         self.assertLess(
             deploy_steps.index(by_id["evidence_upload"]),
             deploy_steps.index(by_id["success_record_upload"]),
@@ -328,10 +335,14 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             workflow.count("--worker-stabilization-timeout-seconds 420"),
             2,
         )
+        self.assertEqual(workflow.count("--web-recovery-timeout-seconds 240"), 2)
+        self.assertEqual(workflow.count("--worker-recovery-timeout-seconds 420"), 2)
+        self.assertEqual(workflow.count("--recovery-phase-timeout-seconds 720"), 2)
         dispatch = workflow.split("workflow_dispatch:", maxsplit=1)[1].split(
             "\npermissions:", maxsplit=1
         )[0]
         self.assertNotIn("stabilization-timeout", dispatch)
+        self.assertNotIn("recovery-timeout", dispatch)
         recovery = next(step for step in deploy_steps if step.get("id") == "finalization_recovery")
         self.assertEqual(recovery["timeout-minutes"], 12)
         critical_upload_minutes = sum(
@@ -4495,13 +4506,81 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
         gateway = self.gateway(FakeServiceSequenceEcs([stale]))
         terminal = ServicePredecessor(ServiceTarget(self.WEB_A, 1), "ecs-svc/web-a", "terminal")
         with patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic):
-            for invalid in (True, float("nan"), float("inf"), 181.0):
+            for invalid in (True, float("nan"), float("inf"), 241.0):
                 with self.subTest(invalid=invalid), self.assertRaises(ReleaseContractError):
                     gateway.capture_attempted_predecessor(
                         "web", ServiceTarget(self.WEB_B, 1), terminal, invalid
                     )
+            for invalid in (True, float("nan"), float("inf"), 181.0):
                 with self.subTest(wait=invalid), self.assertRaises(ReleaseContractError):
                     gateway.wait_service_stable(self.receipt(), deadline=invalid)
+
+    def test_cooperative_receipt_observation_is_inclusive_and_rejects_late_responses(self) -> None:
+        target = ServiceTarget(self.WEB_B, 1)
+        terminal = self.service(
+            target,
+            target,
+            "ecs-svc/web-b",
+            service_running=1,
+            service_pending=0,
+            primary_running=1,
+            primary_pending=0,
+            rollout_state="COMPLETED",
+        )
+        in_progress = self.service(target, target, "ecs-svc/web-b")
+        receipt = self.receipt()
+        cases = (
+            ("terminal at equality", terminal, 240, True, None),
+            ("in progress at equality", in_progress, 240, False, "receipt_deadline_expired"),
+            ("terminal response after deadline", terminal, 241, False, "receipt_deadline_expired"),
+        )
+        for name, service, response_delay, expected, reason in cases:
+            clock = FakeWorkerClock()
+            ecs = FakeServiceSequenceEcs(
+                [service],
+                clock=clock,
+                describe_delays=[response_delay],
+            )
+            gateway = self.gateway(ecs)
+            with (
+                self.subTest(name=name),
+                patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic),
+            ):
+                if reason is None:
+                    self.assertEqual(
+                        gateway.observe_recovery_receipt(
+                            receipt,
+                            workload_deadline=240.0,
+                            phase_deadline=720.0,
+                        ),
+                        expected,
+                    )
+                else:
+                    with self.assertRaises(ReleaseContractError) as caught:
+                        gateway.observe_recovery_receipt(
+                            receipt,
+                            workload_deadline=240.0,
+                            phase_deadline=720.0,
+                        )
+                    self.assertEqual(caught.exception.reason_code, reason)
+            self.assertEqual(ecs.describe_calls, 1)
+
+    def test_recovery_deadline_formula_uses_independent_start_and_phase_cap(self) -> None:
+        clock = FakeWorkerClock()
+        target = ServiceTarget(self.WEB_B, 1)
+        gateway = self.gateway(
+            FakeServiceSequenceEcs([self.service(target, target, "ecs-svc/web-b")])
+        )
+        with patch("deploy.aws_gateway.time.monotonic", side_effect=clock.monotonic):
+            phase = gateway.recovery_phase_deadline()
+            self.assertEqual(phase, 720)
+            clock.current = 100
+            self.assertEqual(gateway.recovery_workload_deadline("web", phase), 340)
+            clock.current = 400
+            self.assertEqual(gateway.recovery_workload_deadline("worker", phase), 720)
+            clock.current = 720
+            with self.assertRaisesMessage(ReleaseContractError, "deadline expired"):
+                gateway.recovery_workload_deadline("worker", phase)
 
     def test_partial_alien_task_definitions_fail_before_reconciliation(self) -> None:
         target = ServiceTarget(self.WEB_B, 1)
@@ -5089,6 +5168,9 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
             "timeout_seconds": MAX_STAGE_TIMEOUT_SECONDS,
             "web_stabilization_timeout_seconds": WEB_STABILIZATION_TIMEOUT_SECONDS,
             "worker_stabilization_timeout_seconds": WORKER_STABILIZATION_TIMEOUT_SECONDS,
+            "web_recovery_timeout_seconds": WEB_RECOVERY_TIMEOUT_SECONDS,
+            "worker_recovery_timeout_seconds": WORKER_RECOVERY_TIMEOUT_SECONDS,
+            "recovery_phase_timeout_seconds": RECOVERY_PHASE_TIMEOUT_SECONDS,
             "poll_seconds": 10,
         }
         return Namespace(**(values | overrides))
@@ -5099,17 +5181,26 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
                 self.namespace(**overrides)
             )
 
-    def test_cli_defaults_preserve_three_distinct_reviewed_budgets(self) -> None:
+    def test_cli_defaults_preserve_distinct_reviewed_forward_and_recovery_budgets(self) -> None:
         config = self.build_config()
         self.assertEqual(config.timeout_seconds, 180)
         self.assertEqual(config.web_stabilization_timeout_seconds, 240)
         self.assertEqual(config.worker_stabilization_timeout_seconds, 420)
+        self.assertEqual(config.web_recovery_timeout_seconds, 240)
+        self.assertEqual(config.worker_recovery_timeout_seconds, 420)
+        self.assertEqual(config.recovery_phase_timeout_seconds, 720)
         self.assertEqual(WEB_STABILIZATION_TIMEOUT_SECONDS, 240)
         self.assertEqual(MAX_WEB_STABILIZATION_TIMEOUT_SECONDS, 240)
         self.assertEqual(WORKER_STABILIZATION_TIMEOUT_SECONDS, 420)
         self.assertEqual(MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS, 420)
+        self.assertEqual(WEB_RECOVERY_TIMEOUT_SECONDS, 240)
+        self.assertEqual(MAX_WEB_RECOVERY_TIMEOUT_SECONDS, 240)
+        self.assertEqual(WORKER_RECOVERY_TIMEOUT_SECONDS, 420)
+        self.assertEqual(MAX_WORKER_RECOVERY_TIMEOUT_SECONDS, 420)
+        self.assertEqual(RECOVERY_PHASE_TIMEOUT_SECONDS, 720)
+        self.assertEqual(MAX_RECOVERY_PHASE_TIMEOUT_SECONDS, 720)
 
-    def test_cli_rejects_invalid_worker_timeout_values(self) -> None:
+    def test_cli_rejects_invalid_forward_and_recovery_timeout_values(self) -> None:
         cases = (
             ({"web_stabilization_timeout_seconds": True}, "positive integers"),
             ({"web_stabilization_timeout_seconds": 0}, "positive integers"),
@@ -5129,6 +5220,30 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
                 "poll interval must not exceed the worker",
             ),
             ({"timeout_seconds": 181}, "stage timeout"),
+            ({"web_recovery_timeout_seconds": True}, "positive integers"),
+            ({"web_recovery_timeout_seconds": 0}, "positive integers"),
+            ({"web_recovery_timeout_seconds": -1}, "positive integers"),
+            ({"web_recovery_timeout_seconds": "bad"}, "positive integers"),
+            ({"web_recovery_timeout_seconds": 241}, "recovery-safe maximum"),
+            (
+                {"web_recovery_timeout_seconds": 5, "poll_seconds": 10},
+                "poll interval must not exceed the web recovery",
+            ),
+            ({"worker_recovery_timeout_seconds": True}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": 0}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": -1}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": "bad"}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": 421}, "recovery-safe maximum"),
+            (
+                {"worker_recovery_timeout_seconds": 5, "poll_seconds": 10},
+                "poll interval must not exceed the worker recovery",
+            ),
+            ({"recovery_phase_timeout_seconds": True}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": 0}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": -1}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": "bad"}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": 721}, "recovery-safe maximum"),
+            ({"recovery_phase_timeout_seconds": 419}, "cannot contain"),
         )
         for overrides, message in cases:
             with (
@@ -5137,7 +5252,7 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
             ):
                 self.build_config(**overrides)
 
-    def test_typed_config_rejects_invalid_web_timeout_values(self) -> None:
+    def test_typed_config_rejects_invalid_forward_and_recovery_timeout_values(self) -> None:
         values = self.namespace().__dict__
         config_values = {
             "region": values["region"],
@@ -5168,6 +5283,26 @@ class WorkerTimeoutCliContractTests(SimpleTestCase):
                 {"web_stabilization_timeout_seconds": 5, "poll_seconds": 10},
                 "poll interval must not exceed the web",
             ),
+            ({"web_recovery_timeout_seconds": True}, "positive integers"),
+            ({"web_recovery_timeout_seconds": "bad"}, "positive integers"),
+            ({"web_recovery_timeout_seconds": 0}, "positive integers"),
+            ({"web_recovery_timeout_seconds": -1}, "positive integers"),
+            ({"web_recovery_timeout_seconds": 241}, "recovery-safe maximum"),
+            (
+                {"web_recovery_timeout_seconds": 5, "poll_seconds": 10},
+                "poll interval must not exceed the web recovery",
+            ),
+            ({"worker_recovery_timeout_seconds": True}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": "bad"}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": 0}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": -1}, "positive integers"),
+            ({"worker_recovery_timeout_seconds": 421}, "recovery-safe maximum"),
+            ({"recovery_phase_timeout_seconds": True}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": "bad"}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": 0}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": -1}, "positive integers"),
+            ({"recovery_phase_timeout_seconds": 721}, "recovery-safe maximum"),
+            ({"recovery_phase_timeout_seconds": 419}, "cannot contain"),
         )
         for overrides, message in cases:
             with (
@@ -5581,7 +5716,7 @@ class MigrationTaskContractTests(SimpleTestCase):
             "TargetHealthDescriptions": [{"TargetHealth": {"State": "healthy"}}]
         }
         with (
-            patch("deploy.aws_gateway.time.monotonic", side_effect=[0, 0, 0, 0]),
+            patch("deploy.aws_gateway.time.monotonic", side_effect=[0] * 8),
             patch("deploy.aws_gateway.time.sleep"),
             patch(
                 "deploy.aws_gateway.verify_health",
@@ -5595,7 +5730,7 @@ class MigrationTaskContractTests(SimpleTestCase):
             "TargetHealthDescriptions": [{"TargetHealth": {"State": "initial"}}]
         }
         with (
-            patch("deploy.aws_gateway.time.monotonic", side_effect=[0, 0, 2]),
+            patch("deploy.aws_gateway.time.monotonic", side_effect=[0, 0, 0, 0, 0, 181]),
             patch("deploy.aws_gateway.time.sleep"),
             self.assertRaisesMessage(ReleaseContractError, "ALB target readiness"),
         ):
