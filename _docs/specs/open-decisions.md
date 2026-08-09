@@ -70,7 +70,9 @@ Owner input needed: privacy contact, minors policy, educational-record retention
 
 ## 13. Search
 
-Recommendation: PostgreSQL search for public site/docs/FAQ/Podwiki in MVP while preserving FAQ JSON and Podwiki search/filter contracts. Retire the separate Podwiki search Lambda only after relevance parity.
+Recommendation: use a backend-portable search projection for public site/docs/FAQ/Podwiki while
+preserving FAQ JSON and Podwiki search/filter contracts. The content/search issue owns ranking and
+indexing details. Retire the separate Podwiki search Lambda only after relevance parity.
 
 ## 14. Development network cost
 

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
 from django_q.models import Schedule  # type: ignore[import-untyped]
 
@@ -52,16 +50,18 @@ class SchedulerAndHeartbeatTests(TestCase):
         self.assertIsNotNone(second)
         self.assertFalse(release_scheduler_lease(first))
 
-    def test_unique_index_is_scoped_to_code_owned_schedule_prefix(self) -> None:
+    def test_registration_collapses_only_code_owned_schedule_duplicates(self) -> None:
         Schedule.objects.create(name="third-party", func="outside.one")
         Schedule.objects.create(name="third-party", func="outside.two")
-        Schedule.objects.create(name="dtc:index-test", func="jobs.tasks.sweep_and_relay")
-        with self.assertRaises(IntegrityError), transaction.atomic():
-            Schedule.objects.create(name="dtc:index-test", func="jobs.tasks.sweep_and_relay")
-        migration = Path(__file__).parents[1] / "migrations" / "0001_initial.py"
-        source = migration.read_text()
-        self.assertIn("WHERE name LIKE 'dtc:%'", source)
-        self.assertNotIn("WHERE name IS NOT NULL", source)
+        Schedule.objects.create(name="dtc:durable-job-relay", func="outside.one")
+        Schedule.objects.create(name="dtc:durable-job-relay", func="outside.two")
+
+        claim = acquire_scheduler_lease("scheduler-owner", ttl_seconds=30)
+        assert claim is not None
+        self.assertEqual(register_code_schedules(claim), 1)
+
+        self.assertEqual(Schedule.objects.filter(name="third-party").count(), 2)
+        self.assertEqual(Schedule.objects.filter(name="dtc:durable-job-relay").count(), 1)
 
     def test_worker_heartbeat_is_shared_fenced_and_prunable(self) -> None:
         first = start_worker_heartbeat(

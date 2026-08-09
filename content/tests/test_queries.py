@@ -159,6 +159,7 @@ class PublicContentQueryTests(TestCase):
         self.assertEqual(document.title, "Fixture release v1")
         self.assertEqual(candidate.status, "ready")
 
+        self.source.refresh_from_db()
         self.source.enabled = False
         self.source.revision += 1
         self.source.save(update_fields=("enabled", "revision", "updated_at"))

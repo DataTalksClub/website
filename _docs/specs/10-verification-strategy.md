@@ -16,8 +16,10 @@ Verification maps every requirement to an automated or explicitly manual gate. T
 
 ### Database and service integration tests
 
-- PostgreSQL uniqueness, transactions, row locks, revision conflicts, job leases, and concurrency invariants;
-- candidate content activation and last-known-good retention;
+- portable declarative constraints, transactions, optimistic revision conflicts, idempotency,
+  job lease/result fences, and service invariants exercised on SQLite;
+- candidate content activation, cross-source active-path contention, atomic rollback, bounded
+  retry, and last-known-good retention;
 - course/cohort ownership and historical cohort isolation;
 - enrollment, submission, peer assignment, scoring, leaderboard, complaint, certificate, and reminder workflows;
 - registration plus outbox atomicity;
@@ -122,7 +124,7 @@ Recommended Make targets:
 - `make lint`: Ruff/format/static checks;
 - `make typecheck`;
 - `make test-core`: fast critical domain/permission/content contract subset;
-- `make test`: full Django suite against PostgreSQL in CI;
+- `make test`: full Django suite against isolated SQLite in ordinary CI;
 - `make test-browser`: tagged local Playwright suite;
 - `make check-openapi`: generate and fail on schema drift/undocumented routes;
 - `make check-management-parity`;
@@ -130,7 +132,11 @@ Recommended Make targets:
 - `make test-migrations`;
 - `make test-all`.
 
-CI runs independent jobs where safe, publishes actionable artifacts, and blocks deployment on any release-critical failure. Scheduled jobs run slower full crawls, accessibility, dependency/security, restore, and deployed-environment smoke suites.
+CI runs independent jobs where safe, publishes actionable artifacts, and blocks deployment on any
+release-critical failure. Ordinary quality, Django, core Playwright, and container jobs start no
+PostgreSQL service. The deployment path separately runs the exact tested image's migrations against
+RDS, then requires database-aware readiness and deployed smoke. Scheduled jobs run slower full
+crawls, accessibility, dependency/security, restore, and deployed-environment smoke suites.
 
 ## Test data and production safety
 

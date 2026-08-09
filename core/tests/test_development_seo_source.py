@@ -47,7 +47,7 @@ def tracked_sources() -> dict[str, str]:
         name = raw_name.decode()
         try:
             sources[name] = (ROOT / name).read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+        except (FileNotFoundError, UnicodeDecodeError):
             continue
     return sources
 

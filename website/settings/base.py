@@ -46,23 +46,38 @@ def secure_secret_from_environment(name: str = "DJANGO_SECRET_KEY") -> str:
 
 def database_from_environment(
     *,
-    environment: RuntimeEnvironment = RuntimeEnvironment.LOCAL,
-    allow_sqlite: bool = False,
+    environment: RuntimeEnvironment,
 ) -> dict[str, Any]:
-    if allow_sqlite and env_flag("DTC_USE_SQLITE"):
-        sqlite_path = os.getenv("DTC_SQLITE_PATH", "db.sqlite3")
-        path = Path(sqlite_path)
-        if not path.is_absolute():
-            path = BASE_DIR / path
-        return database_configuration(
-            environment=environment,
-            database_url=None,
-            sqlite_fallback=path,
-        )
-
     return database_configuration(
         environment=environment,
         database_url=os.getenv("DATABASE_URL"),
+    )
+
+
+def sqlite_database_from_environment(
+    *,
+    environment: RuntimeEnvironment,
+    default_path: Path,
+) -> dict[str, Any]:
+    """Build the local/test SQLite setting without consulting ``DATABASE_URL``."""
+
+    if environment not in {RuntimeEnvironment.LOCAL, RuntimeEnvironment.TEST}:
+        raise ImproperlyConfigured("SQLite settings are available only for local and test")
+    configured_path = os.getenv("DTC_SQLITE_PATH")
+    path = Path(configured_path) if configured_path else default_path
+    if not path.is_absolute():
+        path = BASE_DIR / path
+    path = path.resolve(strict=False)
+    if (
+        configured_path
+        and not Path(configured_path).is_absolute()
+        and not path.is_relative_to(BASE_DIR)
+    ):
+        raise ImproperlyConfigured("Relative DTC_SQLITE_PATH must stay inside the repository")
+    return database_configuration(
+        environment=environment,
+        database_url=None,
+        sqlite_fallback=path,
     )
 
 

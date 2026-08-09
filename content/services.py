@@ -3,14 +3,15 @@ from __future__ import annotations
 import hashlib
 import re
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, fields
 from datetime import datetime
 from functools import lru_cache
+from time import sleep
 from typing import Any
 
 from bleach import Cleaner  # type: ignore[import-untyped]
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import F, Max
 from django.utils import timezone
 
@@ -24,11 +25,13 @@ from core.services import ServiceContext
 from .inventory import content_route_contracts
 from .models import (
     PUBLIC_CONTRACT_DIGEST,
+    ActiveContentPath,
     ContentAsset,
     ContentDocument,
     ContentRelation,
     ContentRelease,
     ContentSource,
+    active_content_path_digest,
     expected_storage_prefix,
     validate_exact_public_path,
     validate_storage_key_shape,
@@ -38,6 +41,7 @@ _SHA1 = re.compile(r"^[0-9a-f]{40}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SAFE_VERSION = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:+-]{0,127}$")
 _OPAQUE_BUILD_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")
+_RELEASE_SWAP_ATTEMPTS = 8
 
 
 def _allowed_render_attribute(tag: str, name: str, value: str) -> bool:
@@ -1023,20 +1027,19 @@ def _lock_swap_releases(
     release_ids = {next_release_id}
     if source.active_release_id is not None:
         release_ids.add(source.active_release_id)
-    locked = {
+    selected = {
         release.id: release
-        for release in ContentRelease.objects.using(using)
-        .select_for_update()
-        .filter(pk__in=release_ids)
-        .order_by("id")
+        for release in ContentRelease.objects.using(using).filter(pk__in=release_ids).order_by("id")
     }
     try:
-        next_release = locked[next_release_id]
+        next_release = selected[next_release_id]
     except KeyError as error:
         raise ContentRelease.DoesNotExist(next_release_id) from error
     if next_release.revision != expected_release_revision:
         raise RevisionConflict(expected=expected_release_revision, actual=next_release.revision)
-    current = locked.get(source.active_release_id) if source.active_release_id is not None else None
+    current = (
+        selected.get(source.active_release_id) if source.active_release_id is not None else None
+    )
     return current, next_release
 
 
@@ -1048,14 +1051,13 @@ def _validate_enabled_namespace(
 ) -> None:
     if not source.enabled:
         return
-    next_paths = set(
-        ContentDocument.objects.using(using)
-        .filter(release=next_release, exact_public_path__isnull=False)
-        .values_list("exact_public_path", flat=True)
-    ) | set(
-        ContentAsset.objects.using(using)
-        .filter(release=next_release)
-        .values_list("stable_public_path", flat=True)
+    next_paths = _release_public_paths(next_release, using=using)
+    next_digests = [active_content_path_digest(path) for path in next_paths]
+    claimed_collision = (
+        ActiveContentPath.objects.using(using)
+        .filter(path_digest__in=next_digests)
+        .exclude(source=source)
+        .exists()
     )
     other_document_paths = (
         ContentDocument.objects.using(using)
@@ -1065,9 +1067,7 @@ def _validate_enabled_namespace(
             release_id=F("release__source__active_release_id"),
         )
         .exclude(release__source=source)
-        .filter(
-            exact_public_path__in=next_paths,
-        )
+        .filter(exact_public_path__in=next_paths)
     )
     other_asset_paths = (
         ContentAsset.objects.using(using)
@@ -1079,8 +1079,92 @@ def _validate_enabled_namespace(
         )
         .exclude(release__source=source)
     )
-    if other_document_paths.exists() or other_asset_paths.exists():
-        raise ContentCollisionError("candidate paths collide with another enabled source")
+    if claimed_collision or other_document_paths.exists() or other_asset_paths.exists():
+        raise ContentCollisionError("active content path namespace collision")
+
+
+def _release_public_paths(release: ContentRelease, *, using: str) -> tuple[str, ...]:
+    document_paths = (
+        ContentDocument.objects.using(using)
+        .filter(release=release, exact_public_path__isnull=False)
+        .values_list("exact_public_path", flat=True)
+    )
+    paths = {path for path in document_paths if path is not None} | set(
+        ContentAsset.objects.using(using)
+        .filter(release=release)
+        .values_list("stable_public_path", flat=True)
+    )
+    return tuple(sorted(paths))
+
+
+def _path_claims_for_release(
+    source: ContentSource,
+    release: ContentRelease,
+    *,
+    using: str,
+) -> tuple[ActiveContentPath, ...]:
+    claims = tuple(
+        ActiveContentPath(
+            path_digest=active_content_path_digest(path),
+            exact_public_path=path,
+            source=source,
+            release=release,
+        )
+        for path in _release_public_paths(release, using=using)
+    )
+    if len({claim.path_digest for claim in claims}) != len(claims):
+        raise ContentCollisionError("active content path namespace collision")
+    return claims
+
+
+def _validate_active_path_claims(
+    source: ContentSource,
+    current: ContentRelease | None,
+    *,
+    using: str,
+) -> None:
+    expected = (
+        {
+            claim.path_digest: (claim.exact_public_path, claim.release_id)
+            for claim in _path_claims_for_release(source, current, using=using)
+        }
+        if source.enabled and current is not None
+        else {}
+    )
+    actual = {
+        digest: (path, release_id)
+        for digest, path, release_id in ActiveContentPath.objects.using(using)
+        .filter(source=source)
+        .values_list("path_digest", "exact_public_path", "release_id")
+    }
+    if actual != expected:
+        raise ContentLifecycleError("source active path claims are inconsistent")
+
+
+def _replace_active_path_claims(
+    source: ContentSource,
+    release: ContentRelease,
+    *,
+    using: str,
+) -> None:
+    claims = _path_claims_for_release(source, release, using=using) if source.enabled else ()
+    ActiveContentPath.objects.using(using).filter(source=source).delete()
+    if not claims:
+        return
+    try:
+        with transaction.atomic(using=using):
+            ActiveContentPath.objects.using(using).bulk_create(claims)
+    except IntegrityError as error:
+        conflicting_digests = [claim.path_digest for claim in claims]
+        collision_exists = (
+            ActiveContentPath.objects.using(using)
+            .filter(path_digest__in=conflicting_digests)
+            .exclude(source=source)
+            .exists()
+        )
+        if collision_exists:
+            raise ContentCollisionError("active content path namespace collision") from error
+        raise
 
 
 def _save_release_lifecycle(
@@ -1097,44 +1181,64 @@ def _before_release_swap() -> None:
     """Test seam for a deterministic failure/race immediately before a database swap."""
 
 
+def _activation_swap_state(
+    command: ActivateContentRelease,
+    *,
+    using: str,
+) -> tuple[ContentSource, ContentRelease | None, ContentRelease]:
+    source = lock_revisioned(
+        ContentSource,
+        object_id=command.source_id,
+        expected_revision=command.expected_source_revision,
+        using=using,
+    )
+    current, candidate = _lock_swap_releases(
+        source,
+        command.release_id,
+        expected_release_revision=command.expected_release_revision,
+        using=using,
+    )
+    if candidate.source_id != source.id:
+        raise ContentLifecycleError("candidate belongs to another source")
+    if candidate.status != ContentRelease.Status.READY:
+        raise ContentLifecycleError("normal activation requires a ready release")
+    if candidate.based_on_release_id != source.active_release_id:
+        raise ContentLifecycleError("candidate is based on a stale active release")
+    if current is None:
+        if candidate.based_on_release_id is not None:
+            raise ContentLifecycleError("first release must have no base")
+    else:
+        if current.status != ContentRelease.Status.ACTIVE:
+            raise ContentLifecycleError("source active pointer is inconsistent")
+        if candidate.sequence <= current.sequence:
+            raise ContentLifecycleError("normal activation sequence must increase")
+    _validate_frozen_readiness(candidate, using=using)
+    _validate_active_path_claims(source, current, using=using)
+    _validate_enabled_namespace(source, candidate, using=using)
+    return source, current, candidate
+
+
+def _retry_release_swap(operation: Callable[[], ReleaseSwapResult]) -> ReleaseSwapResult:
+    for attempt in range(_RELEASE_SWAP_ATTEMPTS):
+        try:
+            return operation()
+        except OperationalError:
+            if attempt == _RELEASE_SWAP_ATTEMPTS - 1:
+                raise
+            sleep(0.01 * (2**attempt))
+    raise AssertionError("release swap retry loop exhausted without returning")
+
+
 def _activate_content_release_atomic(
     command: ActivateContentRelease,
     *,
     context: ServiceContext,
+    reason: str,
     using: str = "default",
 ) -> ReleaseSwapResult:
-    _require_audit_actor(context)
-    reason = _safe_reason(command.reason, required=False)
     with transaction.atomic(using=using):
-        source = lock_revisioned(
-            ContentSource,
-            object_id=command.source_id,
-            expected_revision=command.expected_source_revision,
-            using=using,
-        )
-        current, candidate = _lock_swap_releases(
-            source,
-            command.release_id,
-            expected_release_revision=command.expected_release_revision,
-            using=using,
-        )
-        if candidate.source_id != source.id:
-            raise ContentLifecycleError("candidate belongs to another source")
-        if candidate.status != ContentRelease.Status.READY:
-            raise ContentLifecycleError("normal activation requires a ready release")
-        if candidate.based_on_release_id != source.active_release_id:
-            raise ContentLifecycleError("candidate is based on a stale active release")
-        if current is None:
-            if candidate.based_on_release_id is not None:
-                raise ContentLifecycleError("first release must have no base")
-        else:
-            if current.status != ContentRelease.Status.ACTIVE:
-                raise ContentLifecycleError("source active pointer is inconsistent")
-            if candidate.sequence <= current.sequence:
-                raise ContentLifecycleError("normal activation sequence must increase")
-        _validate_frozen_readiness(candidate, using=using)
-        _validate_enabled_namespace(source, candidate, using=using)
-        _before_release_swap()
+        source, current, candidate = _activation_swap_state(command, using=using)
+        _replace_active_path_claims(source, candidate, using=using)
         now = timezone.now()
         if current is not None:
             current.status = ContentRelease.Status.SUPERSEDED
@@ -1187,58 +1291,67 @@ def _activate_content_release_atomic(
         )
 
 
-def _constraint_name(error: IntegrityError) -> str | None:
-    cause = error.__cause__
-    diagnostics = getattr(cause, "diag", None)
-    return getattr(diagnostics, "constraint_name", None)
-
-
 def activate_content_release(
     command: ActivateContentRelease,
     *,
     context: ServiceContext,
     using: str = "default",
 ) -> ReleaseSwapResult:
-    try:
-        return _activate_content_release_atomic(command, context=context, using=using)
-    except IntegrityError as error:
-        if _constraint_name(error) == "content_active_path_namespace_ct":
-            raise ContentCollisionError("active content path namespace collision") from error
-        raise
+    _require_audit_actor(context)
+    reason = _safe_reason(command.reason, required=False)
+    _activation_swap_state(command, using=using)
+    _before_release_swap()
+    return _retry_release_swap(
+        lambda: _activate_content_release_atomic(
+            command,
+            context=context,
+            reason=reason,
+            using=using,
+        )
+    )
+
+
+def _rollback_swap_state(
+    command: RollbackContentRelease,
+    *,
+    using: str,
+) -> tuple[ContentSource, ContentRelease, ContentRelease]:
+    source = lock_revisioned(
+        ContentSource,
+        object_id=command.source_id,
+        expected_revision=command.expected_source_revision,
+        using=using,
+    )
+    current, retained = _lock_swap_releases(
+        source,
+        command.release_id,
+        expected_release_revision=command.expected_release_revision,
+        using=using,
+    )
+    if retained.source_id != source.id:
+        raise ContentLifecycleError("rollback release belongs to another source")
+    if current is None or current.status != ContentRelease.Status.ACTIVE:
+        raise ContentLifecycleError("rollback requires one current active release")
+    if retained.status != ContentRelease.Status.SUPERSEDED:
+        raise ContentLifecycleError("rollback target was not a previously active release")
+    if retained.activated_at is None or retained.superseded_at is None:
+        raise ContentLifecycleError("rollback target lacks retained activation evidence")
+    _validate_frozen_readiness(retained, using=using)
+    _validate_active_path_claims(source, current, using=using)
+    _validate_enabled_namespace(source, retained, using=using)
+    return source, current, retained
 
 
 def _rollback_content_release_atomic(
     command: RollbackContentRelease,
     *,
     context: ServiceContext,
+    reason: str,
     using: str = "default",
 ) -> ReleaseSwapResult:
-    _require_audit_actor(context)
-    reason = _safe_reason(command.reason, required=True)
     with transaction.atomic(using=using):
-        source = lock_revisioned(
-            ContentSource,
-            object_id=command.source_id,
-            expected_revision=command.expected_source_revision,
-            using=using,
-        )
-        current, retained = _lock_swap_releases(
-            source,
-            command.release_id,
-            expected_release_revision=command.expected_release_revision,
-            using=using,
-        )
-        if retained.source_id != source.id:
-            raise ContentLifecycleError("rollback release belongs to another source")
-        if current is None or current.status != ContentRelease.Status.ACTIVE:
-            raise ContentLifecycleError("rollback requires one current active release")
-        if retained.status != ContentRelease.Status.SUPERSEDED:
-            raise ContentLifecycleError("rollback target was not a previously active release")
-        if retained.activated_at is None or retained.superseded_at is None:
-            raise ContentLifecycleError("rollback target lacks retained activation evidence")
-        _validate_frozen_readiness(retained, using=using)
-        _validate_enabled_namespace(source, retained, using=using)
-        _before_release_swap()
+        source, current, retained = _rollback_swap_state(command, using=using)
+        _replace_active_path_claims(source, retained, using=using)
         now = timezone.now()
         current.status = ContentRelease.Status.SUPERSEDED
         current.superseded_at = now
@@ -1298,9 +1411,15 @@ def rollback_content_release(
     context: ServiceContext,
     using: str = "default",
 ) -> ReleaseSwapResult:
-    try:
-        return _rollback_content_release_atomic(command, context=context, using=using)
-    except IntegrityError as error:
-        if _constraint_name(error) == "content_active_path_namespace_ct":
-            raise ContentCollisionError("active content path namespace collision") from error
-        raise
+    _require_audit_actor(context)
+    reason = _safe_reason(command.reason, required=True)
+    _rollback_swap_state(command, using=using)
+    _before_release_swap()
+    return _retry_release_swap(
+        lambda: _rollback_content_release_atomic(
+            command,
+            context=context,
+            reason=reason,
+            using=using,
+        )
+    )

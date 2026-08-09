@@ -271,3 +271,22 @@ class APIRateAdmission(models.Model):
 
     def __str__(self) -> str:
         return f"api-rate-admission:{self.id}"
+
+
+class APIRateSubject(models.Model):
+    """Portable transaction-serialization row for one rate-limit subject."""
+
+    subject_hash = models.CharField(max_length=64)
+    cost_class = models.CharField(max_length=16, choices=APIRateAdmission.CostClass.choices)
+    revision = models.PositiveBigIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("subject_hash", "cost_class"),
+                name="mgmt_rate_subject_class_unique",
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"api-rate-subject:{self.subject_hash}:{self.cost_class}"

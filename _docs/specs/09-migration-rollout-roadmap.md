@@ -23,7 +23,8 @@ Exit gate: no public route, source content kind, current course workflow, or man
 
 Deliverables:
 
-- `uv`-managed Django project, custom user model, PostgreSQL, Make targets, lint/type/test setup, and Docker image;
+- `uv`-managed Django project, custom user model, project-local SQLite for development and
+  ordinary CI, portable Django contracts, Make targets, lint/type/test setup, and Docker image;
 - core apps, shared service/command conventions, audit/request IDs, health endpoints, and configuration checks;
 - Studio shell, admin API shell, OIDC integration, permissions, capability registry, token model, and OpenAPI generation;
 - web/worker processes and durable job helpers;
@@ -53,7 +54,7 @@ Deliverables:
 - docs adapter, navigation/breadcrumb/search behavior, Mermaid/callouts/code, heading anchors, and edit-on-GitHub;
 - FAQ adapter, exact anchors, pages, JSON feeds, literal Jinja behavior, and edit-on-GitHub;
 - Podwiki adapter, typed chips/citations, catalogs, graph JSON/deep links, search filters, entity canonicals, and SEO dates;
-- unified PostgreSQL search projection with current-contract adapters;
+- unified backend-portable search projection with current-contract adapters;
 - cross-repository person/link/reference validation and complete asset routing.
 
 Exit gate: the combined `/`, `/docs/`, `/faq/`, and `/podwiki/` compatibility report has no unexplained differences or broken internal links.

@@ -151,22 +151,16 @@ def relay_due_jobs(*, limit: int = 100, using: str = DEFAULT_DB_ALIAS) -> int:
     if not 1 <= limit <= 1_000:
         raise DispatchError("relay limit must be between 1 and 1000")
     now = database_now(using=using)
-    connection = connections[using]
-    with transaction.atomic(using=using):
-        queryset = (
-            DurableJob.objects.using(using)
-            .filter(
-                status__in=(DurableJob.Status.PENDING, DurableJob.Status.RETRY_WAIT),
-                available_at__lte=now,
-                next_wakeup_at__lte=now,
-            )
-            .order_by("available_at", "created_at", "id")
+    job_ids = list(
+        DurableJob.objects.using(using)
+        .filter(
+            status__in=(DurableJob.Status.PENDING, DurableJob.Status.RETRY_WAIT),
+            available_at__lte=now,
+            next_wakeup_at__lte=now,
         )
-        if connection.features.has_select_for_update_skip_locked:
-            queryset = queryset.select_for_update(skip_locked=True)
-        elif connection.features.has_select_for_update:
-            queryset = queryset.select_for_update()
-        job_ids = list(queryset.values_list("id", flat=True)[:limit])
+        .order_by("available_at", "created_at", "id")
+        .values_list("id", flat=True)[:limit]
+    )
 
     return sum(best_effort_wake(job_id, using=using) for job_id in job_ids)
 

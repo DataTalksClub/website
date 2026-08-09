@@ -7,7 +7,7 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
-from django.db import IntegrityError, connections, transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -45,9 +45,6 @@ class CredentialStateConflict(RuntimeError):
 class IssuedCredential:
     credential: APICredential
     raw_token: str
-
-
-PREFIX_UNIQUE_CONSTRAINT = "mgmt_credential_prefix_unique"
 
 
 def _audit_context(principal: APIPrincipal) -> AuditWriteContext:
@@ -141,7 +138,7 @@ def set_principal_active(
     using: str = "default",
 ) -> APIPrincipal:
     with transaction.atomic(using=using):
-        principal = APIPrincipal.objects.using(using).select_for_update().get(pk=principal_id)
+        principal = APIPrincipal.objects.using(using).get(pk=principal_id)
         if principal.revision != expected_revision:
             raise RevisionConflict(expected=expected_revision, actual=principal.revision)
         principal.is_active = is_active
@@ -158,12 +155,12 @@ def replace_principal_permissions(
     using: str = "default",
 ) -> APIPrincipal:
     with transaction.atomic(using=using):
-        principal = APIPrincipal.objects.using(using).select_for_update().get(pk=principal_id)
+        principal = APIPrincipal.objects.using(using).get(pk=principal_id)
         if principal.revision != expected_revision:
             raise RevisionConflict(expected=expected_revision, actual=principal.revision)
-        principal.permissions.set(tuple(permissions))
         principal.revision += 1
         principal.save(using=using, update_fields=("revision", "updated_at"))
+        principal.permissions.set(tuple(permissions))
         return principal
 
 
@@ -183,14 +180,12 @@ def principal_has_permission(principal: APIPrincipal, permission: str) -> bool:
     return bool(user is not None and user.is_active and has_explicit_permission(user, permission))
 
 
-def _lock_linked_user(principal: APIPrincipal, *, using: str) -> None:
-    """Fence human disablement with a credential authority recheck."""
+def _reload_linked_user(principal: APIPrincipal, *, using: str) -> None:
+    """Recheck current human account state before a credential effect."""
 
     if principal.user_id is None:
         return
-    principal.user = (
-        get_user_model().objects.using(using).select_for_update().get(pk=principal.user_id)
-    )
+    principal.user = get_user_model().objects.using(using).get(pk=principal.user_id)
 
 
 def lock_actor_authority(
@@ -213,13 +208,8 @@ def lock_actor_authority(
         raise PermissionError("actor credential authority is incomplete")
 
     try:
-        actor = (
-            APIPrincipal.objects.using(using)
-            .select_for_update(of=("self",))
-            .select_related("user")
-            .get(pk=actor_principal.pk)
-        )
-        _lock_linked_user(actor, using=using)
+        actor = APIPrincipal.objects.using(using).select_related("user").get(pk=actor_principal.pk)
+        _reload_linked_user(actor, using=using)
     except (APIPrincipal.DoesNotExist, get_user_model().DoesNotExist) as error:
         raise PermissionError("actor authority is unavailable") from error
     if not actor.is_active or not principal_has_permission(actor, permission):
@@ -232,11 +222,7 @@ def lock_actor_authority(
         if capability is None:
             raise PermissionError("actor capability authority is unavailable")
         try:
-            credential = (
-                APICredential.objects.using(using)
-                .select_for_update(of=("self",))
-                .get(pk=actor_credential.pk)
-            )
+            credential = APICredential.objects.using(using).get(pk=actor_credential.pk)
         except APICredential.DoesNotExist as error:
             raise PermissionError("actor credential authority is unavailable") from error
         now = timezone.now()
@@ -323,16 +309,8 @@ def _insert_generated_credential(
                     created_by=created_by,
                 )
             return IssuedCredential(credential=credential, raw_token=generated.raw)
-        except IntegrityError as error:
-            cause = error.__cause__
-            diagnostic = getattr(cause, "diag", None)
-            constraint_name = getattr(diagnostic, "constraint_name", None)
-            sqlite_prefix_collision = (
-                connections[using].vendor == "sqlite"
-                and str(cause or error)
-                == "UNIQUE constraint failed: management_auth_apicredential.prefix"
-            )
-            if constraint_name == PREFIX_UNIQUE_CONSTRAINT or sqlite_prefix_collision:
+        except IntegrityError:
+            if APICredential.objects.using(using).filter(prefix=generated.prefix).exists():
                 continue
             raise
     raise CredentialCreationFailed("credential prefix allocation failed")
@@ -389,12 +367,8 @@ def issue_credential_once(
             actor_credential=actor_credential,
             actor_capability=actor_capability,
         )
-        target = (
-            APIPrincipal.objects.using(using)
-            .select_for_update(of=("self",))
-            .get(pk=target_principal_id)
-        )
-        _lock_linked_user(target, using=using)
+        target = APIPrincipal.objects.using(using).get(pk=target_principal_id)
+        _reload_linked_user(target, using=using)
         if not target.is_active:
             raise CredentialStateConflict("target principal is inactive")
         normalized_scopes = normalize_scopes(requested_scopes, principal=target)
@@ -460,12 +434,9 @@ def rotate_credential_once(
             actor_capability=actor_capability,
         )
         credential = (
-            APICredential.objects.using(using)
-            .select_for_update(of=("self", "principal"))
-            .select_related("principal")
-            .get(pk=credential_id)
+            APICredential.objects.using(using).select_related("principal").get(pk=credential_id)
         )
-        _lock_linked_user(credential.principal, using=using)
+        _reload_linked_user(credential.principal, using=using)
         if credential.revision != expected_revision:
             raise RevisionConflict(expected=expected_revision, actual=credential.revision)
         if credential.revoked_at is not None or credential.rotated_at is not None:
@@ -530,7 +501,7 @@ def revoke_credential(
             actor_credential=actor_credential,
             actor_capability=actor_capability,
         )
-        credential = APICredential.objects.using(using).select_for_update().get(pk=credential_id)
+        credential = APICredential.objects.using(using).get(pk=credential_id)
         if credential.revision != expected_revision:
             raise RevisionConflict(expected=expected_revision, actual=credential.revision)
         if credential.revoked_at is not None:

@@ -12,6 +12,7 @@ from django.db.models.deletion import ProtectedError
 from django.test import TestCase, override_settings
 from django.utils import timezone
 
+from core.models import RevisionConflict
 from management_auth.constants import (
     DIGEST_ALGORITHM,
     PREFIX_COLLISION_RETRIES,
@@ -33,8 +34,10 @@ from management_auth.services import (
     create_principal,
     issue_credential_once,
     normalize_scopes,
+    replace_principal_permissions,
     revoke_credential,
     rotate_credential_once,
+    set_principal_active,
 )
 from management_auth.tokens import GeneratedToken, encode_secret, parse_token, verify_secret
 
@@ -255,6 +258,33 @@ class CredentialServiceTests(TestCase):
                 identity_snapshot="service:bad",
                 user=get_user_model().objects.create_user(username="bad-link"),
             )
+
+    def test_stale_permission_change_does_not_mutate_authority(self) -> None:
+        replacement = Permission.objects.get(
+            content_type__app_label="core",
+            codename="browse_audit",
+        )
+        set_principal_active(
+            principal_id=self.principal.id,
+            is_active=False,
+            expected_revision=self.principal.revision,
+        )
+
+        with self.assertRaises(RevisionConflict):
+            replace_principal_permissions(
+                principal_id=self.principal.id,
+                permissions=(replacement,),
+                expected_revision=self.principal.revision,
+            )
+
+        self.principal.refresh_from_db()
+        self.assertEqual(set(self.principal.permissions.all()), {self.permission})
+        updated = replace_principal_permissions(
+            principal_id=self.principal.id,
+            permissions=(replacement,),
+            expected_revision=self.principal.revision,
+        )
+        self.assertEqual(set(updated.permissions.all()), {replacement})
 
     @override_settings(
         PASSWORD_HASHERS=("django.contrib.auth.hashers.MD5PasswordHasher",),

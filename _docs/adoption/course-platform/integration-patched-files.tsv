@@ -1,3 +1,6 @@
 destination_path	size_bytes	sha256	rationale
 course_platform_templates/base.html	13945	6090e1aa591433d2d43c29fb26e1a3169b55d9a65af43d65b19a308cd9bd3728	Use the unified canonical policy and shared accessible local site navigation while preserving CMP account, preference, and business behavior.
+course_management/datamailer_outbox_dispatch.py	4816	31a8e239728cde0c90996fc15c3e01f6e65ff0cc0eed29c1d81258f8b6296543	Use portable conditional ORM claims and attempt fences for the copied Datamailer outbox without changing its delivery or retry outcomes.
 scripts/load_rds_export.py	23700	f08edf55c064f061646a2f1e5a03693356c3b044db2bfd76f546f5298b4eae86	Disable the unsafe broad-copy entry point before path access and direct operators to the allowlisted local review workflow.
+scripts/generate_production_like_leaderboard_data.py	27391	9e9559823417570de606fec2e9de15935e0edb137531dc53b9d7116244040a42	Use the unified local settings and portable ORM behavior without backend-specific SQL or lock retries while preserving the copied catalog and fixture generation logic.
+scripts/score_project_dev.py	5535	28b9c8b7e02b5d5a2fe680ec1bd8e368bb36b1b54f2616550f85c6112a351131	Run copied project scoring against the unified local SQLite settings without reading database credentials or directing privileged SQL writes.

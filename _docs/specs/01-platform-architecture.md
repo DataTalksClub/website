@@ -16,12 +16,16 @@ Status: draft
 
 - Python 3.13 or newer supported by the selected Django release.
 - Django 6.0 series, pinned through `uv.lock` and kept on a supported security release.
-- PostgreSQL 16 or later for production and development deployment; SQLite may be used only for narrow local tests that do not exercise PostgreSQL behavior.
+- SQLite is the deterministic default for local development and ordinary CI. Models, migrations,
+  constraints, and service behavior use portable Django ORM contracts exercised by that suite.
+- RDS PostgreSQL remains the durable store for deployed development and production. Its engine
+  boundary is validated by exact-image migration, database-aware readiness, and deployed smoke.
 - Django templates for public pages and Studio, with progressive enhancement rather than a separate single-page application.
 - Django-Q2 with its ORM broker for asynchronous and scheduled work, avoiding a Redis dependency in the MVP.
 - Amazon SES through a provider adapter; Django's console or in-memory backend in local development and tests.
 - Versioned assets in S3, resolved through stable public paths and cached at the edge.
-- PostgreSQL full-text search for the first unified search implementation.
+- A backend-portable search projection that preserves the current FAQ and Podwiki public
+  contracts. Ranking and indexing implementation remains owned by the content/search issue.
 - OpenAPI generated from the actual admin API route and schema definitions.
 
 Exact dependency versions are selected when implementation starts and are locked by `uv`. The project must not use floating production dependencies.
@@ -85,11 +89,13 @@ No public request clones a repository, calls GitHub, parses Markdown, or mutates
 3. Enqueue a sync for one allowlisted repository, branch, and commit SHA.
 4. Fetch an immutable commit, parse through the source adapter, validate all routes and references, render, and upload versioned assets.
 5. Store a complete candidate release without affecting public queries.
-6. Atomically set the source's active release after validation.
+6. Revalidate revisions and the global active-path namespace, then atomically replace path claims,
+   release state, and the source's active-release pointer.
 7. Refresh search/graph projections and invalidate only affected edge cache entries.
 8. Record counts, warnings, failures, duration, actor, and commit provenance.
 
-An invalid candidate is quarantined. The prior active release remains public.
+An invalid or colliding candidate is quarantined. Persisted unique path claims allow exactly one
+cross-source activation to win; the prior active release remains public after any failed swap.
 
 ### Registration and email
 

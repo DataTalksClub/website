@@ -16,9 +16,9 @@ CSRF_TRUSTED_ORIGINS = env_list(  # noqa: F405
     "DJANGO_CSRF_TRUSTED_ORIGINS", "http://localhost:8000,https://web.dtcdev.click"
 )
 DATABASES = {
-    "default": database_from_environment(  # noqa: F405
+    "default": sqlite_database_from_environment(  # noqa: F405
         environment=RuntimeEnvironment.LOCAL,  # noqa: F405
-        allow_sqlite=True,
+        default_path=BASE_DIR / ".tmp" / "local.sqlite3",  # noqa: F405
     )
 }
 NOINDEX = True

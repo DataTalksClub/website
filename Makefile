@@ -1,9 +1,9 @@
 .PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
-	test-content test-content-postgresql test-playwright-core test-playwright migrate run worker \
+	test-content test-playwright-core test-playwright migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
-	review-data review-data-dry-run review-data-cleanup run-review-data
+	database-portability-check review-data review-data-dry-run review-data-cleanup run-review-data
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -13,6 +13,7 @@ ADOPTION_INTEGRATION_PYTHON = \
 	api/tests/test_admin_health.py \
 	scripts/build_local_review_db.py \
 	scripts/capture_screenshots.py \
+	scripts/check_database_portability.py \
 	scripts/render_course_platform_inventory.py \
 	scripts/verify_course_platform_adoption.py
 
@@ -41,6 +42,7 @@ typecheck:
 		management_auth management_api management_registry.py \
 		$(COMPATIBILITY_PYTHON) \
 		scripts/build_local_review_db.py scripts/capture_screenshots.py \
+		scripts/check_database_portability.py \
 		scripts/render_course_platform_inventory.py \
 		scripts/verify_course_platform_adoption.py
 
@@ -55,6 +57,9 @@ deployment-check:
 
 terminology-check:
 	uv run python scripts/check_development_terminology.py
+
+database-portability-check:
+	uv run python scripts/check_database_portability.py
 
 terraform-seo-source-check:
 	@test -n "$(AWS_INFRA_REPOSITORY)" || (echo "AWS_INFRA_REPOSITORY is required" >&2; exit 2)
@@ -77,10 +82,6 @@ check-management-parity:
 
 test-content:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests
-
-test-content-postgresql:
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run python -c 'import django; django.setup(); from django.db import connection; assert connection.vendor == "postgresql", "DATABASE_URL must select PostgreSQL"'
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests -v 2
 
 test: test-compatibility
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test --parallel
@@ -157,7 +158,7 @@ review-data-cleanup:
 		$(if $(filter true,$(INCLUDE_TARGET)),--include-target,)
 
 run-review-data:
-	DTC_ENVIRONMENT=local DTC_USE_SQLITE=true \
+	DTC_ENVIRONMENT=local \
 		DTC_SQLITE_PATH=.tmp/review-data/review.sqlite3 \
 		DJANGO_SETTINGS_MODULE=website.settings.local_review \
 		uv run python manage.py runserver 0.0.0.0:8000

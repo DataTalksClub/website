@@ -17,23 +17,20 @@ import argparse
 import json
 import os
 import sys
-import time
 from dataclasses import dataclass
 from datetime import datetime
-from functools import partial
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 root_path = str(ROOT)
 sys.path.insert(0, root_path)
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "course_management.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
 
 import django
 
 django.setup()
 
 from django.core.cache import cache
-from django.db import OperationalError, connection
 from django.utils.text import slugify
 
 from courses.models import (
@@ -193,23 +190,6 @@ class GeneratedProjectSubmissionValues:
     reviewed_enough_peers: bool
     passed: bool
 
-
-def configure_sqlite_busy_timeout():
-    if connection.vendor != "sqlite":
-        return
-
-    with connection.cursor() as cursor:
-        cursor.execute("PRAGMA busy_timeout = 10000")
-
-
-def run_with_lock_retries(action, attempts=3):
-    for attempt in range(1, attempts + 1):
-        try:
-            return action()
-        except OperationalError as exc:
-            if "database is locked" not in str(exc).lower() or attempt == attempts:
-                raise
-            time.sleep(attempt)
 
 COURSE_SPECS_PATH = Path(__file__).with_name(
     "production_like_course_specs.json"
@@ -911,8 +891,7 @@ def seed_selected_courses(args):
 
     for slug in selected_slugs:
         count = args.count or DEFAULT_SELECTED_COURSES.get(slug, 300)
-        callback = partial(seed_selected_course, specs_by_slug, slug, count)
-        run_with_lock_retries(callback)
+        seed_selected_course(specs_by_slug, slug, count)
 
 
 def seed_selected_course(specs_by_slug, slug, count):
@@ -921,14 +900,13 @@ def seed_selected_course(specs_by_slug, slug, count):
 
 
 def main():
-    configure_sqlite_busy_timeout()
     args = parse_args()
 
     if args.list_courses:
         list_courses()
         return
 
-    run_with_lock_retries(ensure_full_catalog)
+    ensure_full_catalog()
     if args.catalog_only:
         return
 

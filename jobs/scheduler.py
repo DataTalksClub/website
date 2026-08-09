@@ -8,6 +8,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.db import DEFAULT_DB_ALIAS, transaction
+from django.db.models import Q
 from django_q.models import Schedule  # type: ignore[import-untyped]
 
 from jobs.clock import database_now
@@ -38,34 +39,22 @@ def acquire_scheduler_lease(
     owner_id = _validate_worker_id(owner_id)
     ttl_seconds = _validate_lease_seconds(ttl_seconds)
     now = database_now(using=using)
-    with transaction.atomic(using=using):
-        SchedulerLease.objects.using(using).get_or_create(key=SchedulerLease.SINGLETON_KEY)
-        lease = (
-            SchedulerLease.objects.using(using)
-            .select_for_update()
-            .get(key=SchedulerLease.SINGLETON_KEY)
+    SchedulerLease.objects.using(using).get_or_create(key=SchedulerLease.SINGLETON_KEY)
+    token = uuid.uuid4()
+    available = Q(lease_token__isnull=True) | Q(expires_at__lte=now)
+    updated = (
+        SchedulerLease.objects.using(using)
+        .filter(available, key=SchedulerLease.SINGLETON_KEY)
+        .update(
+            owner_id=owner_id,
+            lease_token=token,
+            acquired_at=now,
+            heartbeat_at=now,
+            expires_at=now + timedelta(seconds=ttl_seconds),
         )
-        if (
-            lease.lease_token is not None
-            and lease.expires_at is not None
-            and lease.expires_at > now
-        ):
-            return None
-        token = uuid.uuid4()
-        lease.owner_id = owner_id
-        lease.lease_token = token
-        lease.acquired_at = now
-        lease.heartbeat_at = now
-        lease.expires_at = now + timedelta(seconds=ttl_seconds)
-        lease.save(
-            update_fields=(
-                "owner_id",
-                "lease_token",
-                "acquired_at",
-                "heartbeat_at",
-                "expires_at",
-            )
-        )
+    )
+    if updated != 1:
+        return None
     return SchedulerClaim(owner_id=owner_id, lease_token=token)
 
 
@@ -116,36 +105,43 @@ def register_code_schedules(claim: SchedulerClaim, *, using: str = DEFAULT_DB_AL
     importlib.import_module("jobs.schedules")
     now = database_now(using=using)
     with transaction.atomic(using=using):
-        try:
-            lease = (
-                SchedulerLease.objects.using(using)
-                .select_for_update()
-                .get(
-                    key=SchedulerLease.SINGLETON_KEY,
-                    owner_id=claim.owner_id,
-                    lease_token=claim.lease_token,
-                    expires_at__gt=now,
-                )
-            )
-        except SchedulerLease.DoesNotExist:
+        lease_filter = SchedulerLease.objects.using(using).filter(
+            key=SchedulerLease.SINGLETON_KEY,
+            owner_id=claim.owner_id,
+            lease_token=claim.lease_token,
+            expires_at__gt=now,
+        )
+        if not lease_filter.exists():
             return 0
-        del lease
         count = 0
         for definition in registered_schedules():
-            Schedule.objects.using(using).update_or_create(
-                name=definition.key,
-                defaults={
-                    "func": definition.func,
-                    "hook": None,
-                    "args": repr(tuple(definition.args)),
-                    "kwargs": repr(dict(definition.kwargs or {})),
-                    "schedule_type": definition.schedule_type,
-                    "minutes": definition.minutes,
-                    "repeats": definition.repeats,
-                    "cron": definition.cron,
-                    "cluster": None,
-                    "intended_date_kwarg": None,
-                },
+            defaults = {
+                "func": definition.func,
+                "hook": None,
+                "args": repr(tuple(definition.args)),
+                "kwargs": repr(dict(definition.kwargs or {})),
+                "schedule_type": definition.schedule_type,
+                "minutes": definition.minutes,
+                "repeats": definition.repeats,
+                "cron": definition.cron,
+                "cluster": None,
+                "intended_date_kwarg": None,
+            }
+            existing = list(
+                Schedule.objects.using(using).filter(name=definition.key).order_by("pk")
             )
+            if existing:
+                schedule = existing[0]
+                for field_name, value in defaults.items():
+                    setattr(schedule, field_name, value)
+                schedule.save(update_fields=tuple(defaults))
+                Schedule.objects.using(using).filter(
+                    name=definition.key,
+                ).exclude(pk=schedule.pk).delete()
+            else:
+                Schedule.objects.using(using).create(name=definition.key, **defaults)
             count += 1
+        if not lease_filter.exists():
+            transaction.set_rollback(True, using=using)
+            return 0
     return count

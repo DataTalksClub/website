@@ -8,7 +8,7 @@ from typing import Any
 from django.db import transaction
 
 from core.audit import AuditWriteContext, record_audit_event
-from core.idempotency import JsonObject, JsonValue, acquire_transaction_lock, canonical_json
+from core.idempotency import JsonObject, JsonValue, canonical_json
 from core.models import (
     AuditEvent,
     OperationalSetting,
@@ -210,23 +210,24 @@ def set_operational_setting(
         raise InvalidOperationalSetting("expected revision cannot be negative")
 
     with transaction.atomic(using=using):
-        acquire_transaction_lock("operational-setting", key, using=using)
-        setting = (
-            OperationalSetting.objects.using(using).select_for_update().filter(key=key).first()
-        )
+        setting = OperationalSetting.objects.using(using).filter(key=key).first()
         actual_revision = setting.revision if setting is not None else 0
         if expected_revision != actual_revision:
             raise RevisionConflict(expected=expected_revision, actual=actual_revision)
 
         if setting is None:
-            setting = OperationalSetting.objects.using(using).create(
+            setting, created = OperationalSetting.objects.using(using).get_or_create(
                 key=key,
-                value_type=definition.value_type,
-                value=validated_value,
-                source=source,
-                definition_version=definition.version,
-                revision=1,
+                defaults={
+                    "value_type": definition.value_type,
+                    "value": validated_value,
+                    "source": source,
+                    "definition_version": definition.version,
+                    "revision": 1,
+                },
             )
+            if not created:
+                raise RevisionConflict(expected=0, actual=setting.revision)
             before_value = _validated_value(definition, definition.default)
             before_source = "code_default"
         else:

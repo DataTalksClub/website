@@ -22,10 +22,17 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`. Existing
   CMP login, session, account settings, preference, logout, impersonation, and course-admin
   behavior remains authoritative;
+- `course_management/datamailer_outbox_dispatch.py`: issue #98 replaces the copied row-lock claim
+  with portable conditional ORM claim and attempt fences while retaining the same delivery,
+  acknowledgement, and retry outcomes;
 - `scripts/load_rds_export.py`: issue #99 disables the legacy broad-copy entry point before argument
   parsing or path access and directs operators to the target-owned, allowlisted local review-data
   workflow; copied helper internals remain available for characterization and are not an approved
   operational import path;
+- `scripts/generate_production_like_leaderboard_data.py` and `scripts/score_project_dev.py`: issue
+  #98 selects the unified local SQLite settings and removes copied backend-specific SQL, lock
+  retries, credential-file loading, and direct-SQL operator guidance while preserving catalog
+  generation and project-scoring behavior through the copied ORM services;
 - target scaffold Django and Playwright tests/configuration where the adopted `accounts.CustomUser`, course homepage, and source sign-in surface supersede placeholder scaffold contracts;
 - `core/tests/test_course_platform_adoption.py`,
   `scripts/render_course_platform_inventory.py`,

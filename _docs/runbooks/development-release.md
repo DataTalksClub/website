@@ -952,7 +952,8 @@ that controller; automatic push jobs also require `GITHUB_SHA` and the candidate
 queued push therefore makes no AWS call. Successful automatic deployment emits attempt-qualified
 published-image, successful-release, read-only-smoke, and deployment-evidence artifacts.
 
-The normal automatic sequence is quality/deployment-contract, Django with PostgreSQL, Playwright,
+The normal automatic sequence is quality/deployment-contract, Django with isolated SQLite,
+Playwright,
 one tested image, exact active-pair capture, immutable publication, migration exit `0`, stable and
 healthy web with exact SHA, singleton worker, read-only HTTP/browser smoke (including safe 404),
 terminal exact-pair verification, and artifact finalization. The deployer session is fixed at 3600

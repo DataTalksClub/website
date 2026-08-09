@@ -285,6 +285,7 @@ jobs:
       - run: uv sync --locked
       - run: uv lock --check
       - run: make terminology-check
+      - run: make database-portability-check
       - run: make lint
       - run: make format-check
       - run: make typecheck
@@ -296,22 +297,9 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: dtc_test
-          POSTGRES_USER: dtc
-          POSTGRES_PASSWORD: dtc-test-only
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U dtc -d dtc_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
-      DATABASE_URL: postgresql://dtc:dtc-test-only@127.0.0.1:5432/dtc_test
+      DTC_SQLITE_PATH: .tmp/ci.sqlite3
     defaults:
       run:
         working-directory: .tmp/release-source
@@ -327,6 +315,10 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
+      - name: Create a fresh ordinary-CI SQLite database
+        run: |
+          mkdir -p .tmp
+          rm -f .tmp/ci.sqlite3 .tmp/ci.sqlite3-shm .tmp/ci.sqlite3-wal
       - run: uv run python manage.py migrate --noinput
       - run: make test
 
@@ -466,7 +458,6 @@ jobs:
           set -euo pipefail
           docker run --detach --name dtc-web \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
-            --env DTC_USE_SQLITE=1 \
             --env "APP_VERSION=$RELEASE_SHA" \
             --publish 8000:8000 "dtc-website:$RELEASE_SHA" web
           trap 'docker logs dtc-web; docker rm --force dtc-web' EXIT
@@ -1191,7 +1182,7 @@ jobs:
               "source_resolution": os.environ["GATE_RESOLVE"],
               "quality": os.environ["GATE_QUALITY"],
               "deployment_contract": os.environ["GATE_QUALITY"],
-              "django_postgresql": os.environ["GATE_DJANGO"],
+              "django_sqlite": os.environ["GATE_DJANGO"],
               "playwright": os.environ["GATE_PLAYWRIGHT"],
               "container": os.environ["GATE_CONTAINER"],
               "automatic_prior_capture": os.environ["GATE_CAPTURE"],
