@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 import uuid
 from typing import Any
@@ -49,6 +50,12 @@ def validate_storage_key_shape(value: str) -> None:
 
 def expected_storage_prefix(source_stable_id: str, release_id: uuid.UUID) -> str:
     return f"content/{source_stable_id}/{release_id}/"
+
+
+def active_content_path_digest(exact_public_path: str) -> str:
+    """Return the fixed-width identity used by active namespace claims."""
+
+    return hashlib.sha256(exact_public_path.encode("utf-8")).hexdigest()
 
 
 def validate_secret_reference(value: str) -> None:
@@ -403,6 +410,57 @@ class ContentRelease(RevisionedModel):
                     if getattr(previous, field_name) != getattr(self, field_name):
                         raise ValidationError("Frozen release evidence cannot be changed.")
         super().save(*args, **kwargs)
+
+
+class ActiveContentPath(models.Model):
+    """A transactionally swapped claim on one active public path.
+
+    The fixed-width digest avoids depending on backend-specific index limits for the complete
+    2,048-character path contract. The content service derives and replaces these rows in the
+    same transaction as the release and source-pointer swap.
+    """
+
+    path_digest = models.CharField(max_length=64, primary_key=True, validators=[sha256_validator])
+    exact_public_path = models.CharField(
+        max_length=2048,
+        validators=[validate_exact_public_path],
+    )
+    source = models.ForeignKey(
+        ContentSource,
+        on_delete=models.PROTECT,
+        related_name="active_path_claims",
+    )
+    release = models.ForeignKey(
+        ContentRelease,
+        on_delete=models.PROTECT,
+        related_name="active_path_claims",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("exact_public_path",)
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(path_digest__regex=SHA256_PATTERN),
+                name="content_active_path_digest_ck",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(exact_public_path__startswith="/")
+                    & ~Q(exact_public_path__startswith="//")
+                    & ~Q(exact_public_path__contains="?")
+                    & ~Q(exact_public_path__contains="#")
+                ),
+                name="content_active_path_shape_ck",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=("source", "release"), name="content_active_path_owner"),
+            models.Index(fields=("release",), name="content_active_path_release"),
+        ]
+
+    def __str__(self) -> str:
+        return self.exact_public_path
 
 
 class FrozenReleaseChild(models.Model):

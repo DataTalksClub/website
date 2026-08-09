@@ -1,7 +1,7 @@
 import logging
 
 import requests
-from django.db import transaction
+from django.db.models import F
 from django.utils import timezone
 
 from course_management.observability import record_event
@@ -41,29 +41,25 @@ def outbox_datamailer_config(event):
 
 
 def claim_outbox_event(event):
-    with transaction.atomic():
-        locked = DatamailerOutboxEvent.objects.select_for_update().get(
-            id=event.id
-        )
-        if locked.status not in RETRYABLE_STATUSES:
-            return False
-        mark_processing(locked)
-        return True
-
-
-def mark_processing(event):
     now = timezone.now()
+    updated = (
+        DatamailerOutboxEvent.objects.filter(
+            id=event.id,
+            status__in=RETRYABLE_STATUSES,
+        )
+        .update(
+            status=DatamailerOutboxStatus.PROCESSING,
+            attempt_count=F("attempt_count") + 1,
+            last_attempt_at=now,
+            updated_at=now,
+        )
+    )
+    if updated != 1:
+        return False
     event.status = DatamailerOutboxStatus.PROCESSING
     event.attempt_count += 1
     event.last_attempt_at = now
-    event.save(
-        update_fields=[
-            "status",
-            "attempt_count",
-            "last_attempt_at",
-            "updated_at",
-        ]
-    )
+    return True
 
 
 def dispatch_claimed_outbox_event(event, config):
@@ -92,14 +88,22 @@ def handle_outbox_send_error(event, config, exc):
 def mark_acked(event, response_payload):
     now = timezone.now()
     response_data = json_response_payload(response_payload)
-    DatamailerOutboxEvent.objects.filter(id=event.id).update(
-        status=DatamailerOutboxStatus.ACKED,
-        acked_at=now,
-        next_attempt_at=now,
-        last_error="",
-        response_payload=response_data,
-        updated_at=now,
+    updated = (
+        DatamailerOutboxEvent.objects.filter(
+            id=event.id,
+            status=DatamailerOutboxStatus.PROCESSING,
+            attempt_count=event.attempt_count,
+        ).update(
+            status=DatamailerOutboxStatus.ACKED,
+            acked_at=now,
+            next_attempt_at=now,
+            last_error="",
+            response_payload=response_data,
+            updated_at=now,
+        )
     )
+    if updated != 1:
+        return
     record_event(
         "datamailer.outbox_acked",
         properties={
@@ -123,7 +127,13 @@ def mark_retry_or_failed(event, exc):
     if status == DatamailerOutboxStatus.RETRYING:
         retry_delta = retry_delay(event.attempt_count)
         updates["next_attempt_at"] = now + retry_delta
-    DatamailerOutboxEvent.objects.filter(id=event.id).update(**updates)
+    updated = DatamailerOutboxEvent.objects.filter(
+        id=event.id,
+        status=DatamailerOutboxStatus.PROCESSING,
+        attempt_count=event.attempt_count,
+    ).update(**updates)
+    if updated != 1:
+        return
     record_event(
         "datamailer.outbox_dispatch_failed",
         properties={

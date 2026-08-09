@@ -198,11 +198,5 @@ class Migration(migrations.Migration):
                 ],
             },
         ),
-        migrations.RunSQL(
-            sql=(
-                "CREATE UNIQUE INDEX jobs_unique_code_schedule_name "
-                "ON django_q_schedule (name) WHERE name LIKE 'dtc:%'"
-            ),
-            reverse_sql="DROP INDEX IF EXISTS jobs_unique_code_schedule_name",
-        ),
+
     ]

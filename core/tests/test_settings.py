@@ -5,9 +5,9 @@ import subprocess
 import sys
 from unittest.mock import patch
 
-from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase
 
+from core.bootstrap import RuntimeEnvironment
 from website.settings.base import (
     BASE_DIR,
     EXAMPLE_SECRET_KEY,
@@ -176,17 +176,69 @@ class ProductionSettingsTests(SimpleTestCase):
                 self.assertIn(f"exact {name}", rejected.stderr)
 
     def test_database_url_selects_postgresql(self) -> None:
-        with patch.dict(
-            os.environ,
-            {"DATABASE_URL": "postgresql://dtc:placeholder@db.example.invalid/dtc"},
-            clear=False,
-        ):
-            database = database_from_environment()
+        environment = os.environ.copy()
+        environment["DATABASE_URL"] = "postgresql://dtc:placeholder@db.example.invalid/dtc"
+        with patch.dict(os.environ, environment, clear=True):
+            database = database_from_environment(environment=RuntimeEnvironment.DEVELOPMENT)
         self.assertEqual(database["ENGINE"], "django.db.backends.postgresql")
 
-    def test_sqlite_is_not_an_implicit_local_fallback(self) -> None:
-        with patch.dict(os.environ, {}, clear=True), self.assertRaises(ImproperlyConfigured):
-            database_from_environment(allow_sqlite=True)
+    def test_local_and_test_settings_ignore_ambient_database_url(self) -> None:
+        command = (
+            "import importlib, json, sys; "
+            "s = importlib.import_module(f'website.settings.{sys.argv[1]}'); "
+            "d = s.DATABASES['default']; "
+            "print(json.dumps({'ENGINE': d['ENGINE'], 'NAME': str(d['NAME'])}))"
+        )
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "DATABASE_URL": "postgresql://broken:broken@127.0.0.1:1/unreachable",
+                "DTC_USE_SQLITE": "0",
+            }
+        )
+        environment.pop("DTC_SQLITE_PATH", None)
+
+        for module, filename in (("local", "local.sqlite3"), ("test", "test.sqlite3")):
+            with self.subTest(module=module):
+                result = subprocess.run(
+                    [sys.executable, "-c", command, module],
+                    cwd=os.getcwd(),
+                    env=environment,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                self.assertEqual(result.returncode, 0, result.stderr)
+                database = json.loads(result.stdout)
+                self.assertEqual(database["ENGINE"], "django.db.backends.sqlite3")
+                self.assertEqual(database["NAME"], str(BASE_DIR / ".tmp" / filename))
+
+    def test_local_sqlite_relative_path_override_is_repository_scoped(self) -> None:
+        environment = os.environ.copy()
+        environment.update(
+            {
+                "DATABASE_URL": "postgresql://broken:broken@127.0.0.1:1/unreachable",
+                "DTC_SQLITE_PATH": ".tmp/alternate-local.sqlite3",
+            }
+        )
+        command = (
+            "import json; import website.settings.local as s; "
+            "d = s.DATABASES['default']; "
+            "print(json.dumps({'ENGINE': d['ENGINE'], 'NAME': str(d['NAME'])}))"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=os.getcwd(),
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        database = json.loads(result.stdout)
+        self.assertEqual(database["ENGINE"], "django.db.backends.sqlite3")
+        self.assertEqual(database["NAME"], str(BASE_DIR / ".tmp" / "alternate-local.sqlite3"))
 
 
 class CollectstaticSettingsTests(SimpleTestCase):

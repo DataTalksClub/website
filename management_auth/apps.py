@@ -7,4 +7,3 @@ class ManagementAuthConfig(AppConfig):
 
     def ready(self) -> None:
         import management_auth.checks  # noqa: F401
-        import management_auth.signals  # noqa: F401

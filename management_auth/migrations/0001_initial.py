@@ -6,100 +6,6 @@ from django.conf import settings
 from django.db import migrations, models
 
 
-def install_management_identity_guards(apps, schema_editor):
-    del apps
-    if schema_editor.connection.vendor != "postgresql":
-        return
-    quote = schema_editor.connection.ops.quote_name
-    principal_table = quote("management_auth_apiprincipal")
-    credential_table = quote("management_auth_apicredential")
-    principal_function = quote("dtc_management_principal_identity_immutable")
-    credential_function = quote("dtc_management_credential_authority_immutable")
-    principal_trigger = quote("dtc_management_principal_identity_guard")
-    credential_trigger = quote("dtc_management_credential_authority_guard")
-    schema_editor.execute(
-        f"""
-        CREATE OR REPLACE FUNCTION {principal_function}() RETURNS trigger
-        LANGUAGE plpgsql AS $$
-        BEGIN
-            IF NEW.kind IS DISTINCT FROM OLD.kind
-               OR NEW.user_id IS DISTINCT FROM OLD.user_id
-               OR NEW.identity_snapshot IS DISTINCT FROM OLD.identity_snapshot
-            THEN
-                RAISE EXCEPTION 'management principal identity is immutable'
-                    USING ERRCODE = '55000';
-            END IF;
-            RETURN NEW;
-        END;
-        $$
-        """
-    )
-    schema_editor.execute(
-        f"DROP TRIGGER IF EXISTS {principal_trigger} ON {principal_table}"
-    )
-    schema_editor.execute(
-        f"""
-        CREATE TRIGGER {principal_trigger}
-        BEFORE UPDATE ON {principal_table}
-        FOR EACH ROW EXECUTE FUNCTION {principal_function}()
-        """
-    )
-    schema_editor.execute(
-        f"""
-        CREATE OR REPLACE FUNCTION {credential_function}() RETURNS trigger
-        LANGUAGE plpgsql AS $$
-        BEGIN
-            IF NEW.principal_id IS DISTINCT FROM OLD.principal_id
-               OR NEW.prefix IS DISTINCT FROM OLD.prefix
-               OR NEW.secret_digest IS DISTINCT FROM OLD.secret_digest
-               OR NEW.digest_algorithm IS DISTINCT FROM OLD.digest_algorithm
-               OR NEW.digest_version IS DISTINCT FROM OLD.digest_version
-               OR NEW.scopes IS DISTINCT FROM OLD.scopes
-               OR NEW.predecessor_id IS DISTINCT FROM OLD.predecessor_id
-            THEN
-                RAISE EXCEPTION 'management credential authority is immutable'
-                    USING ERRCODE = '55000';
-            END IF;
-            RETURN NEW;
-        END;
-        $$
-        """
-    )
-    schema_editor.execute(
-        f"DROP TRIGGER IF EXISTS {credential_trigger} ON {credential_table}"
-    )
-    schema_editor.execute(
-        f"""
-        CREATE TRIGGER {credential_trigger}
-        BEFORE UPDATE ON {credential_table}
-        FOR EACH ROW EXECUTE FUNCTION {credential_function}()
-        """
-    )
-
-
-def remove_management_identity_guards(apps, schema_editor):
-    del apps
-    if schema_editor.connection.vendor != "postgresql":
-        return
-    quote = schema_editor.connection.ops.quote_name
-    principal_table = quote("management_auth_apiprincipal")
-    credential_table = quote("management_auth_apicredential")
-    schema_editor.execute(
-        f"DROP TRIGGER IF EXISTS {quote('dtc_management_principal_identity_guard')} "
-        f"ON {principal_table}"
-    )
-    schema_editor.execute(
-        f"DROP TRIGGER IF EXISTS {quote('dtc_management_credential_authority_guard')} "
-        f"ON {credential_table}"
-    )
-    schema_editor.execute(
-        f"DROP FUNCTION IF EXISTS {quote('dtc_management_principal_identity_immutable')}()"
-    )
-    schema_editor.execute(
-        f"DROP FUNCTION IF EXISTS {quote('dtc_management_credential_authority_immutable')}()"
-    )
-
-
 class Migration(migrations.Migration):
 
     initial = True
@@ -244,8 +150,5 @@ class Migration(migrations.Migration):
             model_name='managementidempotencyrecord',
             constraint=models.CheckConstraint(condition=models.Q(models.Q(('completed_at__isnull', True), ('safe_result__isnull', True), ('status', 'in_progress')), models.Q(('completed_at__isnull', False), ('safe_result__isnull', False), ('status', 'completed')), _connector='OR'), name='mgmt_idempotency_state_consistent'),
         ),
-        migrations.RunPython(
-            install_management_identity_guards,
-            remove_management_identity_guards,
-        ),
+
     ]

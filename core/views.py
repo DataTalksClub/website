@@ -72,9 +72,7 @@ def _configuration_status() -> tuple[str, list[str]]:
 
 def _database_status() -> tuple[str, str | None]:
     try:
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-            cursor.fetchone()
+        connection.ensure_connection()
     except Exception:
         return "error", "database unavailable"
     return "ok", None

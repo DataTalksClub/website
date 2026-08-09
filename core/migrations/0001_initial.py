@@ -7,91 +7,6 @@ from django.conf import settings
 from django.db import migrations, models
 
 
-APPEND_ONLY_GUARDS = (
-    ("core_auditevent", "dtc_core_audit_append_only", "actor_id"),
-    (
-        "core_operationalsettingrevision",
-        "dtc_core_setting_revision_append_only",
-        "changed_by_id",
-    ),
-)
-
-APPEND_ONLY_EXPLICIT_TEST_DATABASE_NAMES = frozenset({"dtc_test"})
-
-
-def is_append_only_test_database(database_name):
-    return (
-        database_name in APPEND_ONLY_EXPLICIT_TEST_DATABASE_NAMES
-        or database_name.startswith("test_")
-    )
-
-
-def install_append_only_guards(apps, schema_editor):
-    del apps
-    if schema_editor.connection.vendor != "postgresql":
-        return
-    quote = schema_editor.connection.ops.quote_name
-    database_name = str(schema_editor.connection.settings_dict.get("NAME", ""))
-    allow_test_flush = bool(
-        getattr(settings, "CORE_ALLOW_APPEND_ONLY_TEST_FLUSH", False)
-    )
-    if allow_test_flush and not is_append_only_test_database(database_name):
-        raise RuntimeError("append-only test flush requires a Django test database")
-    for table, function, retention_column in APPEND_ONLY_GUARDS:
-        trigger = f"{function}_trigger"
-        schema_editor.execute(
-            f"""
-            CREATE OR REPLACE FUNCTION {quote(function)}() RETURNS trigger
-            LANGUAGE plpgsql AS $$
-            BEGIN
-                IF TG_OP = 'UPDATE' THEN
-                    IF OLD.{quote(retention_column)} IS NOT NULL
-                       AND NEW.{quote(retention_column)} IS NULL
-                       AND (to_jsonb(NEW) - '{retention_column}')
-                           IS NOT DISTINCT FROM (to_jsonb(OLD) - '{retention_column}')
-                    THEN
-                        RETURN NEW;
-                    END IF;
-                END IF;
-                RAISE EXCEPTION 'append-only evidence cannot be changed'
-                    USING ERRCODE = '55000';
-            END;
-            $$
-            """
-        )
-        if not allow_test_flush:
-            truncate_trigger = f"{function}_truncate_trigger"
-            schema_editor.execute(
-                f"""
-                CREATE TRIGGER {quote(truncate_trigger)}
-                BEFORE TRUNCATE ON {quote(table)}
-                FOR EACH STATEMENT EXECUTE FUNCTION {quote(function)}()
-                """
-            )
-        schema_editor.execute(
-            f"""
-            CREATE TRIGGER {quote(trigger)}
-            BEFORE UPDATE OR DELETE ON {quote(table)}
-            FOR EACH ROW EXECUTE FUNCTION {quote(function)}()
-            """
-        )
-
-
-def remove_append_only_guards(apps, schema_editor):
-    del apps
-    if schema_editor.connection.vendor != "postgresql":
-        return
-    quote = schema_editor.connection.ops.quote_name
-    for table, function, _retention_column in reversed(APPEND_ONLY_GUARDS):
-        trigger = f"{function}_trigger"
-        truncate_trigger = f"{function}_truncate_trigger"
-        schema_editor.execute(
-            f"DROP TRIGGER IF EXISTS {quote(truncate_trigger)} ON {quote(table)}"
-        )
-        schema_editor.execute(f"DROP TRIGGER IF EXISTS {quote(trigger)} ON {quote(table)}")
-        schema_editor.execute(f"DROP FUNCTION IF EXISTS {quote(function)}()")
-
-
 class Migration(migrations.Migration):
 
     initial = True
@@ -273,8 +188,5 @@ class Migration(migrations.Migration):
             model_name='operationalsettingrevision',
             constraint=models.CheckConstraint(condition=models.Q(('revision__gte', 1)), name='core_setting_history_revision_positive'),
         ),
-        migrations.RunPython(
-            install_append_only_guards,
-            remove_append_only_guards,
-        ),
+
     ]

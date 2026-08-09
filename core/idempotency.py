@@ -9,7 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, cast
 
-from django.db import connections, transaction
+from django.db import transaction
 from django.utils import timezone
 
 from core.models import IdempotencyRecord
@@ -143,28 +143,6 @@ def hash_idempotency_request(scope: str, payload: Any) -> str:
     )
 
 
-def acquire_transaction_lock(namespace: str, key: str, *, using: str = "default") -> None:
-    """Serialize absent-row creation on PostgreSQL for the current transaction."""
-
-    _validate_identifier(namespace, name="lock namespace")
-    connection = connections[using]
-    if not connection.in_atomic_block:
-        raise RuntimeError("transaction lock requires an active atomic transaction")
-    if connection.vendor != "postgresql":
-        return
-
-    lock_id = int.from_bytes(
-        hashlib.blake2b(
-            f"dtc:{namespace}:v1:{key}".encode(),
-            digest_size=8,
-        ).digest(),
-        "big",
-        signed=True,
-    )
-    with connection.cursor() as cursor:
-        cursor.execute("SELECT pg_advisory_xact_lock(%s)", (lock_id,))
-
-
 def execute_idempotent(
     *,
     scope: str,
@@ -175,9 +153,10 @@ def execute_idempotent(
 ) -> IdempotencyResult:
     """Execute a command and persist its replay result in one database transaction.
 
-    The transaction-scoped advisory lock closes the absent-row race on PostgreSQL.
-    The in-progress row, domain writes, and fenced completion commit together, so an
-    owner crash or an enclosing rollback cannot strand a half-completed command.
+    The unique scope/key constraint arbitrates absent-row races on every supported
+    database. The in-progress row, domain writes, and fenced completion commit
+    together, so an owner crash or an enclosing rollback cannot strand a
+    half-completed command.
     """
 
     scope = _validate_identifier(scope, name="scope")
@@ -186,14 +165,15 @@ def execute_idempotent(
     owner_token = uuid.uuid4()
 
     with transaction.atomic(using=using):
-        acquire_transaction_lock("idempotency", f"{scope}:{key_hash}", using=using)
-        record = (
-            IdempotencyRecord.objects.using(using)
-            .select_for_update()
-            .filter(scope=scope, key_hash=key_hash)
-            .first()
+        record, created = IdempotencyRecord.objects.using(using).get_or_create(
+            scope=scope,
+            key_hash=key_hash,
+            defaults={
+                "request_hash": request_hash,
+                "owner_token": owner_token,
+            },
         )
-        if record is not None:
+        if not created:
             if record.request_hash != request_hash:
                 raise IdempotencyConflict(
                     f"idempotency key conflicts with an earlier request in scope {scope}"
@@ -207,13 +187,6 @@ def execute_idempotent(
             raise IdempotencyInProgress(
                 f"scope {scope} contains an invalid committed in-progress record"
             )
-
-        record = IdempotencyRecord.objects.using(using).create(
-            scope=scope,
-            key_hash=key_hash,
-            request_hash=request_hash,
-            owner_token=owner_token,
-        )
         result = canonical_json_object(command())
         completed_at = timezone.now()
         updated = (

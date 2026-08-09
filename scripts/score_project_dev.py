@@ -1,20 +1,14 @@
 #!/usr/bin/env python
-"""
-Script to score a project on dev environment via SSH tunnel.
-
-Prerequisites:
-1. Open SSH tunnel: ssh bastion-tunnel
-2. .envrc file with DB_PASSWORD and DJANGO_SECRET
+"""Score a project in the local SQLite development database.
 
 Usage:
-    python scripts/score_project_dev.py --course-slug ml-zoomcamp-2025 --project-slug midterm
+    uv run python scripts/score_project_dev.py --course-slug ml-zoomcamp-2025 --project-slug midterm
 """
 
+import argparse
 import os
 import sys
-import argparse
 import time
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -24,41 +18,8 @@ project_root = Path(__file__).resolve().parent.parent
 project_root_path = str(project_root)
 sys.path.insert(0, project_root_path)
 
-# Parse .envrc file
-envrc_path = project_root / ".envrc"
-env_vars = {}
-
-if os.path.exists(envrc_path):
-    with open(envrc_path, "r") as f:
-        for line in f:
-            line = line.strip()
-            if line.startswith('export '):
-                # Parse export VAR='value' or export VAR="value"
-                match = re.match(r"export\s+(\w+)=['\"](.+)['\"]", line)
-                if match:
-                    key, value = match.groups()
-                    env_vars[key] = value
-
-# Set environment variables
-if 'DB_PASSWORD' in env_vars:
-    os.environ['DATABASE_URL'] = f"postgresql://pgusr:{env_vars['DB_PASSWORD']}@localhost:5433/dev"
-    print("✓ Loaded DB_PASSWORD from .envrc")
-else:
-    print("ERROR: DB_PASSWORD not found in .envrc")
-    sys.exit(1)
-
-if 'DJANGO_SECRET' in env_vars:
-    os.environ['SECRET_KEY'] = env_vars['DJANGO_SECRET']
-    print("✓ Loaded DJANGO_SECRET from .envrc")
-else:
-    print("ERROR: DJANGO_SECRET not found in .envrc")
-    sys.exit(1)
-
-# print(f"✓ DATABASE_URL: {os.environ['DATABASE_URL']}")
-print()
-
 # Setup Django
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "course_management.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "website.settings.local")
 
 import django
 django.setup()
@@ -87,7 +48,7 @@ def get_project(course_slug, project_slug):
 
 def print_project_header(project):
     print("=" * 80)
-    print(f"SCORING PROJECT (DEV): {project.course.slug}/{project.slug}")
+    print(f"SCORING PROJECT (LOCAL): {project.course.slug}/{project.slug}")
     print("=" * 80)
     print()
 
@@ -104,8 +65,7 @@ def print_project_details(project):
 def confirm_peer_review_state(project):
     if project.state != "PR":
         print(f"⚠ WARNING: Project state is '{project.state}', should be 'PR' (PEER_REVIEWING)")
-        print("  Update the state manually in the database first:")
-        print(f"  UPDATE courses_project SET state='PR' WHERE id={project.id};")
+        print("  Change the project state through Studio before scoring if needed.")
         print()
         response = input("Continue anyway? (y/n): ")
         if response.lower() != 'y':
@@ -224,7 +184,7 @@ def score_and_display(course_slug, project_slug):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Score a project on dev environment")
+    parser = argparse.ArgumentParser(description="Score a project in the local database")
     parser.add_argument(
         "--course-slug", required=True, help="Course slug (e.g., 'ml-zoomcamp-2025')"
     )
@@ -234,8 +194,7 @@ def main():
 
     args = parser.parse_args()
 
-    print("Connecting to dev database via SSH tunnel...")
-    # print(f"DATABASE_URL: {os.environ.get('DATABASE_URL', 'NOT SET')}")
+    print("Using the local Django database...")
     print()
 
     score_and_display(course_slug=args.course_slug, project_slug=args.project_slug)

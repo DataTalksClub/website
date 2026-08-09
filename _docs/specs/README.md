@@ -23,7 +23,10 @@ instantiation in a separate production account. Live physical names are catalogu
 - Studio and the admin API call the same application services and enforce the same permissions, validation, idempotency, and audit rules.
 - Every management capability has both a Studio route and an admin API route; CI verifies this parity.
 - Python dependency management and commands use `uv`.
-- The application is deployable as separate web and worker processes with PostgreSQL.
+- Local development and ordinary CI use project-local, isolated SQLite databases. Application
+  models, migrations, and services remain backend-portable Django code.
+- The application is deployable as separate web and worker processes backed by RDS PostgreSQL;
+  real-engine validation is bounded to deployment migration, readiness, and smoke checks.
 
 ## Recommended MVP decisions
 
@@ -34,7 +37,8 @@ These defaults keep the first release useful without reproducing unrelated AI Sh
 - Public registration is accountless. Email ownership is verified before a registration becomes confirmed.
 - Capacity, waitlists, recurring events, marketing campaigns, recommendations, payments, CRM, and personalization are deferred.
 - Transactional email uses Amazon SES in `us-east-1` and a durable database outbox processed by Django-Q2 workers.
-- Search uses PostgreSQL in the first release while preserving the current FAQ and Podwiki public contracts.
+- Search preserves the current FAQ and Podwiki public contracts through a backend-portable
+  projection; its ranking and indexing implementation belongs to the content/search issue.
 - Staff sign-in uses an OIDC provider that enforces MFA. Authorization uses Django groups and permissions.
 - The application prefers a rare duplicate transactional email over a missed critical email when a provider accepts a message but its acknowledgement is lost. Local deduplication minimizes this window.
 
@@ -45,7 +49,7 @@ flowchart LR
     Readers[Readers and registrants] --> Edge[CloudFront and AWS edge]
     Staff[Staff] --> Edge
     Edge --> Web[Django web service]
-    Web --> DB[(PostgreSQL)]
+    Web --> DB[(Deployed RDS PostgreSQL)]
     Web --> Assets[(Versioned content assets in S3)]
     Worker[Django-Q2 worker] --> DB
     Worker --> Assets
@@ -72,6 +76,9 @@ flowchart LR
 - [09 - Migration, rollout, and roadmap](09-migration-rollout-roadmap.md)
 - [10 - Verification strategy](10-verification-strategy.md)
 - [Open decisions](open-decisions.md)
+
+The implemented local/CI and deployed-engine boundary is recorded in
+[database portability](../architecture/database-portability.md).
 
 ## Definition of ready for implementation
 

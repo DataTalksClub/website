@@ -11,7 +11,6 @@ from django.utils import timezone
 
 from core.idempotency import (
     JsonObject,
-    acquire_transaction_lock,
     canonical_json_bytes,
     canonical_json_object,
 )
@@ -81,20 +80,35 @@ def execute_one_time_idempotent(
     key_hash = _hash_key(principal.id, operation, key)
     request_hash = _hash_request(principal.id, operation, request)
     now = timezone.now()
+    owner_token = uuid.uuid4()
+    defaults = {
+        "request_hash": request_hash,
+        "status": ManagementIdempotencyRecord.Status.IN_PROGRESS,
+        "owner_token": owner_token,
+        "expires_at": now + IDEMPOTENCY_RETENTION,
+    }
 
     with transaction.atomic(using=using):
-        lock_key = f"{principal.id}:{operation}:{key_hash}"
-        acquire_transaction_lock("management-idempotency", lock_key, using=using)
-        record = (
-            ManagementIdempotencyRecord.objects.using(using)
-            .select_for_update()
-            .filter(principal=principal, operation=operation, key_hash=key_hash)
-            .first()
+        record, created = ManagementIdempotencyRecord.objects.using(using).get_or_create(
+            principal=principal,
+            operation=operation,
+            key_hash=key_hash,
+            defaults=defaults,
         )
-        if record is not None and record.expires_at <= now:
-            record.delete(using=using)
-            record = None
-        if record is not None:
+        if not created and record.expires_at <= now:
+            deleted, _ = (
+                ManagementIdempotencyRecord.objects.using(using)
+                .filter(pk=record.pk, expires_at__lte=now)
+                .delete()
+            )
+            if deleted:
+                record, created = ManagementIdempotencyRecord.objects.using(using).get_or_create(
+                    principal=principal,
+                    operation=operation,
+                    key_hash=key_hash,
+                    defaults=defaults,
+                )
+        if not created:
             if record.request_hash != request_hash:
                 raise ManagementIdempotencyConflict("idempotency request conflicts")
             if record.status == ManagementIdempotencyRecord.Status.COMPLETED:
@@ -104,16 +118,6 @@ def execute_one_time_idempotent(
                 raise SecretUnavailableOnReplay(safe_result)
             raise ManagementIdempotencyConflict("idempotency request is in progress")
 
-        owner_token = uuid.uuid4()
-        record = ManagementIdempotencyRecord.objects.using(using).create(
-            principal=principal,
-            operation=operation,
-            key_hash=key_hash,
-            request_hash=request_hash,
-            status=ManagementIdempotencyRecord.Status.IN_PROGRESS,
-            owner_token=owner_token,
-            expires_at=now + IDEMPOTENCY_RETENTION,
-        )
         result = command()
         safe_result = canonical_json_object(result.safe_result)
         response = canonical_json_object(result.response)

@@ -6,7 +6,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from django.db import DEFAULT_DB_ALIAS, connections, transaction
+from django.db import DEFAULT_DB_ALIAS
 
 from core.context import context_scope
 from jobs.clock import database_now
@@ -63,82 +63,94 @@ def claim_job(
     worker_id = _validate_worker_id(worker_id)
     lease_seconds = _validate_lease_seconds(lease_seconds)
     now = database_now(using=using)
-    with transaction.atomic(using=using):
-        try:
-            job = DurableJob.objects.using(using).select_for_update().get(id=job_id)
-        except DurableJob.DoesNotExist:
-            return None
+    try:
+        job = DurableJob.objects.using(using).get(id=job_id)
+    except DurableJob.DoesNotExist:
+        return None
 
-        if job.status in DurableJob.TERMINAL_STATUSES:
+    if job.status in DurableJob.TERMINAL_STATUSES:
+        return None
+    if job.status == DurableJob.Status.RUNNING:
+        if job.lease_expires_at is not None and job.lease_expires_at > now:
             return None
-        if job.status == DurableJob.Status.RUNNING:
-            if job.lease_expires_at is not None and job.lease_expires_at > now:
-                return None
-            _recover_locked_job(job, now=now)
-            if job.status == DurableJob.Status.FAILED:
-                job.save(
-                    update_fields=(
-                        "status",
-                        "lease_token",
-                        "lease_expires_at",
-                        "claimed_by",
-                        "last_error_code",
-                        "completed_at",
-                        "updated_at",
-                    )
-                )
-                return None
-        if job.available_at > now:
-            return None
-        if job.attempt_count >= job.max_attempts:
-            job.status = DurableJob.Status.FAILED
-            job.last_error_code = "attempts_exhausted"
-            job.completed_at = now
-            _clear_lease(job)
-            job.save(
-                update_fields=(
-                    "status",
-                    "lease_token",
-                    "lease_expires_at",
-                    "claimed_by",
-                    "last_error_code",
-                    "completed_at",
-                    "updated_at",
-                )
-            )
-            return None
-
-        lease_token = uuid.uuid4()
-        lease_expires_at = now + timedelta(seconds=lease_seconds)
-        job.status = DurableJob.Status.RUNNING
-        job.attempt_count += 1
-        job.lease_token = lease_token
-        job.lease_expires_at = lease_expires_at
-        job.claimed_by = worker_id
-        job.last_error_code = ""
-        job.save(
-            update_fields=(
-                "status",
-                "attempt_count",
-                "lease_token",
-                "lease_expires_at",
-                "claimed_by",
-                "last_error_code",
-                "updated_at",
-            )
-        )
-        return JobClaim(
-            job_id=job.id,
-            operation_id=job.operation_id,
-            request_id=job.request_id or None,
-            correlation_id=job.correlation_id or None,
-            handler=job.handler,
-            payload=job.payload,
+        observed_token = job.lease_token
+        observed_expiry = job.lease_expires_at
+        _recover_locked_job(job, now=now)
+        DurableJob.objects.using(using).filter(
+            id=job.id,
+            status=DurableJob.Status.RUNNING,
+            lease_token=observed_token,
+            lease_expires_at=observed_expiry,
             attempt_count=job.attempt_count,
-            worker_id=worker_id,
+        ).update(
+            status=job.status,
+            available_at=job.available_at,
+            next_wakeup_at=job.next_wakeup_at,
+            lease_token=None,
+            lease_expires_at=None,
+            claimed_by="",
+            last_error_code=job.last_error_code,
+            completed_at=job.completed_at,
+            updated_at=now,
+        )
+        return None
+    if job.available_at > now:
+        return None
+    if job.attempt_count >= job.max_attempts:
+        DurableJob.objects.using(using).filter(
+            id=job.id,
+            status=job.status,
+            attempt_count=job.attempt_count,
+            max_attempts=job.max_attempts,
+            lease_token__isnull=True,
+        ).update(
+            status=DurableJob.Status.FAILED,
+            lease_token=None,
+            lease_expires_at=None,
+            claimed_by="",
+            last_error_code="attempts_exhausted",
+            completed_at=now,
+            updated_at=now,
+        )
+        return None
+
+    lease_token = uuid.uuid4()
+    lease_expires_at = now + timedelta(seconds=lease_seconds)
+    next_attempt = job.attempt_count + 1
+    updated = (
+        DurableJob.objects.using(using)
+        .filter(
+            id=job.id,
+            status=job.status,
+            attempt_count=job.attempt_count,
+            max_attempts=job.max_attempts,
+            available_at=job.available_at,
+            lease_token__isnull=True,
+        )
+        .update(
+            status=DurableJob.Status.RUNNING,
+            attempt_count=next_attempt,
             lease_token=lease_token,
             lease_expires_at=lease_expires_at,
+            claimed_by=worker_id,
+            last_error_code="",
+            updated_at=now,
         )
+    )
+    if updated != 1:
+        return None
+    return JobClaim(
+        job_id=job.id,
+        operation_id=job.operation_id,
+        request_id=job.request_id or None,
+        correlation_id=job.correlation_id or None,
+        handler=job.handler,
+        payload=job.payload,
+        attempt_count=next_attempt,
+        worker_id=worker_id,
+        lease_token=lease_token,
+        lease_expires_at=lease_expires_at,
+    )
 
 
 def renew_job_lease(
@@ -200,45 +212,52 @@ def fail_job(
 ) -> bool:
     error_code = _validate_error_code(error_code)
     now = database_now(using=using)
-    with transaction.atomic(using=using):
-        try:
-            job = (
-                DurableJob.objects.using(using)
-                .select_for_update()
-                .get(
-                    id=job_id,
-                    status=DurableJob.Status.RUNNING,
-                    lease_token=lease_token,
-                    lease_expires_at__gt=now,
-                )
-            )
-        except DurableJob.DoesNotExist:
-            return False
-
-        _clear_lease(job)
-        job.last_error_code = error_code
-        if retryable and job.attempt_count < job.max_attempts:
-            job.status = DurableJob.Status.RETRY_WAIT
-            job.available_at = now + retry_backoff(job.attempt_count)
-            job.next_wakeup_at = job.available_at
-            job.completed_at = None
-        else:
-            job.status = DurableJob.Status.FAILED
-            job.completed_at = now
-        job.save(
-            update_fields=(
-                "status",
-                "available_at",
-                "next_wakeup_at",
-                "lease_token",
-                "lease_expires_at",
-                "claimed_by",
-                "last_error_code",
-                "completed_at",
-                "updated_at",
-            )
+    job = (
+        DurableJob.objects.using(using)
+        .filter(
+            id=job_id,
+            status=DurableJob.Status.RUNNING,
+            lease_token=lease_token,
+            lease_expires_at__gt=now,
         )
-    return True
+        .first()
+    )
+    if job is None:
+        return False
+
+    if retryable and job.attempt_count < job.max_attempts:
+        status = DurableJob.Status.RETRY_WAIT
+        available_at = now + retry_backoff(job.attempt_count)
+        next_wakeup_at = available_at
+        completed_at = None
+    else:
+        status = DurableJob.Status.FAILED
+        available_at = job.available_at
+        next_wakeup_at = job.next_wakeup_at
+        completed_at = now
+    updated = (
+        DurableJob.objects.using(using)
+        .filter(
+            id=job_id,
+            status=DurableJob.Status.RUNNING,
+            lease_token=lease_token,
+            lease_expires_at__gt=now,
+            attempt_count=job.attempt_count,
+            max_attempts=job.max_attempts,
+        )
+        .update(
+            status=status,
+            available_at=available_at,
+            next_wakeup_at=next_wakeup_at,
+            lease_token=None,
+            lease_expires_at=None,
+            claimed_by="",
+            last_error_code=error_code,
+            completed_at=completed_at,
+            updated_at=now,
+        )
+    )
+    return updated == 1
 
 
 def sweep_expired_jobs(*, limit: int = 100, using: str = DEFAULT_DB_ALIAS) -> tuple[int, int]:
@@ -247,39 +266,45 @@ def sweep_expired_jobs(*, limit: int = 100, using: str = DEFAULT_DB_ALIAS) -> tu
     now = database_now(using=using)
     recovered = 0
     exhausted = 0
-    connection = connections[using]
-    with transaction.atomic(using=using):
-        queryset = (
+    jobs = list(
+        DurableJob.objects.using(using)
+        .filter(
+            status=DurableJob.Status.RUNNING,
+            lease_expires_at__lte=now,
+        )
+        .order_by("lease_expires_at", "id")[:limit]
+    )
+    for job in jobs:
+        observed_token = job.lease_token
+        observed_expiry = job.lease_expires_at
+        _recover_locked_job(job, now=now)
+        updated = (
             DurableJob.objects.using(using)
             .filter(
+                id=job.id,
                 status=DurableJob.Status.RUNNING,
-                lease_expires_at__lte=now,
+                lease_token=observed_token,
+                lease_expires_at=observed_expiry,
+                attempt_count=job.attempt_count,
             )
-            .order_by("lease_expires_at", "id")
+            .update(
+                status=job.status,
+                available_at=job.available_at,
+                next_wakeup_at=job.next_wakeup_at,
+                lease_token=None,
+                lease_expires_at=None,
+                claimed_by="",
+                last_error_code=job.last_error_code,
+                completed_at=job.completed_at,
+                updated_at=now,
+            )
         )
-        if connection.features.has_select_for_update_skip_locked:
-            queryset = queryset.select_for_update(skip_locked=True)
-        elif connection.features.has_select_for_update:
-            queryset = queryset.select_for_update()
-        for job in queryset[:limit]:
-            _recover_locked_job(job, now=now)
-            if job.status == DurableJob.Status.FAILED:
-                exhausted += 1
-            else:
-                recovered += 1
-            job.save(
-                update_fields=(
-                    "status",
-                    "available_at",
-                    "next_wakeup_at",
-                    "lease_token",
-                    "lease_expires_at",
-                    "claimed_by",
-                    "last_error_code",
-                    "completed_at",
-                    "updated_at",
-                )
-            )
+        if updated != 1:
+            continue
+        if job.status == DurableJob.Status.FAILED:
+            exhausted += 1
+        else:
+            recovered += 1
     return recovered, exhausted
 
 

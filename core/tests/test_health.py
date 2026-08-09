@@ -24,11 +24,11 @@ class HealthTests(TestCase):
         self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
 
     def test_liveness_does_not_call_database(self) -> None:
-        with patch("core.views.connection.cursor") as cursor:
+        with patch("core.views.connection.ensure_connection") as ensure_connection:
             response = self.client.get(reverse("health-live"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
-        cursor.assert_not_called()
+        ensure_connection.assert_not_called()
 
     def test_readiness_succeeds_when_database_and_migrations_are_healthy(self) -> None:
         response = self.client.get(reverse("health-ready"))
@@ -48,7 +48,10 @@ class HealthTests(TestCase):
 
     @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
     def test_readiness_alb_probe_preserves_dependency_failure(self) -> None:
-        with patch("core.views.connection.cursor", side_effect=RuntimeError("secret detail")):
+        with patch(
+            "core.views.connection.ensure_connection",
+            side_effect=RuntimeError("secret detail"),
+        ):
             response = self.client.get(
                 reverse("health-ready"),
                 headers={"host": "10.0.0.10:8000"},
@@ -103,7 +106,10 @@ class HealthTests(TestCase):
                 self.assertNotIn("Location", response.headers)
 
     def test_readiness_fails_safely_when_database_is_unavailable(self) -> None:
-        with patch("core.views.connection.cursor", side_effect=RuntimeError("secret detail")):
+        with patch(
+            "core.views.connection.ensure_connection",
+            side_effect=RuntimeError("secret detail"),
+        ):
             response = self.client.get(reverse("health-ready"))
         self.assertEqual(response.status_code, 503)
         self.assertEqual(response.json()["checks"]["database"]["message"], "database unavailable")

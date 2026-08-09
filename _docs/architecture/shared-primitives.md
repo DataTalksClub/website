@@ -11,9 +11,10 @@ reject empty or duplicate members, and runtime
 environment names are explicit. Errors name only the setting and a stable reason; they never echo
 the rejected value because database URLs and other bootstrap values may contain credentials.
 
-Development and production accept PostgreSQL only, and each deployed settings module rejects a
-missing, unknown, or mismatched runtime-environment value. SQLite remains available through an
-explicit callable helper for local and test settings; it is never an implicit deployed fallback.
+Deployed development and production accept PostgreSQL only, and each deployed settings module
+rejects a missing, unknown, or mismatched runtime-environment value. Local and test settings select
+project-local SQLite deterministically, ignore ambient `DATABASE_URL`, and never become an implicit
+deployed fallback.
 Deployed secret keys must meet Django's length and character-diversity baseline, contain no control
 characters, and differ from known development defaults. Validation errors never echo secret input.
 
@@ -70,12 +71,13 @@ The concrete revision, idempotency, operation, audit, configuration, lease, sche
 dispatch models remain owned by their named `core` or `jobs` modules. Domain code uses their
 services instead of importing presentation or worker code.
 
-PostgreSQL row and statement triggers reject application `UPDATE`, `DELETE`, and `TRUNCATE` of
-append-only audit evidence. The code-owned test settings module explicitly opts into omitting the
-truncate trigger, and the migration accepts that opt-in only for the ephemeral CI database
-`dtc_test` or a Django-generated database whose name has the `test_` prefix. A database name alone
-never enables the exception, so `TransactionTestCase` can flush without weakening a deployed
-database.
-Production maintenance must use an explicitly reviewed privileged procedure. These triggers harden
-normal application and operator paths, but they do not protect against a database table owner who
-deliberately drops or disables them.
+Append-only audit and configuration-history behavior is enforced at the supported application
+boundary: model methods and managers expose insertion and retention-reference cleanup only, while
+Studio, API, jobs, and public adapters share the same writers. Declarative constraints protect
+state consistency on both supported engines. Privileged direct database tampering is outside this
+portable application trust boundary, and maintenance uses an explicitly reviewed procedure.
+
+Content activation additionally uses a persisted, uniquely keyed active-path claim for every
+enabled source path. The service revalidates after preflight and swaps claims, release state, the
+source pointer, and its audit event atomically. Bounded whole-transaction retry handles portable
+database write contention; it never reruns the preflight seam and cannot publish two path owners.

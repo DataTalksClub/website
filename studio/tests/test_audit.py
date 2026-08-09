@@ -6,7 +6,7 @@ import uuid
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
-from django.db import DatabaseError, connection, transaction
+from django.db import connection
 from django.test import Client, TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
@@ -261,20 +261,6 @@ class AuditBrowserTests(TestCase):
 
         anonymous_method = Client().post(reverse("studio:audit-list"))
         self.assert_private(anonymous_method, 302)
-
-
-class PostgreSQLAuditGuardTests(TestCase):
-    def test_database_role_cannot_update_or_delete_audit_event(self) -> None:
-        if connection.vendor != "postgresql":
-            self.skipTest("PostgreSQL trigger contract")
-        event = make_event()
-        for statement in (
-            "UPDATE core_auditevent SET action = 'tests.audit.changed' WHERE id = %s",
-            "DELETE FROM core_auditevent WHERE id = %s",
-        ):
-            with self.subTest(statement=statement), self.assertRaises(DatabaseError):
-                with transaction.atomic(), connection.cursor() as cursor:
-                    cursor.execute(statement, (event.id,))
 
 
 @override_settings(ROOT_URLCONF="studio.tests.fixture_urls")

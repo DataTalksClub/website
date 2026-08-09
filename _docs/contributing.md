@@ -14,3 +14,7 @@ Start with a groomed GitHub issue and follow [`PROCESS.md`](PROCESS.md). The aut
 Raw reports use `needs grooming`. Groomed issues use one priority (`P0`, `P1`, or `P2`), the relevant area labels, and a type label when useful. Use `human` only for a specifically named verification that automation cannot perform.
 
 Never commit secrets, `.env`, SQLite databases, generated browser state, screenshots, or production data.
+
+Local development and ordinary CI use gitignored SQLite databases and need no PostgreSQL service.
+An ambient `DATABASE_URL` cannot switch ordinary tests away from SQLite. Deployed settings remain
+fail-closed and require PostgreSQL for the bounded migration/readiness/smoke path.

@@ -44,12 +44,16 @@ def lock_revisioned[Revisioned: RevisionedModel](
     queryset: QuerySet[Revisioned] | None = None,
     using: str = "default",
 ) -> Revisioned:
-    """Lock a revisioned row and reject stale compare-and-swap mutations."""
+    """Load a revisioned row and reject an already-stale mutation.
+
+    ``RevisionedModel.save`` performs the authoritative conditional update, so
+    correctness does not depend on a backend implementing row locks.
+    """
 
     if expected_revision < 1:
         raise ValueError("expected revision must be positive")
     selected = queryset if queryset is not None else model._default_manager.all()
-    instance = selected.using(using).select_for_update().get(pk=object_id)
+    instance = selected.using(using).get(pk=object_id)
     if instance.revision != expected_revision:
         raise RevisionConflict(expected=expected_revision, actual=instance.revision)
     return instance

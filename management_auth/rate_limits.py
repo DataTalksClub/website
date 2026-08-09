@@ -6,10 +6,8 @@ import uuid
 from collections.abc import Callable
 
 from django.db import DatabaseError, transaction
-from django.db.models import Sum
+from django.db.models import F, Sum
 from django.utils import timezone
-
-from core.idempotency import acquire_transaction_lock
 
 from .constants import (
     ADAPTIVE_RATE_LIMIT,
@@ -19,7 +17,7 @@ from .constants import (
     READ_RATE_LIMIT,
     WRITE_RATE_LIMIT,
 )
-from .models import APIPrincipal, APIRateAdmission
+from .models import APIPrincipal, APIRateAdmission, APIRateSubject
 
 
 class RateLimitExceeded(RuntimeError):
@@ -30,6 +28,16 @@ class RateLimitExceeded(RuntimeError):
 
 class RateLimitUnavailable(RuntimeError):
     pass
+
+
+def _serialize_subject(*, subject_hash: str, cost_class: str, using: str) -> None:
+    """Acquire a transaction-scoped write fence using only portable ORM operations."""
+
+    subject, _ = APIRateSubject.objects.using(using).get_or_create(
+        subject_hash=subject_hash,
+        cost_class=cost_class,
+    )
+    APIRateSubject.objects.using(using).filter(pk=subject.pk).update(revision=F("revision") + 1)
 
 
 def _subject_hash(kind: str, subject: str) -> str:
@@ -74,9 +82,9 @@ def admit(
 
     try:
         with transaction.atomic(using=using):
-            acquire_transaction_lock(
-                "management-rate",
-                f"{subject_hash}:{cost_class}",
+            _serialize_subject(
+                subject_hash=subject_hash,
+                cost_class=cost_class,
                 using=using,
             )
             current = (
@@ -134,9 +142,9 @@ def verify_with_adaptive_limit(
     subject_hash = _subject_hash("invalid-prefix", prefix)
     try:
         with transaction.atomic(using=using):
-            acquire_transaction_lock(
-                "management-rate",
-                f"{subject_hash}:{APIRateAdmission.CostClass.ADAPTIVE}",
+            _serialize_subject(
+                subject_hash=subject_hash,
+                cost_class=APIRateAdmission.CostClass.ADAPTIVE,
                 using=using,
             )
             failures = (

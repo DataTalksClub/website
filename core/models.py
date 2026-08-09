@@ -4,7 +4,7 @@ import uuid
 from typing import Any
 
 from django.conf import settings
-from django.db import models
+from django.db import models, router
 from django.db.models import F, Q
 
 
@@ -57,6 +57,57 @@ class RevisionedModel(models.Model):
 
     class Meta:
         abstract = True
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        """Use one portable conditional update for revisioned service mutations.
+
+        Callers increment ``revision`` and include it in ``update_fields``. The
+        update succeeds only while the persisted row still has the immediately
+        preceding revision, so SQLite and deployed PostgreSQL exercise the same
+        optimistic compare-and-swap contract.
+        """
+
+        update_fields = kwargs.get("update_fields")
+        if self._state.adding or update_fields is None or "revision" not in update_fields:
+            super().save(*args, **kwargs)
+            return
+        if args or kwargs.get("force_insert"):
+            raise ValueError(
+                "revisioned conditional updates do not support positional/insert flags"
+            )
+        if self.revision < 2:
+            raise ValueError("revisioned updates must increment revision exactly once")
+
+        using = kwargs.get("using") or router.db_for_write(type(self), instance=self)
+        values: dict[str, Any] = {}
+        for field_name in update_fields:
+            field = self._meta.get_field(field_name)
+            if not isinstance(field, models.Field) or field.primary_key:
+                raise ValueError("revisioned update_fields must name concrete non-key fields")
+            value = field.pre_save(self, add=False)
+            values[field.attname] = value
+
+        expected_revision = self.revision - 1
+        queryset = (
+            type(self)
+            ._default_manager.using(using)
+            .filter(
+                pk=self.pk,
+                revision=expected_revision,
+            )
+        )
+        if queryset.update(**values) != 1:
+            actual_revision = (
+                type(self)
+                ._default_manager.using(using)
+                .filter(pk=self.pk)
+                .values_list("revision", flat=True)
+                .first()
+            )
+            if actual_revision is None:
+                raise type(self).DoesNotExist(self.pk)
+            raise RevisionConflict(expected=expected_revision, actual=actual_revision)
+        self._state.db = using
 
 
 class AuditEvent(models.Model):
