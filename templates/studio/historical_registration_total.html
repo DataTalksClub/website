@@ -1,0 +1,28 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Registration total preview · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="registration-total-heading">
+    <p class="eyebrow">Studio · Events</p>
+    <h1 id="registration-total-heading">Registration total preview</h1>
+    <dl class="credential-metadata">
+      <div><dt>Canonical event</dt><dd>{{ total.canonical_slug }}</dd></div>
+      <div><dt>Complete</dt><dd>{{ total.complete|yesno:"Yes,No" }}</dd></div>
+      <div><dt>Total</dt><dd>{{ total.count|default_if_none:"Omitted" }}</dd></div>
+      <div><dt>Representation revision</dt><dd>{{ total.total_revision|default_if_none:"None" }}</dd></div>
+    </dl>
+    <h2>Protected contributions</h2>
+    <div class="credential-grid">
+      {% for contribution in total.contributions %}
+        <article class="audit-card">
+          <h3>{{ contribution.provider }}</h3>
+          <p>{{ contribution.count }} in {{ contribution.coverage_boundary }}</p>
+          <p>{{ contribution.combination_policy }}</p>
+        </article>
+      {% empty %}
+        <p>No active contribution.</p>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Historical registration totals · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="historical-runs-heading">
+    <p class="eyebrow">Studio · Events</p>
+    <h1 id="historical-runs-heading">Historical registration totals</h1>
+    <p class="lede">
+      Stage aggregate-only counts from a code-registered protected source. Attendee rows and
+      provider payloads are never stored.
+    </p>
+
+    <nav aria-label="Historical registration sections" class="studio-navigation">
+      <a href="{% url 'studio:historical-registration-mappings' %}">Review mappings</a>
+    </nav>
+
+    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
+
+    <section aria-labelledby="stage-source-heading">
+      <h2 id="stage-source-heading">Stage a registered source</h2>
+      {% if source_references %}
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+          <label for="provider">Provider</label>
+          <select id="provider" name="provider" required>
+            {% for value, label in providers %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
+          </select>
+          <label for="source-reference">Registered source reference</label>
+          <select id="source-reference" name="source_reference" required>
+            {% for reference in source_references %}<option value="{{ reference }}">{{ reference }}</option>{% endfor %}
+          </select>
+          <label for="mapping-set-revision">Mapping-set revision</label>
+          <input id="mapping-set-revision" name="mapping_set_revision" type="number" min="1" value="1" required>
+          <label class="check-field">
+            <input type="checkbox" name="confirmed" value="true" required>
+            <span>Confirm aggregate-only staging</span>
+          </label>
+          <button type="submit">Stage source</button>
+        </form>
+      {% else %}
+        <p class="foundation-note">No protected source reference is registered in this environment.</p>
+      {% endif %}
+    </section>
+
+    <section aria-labelledby="source-runs-heading">
+      <h2 id="source-runs-heading">Source runs</h2>
+      <div class="credential-grid">
+        {% for run in runs %}
+          <article class="audit-card">
+            <h3><a href="{% url 'studio:historical-registration-detail' run_id=run.id %}">{{ run.provider }} · {{ run.state }}</a></h3>
+            <dl class="credential-metadata">
+              <div><dt>Events</dt><dd>{{ run.manifest_event_total }}</dd></div>
+              <div><dt>Rows reconciled</dt><dd>{{ run.parsed_row_total }}</dd></div>
+              <div><dt>Eligible</dt><dd>{{ run.eligible_row_total }}</dd></div>
+              <div><dt>Excluded</dt><dd>{{ run.excluded_row_total }}</dd></div>
+              <div><dt>Quarantined events</dt><dd>{{ run.quarantined_event_total }}</dd></div>
+              <div><dt>Revision</dt><dd>{{ run.revision }}</dd></div>
+            </dl>
+          </article>
+        {% empty %}
+          <p>No source runs have been staged.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </section>
+{% endblock %}

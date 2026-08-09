@@ -20,9 +20,93 @@ credential_collection.management_capability_views = {  # type: ignore[attr-defin
     "POST": views.credential_create,
 }
 
+
+@csrf_exempt
+def historical_import_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.historical_import_list(request, *args, **kwargs)
+    return views.historical_import_create(request, *args, **kwargs)
+
+
+historical_import_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "events.historical_registration_import.manage",
+    "events.historical_registration_import.create",
+)
+historical_import_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.historical_import_list,
+    "POST": views.historical_import_create,
+}
+
+
+@csrf_exempt
+def historical_mapping_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.historical_mapping_list(request, *args, **kwargs)
+    return views.historical_mapping_create(request, *args, **kwargs)
+
+
+historical_mapping_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "events.historical_registration_mapping.manage",
+    "events.historical_registration_mapping.create",
+)
+historical_mapping_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.historical_mapping_list,
+    "POST": views.historical_mapping_create,
+}
+
 urlpatterns = [
     path("health", views.admin_health, name="admin-health"),
     path("credentials", credential_collection, name="admin-credential-list"),
+    path(
+        "historical-registration-imports",
+        historical_import_collection,
+        name="historical-registration-import-list",
+    ),
+    path(
+        "historical-registration-imports/<uuid:run_id>",
+        views.historical_import_detail,
+        name="historical-registration-import-detail",
+    ),
+    path(
+        "historical-registration-imports/<uuid:run_id>/dry-run",
+        views.historical_import_dry_run,
+        name="historical-registration-import-dry-run",
+    ),
+    path(
+        "historical-registration-imports/<uuid:run_id>/validate",
+        views.historical_import_validate,
+        name="historical-registration-import-validate",
+    ),
+    path(
+        "historical-registration-imports/<uuid:run_id>/activate",
+        views.historical_import_activate,
+        name="historical-registration-import-activate",
+    ),
+    path(
+        "historical-registration-imports/<uuid:run_id>/cancel",
+        views.historical_import_cancel,
+        name="historical-registration-import-cancel",
+    ),
+    path(
+        "historical-registration-imports/<uuid:run_id>/rollback",
+        views.historical_import_rollback,
+        name="historical-registration-import-rollback",
+    ),
+    path(
+        "historical-event-mappings",
+        historical_mapping_collection,
+        name="historical-event-mapping-list",
+    ),
+    path(
+        "historical-event-mappings/<uuid:mapping_id>",
+        views.historical_mapping_update,
+        name="historical-event-mapping-detail",
+    ),
+    path(
+        "events/<slug:canonical_key>/registration-total",
+        views.historical_registration_total,
+        name="historical-registration-total",
+    ),
     path(
         "credentials/<uuid:credential_id>/rotate",
         views.credential_rotate,

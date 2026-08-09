@@ -213,3 +213,18 @@ The legacy static build and URL manifest remain available throughout the rollbac
 - Query, header, cookie, encoding, redirect, 404, unsafe-method, and origin-error tests prove that
   only the exact public classes above create bounded cache objects.
 - DNS cutover is not approved until the complete SEO parity report passes.
+
+## Historical registration-total representation
+
+The checked canonical event detail `/events/<slug>` may show one exact, unrounded, non-negative
+integer as `N registered` when the events query reports complete accepted coverage. The event hub,
+sitemaps, structured data, search, caches, and every other public surface omit the total. They also
+omit provider splits, source/mapping state, external event identifiers, and all attendee identity.
+Review-required, source-missing, quarantined, or incomplete evidence is omission, never an inferred
+zero. `registered` is not attendance evidence.
+
+Activating, replacing, rolling back, or invalidating a contribution increments the event's public
+total revision and commits one durable invalidation intent for the exact canonical detail path,
+coalesced by canonical event plus revision. Until #109 proves anonymous cache isolation and the
+invalidation provider, any event detail carrying a total is `no-store` with zero browser/shared
+TTL. The detail remains canonical, indexable in production, and contains no total in JSON-LD.

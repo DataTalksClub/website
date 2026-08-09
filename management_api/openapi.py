@@ -256,6 +256,211 @@ def generate_document() -> dict[str, Any]:
                         "confirmed": {"type": "boolean", "const": True},
                     },
                 },
+                "HistoricalRegistrationImport": {
+                    "type": "object",
+                    "additionalProperties": True,
+                    "required": [
+                        "id",
+                        "provider",
+                        "source_checksum",
+                        "state",
+                        "revision",
+                    ],
+                    "properties": {
+                        "id": {"type": "string", "format": "uuid"},
+                        "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
+                        "source_checksum": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                        "state": {
+                            "type": "string",
+                            "enum": [
+                                "staged",
+                                "validated",
+                                "active",
+                                "cancelled",
+                                "rolled_back",
+                                "quarantined",
+                            ],
+                        },
+                        "revision": {"type": "integer", "minimum": 1},
+                    },
+                },
+                "HistoricalRegistrationImportDetail": {
+                    "allOf": [
+                        {"$ref": "#/components/schemas/HistoricalRegistrationImport"},
+                        {
+                            "type": "object",
+                            "required": ["aggregates"],
+                            "properties": {
+                                "aggregates": {
+                                    "type": "array",
+                                    "items": {"type": "object", "additionalProperties": True},
+                                }
+                            },
+                        },
+                    ]
+                },
+                "HistoricalRegistrationImportList": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["items", "page", "page_size", "total_count"],
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/HistoricalRegistrationImport"},
+                        },
+                        "page": {"type": "integer", "minimum": 1},
+                        "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
+                        "total_count": {"type": "integer", "minimum": 0},
+                    },
+                },
+                "HistoricalRegistrationImportCreateRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["provider", "source_reference", "mapping_set_revision"],
+                    "properties": {
+                        "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
+                        "source_reference": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_.:-]{0,127}$",
+                        },
+                        "mapping_set_revision": {"type": "integer", "minimum": 1},
+                    },
+                },
+                "HistoricalRegistrationImportActionRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["confirmed", "reason_code"],
+                    "properties": {
+                        "confirmed": {"type": "boolean", "const": True},
+                        "reason_code": {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}$"},
+                    },
+                },
+                "HistoricalRegistrationImportActionResult": {
+                    "type": "object",
+                    "additionalProperties": True,
+                    "required": ["run_id", "state", "replayed"],
+                    "properties": {
+                        "run_id": {"type": "string", "format": "uuid"},
+                        "state": {"type": "string"},
+                        "replayed": {"type": "boolean"},
+                    },
+                },
+                "HistoricalEventMapping": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "id",
+                        "provider",
+                        "external_event_identifier",
+                        "state",
+                        "mapping_set_revision",
+                        "revision",
+                    ],
+                    "properties": {
+                        "id": {"type": "string", "format": "uuid"},
+                        "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
+                        "external_event_identifier": {"type": "string"},
+                        "canonical_slug": {"type": "string"},
+                        "state": {
+                            "type": "string",
+                            "enum": ["review_required", "mapped", "excluded", "source_missing"],
+                        },
+                        "mapping_set_revision": {"type": "integer", "minimum": 1},
+                        "revision": {"type": "integer", "minimum": 1},
+                        "reason_code": {"type": "string"},
+                        "created_at": {"type": "string", "format": "date-time"},
+                        "updated_at": {"type": "string", "format": "date-time"},
+                    },
+                },
+                "HistoricalEventMappingList": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["items", "page", "page_size", "total_count"],
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/HistoricalEventMapping"},
+                        },
+                        "page": {"type": "integer", "minimum": 1},
+                        "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
+                        "total_count": {"type": "integer", "minimum": 0},
+                    },
+                },
+                "HistoricalEventMappingCreateRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "provider",
+                        "external_event_identifier",
+                        "state",
+                        "canonical_slug",
+                        "mapping_set_revision",
+                        "reason_code",
+                        "reason",
+                        "coverage_boundary",
+                        "combination_policy",
+                    ],
+                    "properties": {
+                        "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
+                        "external_event_identifier": {"type": "string", "maxLength": 512},
+                        "state": {"type": "string", "enum": ["mapped", "excluded"]},
+                        "canonical_slug": {"type": "string"},
+                        "mapping_set_revision": {"type": "integer", "minimum": 1},
+                        "reason_code": {"type": "string"},
+                        "reason": {"type": "string", "maxLength": 2000},
+                        "coverage_boundary": {"type": "string"},
+                        "combination_policy": {
+                            "type": "string",
+                            "enum": ["additive_disjoint", "replacement", "exclude"],
+                        },
+                    },
+                },
+                "HistoricalEventMappingUpdateRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "state",
+                        "canonical_slug",
+                        "mapping_set_revision",
+                        "reason_code",
+                        "reason",
+                        "coverage_boundary",
+                        "combination_policy",
+                    ],
+                    "properties": {
+                        "state": {"type": "string", "enum": ["mapped", "excluded"]},
+                        "canonical_slug": {"type": "string"},
+                        "mapping_set_revision": {"type": "integer", "minimum": 1},
+                        "reason_code": {"type": "string"},
+                        "reason": {"type": "string", "maxLength": 2000},
+                        "coverage_boundary": {"type": "string"},
+                        "combination_policy": {
+                            "type": "string",
+                            "enum": ["additive_disjoint", "replacement", "exclude"],
+                        },
+                    },
+                },
+                "HistoricalRegistrationTotal": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "canonical_slug",
+                        "complete",
+                        "count",
+                        "total_revision",
+                        "contributions",
+                    ],
+                    "properties": {
+                        "canonical_slug": {"type": "string"},
+                        "complete": {"type": "boolean"},
+                        "count": {"type": ["integer", "null"], "minimum": 0},
+                        "total_revision": {"type": ["integer", "null"], "minimum": 1},
+                        "contributions": {
+                            "type": "array",
+                            "items": {"type": "object", "additionalProperties": True},
+                        },
+                    },
+                },
                 "APIError": _error_schema(),
             },
         },

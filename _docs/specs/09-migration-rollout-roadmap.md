@@ -235,3 +235,25 @@ Each milestone updates:
 ## Completion definition
 
 The project is complete only when the unified production site is stable, management parity is verified, legacy course writes are disabled, link/SEO monitoring shows no unexplained regression, and rollback/retention obligations have passed their agreed window.
+
+## Historical registration aggregate rollout
+
+Historical totals use an expand-and-contract overlay keyed by the accepted #105 canonical source
+identity and slug; they do not wait for the #45 database Event lifecycle. A changed protected source
+checksum creates a new staged source/aggregate revision. Replaying the same
+checksum/schema/policy/mapping-set revision is a deterministic no-op. Validation requires every
+candidate to be exactly mapped or explicitly excluded, rejects changed canonical identity and
+quarantine, and activates the reviewed set atomically. Prior aggregate revisions remain available
+for reasoned, idempotent rollback.
+
+When #45 introduces Event UUIDs, a guarded migration resolves each stored #105 source identity and
+slug to exactly one Event. Missing, duplicate, or changed identity blocks cutover. When a later
+row-level import replaces a coverage slot, the migration atomically marks the aggregate superseded,
+activates the replacement pointer, reconciles the same public total, and only then switches reads;
+the aggregate and replacement are never simultaneously counted.
+
+Automated delivery uses synthetic protected-source fixtures only. An authorized operator separately
+checks real Luma/Eventbrite checksums, exact/review/exclude/source-missing mappings, counts, status
+and overlap policy, replay, activation, rollback, and invalidation. Only aggregate totals and bounded
+codes may be captured. #112 stays open with `human` until that gate succeeds; #109 gates positive
+edge TTL, not the zero-TTL public total.
