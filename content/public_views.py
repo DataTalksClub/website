@@ -21,6 +21,7 @@ from django.views.decorators.http import require_safe
 from courses.models.course import Course
 from courses.views.course import course_view
 from courses.views.course_list import course_list_context
+from events.services import public_registration_total
 
 from .public_data import PROJECTION_ROOT, event_groups, public_projection
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
@@ -151,7 +152,8 @@ def event_detail(request: HttpRequest, slug: str) -> HttpResponse:
     }
     if event["ends_at"]:
         entity["endDate"] = event["ends_at"]
-    return _render(
+    registration_total = public_registration_total(event)
+    response = _render(
         request,
         "public/event_detail.html",
         path=event["public_path"],
@@ -159,6 +161,7 @@ def event_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=f"{event['type'].title()} on {event['display_time']}.",
         context={
             "event": event,
+            "registration_total": registration_total,
             "og_type": "event",
             "structured_data": _json_ld(
                 entity,
@@ -166,6 +169,10 @@ def event_detail(request: HttpRequest, slug: str) -> HttpResponse:
             ),
         },
     )
+    if registration_total is not None:
+        response["Cache-Control"] = "no-store, max-age=0, s-maxage=0"
+        response["X-Event-Registration-Total-Revision"] = str(registration_total.revision)
+    return response
 
 
 @require_safe

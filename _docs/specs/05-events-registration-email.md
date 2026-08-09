@@ -222,3 +222,30 @@ Both interfaces can:
 - Public event catalog/detail caching cannot store a registration, management, provider, profile,
   Slack, or credentialed response.
 - Every event/email management action has Studio/admin API parity and negative authorization tests.
+
+## Aggregate-only historical registration overlay
+
+The `events` app may derive reviewed historical totals from protected Luma and Eventbrite sources.
+It persists source-run provenance, exact provider-event mappings, immutable per-event aggregate
+revisions, coverage/combination policy, active pointers, and safe audits only. It never creates a
+legacy registration row or stores a legacy name, email, guest/attendee ID or digest, answer,
+consent, privacy acknowledgement, timestamp, filename/path, or provider payload. Derivation causes
+no verification, transactional email, newsletter, sponsor, consent, or provider side effect.
+
+Status policy version 1 counts Luma `approved` and Eventbrite `Attending` as registrations.
+Declined, cancelled, rejected, duplicate, malformed, unknown, excluded, or quarantined records do
+not contribute; unknown status quarantines its provider-event aggregate. No source status is
+attendance/check-in evidence.
+
+Each accepted contribution occupies one canonical-event/provider/coverage slot. Multiple providers
+are not additive without reviewed `additive_disjoint` coverage. `replacement` atomically changes
+the winning pointer; `exclude` contributes nothing; ambiguous overlap fails closed. Future native
+confirmed/attended/no-show rows use a separately reviewed cutover slot, and a later row-level
+replacement atomically supersedes the aggregate so the query can never count both. Rollback changes
+pointers and revisions without deleting history. A replacement records an immutable displacement
+for every prior active aggregate or row-projection pointer, so rollback restores the complete prior
+accepted contribution set rather than selecting one superseded revision heuristically.
+Activation preflights the complete source run before changing any pointer. Two candidates in one
+run may not target the same canonical-event/provider/coverage slot; that collision fails closed
+before activation, so candidates from the run cannot displace one another or obscure the exact
+pre-run contribution set required by rollback.

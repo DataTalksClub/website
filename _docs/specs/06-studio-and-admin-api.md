@@ -203,3 +203,34 @@ served to a staff member, learner, or API principal.
   masking, permission, audit-redaction, and resend/idempotency behavior, with no Person side effect
   or raw Slack-link serialization.
 - Stale edits, duplicate commands, bulk partial failures, denied operations, and audit redaction behave consistently.
+
+## Historical registration-total management
+
+Two explicit permissions govern the provider-neutral workflow:
+`events.historical_registration_import_manage` and
+`events.historical_registration_mapping_manage`. The corresponding capability keys are
+`events.historical_registration_import.manage` and
+`events.historical_registration_mapping.manage`. Exact provider event identifiers appear only to
+the mapping capability; ordinary run detail masks them. Every route is private/no-store/noindex.
+
+Studio owns the following adapters:
+
+- `GET/POST /studio/events/historical-registration-totals/`;
+- `GET/POST /studio/events/historical-registration-totals/mappings/`;
+- `GET /studio/events/historical-registration-totals/<uuid>/` plus confirmed `dry-run`,
+  `validate`, `activate`, `cancel`, and `rollback` POST actions;
+- `GET /studio/events/<canonical-key>/registration-total/`.
+
+Admin API parity is:
+
+- `GET/POST /api/v1/admin/historical-registration-imports` and GET detail;
+- idempotent confirmed POST detail actions `dry-run`, `validate`, `activate`, `cancel`, and
+  `rollback`;
+- `GET/POST /api/v1/admin/historical-event-mappings` and revision-guarded PATCH detail;
+- `GET /api/v1/admin/events/<canonical-key>/registration-total`.
+
+Source creation accepts only an opaque key from the local code/configuration-owned protected-source
+registry, never an upload or arbitrary server path, and never returns that key. Studio/API call the
+same events services and expose only safe counts, checksums, policy/mapping revisions, states, and
+bounded reason codes. Map/exclude/validate/activate/replace/rollback audit evidence contains no
+attendee value, provider payload, source path/filename, token, or secret.

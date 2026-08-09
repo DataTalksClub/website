@@ -75,6 +75,7 @@ button.secondary { color: #17223b; background: #e8edf5; }
 .credential-metadata dt { color: #65708a; font-size: .82rem; font-weight: 700; text-transform: uppercase; }
 .credential-metadata dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
 .check-field { display: flex; align-items: center; gap: .65rem; }
+.check-field span { min-width: 0; overflow-wrap: anywhere; }
 .one-time-secret { margin: 1.5rem 0; padding: 1.25rem; border: 2px solid #0b5fff; border-radius: .75rem; background: #eef4ff; }
 .one-time-secret code { display: block; margin: 1rem 0; padding: .8rem; border-radius: .45rem; background: #17223b; color: #fff; overflow-wrap: anywhere; }
 

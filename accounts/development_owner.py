@@ -14,6 +14,8 @@ from django.utils import timezone
 from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
 from accounts.studio_roles import (
+    HISTORICAL_REGISTRATION_IMPORT_MANAGE,
+    HISTORICAL_REGISTRATION_MAPPING_MANAGE,
     MANAGE_API_CREDENTIALS,
     STUDIO_ACCESS,
     synchronize_studio_roles,
@@ -184,6 +186,8 @@ def bootstrap_development_owner(
         site_admin = Group.objects.using(using).get(name="site_admin")
         studio_access = _permission(STUDIO_ACCESS, using=using)
         credential_management = _permission(MANAGE_API_CREDENTIALS, using=using)
+        historical_import = _permission(HISTORICAL_REGISTRATION_IMPORT_MANAGE, using=using)
+        historical_mapping = _permission(HISTORICAL_REGISTRATION_MAPPING_MANAGE, using=using)
 
         if existing_user is None:
             if (
@@ -271,7 +275,7 @@ def bootstrap_development_owner(
                 using=using,
                 update_fields=("is_active", "revision", "updated_at"),
             )
-        service.permissions.set((studio_access,))
+        service.permissions.set((studio_access, historical_import, historical_mapping))
 
         revoked_sessions = 0
         revoked_credentials = 0

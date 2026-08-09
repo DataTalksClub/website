@@ -2,14 +2,17 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from django.conf import settings
 from django.http import (
     HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
     HttpResponseForbidden,
     HttpResponseNotAllowed,
+    HttpResponseRedirect,
 )
 from django.shortcuts import render
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.studio_authorization import (
@@ -18,6 +21,7 @@ from accounts.studio_authorization import (
     authorize_studio_request,
 )
 from accounts.studio_sessions import session_reference
+from content.public_data import public_projection
 from core.audit import AuditWriteContext, record_audit_event
 from core.audit_queries import (
     AUDIT_DISPLAY_FIELDS,
@@ -26,8 +30,16 @@ from core.audit_queries import (
     present_audit_event,
 )
 from core.capabilities import Capability
-from core.models import AuditEvent
+from core.idempotency import JsonObject, execute_idempotent
+from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
+from events.importers import ProtectedSourceError
+from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
+from events.services import (
+    HistoricalRegistrationConflict,
+    HistoricalRegistrationInvalid,
+    serialize_run,
+)
 from management_api.query import PageQuery
 from management_auth.idempotency import (
     SecretUnavailableOnReplay,
@@ -36,7 +48,7 @@ from management_auth.idempotency import (
 )
 from management_auth.models import APIPrincipal
 from management_auth.policies import require_high_risk_policy
-from management_auth.services import manageable_service_principals
+from management_auth.services import manageable_service_principals, principal_has_permission
 from management_registry import CAPABILITY_REGISTRY
 
 from .auth import capability_required, staff_required
@@ -49,7 +61,13 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
             capability.test_only
             or capability.studio.test_only
             or capability.studio.method != "GET"
-            or capability.key in {"studio.home.read", "studio.audit.detail"}
+            or capability.key
+            in {
+                "studio.home.read",
+                "studio.audit.detail",
+                "events.historical_registration_import.detail",
+                "events.historical_registration_total.read",
+            }
         ):
             continue
         try:
@@ -63,9 +81,15 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
         navigation.append(
             {
                 "key": capability.key,
-                "label": (
-                    "Audit" if capability.key == "studio.audit.browse" else "API credentials"
-                ),
+                "label": {
+                    "studio.audit.browse": "Audit",
+                    "management.credentials.list": "API credentials",
+                    "events.historical_registration_import.manage": (
+                        "Historical registration totals"
+                    ),
+                    "events.historical_registration_mapping.manage": "Historical mappings",
+                    "events.historical_registration_total.read": "Registration total preview",
+                }.get(capability.key, capability.description),
                 "route": capability.studio.route,
             }
         )
@@ -196,7 +220,16 @@ def _render_credentials(
     status: int = 200,
 ) -> HttpResponse:
     inventory = _credential_inventory(actor)
-    targets = manageable_service_principals(actor.principal).order_by("name", "id")
+    targets = tuple(manageable_service_principals(actor.principal).order_by("name", "id"))
+    available_scopes = tuple(
+        capability.key
+        for capability in CAPABILITY_REGISTRY
+        if not capability.test_only
+        and not capability.admin_api.test_only
+        and any(
+            principal_has_permission(target, capability.django_permission) for target in targets
+        )
+    )
     now = timezone.now()
     expiry_options = tuple(
         ((now + timedelta(days=days)).isoformat(), f"{days} days") for days in (30, 60, 90)
@@ -207,6 +240,7 @@ def _render_credentials(
         {
             "credentials": inventory["items"],
             "targets": targets,
+            "available_scopes": available_scopes,
             "raw_token": raw_token,
             "notice": notice,
             "error_message": error_message,
@@ -216,6 +250,33 @@ def _render_credentials(
         },
         status=status,
     )
+
+
+def _event_actor(request: HttpRequest, capability_key: str):
+    capability = CAPABILITY_REGISTRY.require(capability_key)
+    try:
+        principal = authorize_studio_request(
+            request_user=request.user,
+            session_reference=session_reference(request),
+            capability=capability,
+        )
+    except StudioAuthenticationRequired:
+        return HttpResponse("Studio authentication required", status=401)
+    except StudioAuthorizationDenied:
+        return HttpResponseForbidden("Studio access denied")
+    return principal
+
+
+def _studio_event_context(request: HttpRequest) -> ServiceContext:
+    return ServiceContext.from_current(actor_ref=f"user:{request.user.pk}")
+
+
+def _historical_studio_error(error: Exception) -> tuple[str, int]:
+    if isinstance(error, HistoricalRegistrationConflict | RevisionConflict):
+        return ("The aggregate state changed or is not ready for this action.", 409)
+    if isinstance(error, ProtectedSourceError):
+        return (f"The registered source was rejected ({error.code}).", 400)
+    return ("The historical aggregate request is invalid.", 400)
 
 
 @staff_required
@@ -285,6 +346,275 @@ def audit_detail(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
     )
 
 
+def historical_registration_list(request: HttpRequest) -> HttpResponse:
+    if request.method not in {"GET", "HEAD", "POST"}:
+        return HttpResponseNotAllowed(("GET", "HEAD", "POST"))
+    capability_key = (
+        "events.historical_registration_import.create"
+        if request.method == "POST"
+        else "events.historical_registration_import.manage"
+    )
+    selected = _event_actor(request, capability_key)
+    if isinstance(selected, HttpResponse):
+        return selected
+    error_message = ""
+    status = 200
+    if request.method == "POST":
+        try:
+            if request.POST.get("confirmed") != "true":
+                raise HistoricalRegistrationInvalid("confirmation_required")
+            provider = request.POST.get("provider", "")
+            source_reference = request.POST.get("source_reference", "")
+            mapping_set_revision = int(request.POST.get("mapping_set_revision", "0"))
+            idempotency_key = request.POST.get("idempotency_key", "")
+
+            def command() -> dict:
+                run, created = selected.capability.service(
+                    provider=provider,
+                    source_reference=source_reference,
+                    mapping_set_revision=mapping_set_revision,
+                    actor=selected.user,
+                    context=_studio_event_context(request),
+                )
+                return {"run_id": str(run.id), "created": created}
+
+            result = execute_idempotent(
+                scope=selected.capability.key,
+                key=idempotency_key,
+                request={
+                    "provider": provider,
+                    "source_reference": source_reference,
+                    "mapping_set_revision": mapping_set_revision,
+                },
+                command=command,
+            )
+            return HttpResponseRedirect(
+                reverse(
+                    "studio:historical-registration-detail",
+                    kwargs={"run_id": result.value["run_id"]},
+                )
+            )
+        except Exception as error:
+            error_message, status = _historical_studio_error(error)
+    listing = CAPABILITY_REGISTRY.require("events.historical_registration_import.manage").service(
+        page=1, page_size=100
+    )
+    registry = getattr(settings, "HISTORICAL_REGISTRATION_SOURCES", {})
+    references = (
+        tuple(sorted(reference for reference in registry if isinstance(reference, str)))
+        if isinstance(registry, dict)
+        else ()
+    )
+    return render(
+        request,
+        "studio/historical_registration_list.html",
+        {
+            "runs": listing["items"],
+            "source_references": references,
+            "providers": HistoricalRegistrationSourceRun.Provider.choices,
+            "idempotency_key": uuid.uuid4(),
+            "error_message": error_message,
+            "studio_navigation": _navigation(request),
+        },
+        status=status,
+    )
+
+
+def historical_registration_detail(request: HttpRequest, run_id: uuid.UUID) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        return HttpResponseNotAllowed(("GET", "HEAD"))
+    selected = _event_actor(request, "events.historical_registration_import.detail")
+    if isinstance(selected, HttpResponse):
+        return selected
+    try:
+        detail = selected.capability.service(run_id)
+    except HistoricalRegistrationSourceRun.DoesNotExist:
+        return HttpResponse("Historical import unavailable", status=404)
+    return render(
+        request,
+        "studio/historical_registration_detail.html",
+        {
+            "run": detail,
+            "actions": ("dry-run", "validate", "activate", "cancel", "rollback"),
+            "idempotency_key": uuid.uuid4(),
+            "studio_navigation": _navigation(request),
+        },
+    )
+
+
+def historical_registration_action(
+    request: HttpRequest,
+    run_id: uuid.UUID,
+    action: str,
+) -> HttpResponse:
+    if request.method != "POST":
+        return HttpResponseNotAllowed(("POST",))
+    if action not in {"dry-run", "validate", "activate", "cancel", "rollback"}:
+        return HttpResponse("Historical action unavailable", status=404)
+    selected = _event_actor(request, f"events.historical_registration_import.{action}")
+    if isinstance(selected, HttpResponse):
+        return selected
+    try:
+        if request.POST.get("confirmed") != "true":
+            raise HistoricalRegistrationInvalid("confirmation_required")
+        reason_code = request.POST.get("reason_code", "")
+
+        def command() -> dict:
+            kwargs = {
+                "actor": selected.user,
+                "context": _studio_event_context(request),
+            }
+            if action != "dry-run":
+                kwargs["reason_code"] = reason_code
+            value = selected.capability.service(run_id, **kwargs)
+            return value if isinstance(value, dict) else serialize_run(value)
+
+        execute_idempotent(
+            scope=selected.capability.key,
+            key=request.POST.get("idempotency_key", ""),
+            request={
+                "run_id": str(run_id),
+                "action": action,
+                "confirmed": True,
+                "reason_code": reason_code,
+            },
+            command=command,
+        )
+    except Exception as error:
+        message, status = _historical_studio_error(error)
+        detail = CAPABILITY_REGISTRY.require(
+            "events.historical_registration_import.detail"
+        ).service(run_id)
+        return render(
+            request,
+            "studio/historical_registration_detail.html",
+            {
+                "run": detail,
+                "actions": ("dry-run", "validate", "activate", "cancel", "rollback"),
+                "idempotency_key": uuid.uuid4(),
+                "error_message": message,
+                "studio_navigation": _navigation(request),
+            },
+            status=status,
+        )
+    return HttpResponseRedirect(
+        reverse("studio:historical-registration-detail", kwargs={"run_id": run_id})
+    )
+
+
+def historical_registration_mappings(request: HttpRequest) -> HttpResponse:
+    if request.method not in {"GET", "HEAD", "POST"}:
+        return HttpResponseNotAllowed(("GET", "HEAD", "POST"))
+    capability_key = (
+        "events.historical_registration_mapping.create"
+        if request.method == "POST"
+        else "events.historical_registration_mapping.manage"
+    )
+    selected = _event_actor(request, capability_key)
+    if isinstance(selected, HttpResponse):
+        return selected
+    error_message = ""
+    status = 200
+    if request.method == "POST":
+        try:
+            mapping_id_raw = request.POST.get("mapping_id", "")
+            mapping_id = uuid.UUID(mapping_id_raw) if mapping_id_raw else None
+            existing = (
+                HistoricalEventMapping.objects.get(pk=mapping_id)
+                if mapping_id is not None
+                else None
+            )
+            expected_revision: int | None = None
+            if existing is not None:
+                expected_revision = int(request.POST.get("expected_revision", "0"))
+                if expected_revision < 1:
+                    raise HistoricalRegistrationInvalid("expected_revision_invalid")
+            payload: JsonObject = {
+                "mapping_id": str(mapping_id) if mapping_id else None,
+                "provider": request.POST.get("provider") or None,
+                "external_event_identifier": (
+                    request.POST.get("external_event_identifier") or None
+                ),
+                "state": request.POST.get("state", ""),
+                "canonical_slug": request.POST.get("canonical_slug", ""),
+                "mapping_set_revision": int(request.POST.get("mapping_set_revision", "0")),
+                "expected_revision": expected_revision,
+                "reason_code": request.POST.get("reason_code", ""),
+                "reason": request.POST.get("reason", ""),
+                "coverage_boundary": request.POST.get("coverage_boundary", "historical"),
+                "combination_policy": request.POST.get("combination_policy", "replacement"),
+            }
+
+            def command() -> dict:
+                mapping = selected.capability.service(
+                    **payload,
+                    reviewer=selected.user,
+                    context=_studio_event_context(request),
+                )
+                return {"mapping_id": str(mapping.id)}
+
+            result = execute_idempotent(
+                scope=selected.capability.key,
+                key=request.POST.get("idempotency_key", ""),
+                request=payload,
+                command=command,
+            )
+            return HttpResponseRedirect(
+                f"{reverse('studio:historical-registration-mappings')}"
+                f"?updated={result.value['mapping_id']}"
+            )
+        except Exception as error:
+            error_message, status = _historical_studio_error(error)
+    listing = CAPABILITY_REGISTRY.require("events.historical_registration_mapping.manage").service(
+        page=1, page_size=100
+    )
+    return render(
+        request,
+        "studio/historical_registration_mappings.html",
+        {
+            "mappings": listing["items"],
+            "event_slugs": tuple(sorted(public_projection()["events_by_slug"])),
+            "mapping_states": (
+                HistoricalEventMapping.State.MAPPED,
+                HistoricalEventMapping.State.EXCLUDED,
+            ),
+            "combination_policies": (
+                "replacement",
+                "additive_disjoint",
+                "exclude",
+            ),
+            "providers": HistoricalRegistrationSourceRun.Provider.values,
+            "idempotency_key": uuid.uuid4(),
+            "error_message": error_message,
+            "studio_navigation": _navigation(request),
+        },
+        status=status,
+    )
+
+
+def historical_registration_total(
+    request: HttpRequest,
+    canonical_key: str,
+) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        return HttpResponseNotAllowed(("GET", "HEAD"))
+    selected = _event_actor(request, "events.historical_registration_total.read")
+    if isinstance(selected, HttpResponse):
+        return selected
+    try:
+        preview = selected.capability.service(canonical_key)
+    except HistoricalRegistrationInvalid:
+        return HttpResponse("Registration total unavailable", status=404)
+    return render(
+        request,
+        "studio/historical_registration_total.html",
+        {
+            "total": preview,
+            "studio_navigation": _navigation(request),
+        },
+    )
+
+
 def credential_list(request: HttpRequest) -> HttpResponse:
     capability_key = (
         "management.credentials.create"
@@ -309,12 +639,16 @@ def credential_list(request: HttpRequest) -> HttpResponse:
             status=400,
         )
     scopes = request.POST.getlist("scopes")
-    if scopes != ["studio.home.read"]:
+    if (
+        not scopes
+        or len(scopes) > 64
+        or any(CAPABILITY_REGISTRY.get(scope) is None for scope in scopes)
+    ):
         _audit_credential_denial(request, actor, reason="scope_invalid")
         return _render_credentials(
             request,
             actor,
-            error_message="Choose the available health scope.",
+            error_message="Choose one or more available scopes.",
             status=400,
         )
     try:

@@ -1,0 +1,63 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Historical event mappings · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="historical-mappings-heading">
+    <p class="eyebrow">Studio · Events</p>
+    <h1 id="historical-mappings-heading">Historical event mappings</h1>
+    <p class="lede">
+      Exact provider event identifiers are visible on this capability-restricted page only.
+      Similar titles, dates, or slugs never approve a mapping.
+    </p>
+    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
+
+    <div class="credential-grid">
+      {% for mapping in mappings %}
+        <article class="audit-card">
+          <h2>{{ mapping.provider }} · {{ mapping.state }}</h2>
+          <p><code>{{ mapping.external_event_identifier }}</code></p>
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}-{{ mapping.id }}">
+            <input type="hidden" name="mapping_id" value="{{ mapping.id }}">
+            <input type="hidden" name="mapping_set_revision" value="{{ mapping.mapping_set_revision }}">
+            <input type="hidden" name="expected_revision" value="{{ mapping.revision }}">
+            <label for="state-{{ mapping.id }}">Decision</label>
+            <select id="state-{{ mapping.id }}" name="state" required>
+              {% if mapping.state != "mapped" and mapping.state != "excluded" %}
+                <option value="" selected disabled>Choose a reviewed decision</option>
+              {% endif %}
+              {% for value in mapping_states %}
+                <option value="{{ value }}" {% if value == mapping.state %}selected{% endif %}>{{ value }}</option>
+              {% endfor %}
+            </select>
+            <label for="event-{{ mapping.id }}">Exact canonical slug</label>
+            <select id="event-{{ mapping.id }}" name="canonical_slug">
+              <option value="">No target (exclude)</option>
+              {% for slug in event_slugs %}<option value="{{ slug }}" {% if slug == mapping.canonical_slug %}selected{% endif %}>{{ slug }}</option>{% endfor %}
+            </select>
+            <label for="coverage-{{ mapping.id }}">Coverage boundary</label>
+            <input id="coverage-{{ mapping.id }}" name="coverage_boundary" value="historical" maxlength="128" required>
+            <label for="combination-{{ mapping.id }}">Combination policy</label>
+            <select id="combination-{{ mapping.id }}" name="combination_policy" required>
+              {% for value in combination_policies %}
+                <option
+                  value="{{ value }}"
+                  {% if mapping.state == "excluded" and value == "exclude" %}selected{% elif mapping.state != "excluded" and value == "replacement" %}selected{% endif %}
+                >{{ value }}</option>
+              {% endfor %}
+            </select>
+            <label for="reason-code-{{ mapping.id }}">Reason code</label>
+            <input id="reason-code-{{ mapping.id }}" name="reason_code" value="{{ mapping.reason_code|default:'reviewed_mapping' }}" pattern="[a-z][a-z0-9_]{0,63}" required>
+            <label for="reason-{{ mapping.id }}">Private review note</label>
+            <textarea id="reason-{{ mapping.id }}" name="reason" maxlength="2000"></textarea>
+            <button type="submit">Save reviewed decision</button>
+          </form>
+        </article>
+      {% empty %}
+        <p>No mapping proposal is available.</p>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

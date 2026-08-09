@@ -93,8 +93,16 @@ def admin_capability(
                         pass
                     record_audit_event(
                         action=capability.audit_action,
-                        target_type="management.credential",
-                        target_label="credential-request",
+                        target_type=(
+                            "management.credential"
+                            if capability.key.startswith("management.credentials.")
+                            else "management.command"
+                        ),
+                        target_label=(
+                            "credential-request"
+                            if capability.key.startswith("management.credentials.")
+                            else "management-command"
+                        ),
                         outcome=AuditEvent.Outcome.DENIED,
                         context=AuditWriteContext(
                             actor_id=identity.principal.user_id,
@@ -103,12 +111,16 @@ def admin_capability(
                             idempotency_key_hash=key_hash,
                         ),
                         changes={},
-                        metadata={
-                            "reason": error.code,
-                            "scopes": [],
-                            "expires_at": None,
-                            "state": "denied",
-                        },
+                        metadata=(
+                            {
+                                "reason": error.code,
+                                "scopes": [],
+                                "expires_at": None,
+                                "state": "denied",
+                            }
+                            if capability.key.startswith("management.credentials.")
+                            else {"reason": error.code, "state": "denied"}
+                        ),
                     )
                 return error_response(request, error)
             except Exception:

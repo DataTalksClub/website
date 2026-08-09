@@ -16,6 +16,7 @@ DATABASES = {
 PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
 EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 TEST_PROGRAMMATIC_STAFF_PASSWORD_AUTHENTICATION = True
+HISTORICAL_REGISTRATION_ALLOW_SYNTHETIC_PROFILE = True
 NOINDEX = True
 OBSERVABILITY_EVENT_BACKENDS = ["noop"]
 Q_CLUSTER = {**Q_CLUSTER, "sync": True}  # noqa: F405

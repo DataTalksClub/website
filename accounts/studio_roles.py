@@ -12,15 +12,29 @@ STUDIO_ACCESS = "core.access_studio"
 AUDIT_BROWSE = "core.browse_audit"
 HIGH_RISK_FIXTURE = "core.execute_high_risk_fixture"
 MANAGE_API_CREDENTIALS = "management_auth.manage_api_credentials"
+HISTORICAL_REGISTRATION_IMPORT_MANAGE = "events.historical_registration_import_manage"
+HISTORICAL_REGISTRATION_MAPPING_MANAGE = "events.historical_registration_mapping_manage"
 
 _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
         "site_admin": frozenset(
-            {STUDIO_ACCESS, AUDIT_BROWSE, MANAGE_API_CREDENTIALS}
+            {
+                STUDIO_ACCESS,
+                AUDIT_BROWSE,
+                MANAGE_API_CREDENTIALS,
+                HISTORICAL_REGISTRATION_IMPORT_MANAGE,
+                HISTORICAL_REGISTRATION_MAPPING_MANAGE,
+            }
         ),
         "content_operator": frozenset({STUDIO_ACCESS}),
         "course_operator": frozenset({STUDIO_ACCESS}),
-        "event_operator": frozenset({STUDIO_ACCESS}),
+        "event_operator": frozenset(
+            {
+                STUDIO_ACCESS,
+                HISTORICAL_REGISTRATION_IMPORT_MANAGE,
+                HISTORICAL_REGISTRATION_MAPPING_MANAGE,
+            }
+        ),
         "email_operator": frozenset({STUDIO_ACCESS}),
         "support_operator": frozenset({STUDIO_ACCESS}),
         "auditor": frozenset({STUDIO_ACCESS, AUDIT_BROWSE}),

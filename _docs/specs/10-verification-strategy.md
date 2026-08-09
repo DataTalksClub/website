@@ -283,3 +283,29 @@ Each release candidate produces one report containing:
 - remaining exceptions with owner, risk, expiry, and approval.
 
 No verbal “looks good” replaces a failed release gate.
+
+## Historical registration-total verification
+
+Repository tests use synthetic Luma directories and Eventbrite ZIPs only. They cover exact and
+changed checksum, pair mismatch, hidden/traversal/symlink/duplicate entries, expansion/size/count
+bounds, malformed encoding/CSV/JSON, exact/reordered/missing/extra/duplicate headers, unsupported
+XLSX/schema/status, duplicate registration/event keys, and zero/one/many eligible rows. Tests assert
+the pinned aggregate source facts and schema fingerprints without committing a filename/event name,
+provider raw ID, attendee value/digest, email/name, answer, token, path, or provider payload.
+
+Domain/service tests cover exact/review-required/mapped/excluded/source-missing mapping, stale
+revision, changed canonical identity, replay, concurrent activate/cancel/rollback, disjoint and
+overlapping coverage, provider replacement, future native boundary, aggregate-to-row replacement,
+complete prior additive-set and row-projection rollback, pinned mapping-profile cardinality drift,
+same-run target-slot collision before pointer mutation, prior-active fallback, durable invalidation
+coalescing, and audit/log/database canaries. Public tests
+prove exact `0 registered`, `1 registered`, plural integers, omission for incomplete/quarantined
+evidence, detail-only rendering, zero TTL, and absence of attendee/provider data in HTML, JSON-LD,
+hub/search/sitemap/API/cache output.
+
+Management tests prove Studio/admin API route, shared-service, capability/permission, masking,
+idempotency, `If-Match`, safe result, OpenAPI, audit/redaction, and rollback parity. Browser
+acceptance at approximately 1440×900 and 390×844 uses synthetic fixtures to exercise mapping,
+validation, activation, replay, conflict, rollback, warm-before/after total change, accessible
+labels/status/errors, and absence of protected values in DOM, accessibility tree, network, console,
+history, and screenshots. Real source reconciliation remains the separately authorized HUMAN gate.

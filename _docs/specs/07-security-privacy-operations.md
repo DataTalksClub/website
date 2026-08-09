@@ -285,3 +285,30 @@ Recommended initial production targets, subject to approval:
 - WCAG automated and manual acceptance passes for critical flows.
 - Alerts and runbooks exist for every release-critical failure mode.
 - A restore drill meets the approved RPO/RTO and does not resend historical email or resurrect deleted data.
+
+## Protected historical registration sources
+
+Historical registration adapters operate only on an explicitly registered protected reference.
+They verify whole-source checksum and versioned schema, stream bounded rows, and keep provider
+registration deduplication keys only in memory until aggregate derivation finishes. The application
+database retains no source path, filename, archive entry, attendee row/identifier/digest, name,
+email, answer, timestamp, notice, consent, or raw payload.
+
+Each registered source also names a code-owned reconciliation profile. The pinned Luma profile
+requires the exact 64 proposal/95 review partition; the pinned Eventbrite profile requires the exact
+200 proposal/9 review/27 source-missing partition. Missing profiles, extra or overlapping bridge
+keys, and any profile cardinality drift fail closed. The synthetic profile exists only under the
+test settings and cannot bypass reconciliation in development or production.
+
+The adapter rejects hidden/traversal/symlink/duplicate archive entries, unsafe structure,
+decompression/size/count excess, malformed encoding/CSV/JSON, checksum drift, mismatched Luma
+pairs, duplicate event IDs, unsupported schemas, and unsupported/unknown statuses before
+activation. Eventbrite XLSX is recorded only as bounded `unsupported_xlsx` aggregate evidence and
+is never opened or converted. Exact ordered Eventbrite CSV headers use the three pinned SHA-256
+fingerprints joined with byte `0x1f`; unsupported/reordered/missing/extra/duplicate headers
+quarantine the entry.
+
+Only aggregate/schema facts may enter source control, tests, logs, metrics, screenshots, APIs, or
+reports. The real protected reconciliation is an authorized HUMAN gate under #64 retention and
+disposal rules. Failures preserve the last accepted total and create no email/newsletter/sponsor,
+consent, or provider work.
