@@ -325,7 +325,7 @@ class RealUrlAndCourseCanonicalTests(TestCase):
         with self.assertRaises(Resolver404):
             resolve("/private/preview/")
 
-    def test_adopted_course_and_learner_routes_have_no_guessed_canonical(
+    def test_course_discovery_has_explicit_canonical_but_learner_routes_do_not(
         self,
     ) -> None:
         hidden = Course.objects.create(
@@ -334,8 +334,14 @@ class RealUrlAndCourseCanonicalTests(TestCase):
             description="Fixture",
             visible=False,
         )
+        discovery = self.client.get(reverse("course_list"))
+        self.assertContains(
+            discovery,
+            '<link rel="canonical" href="https://datatalks.club/courses/">',
+            count=1,
+        )
+
         for path in (
-            reverse("course_list"),
             reverse("course", args=[hidden.slug]),
             reverse("enrollment", args=[hidden.slug]),
         ):

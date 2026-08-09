@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+{% block title %}{{ course.title }} — DataTalks.Club{% endblock %}
+{% block content %}
+  {% url 'course_list' as hub_url %}
+  {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="Courses" current_label=course.title %}
+  <article
+    class="max-w-4xl"
+    data-source-repository="{{ provenance.repository }}"
+    data-source-revision="{{ provenance.revision }}"
+    data-source-path="{{ provenance.source_path }}"
+    data-platform-source-repository="{{ platform_provenance.repository }}"
+    data-platform-source-revision="{{ platform_provenance.revision }}"
+    data-platform-source-path="{{ platform_provenance.source_path }}"
+  >
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Free course</p>
+    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">{{ course.title }}</h1>
+    <p class="mt-4 text-lg leading-8 app-text">{{ course.summary }}</p>
+    <section class="mt-10 border-t app-border pt-8">
+      <p class="text-sm font-semibold uppercase tracking-wide app-muted">Next cohort</p>
+      <h2 class="mt-2 text-2xl font-semibold">
+        <a class="app-link" href="{% url 'course-cohort-ai-dev-tools-2026' %}">
+          {{ course.cohort.title }}
+        </a>
+      </h2>
+      <p class="mt-3 app-text">Starts {{ course.cohort.start_display }}</p>
+      {% if legacy_course %}
+        <a
+          class="mt-3 inline-block app-link"
+          href="{% url 'courses:course' course_slug=legacy_course.slug %}"
+        >
+          Open the existing course workspace
+        </a>
+      {% endif %}
+    </section>
+    <p class="mt-8">
+      <a class="app-link" href="{% url 'article-ai-dev-tools' %}">
+        Read the complete course announcement
+      </a>
+    </p>
+  </article>
+{% endblock %}

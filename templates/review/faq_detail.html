@@ -1,0 +1,26 @@
+{% extends "core/base.html" %}
+{% block title %}AI Dev Tools Zoomcamp FAQ — DataTalks.Club{% endblock %}
+{% block content %}
+  {% url 'faq-home' as hub_url %}
+  {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="FAQ" current_label=faq.course %}
+  <article
+    class="max-w-4xl"
+    data-source-repository="{{ provenance.repository }}"
+    data-source-revision="{{ provenance.revision }}"
+    data-source-path="{{ provenance.source_path }}"
+  >
+    <h1 class="text-3xl font-semibold sm:text-4xl">{{ faq.course }} FAQ</h1>
+    <section id="{{ faq.question_id }}" class="scroll-mt-8 mt-10 border-t app-border pt-8">
+      <h2 class="text-2xl font-semibold">{{ faq.question }}</h2>
+      {% for paragraph in faq.answer %}
+        <p class="mt-4 leading-7 app-text">{{ paragraph }}</p>
+      {% endfor %}
+      <p class="mt-4">
+        <a class="app-link" href="{% url 'docs-ai-dev-tools-getting-started' %}">
+          Read the getting-started guide
+        </a>
+      </p>
+    </section>
+    {% include "review/_source_link.html" with edit_url=faq.edit_url %}
+  </article>
+{% endblock %}

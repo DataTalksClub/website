@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+{% block title %}AI Coding Tools — DataTalks.Club Podcast Wiki{% endblock %}
+{% block content %}
+  {% url 'podwiki-home' as hub_url %}
+  {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="Podcast Wiki" current_label=podwiki.title %}
+  <article
+    class="max-w-4xl"
+    data-source-repository="{{ provenance.repository }}"
+    data-source-revision="{{ provenance.revision }}"
+    data-source-path="{{ provenance.source_path }}"
+  >
+    <h1 class="text-3xl font-semibold sm:text-4xl">{{ podwiki.title }}</h1>
+    <p class="mt-4 text-lg leading-8 app-text">{{ podwiki.summary }}</p>
+    <p class="mt-6 leading-8 app-text">{{ podwiki.lead }}</p>
+    <aside class="mt-6 rounded-md border app-border app-surface-muted p-4 leading-7 app-text">
+      {{ podwiki.boundary }}
+    </aside>
+    <section class="mt-10">
+      <h2 class="text-2xl font-semibold">Related pages</h2>
+      <ul class="mt-4 flex flex-wrap gap-2">
+        {% for item in podwiki.related %}
+          <li class="app-badge app-badge-info">{{ item }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+    {% include "review/_source_link.html" with edit_url=podwiki.edit_url %}
+  </article>
+{% endblock %}

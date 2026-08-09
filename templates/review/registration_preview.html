@@ -1,0 +1,20 @@
+{% extends "core/base.html" %}
+{% block title %}Registration preview — AI Dev Tools Zoomcamp 2026{% endblock %}
+{% block content %}
+  <article class="mx-auto max-w-2xl">
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course registration</p>
+    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">{{ cohort.title }}</h1>
+    <div class="mt-6 rounded-md border app-border app-surface-muted p-5">
+      <h2 class="text-xl font-semibold">Registration is not enabled in this review build</h2>
+      <p class="mt-3 leading-7 app-text">
+        This page shows where course registration will live. It does not collect information,
+        create an enrollment, or send email.
+      </p>
+    </div>
+    <p class="mt-6">
+      <a class="app-link" href="{% url 'course-cohort-ai-dev-tools-2026' %}">
+        ← Back to the 2026 cohort
+      </a>
+    </p>
+  </article>
+{% endblock %}

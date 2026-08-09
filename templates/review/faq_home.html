@@ -1,0 +1,24 @@
+{% extends "core/base.html" %}
+{% block title %}Frequently Asked Questions — DataTalks.Club{% endblock %}
+{% block content %}
+  <header>
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course help</p>
+    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">Frequently Asked Questions</h1>
+    <p class="mt-4 max-w-3xl leading-7 app-text">
+      Answers to common questions from DataTalks.Club learners.
+    </p>
+  </header>
+  <article
+    class="mt-10 border-y app-border py-6"
+    data-source-repository="{{ provenance.repository }}"
+    data-source-revision="{{ provenance.revision }}"
+    data-source-path="{{ provenance.source_path }}"
+  >
+    <p class="text-sm app-muted">{{ faq.course }}</p>
+    <h2 class="mt-2 text-xl font-semibold">
+      <a class="app-link" href="{% url 'faq-ai-dev-tools' %}#{{ faq.question_id }}">
+        {{ faq.question }}
+      </a>
+    </h2>
+  </article>
+{% endblock %}
