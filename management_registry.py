@@ -21,6 +21,8 @@ from core.capabilities import (
 )
 from core.management_health import management_health_factory, read_management_health
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
+from management_auth.policies import resolved_high_risk_policy_keys
+from management_auth.runtime_capabilities import CREDENTIAL_RUNTIME_CAPABILITIES
 
 
 def studio_audit_factory() -> dict[str, Any]:
@@ -125,6 +127,8 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         STUDIO_HOME,
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,
+        *CREDENTIAL_RUNTIME_CAPABILITIES,
         *CREDENTIAL_FIXTURE_CAPABILITIES,
-    )
+    ),
+    resolved_high_risk_policies=resolved_high_risk_policy_keys(),
 )

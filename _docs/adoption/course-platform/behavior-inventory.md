@@ -144,6 +144,7 @@ Mounted from `courses.urls`.
 | --- | --- | --- |
 | `account_identity_inventory` | `accounts` | Emit the redacted single-account inventory as JSON. |
 | `audit_datamailer_recipient_lists` | `courses` | Compare CMP recipient-list source data with Datamailer active members. |
+| `bootstrap_development_owner` | `accounts` | Interactively bootstrap the single development owner without echoing secrets. |
 | `datamailer_callback_status` | `data` | Show Datamailer callback health from stored webhook events. |
 | `datamailer_campaign` | `courses` | Create/update and optionally operate a Datamailer campaign. |
 | `datamailer_outbox_status` | `data` | Show Datamailer outbox health and recent dispatcher state. |

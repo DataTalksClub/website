@@ -15,7 +15,50 @@
             </p>
         </div>
 
+        {% if development_owner_login_enabled %}
+            <div class="border-b app-border px-5 py-5">
+                <p class="mb-4 text-sm app-muted">
+                    Development owner access uses the isolated local identity configured by an
+                    authorized operator. It is separate from production sign-in.
+                </p>
+
+                {% if login_error %}
+                    <div class="mb-4 rounded-md border app-alert-warning px-4 py-3 text-sm"
+                         role="alert">
+                        {{ login_error }}
+                    </div>
+                {% endif %}
+
+                <form method="post">
+                    {% csrf_token %}
+
+                    <div class="mb-4">
+                        <label for="{{ development_owner_form.email.id_for_label }}"
+                               class="mb-1 block text-sm font-semibold">
+                            Owner email
+                        </label>
+                        {{ development_owner_form.email }}
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="{{ development_owner_form.password.id_for_label }}"
+                               class="mb-1 block text-sm font-semibold">
+                            Development password
+                        </label>
+                        {{ development_owner_form.password }}
+                    </div>
+
+                    <button type="submit" class="primer-button primer-button-primary">
+                        Sign in to development
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+
         <div class="flex flex-col items-center gap-3 px-5 py-5">
+            {% if providers %}
+                <p class="text-sm app-muted">Or use a configured identity provider</p>
+            {% endif %}
             {% for provider in providers %}
                 <a href="{{ provider.login_url }}"
                    class="primer-button primer-button-secondary w-fit">
@@ -31,12 +74,14 @@
                     Continue with {{ provider.name }}
                 </a>
             {% empty %}
-                <div class="rounded-md border app-alert-warning px-4 py-3 text-center text-sm">
-                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                    <strong>No login providers configured</strong>
-                    <br>
-                    Please contact an administrator to set up social login.
-                </div>
+                {% if not development_owner_login_enabled %}
+                    <div class="rounded-md border app-alert-warning px-4 py-3 text-center text-sm">
+                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                        <strong>No login providers configured</strong>
+                        <br>
+                        Please contact an administrator to set up social login.
+                    </div>
+                {% endif %}
                 <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary">
                     Back to courses
                 </a>

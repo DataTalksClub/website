@@ -11,10 +11,13 @@ from django.db import transaction
 STUDIO_ACCESS = "core.access_studio"
 AUDIT_BROWSE = "core.browse_audit"
 HIGH_RISK_FIXTURE = "core.execute_high_risk_fixture"
+MANAGE_API_CREDENTIALS = "management_auth.manage_api_credentials"
 
 _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
-        "site_admin": frozenset({STUDIO_ACCESS, AUDIT_BROWSE}),
+        "site_admin": frozenset(
+            {STUDIO_ACCESS, AUDIT_BROWSE, MANAGE_API_CREDENTIALS}
+        ),
         "content_operator": frozenset({STUDIO_ACCESS}),
         "course_operator": frozenset({STUDIO_ACCESS}),
         "event_operator": frozenset({STUDIO_ACCESS}),

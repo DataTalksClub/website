@@ -28,7 +28,11 @@ from .constants import (
     MAX_ROTATION_OVERLAP,
     PREFIX_COLLISION_RETRIES,
 )
-from .idempotency import OneTimeCommandResult, execute_one_time_idempotent
+from .idempotency import (
+    OneTimeCommandResult,
+    execute_one_time_idempotent,
+    hash_management_idempotency_key,
+)
 from .models import APICredential, APIPrincipal
 from .tokens import GeneratedToken, encode_secret, generate_token
 
@@ -47,10 +51,104 @@ class IssuedCredential:
     raw_token: str
 
 
-def _audit_context(principal: APIPrincipal) -> AuditWriteContext:
+def credential_state(credential: APICredential, *, now=None) -> str:
+    observed_at = now or timezone.now()
+    if credential.revoked_at is not None:
+        return "revoked"
+    if credential.rotated_at is not None:
+        return "rotated"
+    if credential.expires_at <= observed_at:
+        return "expired"
+    return "active"
+
+
+def present_credential(credential: APICredential, *, now=None) -> JsonObject:
+    last_used = credential.last_used_at
+    return {
+        "credential_id": str(credential.id),
+        "name": credential.name,
+        "principal_id": str(credential.principal_id),
+        "principal_label": credential.principal.name,
+        "prefix": credential.prefix,
+        "scopes": list(credential.scopes),
+        "expires_at": credential.expires_at.isoformat(),
+        "state": credential_state(credential, now=now),
+        "last_used_at": (
+            last_used.replace(second=0, microsecond=0).isoformat()
+            if last_used is not None
+            else None
+        ),
+        "created_at": credential.created_at.isoformat(),
+        "revision": credential.revision,
+    }
+
+
+def manageable_service_principals(actor_principal: APIPrincipal, *, using: str = "default"):
+    if actor_principal.kind != APIPrincipal.Kind.HUMAN:
+        return APIPrincipal.objects.using(using).none()
+    return APIPrincipal.objects.using(using).filter(
+        kind=APIPrincipal.Kind.SERVICE,
+        is_active=True,
+        identity_snapshot="service:development-automation",
+    )
+
+
+def manageable_credentials(actor_principal: APIPrincipal, *, using: str = "default"):
+    return (
+        APICredential.objects.using(using)
+        .select_related("principal")
+        .filter(principal__in=manageable_service_principals(actor_principal, using=using))
+    )
+
+
+def list_manageable_credentials(
+    query: object,
+    *,
+    context: object,
+    actor_principal: APIPrincipal,
+    using: str = "default",
+) -> JsonObject:
+    del context
+    page = int(getattr(query, "page", 1))
+    page_size = int(getattr(query, "page_size", 20))
+    sort = tuple(getattr(query, "sort", ()))
+    filters = dict(getattr(query, "filters", {}))
+    if page < 1 or not 1 <= page_size <= 100:
+        raise ValueError("credential page is invalid")
+    queryset = manageable_credentials(actor_principal, using=using)
+    principal_id = filters.get("principal_id")
+    if principal_id:
+        queryset = queryset.filter(principal_id=principal_id)
+    selected_sort = sort or ("-created_at", "-id")
+    queryset = queryset.order_by(*selected_sort)
+    total = queryset.count()
+    start = (page - 1) * page_size
+    now = timezone.now()
+    safe_items = [present_credential(item, now=now) for item in queryset[start : start + page_size]]
+    return {
+        "items": safe_items,
+        "page": page,
+        "page_size": page_size,
+        "total_count": total,
+    }
+
+
+def _audit_context(
+    principal: APIPrincipal,
+    *,
+    operation: str,
+    idempotency_key: str,
+) -> AuditWriteContext:
+    key_hash = (
+        hash_management_idempotency_key(principal.id, operation, idempotency_key)
+        if idempotency_key
+        else ""
+    )
     return AuditWriteContext(
+        actor_id=principal.user_id,
         api_principal_id=principal.id,
         actor_ref=f"api_principal:{principal.id}",
+        idempotency_key_hash=key_hash,
     )
 
 
@@ -59,6 +157,8 @@ def _audit_credential(
     actor_principal: APIPrincipal,
     credential: APICredential,
     action: str,
+    operation: str,
+    idempotency_key: str,
     changes: dict,
     using: str,
 ) -> None:
@@ -68,13 +168,20 @@ def _audit_credential(
         target_id=credential.id,
         target_label=credential.name,
         outcome=AuditEvent.Outcome.SUCCEEDED,
-        context=_audit_context(actor_principal),
+        context=_audit_context(
+            actor_principal,
+            operation=operation,
+            idempotency_key=idempotency_key,
+        ),
         changes=changes,
         metadata={
             "credential_id": str(credential.id),
             "principal_id": str(credential.principal_id),
             "prefix": credential.prefix,
             "scopes": list(credential.scopes),
+            "expires_at": credential.expires_at.isoformat(),
+            "state": credential_state(credential),
+            "reason": "completed",
         },
         using=using,
     )
@@ -318,15 +425,8 @@ def _insert_generated_credential(
 
 def _response(issued: IssuedCredential) -> OneTimeCommandResult:
     credential = issued.credential
-    safe: JsonObject = {
-        "credential_id": str(credential.id),
-        "principal_id": str(credential.principal_id),
-        "prefix": credential.prefix,
-        "name": credential.name,
-        "scopes": list(credential.scopes),
-        "expires_at": credential.expires_at.isoformat(),
-        "revision": credential.revision,
-    }
+    credential.principal = APIPrincipal.objects.get(pk=credential.principal_id)
+    safe = present_credential(credential)
     return OneTimeCommandResult(
         response={**safe, "token": issued.raw_token},
         safe_result=safe,
@@ -386,6 +486,8 @@ def issue_credential_once(
             actor_principal=actor,
             credential=issued.credential,
             action="management.credential.created",
+            operation="management.credential.create",
+            idempotency_key=idempotency_key,
             changes={"created": True},
             using=using,
         )
@@ -465,6 +567,8 @@ def rotate_credential_once(
             actor_principal=actor,
             credential=successor.credential,
             action="management.credential.rotated",
+            operation="management.credential.rotate",
+            idempotency_key=idempotency_key,
             changes={
                 "predecessor_id": str(credential.id),
                 "overlap_seconds": int(selected_overlap.total_seconds()),
@@ -489,6 +593,7 @@ def revoke_credential(
     credential_id: uuid.UUID,
     expected_revision: int,
     actor_permission: str,
+    idempotency_key: str = "",
     actor_credential: APICredential | None = None,
     actor_capability: Capability | None = None,
     using: str = "default",
@@ -516,6 +621,8 @@ def revoke_credential(
             actor_principal=actor,
             credential=credential,
             action="management.credential.revoked",
+            operation="management.credential.revoke",
+            idempotency_key=idempotency_key,
             changes={"revoked": True},
             using=using,
         )
@@ -544,17 +651,15 @@ def revoke_credential_once(
             credential_id=credential_id,
             expected_revision=expected_revision,
             actor_permission=actor_permission,
+            idempotency_key=idempotency_key,
             actor_credential=actor_credential,
             actor_capability=actor_capability,
             using=using,
         )
         if credential.revoked_at is None:
             raise CredentialStateConflict("credential was not revoked")
-        safe: JsonObject = {
-            "credential_id": str(credential.id),
-            "revoked_at": credential.revoked_at.isoformat(),
-            "revision": credential.revision,
-        }
+        credential.principal = APIPrincipal.objects.get(pk=credential.principal_id)
+        safe = present_credential(credential)
         return OneTimeCommandResult(response=safe, safe_result=safe)
 
     return execute_one_time_idempotent(
@@ -586,3 +691,57 @@ def note_credential_used(
         .update(last_used_at=observed_at)
     )
     return updated == 1
+
+
+def issue_manageable_credential_once(
+    *,
+    actor_principal: APIPrincipal,
+    target_principal_id: uuid.UUID,
+    using: str = "default",
+    **kwargs,
+) -> OneTimeCommandResult:
+    target = (
+        manageable_service_principals(actor_principal, using=using)
+        .filter(pk=target_principal_id)
+        .first()
+    )
+    if target is None:
+        raise CredentialStateConflict("target principal is unavailable")
+    return issue_credential_once(
+        actor_principal=actor_principal,
+        target_principal_id=target.id,
+        using=using,
+        **kwargs,
+    )
+
+
+def rotate_manageable_credential_once(
+    *, actor_principal: APIPrincipal, credential_id: uuid.UUID, using: str = "default", **kwargs
+) -> OneTimeCommandResult:
+    credential = (
+        manageable_credentials(actor_principal, using=using).filter(pk=credential_id).first()
+    )
+    if credential is None:
+        raise CredentialStateConflict("credential is unavailable")
+    return rotate_credential_once(
+        actor_principal=actor_principal,
+        credential_id=credential.id,
+        using=using,
+        **kwargs,
+    )
+
+
+def revoke_manageable_credential_once(
+    *, actor_principal: APIPrincipal, credential_id: uuid.UUID, using: str = "default", **kwargs
+) -> OneTimeCommandResult:
+    credential = (
+        manageable_credentials(actor_principal, using=using).filter(pk=credential_id).first()
+    )
+    if credential is None:
+        raise CredentialStateConflict("credential is unavailable")
+    return revoke_credential_once(
+        actor_principal=actor_principal,
+        credential_id=credential.id,
+        using=using,
+        **kwargs,
+    )
