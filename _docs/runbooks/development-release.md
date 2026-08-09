@@ -978,9 +978,16 @@ pending task; queue activity, heartbeat, or a processed job is not completion.
 
 Every service mutation is receipt-bound. Before `UpdateService`, the controller records that exact
 workload as attempted and supplies its captured terminal predecessor: the exact task-definition
-ARN, desired count, and unique PRIMARY deployment ID. The controller establishes the phase's
-absolute monotonic deadline before the API call. The acknowledgement, any immediate reconciliation,
-and receipt-bound stabilization share that deadline; none may reset it.
+ARN, captured desired-count upper bound, and unique PRIMARY deployment ID. The predecessor ID and
+task-definition ARN remain immutable throughout the phase. Once that exact predecessor is
+recognized, ECS may retire its deployment-level desired count within `0..captured desired`; its
+nonnegative running plus pending count must never exceed the captured desired count. In particular,
+`desired=0`, `running=1`, `pending=0`, `failedTasks=0`, and `COMPLETED` is a valid one-task drain for
+a predecessor captured at desired 1. A terminal predecessor still requires zero failed tasks and
+must not be `FAILED`. It may later reach `0/0/0` and disappear. These retirement projections never
+change the captured target, identify a candidate, or prove success. The controller establishes the
+phase's absolute monotonic deadline before the API call. The acknowledgement, any immediate
+reconciliation, and receipt-bound stabilization share that deadline; none may reset it.
 
 A complete acknowledgement binds one new non-empty deployment ID for the requested task-definition
 ARN. The immutable receipt target remains the requested tuple. For a positive requested count, ECS
@@ -996,17 +1003,19 @@ or predecessor shape. Omitting an ID or another member cannot hide an already-pr
 count, or rollout-state contradiction. Genuinely missing information remains unknown, and missing
 identity is never synthesized from the request. Reconciliation may bind only one exact new target
 deployment ID distinct from every predecessor ID. A third ID, multiple candidates,
-task-definition/count cross-pair, malformed present member, failed target, positive failed tasks,
-or completed-inexact target fails immediately. A service-level zero target for a positive request,
-or a zero-count candidate with a positive running, pending, or failed-task count or a state other
-than `IN_PROGRESS`, is also an immediate contradiction.
+task-definition cross-pair, a predecessor deployment desired count or task total above its captured
+bound, malformed present member, failed target, positive failed tasks, or completed-inexact target
+fails immediately. A service-level zero target for a positive request, or a zero-count candidate
+with a positive running, pending, or failed-task count or a state other than `IN_PROGRESS`, is also
+an immediate contradiction. Candidate and service targets retain their exact requested counts;
+only an already recognized predecessor deployment receives the bounded retirement allowance.
 
-Subsequent service reads may temporarily cross the service-level and PRIMARY target tuples or
-return an exact captured predecessor after the receipt has already appeared. These recognized
-replica-ordering states are poll-only. They never prove success, change the receipt, or reset the
-monotonic deadline. Success requires the receipt's PRIMARY ID and requested tuple to be
-`COMPLETED` with exact desired/running/pending counts in both the service and PRIMARY deployment.
-The public health/SHA gate starts only afterward.
+Subsequent service reads may temporarily cross the service-level and PRIMARY target tuples, return
+the captured predecessor identity with its bounded retirement counts, or omit that predecessor
+after it drains. These recognized replica-ordering states are poll-only. They never prove success,
+change the receipt, or reset the monotonic deadline. Success requires the receipt's PRIMARY ID and
+requested tuple to be `COMPLETED` with exact desired/running/pending counts in both the service and
+PRIMARY deployment. The public health/SHA gate starts only afterward.
 
 Run `31276422372` attempt 1 on 2026-08-08 supplied the adoption-consistency evidence: migration
 passed, but the first read less than one second after `UpdateService` still showed the exact prior
@@ -1022,16 +1031,26 @@ same false negative. The run remains failed even though the candidate web task a
 later: it produced no accepted receipt, worker proof, terminal pair, smoke result, or successful
 release record.
 
+Run `31284945462` attempt 1 on 2026-08-08 supplied the predecessor-retirement evidence. The forward
+web receipt bound through zero-count initialization, then polling contradicted after 62 seconds.
+Compensation changed the web service pointer back to the captured task definition, but its
+acknowledgement showed the new restorative PRIMARY at `1/0/1 IN_PROGRESS` beside the recognized old
+same-task-definition predecessor at `0/1/0`, failed 0, `COMPLETED`. That predecessor later reached
+`0/0/0` and disappeared. The old controller incorrectly treated its captured deployment desired
+count as immutable identity, rejected the provider-valid drain, and emitted no restorative receipt.
+The run remains failed and is not evidence of a successful release.
+
 If an attempted `UpdateService` response is lost or invalid, recovery uses the same absolute
 180-second per-service deadline for candidate reconciliation and the restorative receipt wait.
-It polls only the captured terminal tuple and the actually attempted target until that target is
-observed as the unique PRIMARY and its deployment ID can be bound while time remains. The deadline
-is finite, cannot exceed the general-stage maximum, and is never restarted between capture and
-restore. A capture that returns exactly at the deadline cannot start the restorative mutation. A
-speculative workload that was never invoked is absent from the recovery allowlist.
+It polls only the captured terminal identity under the same bounded retirement rules and the
+actually attempted target until that target is observed as the unique PRIMARY and its deployment ID
+can be bound while time remains. The deadline is finite, cannot exceed the general-stage maximum,
+and is never restarted between capture and restore. A capture that returns exactly at the deadline
+cannot start the restorative mutation. A speculative workload that was never invoked is absent from
+the recovery allowlist.
 An attempted candidate may be failed while its restorative receipt replaces it, but the recovery
 receipt itself may not fail. Every restorative call must return a new receipt, including an
-`A -> A` force-new recovery; old `A COMPLETED` is always a predecessor, never recovery success.
+`A -> A` force-new recovery; the old `A` deployment is always a predecessor, never recovery success.
 If web fails before worker `UpdateService` is invoked, compensation does not force a new worker
 deployment. It read-only verifies the captured worker's exact terminal tuple and singleton state as
 part of the final pair proof. Once worker mutation was actually attempted, its restoration remains
