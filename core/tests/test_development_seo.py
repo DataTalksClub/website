@@ -9,6 +9,7 @@ from django.template import Context, Template
 from django.test import Client, RequestFactory, TestCase, override_settings
 from django.urls import Resolver404, resolve, reverse
 
+from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
 from core.middleware import apply_private_no_store
 from core.preview import SENSITIVE_PREVIEW_QUERY_KEYS, staff_preview_required
 from core.seo import validated_canonical_url
@@ -155,9 +156,7 @@ class DevelopmentRobotsAndSitemapTests(TestCase):
         response = self.client.get("/sitemap.xml")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Type"], "application/xml; charset=utf-8")
-        self.assertIn("<sitemapindex", response.content.decode())
-        self.assertIn("https://datatalks.club/sitemaps/events.xml", response.content.decode())
-        self.assertNotIn("<?xml-stylesheet", response.content.decode())
+        self.assertEqual(validate_sitemap_index(response.content), EXPECTED_SITEMAP_LOCATIONS)
 
         head = self.client.head("/sitemap.xml")
         self.assertEqual(head.status_code, 200)

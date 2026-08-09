@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 import pytest
 from playwright.sync_api import Page, expect
 
+from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
 from deploy.contracts import validate_source_sha
 from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
 
@@ -189,10 +190,7 @@ def test_deployed_health_and_anonymous_admin_api_contracts(
     assert sitemap.status == 200
     assert sitemap.headers["x-robots-tag"] == ROBOTS_VALUE
     assert sitemap.headers["content-type"] == "application/xml; charset=utf-8"
-    assert sitemap.body() == (
-        b'<?xml version="1.0" encoding="UTF-8"?>\n'
-        b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
-    )
+    assert validate_sitemap_index(sitemap.body()) == EXPECTED_SITEMAP_LOCATIONS
 
     home = page.goto(origin)
     assert home is not None

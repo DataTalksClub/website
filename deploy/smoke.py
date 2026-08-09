@@ -12,16 +12,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from content.sitemap_contract import SitemapContractError, validate_sitemap_index
 from core.source_policy import analytics_runtime_violations
 from deploy.contracts import ReleaseContractError, validate_source_sha
 from deploy.legacy_development_compatibility import ORIGIN as DEVELOPMENT_ORIGIN
 
 ROBOTS_VALUE = "noindex, nofollow"
 ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
-SITEMAP_BODY = (
-    b'<?xml version="1.0" encoding="UTF-8"?>\n'
-    b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
-)
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
 
 
@@ -229,8 +226,10 @@ def run_http_smoke(
     _assert_noindex(sitemap, "/sitemap.xml")
     if sitemap.headers.get("content-type") != "application/xml; charset=utf-8":
         raise ReleaseContractError("sitemap content type differs")
-    if sitemap.body != SITEMAP_BODY:
-        raise ReleaseContractError("sitemap body differs")
+    try:
+        sitemap_locations = validate_sitemap_index(sitemap.body)
+    except SitemapContractError as error:
+        raise ReleaseContractError(str(error)) from error
 
     static_path = static_match.group("path")
     static_response = _request(origin, static_path)
@@ -296,7 +295,16 @@ def run_http_smoke(
             },
             {"path": missing_path, "status": 404, "noindex": True, "debug_safe": True},
             {"path": "/robots.txt", "status": 200, "noindex": True, "exact_body": True},
-            {"path": "/sitemap.xml", "status": 200, "noindex": True, "empty": True},
+            {
+                "path": "/sitemap.xml",
+                "status": 200,
+                "noindex": True,
+                "empty": False,
+                "kind": "sitemap_index",
+                "section_count": len(sitemap_locations),
+                "canonical_production_locations": True,
+                "unique_locations": True,
+            },
             {"path_group": "static", "status": 200, "noindex": True},
             {"runtime_group": "analytics", "denied": True},
         ],
