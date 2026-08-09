@@ -1,11 +1,11 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-from allauth.account.models import EmailAddress
+from allauth.core.exceptions import ImmediateHttpResponse
 from django.test import TestCase
 
 from accounts.auth import ConsolidatingSocialAccountAdapter, extract_email
-from accounts.models import CustomUser
+from accounts.models import AccountIdentityQuarantine, CustomUser
 
 
 class ExtractEmailTestCase(TestCase):
@@ -16,7 +16,7 @@ class ExtractEmailTestCase(TestCase):
         email_address_list = list(email_addresses)
         return SimpleNamespace(email_addresses=email_address_list)
 
-    def test_extract_email_prefers_response_email(self):
+    def test_extract_email_ignores_unverified_provider_response(self):
         verified_email = self.email_address(
             "verified@example.com",
             verified=True,
@@ -30,7 +30,7 @@ class ExtractEmailTestCase(TestCase):
             sociallogin=sociallogin,
         )
 
-        self.assertEqual(email, "response@example.com")
+        self.assertEqual(email, "verified@example.com")
 
     def test_extract_email_uses_verified_social_email(self):
         first_email = self.email_address("first@example.com")
@@ -47,7 +47,7 @@ class ExtractEmailTestCase(TestCase):
 
         self.assertEqual(email, "verified@example.com")
 
-    def test_extract_email_falls_back_to_first_social_email(self):
+    def test_extract_email_rejects_unverified_social_email(self):
         first_email = self.email_address("first@example.com")
         second_email = self.email_address("second@example.com")
         sociallogin = self.sociallogin_with_emails(
@@ -55,16 +55,12 @@ class ExtractEmailTestCase(TestCase):
             second_email,
         )
 
-        email = extract_email({}, sociallogin=sociallogin)
+        with self.assertRaises(KeyError):
+            extract_email({}, sociallogin=sociallogin)
 
-        self.assertEqual(email, "first@example.com")
-
-    def test_extract_email_falls_back_to_notification_email(self):
-        email = extract_email(
-            {"notification_email": "notify@example.com"}
-        )
-
-        self.assertEqual(email, "notify@example.com")
+    def test_extract_email_rejects_notification_email(self):
+        with self.assertRaises(KeyError):
+            extract_email({"notification_email": "notify@example.com"})
 
     def test_extract_email_raises_when_missing(self):
         with self.assertRaises(KeyError):
@@ -72,26 +68,29 @@ class ExtractEmailTestCase(TestCase):
 
 
 class ConsolidatingSocialAccountAdapterTestCase(TestCase):
-    def test_social_login_connects_existing_user_without_email_address(self):
-        email = "alexey@datatalks.club"
+    def test_social_login_rejects_unverified_legacy_username_match(self):
+        email = "legacy-owner@example.invalid"
         user = CustomUser.objects.create_user(
             username=email,
             email="",
         )
         sociallogin = SimpleNamespace(
-            account=SimpleNamespace(extra_data={"email": email}),
+            account=SimpleNamespace(
+                provider="github",
+                uid="synthetic-unverified-uid",
+                extra_data={"email": email},
+            ),
             is_existing=False,
             email_addresses=[],
             connect=Mock(),
         )
         adapter = ConsolidatingSocialAccountAdapter()
 
-        adapter.pre_social_login(None, sociallogin)
+        with self.assertRaises(ImmediateHttpResponse) as raised:
+            adapter.pre_social_login(None, sociallogin)
 
-        sociallogin.connect.assert_called_once_with(None, user)
+        self.assertEqual(raised.exception.response.status_code, 409)
+        sociallogin.connect.assert_not_called()
         user.refresh_from_db()
-        self.assertEqual(user.email, email)
-        email_address = EmailAddress.objects.get(user=user)
-        self.assertEqual(email_address.email, email)
-        self.assertTrue(email_address.primary)
-        self.assertTrue(email_address.verified)
+        self.assertEqual(user.email, "")
+        self.assertEqual(AccountIdentityQuarantine.objects.count(), 1)

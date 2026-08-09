@@ -1,10 +1,20 @@
 import secrets
+import uuid
 
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
+from django.db.models import F, Q
+
+from accounts.identity_values import normalize_account_email
 
 
 class CustomUser(AbstractUser):
+    class IdentityState(models.TextChoices):
+        LEGACY = 'legacy', 'Legacy-compatible'
+        ACTIVE = 'active', 'Verified active identity'
+        QUARANTINED = 'quarantined', 'Needs identity review'
+        ABSORBED = 'absorbed', 'Absorbed into a survivor'
+
     ROLE_CHOICES = (
         ('student', 'Student'),
         ('instructor', 'Instructor'),
@@ -69,6 +79,46 @@ class CustomUser(AbstractUser):
             "notification emails."
         ),
     )
+
+    # This is an expand-only identity key. The legacy ``email`` and
+    # ``username`` columns remain available throughout the compatibility
+    # window; a later contract migration may remove neither without the
+    # production-like rehearsal owned by issue #60.
+    normalized_email = models.EmailField(
+        max_length=254,
+        blank=True,
+        null=True,
+        editable=False,
+        db_index=True,
+    )
+    identity_state = models.CharField(
+        max_length=16,
+        choices=IdentityState.choices,
+        default=IdentityState.LEGACY,
+        db_index=True,
+    )
+
+    class Meta(AbstractUser.Meta):
+        constraints = [
+            models.UniqueConstraint(
+                fields=("normalized_email",),
+                condition=(
+                    Q(identity_state="active")
+                    & Q(normalized_email__isnull=False)
+                ),
+                name="accounts_active_normalized_email_unique",
+            )
+        ]
+
+    def save(self, *args, **kwargs):
+        self.normalized_email = normalize_account_email(self.email)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "email" in update_fields:
+            kwargs["update_fields"] = tuple(
+                dict.fromkeys((*update_fields, "normalized_email"))
+            )
+        super().save(*args, **kwargs)
+
     def __str__(self):
         # safest is to display something stable
         if self.username:
@@ -90,3 +140,105 @@ class Token(models.Model):
 
     def __str__(self):
         return self.key
+
+
+class AccountIdentityAlias(models.Model):
+    """Durable old-account ID to reviewed survivor mapping.
+
+    ``source_user_id`` deliberately is not a foreign key. The absorbed source
+    row stays in place during the rollback window, while the alias continues
+    to resolve imports and audit evidence after any later privacy-approved
+    contraction.
+    """
+
+    source_user_id = models.PositiveBigIntegerField(unique=True)
+    survivor = models.ForeignKey(
+        CustomUser,
+        on_delete=models.PROTECT,
+        related_name="identity_aliases",
+    )
+    source_snapshot_id = models.CharField(max_length=64)
+    mapping_checksum = models.CharField(max_length=64)
+    review_reference = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("source_user_id",)
+        constraints = [
+            models.CheckConstraint(
+                condition=~Q(source_user_id=F("survivor_id")),
+                name="accounts_identity_alias_distinct",
+            )
+        ]
+        indexes = [
+            models.Index(
+                fields=("survivor", "source_user_id"),
+                name="accounts_alias_survivor_source",
+            )
+        ]
+
+    def __str__(self):
+        return f"account-alias:{self.source_user_id}->{self.survivor_id}"
+
+
+class AccountIdentityQuarantine(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        RESOLVED = "resolved", "Resolved"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    fingerprint = models.CharField(max_length=64, unique=True)
+    source_snapshot_id = models.CharField(max_length=64)
+    source_user_ids = models.JSONField(default=list)
+    reason_codes = models.JSONField(default=list)
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.OPEN,
+    )
+    resolution_reference = models.CharField(max_length=128, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("created_at", "id")
+        indexes = [
+            models.Index(
+                fields=("status", "created_at"),
+                name="accounts_quarantine_status",
+            )
+        ]
+
+    def __str__(self):
+        return f"account-quarantine:{self.fingerprint}"
+
+
+class AccountReconciliationRun(models.Model):
+    class Mode(models.TextChoices):
+        APPLY = "apply", "Apply"
+        ROLLBACK_CHECK = "rollback_check", "Rollback check"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    source_snapshot_id = models.CharField(max_length=64)
+    mapping_checksum = models.CharField(max_length=64)
+    mode = models.CharField(max_length=16, choices=Mode.choices)
+    source_account_count = models.PositiveBigIntegerField()
+    survivor_account_count = models.PositiveBigIntegerField()
+    alias_count = models.PositiveBigIntegerField(default=0)
+    quarantine_count = models.PositiveBigIntegerField(default=0)
+    relationship_counts = models.JSONField(default=dict)
+    relationship_checksums = models.JSONField(default=dict)
+    report_checksum = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("created_at", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source_snapshot_id", "mapping_checksum", "mode"),
+                name="accounts_reconciliation_run_unique",
+            )
+        ]
+
+    def __str__(self):
+        return f"account-reconciliation:{self.id}"

@@ -1,235 +1,418 @@
-import json
-import logging
-from dataclasses import dataclass
+from __future__ import annotations
+
 from functools import wraps
+from typing import Any
 
-from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.models import EmailAddress
-
-from django.utils.crypto import get_random_string
-
+from allauth.core.exceptions import ImmediateHttpResponse
+from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
+from allauth.socialaccount.models import SocialAccount
 from django.contrib.auth import get_user_model
+from django.db import IntegrityError, transaction
+from django.http import HttpResponse, JsonResponse
+from django.shortcuts import render
 
-from django.http import JsonResponse
-
+from accounts.identity_resolution import resolve_durable_user
+from accounts.identity_values import normalize_account_email, sha256_text
+from accounts.models import AccountIdentityQuarantine, Token
 from course_management.observability import record_event
 
-from .models import Token
-
-
 User = get_user_model()
-
-logger = logging.getLogger(__name__)
-
-
-@dataclass(frozen=True)
-class SocialLoginConnection:
-    request: object
-    sociallogin: object
-    email: str
-    existing_emails: object
+LIVE_CONFLICT_SNAPSHOT_ID = sha256_text("live-account-link-conflict-v1")
 
 
-def verified_social_email(email_addresses):
-    for email_address in email_addresses:
-        if email_address.verified:
-            return email_address.email
-    return None
+def verified_social_emails(email_addresses: object) -> tuple[str, ...]:
+    normalized: set[str] = set()
+    for email_address in email_addresses or ():
+        if not bool(getattr(email_address, "verified", False)):
+            continue
+        email = normalize_account_email(getattr(email_address, "email", None))
+        if email is not None:
+            normalized.add(email)
+    return tuple(sorted(normalized))
 
 
-def sociallogin_email(sociallogin):
-    if not sociallogin or not sociallogin.email_addresses:
+def verified_social_email(email_addresses: object) -> str | None:
+    emails = verified_social_emails(email_addresses)
+    if len(emails) != 1:
         return None
+    return emails[0]
 
-    return (
-        verified_social_email(sociallogin.email_addresses)
-        or sociallogin.email_addresses[0].email
+
+def sociallogin_email(sociallogin: object) -> str | None:
+    if sociallogin is None:
+        return None
+    return verified_social_email(getattr(sociallogin, "email_addresses", ()))
+
+
+def extract_email(response_data: object, sociallogin: object | None = None) -> str:
+    """Return verified adapter evidence only.
+
+    ``response_data`` is deliberately ignored. Provider payloads and
+    notification/unverified email claims are not account ownership evidence.
+    The argument remains for copied-call compatibility during the migration
+    window.
+    """
+
+    del response_data
+    email = sociallogin_email(sociallogin)
+    if email is None:
+        raise KeyError("Verified email not found in social login evidence")
+    return email
+
+
+def _provider_key(sociallogin: object) -> str:
+    provider = getattr(getattr(sociallogin, "account", None), "provider", "")
+    if not isinstance(provider, str) or not provider:
+        return "unknown"
+    return provider[:32]
+
+
+def _provider_uid_fingerprint(sociallogin: object) -> str:
+    uid = getattr(getattr(sociallogin, "account", None), "uid", "")
+    return sha256_text(str(uid))
+
+
+def _audit_identity_outcome(
+    *,
+    action: str,
+    outcome: str,
+    user_id: int | None,
+    provider: str,
+    reason: str,
+) -> None:
+    from core.audit import AuditWriteContext, record_audit_event
+
+    actor_ref = f"user:{user_id}" if user_id is not None else ""
+    record_audit_event(
+        action=action,
+        target_type="accounts.identity",
+        outcome=outcome,
+        context=AuditWriteContext(
+            actor_id=user_id,
+            actor_ref=actor_ref,
+        ),
+        changes={},
+        metadata={
+            "provider": provider,
+            "reason": reason,
+            "user_id": user_id,
+        },
     )
 
 
-def extract_email(response_data, sociallogin=None):
-    response_email_value = response_data.get("email")
-    sociallogin_email_value = sociallogin_email(sociallogin)
-    notification_email_value = response_data.get("notification_email")
-    for email in (
-        response_email_value,
-        sociallogin_email_value,
-        notification_email_value,
-    ):
-        if email:
-            return email
+def _conflict_fingerprint(
+    *,
+    provider: str,
+    uid_fingerprint: str,
+    reason: str,
+    user_ids: tuple[int, ...],
+) -> str:
+    component = ":".join(
+        (
+            provider,
+            uid_fingerprint,
+            reason,
+            ",".join(str(user_id) for user_id in user_ids),
+        )
+    )
+    return sha256_text(component)
 
-    raise KeyError("Email not found in response data")
+
+def _record_link_conflict(
+    *,
+    sociallogin: object,
+    reason: str,
+    user_ids: tuple[int, ...],
+) -> None:
+    provider = _provider_key(sociallogin)
+    fingerprint = _conflict_fingerprint(
+        provider=provider,
+        uid_fingerprint=_provider_uid_fingerprint(sociallogin),
+        reason=reason,
+        user_ids=user_ids,
+    )
+    AccountIdentityQuarantine.objects.get_or_create(
+        fingerprint=fingerprint,
+        defaults={
+            "source_snapshot_id": LIVE_CONFLICT_SNAPSHOT_ID,
+            "source_user_ids": list(user_ids),
+            "reason_codes": [reason],
+        },
+    )
+    _audit_identity_outcome(
+        action="accounts.identity.link_conflict",
+        outcome="denied",
+        user_id=(user_ids[0] if len(user_ids) == 1 else None),
+        provider=provider,
+        reason=reason,
+    )
+    record_event(
+        "auth.account_link_conflict",
+        properties={
+            "provider": provider,
+            "reason": reason,
+            "candidate_count": len(user_ids),
+        },
+    )
+
+
+def _conflict_response(request: object, reason: str) -> HttpResponse:
+    context = {"reason": reason}
+    if request is None:
+        return HttpResponse(
+            "We could not safely link this sign-in. Please use an existing "
+            "login method or contact support.",
+            status=409,
+        )
+    return render(
+        request,
+        "socialaccount/identity_conflict.html",
+        context,
+        status=409,
+    )
+
+
+def _deny_link(
+    *,
+    request: object,
+    sociallogin: object,
+    reason: str,
+    user_ids: tuple[int, ...] = (),
+) -> None:
+    _record_link_conflict(
+        sociallogin=sociallogin,
+        reason=reason,
+        user_ids=user_ids,
+    )
+    raise ImmediateHttpResponse(_conflict_response(request, reason))
+
+
+def _candidate_users_for_verified_email(email: str) -> tuple[Any, ...]:
+    email_user_ids = set(
+        EmailAddress.objects.filter(
+            verified=True,
+            email__iexact=email,
+        ).values_list("user_id", flat=True)
+    )
+    users = User.objects.filter(pk__in=email_user_ids).order_by("pk")
+    return tuple(users)
+
+
+def _has_unresolved_email_collision(*, email: str, user_id: int) -> bool:
+    candidates = User.objects.exclude(pk=user_id).exclude(
+        identity_state=User.IdentityState.ABSORBED,
+    )
+    for candidate in candidates.only("email", "normalized_email").iterator():
+        candidate_email = candidate.normalized_email or normalize_account_email(candidate.email)
+        if candidate_email == email:
+            return True
+    return False
+
+
+def _activate_verified_identity(user: Any, email: str) -> Any:
+    with transaction.atomic():
+        current = User.objects.get(pk=user.pk)
+        if current.identity_state in {
+            User.IdentityState.ABSORBED,
+            User.IdentityState.QUARANTINED,
+        }:
+            raise IntegrityError("identity is unavailable")
+        if _has_unresolved_email_collision(email=email, user_id=current.pk):
+            raise IntegrityError("normalized email is ambiguous")
+        updated = User.objects.filter(
+            pk=current.pk,
+            email=current.email,
+            normalized_email=current.normalized_email,
+            identity_state=current.identity_state,
+            is_active=current.is_active,
+        ).update(
+            email=current.email or email,
+            normalized_email=email,
+            identity_state=User.IdentityState.ACTIVE,
+        )
+        if updated != 1:
+            raise IntegrityError("identity changed during activation")
+        return User.objects.get(pk=current.pk)
+
+
+def _provider_uid_conflicts(sociallogin: object, user: Any) -> bool:
+    account = getattr(sociallogin, "account", None)
+    provider = getattr(account, "provider", "")
+    uid = getattr(account, "uid", "")
+    if not provider or not uid:
+        return True
+    same_uid_elsewhere = SocialAccount.objects.filter(
+        provider=provider,
+        uid=uid,
+    ).exclude(user_id=user.pk)
+    if same_uid_elsewhere.exists():
+        return True
+    different_uid_for_provider = SocialAccount.objects.filter(
+        provider=provider,
+        user_id=user.pk,
+    ).exclude(uid=uid)
+    return different_uid_for_provider.exists()
 
 
 class ConsolidatingSocialAccountAdapter(DefaultSocialAccountAdapter):
+    """Fail-closed social linking onto the one adopted durable account."""
+
+    def is_open_for_signup(self, request, sociallogin):
+        del request, sociallogin
+        return False
+
     def pre_social_login(self, request, sociallogin):
-        response_data = sociallogin.account.extra_data
-        logger.info(f"OAuth response: {json.dumps(response_data)}")
-
         if sociallogin.is_existing:
-            logger.info(
-                f"Social login already exists for {sociallogin.user}"
-            )
+            self._validate_existing_connection(request, sociallogin)
             return
 
-        email = None
+        emails = verified_social_emails(sociallogin.email_addresses)
+        if not emails:
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="verified_email_required",
+            )
+
+        candidates_by_id: dict[int, Any] = {}
+        for email in emails:
+            for candidate in _candidate_users_for_verified_email(email):
+                candidates_by_id[candidate.pk] = candidate
+        candidate_ids = tuple(sorted(candidates_by_id))
+        if len(candidate_ids) != 1:
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason=(
+                    "verified_owner_missing" if not candidate_ids else "verified_owner_ambiguous"
+                ),
+                user_ids=candidate_ids,
+            )
+
+        user = candidates_by_id[candidate_ids[0]]
+        resolved_user = resolve_durable_user(user)
+        if resolved_user is None or not resolved_user.is_active:
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="verified_owner_unavailable",
+                user_ids=candidate_ids,
+            )
+        if resolved_user.identity_state == User.IdentityState.QUARANTINED:
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="verified_owner_quarantined",
+                user_ids=(resolved_user.pk,),
+            )
+
+        verified_email = emails[0]
+        if any(
+            verified_email
+            != (resolved_user.normalized_email or normalize_account_email(resolved_user.email))
+            for verified_email in emails
+        ):
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="multiple_verified_identity_claims",
+                user_ids=(resolved_user.pk,),
+            )
+        if _provider_uid_conflicts(sociallogin, resolved_user):
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="provider_uid_conflict",
+                user_ids=(resolved_user.pk,),
+            )
+
         try:
-            email = self._sociallogin_email(response_data, sociallogin)
-            if not email:
-                logger.info("No email found in social account data")
-                return
-
-            self._connect_sociallogin_by_email(request, sociallogin, email)
-        except EmailAddress.DoesNotExist:
-            logger.error(f"No user found with email {email}")
-        except KeyError:
-            logger.error("Email key not found in social account data")
-
-    def _sociallogin_email(self, response_data, sociallogin):
-        email = extract_email(response_data, sociallogin=sociallogin)
-        logger.info(f"Extracted email {email} from OAuth response")
-        return email
-
-    def _connect_sociallogin_by_email(self, request, sociallogin, email):
-        existing_emails = EmailAddress.objects.filter(email__iexact=email)
-        num_existing_emails = existing_emails.count()
-        logger.info(
-            f"Found {num_existing_emails} existing users for email {email}"
-        )
-        connection = SocialLoginConnection(
-            request=request,
-            sociallogin=sociallogin,
-            email=email,
-            existing_emails=existing_emails,
-        )
-
-        if num_existing_emails == 0:
-            user = self._user_matching_email_or_username(email)
-            if user is None:
-                user = self._create_user_for_email(email)
-            else:
-                self._ensure_user_email(user, email)
-                self._ensure_email_address(user, email)
-            sociallogin.connect(request, user)
-        elif num_existing_emails == 1:
-            self._connect_single_existing_user(connection)
-        else:
-            self._connect_most_recent_user(connection)
-
-    def _user_matching_email_or_username(self, email):
-        user = User.objects.filter(email__iexact=email).first()
-        if user is not None:
-            return user
-
-        return User.objects.filter(username__iexact=email).first()
-
-    def _ensure_user_email(self, user, email):
-        if user.email:
-            return
-
-        user.email = email
-        user.save(update_fields=["email"])
-
-    def _ensure_email_address(self, user, email):
-        email_address = EmailAddress.objects.create(
-            user=user,
-            email=email,
-            primary=True,
-            verified=True,
-        )
-        email_address.save()
-
-    def _create_user_for_email(self, email):
-        logger.info(
-            f"No existing user found with email {email}, creating a new one"
-        )
-        password_chars = (
-            "abcdefghijklmnopqrstuvwxyz"
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-            "0123456789"
-        )
-        password = get_random_string(length=12, allowed_chars=password_chars)
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=password,
-        )
-        user.save()
-
-        self._ensure_email_address(user, email)
-        return user
-
-    def _connect_single_existing_user(self, connection):
-        user = connection.existing_emails.first().user
-        logger.info(
-            f"Found existing user with email {connection.email}, connecting to it"
-        )
-        connection.sociallogin.connect(connection.request, user)
-
-    def _connect_most_recent_user(self, connection):
-        logger.warning(
-            f"Multiple users found with email {connection.email} - "
-            "attempting to link to the most recently active account."
-        )
-        most_recent_user = self.select_most_recent_user(
-            connection.existing_emails
-        )
-        if most_recent_user:
-            logger.info(
-                f"Found existing user with email {connection.email}, connecting to it"
+            resolved_user = _activate_verified_identity(
+                resolved_user,
+                verified_email,
             )
-            connection.sociallogin.connect(
-                connection.request, most_recent_user
+        except IntegrityError:
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="normalized_email_conflict",
+                user_ids=(resolved_user.pk,),
             )
-
-    @staticmethod
-    def most_recent_user_key(user):
-        return user.last_login or user.date_joined
-
-    @staticmethod
-    def select_most_recent_user(email_addresses):
-        # Assuming 'last_login' can be used to determine the most recently active user
-        users = []
-        for email in email_addresses:
-            user = email.user
-            if user:
-                users.append(user)
-        return max(
-            users,
-            key=ConsolidatingSocialAccountAdapter.most_recent_user_key,
-            default=None,
+        sociallogin.connect(request, resolved_user)
+        provider = _provider_key(sociallogin)
+        _audit_identity_outcome(
+            action="accounts.identity.link_succeeded",
+            outcome="succeeded",
+            user_id=resolved_user.pk,
+            provider=provider,
+            reason="verified_owner",
+        )
+        record_event(
+            "auth.returning_login",
+            user=resolved_user,
+            properties={
+                "provider": provider,
+                "account_created": False,
+            },
         )
 
-def token_required(f):
-    @wraps(f)
+    def _validate_existing_connection(self, request, sociallogin):
+        user = resolve_durable_user(sociallogin.user)
+        if user is None or not user.is_active:
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="existing_connection_unavailable",
+            )
+        if user.identity_state == User.IdentityState.QUARANTINED:
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="existing_connection_quarantined",
+                user_ids=(user.pk,),
+            )
+        if _provider_uid_conflicts(sociallogin, user):
+            _deny_link(
+                request=request,
+                sociallogin=sociallogin,
+                reason="provider_uid_conflict",
+                user_ids=(user.pk,),
+            )
+        sociallogin.user = user
+
+
+def token_required(view):
+    @wraps(view)
     def decorated(request, *args, **kwargs):
         token_key = request.headers.get("Authorization")
         if token_key:
             token_key = token_key.replace("Token ", "", 1)
             try:
-                token = Token.objects.get(key=token_key)
-                request.user = token.user
+                token = Token.objects.select_related("user").get(key=token_key)
+                user = resolve_durable_user(token.user)
+                if user is None or not user.is_active:
+                    raise Token.DoesNotExist
+                request.user = user
             except Token.DoesNotExist:
                 record_event(
                     "api.auth_failed",
                     request=request,
                     properties={"reason": "invalid_token"},
                 )
-                payload = {"error": "Invalid token"}
-                response = JsonResponse(payload, status=401)
-                return response
+                return JsonResponse({"error": "Invalid token"}, status=401)
         else:
             record_event(
                 "api.auth_failed",
                 request=request,
                 properties={"reason": "missing_token"},
             )
-            payload = {"error": "Authentication token required"}
-            response = JsonResponse(payload, status=401)
-            return response
+            return JsonResponse(
+                {"error": "Authentication token required"},
+                status=401,
+            )
 
-        return f(request, *args, **kwargs)
+        return view(request, *args, **kwargs)
 
     decorated.requires_token_auth = True
     return decorated

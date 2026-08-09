@@ -4,6 +4,7 @@ DEBUG = False
 SECRET_KEY = TEST_SECRET_KEY  # noqa: F405
 ALLOWED_HOSTS = ["testserver", "localhost", "127.0.0.1"]
 CSRF_TRUSTED_ORIGINS = ["http://localhost"]
+ACCOUNT_CANONICAL_ORIGIN = "http://testserver"
 
 DATABASES = {
     "default": sqlite_database_from_environment(  # noqa: F405

@@ -176,6 +176,7 @@ SENSITIVE_TABLES = frozenset(
 )
 
 SENSITIVE_PREFIXES = (
+    "accounts_",
     "api_",
     "content_sync_",
     "core_",

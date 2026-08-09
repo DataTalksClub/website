@@ -220,7 +220,8 @@ def render_inventory() -> str:
     lines.extend(
         [
             "",
-            "The original numbered graph is the final graph for this baseline. Migration squashing",
+            "The original numbered graph remains an unchanged prefix. Additive target migrations",
+            "extend the adopted identity only through reviewed product issues. Migration squashing",
             "remains deferred until the production-like parity gate in `migration-squash-gate.md`",
             "can be exercised.",
             "",

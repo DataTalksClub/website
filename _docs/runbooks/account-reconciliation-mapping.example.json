@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "snapshot_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "review_reference": "synthetic-review-100",
+  "mappings": [
+    {
+      "source_user_id": 101,
+      "survivor_user_id": 202,
+      "ownership_evidence": [
+        "verified_normalized_email"
+      ],
+      "field_decisions": {
+        "about_me": "survivor",
+        "certificate_name": "source",
+        "dark_mode": "survivor",
+        "preferred_timezone": "survivor"
+      },
+      "authority_decision": "survivor_only"
+    }
+  ]
+}

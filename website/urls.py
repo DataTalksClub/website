@@ -2,6 +2,8 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import include, path
 
+from accounts import api as account_api
+from accounts.views.continuity import explicit_reauthentication
 from content import review_views
 from core import views as core_views
 from courses import urls as course_urls
@@ -66,9 +68,24 @@ urlpatterns = [
     path("api/v1/admin/", include("website.admin_api_urls")),
     path("admin/", include("loginas.urls")),
     path("admin/", admin.site.urls),
+    path(
+        "accounts/continue/",
+        explicit_reauthentication,
+        name="account_explicit_reauthentication",
+    ),
     path("accounts/", include("accounts.urls")),
     path("accounts/", include("allauth.urls")),
     path("auth/logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path(
+        "api/v1/account/identity/",
+        account_api.current_account_identity,
+        name="account-identity",
+    ),
+    path(
+        "api/account/identity/",
+        account_api.compatibility_account_identity,
+        name="compatibility-account-identity",
+    ),
     path("api/", include("api.urls")),
     path("cadmin/", include("cadmin.urls")),
     path(
