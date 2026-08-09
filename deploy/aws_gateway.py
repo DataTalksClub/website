@@ -2543,6 +2543,9 @@ class AwsReleaseGateway:
                 check=True,
                 env={
                     **os.environ,
+                    "VERSION": identity.version,
+                    "SOURCE_SHA": identity.source_sha,
+                    "IMAGE_DIGEST": identity.image_digest,
                     "DTC_TEST_BASE_URL": self.config.base_url,
                     "DTC_EXPECTED_VERSION": identity.version,
                     "DTC_EXPECTED_SOURCE_SHA": identity.source_sha,

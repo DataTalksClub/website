@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 from django.test import SimpleTestCase
 
+from core.runtime_identity import read_runtime_identity
 from deploy.aws_gateway import AwsReleaseConfig, AwsReleaseGateway
 from deploy.contracts import (
     ReleaseContractError,
@@ -292,6 +293,50 @@ def observed_binding() -> WebRuntimeBinding:
 
 
 class WebRuntimeCoherenceTests(SimpleTestCase):
+    def test_deployed_browser_smoke_receives_complete_runtime_identity(self) -> None:
+        gateway = AwsReleaseGateway.__new__(AwsReleaseGateway)
+        gateway.config = config()
+        observed: dict[str, Any] = {}
+
+        def collect_subprocess(
+            command: list[str],
+            *,
+            check: bool,
+            env: dict[str, str],
+            timeout: int,
+        ) -> None:
+            observed.update(
+                command=command,
+                check=check,
+                env=env,
+                timeout=timeout,
+                runtime_identity=read_runtime_identity(env),
+            )
+
+        workflow_environment = {
+            "VERSION": VERSION,
+            "IMAGE_DIGEST": IMAGE_DIGEST,
+            "RELEASE_SHA": SOURCE_SHA,
+        }
+        with (
+            patch.dict("os.environ", workflow_environment, clear=True),
+            patch("deploy.aws_gateway.run_http_smoke"),
+            patch("deploy.aws_gateway.subprocess.run", side_effect=collect_subprocess),
+        ):
+            gateway.run_deployed_smoke(identity())
+
+        runtime_identity = observed["runtime_identity"]
+        self.assertEqual(runtime_identity.version, VERSION)
+        self.assertEqual(runtime_identity.source_sha, SOURCE_SHA)
+        self.assertEqual(runtime_identity.image_digest, IMAGE_DIGEST)
+        environment = cast(dict[str, str], observed["env"])
+        self.assertEqual(environment["VERSION"], VERSION)
+        self.assertEqual(environment["SOURCE_SHA"], SOURCE_SHA)
+        self.assertEqual(environment["IMAGE_DIGEST"], IMAGE_DIGEST)
+        self.assertEqual(environment["DTC_EXPECTED_VERSION"], VERSION)
+        self.assertEqual(environment["DTC_EXPECTED_SOURCE_SHA"], SOURCE_SHA)
+        self.assertEqual(environment["DTC_EXPECTED_IMAGE_DIGEST"], IMAGE_DIGEST)
+
     def test_eventual_visibility_freezes_two_samples_around_public_health(self) -> None:
         events: list[str] = []
         clock = FakeClock()

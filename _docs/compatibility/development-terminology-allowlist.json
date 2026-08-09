@@ -188,7 +188,7 @@
     },
     {
       "path": "core/tests/test_web_runtime_coherence.py",
-      "sha256": "86df3fa207903358007ca37a4278dda0daea5c632bc7142da1550e46c72095a7",
+      "sha256": "323e7093630ecfa0109d6a605328f5f4497a49203b408983ff69fd9d9c9eee81",
       "class": "legacy_contract_test",
       "reason": "Web runtime coherence tests exercise the exact development service, task, target, and repository identifiers.",
       "follow_up": "#94",
