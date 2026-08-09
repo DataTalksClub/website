@@ -1,0 +1,48 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block breadcrumbs %}
+  <li>
+    <a class="app-link" href="{% url 'wiki-home' %}">Wiki</a>
+  </li>
+  <li class="ml-2">/ {{ record.title }}</li>
+{% endblock %}
+{% block content %}
+  <article class="mx-auto max-w-3xl">
+    <h1 class="text-4xl font-semibold leading-tight">{{ record.title }}</h1>
+    <p class="mt-4 text-lg leading-8 app-text">{{ record.summary }}</p>
+    {% if record.relations %}
+      <section class="mt-6" aria-label="Related concepts and sources">
+        <div class="flex flex-wrap gap-2">
+          {% for relation in record.relations %}
+            {% if relation.href %}
+              <a
+                class="app-badge app-badge-info app-link"
+                href="{{ relation.href }}"
+                data-relation-type="{{ relation.type }}"
+              >
+                <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
+              </a>
+            {% else %}
+              <span
+                class="app-badge app-badge-neutral"
+                title="Not included in this public projection"
+                data-relation-type="{{ relation.type }}"
+              >
+                <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
+              </span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+    {% for fragment in record.unresolved_fragment_ids %}
+      <span id="{{ fragment }}"></span>
+    {% endfor %}
+    <div class="mt-8">
+      {% include "public/_body.html" with blocks=record.blocks %}
+    </div>
+    {% include "public/_source.html" with provenance=record.provenance %}
+  </article>
+{% endblock %}

@@ -1,5 +1,7 @@
 {% extends "core/base.html" %}
-{% block title %}{{ course.title }} — DataTalks.Club{% endblock %}
+{% block title %}
+  {{ course.title }} — DataTalks.Club
+{% endblock %}
 {% block content %}
   {% url 'course_list' as hub_url %}
   {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="Courses" current_label=course.title %}
@@ -15,17 +17,34 @@
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Free course</p>
     <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">{{ course.title }}</h1>
     <p class="mt-4 text-lg leading-8 app-text">{{ course.summary }}</p>
-    <section class="mt-10 border-t app-border pt-8">
+    <section class="mt-10" aria-labelledby="next-cohort-heading">
       <p class="text-sm font-semibold uppercase tracking-wide app-muted">Next cohort</p>
-      <h2 class="mt-2 text-2xl font-semibold">
-        <a class="app-link" href="{% url 'course-cohort-ai-dev-tools-2026' %}">
-          {{ course.cohort.title }}
-        </a>
-      </h2>
-      <p class="mt-3 app-text">Starts {{ course.cohort.start_display }}</p>
+      <div class="mt-4 divide-y app-divide border-y app-border" data-featured-courses>
+        <article
+          class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"
+          data-featured-course
+        >
+          <div class="min-w-0">
+            <p class="text-sm font-semibold uppercase tracking-wide app-muted">2026 cohort</p>
+            <h2 id="next-cohort-heading" class="mt-2 text-2xl font-semibold">
+              {{ course.cohort.title }}
+            </h2>
+            <p class="mt-2 max-w-3xl text-sm leading-6 app-text md:text-base">
+              {{ course.cohort.description }}
+            </p>
+            <p class="mt-2 text-sm app-muted">Starts {{ course.cohort.start_display }}</p>
+          </div>
+          <a
+            class="primer-button primer-button-secondary shrink-0 self-start sm:self-auto"
+            href="{% url 'course-cohort-ai-dev-tools-2026' %}"
+          >
+            View cohort →
+          </a>
+        </article>
+      </div>
       {% if legacy_course %}
         <a
-          class="mt-3 inline-block app-link"
+          class="mt-4 inline-block app-link"
           href="{% url 'courses:course' course_slug=legacy_course.slug %}"
         >
           Open the existing course workspace

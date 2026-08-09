@@ -1,0 +1,10 @@
+<p class="mt-6 text-xs app-muted">
+  Checked source:
+  <a
+    class="app-link"
+    href="{{ provenance.source_url }}"
+    rel="noopener noreferrer"
+  >
+    {{ provenance.repository }} · {{ provenance.revision|slice:":12" }}
+  </a>
+</p>

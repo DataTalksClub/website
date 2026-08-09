@@ -2429,8 +2429,8 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"Learn data skills. For free. Together."
-                b'<link rel="canonical" href="https://datatalks.club/courses/">'
+                b"12 tracked catalogs"
+                b'<link rel="canonical" href="https://datatalks.club/courses">'
                 b'<link rel="stylesheet" href="/static/courses.fixture.css">',
             ),
             Response(
@@ -2481,7 +2481,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             persisted = path.read_text()
             self.assertEqual(__import__("json").loads(persisted), evidence)
             courses_check = next(
-                check for check in evidence["checks"] if check.get("path") == "/courses/"
+                check for check in evidence["checks"] if check.get("path") == "/courses"
             )
             self.assertTrue(courses_check["exact_canonical"])
             self.assertNotIn("canonical_absent", courses_check)
@@ -2496,8 +2496,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 Response(
                     200,
                     noindex,
-                    b"Learn data skills. For free. Together."
-                    b'<link rel="stylesheet" href="/static/core.fixture.css">',
+                    b'12 tracked catalogs<link rel="stylesheet" href="/static/core.fixture.css">',
                 ),
                 "home page lacks expected content",
             ),
@@ -2523,7 +2522,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 ):
                     run_http_smoke("https://web.dtcdev.click", SHA_A)
 
-        exact_courses_canonical = b'<link rel="canonical" href="https://datatalks.club/courses/">'
+        exact_courses_canonical = b'<link rel="canonical" href="https://datatalks.club/courses">'
         invalid_courses_canonicals = (
             ("missing", b""),
             ("duplicate", exact_courses_canonical * 2),
@@ -2541,7 +2540,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             invalid_responses[4] = Response(
                 200,
                 noindex,
-                b"Learn data skills. For free. Together."
+                b"12 tracked catalogs"
                 + rendered_canonical
                 + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
             )

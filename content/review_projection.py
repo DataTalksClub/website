@@ -20,15 +20,15 @@ REQUIRED_SOURCE_REVISIONS = {
     "podwiki": "988b79d0d655bf4755945c3118544cb9e0dbead6",
 }
 REQUIRED_PUBLIC_PATHS = {
-    "/blog/ai-dev-tools-zoomcamp.html",
-    "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
-    "/people/aleksandrkim.html",
-    "/books/20250922-how-software-fails.html",
+    "/blog/ai-dev-tools-zoomcamp",
+    "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production",
+    "/people/aleksandrkim",
+    "/books/20250922-how-software-fails",
     "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
     "/faq/ai-dev-tools-zoomcamp.html",
-    "/podwiki/wiki/ai-coding-tools/",
+    "/wiki/ai-coding-tools",
     "/slack.html",
-    "/courses/ai-dev-tools-zoomcamp/",
+    "/courses/ai-dev-tools-zoomcamp",
 }
 
 
@@ -107,7 +107,7 @@ def projected_events() -> tuple[dict[str, Any], ...]:
         event["starts_at"] = datetime.fromisoformat(event["time"])
         local_start = event["starts_at"].astimezone(ZoneInfo("Europe/Berlin"))
         event["display_time"] = f"{local_start:%b} {local_start.day}, {local_start:%Y, %H:%M %Z}"
-        event["public_path"] = f"/events.html#{event['id']}"
+        event["public_path"] = f"/events/{event['id']}"
         event["provenance"] = record_provenance(event)
         events.append(event)
     events.sort(key=lambda event: event["starts_at"])

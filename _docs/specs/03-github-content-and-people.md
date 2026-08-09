@@ -61,7 +61,8 @@ Assets are stored under release-specific keys. The Django asset resolver selects
 `Person` is the one canonical public profile concept.
 
 - Its stable source key is the existing `short` identifier.
-- Public path remains `/people/<short>.html`.
+- Public path is the owner-approved clean `/people/<short>` route; the established `.html` and
+  trailing-slash forms redirect directly to it.
 - Names, bio, portrait, and social links come from the active GitHub profile.
 - Roles are derived from ordered relationships, so the same person can be an author, guest, speaker, host, instructor, book author, or maintainer at the same time.
 - Course/event teaching relationships may explicitly link a staff user to a public person profile;
@@ -76,6 +77,12 @@ a Person as a side effect. Names, email, organization, seniority, links, Slack s
 activity never infer a match. A later reviewed relation may connect independently existing records,
 but it synchronizes no fields, publishes no private profile value, assigns no editorial role, and
 grants no account, course, Studio, or staff permission.
+
+The bounded public projection selects all 438 checked `_people/*.md` profiles from
+`DataTalksClub/datatalksclub.github.io@ee43d3fa0929faf691178d79f19528e6f15a83e5` and excludes
+only `_people/_template.md`. It projects `/people/<short>`, checked portraits, sanitized
+biographies and public social links, and derives roles only from exact checked author, guest, and
+speaker keys. It does not create or join a `MemberProfile`, user, staff identity, or account.
 
 ## Repository adapters
 

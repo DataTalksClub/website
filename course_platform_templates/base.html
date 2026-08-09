@@ -93,8 +93,9 @@
         {% url 'course_list' as courses_url %}
         {% url 'articles' as articles_url %}
         {% url 'podcast' as podcast_url %}
-        {% url 'podwiki-home' as podwiki_url %}
+        {% url 'wiki-home' as wiki_url %}
         {% url 'books' as books_url %}
+        {% url 'people' as people_url %}
         {% url 'docs-home' as docs_url %}
         {% url 'faq-home' as faq_url %}
         {% url 'slack' as slack_url %}
@@ -115,12 +116,13 @@
                     </button>
                     <div id="site-navigation-links" class="site-navigation-links">
                         {% block nav_links %}
-                            <a href="{{ events_url|default:'/events.html' }}" class="app-heading app-link">Events</a>
-                            <a href="{{ courses_url|default:'/courses/' }}" class="app-heading app-link">Courses</a>
-                            <a href="{{ articles_url|default:'/articles.html' }}" class="app-heading app-link">Articles</a>
-                            <a href="{{ podcast_url|default:'/podcast.html' }}" class="app-heading app-link">Podcast</a>
-                            <a href="{{ podwiki_url|default:'/podwiki/' }}" class="app-heading app-link">Wiki</a>
-                            <a href="{{ books_url|default:'/books.html' }}" class="app-heading app-link">Books</a>
+                            <a href="{{ events_url|default:'/events' }}" class="app-heading app-link">Events</a>
+                            <a href="{{ courses_url|default:'/courses' }}" class="app-heading app-link">Courses</a>
+                            <a href="{{ articles_url|default:'/blog' }}" class="app-heading app-link">Blog</a>
+                            <a href="{{ podcast_url|default:'/podcast' }}" class="app-heading app-link">Podcast</a>
+                            <a href="{{ wiki_url|default:'/wiki' }}" class="app-heading app-link">Wiki</a>
+                            <a href="{{ books_url|default:'/books' }}" class="app-heading app-link">Books</a>
+                            <a href="{{ people_url|default:'/people' }}" class="app-heading app-link">People</a>
                             <a href="{{ docs_url|default:'/docs/' }}" class="app-heading app-link">Docs</a>
                             <a href="{{ faq_url|default:'/faq/' }}" class="app-heading app-link">FAQ</a>
                             <a href="{{ slack_url|default:'/slack.html' }}" class="app-heading app-link">Slack</a>
@@ -142,7 +144,7 @@
                                     </p>
                                 </div>
                                 <div class="user-menu-actions">
-                                    <a href="{{ courses_url|default:'/courses/' }}"
+                                    <a href="{{ courses_url|default:'/courses' }}"
                                        class="user-menu-item app-link">
                                         <i class="fas fa-graduation-cap" aria-hidden="true"></i>
                                         Courses

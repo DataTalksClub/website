@@ -12,7 +12,7 @@ from django.urls import Resolver404, resolve, reverse
 from core.middleware import apply_private_no_store
 from core.preview import SENSITIVE_PREVIEW_QUERY_KEYS, staff_preview_required
 from core.seo import validated_canonical_url
-from core.views import DEVELOPMENT_ROBOTS_BODY, DEVELOPMENT_SITEMAP_BODY
+from core.views import DEVELOPMENT_ROBOTS_BODY
 from courses.models import Course
 
 FIXTURE_URLCONF = "core.tests.seo_fixture_urls"
@@ -151,12 +151,12 @@ class DevelopmentRobotsAndSitemapTests(TestCase):
         self.assertEqual(head.headers["Content-Type"], "text/plain; charset=utf-8")
         self.assertEqual(head.content, b"")
 
-    def test_sitemap_get_and_head_are_exact_and_empty(self) -> None:
+    def test_sitemap_get_and_head_expose_the_checked_section_index(self) -> None:
         response = self.client.get("/sitemap.xml")
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["Content-Type"], "application/xml; charset=utf-8")
-        self.assertEqual(response.content.decode(), DEVELOPMENT_SITEMAP_BODY)
-        self.assertNotIn("<url>", response.content.decode())
+        self.assertIn("<sitemapindex", response.content.decode())
+        self.assertIn("https://datatalks.club/sitemaps/events.xml", response.content.decode())
         self.assertNotIn("<?xml-stylesheet", response.content.decode())
 
         head = self.client.head("/sitemap.xml")
@@ -165,12 +165,17 @@ class DevelopmentRobotsAndSitemapTests(TestCase):
         self.assertEqual(head.content, b"")
 
     @override_settings(NOINDEX=False)
-    def test_development_discovery_endpoints_do_not_leak_into_production(self) -> None:
-        for path in ("/robots.txt", "/sitemap.xml"):
-            with self.subTest(path=path):
-                response = self.client.get(path)
-                self.assertEqual(response.status_code, 404)
-                self.assertNotIn("X-Robots-Tag", response.headers)
+    def test_production_exposes_only_the_public_sitemap(self) -> None:
+        robots = self.client.get("/robots.txt")
+        self.assertEqual(robots.status_code, 404)
+        self.assertNotIn("X-Robots-Tag", robots.headers)
+
+        sitemap = self.client.get("/sitemap.xml")
+        self.assertEqual(sitemap.status_code, 200)
+        self.assertEqual(sitemap.headers["Content-Type"], "application/xml; charset=utf-8")
+        self.assertContains(sitemap, "https://datatalks.club/sitemaps/blog.xml")
+        self.assertContains(sitemap, "https://datatalks.club/sitemaps/wiki.xml")
+        self.assertNotIn("X-Robots-Tag", sitemap.headers)
 
 
 @override_settings(ROOT_URLCONF=FIXTURE_URLCONF, APPEND_SLASH=False, NOINDEX=True)
@@ -337,7 +342,7 @@ class RealUrlAndCourseCanonicalTests(TestCase):
         discovery = self.client.get(reverse("course_list"))
         self.assertContains(
             discovery,
-            '<link rel="canonical" href="https://datatalks.club/courses/">',
+            '<link rel="canonical" href="https://datatalks.club/courses">',
             count=1,
         )
 

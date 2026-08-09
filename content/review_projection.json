@@ -25,7 +25,7 @@
   "article": {
     "source": "main",
     "source_path": "_posts/2025-09-23-ai-dev-tools-zoomcamp.md",
-    "public_path": "/blog/ai-dev-tools-zoomcamp.html",
+    "public_path": "/blog/ai-dev-tools-zoomcamp",
     "title": "AI Dev Tools Zoomcamp 2026: Free Course on AI-Native Software Engineering",
     "subtitle": "Learn how to build, test, deploy, extend, and audit software with AI developer tools without losing engineering discipline.",
     "description": "Free AI Dev Tools course: build and ship a full-stack app with coding agents, MCP, and open-source AI security and DevOps tools. Earn a certificate.",
@@ -52,7 +52,7 @@
       "speaker_name": "Aleksandr Kim",
       "provider_url": "https://luma.com/6c089dac",
       "recording_url": "https://www.youtube.com/watch?v=PosCx_4fwt0",
-      "episode_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html"
+      "episode_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production"
     },
     {
       "source": "main",
@@ -125,7 +125,7 @@
     "aleksandrkim": {
       "source": "main",
       "source_path": "_people/aleksandrkim.md",
-      "public_path": "/people/aleksandrkim.html",
+      "public_path": "/people/aleksandrkim",
       "name": "Aleksandr Kim",
       "bio": "Aleksandr Kim is a Senior Data Scientist at Intuit, based in London - doing what most people outside the company would now call AI engineering: building AI-powered features in production at scale. About 9 years across banking (Raiffeisen), cybersecurity (Kaspersky), retail (X5 Retail Group), and fintech (Intuit), with experience on both sides of the IC–management line: I led two data science teams at X5 Retail Group before moving back to IC at Intuit, and I founded and run Intuit's 70+ member Data Science Guild. Inventor on 15+ ML/AI patents.",
       "website": "https://alexkimds.github.io/",
@@ -136,7 +136,7 @@
   "podcast": {
     "source": "main",
     "source_path": "_podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.md",
-    "public_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
+    "public_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production",
     "title": "How to Build AI That Actually Ships in Production",
     "season": 24,
     "episode": 6,
@@ -157,7 +157,7 @@
   "book": {
     "source": "main",
     "source_path": "_books/20250922-how-software-fails.md",
-    "public_path": "/books/20250922-how-software-fails.html",
+    "public_path": "/books/20250922-how-software-fails",
     "title": "How Software Fails",
     "author": "Engin Yöyen",
     "description": "How Software Fails: A Field Guide to Understanding Complex System Disasters. Why Systems Break in Ways Their Creators Never Imagined.",
@@ -187,7 +187,7 @@
       {"id": "star-the-github-repository", "title": "Star the GitHub repository", "body": "All course materials are here. Each module has its own folder (for example 01-overview, 03-mcp), and cohort-specific homework and deadlines are under the cohorts folder.", "link_label": "Open the course repository", "link_url": "https://github.com/DataTalksClub/ai-dev-tools-zoomcamp"},
       {"id": "join-the-slack-channel", "title": "Join the Slack channel", "body": "After joining the DataTalks.Club Slack workspace, find the #course-ai-dev-tools-zoomcamp channel. This is where questions, announcements, and discussion happen.", "link_label": "Learn about our Slack community", "link_path": "/slack.html"},
       {"id": "follow-the-announcements", "title": "Follow the announcements", "body": "Join the course Telegram channel. Subscribe to the DataTalks.Club YouTube channel and check the course playlist.", "link_label": "Open the course Telegram channel", "link_url": "https://t.me/aidevtoolszoomcamp"},
-      {"id": "how-to-work-through-the-course", "title": "How to work through the course", "body": "Start with the Q&A or launch session and Module 1. Read the README in each module folder, watch the pre-recorded lectures, do the homework, finish the final project, and then review three peers' projects.", "link_label": "Open the 2026 cohort", "link_path": "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026/"}
+      {"id": "how-to-work-through-the-course", "title": "How to work through the course", "body": "Start with the Q&A or launch session and Module 1. Read the README in each module folder, watch the pre-recorded lectures, do the homework, finish the final project, and then review three peers' projects.", "link_label": "Open the 2026 cohort", "link_path": "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026"}
     ],
     "edit_url": "https://github.com/DataTalksClub/docs/edit/main/courses/ai-dev-tools-zoomcamp/getting-started.md"
   },
@@ -208,7 +208,7 @@
   "podwiki": {
     "source": "podwiki",
     "source_path": "_wiki/ai-coding-tools.md",
-    "public_path": "/podwiki/wiki/ai-coding-tools/",
+    "public_path": "/wiki/ai-coding-tools",
     "title": "AI Coding Tools",
     "summary": "How Cursor, Copilot, Claude Code, notebook-to-agent workflows, and human review shape AI-generated code.",
     "lead": "AI coding tools are assistants that sit in IDEs, terminals, and repositories. They use large language models to generate code, complete snippets, refactor files, and review diffs. Cursor, GitHub Copilot, Claude Code, and web-based prototyping tools like Lovable all belong here. These tools are now a practical part of AI Engineering and Software Engineering. They speed up prototypes and help developers move across stacks. They also make review discipline more important.",
@@ -219,7 +219,7 @@
   "course": {
     "source": "main",
     "source_path": "_posts/2025-09-23-ai-dev-tools-zoomcamp.md",
-    "public_path": "/courses/ai-dev-tools-zoomcamp/",
+    "public_path": "/courses/ai-dev-tools-zoomcamp",
     "slug": "ai-dev-tools-zoomcamp",
     "title": "AI Dev Tools Zoomcamp",
     "summary": "AI Dev Tools Zoomcamp is a free, hands-on course on AI-native software engineering.",

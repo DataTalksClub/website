@@ -4,7 +4,7 @@ from django.conf import settings
 from django.http import HttpRequest
 
 EXPLICIT_PUBLIC_CANONICALS = {
-    "/courses/": "https://datatalks.club/courses/",
+    "/courses": "https://datatalks.club/courses",
 }
 
 

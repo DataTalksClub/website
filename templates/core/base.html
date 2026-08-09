@@ -1,11 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Welcome to DataTalks.Club{% endblock %}
+{% block title %}
+  Welcome to DataTalks.Club
+{% endblock %}
 {% block head_meta %}
   <meta
     name="description"
     content="{{ seo_description|default:'DataTalks.Club is the place to talk about data. Join free courses, weekly events, podcasts, and community learning.' }}"
   >
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="{{ og_type|default:'website' }}">
   <meta property="og:site_name" content="DataTalks.Club">
   <meta
     property="og:title"
@@ -16,7 +18,32 @@
     content="{{ seo_description|default:'The global community of data science professionals, ML engineers, and AI practitioners.' }}"
   >
   <meta property="og:url" content="{{ canonical_url }}">
-  <meta name="twitter:card" content="summary">
+  {% if og_image_url %}
+    <meta name="twitter:card" content="summary_large_image">
+  {% else %}
+    <meta name="twitter:card" content="summary">
+  {% endif %}
   <meta name="twitter:site" content="@DataTalksClub">
+  <meta name="twitter:title" content="{{ seo_title|default:'Welcome to DataTalks.Club' }}">
+  <meta
+    name="twitter:description"
+    content="{{ seo_description|default:'The global community of data science professionals, ML engineers, and AI practitioners.' }}"
+  >
+  {% if og_image_url %}
+    <meta property="og:image" content="{{ og_image_url }}">
+    <meta name="twitter:image" content="{{ og_image_url }}">
+  {% endif %}
+  {% if published_time %}
+    <meta property="article:published_time" content="{{ published_time }}">
+  {% endif %}
+  {% if modified_time %}
+    <meta property="article:modified_time" content="{{ modified_time }}">
+  {% endif %}
+  {% if structured_data %}
+    <script type="application/ld+json">
+      {{ structured_data|safe }}
+    </script>
+  {% endif %}
 {% endblock %}
-{% block breadcrumbs_nav %}{% endblock %}
+{% block breadcrumbs_nav %}
+{% endblock %}

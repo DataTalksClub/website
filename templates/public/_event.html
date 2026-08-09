@@ -1,0 +1,22 @@
+<article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+  <div class="min-w-0">
+    {% include "public/_event_meta.html" %}
+    <h3 class="mt-2 text-xl font-semibold">
+      <a class="app-link" href="{{ event.public_path }}">{{ event.title }}</a>
+    </h3>
+    {% if event.speakers %}
+      <p class="mt-2 app-text">
+        With
+        {% for speaker in event.speakers %}
+          <a class="app-link" href="{{ speaker.public_path }}">{{ speaker.name }}</a>
+          {% if not forloop.last %}
+            <span aria-hidden="true">,</span>
+          {% endif %}
+        {% endfor %}
+      </p>
+    {% endif %}
+  </div>
+  <a class="shrink-0 self-start app-link sm:self-auto" href="{{ event.public_path }}">
+    Event details
+  </a>
+</article>

@@ -1,0 +1,35 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block breadcrumbs %}
+  <li>
+    <a class="app-link" href="{% url 'wiki-home' %}">Wiki</a>
+  </li>
+  <li class="ml-2">/ Knowledge graph</li>
+{% endblock %}
+{% block content %}
+  <h1 class="text-4xl font-semibold">Knowledge graph</h1>
+  <p class="mt-3 max-w-3xl leading-7 app-text">All graph nodes remain browseable without JavaScript.</p>
+  <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    {% for node in nodes %}
+      {% if node.url %}
+        <a
+          id="{{ node.id }}"
+          class="rounded-md border app-border p-4 app-link"
+          href="{{ node.url }}"
+        >
+          {{ node.label|default:node.title }}
+        </a>
+      {% else %}
+        <span
+          id="{{ node.id }}"
+          class="rounded-md border app-border p-4 app-muted"
+          title="Not included in this public projection"
+        >
+          {{ node.label|default:node.title }}
+        </span>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endblock %}

@@ -17,7 +17,8 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
 - `website/admin_api_views.py`: target-owned compatibility shim preserving the scaffold's
   staff-gated, versioned admin-health response without modifying copied CMP API behavior;
 - `course_platform_templates/base.html`: target validated explicit-only canonical-link integration,
-  labelled keyboard-accessible local website navigation, homepage brand destination, and Studio
+  labelled keyboard-accessible local website navigation using the approved clean public hubs,
+  homepage brand destination, and Studio
   entry inside the existing CMP account menu; recorded separately in
   `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`. Existing
   CMP login, session, account settings, preference, logout, impersonation, and course-admin
@@ -51,7 +52,10 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   #98 selects the unified local SQLite settings and removes copied backend-specific SQL, lock
   retries, credential-file loading, and direct-SQL operator guidance while preserving catalog
   generation and project-scoring behavior through the copied ORM services;
-- target scaffold Django and Playwright tests/configuration where the adopted `accounts.CustomUser`, course homepage, and source sign-in surface supersede placeholder scaffold contracts;
+- target scaffold Django and Playwright tests/configuration where the adopted `accounts.CustomUser`,
+  course homepage, and source sign-in surface supersede placeholder scaffold contracts; issue #105
+  fronts `/courses/` with the read-only public projection while delegating to the adopted course
+  list whenever the unified database contains course rows;
 - `core/tests/test_course_platform_adoption.py`,
   `scripts/render_course_platform_inventory.py`,
   `scripts/verify_course_platform_adoption.py`, and `_docs/adoption/course-platform/`:

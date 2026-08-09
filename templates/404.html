@@ -1,0 +1,15 @@
+{% extends "core/base.html" %}
+{% block title %}
+  Page not found — DataTalks.Club
+{% endblock %}
+{% block content %}
+  <section class="mx-auto max-w-2xl py-12 text-center">
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">404</p>
+    <h1 class="mt-3 text-4xl font-semibold">Page not found</h1>
+    <p class="mt-4 text-lg app-text">This address is not part of the public site.</p>
+    <div class="mt-7 flex flex-wrap justify-center gap-3">
+      <a class="primer-button primer-button-primary" href="{% url 'home' %}">Return home</a>
+      <a class="primer-button primer-button-secondary" href="{% url 'wiki-home' %}">Browse the Wiki</a>
+    </div>
+  </section>
+{% endblock %}

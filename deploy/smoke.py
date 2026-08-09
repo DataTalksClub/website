@@ -137,7 +137,7 @@ def run_http_smoke(
     canonical = '<link rel="canonical" href="https://datatalks.club/">'
     if html.count(canonical) != 1 or html.count('rel="canonical"') != 1:
         raise ReleaseContractError("home page production canonical differs")
-    if "Learn data skills. For free. Together." in html:
+    if "12 tracked catalogs" in html:
         raise ReleaseContractError("home page regressed to adopted course discovery")
     lowered = html.lower()
     if "traceback" in lowered or "page not found" in lowered or "debug=true" in lowered:
@@ -157,15 +157,15 @@ def run_http_smoke(
     if "The place to talk about data" not in mapped_html:
         raise ReleaseContractError("unified compatibility page lacks the main-site identity")
 
-    courses = _request(origin, "/courses/")
-    _assert_status(courses, 200, "/courses/")
-    _assert_noindex(courses, "/courses/")
+    courses = _request(origin, "/courses")
+    _assert_status(courses, 200, "/courses")
+    _assert_noindex(courses, "/courses")
     courses_html = courses.body.decode("utf-8")
-    if "Learn data skills. For free. Together." not in courses_html:
+    if "12 tracked catalogs" not in courses_html:
         raise ReleaseContractError("course discovery lacks expected content")
     if "The place to talk about data" in courses_html:
         raise ReleaseContractError("course discovery regressed to the main-site home")
-    courses_canonical = '<link rel="canonical" href="https://datatalks.club/courses/">'
+    courses_canonical = '<link rel="canonical" href="https://datatalks.club/courses">'
     if courses_html.count(courses_canonical) != 1 or courses_html.count('rel="canonical"') != 1:
         raise ReleaseContractError("course discovery production canonical differs")
 
@@ -266,7 +266,7 @@ def run_http_smoke(
                 "explicit_canonical": True,
             },
             {
-                "path": "/courses/",
+                "path": "/courses",
                 "status": 200,
                 "noindex": True,
                 "course_discovery": True,

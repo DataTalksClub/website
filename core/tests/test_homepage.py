@@ -4,9 +4,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import resolve, reverse
 
+from content import public_views, review_views
 from core import views as core_views
 from courses.models.course import Course
-from courses.views import course_list
 
 
 class MainHomepageRoutingTests(TestCase):
@@ -21,9 +21,23 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Welcome to DataTalks.Club")
         self.assertContains(response, "The place to talk about data")
         self.assertContains(response, "Courses and cohorts")
+        self.assertContains(response, "AI Dev Tools Zoomcamp")
+        self.assertContains(response, "2026 cohort")
+        self.assertContains(response, "Starts August 31, 2026")
+        self.assertContains(
+            response,
+            f'href="{reverse("course-cohort-ai-dev-tools-2026")}"',
+        )
+        self.assertContains(response, "View cohort →")
+        self.assertContains(response, "Browse all courses →")
+        self.assertNotContains(response, "Data Engineering Zoomcamp 2026")
+        self.assertEqual(
+            len(re.findall(r"\sdata-featured-course(?=[\s>])", response.content.decode())),
+            1,
+        )
         self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
-        self.assertContains(response, "/static/courses.css")
-        self.assertContains(response, "/static/core/site_shell.css")
+        self.assertRegex(response.content.decode(), r"/static/courses(?:\.[0-9a-f]+)?\.css")
+        self.assertRegex(response.content.decode(), r"/static/core/site_shell(?:\.[0-9a-f]+)?\.css")
         self.assertNotContains(response, "/static/core/site.css")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
@@ -35,8 +49,9 @@ class MainHomepageRoutingTests(TestCase):
             "course_list",
             "articles",
             "podcast",
-            "podwiki-home",
+            "wiki-home",
             "books",
+            "people",
             "docs-home",
             "faq-home",
             "slack",
@@ -96,19 +111,38 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, f'href="{reverse("studio:home")}"')
         self.assertContains(response, f'href="{reverse("cadmin_course_list")}"')
 
-    def test_course_discovery_delegates_to_cmp_context(self) -> None:
-        self.assertEqual(reverse("course_list"), "/courses/")
-        self.assertIs(resolve("/courses/").func, course_list.course_list)
+    def test_course_discovery_uses_the_checked_catalog(self) -> None:
+        self.assertEqual(reverse("course_list"), "/courses")
+        self.assertIs(resolve("/courses").func, public_views.course_hub)
 
         response = self.client.get(reverse("course_list"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "<title>Courses — DataTalks.Club</title>", html=True)
-        self.assertContains(response, "Learn data skills. For free. Together.")
-        self.assertContains(response, "AI Dev Tools Zoomcamp")
+        self.assertContains(response, "12 tracked catalogs")
+        self.assertContains(response, "Data Engineering Zoomcamp 2026")
+        self.assertEqual(response.content.decode().count("data-course-row"), 12)
+        self.assertNotContains(response, "md:grid-cols-2")
         self.assertContains(
             response,
-            '<link rel="canonical" href="https://datatalks.club/courses/">',
+            '<link rel="canonical" href="https://datatalks.club/courses">',
+        )
+
+    def test_ai_dev_tools_course_family_uses_the_same_cohort_row_hierarchy(self) -> None:
+        path = reverse("course-family-ai-dev-tools")
+        self.assertEqual(path, "/courses/ai-dev-tools-zoomcamp")
+        self.assertIs(resolve(path).func, review_views.course_family)
+
+        response = self.client.get(path)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "AI Dev Tools Zoomcamp")
+        self.assertContains(response, "2026 cohort")
+        self.assertContains(response, "Starts August 31, 2026")
+        self.assertContains(response, "View cohort →")
+        self.assertEqual(
+            len(re.findall(r"\sdata-featured-course(?=[\s>])", response.content.decode())),
+            1,
         )
 
     @override_settings(ROOT_URLCONF="course_management.urls")
