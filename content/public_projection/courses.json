@@ -1,0 +1,218 @@
+[
+  {
+    "finished": false,
+    "first_deadline": "2026-01-26T23:59:59+00:00",
+    "homework_count": 8,
+    "last_deadline": "2026-05-04T23:00:00+00:00",
+    "project_count": 3,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "de-zoomcamp-2026",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/de-zoomcamp-2026",
+    "slug": "de-zoomcamp-2026",
+    "title": "Data Engineering Zoomcamp 2026"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2025-11-27T23:00:00+00:00",
+    "homework_count": 3,
+    "last_deadline": "2026-02-02T23:00:00+00:00",
+    "project_count": 2,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "ai-dev-tools-2025",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/ai-dev-tools-2025",
+    "slug": "ai-dev-tools-2025",
+    "title": "AI Dev Tools Zoomcamp 2025"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2024-01-31T23:00:00+00:00",
+    "homework_count": 9,
+    "last_deadline": "2024-04-28T23:00:00+00:00",
+    "project_count": 2,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "de-zoomcamp-2024",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/de-zoomcamp-2024",
+    "slug": "de-zoomcamp-2024",
+    "title": "Data Engineering Zoomcamp 2024"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2025-01-27T23:00:00+00:00",
+    "homework_count": 7,
+    "last_deadline": "2025-05-05T23:00:00+00:00",
+    "project_count": 3,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "de-zoomcamp-2025",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/de-zoomcamp-2025",
+    "slug": "de-zoomcamp-2025",
+    "title": "Data Engineering Zoomcamp 2025"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2024-06-24T23:00:00+00:00",
+    "homework_count": 8,
+    "last_deadline": "2024-11-04T23:00:00+00:00",
+    "project_count": 3,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "llm-zoomcamp-2024",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/llm-zoomcamp-2024",
+    "slug": "llm-zoomcamp-2024",
+    "title": "LLM Zoomcamp 2024"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2025-06-16T23:00:00+00:00",
+    "homework_count": 5,
+    "last_deadline": "2025-10-26T23:00:00+00:00",
+    "project_count": 3,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "llm-zoomcamp-2025",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/llm-zoomcamp-2025",
+    "slug": "llm-zoomcamp-2025",
+    "title": "LLM Zoomcamp 2025"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2024-09-30T23:00:00+00:00",
+    "homework_count": 11,
+    "last_deadline": "2025-02-10T23:00:00+00:00",
+    "project_count": 3,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "ml-zoomcamp-2024",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/ml-zoomcamp-2024",
+    "slug": "ml-zoomcamp-2024",
+    "title": "Machine Learning Zoomcamp 2024"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2025-10-01T23:00:00+00:00",
+    "homework_count": 9,
+    "last_deadline": "2026-02-09T23:00:00+00:00",
+    "project_count": 4,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "ml-zoomcamp-2025",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/ml-zoomcamp-2025",
+    "slug": "ml-zoomcamp-2025",
+    "title": "Machine Learning Zoomcamp 2025"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2024-05-23T23:00:00+00:00",
+    "homework_count": 6,
+    "last_deadline": "2024-08-26T23:00:00+00:00",
+    "project_count": 2,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "mlops-zoomcamp-2024",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/mlops-zoomcamp-2024",
+    "slug": "mlops-zoomcamp-2024",
+    "title": "MLOps Zoomcamp 2024"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2025-05-19T23:00:00+00:00",
+    "homework_count": 6,
+    "last_deadline": "2025-08-29T17:00:00+00:00",
+    "project_count": 3,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "mlops-zoomcamp-2025",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/mlops-zoomcamp-2025",
+    "slug": "mlops-zoomcamp-2025",
+    "title": "MLOps Zoomcamp 2025"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2024-04-24T23:59:59+00:00",
+    "homework_count": 4,
+    "last_deadline": "2024-08-19T23:59:59+00:00",
+    "project_count": 2,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "sma-zoomcamp-2024",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/sma-zoomcamp-2024",
+    "slug": "sma-zoomcamp-2024",
+    "title": "Stock Markets Analytics Zoomcamp 2024"
+  },
+  {
+    "finished": true,
+    "first_deadline": "2025-06-04T22:59:59+00:00",
+    "homework_count": 4,
+    "last_deadline": "2025-09-30T23:59:59+00:00",
+    "project_count": 2,
+    "provenance": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_key": "sma-zoomcamp-2025",
+      "source_path": "scripts/production_like_course_specs.json",
+      "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
+    },
+    "public_path": "/courses/sma-zoomcamp-2025",
+    "slug": "sma-zoomcamp-2025",
+    "title": "Stock Markets Analytics Zoomcamp 2025"
+  }
+]

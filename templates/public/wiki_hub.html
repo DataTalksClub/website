@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block content %}
+  <header class="max-w-3xl py-6">
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">282 connected pages</p>
+    <h1 class="mt-2 text-4xl font-semibold">DataTalks.Club Wiki</h1>
+    <p class="mt-3 text-lg leading-8 app-text">
+      Concepts, tools, people, and ideas from podcast conversations.
+    </p>
+    <form class="mt-5 flex max-w-xl gap-2" action="{% url 'wiki-home' %}" method="get">
+      <label class="sr-only" for="wiki-query">Search the Wiki</label>
+      <input
+        id="wiki-query"
+        class="min-w-0 flex-1 rounded-md border app-border app-surface px-3 py-2"
+        name="q"
+        type="search"
+        required
+      >
+      <button class="primer-button primer-button-primary" type="submit">Search</button>
+    </form>
+    <nav class="mt-5 flex flex-wrap gap-4" aria-label="Wiki tools">
+      <a class="app-link" href="{% url 'wiki-graph' %}">Knowledge graph</a>
+      <a class="app-link" href="{% url 'wiki-special' %}">Special pages</a>
+      <a class="app-link" href="{% url 'wiki-feed' %}">Feed</a>
+    </nav>
+  </header>
+  <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
+    {% for record in records %}
+      <article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <h2 class="text-lg font-semibold">
+            <a class="app-link" href="{{ record.public_path }}">{{ record.title }}</a>
+          </h2>
+          <p class="mt-2 line-clamp-3 max-w-3xl text-sm leading-6 app-text">{{ record.summary }}</p>
+        </div>
+        <a class="shrink-0 self-start app-link sm:self-auto" href="{{ record.public_path }}">
+          Read topic
+        </a>
+      </article>
+    {% endfor %}
+  </div>
+{% endblock %}

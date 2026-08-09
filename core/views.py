@@ -7,17 +7,15 @@ from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
-from content.review_projection import event_groups, review_projection
+from content.public_data import event_groups, public_projection
+from content.review_projection import review_projection
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
-DEVELOPMENT_SITEMAP_BODY = (
-    '<?xml version="1.0" encoding="UTF-8"?>\n'
-    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
-)
 
 
+@require_safe
 def home(request: HttpRequest):
-    projection = review_projection()
+    projection = public_projection()
     events = event_groups()
     return render(
         request,
@@ -26,9 +24,12 @@ def home(request: HttpRequest):
             "canonical_url": "https://datatalks.club/",
             "upcoming_events": events.upcoming[:3],
             "recent_events": events.recent[:1],
-            "course": projection["course"],
-            "article": projection["article"],
-            "podcast": projection["podcast"],
+            "featured_course": review_projection()["course"],
+            "article": projection["articles"][0],
+            "podcast": projection["podcasts"][0],
+            "book": projection["books"][0],
+            "wiki_page": projection["wiki"][0],
+            "counts": projection["manifest"]["counts"],
         },
     )
 
@@ -51,10 +52,10 @@ def robots(request: HttpRequest) -> HttpResponse:
 @require_safe
 def sitemap(request: HttpRequest) -> HttpResponse:
     del request
-    return _development_seo_response(
-        DEVELOPMENT_SITEMAP_BODY,
-        "application/xml; charset=utf-8",
-    )
+    from content.public_views import production_sitemap
+
+    body = production_sitemap()
+    return HttpResponse(body, content_type="application/xml; charset=utf-8")
 
 
 @require_GET

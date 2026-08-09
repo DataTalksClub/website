@@ -1,0 +1,13 @@
+{% for block in blocks %}
+  {% if block.kind == "heading" %}
+    {% if block.level == 2 %}
+      <h2 id="{{ block.id }}" class="mt-10 text-2xl font-semibold">{{ block.text }}</h2>
+    {% else %}
+      <h3 id="{{ block.id }}" class="mt-8 text-xl font-semibold">{{ block.text }}</h3>
+    {% endif %}
+  {% elif block.kind == "list_item" %}
+    <p class="ml-5 mt-3 list-item leading-7 app-text">{{ block.text }}</p>
+  {% else %}
+    <p class="mt-4 whitespace-pre-line leading-7 app-text">{{ block.text }}</p>
+  {% endif %}
+{% endfor %}

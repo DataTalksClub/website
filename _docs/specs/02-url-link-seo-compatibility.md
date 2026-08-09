@@ -11,31 +11,56 @@ The baseline inventory covers:
 - all generated main-site pages and collection details;
 - all docs pages and headings beneath `/docs/`;
 - FAQ pages, ten-character question fragments, and JSON feeds beneath `/faq/`;
-- Podwiki pages, search/filter URLs, generated graph assets, and hash deep links beneath `/podwiki/`;
+- Wiki pages, search/filter URLs, generated graph assets, and hash deep links beneath the
+  canonical `/wiki` route family;
 - current course-platform HTML and API paths on `courses.datatalks.club`;
-- assets beneath `/images/`, `/assets/`, `/docs/assets/`, `/faq/assets/`, and `/podwiki/assets/`;
+- assets beneath `/images/`, `/assets/`, `/docs/assets/`, `/faq/assets/`, and `/wiki/assets/`;
 - canonical, alternate, Open Graph, Twitter, structured-data, sitemap, robots, and edit-on-GitHub links;
 - internal and external link destinations embedded in every rendered page.
 
 ## Route rules that must remain exact
 
-- Main hubs retain paths such as `/articles.html`, `/podcast.html`, `/events.html`, `/books.html`, and `/people.html`.
-- Main collection details retain `/blog/<slug>.html`, `/podcast/<slug>.html`, `/books/<slug>.html`, `/people/<slug>.html`, `/courses/<slug>.html`, `/tools/<slug>.html`, and `/conferences/<slug>.html` where they currently exist.
+- Main hubs use the owner-approved clean paths `/blog`, `/podcast`, `/events`, `/books`, and
+  `/people`. The explicit historical hub aliases redirect permanently in one hop: `/articles.html`
+  and `/blog/` to `/blog`; the `.html` and slash variants of Podcast, Events, Books, and People to
+  their clean hub; and `/courses/` and `/wiki/` to `/courses` and `/wiki`. Queries are preserved.
+- Main editorial details use the owner-approved clean paths `/blog/<slug>`, `/podcast/<slug>`,
+  `/books/<slug>`, and `/people/<slug>`. Their established `.html` paths and trailing-slash forms
+  redirect permanently in one hop to the clean detail while preserving the raw query. The bounded
+  public course catalog uses `/courses/<slug>`; established `/tools/<slug>.html` and
+  `/conferences/<slug>.html` routes remain unchanged where they currently exist.
 - Docs retain pretty trailing-slash paths under `/docs/`.
 - FAQ retains `/faq/<course>.html#<question-id>` and the exact JSON field/path contracts at `/faq/json/`.
-- Podwiki retains pretty paths under `/podwiki/`, the `q` and type-filter search contract, graph JSON, and graph hash semantics.
+- The podcast Wiki uses `/wiki` for the hub and query search, `/wiki/<slug>` for editorial details,
+  and reviewed extension-bearing graph/feed/data/asset endpoints. The editorial slug `search`
+  remains available at `/wiki/search`.
 - Course-platform compatibility routes remain available on `courses.datatalks.club` until every known browser, script, certificate tool, and email template has migrated.
 - Path case, percent encoding, Unicode, query strings used by public behavior, and trailing-slash behavior are tested rather than normalized globally.
+
+### Canonical Wiki route
+
+The product owner selected `/wiki` as the sole podcast-Wiki route family on 2026-08-09 and then
+explicitly exempted the short-lived `/podwiki/` mount from preservation. This intentionally amends
+the earlier preservation rule:
+
+- canonical, alternate, navigation, content, forms, graph/search, sitemap, asset, and other
+  generated internal URLs use the clean `/wiki` family directly;
+- `/podwiki/` and every path beneath it are absent and return a real `404`; and
+- no redirect or compatibility map from `/podwiki/` is created.
+
+This is a route migration, not a source-identity rename: the editorial repository and adapter may
+continue to be called Podwiki where provenance requires it.
 
 ## Canonical course URLs
 
 The new canonical course structure is:
 
-- `/courses/<course-slug>/` for the reusable course landing page;
-- `/courses/<course-slug>/cohorts/<cohort-slug>/` for one dated delivery;
+- `/courses/<course-slug>` for the reusable course landing page;
+- `/courses/<course-slug>/cohorts/<cohort-slug>` for one dated delivery;
 - cohort-relative paths for dashboard, calendar, homework, projects, peer review, leaderboard, and certificates.
 
-Existing SEO-bearing static course articles under `/blog/*.html` stay at their current paths during the migration and link to the new course/cohort application. They are not folded into new paths during cutover.
+Existing SEO-bearing static course articles redirect from `/blog/*.html` to their clean
+`/blog/<slug>` canonical and link to the new course/cohort application.
 
 Existing `courses.datatalks.club` routes initially reach copied compatibility views in the unified Django app. After all links and clients are migrated, that hostname moves to a small Terraform-managed redirect Lambda. HTML paths receive explicit one-hop redirects only after their destination is verified. Existing API routes remain functioning compatibility endpoints until each consumer is updated because API clients may not safely preserve authorization across a cross-host redirect.
 
@@ -103,7 +128,8 @@ Every response from `web.dtcdev.click`, content previews, and unpublished course
 
 - include `X-Robots-Tag: noindex, nofollow`;
 - be disallowed in the development `robots.txt`;
-- omit the production sitemap or expose a development-only empty sitemap;
+- expose the production-origin root and section sitemap structure for parity inspection without
+  submitting it to crawlers;
 - use the corresponding `https://datatalks.club/...` canonical for a production-equivalent public page;
 - require authentication for private previews and never expose preview tokens to analytics or logs.
 

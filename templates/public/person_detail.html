@@ -1,0 +1,70 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block breadcrumbs %}
+  <li>
+    <a class="app-link" href="{% url 'people' %}">People</a>
+  </li>
+  <li class="ml-2">/ {{ record.title }}</li>
+{% endblock %}
+{% block content %}
+  <article class="mx-auto max-w-3xl">
+    <header class="flex flex-col gap-5 sm:flex-row sm:items-center">
+      <img
+        class="h-32 w-32 shrink-0 rounded-full border object-cover app-border"
+        src="{{ record.image_path }}"
+        alt="Portrait of {{ record.title }}"
+        width="128"
+        height="128"
+      >
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-wide app-muted">Community profile</p>
+        <h1 class="mt-2 text-4xl font-semibold leading-tight">{{ record.title }}</h1>
+      </div>
+    </header>
+    {% if record.summary %}
+      <p class="mt-6 text-lg leading-8 app-text">{{ record.summary }}</p>
+    {% endif %}
+    <div class="mt-6">
+      {% include "public/_body.html" with blocks=record.blocks %}
+    </div>
+    {% if record.roles %}
+      <div class="mt-6 flex flex-wrap gap-2" aria-label="Community roles">
+        {% for role in record.roles %}
+          <span class="app-badge app-badge-info">{{ role|title }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if record.relationships %}
+      <section class="mt-8" aria-labelledby="person-contributions-heading">
+        <h2 id="person-contributions-heading" class="text-2xl font-semibold">Contributions</h2>
+        <ul class="mt-4 divide-y app-divide border-y app-border">
+          {% for relationship in record.relationships %}
+            <li class="py-3">
+              <span class="mr-2 text-sm uppercase app-muted">{{ relationship.role }}</span>
+              <a class="app-link" href="{{ relationship.public_path }}">{{ relationship.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+    {% if record.links %}
+      <nav class="mt-8 flex flex-wrap gap-3" aria-label="Public profile links">
+        {% for link in record.links %}
+          <a
+            class="primer-button primer-button-secondary"
+            href="{{ link.url }}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ link.label }}
+            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+            <span class="sr-only">(opens in a new tab)</span>
+          </a>
+        {% endfor %}
+      </nav>
+    {% endif %}
+    {% include "public/_source.html" with provenance=record.provenance %}
+  </article>
+{% endblock %}

@@ -52,6 +52,9 @@ EXPECTED_MIGRATION_COUNTS = {
     "courses": 40,
     "data": 5,
 }
+EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES = {
+    ("Public courses", "course_list"): "content.public_views.course_hub",
+}
 ORIGINAL_ACCOUNTS_MIGRATIONS = (
     "0001_initial",
     "0002_token",
@@ -144,7 +147,10 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 match = resolve(example_path)
                 self.assertEqual(match.url_name, route.name or None)
                 callback_name = f"{match.func.__module__}.{match.func.__name__}"
-                self.assertEqual(callback_name, route.callback)
+                expected_callback = EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES.get(
+                    (route.surface, route.name), route.callback
+                )
+                self.assertEqual(callback_name, expected_callback)
 
     def test_every_adopted_management_command_loads(self):
         registered = get_commands()

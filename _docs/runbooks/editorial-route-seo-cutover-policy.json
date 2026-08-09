@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "owner": {
+    "primary_role": "production SEO cutover commander",
+    "responder_role": "website on-call engineer",
+    "rollback_approver_role": "product manager"
+  },
+  "action_semantics": {
+    "stop_or_rollback": "stop before the canonical traffic switch; roll back immediately at or after the switch",
+    "rollback": "roll back immediately at or after the canonical traffic switch"
+  },
+  "manifest": {
+    "path": "content/public_projection/editorial_route_migration.json",
+    "selection_mode": "preferred",
+    "required_finals": 796,
+    "required_aliases": 1592,
+    "required_content_sha256": "61f7eb360aa04bc51d3ed4515fd0b9d624efb6d50f07e766dbc40c0555318762"
+  },
+  "baseline": {
+    "timezone": "UTC",
+    "complete_days": 28,
+    "comparison": "median of the same weekday across the four complete pre-cutover weeks",
+    "capture_deadline_hours_before_cutover": 24,
+    "exclude_only": [
+      "documented full-site outage",
+      "documented analytics outage",
+      "documented one-off campaign"
+    ]
+  },
+  "monitoring_windows": [
+    {
+      "id": "initial",
+      "start_minutes": 0,
+      "end_minutes": 120,
+      "cadence_minutes": 15
+    },
+    {
+      "id": "first_three_days",
+      "start_minutes": 120,
+      "end_minutes": 4320,
+      "cadence_minutes": 60
+    },
+    {
+      "id": "first_two_weeks",
+      "start_day": 4,
+      "end_day": 14,
+      "cadence_hours": 24
+    },
+    {
+      "id": "rollback_tail",
+      "start_day": 15,
+      "end_day": 28,
+      "cadence_hours": 168
+    }
+  ],
+  "signals": [
+    {
+      "id": "route_contract",
+      "source": "production-origin exhaustive HTTP probe",
+      "comparison": "all manifest aliases and finals"
+    },
+    {
+      "id": "googlebot_http",
+      "source": "redacted edge HTTP aggregates for provider-validated Googlebot traffic",
+      "comparison": "old aliases versus mapped clean finals"
+    },
+    {
+      "id": "search_console",
+      "source": "production Search Console page-indexing, crawl, canonical, clicks, and impressions exports",
+      "comparison": "manifest-normalized old and clean production URL groups"
+    },
+    {
+      "id": "organic_landings",
+      "source": "production analytics aggregate organic landing sessions",
+      "comparison": "manifest-normalized clean URL group versus the weekday baseline"
+    },
+    {
+      "id": "robots_sitemap_canonical",
+      "source": "production robots, sitemap, canonical, Open Graph, and JSON-LD probe",
+      "comparison": "the accepted production contract"
+    }
+  ],
+  "rollback_thresholds": [
+    {
+      "id": "route_contract_failure",
+      "eligible_from_minute": 0,
+      "window_minutes": 15,
+      "failed_routes_gte": 1,
+      "action": "stop_or_rollback"
+    },
+    {
+      "id": "editorial_5xx",
+      "eligible_from_minute": 0,
+      "window_minutes": 15,
+      "minimum_requests": 100,
+      "rate_percent_gte": 1.0,
+      "action": "rollback"
+    },
+    {
+      "id": "googlebot_alias_failure",
+      "eligible_from_minute": 0,
+      "window_minutes": 60,
+      "minimum_requests": 20,
+      "non_301_or_chain_rate_percent_gte": 1.0,
+      "action": "rollback"
+    },
+    {
+      "id": "robots_sitemap_or_canonical_failure",
+      "eligible_from_minute": 0,
+      "window_minutes": 15,
+      "failed_contracts_gte": 1,
+      "action": "stop_or_rollback"
+    },
+    {
+      "id": "organic_landing_regression",
+      "eligible_from_complete_day": 7,
+      "consecutive_complete_days": 2,
+      "baseline_percent_lte": 70.0,
+      "action": "rollback"
+    },
+    {
+      "id": "search_console_index_regression",
+      "eligible_from_complete_day": 14,
+      "consecutive_complete_days": 3,
+      "baseline_percent_lte": 85.0,
+      "minimum_lost_urls": 40,
+      "action": "rollback"
+    },
+    {
+      "id": "search_console_canonical_regression",
+      "eligible_from_complete_day": 7,
+      "consecutive_complete_days": 2,
+      "wrong_canonical_urls_gte": 80,
+      "action": "rollback"
+    }
+  ],
+  "rollback_steps": [
+    {
+      "order": 1,
+      "id": "freeze",
+      "requirement": "Freeze unrelated application and editorial releases and record the first breached threshold using aggregate redacted evidence."
+    },
+    {
+      "order": 2,
+      "id": "retain_redirects",
+      "requirement": "Keep the complete 1592-alias one-hop redirect inventory active; never replace an alias with a home-page redirect or a redirect chain."
+    },
+    {
+      "order": 3,
+      "id": "restore_application",
+      "requirement": "Restore the last accepted immutable application image while retaining compatible Django dynamic endpoints and forward-only data."
+    },
+    {
+      "order": 4,
+      "id": "verify_contract",
+      "requirement": "Re-run all 796 final and 1592 alias probes plus robots, sitemap, canonical, Open Graph, and JSON-LD checks before declaring rollback stable."
+    },
+    {
+      "order": 5,
+      "id": "observe_recovery",
+      "requirement": "Verify the breached 15-minute or 60-minute HTTP window twice and the next complete UTC day for delayed Search Console and organic recovery."
+    },
+    {
+      "order": 6,
+      "id": "notify",
+      "requirement": "The SEO cutover commander records the decision; the website on-call engineer executes; the product manager accepts recovery before release work resumes."
+    }
+  ],
+  "retention": {
+    "legacy_static_build_minimum_days": 28,
+    "route_manifest_minimum_days": 28,
+    "permanent_redirects": "indefinite"
+  },
+  "human_gate": {
+    "required": true,
+    "production_activation_performed_by_automation_test": false,
+    "search_console_submission_performed_by_automation_test": false,
+    "evidence": "aggregate and redacted; no account, token, registration, raw IP, or production record data"
+  }
+}

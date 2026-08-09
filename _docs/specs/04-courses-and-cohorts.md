@@ -173,8 +173,8 @@ New mutations use scoped credentials, UUID resources, revisions/`If-Match`, idem
 
 New canonical HTML routes are:
 
-- `/courses/<course-slug>/`;
-- `/courses/<course-slug>/cohorts/<cohort-slug>/`;
+- `/courses/<course-slug>`;
+- `/courses/<course-slug>/cohorts/<cohort-slug>`;
 - cohort dashboard/calendar/homework/project/review/leaderboard/certificate routes beneath that path.
 
 During migration, `courses.datatalks.club` continues routing to the copied compatibility views in the unified app.

@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block content %}
+  <header class="max-w-3xl py-6">
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ count }} checked records</p>
+    <h1 class="mt-2 text-4xl font-semibold">Events</h1>
+  </header>
+  <section class="mt-6" aria-labelledby="upcoming-heading">
+    <h2 id="upcoming-heading" class="text-2xl font-semibold">Upcoming</h2>
+    {% if not upcoming_events %}
+      <p class="mt-4 app-text">No upcoming events are listed in the current source snapshot.</p>
+    {% endif %}
+    <div class="mt-4 divide-y app-divide">
+      {% for event in upcoming_events %}
+        {% include "public/_event.html" %}
+      {% endfor %}
+    </div>
+  </section>
+  <section class="mt-10" aria-labelledby="recent-heading">
+    <h2 id="recent-heading" class="text-2xl font-semibold">Recorded and past events</h2>
+    <div class="mt-4 divide-y app-divide">
+      {% for event in recent_events %}
+        {% include "public/_event.html" %}
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

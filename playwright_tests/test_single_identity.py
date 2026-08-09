@@ -165,7 +165,7 @@ def test_chromium_keeps_authenticated_identity_through_canonical_next_matrix(
         legitimate = page.goto(f"{live_server.url}/accounts/continue/?{legitimate_query}")
 
     assert legitimate is not None and legitimate.status == 200
-    expect(page).to_have_url(f"{live_server.url}/courses/?tab=overview&view=full#catalog")
+    expect(page).to_have_url(f"{live_server.url}/courses?tab=overview&view=full#catalog")
     expect(page.locator("body")).to_have_attribute(
         "data-account-id",
         str(learner.pk),
@@ -209,7 +209,7 @@ def test_returning_learner_keeps_one_account_across_site_and_courses(
     with override_settings(ACCOUNT_CANONICAL_ORIGIN=live_server.url):
         continuity = page.goto(f"{live_server.url}/accounts/continue/?next=/courses/")
     assert continuity is not None and continuity.status == 200
-    expect(page).to_have_url(f"{live_server.url}/courses/")
+    expect(page).to_have_url(f"{live_server.url}/courses")
     expect(page.locator("body")).to_have_attribute("data-account-id", str(learner.pk))
     identity = page.request.get(f"{live_server.url}/api/v1/account/identity/")
     assert identity.status == 200

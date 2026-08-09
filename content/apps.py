@@ -21,6 +21,24 @@ def review_projection_check(app_configs, **kwargs):
     return []
 
 
+@register()
+def public_projection_check(app_configs, **kwargs):
+    del app_configs, kwargs
+    from .public_data import public_projection
+
+    try:
+        public_projection()
+    except ImproperlyConfigured as exc:
+        return [
+            Error(
+                str(exc),
+                id="content.E002",
+                hint="Rebuild the accepted checked public projection before deployment.",
+            )
+        ]
+    return []
+
+
 class ContentConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "content"

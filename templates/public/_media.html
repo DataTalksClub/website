@@ -1,0 +1,12 @@
+{% if record.media_available %}
+  <img
+    class="mt-5 max-h-96 w-full rounded-md border object-contain app-border app-surface-muted"
+    src="{{ record.image_path }}"
+    alt="Artwork for {{ record.title }}"
+    loading="lazy"
+  >
+{% else %}
+  <div class="mt-5 rounded-md border border-dashed app-border app-surface-muted p-5 app-muted">
+    No local artwork is available in this checked source snapshot.
+  </div>
+{% endif %}

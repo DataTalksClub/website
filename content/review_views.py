@@ -69,7 +69,7 @@ def article_detail(request: HttpRequest) -> HttpResponse:
     return _render(
         request,
         "review/article_detail.html",
-        path="/blog/ai-dev-tools-zoomcamp.html",
+        path="/blog/ai-dev-tools-zoomcamp",
         title="AI Dev Tools Zoomcamp 2026 — DataTalks.Club",
         description=review_projection()["article"]["description"],
         context=projection_context("article"),
@@ -205,46 +205,6 @@ def faq_ai_dev_tools(request: HttpRequest) -> HttpResponse:
 
 
 @require_safe
-def podwiki_home(request: HttpRequest) -> HttpResponse:
-    return _render(
-        request,
-        "review/podwiki_home.html",
-        path="/podwiki/",
-        title="Podcast Wiki — DataTalks.Club",
-        description=(
-            "Explore topics, people, books, and ideas from DataTalks.Club podcast episodes."
-        ),
-        context=projection_context("podwiki"),
-    )
-
-
-@require_safe
-def podwiki_detail(request: HttpRequest) -> HttpResponse:
-    page = review_projection()["podwiki"]
-    return _render(
-        request,
-        "review/podwiki_detail.html",
-        path=page["public_path"],
-        title=f"{page['title']} — DataTalks.Club Podcast Wiki",
-        description=page["summary"],
-        context=projection_context("podwiki"),
-    )
-
-
-@require_safe
-def podwiki_search(request: HttpRequest) -> HttpResponse:
-    query = request.GET.get("q", "").strip()
-    return _render(
-        request,
-        "review/podwiki_search.html",
-        path="/podwiki/search/",
-        title="Search — DataTalks.Club Podcast Wiki",
-        description="Search the DataTalks.Club Podcast Wiki.",
-        context={"query": query, "results": ()},
-    )
-
-
-@require_safe
 def slack(request: HttpRequest) -> HttpResponse:
     page = review_projection()["slack"]
     return _render(
@@ -283,7 +243,7 @@ def course_cohort(request: HttpRequest) -> HttpResponse:
     course = review_projection()["course"]
     cohort = course["cohort"]
     legacy_course = Course.objects.filter(slug=cohort["legacy_platform_slug"]).first()
-    path = f"{course['public_path']}cohorts/{cohort['slug']}/"
+    path = f"{course['public_path']}/cohorts/{cohort['slug']}"
     return _render(
         request,
         "review/course_cohort.html",
@@ -304,7 +264,7 @@ def course_cohort(request: HttpRequest) -> HttpResponse:
 def registration_preview(request: HttpRequest) -> HttpResponse:
     course = review_projection()["course"]
     cohort = course["cohort"]
-    path = f"{course['public_path']}cohorts/{cohort['slug']}/registration-preview/"
+    path = f"{course['public_path']}/cohorts/{cohort['slug']}/registration-preview/"
     return _render(
         request,
         "review/registration_preview.html",

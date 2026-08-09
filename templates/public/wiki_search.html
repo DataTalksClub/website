@@ -1,0 +1,44 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block breadcrumbs %}
+  <li>
+    <a class="app-link" href="{% url 'wiki-home' %}">Wiki</a>
+  </li>
+  <li class="ml-2">/ Search</li>
+{% endblock %}
+{% block content %}
+  <h1 class="text-4xl font-semibold">Search the Wiki</h1>
+  <form class="mt-5 flex max-w-xl gap-2" action="{% url 'wiki-home' %}" method="get">
+    <label class="sr-only" for="wiki-query">Search term</label>
+    <input
+      id="wiki-query"
+      class="min-w-0 flex-1 rounded-md border app-border app-surface px-3 py-2"
+      name="q"
+      type="search"
+      value="{{ query }}"
+      required
+    >
+    <button class="primer-button primer-button-primary" type="submit">Search</button>
+  </form>
+  {% if query %}
+    <p class="mt-5 app-muted">{{ results|length }} results for “{{ query }}”</p>
+    {% if results %}
+      <div class="mt-4 divide-y app-divide">
+        {% for result in results %}
+          <article class="py-4">
+            <h2 class="text-lg font-semibold">
+              <a class="app-link" href="{{ result.url }}">{{ result.title }}</a>
+            </h2>
+            {% if result.segment_title %}
+              <p class="mt-1 text-sm app-muted">{{ result.segment_title }}</p>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="mt-5 app-text">No matching Wiki pages were found. Try a broader term.</p>
+    {% endif %}
+  {% endif %}
+{% endblock %}

@@ -75,7 +75,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     assert home.headers["x-robots-tag"] == ROBOTS_VALUE
     expect(page).to_have_title("Welcome to DataTalks.Club")
     expect(page.get_by_role("heading", name="The place to talk about data")).to_be_visible()
-    expect(page.get_by_text("Learn data skills. For free. Together.")).to_have_count(0)
+    expect(page.get_by_text("12 tracked catalogs")).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_count(1)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/"
@@ -96,18 +96,17 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     )
     expect(page.get_by_role("heading", name="The place to talk about data")).to_be_visible()
 
-    courses = page.goto(f"{origin}/courses/", wait_until="networkidle")
+    courses = page.goto(f"{origin}/courses", wait_until="networkidle")
     assert courses is not None
     assert courses.status == 200
     assert courses.headers["x-robots-tag"] == ROBOTS_VALUE
-    expect(
-        page.get_by_role("heading", name="Learn data skills. For free. Together.")
-    ).to_be_visible()
+    expect(page.get_by_role("heading", name="Courses", exact=True)).to_be_visible()
+    expect(page.get_by_text("12 tracked catalogs")).to_be_visible()
     expect(page.get_by_text("The place to talk about data")).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
-        "href", "https://datatalks.club/courses/"
+        "href", "https://datatalks.club/courses"
     )
-    expect(page.get_by_role("link", name="AI Dev Tools Zoomcamp")).to_be_visible()
+    expect(page.get_by_role("link", name="Data Engineering Zoomcamp 2026")).to_be_visible()
     page.screenshot(path=screenshot_directory / f"courses-{dimensions}.png", full_page=True)
 
     initial = page.request.get(f"{origin}/studio/", max_redirects=0)

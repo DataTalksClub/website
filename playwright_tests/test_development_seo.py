@@ -208,10 +208,10 @@ def test_preview_token_and_response_matrix_are_safe(page: Page, live_server) -> 
     assert sitemap.status == 200
     assert sitemap.headers["content-type"] == "application/xml; charset=utf-8"
     assert sitemap.headers["x-robots-tag"] == ROBOTS_VALUE
-    assert sitemap.body() == (
-        b'<?xml version="1.0" encoding="UTF-8"?>\n'
-        b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
-    )
+    sitemap_body = sitemap.body().decode()
+    assert "<sitemapindex" in sitemap_body
+    assert "https://datatalks.club/sitemaps/events.xml" in sitemap_body
+    assert "<?xml-stylesheet" not in sitemap_body
 
     static = page.request.get(f"{live_server.url}/fixture/asset.css", max_redirects=0)
     assert static.status == 200

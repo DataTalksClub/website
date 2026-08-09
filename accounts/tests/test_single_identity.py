@@ -1113,7 +1113,7 @@ class SharedAccountSurfaceTests(TestCase):
         )
         self.client.force_login(user)
 
-        for path in ("/", "/courses/", "/accounts/settings/"):
+        for path in ("/", "/courses", "/accounts/settings/"):
             with self.subTest(path=path):
                 response = self.client.get(path)
                 self.assertEqual(response.status_code, 200)

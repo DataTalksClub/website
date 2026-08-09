@@ -1,0 +1,83 @@
+{
+  "artifacts": {
+    "articles.json": "5ef2b7e4fa3849978819b4d2e399dd34f80df74ee1b606395f3ee7c467321a00",
+    "books.json": "09e0250a2c7dd06bb725cc3e27a10b0040e3df6161be87dec42897f857ca9a48",
+    "courses.json": "318d7cb156cdcf74f346695d3db2b526e81c3321426c33365e91d3f471211c4d",
+    "editorial_route_migration.json": "e2cc7d76e5cae612cfcff9beb30b93cf4fd918168b83ccc4dd8f408184b54505",
+    "events.json": "7202a6ab1f7a03c1454a159f5cd5650bf8097c9cf5870ef64878a27f5f6e48de",
+    "media.json": "028de6372f3253d25b294aeca7ef4eefc95b1b9924927ad0c262110712bdddf2",
+    "people.json": "2320397cb9aec68126613e933536b1f17934c519147a9666aa25a0be9387599b",
+    "podcasts.json": "8419d9a2c36effb3242b07fd05cf2ab1cfab0d13f0e97199fa9c6bf076b361ca",
+    "wiki.json": "6ba9245bf411652575bac8b58c0d9ef6d22c0c248fbfd0444275ba9af79f6dee",
+    "wiki_graph.json": "1a9744ceb4267ae642a6e12445a155c515754aee4692d63cfcec3217c0263f91",
+    "wiki_search.json": "c6033919e5a0a89fd7c8825ae4591f2bd07d50bd22899bf8a6385b33e5056f13"
+  },
+  "counts": {
+    "articles": 55,
+    "books": 98,
+    "courses": 12,
+    "events": 421,
+    "media": 1253,
+    "people": 438,
+    "podcasts": 205,
+    "transcripts": 203,
+    "wiki": 282
+  },
+  "projection_rules": {
+    "conference_links_outside_slice": "omitted",
+    "event_source_timezone": "Europe/Berlin",
+    "media": "signature-checked local allowlist with per-asset provenance",
+    "people_source": "438 public _people profiles; underscore-prefixed source excluded",
+    "unresolved_podcast_guest_keys": [
+      "abouzarabbaspour"
+    ]
+  },
+  "runtime_contract": {
+    "database_writes": "none",
+    "network": "none",
+    "podwiki_mount": "absent",
+    "source_execution": "none",
+    "wiki_mount": "/wiki/"
+  },
+  "schema_version": 1,
+  "selection_mode": "preferred",
+  "selection_rule": {
+    "fallback": "reviewed legacy selection only when preferred acceptance is withdrawn",
+    "fallback_promoted": false,
+    "preferred": "exact accepted revision with pinned green CI evidence"
+  },
+  "sources": {
+    "courses": {
+      "checksum": "34077cd485265ffcae96e9acdb06351ee5b6b3b6a5b370639525cc111f1019a7",
+      "repository": "DataTalksClub/course-management-platform",
+      "revision": "98a235283904b4ef9ad29e196298540756cf1bcc",
+      "source_path": "scripts/production_like_course_specs.json"
+    },
+    "fallback_selection": {
+      "accepted": false,
+      "purpose": "legacy record selection only",
+      "repository": "DataTalksClub/content",
+      "revision": "373bef2912342ece1d2a2d2a9395aa3417243283"
+    },
+    "legacy_main": {
+      "repository": "DataTalksClub/datatalksclub.github.io",
+      "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5"
+    },
+    "preferred_content": {
+      "accepted": true,
+      "ci_run": "https://github.com/DataTalksClub/content/actions/runs/31307270515",
+      "repair_manifest_sha256": "80d3014c47bf57de792473fc1da8f7569daeb55107688c3485153f773948d3aa",
+      "repository": "DataTalksClub/content",
+      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "tree": "701fa3f7aa35973e65736a188161c480982f1cb3"
+    },
+    "wiki": {
+      "repository": "DataTalksClub/podwiki",
+      "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
+    }
+  },
+  "tree_sha256": "b5ee38b30310df2236d724bff97f2f0f5c0d2e34804461ef9fca99994362a852",
+  "wiki_assets": {
+    "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
+  }
+}

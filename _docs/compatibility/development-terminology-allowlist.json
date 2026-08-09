@@ -180,7 +180,7 @@
     },
     {
       "path": "core/tests/test_deployment_release.py",
-      "sha256": "0bf8fa13f1d1fa5315ded31ab154791ba39979d1aa8dc852a237924c191ac614",
+      "sha256": "e002917b810d136a314aa6e98938d5da77e738237c17d758287432e1458b53f8",
       "class": "legacy_contract_test",
       "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
       "follow_up": "#94",
@@ -201,6 +201,30 @@
       "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, and exact physical values.",
       "follow_up": "#94",
       "expected_count": 27
+    },
+    {
+      "path": "content/public_projection/podcasts.json",
+      "sha256": "8419d9a2c36effb3242b07fd05cf2ab1cfab0d13f0e97199fa9c6bf076b361ca",
+      "class": "captured_compatibility",
+      "reason": "Hash-bound issue #105 projection preserves source-authored public podcast transcript wording.",
+      "follow_up": "#105; regenerate only from the pinned accepted sources",
+      "expected_count": 8
+    },
+    {
+      "path": "content/public_projection/wiki.json",
+      "sha256": "6ba9245bf411652575bac8b58c0d9ef6d22c0c248fbfd0444275ba9af79f6dee",
+      "class": "captured_compatibility",
+      "reason": "Hash-bound issue #105 projection preserves source-authored public Wiki wording.",
+      "follow_up": "#105; regenerate only from the pinned accepted sources",
+      "expected_count": 15
+    },
+    {
+      "path": "content/public_projection/wiki_search.json",
+      "sha256": "c6033919e5a0a89fd7c8825ae4591f2bd07d50bd22899bf8a6385b33e5056f13",
+      "class": "captured_compatibility",
+      "reason": "Hash-bound issue #105 search projection preserves source-authored public Wiki wording.",
+      "follow_up": "#105; regenerate only from the pinned accepted sources",
+      "expected_count": 29
     }
   ],
   "rules": [
@@ -234,6 +258,22 @@
       "class": "legacy_physical_identifier",
       "reason": "Roadmap references the existing Terraform root without renaming state.",
       "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/specs/09-migration-rollout-roadmap.md",
+      "pattern": "Milestone 1 - Foundation and sandbox",
+      "class": "compatibility_note",
+      "reason": "The accepted roadmap retains its historical milestone title while current implementation uses development terminology.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/specs/09-migration-rollout-roadmap.md",
+      "pattern": "SES sandbox safeguards",
+      "class": "compatibility_note",
+      "reason": "This is the current AWS SES account-state term, not the former deployment-environment name.",
+      "follow_up": "none; provider terminology remains current",
       "expected_count": 1
     }
   ]

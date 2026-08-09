@@ -40,7 +40,10 @@ Verification maps every requirement to an automated or explicitly manual gate. T
 
 Critical paths in desktop and mobile viewports:
 
-- navigate main site, articles, podcast, people, docs, FAQ anchors, Podwiki search/graph, and course pages;
+- navigate the clean Blog, Podcast, Books, People, Events, Courses, and Wiki hubs; clean editorial
+  details and direct redirects from `.html` and slash aliases; internal event/person relationships;
+  Docs; FAQ anchors; Wiki query
+  search/graph; and course pages;
 - register/verify/cancel an event without enumeration;
 - register, create/link account, enroll, submit homework/project, perform peer review, inspect scores/leaderboard, and access certificate;
 - staff login and role denial;

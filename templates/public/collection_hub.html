@@ -1,0 +1,29 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block content %}
+  <header class="max-w-3xl py-6">
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Checked public collection</p>
+    <h1 class="mt-2 text-4xl font-semibold">{{ heading }}</h1>
+    <p class="mt-3 text-lg app-text">{{ records|length }} records from the accepted source snapshot.</p>
+  </header>
+  <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
+    {% for record in records %}
+      <article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <p class="text-sm app-muted">{{ record.published|slice:":10" }}</p>
+          <h2 class="mt-2 text-xl font-semibold">
+            <a class="app-link" href="{{ record.public_path }}">{{ record.title }}</a>
+          </h2>
+          {% if record.description %}
+            <p class="mt-2 line-clamp-3 max-w-3xl leading-6 app-text">{{ record.description }}</p>
+          {% endif %}
+        </div>
+        <a class="shrink-0 self-start app-link sm:self-auto" href="{{ record.public_path }}">
+          Read {{ collection|slice:":-1" }}
+        </a>
+      </article>
+    {% endfor %}
+  </div>
+{% endblock %}
