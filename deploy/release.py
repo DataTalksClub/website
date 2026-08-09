@@ -155,6 +155,7 @@ class ReleaseGateway(Protocol):
         expected_desired_counts: dict[str, int],
         expected_identity: ReleaseIdentity | None,
         expected_primary_deployment_ids: dict[str, str] | None = None,
+        allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
     ) -> None: ...
 
 
@@ -469,6 +470,10 @@ def _compensate(
         workload: predecessor.primary_deployment_id
         for workload, predecessor in terminal_predecessors.items()
     }
+    allowed_terminal_predecessors: dict[str, tuple[ServicePredecessor, ...]] = {
+        "web": (),
+        "worker": (),
+    }
     receipt_summaries: list[RestorativeReceiptSummary] = []
     for workload in ("web", "worker"):
         if workload not in workloads:
@@ -504,6 +509,7 @@ def _compensate(
                 summary.as_evidence(),
             )
             expected_primary_deployment_ids[workload] = receipt.primary_deployment_id
+            allowed_terminal_predecessors[workload] = receipt.predecessors
         except Exception as error:
             errors.append(f"update {workload}: {type(error).__name__}")
             error_reasons.append(_restorative_error_reason(error))
@@ -523,6 +529,7 @@ def _compensate(
             {workload: target.desired_count for workload, target in restore_targets.items()},
             prior_identity,
             expected_primary_deployment_ids,
+            allowed_terminal_predecessors,
         )
     except Exception as error:
         errors.append(f"terminal verification: {type(error).__name__}")
@@ -888,6 +895,10 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "web": web_receipt.primary_deployment_id,
                 "worker": worker_receipt.primary_deployment_id,
             },
+            {
+                "web": web_receipt.predecessors,
+                "worker": worker_receipt.predecessors,
+            },
         )
         _record_evidence(
             config.evidence_path,
@@ -1218,6 +1229,10 @@ def rollback(
             {
                 "web": web_receipt.primary_deployment_id,
                 "worker": worker_receipt.primary_deployment_id,
+            },
+            {
+                "web": web_receipt.predecessors,
+                "worker": worker_receipt.predecessors,
             },
         )
         _record_evidence(

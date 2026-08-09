@@ -984,10 +984,18 @@ recognized, ECS may retire its deployment-level desired count within `0..capture
 nonnegative running plus pending count must never exceed the captured desired count. In particular,
 `desired=0`, `running=1`, `pending=0`, `failedTasks=0`, and `COMPLETED` is a valid one-task drain for
 a predecessor captured at desired 1. A terminal predecessor still requires zero failed tasks and
-must not be `FAILED`. It may later reach `0/0/0` and disappear. These retirement projections never
-change the captured target, identify a candidate, or prove success. The controller establishes the
-phase's absolute monotonic deadline before the API call. The acknowledgement, any immediate
-reconciliation, and receipt-bound stabilization share that deadline; none may reset it.
+must not be `FAILED`. It may later reach `0/0/0`, change deployment status from `ACTIVE` to literal
+ECS `DRAINING`, and disappear. `DRAINING` is allowed only for that exact recognized predecessor ID
+and captured task-definition ARN at exact deployment desired/running/pending/failed counts
+`0/0/0/0`, with rollout state `IN_PROGRESS` or `COMPLETED`. A candidate, receipt ID, unknown or
+cross-paired task definition, nonzero work, failed task, or failed rollout cannot use `DRAINING`.
+An incomplete acknowledgement may omit the predecessor ID or another member only when every
+present member remains extendable to recognized predecessor slots under the phase's injective
+cardinality. It stays unbound and forces immediate exact reconciliation; identity is never inferred
+or synthesized. These retirement projections never change the captured target, identify a
+candidate, or prove success. The controller establishes the phase's absolute monotonic deadline
+before the API call. The acknowledgement, any immediate reconciliation, and receipt-bound
+stabilization share that deadline; none may reset it.
 
 A complete acknowledgement binds one new non-empty deployment ID for the requested task-definition
 ARN. The immutable receipt target remains the requested tuple. For a positive requested count, ECS
@@ -1015,7 +1023,15 @@ the captured predecessor identity with its bounded retirement counts, or omit th
 after it drains. These recognized replica-ordering states are poll-only. They never prove success,
 change the receipt, or reset the monotonic deadline. Success requires the receipt's PRIMARY ID and
 requested tuple to be `COMPLETED` with exact desired/running/pending counts in both the service and
-PRIMARY deployment. The public health/SHA gate starts only afterward.
+PRIMARY deployment. If that exact candidate is already `COMPLETED` while service aggregate counts
+still include work bounded by the captured predecessors, the observation is poll-only. Aggregate
+running may not fall below the completed candidate's requested count, and aggregate running plus
+pending may not exceed the requested count plus all captured predecessor desired-count bounds.
+Only exact service aggregate running/pending counts can succeed, and every still-listed recognized
+predecessor must also have exact desired/running/pending/failed counts `0/0/0/0` with a non-failed
+rollout state. An exact-looking aggregate crossed with a predecessor that still reports work is
+poll-only. An overlap still present in the final deadline observation expires without another sleep
+or read. The public health/SHA gate starts only after exact service counts succeed.
 
 Run `31276422372` attempt 1 on 2026-08-08 supplied the adoption-consistency evidence: migration
 passed, but the first read less than one second after `UpdateService` still showed the exact prior
@@ -1040,6 +1056,18 @@ same-task-definition predecessor at `0/1/0`, failed 0, `COMPLETED`. That predece
 count as immutable identity, rejected the provider-valid drain, and emitted no restorative receipt.
 The run remains failed and is not evidence of a successful release.
 
+Run `31286554234` on 2026-08-09 supplied the literal deployment-status evidence. Forward web bound
+its new receipt, but the controller later contradicted and compensation changed the service pointer
+without producing a restorative receipt. Read-only observation during restoration showed the exact
+captured old predecessor as `DRAINING` at `0/0/0`, failed 0, `COMPLETED`; it later disappeared. The
+attempted forward deployment then became `DRAINING` at `0/0/0`, failed 0, `IN_PROGRESS`, while the
+new restorative deployment remained the unique PRIMARY and ultimately completed. The old
+controller globally admitted only `PRIMARY` and `ACTIVE`, so it rejected the provider-valid
+predecessor lifecycle before its already-correct identity and retirement checks. The worker
+remained the untouched exact prior singleton. This run remains failed; ultimate ECS convergence is
+not a release success and does not substitute for a bound restorative receipt, terminal proof,
+public health, smoke, or a successful-release record.
+
 If an attempted `UpdateService` response is lost or invalid, recovery uses the same absolute
 180-second per-service deadline for candidate reconciliation and the restorative receipt wait.
 It polls only the captured terminal identity under the same bounded retirement rules and the
@@ -1051,6 +1079,12 @@ the recovery allowlist.
 An attempted candidate may be failed while its restorative receipt replaces it, but the recovery
 receipt itself may not fail. Every restorative call must return a new receipt, including an
 `A -> A` force-new recovery; the old `A` deployment is always a predecessor, never recovery success.
+Terminal verification accepts a remaining `ACTIVE` or `DRAINING` entry only from the exact
+predecessor allowlist carried by that new receipt and only at the same zero-work shape. This is the
+same terminal predicate used by acknowledgement reconciliation and stabilization: candidate and
+service counts must be exact, and every listed predecessor must be absent or report exact
+desired/running/pending/failed counts `0/0/0/0` with a non-failed rollout state. An untouched
+workload has no such phase allowance.
 If web fails before worker `UpdateService` is invoked, compensation does not force a new worker
 deployment. It read-only verifies the captured worker's exact terminal tuple and singleton state as
 part of the final pair proof. Once worker mutation was actually attempted, its restoration remains

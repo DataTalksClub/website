@@ -152,6 +152,7 @@ class FakeGateway:
         self.fail_once = fail_once
         self.operations: list[str] = []
         self.update_number = 1
+        self.terminal_allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None
 
     def _fail(self, point: str) -> None:
         if self.fail_once == point:
@@ -298,7 +299,9 @@ class FakeGateway:
         expected_desired_counts: dict[str, int],
         expected_identity: ReleaseIdentity | None,
         expected_primary_deployment_ids: dict[str, str] | None = None,
+        allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
     ) -> None:
+        self.terminal_allowed_predecessors = allowed_predecessors
         self.operations.append("terminal")
         for workload, snapshot in self.snapshots.items():
             if (
@@ -836,6 +839,16 @@ class PromotionTests(SimpleTestCase):
         )
         self.assertEqual(gateway.snapshots["web"].task_definition_arn, arn("web", 1))
         self.assertEqual(gateway.snapshots["worker"].task_definition_arn, arn("worker", 1))
+        self.assertEqual(gateway.snapshots["web"].primary_deployment_id, "ecs-svc/web-3")
+        assert gateway.terminal_allowed_predecessors is not None
+        self.assertEqual(
+            tuple(
+                predecessor.primary_deployment_id
+                for predecessor in gateway.terminal_allowed_predecessors["web"]
+            ),
+            ("ecs-svc/web-1", "ecs-svc/web-2"),
+        )
+        self.assertEqual(gateway.terminal_allowed_predecessors["worker"], ())
 
     def test_web_compensation_rejects_a_changed_untouched_worker_receipt_id(self) -> None:
         gateway = FakeGateway(bootstrap=False, fail_once="wait:web")
