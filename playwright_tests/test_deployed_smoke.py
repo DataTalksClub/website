@@ -8,27 +8,39 @@ import pytest
 from playwright.sync_api import Page, expect
 
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
-from deploy.contracts import validate_source_sha
+from deploy.contracts import validate_image_digest, validate_source_sha, validate_version
 from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
 
 pytestmark = pytest.mark.core
 
 
 @pytest.fixture
-def deployed_config() -> tuple[str, str, Path]:
+def deployed_config() -> tuple[str, str, str, str, Path]:
     origin = os.getenv("DTC_TEST_BASE_URL")
-    source_sha = os.getenv("DTC_EXPECTED_APP_VERSION")
+    version = os.getenv("DTC_EXPECTED_VERSION")
+    source_sha = os.getenv("DTC_EXPECTED_SOURCE_SHA")
+    image_digest = os.getenv("DTC_EXPECTED_IMAGE_DIGEST")
     screenshot_directory = os.getenv("DTC_SCREENSHOT_DIR")
-    if not origin and not source_sha and not screenshot_directory:
+    if (
+        not origin
+        and not version
+        and not source_sha
+        and not image_digest
+        and not screenshot_directory
+    ):
         pytest.skip("deployed read-only smoke is enabled only by explicit safe configuration")
     assert origin == DEVELOPMENT_ORIGIN
     assert source_sha is not None
     validate_source_sha(source_sha)
+    assert version is not None
+    validate_version(version, source_sha)
+    assert image_digest is not None
+    validate_image_digest(image_digest)
     assert screenshot_directory is not None
     path = Path(screenshot_directory)
     assert path.parts[:1] == (".tmp",)
     path.mkdir(parents=True, exist_ok=True)
-    return origin, source_sha, path
+    return origin, version, source_sha, image_digest, path
 
 
 def assert_private_no_store(headers: dict[str, str]) -> None:
@@ -61,10 +73,10 @@ def assert_no_analytics(page: Page, request_urls: list[str]) -> None:
 )
 def test_deployed_public_and_studio_html_are_exact_and_read_only(
     page: Page,
-    deployed_config: tuple[str, str, Path],
+    deployed_config: tuple[str, str, str, str, Path],
     viewport: dict[str, int],
 ) -> None:
-    origin, _source_sha, screenshot_directory = deployed_config
+    origin, version, _source_sha, _image_digest, screenshot_directory = deployed_config
     page.set_viewport_size(viewport)
     request_urls: list[str] = []
     page.on("request", lambda request: request_urls.append(request.url))
@@ -77,6 +89,8 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page).to_have_title("Welcome to DataTalks.Club")
     expect(page.get_by_role("heading", name="The place to talk about data")).to_be_visible()
     expect(page.get_by_text("12 tracked catalogs")).to_have_count(0)
+    expect(page.get_by_text(f"Version {version}", exact=False)).to_be_visible()
+    expect(page.get_by_text("Learn data skills. For free. Together.")).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_count(1)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/"
@@ -108,6 +122,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
         "href", "https://datatalks.club/courses"
     )
     expect(page.get_by_role("link", name="Data Engineering Zoomcamp 2026")).to_be_visible()
+    expect(page.get_by_text(f"Version {version}", exact=False)).to_be_visible()
     page.screenshot(path=screenshot_directory / f"courses-{dimensions}.png", full_page=True)
 
     initial = page.request.get(f"{origin}/studio/", max_redirects=0)
@@ -145,24 +160,34 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
 
 def test_deployed_health_and_anonymous_admin_api_contracts(
     page: Page,
-    deployed_config: tuple[str, str, Path],
+    deployed_config: tuple[str, str, str, str, Path],
 ) -> None:
-    origin, source_sha, _screenshot_directory = deployed_config
+    origin, version, source_sha, image_digest, _screenshot_directory = deployed_config
+    expected_identity = {
+        "version": version,
+        "source_sha": source_sha,
+        "image_digest": image_digest,
+    }
 
     live = page.request.get(f"{origin}/health/live", max_redirects=0)
     assert live.status == 200
     assert live.headers["x-robots-tag"] == ROBOTS_VALUE
-    assert live.json() == {"status": "ok", "version": source_sha}
+    assert live.json() == {"status": "ok", **expected_identity}
 
     ready = page.request.get(f"{origin}/health/ready", max_redirects=0)
     assert ready.status == 200
     assert ready.headers["x-robots-tag"] == ROBOTS_VALUE
     ready_payload = ready.json()
     assert ready_payload["status"] == "ready"
+    assert {name: ready_payload[name] for name in expected_identity} == expected_identity
     assert {
         name: ready_payload["checks"][name]["status"]
         for name in ("configuration", "database", "migrations")
     } == {"configuration": "ok", "database": "ok", "migrations": "ok"}
+
+    api_health = page.request.get(f"{origin}/api/health/", max_redirects=0)
+    assert api_health.status == 200
+    assert api_health.json() == {"status": "ok", **expected_identity}
 
     admin = page.request.get(f"{origin}/api/v1/admin/health", max_redirects=0)
     assert admin.status == 401

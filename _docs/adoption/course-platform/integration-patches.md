@@ -28,6 +28,14 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
 - `course_management/datamailer_outbox_dispatch.py`: issue #98 replaces the copied row-lock claim
   with portable conditional ORM claim and attempt fences while retaining the same delivery,
   acknowledgement, and retry outcomes;
+- `api/openapi/course_schemas.py`, `api/views/health.py`, and
+  `course_management/observability/events.py`: issue #110 extends the adopted health route/schema
+  and structured event envelope with the sealed runtime
+  `VERSION`, `SOURCE_SHA`, and `IMAGE_DIGEST` identity. The change retains existing health status
+  semantics, keeps source/digest nullable for local execution, and does not use release metadata as
+  metric dimensions;
+- `data/tests/test_observability.py`: issue #110 characterizes those three stable structured event
+  fields and retains the adopted CloudWatch dimension set exactly as `environment` and `event`;
 - `accounts/models.py`: issue #100 expands the adopted `CustomUser` in place with normalized
   identity state plus durable alias, quarantine, and reconciliation-run evidence; it does not
   replace or renumber the copied user table;

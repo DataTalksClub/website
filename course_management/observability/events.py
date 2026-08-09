@@ -21,7 +21,9 @@ LOG_RECORD_PROPERTY_KEYS = set(
 RESERVED_PROPERTY_KEYS = {
     "event",
     "environment",
-    "release",
+    "version",
+    "source_sha",
+    "image_digest",
     "schema_version",
     "distinct_id",
 } | LOG_RECORD_PROPERTY_KEYS
@@ -38,7 +40,9 @@ class AppEvent:
             "event": self.name,
             "schema_version": event_schema_version(),
             "environment": observability_environment(),
-            "release": observability_release(),
+            "version": getattr(settings, "VERSION", ""),
+            "source_sha": getattr(settings, "SOURCE_SHA", None),
+            "image_digest": getattr(settings, "IMAGE_DIGEST", None),
         }
         for key, value in self.properties.items():
             if key in RESERVED_PROPERTY_KEYS:
@@ -55,10 +59,6 @@ class EventBackend(Protocol):
 
 def observability_environment() -> str:
     return getattr(settings, "OBSERVABILITY_ENVIRONMENT", "local")
-
-
-def observability_release() -> str:
-    return getattr(settings, "VERSION", "")
 
 
 def event_schema_version() -> str:

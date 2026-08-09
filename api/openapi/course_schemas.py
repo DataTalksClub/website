@@ -169,10 +169,13 @@ COURSE_SCHEMAS = {
     },
     "Health": {
         "type": "object",
-        "required": ["status", "version"],
+        "additionalProperties": False,
+        "required": ["status", "version", "source_sha", "image_digest"],
         "properties": {
             "status": {"type": "string"},
             "version": {"type": "string"},
+            "source_sha": {"type": ["string", "null"]},
+            "image_digest": {"type": ["string", "null"]},
         },
     },
     "CourseSummary": COURSE_SUMMARY_SCHEMA,

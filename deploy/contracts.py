@@ -8,6 +8,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Literal
 
+from deploy.release_identity import IdentityError, validate_schema2_version
+
 WEB_RECOVERY_TIMEOUT_SECONDS = 240
 MAX_WEB_RECOVERY_TIMEOUT_SECONDS = 240
 WORKER_RECOVERY_TIMEOUT_SECONDS = 420
@@ -91,6 +93,23 @@ def validate_image_digest(value: str) -> str:
     return value
 
 
+def validate_version(value: str, source_sha: str, *, identity_schema: int = 2) -> str:
+    validate_source_sha(source_sha)
+    if identity_schema == 1:
+        if value != source_sha:
+            raise ReleaseContractError("legacy version must be the full source SHA")
+        return value
+    if identity_schema != 2:
+        raise ReleaseContractError("release identity schema is unsupported")
+    try:
+        validate_schema2_version(value, source_sha)
+    except IdentityError as error:
+        raise ReleaseContractError(
+            "version must be sealed UTC timestamp plus source SHA suffix"
+        ) from error
+    return value
+
+
 def validate_rfc1918_ipv4(value: object) -> str:
     """Return an IPv4 string only when it belongs to a literal RFC1918 block."""
 
@@ -116,16 +135,25 @@ class ReleaseIdentity:
     source_sha: str
     image_digest: str
     repository_uri: str
+    version: str
+    identity_schema: int = 2
 
     def __post_init__(self) -> None:
         validate_source_sha(self.source_sha)
         validate_image_digest(self.image_digest)
+        validate_version(self.version, self.source_sha, identity_schema=self.identity_schema)
         if not self.repository_uri or "@" in self.repository_uri or "://" in self.repository_uri:
             raise ReleaseContractError("repository URI must be an untagged ECR repository URI")
 
     @property
     def image(self) -> str:
         return f"{self.repository_uri}@{self.image_digest}"
+
+    @classmethod
+    def legacy(cls, source_sha: str, image_digest: str, repository_uri: str) -> ReleaseIdentity:
+        """Represent a verified pre-schema-2 target without fabricating a timestamp."""
+
+        return cls(source_sha, image_digest, repository_uri, source_sha, identity_schema=1)
 
 
 @dataclass(frozen=True)
@@ -138,6 +166,8 @@ class ServiceSnapshot:
     source_sha: str | None
     image_digest: str | None
     primary_deployment_id: str
+    version: str | None = None
+    identity_schema: int | None = None
 
     def __post_init__(self) -> None:
         validate_task_definition_arn(self.task_definition_arn)
@@ -151,6 +181,15 @@ class ServiceSnapshot:
             self.primary_deployment_id,
             context="ECS PRIMARY deployment ID",
         )
+        if self.desired_count == 0:
+            return
+        identity_values = (self.version, self.source_sha, self.image_digest, self.identity_schema)
+        if any(value is None for value in identity_values):
+            raise ReleaseContractError("ECS service release identity is incomplete")
+        assert self.version is not None and self.source_sha is not None
+        assert self.image_digest is not None and self.identity_schema is not None
+        validate_version(self.version, self.source_sha, identity_schema=self.identity_schema)
+        validate_image_digest(self.image_digest)
 
 
 @dataclass(frozen=True)
@@ -246,6 +285,8 @@ class WebRuntimeBinding:
     private_ipv4_address: str
     container_port: int
     target_port: int
+    version: str
+    identity_schema: int = 2
 
     def __post_init__(self) -> None:
         if not self.configured_service_identity.strip():
@@ -269,6 +310,7 @@ class WebRuntimeBinding:
             raise ReleaseContractError("web runtime predecessor identity differs")
         validate_source_sha(self.source_sha)
         validate_image_digest(self.image_digest)
+        validate_version(self.version, self.source_sha, identity_schema=self.identity_schema)
         if not TASK_ARN_PATTERN.fullmatch(self.task_arn):
             raise ReleaseContractError("web runtime task identity is malformed")
         if not self.network_attachment_id.strip():
@@ -302,6 +344,8 @@ class WebRuntimeBinding:
             ),
             self.source_sha,
             self.image_digest,
+            self.version,
+            self.identity_schema,
             self.task_arn,
             self.network_attachment_id,
             self.network_interface_id,
@@ -327,6 +371,8 @@ class WebRuntimeBinding:
             "expected_task_definition_arn": self.task_definition_arn,
             "expected_source_sha": self.source_sha,
             "expected_image_digest": self.image_digest,
+            "expected_version": self.version,
+            "identity_schema": self.identity_schema,
             "observation_count": observation_count,
             "deadline_budget_seconds": deadline_budget_seconds,
             "coherence_checks": {
@@ -350,10 +396,13 @@ class ReleaseRecord:
     web_desired_count: int
     worker_desired_count: int
     rollback_eligible: bool
+    version: str
+    identity_schema: int = 2
 
     def __post_init__(self) -> None:
         validate_source_sha(self.source_sha)
         validate_image_digest(self.image_digest)
+        validate_version(self.version, self.source_sha, identity_schema=self.identity_schema)
         validate_task_definition_arn(self.web_task_definition_arn)
         validate_task_definition_arn(self.worker_task_definition_arn)
         validate_task_definition_arn(self.migration_task_definition_arn)
@@ -370,6 +419,8 @@ class ReleaseRecord:
             raise ReleaseContractError("only a fully successful release may be recorded")
 
     def write(self, path: Path) -> None:
+        if self.identity_schema != 2:
+            raise ReleaseContractError("new successful release records must use identity_schema 2")
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(asdict(self), indent=2, sort_keys=True) + "\n")
 
@@ -377,7 +428,27 @@ class ReleaseRecord:
     def read(cls, path: Path) -> ReleaseRecord:
         try:
             payload: dict[str, Any] = json.loads(path.read_text())
+            legacy_keys = {
+                "source_sha",
+                "image_digest",
+                "web_task_definition_arn",
+                "worker_task_definition_arn",
+                "migration_task_definition_arn",
+                "web_desired_count",
+                "worker_desired_count",
+                "rollback_eligible",
+            }
+            schema2_keys = legacy_keys | {"version", "identity_schema"}
+            if set(payload) == legacy_keys:
+                payload["identity_schema"] = 1
+                payload["version"] = payload["source_sha"]
+            elif set(payload) != schema2_keys:
+                raise ReleaseContractError("release record fields differ from the sealed schema")
+            elif payload.get("identity_schema") != 2:
+                raise ReleaseContractError("schema-2 release record must declare identity_schema 2")
             return cls(**payload)
+        except ReleaseContractError:
+            raise
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
             raise ReleaseContractError(f"invalid release record {path}: {error}") from error
 
@@ -392,10 +463,13 @@ class ActiveServicePair:
     worker_task_definition_arn: str
     web_desired_count: int
     worker_desired_count: int
+    version: str
+    identity_schema: int = 2
 
     def __post_init__(self) -> None:
         validate_source_sha(self.source_sha)
         validate_image_digest(self.image_digest)
+        validate_version(self.version, self.source_sha, identity_schema=self.identity_schema)
         validate_task_definition_arn(self.web_task_definition_arn)
         validate_task_definition_arn(self.worker_task_definition_arn)
         if (
@@ -416,7 +490,23 @@ class ActiveServicePair:
     def read(cls, path: Path) -> ActiveServicePair:
         try:
             payload: dict[str, Any] = json.loads(path.read_text())
+            legacy_keys = {
+                "source_sha",
+                "image_digest",
+                "web_task_definition_arn",
+                "worker_task_definition_arn",
+                "web_desired_count",
+                "worker_desired_count",
+            }
+            schema2_keys = legacy_keys | {"version", "identity_schema"}
+            if set(payload) == legacy_keys:
+                payload["identity_schema"] = 1
+                payload["version"] = payload["source_sha"]
+            elif set(payload) != schema2_keys:
+                raise ReleaseContractError("active service pair fields differ from sealed schema")
             return cls(**payload)
+        except ReleaseContractError:
+            raise
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
             raise ReleaseContractError(f"invalid active service pair {path}: {error}") from error
 
@@ -433,7 +523,12 @@ def validate_prior_pair(
         return True
     if web.desired_count < 1 or worker.desired_count < 1:
         raise ReleaseContractError("prior web and worker desired counts are mixed")
-    if web.source_sha != worker.source_sha or web.image_digest != worker.image_digest:
+    if (
+        web.version != worker.version
+        or web.source_sha != worker.source_sha
+        or web.image_digest != worker.image_digest
+        or web.identity_schema != worker.identity_schema
+    ):
         raise ReleaseContractError("prior web and worker release identities are mixed")
     if web.source_sha is None or web.image_digest is None:
         raise ReleaseContractError("prior release identity is missing")
@@ -441,6 +536,8 @@ def validate_prior_pair(
     validate_image_digest(web.image_digest)
     if expected is not None:
         comparisons = {
+            "version": (web.version, expected.version),
+            "identity schema": (web.identity_schema, expected.identity_schema),
             "source SHA": (web.source_sha, expected.source_sha),
             "image digest": (web.image_digest, expected.image_digest),
             "web task definition": (web.task_definition_arn, expected.web_task_definition_arn),

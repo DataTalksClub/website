@@ -193,7 +193,7 @@ def task_definition_arn_prefix(family: str) -> str:
 def validate_release_record(payload: Any) -> None:
     """Validate an immutable release record against exact physical task families."""
 
-    expected_keys = {
+    legacy_keys = {
         "image_digest",
         "migration_task_definition_arn",
         "rollback_eligible",
@@ -203,12 +203,23 @@ def validate_release_record(payload: Any) -> None:
         "worker_desired_count",
         "worker_task_definition_arn",
     }
-    if not isinstance(payload, dict) or set(payload) != expected_keys:
+    schema2_keys = legacy_keys | {"identity_schema", "version"}
+    if not isinstance(payload, dict):
+        raise ReleaseContractError("development release record fields differ")
+    payload_keys = frozenset(payload)
+    if payload_keys not in {frozenset(legacy_keys), frozenset(schema2_keys)}:
         raise ReleaseContractError("development release record fields differ")
     source_sha = payload["source_sha"]
     image_digest = payload["image_digest"]
     if not isinstance(source_sha, str) or re.fullmatch(r"[0-9a-f]{40}", source_sha) is None:
         raise ReleaseContractError("development release record source SHA differs")
+    if payload_keys == frozenset(schema2_keys):
+        if payload["identity_schema"] != 2 or not isinstance(payload["version"], str):
+            raise ReleaseContractError("development release record identity schema differs")
+        if re.fullmatch(
+            r"[0-9]{8}-[0-9]{6}-[0-9a-f]{7}", payload["version"]
+        ) is None or not payload["version"].endswith(f"-{source_sha[:7]}"):
+            raise ReleaseContractError("development release record version differs")
     if (
         not isinstance(image_digest, str)
         or re.fullmatch(r"sha256:[0-9a-f]{64}", image_digest) is None

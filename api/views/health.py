@@ -17,9 +17,6 @@ def health_view(request):
     Returns:
         JSON response with version information.
     """
-    payload = {
-        "status": "ok",
-        "version": settings.VERSION,
-    }
+    payload = settings.RUNTIME_IDENTITY.payload()
     response = JsonResponse(payload)
     return response

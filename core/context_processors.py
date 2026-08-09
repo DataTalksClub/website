@@ -11,6 +11,7 @@ EXPLICIT_PUBLIC_CANONICALS = {
 def site_context(request: HttpRequest) -> dict[str, Any]:
     return {
         "brand_name": settings.SITE_NAME,
+        "VERSION": settings.VERSION,
         "app_version": settings.APP_VERSION,
         # Every shared-view canonical is an explicit mapping, never host/path inference.
         "canonical_url": EXPLICIT_PUBLIC_CANONICALS.get(request.path),

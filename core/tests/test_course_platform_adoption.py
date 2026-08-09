@@ -93,6 +93,8 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(
             set(patches),
             {
+                "api/openapi/course_schemas.py",
+                "api/views/health.py",
                 "accounts/admin.py",
                 "accounts/auth.py",
                 "accounts/forms.py",
@@ -103,8 +105,10 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "accounts/tests_token_admin.py",
                 "accounts/views/login.py",
                 "course_management/datamailer_outbox_dispatch.py",
+                "course_management/observability/events.py",
                 "course_platform_templates/base.html",
                 "courses/static/courses.css",
+                "data/tests/test_observability.py",
                 "scripts/generate_production_like_leaderboard_data.py",
                 "scripts/load_rds_export.py",
                 "scripts/score_project_dev.py",

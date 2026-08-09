@@ -26,6 +26,7 @@ from deploy.contracts import (
     validate_prior_pair,
     validate_source_sha,
     validate_task_definition_arn,
+    validate_version,
 )
 from deploy.legacy_development_compatibility import (
     ECR_REPOSITORY_URI as DEVELOPMENT_REPOSITORY_URI,
@@ -67,6 +68,22 @@ def _record_evidence(
     temporary_path.replace(path)
 
 
+def _identity_evidence(identity: ReleaseIdentity | None) -> dict[str, str | int | None]:
+    if identity is None:
+        return {
+            "identity_schema": None,
+            "version": None,
+            "source_sha": None,
+            "image_digest": None,
+        }
+    return {
+        "identity_schema": identity.identity_schema,
+        "version": identity.version,
+        "source_sha": identity.source_sha,
+        "image_digest": identity.image_digest,
+    }
+
+
 def _record_failed_stage(path: Path | None, stage: str, error: Exception) -> None:
     try:
         proof = {"error_class": type(error).__name__}
@@ -102,9 +119,7 @@ class ReleaseGateway(Protocol):
         self, pair: ActiveServicePair, identity: ReleaseIdentity
     ) -> None: ...
 
-    def verify_image_digest_exists(
-        self, repository_uri: str, source_sha: str, image_digest: str
-    ) -> None: ...
+    def verify_image_digest_exists(self, identity: ReleaseIdentity) -> None: ...
 
     def register_task_definition(
         self, workload: str, task_definition: dict[str, Any], tags: dict[str, str]
@@ -202,12 +217,12 @@ class ReleaseGateway(Protocol):
 
     def verify_public_web(
         self,
-        source_sha: str,
+        identity: ReleaseIdentity,
         *,
         phase_deadline: float | None = None,
     ) -> None: ...
 
-    def run_deployed_smoke(self, source_sha: str) -> None: ...
+    def run_deployed_smoke(self, identity: ReleaseIdentity) -> None: ...
 
     def verify_terminal(
         self,
@@ -341,6 +356,8 @@ class RecoveryContext:
     worker_task_definition_arn: str
     web_desired_count: int
     worker_desired_count: int
+    version: str | None = None
+    identity_schema: int = 2
 
     def __post_init__(self) -> None:
         if self.repository_uri != DEVELOPMENT_REPOSITORY_URI:
@@ -363,15 +380,20 @@ class RecoveryContext:
         ):
             raise ReleaseContractError("recovery context contains mixed service counts")
         if counts == (0, 0):
-            if self.source_sha is not None or self.image_digest is not None:
+            if (
+                self.source_sha is not None
+                or self.image_digest is not None
+                or self.version is not None
+            ):
                 raise ReleaseContractError(
                     "bootstrap recovery context must have no release identity"
                 )
         else:
-            if self.source_sha is None or self.image_digest is None:
+            if self.source_sha is None or self.image_digest is None or self.version is None:
                 raise ReleaseContractError("enabled recovery context requires a release identity")
             validate_source_sha(self.source_sha)
             validate_image_digest(self.image_digest)
+            validate_version(self.version, self.source_sha, identity_schema=self.identity_schema)
 
     def write(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -389,10 +411,20 @@ class RecoveryContext:
             "worker_task_definition_arn",
             "web_desired_count",
             "worker_desired_count",
+            "version",
+            "identity_schema",
         }
+        legacy_keys = expected_keys - {"version", "identity_schema"}
         try:
             payload = json.loads(path.read_text())
-            if not isinstance(payload, dict) or set(payload) != expected_keys:
+            if isinstance(payload, dict) and set(payload) == legacy_keys:
+                if payload.get("source_sha") is not None:
+                    payload["version"] = payload["source_sha"]
+                    payload["identity_schema"] = 1
+                else:
+                    payload["version"] = None
+                    payload["identity_schema"] = 2
+            elif not isinstance(payload, dict) or set(payload) != expected_keys:
                 raise ReleaseContractError("recovery context fields differ")
             return cls(**payload)
         except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
@@ -411,6 +443,8 @@ def _write_recovery_context(
         repository_uri=repository_uri,
         source_sha=web.source_sha if web.desired_count > 0 else None,
         image_digest=web.image_digest if web.desired_count > 0 else None,
+        version=web.version if web.desired_count > 0 else None,
+        identity_schema=web.identity_schema or 2,
         web_task_definition_arn=web.task_definition_arn,
         worker_task_definition_arn=worker.task_definition_arn,
         web_desired_count=web.desired_count,
@@ -446,6 +480,10 @@ def capture_current_service_pair(
     if (
         web.source_sha is None
         or web.image_digest is None
+        or web.version is None
+        or web.identity_schema is None
+        or web.version != worker.version
+        or web.identity_schema != worker.identity_schema
         or web.source_sha != worker.source_sha
         or web.image_digest != worker.image_digest
     ):
@@ -455,21 +493,21 @@ def capture_current_service_pair(
         source_sha=web.source_sha,
         image_digest=web.image_digest,
         repository_uri=repository_uri,
+        version=web.version,
+        identity_schema=web.identity_schema,
     )
     pair = ActiveServicePair(
         source_sha=identity.source_sha,
         image_digest=identity.image_digest,
+        version=identity.version,
+        identity_schema=identity.identity_schema,
         web_task_definition_arn=web.task_definition_arn,
         worker_task_definition_arn=worker.task_definition_arn,
         web_desired_count=web.desired_count,
         worker_desired_count=worker.desired_count,
     )
     gateway.verify_active_service_pair(pair, identity)
-    gateway.verify_image_digest_exists(
-        repository_uri,
-        identity.source_sha,
-        identity.image_digest,
-    )
+    gateway.verify_image_digest_exists(identity)
     gateway.verify_terminal(
         {"web": web.task_definition_arn, "worker": worker.task_definition_arn},
         {"web": web.desired_count, "worker": worker.desired_count},
@@ -497,7 +535,14 @@ def capture_recovery_context(
             raise ReleaseContractError(
                 "an enabled recovery checkpoint requires the accepted prior release"
             )
-        identity = ReleaseIdentity(web.source_sha, web.image_digest, repository_uri)
+        assert web.version is not None and web.identity_schema is not None
+        identity = ReleaseIdentity(
+            web.source_sha,
+            web.image_digest,
+            repository_uri,
+            web.version,
+            web.identity_schema,
+        )
         _verify_expected_prior(gateway, expected, identity)
     gateway.verify_terminal(
         {"web": web.task_definition_arn, "worker": worker.task_definition_arn},
@@ -592,6 +637,7 @@ def _compensate(
                 workload for workload in ("web", "worker") if workload in workloads
             ],
             "intentionally_untouched": intentionally_untouched,
+            **_identity_evidence(prior_identity),
         },
     )
 
@@ -734,6 +780,7 @@ def _compensate(
         {
             "exact_pair": terminal_passed,
             "worker_singleton": terminal_passed,
+            **_identity_evidence(prior_identity),
         },
     )
 
@@ -741,7 +788,7 @@ def _compensate(
     if prior_identity is not None:
         try:
             gateway.verify_public_web(
-                prior_identity.source_sha,
+                prior_identity,
                 phase_deadline=phase_deadline,
             )
             public_passed = True
@@ -754,6 +801,7 @@ def _compensate(
         {
             "applicable": prior_identity is not None,
             "exact_prior_sha_ready": public_passed if prior_identity is not None else None,
+            **_identity_evidence(prior_identity),
         },
     )
     try:
@@ -771,6 +819,7 @@ def _compensate(
             "public_health": public_passed,
             "worker_singleton": terminal_passed,
             "intentionally_untouched": intentionally_untouched,
+            **_identity_evidence(prior_identity),
         },
     )
     if errors:
@@ -841,11 +890,7 @@ def _verify_expected_prior(
         gateway.verify_active_service_pair(expected, identity)
     else:
         gateway.verify_release_record(expected, identity)
-    gateway.verify_image_digest_exists(
-        identity.repository_uri,
-        identity.source_sha,
-        identity.image_digest,
-    )
+    gateway.verify_image_digest_exists(identity)
 
 
 def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
@@ -866,10 +911,14 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
     if not bootstrap:
         assert prior_web.source_sha is not None
         assert prior_web.image_digest is not None
+        assert prior_web.version is not None
+        assert prior_web.identity_schema is not None
         prior_identity = ReleaseIdentity(
             source_sha=prior_web.source_sha,
             image_digest=prior_web.image_digest,
             repository_uri=config.identity.repository_uri,
+            version=prior_web.version,
+            identity_schema=prior_web.identity_schema,
         )
         assert config.expected_prior_release is not None
         _verify_expected_prior(gateway, config.expected_prior_release, prior_identity)
@@ -894,6 +943,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             "worker_desired_count": prior_worker.desired_count,
             "worker_running_count": prior_worker.running_count,
             "worker_pending_count": prior_worker.pending_count,
+            **_identity_evidence(prior_identity),
         },
     )
 
@@ -919,7 +969,10 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         config.evidence_path,
         "registration",
         "passed",
-        {f"{workload}_task_definition_arn": value for workload, value in registered.items()},
+        {
+            **{f"{workload}_task_definition_arn": value for workload, value in registered.items()},
+            **_identity_evidence(config.identity),
+        },
     )
 
     # Catch a raced active release after registration and before any migration side effect.
@@ -933,7 +986,10 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         config.evidence_path,
         "migration",
         "started",
-        {"task_definition_arn": registered["migration"]},
+        {
+            "task_definition_arn": registered["migration"],
+            **_identity_evidence(config.identity),
+        },
     )
     try:
         gateway.run_migration(
@@ -953,7 +1009,11 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         config.evidence_path,
         "migration",
         "passed",
-        {"task_definition_arn": registered["migration"], "exit_code": 0},
+        {
+            "task_definition_arn": registered["migration"],
+            "exit_code": 0,
+            **_identity_evidence(config.identity),
+        },
     )
 
     # Migration can take long enough for an operator to race the active pair. Refresh the
@@ -970,7 +1030,12 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         prior_web,
         prior_worker,
     )
-    _record_evidence(config.evidence_path, "pre_update_gate", "passed")
+    _record_evidence(
+        config.evidence_path,
+        "pre_update_gate",
+        "passed",
+        _identity_evidence(config.identity),
+    )
     mutated = False
     attempted: dict[str, ServiceTarget | ServicePredecessor] = {}
     active_stage = "web"
@@ -1036,7 +1101,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             {
                 "task_definition_arn": registered["web"],
                 "desired_count": config.web_desired_count,
-                "source_sha": config.identity.source_sha,
+                **_identity_evidence(config.identity),
                 "primary_deployment_id": web_receipt.primary_deployment_id,
                 "receipt_binding": web_receipt.binding_reason,
                 "ecs_stable": True,
@@ -1117,18 +1182,19 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "receipt_binding": worker_receipt.binding_reason,
                 "singleton": True,
                 "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
+                **_identity_evidence(config.identity),
             },
         )
         active_stage = "smoke"
         _record_evidence(config.evidence_path, "smoke", "started")
         if config.failure_injection == "post_mutation_smoke":
             raise ReleaseContractError("controlled post-mutation smoke failure")
-        gateway.run_deployed_smoke(config.identity.source_sha)
+        gateway.run_deployed_smoke(config.identity)
         _record_evidence(
             config.evidence_path,
             "smoke",
             "passed",
-            {"source_sha": config.identity.source_sha, "mode": "read_only"},
+            {"mode": "read_only", **_identity_evidence(config.identity)},
         )
         active_stage = "terminal"
         _record_evidence(config.evidence_path, "terminal", "started")
@@ -1165,8 +1231,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "worker_running_count": config.worker_desired_count,
                 "worker_pending_count": 0,
                 "worker_singleton": True,
-                "source_sha": config.identity.source_sha,
-                "image_digest": config.identity.image_digest,
+                **_identity_evidence(config.identity),
                 "binding_fingerprint": web_runtime_binding.fingerprint,
             },
         )
@@ -1179,6 +1244,8 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             web_desired_count=config.web_desired_count,
             worker_desired_count=config.worker_desired_count,
             rollback_eligible=True,
+            version=config.identity.version,
+            identity_schema=config.identity.identity_schema,
         )
         active_stage = "release_record"
         record.write(config.release_record_path)
@@ -1186,7 +1253,13 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             config.evidence_path,
             "release_record",
             "passed",
-            {"rollback_eligible": True, "source_sha": config.identity.source_sha},
+            {
+                "rollback_eligible": True,
+                "version": config.identity.version,
+                "source_sha": config.identity.source_sha,
+                "image_digest": config.identity.image_digest,
+                "identity_schema": config.identity.identity_schema,
+            },
         )
     except Exception as error:
         _record_failed_stage(config.evidence_path, active_stage, error)
@@ -1224,12 +1297,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                         "worker_task_definition_arn": prior_worker.task_definition_arn,
                         "web_desired_count": prior_web.desired_count,
                         "worker_desired_count": prior_worker.desired_count,
-                        "source_sha": (
-                            prior_identity.source_sha if prior_identity is not None else None
-                        ),
-                        "image_digest": (
-                            prior_identity.image_digest if prior_identity is not None else None
-                        ),
+                        **_identity_evidence(prior_identity),
                         "terminal": True,
                         "public_health": prior_identity is not None,
                         "worker_singleton": True,
@@ -1268,24 +1336,20 @@ def rollback(
         source_sha=current.source_sha,
         image_digest=current.image_digest,
         repository_uri=repository_uri,
+        version=current.version,
+        identity_schema=current.identity_schema,
     )
     target_identity = ReleaseIdentity(
         source_sha=target.source_sha,
         image_digest=target.image_digest,
         repository_uri=repository_uri,
+        version=target.version,
+        identity_schema=target.identity_schema,
     )
     gateway.verify_release_record(current, current_identity)
     gateway.verify_release_record(target, target_identity)
-    gateway.verify_image_digest_exists(
-        repository_uri,
-        current_identity.source_sha,
-        current_identity.image_digest,
-    )
-    gateway.verify_image_digest_exists(
-        repository_uri,
-        target_identity.source_sha,
-        target_identity.image_digest,
-    )
+    gateway.verify_image_digest_exists(current_identity)
+    gateway.verify_image_digest_exists(target_identity)
     current_web = gateway.capture_service("web")
     current_worker = gateway.capture_service("worker")
     validate_prior_pair(current_web, current_worker, current)
@@ -1319,9 +1383,15 @@ def rollback(
             "worker_desired_count": current_worker.desired_count,
             "worker_running_count": current_worker.running_count,
             "worker_pending_count": current_worker.pending_count,
+            **_identity_evidence(current_identity),
         },
     )
-    _record_evidence(evidence_path, "migration", "skipped", {"operation": "rollback"})
+    _record_evidence(
+        evidence_path,
+        "migration",
+        "skipped",
+        {"operation": "rollback", **_identity_evidence(target_identity)},
+    )
     mutated = False
     attempted: dict[str, ServiceTarget | ServicePredecessor] = {}
     active_stage = "web"
@@ -1387,7 +1457,7 @@ def rollback(
             {
                 "task_definition_arn": target.web_task_definition_arn,
                 "desired_count": target.web_desired_count,
-                "source_sha": target.source_sha,
+                **_identity_evidence(target_identity),
                 "primary_deployment_id": web_receipt.primary_deployment_id,
                 "receipt_binding": web_receipt.binding_reason,
                 "ecs_stable": True,
@@ -1470,16 +1540,17 @@ def rollback(
                 "receipt_binding": worker_receipt.binding_reason,
                 "singleton": True,
                 "stabilization_timeout_seconds": (gateway.worker_stabilization_timeout_seconds),
+                **_identity_evidence(target_identity),
             },
         )
         active_stage = "smoke"
         _record_evidence(evidence_path, "smoke", "started")
-        gateway.run_deployed_smoke(target.source_sha)
+        gateway.run_deployed_smoke(target_identity)
         _record_evidence(
             evidence_path,
             "smoke",
             "passed",
-            {"source_sha": target.source_sha, "mode": "read_only"},
+            {"mode": "read_only", **_identity_evidence(target_identity)},
         )
         active_stage = "terminal"
         _record_evidence(evidence_path, "terminal", "started")
@@ -1519,8 +1590,7 @@ def rollback(
                 "worker_running_count": target.worker_desired_count,
                 "worker_pending_count": 0,
                 "worker_singleton": True,
-                "source_sha": target.source_sha,
-                "image_digest": target.image_digest,
+                **_identity_evidence(target_identity),
                 "binding_fingerprint": web_runtime_binding.fingerprint,
             },
         )
@@ -1530,7 +1600,7 @@ def rollback(
             evidence_path,
             "release_record",
             "passed",
-            {"rollback_eligible": True, "source_sha": target.source_sha},
+            {"rollback_eligible": True, **_identity_evidence(target_identity)},
         )
     except Exception as error:
         _record_failed_stage(evidence_path, active_stage, error)
@@ -1564,8 +1634,7 @@ def rollback(
                         "worker_task_definition_arn": current_worker.task_definition_arn,
                         "web_desired_count": current_web.desired_count,
                         "worker_desired_count": current_worker.desired_count,
-                        "source_sha": current_identity.source_sha,
-                        "image_digest": current_identity.image_digest,
+                        **_identity_evidence(current_identity),
                         "terminal": True,
                         "public_health": True,
                         "worker_singleton": True,
@@ -1595,6 +1664,8 @@ def restore_after_finalization_failure(
         source_sha=failed_release.source_sha,
         image_digest=failed_release.image_digest,
         repository_uri=context.repository_uri,
+        version=failed_release.version,
+        identity_schema=failed_release.identity_schema,
     )
     current_web = gateway.capture_service("web")
     current_worker = gateway.capture_service("worker")
@@ -1613,11 +1684,17 @@ def restore_after_finalization_failure(
     )
 
     prior_identity: ReleaseIdentity | None = None
-    if context.source_sha is not None and context.image_digest is not None:
+    if (
+        context.source_sha is not None
+        and context.image_digest is not None
+        and context.version is not None
+    ):
         prior_identity = ReleaseIdentity(
             source_sha=context.source_sha,
             image_digest=context.image_digest,
             repository_uri=context.repository_uri,
+            version=context.version,
+            identity_schema=context.identity_schema,
         )
         pair = ActiveServicePair(
             source_sha=context.source_sha,
@@ -1626,13 +1703,11 @@ def restore_after_finalization_failure(
             worker_task_definition_arn=context.worker_task_definition_arn,
             web_desired_count=context.web_desired_count,
             worker_desired_count=context.worker_desired_count,
+            version=context.version,
+            identity_schema=context.identity_schema,
         )
         gateway.verify_active_service_pair(pair, prior_identity)
-        gateway.verify_image_digest_exists(
-            context.repository_uri,
-            prior_identity.source_sha,
-            prior_identity.image_digest,
-        )
+        gateway.verify_image_digest_exists(prior_identity)
 
     restore_targets = {
         "web": ServiceTarget(

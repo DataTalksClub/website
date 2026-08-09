@@ -12,6 +12,7 @@ from core.bootstrap import (
     parse_list,
     parse_secret,
 )
+from core.runtime_identity import read_runtime_identity
 from website.loginas_policy import can_login_as
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -82,9 +83,14 @@ def sqlite_database_from_environment(
 
 
 SITE_NAME = "DataTalks.Club"
-APP_VERSION = os.getenv("APP_VERSION", "dev")
 RUNTIME_ENVIRONMENT = parse_environment(os.getenv("DTC_ENVIRONMENT"))
 ENVIRONMENT = RUNTIME_ENVIRONMENT.value
+RUNTIME_IDENTITY = read_runtime_identity()
+VERSION = RUNTIME_IDENTITY.version
+SOURCE_SHA = RUNTIME_IDENTITY.source_sha
+IMAGE_DIGEST = RUNTIME_IDENTITY.image_digest
+# Python compatibility alias only. Deployed task definitions must not set APP_VERSION.
+APP_VERSION = VERSION
 DEVELOPMENT_OWNER_LOGIN_ENABLED = RUNTIME_ENVIRONMENT is RuntimeEnvironment.DEVELOPMENT
 TEST_PROGRAMMATIC_STAFF_PASSWORD_AUTHENTICATION = False
 CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://datatalks.club").rstrip("/")
@@ -209,7 +215,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "DataTalks.Club <noreply@datatalks.club>"
 
-VERSION = APP_VERSION
 PUBLIC_BASE_URL = CANONICAL_ORIGIN
 OBSERVABILITY_ENVIRONMENT = ENVIRONMENT
 OBSERVABILITY_EVENT_SCHEMA_VERSION = os.getenv("OBSERVABILITY_EVENT_SCHEMA_VERSION", "1")

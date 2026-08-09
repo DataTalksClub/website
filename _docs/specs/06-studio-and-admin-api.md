@@ -146,6 +146,15 @@ Person as distinct records.
 - Safe methods are side-effect free. Mutations never use GET.
 - Request/body/time limits and per-principal rate/cost limits apply.
 
+## Runtime release identity
+
+Studio's footer displays only `Version <VERSION>`. The authenticated management health response
+and generated OpenAPI document use the same canonical runtime identity: OpenAPI `info.version` is
+VERSION, while health reports `version`, nullable `source_sha`, and nullable `image_digest`.
+Production/development ECS runtime values are non-null and exact; only local execution uses the
+documented fallback version with null source and digest. These safe identifiers may appear in
+operational output, but credentials and task environment payloads may not.
+
 ## Audit model
 
 `AuditEvent` is append-only and stores:

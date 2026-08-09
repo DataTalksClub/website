@@ -65,6 +65,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_sha: ${{ steps.release.outputs.release_sha }}
+      version: ${{ steps.release.outputs.version }}
+      constructed_at: ${{ steps.release.outputs.constructed_at }}
+      identity_schema: ${{ steps.release.outputs.identity_schema }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,6 +78,14 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
+      - id: prior-source-identity
+        name: Restore the sealed source identity on a workflow rerun
+        if: github.run_attempt > 1 && (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: release-source-identity-${{ github.run_id }}
+          path: .tmp/prior-release
       - id: release
         name: Validate immutable source selection
         env:
@@ -93,6 +104,7 @@ jobs:
           RELEASE_A_SHA: 0f0ae208526fa2e76848cf4f5a87bd4aa26687ec
           RELEASE_B_SHA: e2b93beb1544170b6177ba55ea8fd6530b2e57a3
           DEVELOPMENT_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
         run: |
           set -euo pipefail
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
@@ -145,20 +157,6 @@ jobs:
                 echo "reuse requires a published-image record" >&2
                 exit 1
               fi
-              jq -e \
-                --arg source_sha "$candidate" \
-                --arg repository_uri "$DEVELOPMENT_REPOSITORY_URI" '
-                type == "object" and
-                keys == ["image_config_digest", "image_digest", "platform", "repository_uri", "source_sha", "user"] and
-                .source_sha == $source_sha and
-                .repository_uri == $repository_uri and
-                (.image_digest | type == "string" and test("^sha256:[0-9a-f]{64}$")) and
-                .image_digest != "sha256:1111111111111111111111111111111111111111111111111111111111111111" and
-                .image_digest != "sha256:0000000000000000000000000000000000000000000000000000000000000000" and
-                (.image_config_digest | type == "string" and test("^sha256:[0-9a-f]{64}$")) and
-                .platform == "linux/amd64" and
-                .user == "10001:10001"
-              ' <<< "$INPUT_PUBLISHED_IMAGE_RECORD" > /dev/null
             elif [[ -n "$INPUT_PUBLISHED_IMAGE_RECORD" ]]; then
               echo "published_image_record is accepted only when reuse_existing_image=true" >&2
               exit 1
@@ -269,7 +267,57 @@ jobs:
             echo "Release SHA is not reachable from main" >&2
             exit 1
           fi
+          if [[ "$EVENT_NAME" != "workflow_dispatch" || "$INPUT_OPERATION" != "probe" ]]; then
+            mkdir -p .tmp/release
+            if (( RUN_ATTEMPT > 1 )); then
+              test -f .tmp/prior-release/source-identity.json
+              jq -e --arg sha "$candidate" '
+                type == "object" and
+                keys == ["constructed_at", "identity_schema", "source_sha", "version"] and
+                .source_sha == $sha and
+                (.identity_schema == 1 or .identity_schema == 2)
+              ' .tmp/prior-release/source-identity.json > /dev/null
+              cp .tmp/prior-release/source-identity.json .tmp/release/source-identity.json
+            elif [[ "$EVENT_NAME" == "workflow_dispatch" && "$INPUT_REUSE_EXISTING_IMAGE" == "true" ]]; then
+              printf '%s\n' "$INPUT_PUBLISHED_IMAGE_RECORD" > .tmp/release/input-published-image.json
+              uv run --frozen python -m deploy.release_identity inspect-published \
+                --allow-legacy \
+                --record .tmp/release/input-published-image.json \
+                > .tmp/release/normalized-published-image.json
+              jq -e \
+                --arg source_sha "$candidate" \
+                --arg repository_uri "$DEVELOPMENT_REPOSITORY_URI" '
+                .source_sha == $source_sha and
+                .repository_uri == $repository_uri and
+                .platform == "linux/amd64" and
+                .user == "10001:10001" and
+                .image_digest != "sha256:1111111111111111111111111111111111111111111111111111111111111111" and
+                .image_digest != "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+              ' .tmp/release/normalized-published-image.json > /dev/null
+              jq -ceS '{identity_schema, version, source_sha, constructed_at}' \
+                .tmp/release/normalized-published-image.json \
+                > .tmp/release/source-identity.json
+            else
+              uv run --frozen python -m deploy.release_identity construct \
+                --source-sha "$candidate" \
+                --output .tmp/release/source-identity.json
+            fi
+            version="$(jq -er '.version' .tmp/release/source-identity.json)"
+            constructed_at="$(jq -r '.constructed_at // ""' .tmp/release/source-identity.json)"
+            identity_schema="$(jq -er '.identity_schema' .tmp/release/source-identity.json)"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+            echo "constructed_at=$constructed_at" >> "$GITHUB_OUTPUT"
+            echo "identity_schema=$identity_schema" >> "$GITHUB_OUTPUT"
+          fi
           echo "release_sha=$candidate" >> "$GITHUB_OUTPUT"
+      - name: Preserve the one sealed source identity
+        if: github.run_attempt == 1 && (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-source-identity-${{ github.run_id }}
+          path: .tmp/release/source-identity.json
+          if-no-files-found: error
+          retention-days: 90
 
   classification:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
@@ -476,12 +524,16 @@ jobs:
           steps.image-cache.outputs.cache-hit != 'true'
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
+          CONSTRUCTED_AT: ${{ needs.resolve-release.outputs.constructed_at }}
         run: |
           set -euo pipefail
           docker buildx build \
             --platform linux/amd64 \
             --provenance=false \
+            --label "org.opencontainers.image.version=$VERSION" \
             --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+            --label "org.opencontainers.image.created=$CONSTRUCTED_AT" \
             --tag "dtc-website:$RELEASE_SHA" \
             --load \
             .tmp/release-source
@@ -494,12 +546,16 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
+          CONSTRUCTED_AT: ${{ needs.resolve-release.outputs.constructed_at }}
         run: |
           set -euo pipefail
           image="dtc-website:$RELEASE_SHA"
           test "$(docker image inspect --format '{{.Architecture}}' "$image")" = "amd64"
           test "$(docker image inspect --format '{{.Config.User}}' "$image")" = "10001:10001"
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$RELEASE_SHA"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "$image")" = "$VERSION"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.created" }}' "$image")" = "$CONSTRUCTED_AT"
           test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
           test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
       - name: Verify the built runtime static manifest
@@ -549,15 +605,21 @@ jobs:
         if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
+          TEST_IMAGE_DIGEST: sha256:2222222222222222222222222222222222222222222222222222222222222222
         run: |
           set -euo pipefail
           docker run --detach --name dtc-web \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
-            --env "APP_VERSION=$RELEASE_SHA" \
+            --env "VERSION=$VERSION" \
+            --env "SOURCE_SHA=$RELEASE_SHA" \
+            --env "IMAGE_DIGEST=$TEST_IMAGE_DIGEST" \
             --publish 8000:8000 "dtc-website:$RELEASE_SHA" web
           trap 'docker logs dtc-web; docker rm --force dtc-web' EXIT
           for _ in $(seq 1 30); do
-            if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = "{\"status\": \"ok\", \"version\": \"$RELEASE_SHA\"}"; then
+            if curl --fail --silent http://127.0.0.1:8000/health/live | jq -e \
+              --arg version "$VERSION" --arg sha "$RELEASE_SHA" --arg digest "$TEST_IMAGE_DIGEST" \
+              '. == {status: "ok", version: $version, source_sha: $sha, image_digest: $digest}' > /dev/null; then
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
               exit 0
             fi
@@ -793,6 +855,11 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
+      - name: Restore the sealed source identity
+        uses: actions/download-artifact@v4
+        with:
+          name: release-source-identity-${{ github.run_id }}
+          path: .tmp/release
       - uses: actions/download-artifact@v4
         if: github.event_name == 'push' || inputs.reuse_existing_image == false
         with:
@@ -851,6 +918,8 @@ jobs:
         if: github.event_name == 'push' || inputs.reuse_existing_image == false
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
+          CONSTRUCTED_AT: ${{ needs.resolve-release.outputs.constructed_at }}
           ECR_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
           ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
         run: |
@@ -859,6 +928,9 @@ jobs:
           local_config_digest="$(docker image inspect --format '{{.Id}}' "dtc-website:$RELEASE_SHA")"
           test "$(docker image inspect --format '{{.Architecture}}' "dtc-website:$RELEASE_SHA")" = "amd64"
           test "$(docker image inspect --format '{{.Config.User}}' "dtc-website:$RELEASE_SHA")" = "10001:10001"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.version" }}' "dtc-website:$RELEASE_SHA")" = "$VERSION"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "dtc-website:$RELEASE_SHA")" = "$RELEASE_SHA"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.created" }}' "dtc-website:$RELEASE_SHA")" = "$CONSTRUCTED_AT"
           [[ "$local_config_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
           if aws ecr describe-images \
             --repository-name "$ECR_REPOSITORY_NAME" \
@@ -871,6 +943,28 @@ jobs:
               --output text)"
             remote_config_digest="$(jq -er '.config.digest' <<< "$manifest")"
             test "$remote_config_digest" = "$local_config_digest"
+            if aws ecr describe-images \
+              --repository-name "$ECR_REPOSITORY_NAME" \
+              --image-ids "imageTag=$VERSION" \
+              > .tmp/ecr-existing-version.json 2> .tmp/ecr-existing-version-error.txt; then
+              version_digest="$(jq -er '.imageDetails[0].imageDigest' .tmp/ecr-existing-version.json)"
+            else
+              if ! grep -q 'ImageNotFoundException' .tmp/ecr-existing-version-error.txt; then
+                echo "Unable to prove whether the immutable VERSION tag exists" >&2
+                exit 1
+              fi
+              aws ecr put-image \
+                --repository-name "$ECR_REPOSITORY_NAME" \
+                --image-tag "$VERSION" \
+                --image-manifest "$manifest" \
+                > /dev/null
+              version_digest="$(aws ecr describe-images \
+                --repository-name "$ECR_REPOSITORY_NAME" \
+                --image-ids "imageTag=$VERSION" \
+                --query 'imageDetails[0].imageDigest' \
+                --output text)"
+            fi
+            test "$version_digest" = "$(jq -er '.imageDetails[0].imageDigest' .tmp/ecr-existing.json)"
           else
             if ! grep -q 'ImageNotFoundException' .tmp/ecr-existing-error.txt; then
               echo "Unable to prove whether the immutable release tag exists" >&2
@@ -880,7 +974,9 @@ jobs:
               --username AWS \
               --password-stdin "${ECR_REPOSITORY_URI%%/*}"
             docker image tag "dtc-website:$RELEASE_SHA" "$ECR_REPOSITORY_URI:$RELEASE_SHA"
+            docker image tag "dtc-website:$RELEASE_SHA" "$ECR_REPOSITORY_URI:$VERSION"
             docker image push "$ECR_REPOSITORY_URI:$RELEASE_SHA"
+            docker image push "$ECR_REPOSITORY_URI:$VERSION"
           fi
           image_digest="$(aws ecr describe-images \
             --repository-name "$ECR_REPOSITORY_NAME" \
@@ -898,26 +994,38 @@ jobs:
             --output text)"
           remote_config_digest="$(jq -er '.config.digest' <<< "$manifest")"
           test "$remote_config_digest" = "$local_config_digest"
-          jq -cn \
-            --arg source_sha "$RELEASE_SHA" \
-            --arg repository_uri "$ECR_REPOSITORY_URI" \
-            --arg image_digest "$image_digest" \
-            --arg image_config_digest "$local_config_digest" \
-            '{source_sha: $source_sha, repository_uri: $repository_uri, image_digest: $image_digest, image_config_digest: $image_config_digest, platform: "linux/amd64", user: "10001:10001"}' \
-            > .tmp/published-image.json
+          sha_digest="$(aws ecr describe-images --repository-name "$ECR_REPOSITORY_NAME" --image-ids "imageTag=$RELEASE_SHA" --query 'imageDetails[0].imageDigest' --output text)"
+          version_digest="$(aws ecr describe-images --repository-name "$ECR_REPOSITORY_NAME" --image-ids "imageTag=$VERSION" --query 'imageDetails[0].imageDigest' --output text)"
+          test "$sha_digest" = "$image_digest"
+          test "$version_digest" = "$image_digest"
+          uv run --frozen python -m deploy.release_identity publish \
+            --source-identity .tmp/release/source-identity.json \
+            --repository-uri "$ECR_REPOSITORY_URI" \
+            --image-digest "$image_digest" \
+            --image-config-digest "$local_config_digest" \
+            --platform linux/amd64 \
+            --user 10001:10001 \
+            --output .tmp/published-image.json
       - name: Verify and preserve the recorded immutable image without Docker
         if: github.event_name == 'workflow_dispatch' && inputs.reuse_existing_image == true
         env:
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
+          IDENTITY_SCHEMA: ${{ needs.resolve-release.outputs.identity_schema }}
           ECR_REPOSITORY_NAME: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_NAME }}
           ECR_REPOSITORY_URI: ${{ vars.DEVELOPMENT_ECR_REPOSITORY_URI }}
           PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
         run: |
           set -euo pipefail
-          jq -ceS . <<< "$PUBLISHED_IMAGE_RECORD" > .tmp/published-image.json
+          printf '%s\n' "$PUBLISHED_IMAGE_RECORD" > .tmp/input-published-image.json
+          uv run --frozen python -m deploy.release_identity inspect-published \
+            --allow-legacy --record .tmp/input-published-image.json \
+            > .tmp/published-image.json
           recorded_digest="$(jq -er '.image_digest' .tmp/published-image.json)"
           recorded_config_digest="$(jq -er '.image_config_digest' .tmp/published-image.json)"
           test "$(jq -er '.source_sha' .tmp/published-image.json)" = "$RELEASE_SHA"
+          test "$(jq -er '.version' .tmp/published-image.json)" = "$VERSION"
+          test "$(jq -er '.identity_schema' .tmp/published-image.json)" = "$IDENTITY_SCHEMA"
           test "$(jq -er '.repository_uri' .tmp/published-image.json)" = "$ECR_REPOSITORY_URI"
           aws ecr describe-images \
             --repository-name "$ECR_REPOSITORY_NAME" \
@@ -927,6 +1035,14 @@ jobs:
             (.imageDetails | length) == 1 and
             .imageDetails[0].imageDigest == $digest
           ' .tmp/reused-ecr-image.json > /dev/null
+          if [[ "$IDENTITY_SCHEMA" == "2" ]]; then
+            version_digest="$(aws ecr describe-images \
+              --repository-name "$ECR_REPOSITORY_NAME" \
+              --image-ids "imageTag=$VERSION" \
+              --query 'imageDetails[0].imageDigest' \
+              --output text)"
+            test "$version_digest" = "$recorded_digest"
+          fi
           aws ecr batch-get-image \
             --repository-name "$ECR_REPOSITORY_NAME" \
             --image-ids "imageTag=$RELEASE_SHA" \
@@ -937,6 +1053,10 @@ jobs:
             .images[0].imageId.imageDigest == $digest and
             (.images[0].imageManifest | fromjson | .config.digest) == $config
           ' .tmp/reused-ecr-manifest.json > /dev/null
+          if [[ "$IDENTITY_SCHEMA" == "2" ]]; then
+            test "$(jq -er '.constructed_at' .tmp/published-image.json)" = \
+              "$(jq -er '.constructed_at' .tmp/release/source-identity.json)"
+          fi
       - id: image
         name: Export the one verified immutable digest
         run: |
@@ -1148,6 +1268,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           OPERATION: ${{ github.event_name == 'push' && 'promote' || inputs.operation }}
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
           IMAGE_DIGEST: ${{ needs.publish.outputs.image_digest }}
           ACTIVE_SERVICE_PAIR: ${{ needs.auto-capture-prior.outputs.active_service_pair }}
           PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
@@ -1223,6 +1344,7 @@ jobs:
             uv run python -m deploy.cli promote \
               "${runtime_args[@]}" \
               --source-sha "$RELEASE_SHA" \
+              --version "$VERSION" \
               --image-digest "$IMAGE_DIGEST" \
               --repository-uri "$REPOSITORY_URI" \
               --web-desired-count "$WEB_DESIRED_COUNT" \
@@ -1237,9 +1359,10 @@ jobs:
           else
             test -n "$TARGET_RELEASE_RECORD"
             test -n "$CURRENT_RELEASE_RECORD"
-            jq -ceS --arg sha "$RELEASE_SHA" --arg digest "$IMAGE_DIGEST" \
-              'select(.source_sha == $sha and .image_digest == $digest)' \
-              <<< "$TARGET_RELEASE_RECORD" > .tmp/deployment/target.json
+            jq -ceS . <<< "$TARGET_RELEASE_RECORD" > .tmp/deployment/target.json
+            target_identity="$(uv run python -c \
+              'from pathlib import Path; from deploy.contracts import ReleaseRecord; r = ReleaseRecord.read(Path(".tmp/deployment/target.json")); print(" ".join((r.version, r.source_sha, r.image_digest)))')"
+            test "$target_identity" = "$VERSION $RELEASE_SHA $IMAGE_DIGEST"
             jq -ceS . <<< "$CURRENT_RELEASE_RECORD" > .tmp/deployment/current.json
             uv run python -m deploy.cli rollback \
               "${runtime_args[@]}" \
@@ -1261,6 +1384,8 @@ jobs:
           CONTROLLER_OUTCOME: ${{ steps.release.outcome }}
           EVENT_NAME: ${{ github.event_name }}
           IMAGE_DIGEST: ${{ needs.publish.outputs.image_digest }}
+          VERSION: ${{ needs.resolve-release.outputs.version }}
+          IDENTITY_SCHEMA: ${{ needs.resolve-release.outputs.identity_schema }}
           PRIOR_RELEASE_RECORD: ${{ inputs.prior_release_record }}
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
           RUN_ID: ${{ github.run_id }}
@@ -1337,6 +1462,8 @@ jobs:
               "event": os.environ["EVENT_NAME"],
               "controller_sha": os.environ.get("GITHUB_SHA", ""),
               "source_sha": os.environ.get("RELEASE_SHA", ""),
+              "version": os.environ.get("VERSION", ""),
+              "identity_schema": int(os.environ.get("IDENTITY_SCHEMA", "0")),
               "image_digest": os.environ.get("IMAGE_DIGEST", ""),
               "captured_prior": prior,
               "released": released,

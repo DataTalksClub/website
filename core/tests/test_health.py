@@ -27,13 +27,29 @@ class HealthTests(TestCase):
         with patch("core.views.connection.ensure_connection") as ensure_connection:
             response = self.client.get(reverse("health-live"))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["status"], "ok")
+        self.assertEqual(
+            response.json(),
+            {
+                "status": "ok",
+                "version": "local-development-build-version-not-configured",
+                "source_sha": None,
+                "image_digest": None,
+            },
+        )
         ensure_connection.assert_not_called()
 
     def test_readiness_succeeds_when_database_and_migrations_are_healthy(self) -> None:
         response = self.client.get(reverse("health-ready"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ready")
+        self.assertEqual(
+            {name: response.json()[name] for name in ("version", "source_sha", "image_digest")},
+            {
+                "version": "local-development-build-version-not-configured",
+                "source_sha": None,
+                "image_digest": None,
+            },
+        )
 
     @override_settings(**ALB_READINESS_SECURITY_SETTINGS)
     def test_readiness_accepts_direct_http_alb_probe_with_private_target_host(self) -> None:

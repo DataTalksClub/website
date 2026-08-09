@@ -156,7 +156,7 @@
     },
     {
       "path": "deploy/legacy_development_compatibility.py",
-      "sha256": "097ebbccb9e44909cfbda6de61176b0a9f19f6df50cf8cbf5aa808895e23bd31",
+      "sha256": "41278b0821ee6cdd50ed6a6d7755dc070ab1ac076bcec62cdbe78786eca698b3",
       "class": "legacy_physical_boundary",
       "reason": "Single executable boundary owns exact live physical identifiers for development.",
       "follow_up": "#94",
@@ -164,7 +164,7 @@
     },
     {
       "path": "_docs/runbooks/sandbox-release.md",
-      "sha256": "163beb97eb7b508ecaa456d023b1a5620c54db8504557d4d6fa473294d9d61cb",
+      "sha256": "9661e63831f43f834b00be5fce92e3f356a474ebc8302e8263bef4ce3f39c74c",
       "class": "legacy_link_notice",
       "reason": "Small command-free notice preserves the former runbook link.",
       "follow_up": "#94",
@@ -180,7 +180,7 @@
     },
     {
       "path": "core/tests/test_deployment_release.py",
-      "sha256": "9c063281f2ad819c165970fc8593a3ce99e873d09a6f3c3c91a8a23b3f7282a1",
+      "sha256": "c905b5bd64f5defdf7ca86be5548fbbdddbad47723e715140d7efee5cfbef975",
       "class": "legacy_contract_test",
       "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
       "follow_up": "#94",
@@ -188,7 +188,7 @@
     },
     {
       "path": "core/tests/test_web_runtime_coherence.py",
-      "sha256": "6c12350dc41810cd0e56d76e94a5b927d0b3418407742704f51fcb9495fb80d6",
+      "sha256": "86df3fa207903358007ca37a4278dda0daea5c632bc7142da1550e46c72095a7",
       "class": "legacy_contract_test",
       "reason": "Web runtime coherence tests exercise the exact development service, task, target, and repository identifiers.",
       "follow_up": "#94",
@@ -196,7 +196,7 @@
     },
     {
       "path": "core/tests/test_deployment_workflow.py",
-      "sha256": "30226ff2be6f702b0f946681c98c92b269fcc11e8dd4c425c6ee2b1c5d21e6cf",
+      "sha256": "b5dca94b59c246569909ea1d5bc6ce0da5d9aa5d86e729f7b0e97dc98f284cf8",
       "class": "legacy_contract_test",
       "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, and exact physical values.",
       "follow_up": "#94",

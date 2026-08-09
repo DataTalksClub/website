@@ -191,17 +191,14 @@ jobs:
             exit 1
           fi
       - name: Smoke-test scheduled image liveness
-        env:
-          RELEASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           docker run --detach --name dtc-web-scheduled \
             --env DJANGO_SETTINGS_MODULE=website.settings.local \
-            --env "APP_VERSION=$RELEASE_SHA" \
-            --publish 8000:8000 "dtc-website:$RELEASE_SHA" web
+            --publish 8000:8000 "dtc-website:${{ github.sha }}" web
           trap 'docker logs dtc-web-scheduled; docker rm --force dtc-web-scheduled' EXIT
           for _ in $(seq 1 30); do
-            if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = "{\"status\": \"ok\", \"version\": \"$RELEASE_SHA\"}"; then
+            if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = '{"status": "ok", "version": "local-development-build-version-not-configured", "source_sha": null, "image_digest": null}'; then
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
               exit 0
             fi

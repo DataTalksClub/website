@@ -17,10 +17,27 @@ from website.settings.base import (
     database_from_environment,
 )
 
+SEALED_RUNTIME_IDENTITY = {
+    "VERSION": "20260809-143205-aaaaaaa",
+    "SOURCE_SHA": "a" * 40,
+    "IMAGE_DIGEST": f"sha256:{'b' * 64}",
+}
+
+
+def clean_identity_environment() -> dict[str, str]:
+    environment = os.environ.copy()
+    for name in ("APP_VERSION", "VERSION", "SOURCE_SHA", "IMAGE_DIGEST"):
+        environment.pop(name, None)
+    return environment
+
+
+def sealed_deployed_environment() -> dict[str, str]:
+    return {**clean_identity_environment(), **SEALED_RUNTIME_IDENTITY}
+
 
 class ProductionSettingsTests(SimpleTestCase):
     def import_production_settings(self, secret: str | None) -> subprocess.CompletedProcess[str]:
-        environment = os.environ.copy()
+        environment = sealed_deployed_environment()
         environment.update(
             {
                 "DTC_ENVIRONMENT": "production",
@@ -43,7 +60,7 @@ class ProductionSettingsTests(SimpleTestCase):
         )
 
     def test_production_settings_fail_closed_without_critical_configuration(self) -> None:
-        environment = os.environ.copy()
+        environment = sealed_deployed_environment()
         for name in (
             "DJANGO_SECRET_KEY",
             "DATABASE_URL",
@@ -76,7 +93,7 @@ class ProductionSettingsTests(SimpleTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_deployment_settings_keep_exact_https_and_readiness_contract(self) -> None:
-        environment = os.environ.copy()
+        environment = sealed_deployed_environment()
         environment.update(
             {
                 "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",
@@ -123,7 +140,7 @@ class ProductionSettingsTests(SimpleTestCase):
         self.assertIn(example_line.partition("=")[2], UNSAFE_SECRET_KEYS)
 
     def test_development_accepts_only_the_exact_host_and_trusted_origin(self) -> None:
-        base_environment = os.environ.copy()
+        base_environment = sealed_deployed_environment()
         base_environment.update(
             {
                 "DATABASE_URL": "postgresql://check:check@127.0.0.1:5432/check",
@@ -245,7 +262,7 @@ class CollectstaticSettingsTests(SimpleTestCase):
     def import_collectstatic_settings(
         self, *, environment_name: str | None = None
     ) -> subprocess.CompletedProcess[str]:
-        environment = os.environ.copy()
+        environment = clean_identity_environment()
         for name in (
             "DATABASE_URL",
             "DJANGO_ALLOWED_HOSTS",
@@ -257,6 +274,7 @@ class CollectstaticSettingsTests(SimpleTestCase):
             environment.pop(name, None)
         if environment_name is not None:
             environment["DTC_ENVIRONMENT"] = environment_name
+            environment.update(SEALED_RUNTIME_IDENTITY)
         command = (
             "import json; import website.settings.collectstatic as s; "
             "print(json.dumps({"
