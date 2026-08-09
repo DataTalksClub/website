@@ -1746,6 +1746,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 200,
                 noindex,
                 b"Learn data skills. For free. Together."
+                b'<link rel="canonical" href="https://datatalks.club/courses/">'
                 b'<link rel="stylesheet" href="/static/courses.fixture.css">',
             ),
             Response(
@@ -1795,12 +1796,18 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             )
             persisted = path.read_text()
             self.assertEqual(__import__("json").loads(persisted), evidence)
+            courses_check = next(
+                check for check in evidence["checks"] if check.get("path") == "/courses/"
+            )
+            self.assertTrue(courses_check["exact_canonical"])
+            self.assertNotIn("canonical_absent", courses_check)
             self.assertEqual(evidence["checks"][-1]["runtime_group"], "analytics")
             for forbidden in ("cookie", "authorization", "set-cookie", "response_body"):
                 self.assertNotIn(forbidden, persisted.lower())
 
         invalid_surface_responses = (
             (
+                "home identity",
                 2,
                 Response(
                     200,
@@ -1811,6 +1818,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 "home page lacks expected content",
             ),
             (
+                "course identity",
                 4,
                 Response(
                     200,
@@ -1821,8 +1829,8 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 "course discovery lacks expected content",
             ),
         )
-        for response_index, invalid_response, error_message in invalid_surface_responses:
-            with self.subTest(error_message=error_message):
+        for case, response_index, invalid_response, error_message in invalid_surface_responses:
+            with self.subTest(case=case):
                 invalid_responses = [*responses]
                 invalid_responses[response_index] = invalid_response
                 with (
@@ -1830,6 +1838,38 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     self.assertRaisesMessage(ReleaseContractError, error_message),
                 ):
                     run_http_smoke("https://web.dtcdev.click", SHA_A)
+
+        exact_courses_canonical = b'<link rel="canonical" href="https://datatalks.club/courses/">'
+        invalid_courses_canonicals = (
+            ("missing", b""),
+            ("duplicate", exact_courses_canonical * 2),
+            (
+                "wrong path",
+                b'<link rel="canonical" href="https://datatalks.club/courses/wrong/">',
+            ),
+            (
+                "external",
+                b'<link rel="canonical" href="https://example.com/courses/">',
+            ),
+        )
+        for case, rendered_canonical in invalid_courses_canonicals:
+            invalid_responses = [*responses]
+            invalid_responses[4] = Response(
+                200,
+                noindex,
+                b"Learn data skills. For free. Together."
+                + rendered_canonical
+                + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
+            )
+            with (
+                self.subTest(case=case),
+                patch("deploy.smoke._request", side_effect=invalid_responses),
+                self.assertRaisesMessage(
+                    ReleaseContractError,
+                    "course discovery production canonical differs",
+                ),
+            ):
+                run_http_smoke("https://web.dtcdev.click", SHA_A)
 
         invalid_admin_responses = (
             (
