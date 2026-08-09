@@ -72,7 +72,13 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         patches = {row["destination_path"]: row for row in patch_rows}
 
         self.assertEqual(len(copied_rows), 768)
-        self.assertEqual(set(patches), {"course_platform_templates/base.html"})
+        self.assertEqual(
+            set(patches),
+            {
+                "course_platform_templates/base.html",
+                "scripts/load_rds_export.py",
+            },
+        )
         for row in copied_rows:
             destination_path = row["destination_path"]
             destination = REPO_ROOT / destination_path

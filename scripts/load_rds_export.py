@@ -26,6 +26,11 @@ DEFAULT_TARGET = PROJECT_ROOT / "db" / "db.sqlite3"
 DEFAULT_WORK_DIR = PROJECT_ROOT / ".tmp"
 DEFAULT_ADMIN_PASSWORD = "admin"
 SKIP_TABLES = {"sqlite_sequence", "django_migrations"}
+LEGACY_LOADER_DISABLED_MESSAGE = (
+    "The broad RDS loader is disabled. Use "
+    "`uv run python scripts/build_local_review_db.py build "
+    "--source-db <path> --snapshot-id <opaque-id>` instead."
+)
 
 PROJECT_ROOT_PATH = str(PROJECT_ROOT)
 
@@ -825,20 +830,11 @@ def replace_rebuilt_database(paths: ImportPaths, args: argparse.Namespace) -> No
 
 
 def main() -> int:
-    args = parse_args()
-    paths = resolve_import_paths(args)
-    print_import_paths(paths)
-    rebuild_database(paths, args)
-
-    if args.no_replace:
-        print(
-            "Built and validated DB without replacing target: "
-            f"{paths.rebuilt_db}"
-        )
-        return 0
-
-    replace_rebuilt_database(paths, args)
-    return 0
+    # Keep the copied helper internals available to the adopted characterization
+    # tests, but prevent the old broad-copy entry point from touching any path.
+    # The target-owned review_import workflow is the only supported replacement.
+    print(LEGACY_LOADER_DISABLED_MESSAGE, file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":

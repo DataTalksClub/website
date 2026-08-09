@@ -2,7 +2,8 @@
 	test-core test test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-content-postgresql test-playwright-core test-playwright migrate run worker \
-	terraform-seo-source-check terminology-check check-openapi check-management-parity
+	terraform-seo-source-check terminology-check check-openapi check-management-parity \
+	review-data review-data-dry-run review-data-cleanup run-review-data
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -10,6 +11,7 @@ ADOPTION_INTEGRATION_PYTHON = \
 	api/auth.py \
 	api/models.py \
 	api/tests/test_admin_health.py \
+	scripts/build_local_review_db.py \
 	scripts/capture_screenshots.py \
 	scripts/render_course_platform_inventory.py \
 	scripts/verify_course_platform_adoption.py
@@ -35,9 +37,11 @@ format-check:
 
 typecheck:
 	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy \
+		review_import \
 		management_auth management_api management_registry.py \
 		$(COMPATIBILITY_PYTHON) \
-		scripts/capture_screenshots.py scripts/render_course_platform_inventory.py \
+		scripts/build_local_review_db.py scripts/capture_screenshots.py \
+		scripts/render_course_platform_inventory.py \
 		scripts/verify_course_platform_adoption.py
 
 migrations-check:
@@ -130,3 +134,30 @@ run:
 
 worker:
 	uv run python manage.py run_job_worker
+
+review-data:
+	@test -n "$(SOURCE_DB)" || (echo "SOURCE_DB is required" >&2; exit 2)
+	@test -n "$(SNAPSHOT_ID)" || (echo "SNAPSHOT_ID is required" >&2; exit 2)
+	uv run python scripts/build_local_review_db.py build \
+		--source-db "$(SOURCE_DB)" \
+		--snapshot-id "$(SNAPSHOT_ID)"
+
+review-data-dry-run:
+	@test -n "$(SOURCE_DB)" || (echo "SOURCE_DB is required" >&2; exit 2)
+	@test -n "$(SNAPSHOT_ID)" || (echo "SNAPSHOT_ID is required" >&2; exit 2)
+	uv run python scripts/build_local_review_db.py build \
+		--source-db "$(SOURCE_DB)" \
+		--snapshot-id "$(SNAPSHOT_ID)" \
+		--dry-run
+
+review-data-cleanup:
+	@test -n "$(SNAPSHOT_ID)" || (echo "SNAPSHOT_ID is required" >&2; exit 2)
+	uv run python scripts/build_local_review_db.py cleanup \
+		--snapshot-id "$(SNAPSHOT_ID)" \
+		$(if $(filter true,$(INCLUDE_TARGET)),--include-target,)
+
+run-review-data:
+	DTC_ENVIRONMENT=local DTC_USE_SQLITE=true \
+		DTC_SQLITE_PATH=.tmp/review-data/review.sqlite3 \
+		DJANGO_SETTINGS_MODULE=website.settings.local_review \
+		uv run python manage.py runserver 0.0.0.0:8000

@@ -1,2 +1,3 @@
 destination_path	size_bytes	sha256	rationale
 course_platform_templates/base.html	11014	52d11cce5696c2746ab82beabe6fd5dac6838d5226bd496bbc11d9f233fd4588	Use the unified site's validated explicit-only canonical policy without altering CMP business behavior.
+scripts/load_rds_export.py	23700	f08edf55c064f061646a2f1e5a03693356c3b044db2bfd76f546f5298b4eae86	Disable the unsafe broad-copy entry point before path access and direct operators to the allowlisted local review workflow.

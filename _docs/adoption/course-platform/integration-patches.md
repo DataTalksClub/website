@@ -17,6 +17,10 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
 - `website/admin_api_views.py`: target-owned compatibility shim preserving the scaffold's
   staff-gated, versioned admin-health response without modifying copied CMP API behavior;
 - `course_platform_templates/base.html`: target validated explicit-only canonical-link integration; recorded separately in `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`;
+- `scripts/load_rds_export.py`: issue #99 disables the legacy broad-copy entry point before argument
+  parsing or path access and directs operators to the target-owned, allowlisted local review-data
+  workflow; copied helper internals remain available for characterization and are not an approved
+  operational import path;
 - target scaffold Django and Playwright tests/configuration where the adopted `accounts.CustomUser`, course homepage, and source sign-in surface supersede placeholder scaffold contracts;
 - `core/tests/test_course_platform_adoption.py`,
   `scripts/render_course_platform_inventory.py`,
