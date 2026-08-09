@@ -500,14 +500,38 @@ class AwsReleaseGateway:
             repositoryName=ECR_REPOSITORY_NAME,
             imageIds=[{"imageDigest": identity.image_digest}],
         )
-        images = manifest.get("images", [])
-        if (
-            manifest.get("failures")
-            or len(images) != 1
-            or images[0].get("imageId", {}).get("imageDigest") != identity.image_digest
-            or not images[0].get("imageManifest")
-        ):
+        if not self._contains_exact_image_manifest(manifest, identity.image_digest):
+            # ECR can describe an exact digest while declining that digest form in
+            # BatchGetImage. The already-proven immutable full-SHA tag is an equivalent
+            # lookup key only when the returned image still binds to the same digest.
+            manifest = self.ecr.batch_get_image(
+                repositoryName=ECR_REPOSITORY_NAME,
+                imageIds=[{"imageTag": identity.source_sha}],
+            )
+        if not self._contains_exact_image_manifest(manifest, identity.image_digest):
             raise ReleaseContractError("active image manifest is missing from development ECR")
+
+    @staticmethod
+    def _contains_exact_image_manifest(response: Any, expected_digest: str) -> bool:
+        if not isinstance(response, dict):
+            return False
+        failures = response.get("failures")
+        if not isinstance(failures, list) or failures:
+            return False
+        images = response.get("images")
+        if not isinstance(images, list) or len(images) != 1:
+            return False
+        image = images[0]
+        if not isinstance(image, dict):
+            return False
+        image_id = image.get("imageId")
+        manifest = image.get("imageManifest")
+        return bool(
+            isinstance(image_id, dict)
+            and image_id.get("imageDigest") == expected_digest
+            and isinstance(manifest, str)
+            and manifest.strip()
+        )
 
     def _stop_migration_and_prove_terminal(self, task_arn: str, reason: str) -> None:
         stop_error: Exception | None = None

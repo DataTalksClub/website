@@ -5775,6 +5775,141 @@ class MigrationTaskContractTests(SimpleTestCase):
         with self.assertRaisesMessage(ReleaseContractError, "source SHA tag"):
             gateway.verify_image_digest_exists(identity)
 
+    def test_active_image_proof_uses_exact_sha_fallback_for_manifest_lookup(self) -> None:
+        gateway = self.gateway(FakeMigrationEcs({}, {}))
+        gateway.ecr = Mock()
+        source_sha = "a" * 40
+        image_digest = f"sha256:{'a' * 64}"
+        identity = ReleaseIdentity(
+            source_sha,
+            image_digest,
+            ECR_REPOSITORY_URI,
+            f"20260809-143205-{source_sha[:7]}",
+        )
+        gateway.ecr.describe_images.side_effect = [
+            {"imageDetails": [{"imageDigest": image_digest}]},
+            {"imageDetails": [{"imageDigest": image_digest}]},
+            {"imageDetails": [{"imageDigest": image_digest}]},
+        ]
+        gateway.ecr.batch_get_image.side_effect = [
+            {
+                "failures": [{"failureCode": "ImageNotFound"}],
+                "images": [],
+            },
+            {
+                "failures": [],
+                "images": [
+                    {
+                        "imageId": {
+                            "imageDigest": image_digest,
+                            "imageTag": source_sha,
+                        },
+                        "imageManifest": "{}",
+                    }
+                ],
+            },
+        ]
+
+        gateway.verify_image_digest_exists(identity)
+
+        self.assertEqual(
+            [call.kwargs["imageIds"] for call in gateway.ecr.batch_get_image.call_args_list],
+            [
+                [{"imageDigest": image_digest}],
+                [{"imageTag": source_sha}],
+            ],
+        )
+
+    def test_active_image_manifest_fallback_remains_fail_closed(self) -> None:
+        source_sha = "a" * 40
+        image_digest = f"sha256:{'a' * 64}"
+        identity = ReleaseIdentity(
+            source_sha,
+            image_digest,
+            ECR_REPOSITORY_URI,
+            f"20260809-143205-{source_sha[:7]}",
+        )
+        malformed_failure_values: tuple[object, ...] = ({}, None, "", 0, False)
+        invalid_fallbacks = (
+            *(
+                {
+                    "failures": malformed_failures,
+                    "images": [
+                        {
+                            "imageId": {"imageDigest": image_digest},
+                            "imageManifest": "{}",
+                        }
+                    ],
+                }
+                for malformed_failures in malformed_failure_values
+            ),
+            {
+                "failures": [],
+                "images": [
+                    {
+                        "imageId": {"imageDigest": f"sha256:{'b' * 64}"},
+                        "imageManifest": "{}",
+                    }
+                ],
+            },
+            {
+                "failures": [{"failureCode": "ImageNotFound"}],
+                "images": [],
+            },
+            {
+                "failures": [],
+                "images": [{"imageId": {"imageDigest": image_digest}}],
+            },
+            {
+                "failures": [],
+                "images": [
+                    {
+                        "imageId": {"imageDigest": image_digest},
+                        "imageManifest": "   ",
+                    }
+                ],
+            },
+            {
+                "failures": [],
+                "images": [
+                    {
+                        "imageId": {"imageDigest": image_digest},
+                        "imageManifest": "{}",
+                    },
+                    {
+                        "imageId": {"imageDigest": image_digest},
+                        "imageManifest": "{}",
+                    },
+                ],
+            },
+        )
+        unusable_digest_lookup = {
+            "failures": [{"failureCode": "ImageNotFound"}],
+            "images": [],
+        }
+
+        for fallback in invalid_fallbacks:
+            gateway = self.gateway(FakeMigrationEcs({}, {}))
+            gateway.ecr = Mock()
+            gateway.ecr.describe_images.side_effect = [
+                {"imageDetails": [{"imageDigest": image_digest}]},
+                {"imageDetails": [{"imageDigest": image_digest}]},
+                {"imageDetails": [{"imageDigest": image_digest}]},
+            ]
+            gateway.ecr.batch_get_image.side_effect = [
+                unusable_digest_lookup,
+                fallback,
+            ]
+
+            with (
+                self.subTest(fallback=fallback),
+                self.assertRaisesMessage(
+                    ReleaseContractError,
+                    "active image manifest is missing",
+                ),
+            ):
+                gateway.verify_image_digest_exists(identity)
+
     def test_public_health_polls_until_exact_readiness_or_timeout(self) -> None:
         gateway = self.gateway(FakeMigrationEcs({}, {}))
         source_sha = "a" * 40
