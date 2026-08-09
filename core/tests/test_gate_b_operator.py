@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import base64
 import copy
 import hashlib
@@ -42,6 +43,79 @@ REDACTION_CANARIES = (
     "state-content-redaction-canary",
     "Authorization: authorization-redaction-canary",
 )
+DIAGNOSTIC_CANARIES = REDACTION_CANARIES + (
+    "/private/path/diagnostic-canary",
+    "--argv=diagnostic-canary",
+    "2026-08-08T13:46:52Z",
+    "https://provider.invalid/diagnostic-canary",
+    "raw-provider-stdout-diagnostic-canary",
+    "raw-provider-stderr-diagnostic-canary",
+    "github-token-diagnostic-canary",
+)
+EXPECTED_OPERATOR_STOP_PHASE_CODES = (
+    ("input", ("invalid-cli-arguments", "invalid-capture-id", "stale-capture-id")),
+    (
+        "storage",
+        (
+            "unsafe-tmp-root",
+            "capture-already-exists",
+            "unsafe-private-directory",
+            "unsafe-private-write",
+        ),
+    ),
+    (
+        "credential",
+        (
+            "unsafe-credential-file",
+            "invalid-aws-config",
+            "credential-process-config-mismatch",
+            "credential-source-mismatch",
+            "credential-resolution-repeated",
+            "credential-process-failed",
+            "invalid-credential-response",
+            "credential-lifetime-out-of-contract",
+        ),
+    ),
+    (
+        "execution",
+        (
+            "unsafe-bound-executable",
+            "bound-executable-mismatch",
+            "unsafe-bound-execution-context",
+            "unbound-executable",
+            "unbound-provider-operation",
+            "provider-operation-count",
+            "unsafe-aws-child-environment",
+            "unsafe-github-child-environment",
+        ),
+    ),
+    (
+        "provider",
+        (
+            "credential-reserve-crossed",
+            "provider-command-failed",
+            "provider-output-too-large",
+            "provider-error-too-large",
+            "invalid-provider-json",
+            "invalid-provider-error",
+            "unexpected-provider-result",
+            "unexpected-provider-error",
+        ),
+    ),
+    (
+        "identity",
+        (
+            "identity-not-first",
+            "binding-validation-stop",
+            "post-identity-graph-mismatch",
+        ),
+    ),
+    ("readback", ("provider-phase-failed", "readback-validation-stop")),
+)
+EXPECTED_OPERATOR_STOP_CODE_TO_PHASE = {
+    code: phase for phase, codes in EXPECTED_OPERATOR_STOP_PHASE_CODES for code in codes
+}
+MAX_PUBLIC_STOP_LINE_BYTES = 96
 
 
 def load_contract() -> dict[str, Any]:
@@ -72,6 +146,33 @@ def credential_expiration(value: datetime, encoding: str) -> str:
     if encoding == "z":
         return provider_shape.replace("+00:00", "Z")
     raise AssertionError(f"unsupported test encoding: {encoding}")
+
+
+def run_operator_main_failure(failure: BaseException) -> tuple[int, bytes, str]:
+    parser = mock.Mock()
+    parser.parse_args.side_effect = failure
+    stdout = mock.Mock()
+    stdout.buffer = io.BytesIO()
+    stderr = io.StringIO()
+    with (
+        mock.patch.object(operator, "_parser", return_value=parser),
+        mock.patch.object(operator.sys, "stdout", stdout),
+        redirect_stderr(stderr),
+    ):
+        status = operator.main([])
+    return status, stdout.buffer.getvalue(), stderr.getvalue()
+
+
+def run_operator_main(argv: list[str]) -> tuple[int, bytes, str]:
+    stdout = mock.Mock()
+    stdout.buffer = io.BytesIO()
+    stderr = io.StringIO()
+    with (
+        mock.patch.object(operator.sys, "stdout", stdout),
+        redirect_stderr(stderr),
+    ):
+        status = operator.main(argv)
+    return status, stdout.buffer.getvalue(), stderr.getvalue()
 
 
 def accepted_provider_responses(
@@ -354,6 +455,98 @@ class GateBContractTests(SimpleTestCase):
             hashlib.sha256(assembler.CONTRACT_PATH.read_bytes()).hexdigest(),
             assembler.EXPECTED_CONTRACT_FILE_SHA256,
         )
+        self.assertEqual(
+            assembler._canonical_sha256(self.contract),
+            assembler.EXPECTED_CONTRACT_CANONICAL_SHA256,
+        )
+
+    def test_contract_freezes_exact_operator_stop_diagnostics(self) -> None:
+        diagnostics = self.contract["operator_stop_diagnostics"]
+        self.assertEqual(diagnostics, assembler.operator_stop_diagnostics_contract())
+        self.assertEqual(
+            tuple((item["phase"], tuple(item["codes"])) for item in diagnostics["phase_codes"]),
+            EXPECTED_OPERATOR_STOP_PHASE_CODES,
+        )
+        code_to_phase = {
+            code: item["phase"] for item in diagnostics["phase_codes"] for code in item["codes"]
+        }
+        self.assertEqual(code_to_phase, EXPECTED_OPERATOR_STOP_CODE_TO_PHASE)
+        self.assertEqual(len(code_to_phase), 36)
+        self.assertEqual(assembler.OPERATOR_STOP_PHASE_CODES, EXPECTED_OPERATOR_STOP_PHASE_CODES)
+        self.assertEqual(operator.OPERATOR_STOP_PHASE_CODES, EXPECTED_OPERATOR_STOP_PHASE_CODES)
+        self.assertEqual(code_to_phase, dict(assembler.OPERATOR_STOP_CODE_TO_PHASE))
+        self.assertEqual(code_to_phase, dict(operator.OPERATOR_STOP_CODE_TO_PHASE))
+        self.assertEqual(diagnostics["generic_line"], "gate-b-operator-stop\n")
+        self.assertEqual(
+            diagnostics["classified_line"],
+            "gate-b-operator-stop phase=<phase> code=<code>\n",
+        )
+        with self.assertRaises(TypeError):
+            assembler.OPERATOR_STOP_CODE_TO_PHASE["future-code"] = "provider"  # type: ignore[index]
+
+    def test_operator_literal_failure_inventory_matches_issue_owned_oracle(self) -> None:
+        source = (ROOT / "deploy/gate_b_operator.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        literal_codes: set[str] = set()
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or not node.args:
+                continue
+            function = node.func
+            if not isinstance(function, ast.Name) or function.id not in {
+                "_fail",
+                "OperatorError",
+            }:
+                continue
+            first_argument = node.args[0]
+            if isinstance(first_argument, ast.Constant) and isinstance(first_argument.value, str):
+                literal_codes.add(first_argument.value)
+        self.assertEqual(literal_codes, set(EXPECTED_OPERATOR_STOP_CODE_TO_PHASE))
+        self.assertNotIn("invalid-gate-b-operation", literal_codes)
+
+    def test_operator_stop_diagnostic_contract_tampering_fails_closed(self) -> None:
+        mutations: list[tuple[str, dict[str, Any]]] = []
+        for name in (
+            "phase",
+            "code",
+            "order",
+            "duplicate",
+            "unsafe-token",
+            "unreviewed",
+            "generic-line",
+            "classified-line",
+        ):
+            changed = copy.deepcopy(self.contract)
+            diagnostics = changed["operator_stop_diagnostics"]
+            phase_codes = diagnostics["phase_codes"]
+            if name == "phase":
+                phase_codes[0]["phase"] = "provider"
+            elif name == "code":
+                phase_codes[0]["codes"][0] = "future-code"
+            elif name == "order":
+                phase_codes[0], phase_codes[1] = phase_codes[1], phase_codes[0]
+            elif name == "duplicate":
+                phase_codes[0]["codes"].append(phase_codes[0]["codes"][0])
+            elif name == "unsafe-token":
+                phase_codes[0]["codes"][0] = "unsafe code\ncanary"
+            elif name == "unreviewed":
+                phase_codes[-1]["codes"].append("invalid-gate-b-operation")
+            elif name == "generic-line":
+                diagnostics["generic_line"] = "gate-b-operator-stop phase=unknown\n"
+            else:
+                diagnostics["classified_line"] = "code=<code> phase=<phase>\n"
+            mutations.append((name, changed))
+
+        for name, changed in mutations:
+            with (
+                self.subTest(mutation=name),
+                mock.patch.object(assembler, "load_execution_contract", return_value=changed),
+                mock.patch.object(operator, "load_frozen_credentials") as vending,
+                mock.patch.object(operator, "run_gate_b") as provider_boundary,
+            ):
+                status, stdout, stderr = run_operator_main(["capture", "--capture-id", CAPTURE_ID])
+            self.assertEqual((status, stdout, stderr), (1, b"", "gate-b-operator-stop\n"))
+            vending.assert_not_called()
+            provider_boundary.assert_not_called()
 
     def test_stale_execution_contract_file_and_canonical_hashes_fail_closed(self) -> None:
         (ROOT / ".tmp").mkdir(mode=0o700, exist_ok=True)
@@ -362,8 +555,8 @@ class GateBContractTests(SimpleTestCase):
             path = Path(temporary) / "gate-b-contract.json"
             path.write_bytes(
                 assembler.CONTRACT_PATH.read_bytes().replace(
-                    b"YYYY-MM-DDTHH:MM:SS+00:00",
-                    b"YYYY-MM-DDTHH:MM:SS-00:00",
+                    b"invalid-cli-arguments",
+                    b"invalid-gate-b-operation",
                     1,
                 )
             )
@@ -380,6 +573,55 @@ class GateBContractTests(SimpleTestCase):
                 ),
             ):
                 assembler.load_execution_contract(path)
+
+            real_loader = assembler.load_execution_contract
+            pin_cases = (
+                (
+                    "tampered-file",
+                    path,
+                    assembler.EXPECTED_CONTRACT_FILE_SHA256,
+                    assembler.EXPECTED_CONTRACT_CANONICAL_SHA256,
+                ),
+                (
+                    "tampered-canonical",
+                    path,
+                    tampered_file_hash,
+                    assembler.EXPECTED_CONTRACT_CANONICAL_SHA256,
+                ),
+                (
+                    "stale-file-pin",
+                    assembler.CONTRACT_PATH,
+                    "0" * 64,
+                    assembler.EXPECTED_CONTRACT_CANONICAL_SHA256,
+                ),
+                (
+                    "stale-canonical-pin",
+                    assembler.CONTRACT_PATH,
+                    assembler.EXPECTED_CONTRACT_FILE_SHA256,
+                    "0" * 64,
+                ),
+            )
+            for name, candidate_path, file_pin, canonical_pin in pin_cases:
+                with (
+                    self.subTest(case=name),
+                    mock.patch.object(
+                        assembler,
+                        "load_execution_contract",
+                        side_effect=lambda *_args, selected=candidate_path: real_loader(selected),
+                    ),
+                    mock.patch.object(assembler, "EXPECTED_CONTRACT_FILE_SHA256", file_pin),
+                    mock.patch.object(
+                        assembler, "EXPECTED_CONTRACT_CANONICAL_SHA256", canonical_pin
+                    ),
+                    mock.patch.object(operator, "load_frozen_credentials") as vending,
+                    mock.patch.object(operator, "run_gate_b") as provider_boundary,
+                ):
+                    status, stdout, stderr = run_operator_main(
+                        ["capture", "--capture-id", CAPTURE_ID]
+                    )
+                self.assertEqual((status, stdout, stderr), (1, b"", "gate-b-operator-stop\n"))
+                vending.assert_not_called()
+                provider_boundary.assert_not_called()
 
     def test_contract_freezes_review_binding_and_complete_graph(self) -> None:
         accepted = self.contract["accepted_execution_binding"]
@@ -1460,6 +1702,316 @@ class GateBOperatorTests(SimpleTestCase):
         self.assertEqual(error["code"], "404")
         self.assertEqual(code, 255)
 
+    def test_credential_and_first_provider_fixture_boundaries_are_classified_once(self) -> None:
+        seed = load_seed()
+        manifest = load_manifest()
+        (ROOT / ".tmp").mkdir(mode=0o700, exist_ok=True)
+        (ROOT / ".tmp").chmod(0o700)
+        for index, failure_code in enumerate(
+            (
+                "credential-process-failed",
+                "invalid-credential-response",
+                "credential-lifetime-out-of-contract",
+            )
+        ):
+            with tempfile.TemporaryDirectory(dir=ROOT / ".tmp") as temporary:
+                private_root = Path(temporary) / "operator-root"
+                private_root.mkdir(mode=0o700)
+                started = datetime.now(UTC).replace(microsecond=0)
+                capture_id = f"{started:%Y%m%dT%H%M%SZ}-{index:012x}"
+                runner = mock.Mock()
+                with (
+                    self.subTest(failure_code=failure_code),
+                    mock.patch.object(operator, "TMP_ROOT", private_root),
+                    mock.patch.object(
+                        operator,
+                        "load_frozen_credentials",
+                        side_effect=operator.OperatorError(failure_code),
+                    ) as vending,
+                    self.assertRaises(operator.OperatorError) as caught,
+                ):
+                    operator.run_gate_b(
+                        capture_id,
+                        seed,
+                        self.contract,
+                        manifest,
+                        runner=runner,
+                        now=started,
+                    )
+                vending.assert_called_once()
+                runner.assert_not_called()
+                self.assertEqual(caught.exception.code, failure_code)
+                self.assertEqual(
+                    operator._operator_stop_line(caught.exception),
+                    f"gate-b-operator-stop phase=credential code={failure_code}\n",
+                )
+                capture_dir = private_root / f"gate-b-{capture_id}"
+                raw_dir = capture_dir / "raw"
+                self.assertEqual(list(raw_dir.iterdir()), [])
+                for directory in (private_root, capture_dir, raw_dir):
+                    info = directory.stat()
+                    self.assertEqual(stat.S_IMODE(info.st_mode), 0o700)
+                    self.assertEqual(info.st_uid, os.geteuid())
+                    self.assertGreaterEqual(info.st_nlink, 2)
+
+        with tempfile.TemporaryDirectory(dir=ROOT / ".tmp") as temporary:
+            private_root = Path(temporary) / "operator-root"
+            private_root.mkdir(mode=0o700)
+            started = datetime.now(UTC).replace(microsecond=0)
+            capture_id = f"{started:%Y%m%dT%H%M%SZ}-000000000003"
+            runner = mock.Mock()
+            with (
+                mock.patch.object(operator, "TMP_ROOT", private_root),
+                mock.patch.object(
+                    operator,
+                    "_validate_capture_start",
+                    side_effect=[None, operator.OperatorError("stale-capture-id")],
+                ) as clock_checks,
+                mock.patch.object(
+                    operator, "load_frozen_credentials", return_value=credentials()
+                ) as vending,
+                self.assertRaises(operator.OperatorError) as caught,
+            ):
+                operator.run_gate_b(
+                    capture_id,
+                    seed,
+                    self.contract,
+                    manifest,
+                    runner=runner,
+                    now=started,
+                )
+            self.assertEqual(clock_checks.call_count, 2)
+            vending.assert_called_once()
+            runner.assert_not_called()
+            self.assertEqual(caught.exception.code, "stale-capture-id")
+            capture_dir = private_root / f"gate-b-{capture_id}"
+            self.assertEqual(list((capture_dir / "raw").iterdir()), [])
+            self.assertEqual(
+                operator._operator_stop_line(caught.exception),
+                "gate-b-operator-stop phase=input code=stale-capture-id\n",
+            )
+
+        provider_failures = (
+            (
+                "provider-command-failed",
+                subprocess.TimeoutExpired(["aws"], 30),
+            ),
+            (
+                "invalid-provider-json",
+                subprocess.CompletedProcess(["aws"], 0, stdout=b"not-json", stderr=b""),
+            ),
+            (
+                "unexpected-provider-result",
+                subprocess.CompletedProcess(
+                    ["aws"],
+                    0,
+                    stdout=b"{}",
+                    stderr=DIAGNOSTIC_CANARIES[-1].encode(),
+                ),
+            ),
+        )
+        for index, (failure_code, outcome) in enumerate(provider_failures, start=4):
+            with tempfile.TemporaryDirectory(dir=ROOT / ".tmp") as temporary:
+                private_root = Path(temporary) / "operator-root"
+                private_root.mkdir(mode=0o700)
+                started = datetime.now(UTC).replace(microsecond=0)
+                capture_id = f"{started:%Y%m%dT%H%M%SZ}-{index:012x}"
+                runner = mock.Mock(
+                    side_effect=outcome if isinstance(outcome, BaseException) else None
+                )
+                if not isinstance(outcome, BaseException):
+                    runner.return_value = outcome
+                with (
+                    self.subTest(failure_code=failure_code),
+                    mock.patch.object(operator, "TMP_ROOT", private_root),
+                    mock.patch.object(
+                        operator,
+                        "load_frozen_credentials",
+                        return_value=credentials(),
+                    ) as vending,
+                    self.assertRaises(operator.OperatorError) as caught,
+                ):
+                    operator.run_gate_b(
+                        capture_id,
+                        seed,
+                        self.contract,
+                        manifest,
+                        runner=runner,
+                        now=started,
+                    )
+                vending.assert_called_once()
+                runner.assert_called_once()
+                self.assertEqual(
+                    runner.call_args.args[0], self.contract["graph"]["operations"][0]["argv"]
+                )
+                self.assertEqual(caught.exception.code, failure_code)
+                self.assertEqual(
+                    operator._operator_stop_line(caught.exception),
+                    f"gate-b-operator-stop phase=provider code={failure_code}\n",
+                )
+                capture_dir = private_root / f"gate-b-{capture_id}"
+                raw_dir = capture_dir / "raw"
+                self.assertEqual(list(raw_dir.iterdir()), [])
+                for directory in (private_root, capture_dir, raw_dir):
+                    info = directory.stat()
+                    self.assertEqual(stat.S_IMODE(info.st_mode), 0o700)
+                    self.assertEqual(info.st_uid, os.geteuid())
+                    self.assertGreaterEqual(info.st_nlink, 2)
+
+    def test_identity_and_readback_fixture_boundaries_preserve_sealed_phase_order(self) -> None:
+        seed = load_seed()
+        manifest = load_manifest()
+        started = datetime.now(UTC).replace(microsecond=0)
+        capture_id = f"{started:%Y%m%dT%H%M%SZ}-fedcba654321"
+        provisional = operator._provisional_bindings(seed, manifest, capture_id)
+        specs = assembler.complete_operation_specs(self.contract, manifest, provisional)
+        sts_response = accepted_provider_responses(seed, manifest, provisional)["sts-caller"]
+
+        (ROOT / ".tmp").mkdir(mode=0o700, exist_ok=True)
+        (ROOT / ".tmp").chmod(0o700)
+        with tempfile.TemporaryDirectory(dir=ROOT / ".tmp") as temporary:
+            capture_dir = Path(temporary) / "capture"
+            capture_dir.mkdir(mode=0o700)
+            raw_dir = capture_dir / "raw"
+            raw_dir.mkdir(mode=0o700)
+            runner = mock.Mock(
+                return_value=subprocess.CompletedProcess(
+                    specs[0]["argv"],
+                    0,
+                    stdout=evidence.canonical_json_bytes(sts_response),
+                    stderr=b"",
+                )
+            )
+            real_validate_bindings = evidence.validate_bindings
+            validation_calls = 0
+
+            def fail_second_binding_validation(*args: Any, **kwargs: Any) -> dict[str, Any]:
+                nonlocal validation_calls
+                validation_calls += 1
+                if validation_calls == 1:
+                    return real_validate_bindings(*args, **kwargs)
+                raise evidence.EvidenceError("binding-canary")
+
+            with (
+                mock.patch.object(
+                    evidence,
+                    "validate_bindings",
+                    side_effect=fail_second_binding_validation,
+                ),
+                self.assertRaises(operator.OperatorError) as caught,
+            ):
+                operator.run_identity_phase(
+                    seed,
+                    self.contract,
+                    manifest,
+                    credentials(),
+                    capture_id,
+                    capture_dir,
+                    specs,
+                    runner=runner,
+                )
+            runner.assert_called_once()
+            self.assertEqual(caught.exception.code, "binding-validation-stop")
+            self.assertEqual(
+                operator._operator_stop_line(caught.exception),
+                "gate-b-operator-stop phase=identity code=binding-validation-stop\n",
+            )
+            self.assertEqual(
+                sorted(path.name for path in raw_dir.iterdir()),
+                ["sts-caller.error.json", "sts-caller.response.json", "sts-caller.status.json"],
+            )
+            for path in capture_dir.rglob("*"):
+                if path.is_file():
+                    content = path.read_text()
+                    self.assertTrue(all(canary not in content for canary in DIAGNOSTIC_CANARIES))
+                    self.assertTrue(all(canary not in content for canary in REDACTION_CANARIES[:3]))
+
+        with tempfile.TemporaryDirectory(dir=ROOT / ".tmp") as temporary:
+            private_root = Path(temporary) / "operator-root"
+            private_root.mkdir(mode=0o700)
+            readback_started = datetime.now(UTC).replace(microsecond=0)
+            readback_capture_id = f"{readback_started:%Y%m%dT%H%M%SZ}-edcba9876543"
+            provisional = operator._provisional_bindings(seed, manifest, readback_capture_id)
+            specs = assembler.complete_operation_specs(self.contract, manifest, provisional)
+            responses = accepted_provider_responses(seed, manifest, provisional)
+            responses["kms-rotation"] = {}
+            by_argv = {tuple(spec["argv"]): spec for spec in specs[:84]}
+            calls: list[str] = []
+
+            def readback_runner(
+                argv: Sequence[str],
+                *,
+                cwd: Path,
+                env: dict[str, str],
+                timeout: int,
+            ) -> subprocess.CompletedProcess[bytes]:
+                del cwd, env, timeout
+                spec = by_argv[tuple(argv)]
+                calls.append(spec["id"])
+                if spec["expected"]["exit_code"] == 0:
+                    return subprocess.CompletedProcess(
+                        argv,
+                        0,
+                        stdout=evidence.canonical_json_bytes(responses[spec["id"]]),
+                        stderr=b"",
+                    )
+                error_code = spec["expected"]["error_code"]
+                error = (
+                    f"An error occurred ({error_code}) when calling the "
+                    f"{spec['operation']} operation: fixture-boundary\n"
+                ).encode("ascii")
+                return subprocess.CompletedProcess(argv, 255, stdout=b"", stderr=error)
+
+            with (
+                mock.patch.object(operator, "TMP_ROOT", private_root),
+                mock.patch.object(assembler, "TMP_ROOT", private_root),
+            ):
+                capture_dir = operator._prepare_capture(readback_capture_id)
+                bindings = operator.run_identity_phase(
+                    seed,
+                    self.contract,
+                    manifest,
+                    credentials(),
+                    readback_capture_id,
+                    capture_dir,
+                    specs,
+                    runner=readback_runner,
+                )
+                with self.assertRaises(operator.OperatorError) as caught:
+                    operator.run_readback_phase(
+                        seed,
+                        self.contract,
+                        manifest,
+                        credentials(),
+                        readback_capture_id,
+                        capture_dir,
+                        bindings,
+                        specs,
+                        runner=readback_runner,
+                    )
+
+            self.assertEqual(caught.exception.code, "readback-validation-stop")
+            self.assertEqual(
+                operator._operator_stop_line(caught.exception),
+                "gate-b-operator-stop phase=readback code=readback-validation-stop\n",
+            )
+            self.assertEqual(len(calls), 84)
+            self.assertEqual(calls[0], "sts-caller")
+            self.assertEqual(len(set(calls)), 84)
+            self.assertTrue(all(not command.startswith("simulator-") for command in calls))
+            raw_files = sorted((capture_dir / "raw").iterdir())
+            self.assertEqual(len(raw_files), 84 * 3)
+            for path in raw_files:
+                info = path.stat()
+                self.assertEqual(stat.S_IMODE(info.st_mode), 0o600)
+                self.assertEqual(info.st_uid, os.geteuid())
+                self.assertEqual(info.st_nlink, 1)
+            persisted = b"".join(
+                path.read_bytes() for path in capture_dir.rglob("*") if path.is_file()
+            ).decode("utf-8")
+            self.assertNotIn("gate-b-operator-stop", persisted)
+            self.assertTrue(all(canary not in persisted for canary in REDACTION_CANARIES[:3]))
+
     def test_capture_start_and_offline_status_time_boundaries_fail_closed(self) -> None:
         now = datetime(2026, 8, 8, 12, tzinfo=UTC)
 
@@ -1490,31 +2042,6 @@ class GateBOperatorTests(SimpleTestCase):
             )
         vending.assert_not_called()
         runner.assert_not_called()
-
-        second_runner = mock.Mock()
-        with (
-            mock.patch.object(
-                operator,
-                "_validate_capture_start",
-                side_effect=[None, operator.OperatorError("stale-capture-id")],
-            ) as clock_check,
-            mock.patch.object(operator, "_prepare_capture", return_value=ROOT / ".tmp"),
-            mock.patch.object(
-                operator, "load_frozen_credentials", return_value=credentials()
-            ) as vending,
-            self.assertRaisesRegex(operator.OperatorError, "stale-capture-id"),
-        ):
-            operator.run_gate_b(
-                capture_id(0),
-                seed,
-                self.contract,
-                manifest,
-                runner=second_runner,
-                now=now,
-            )
-        self.assertEqual(clock_check.call_count, 2)
-        vending.assert_called_once()
-        second_runner.assert_not_called()
 
         base_id = capture_id(0)
 
@@ -1871,6 +2398,105 @@ class GateBOperatorTests(SimpleTestCase):
                 {"prefix": str(environment), "value": "venv-module-loaded"},
             )
 
+    def test_every_allowlisted_operator_error_has_exact_public_classification(self) -> None:
+        for code, phase in EXPECTED_OPERATOR_STOP_CODE_TO_PHASE.items():
+            with self.subTest(code=code, phase=phase):
+                status, stdout, stderr = run_operator_main_failure(operator.OperatorError(code))
+                expected = f"gate-b-operator-stop phase={phase} code={code}\n"
+                self.assertEqual(status, 1)
+                self.assertEqual(stdout, b"")
+                self.assertEqual(stderr, expected)
+                self.assertEqual(stderr.encode("ascii").decode("ascii"), stderr)
+                self.assertLessEqual(len(stderr.encode("ascii")), MAX_PUBLIC_STOP_LINE_BYTES)
+                self.assertEqual(stderr.count("\n"), 1)
+                self.assertTrue(stderr.endswith("\n"))
+
+    def test_unknown_malformed_and_monkeypatched_operator_codes_stay_generic(self) -> None:
+        failures = [
+            operator.OperatorError("future-valid-code"),
+            operator.OperatorError("invalid-gate-b-operation"),
+            operator.OperatorError(""),
+            operator.OperatorError("UPPERCASE"),
+            operator.OperatorError(None),  # type: ignore[arg-type]
+        ]
+        monkeypatched = operator.OperatorError("invalid-cli-arguments")
+        monkeypatched.code = "future-monkeypatched-code"
+        failures.append(monkeypatched)
+        monkeypatched_to_allowlisted = operator.OperatorError("future-valid-code")
+        monkeypatched_to_allowlisted.code = "invalid-cli-arguments"
+        failures.append(monkeypatched_to_allowlisted)
+        non_string = operator.OperatorError("invalid-cli-arguments")
+        non_string.code = DIAGNOSTIC_CANARIES  # type: ignore[assignment]
+        failures.append(non_string)
+        hostile_origin = operator.OperatorError("invalid-cli-arguments")
+        hostile_origin._operator_stop_original_code = mock.Mock(
+            __eq__=mock.Mock(side_effect=SystemExit(DIAGNOSTIC_CANARIES[2]))
+        )
+        failures.append(hostile_origin)
+        missing = operator.OperatorError("invalid-cli-arguments")
+        del missing.code
+        failures.append(missing)
+
+        for failure in failures:
+            with self.subTest(args=failure.args):
+                status, stdout, stderr = run_operator_main_failure(failure)
+                self.assertEqual((status, stdout, stderr), (1, b"", "gate-b-operator-stop\n"))
+
+    def test_hostile_operator_error_subclasses_stay_generic_without_state_access(self) -> None:
+        class SideEffectingOperatorError(operator.OperatorError):
+            @property
+            def __dict__(self) -> dict[str, Any]:  # type: ignore[override]
+                operator.sys.stderr.write(DIAGNOSTIC_CANARIES[0] + "\n")
+                return {"code": "invalid-cli-arguments"}
+
+        class ExitingOperatorError(operator.OperatorError):
+            @property
+            def __dict__(self) -> dict[str, Any]:  # type: ignore[override]
+                raise SystemExit(DIAGNOSTIC_CANARIES[1])
+
+        for failure in (
+            SideEffectingOperatorError("invalid-cli-arguments"),
+            ExitingOperatorError("invalid-cli-arguments"),
+        ):
+            status, stdout, stderr = run_operator_main_failure(failure)
+            self.assertEqual((status, stdout, stderr), (1, b"", "gate-b-operator-stop\n"))
+            self.assertTrue(all(canary not in stderr for canary in DIAGNOSTIC_CANARIES))
+
+    def test_classified_errors_never_render_dynamic_exception_state(self) -> None:
+        for code, phase in EXPECTED_OPERATOR_STOP_CODE_TO_PHASE.items():
+            failure = operator.OperatorError(code)
+            failure.args = DIAGNOSTIC_CANARIES
+            failure.__cause__ = RuntimeError(" ".join(DIAGNOSTIC_CANARIES))
+            failure.dynamic_attributes = DIAGNOSTIC_CANARIES  # type: ignore[attr-defined]
+            status, stdout, stderr = run_operator_main_failure(failure)
+            self.assertEqual(status, 1)
+            self.assertEqual(stdout, b"")
+            self.assertEqual(
+                stderr,
+                f"gate-b-operator-stop phase={phase} code={code}\n",
+            )
+            self.assertTrue(all(canary not in stderr for canary in DIAGNOSTIC_CANARIES))
+
+    def test_non_operator_failures_are_generic_without_stringification(self) -> None:
+        class LeakyError(RuntimeError):
+            def __str__(self) -> str:
+                raise AssertionError("exception must not be stringified")
+
+            def __repr__(self) -> str:
+                raise AssertionError("exception must not be represented")
+
+        failures: tuple[BaseException, ...] = (
+            assembler.AssemblyError("invalid-execution-contract"),
+            evidence.EvidenceError("invalid-evidence"),
+            KeyboardInterrupt(" ".join(DIAGNOSTIC_CANARIES)),
+            RuntimeError(" ".join(DIAGNOSTIC_CANARIES)),
+            LeakyError(),
+        )
+        for failure in failures:
+            status, stdout, stderr = run_operator_main_failure(failure)
+            self.assertEqual((status, stdout, stderr), (1, b"", "gate-b-operator-stop\n"))
+            self.assertTrue(all(canary not in stderr for canary in DIAGNOSTIC_CANARIES))
+
     def test_main_stops_cleanly_on_keyboard_interrupt(self) -> None:
         stderr = io.StringIO()
         with (
@@ -1892,7 +2518,7 @@ class GateBOperatorTests(SimpleTestCase):
         self.assertEqual(code, 1)
         self.assertEqual(stderr.getvalue(), "gate-b-assembly-stop\n")
 
-    def test_main_keeps_credential_response_failures_generic_and_secret_safe(self) -> None:
+    def test_main_classifies_credential_response_failures_and_stays_secret_safe(self) -> None:
         stdout = mock.Mock()
         stdout.buffer = io.BytesIO()
         stderr = io.StringIO()
@@ -1927,7 +2553,10 @@ class GateBOperatorTests(SimpleTestCase):
 
         self.assertEqual(code, 1)
         self.assertEqual(stdout.buffer.getvalue(), b"")
-        self.assertEqual(stderr.getvalue(), "gate-b-operator-stop\n")
+        self.assertEqual(
+            stderr.getvalue(),
+            "gate-b-operator-stop phase=credential code=invalid-credential-response\n",
+        )
         self.assertTrue(all(canary not in stderr.getvalue() for canary in REDACTION_CANARIES[:3]))
 
     def test_plan_cli_is_offline_and_reports_exact_counts(self) -> None:
@@ -2419,6 +3048,32 @@ class GateBRawCaptureTests(SimpleTestCase):
             )
 
         self.assertCountEqual(started, [specs[0]["id"], specs[1]["id"]])
+
+        runner = mock.Mock()
+        with (
+            mock.patch.object(
+                operator,
+                "capture_one",
+                side_effect=RuntimeError(" ".join(DIAGNOSTIC_CANARIES)),
+            ) as capture_call,
+            self.assertRaises(operator.OperatorError) as caught,
+        ):
+            operator._capture_bounded_phase(
+                specs[:1],
+                contract,
+                credentials(),
+                self.capture_id,
+                self.raw_dir,
+                "0" * 64,
+                runner=runner,
+            )
+        capture_call.assert_called_once()
+        runner.assert_not_called()
+        self.assertEqual(caught.exception.code, "provider-phase-failed")
+        self.assertEqual(
+            operator._operator_stop_line(caught.exception),
+            "gate-b-operator-stop phase=readback code=provider-phase-failed\n",
+        )
 
     def test_offline_error_parser_rejects_near_misses(self) -> None:
         contract = load_contract()

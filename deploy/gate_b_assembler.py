@@ -10,6 +10,7 @@ import sys
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any, NoReturn
 
 from deploy import gate_b_evidence as evidence
@@ -36,13 +37,84 @@ CREDENTIAL_EXPIRATION_ENCODINGS = (
     "YYYY-MM-DDTHH:MM:SSZ",
     "YYYY-MM-DDTHH:MM:SS+00:00",
 )
+OPERATOR_STOP_GENERIC_LINE = "gate-b-operator-stop\n"
+OPERATOR_STOP_CLASSIFIED_LINE = "gate-b-operator-stop phase=<phase> code=<code>\n"
+OPERATOR_STOP_PHASE_CODES = (
+    (
+        "input",
+        ("invalid-cli-arguments", "invalid-capture-id", "stale-capture-id"),
+    ),
+    (
+        "storage",
+        (
+            "unsafe-tmp-root",
+            "capture-already-exists",
+            "unsafe-private-directory",
+            "unsafe-private-write",
+        ),
+    ),
+    (
+        "credential",
+        (
+            "unsafe-credential-file",
+            "invalid-aws-config",
+            "credential-process-config-mismatch",
+            "credential-source-mismatch",
+            "credential-resolution-repeated",
+            "credential-process-failed",
+            "invalid-credential-response",
+            "credential-lifetime-out-of-contract",
+        ),
+    ),
+    (
+        "execution",
+        (
+            "unsafe-bound-executable",
+            "bound-executable-mismatch",
+            "unsafe-bound-execution-context",
+            "unbound-executable",
+            "unbound-provider-operation",
+            "provider-operation-count",
+            "unsafe-aws-child-environment",
+            "unsafe-github-child-environment",
+        ),
+    ),
+    (
+        "provider",
+        (
+            "credential-reserve-crossed",
+            "provider-command-failed",
+            "provider-output-too-large",
+            "provider-error-too-large",
+            "invalid-provider-json",
+            "invalid-provider-error",
+            "unexpected-provider-result",
+            "unexpected-provider-error",
+        ),
+    ),
+    (
+        "identity",
+        (
+            "identity-not-first",
+            "binding-validation-stop",
+            "post-identity-graph-mismatch",
+        ),
+    ),
+    (
+        "readback",
+        ("provider-phase-failed", "readback-validation-stop"),
+    ),
+)
+OPERATOR_STOP_CODE_TO_PHASE = MappingProxyType(
+    {code: phase for phase, codes in OPERATOR_STOP_PHASE_CODES for code in codes}
+)
 SESSION_PATTERN = re.compile(r"phone-sandbox-[0-9a-f]{8}")
 HEX_64_PATTERN = re.compile(r"[0-9a-f]{64}")
 EXPECTED_SEED_FILE_SHA256 = "6a32cfabcad8c3cf18d5de8d46b30d970f8e85dd0a65a0cac700762eb4b6f52b"
 EXPECTED_SEED_CANONICAL_SHA256 = "dcc02b49de0107aca1ce87dc7cdad18b3080f913e9281033449bbf14cab112dc"
-EXPECTED_CONTRACT_FILE_SHA256 = "8cf5b62e78ee617d46c1338452caf493cd60e1ffa93169c2a026feab6d300342"
+EXPECTED_CONTRACT_FILE_SHA256 = "9fe17df92cd7ca0ecb562a803a07164b506b2378d397cf0ace4e02f5b425ef23"
 EXPECTED_CONTRACT_CANONICAL_SHA256 = (
-    "2c54ce2bc300a4611c9bfc53141c8f3fcfad84e074944936031dee1c92589eb9"
+    "6dceb707e4882f6e2f8ab68a46fb3f032f196817cf12d38c2ed54eb9aae0962b"
 )
 EXPECTED_RESOLVED_GRAPH_SHA256 = "2cfbe086383df8f96353980fe08eb0d0e877095a3e82cb743ce3488f02a8594a"
 
@@ -84,6 +156,16 @@ def _sha256_bytes(value: bytes) -> str:
 
 def _canonical_sha256(value: Any) -> str:
     return _sha256_bytes(evidence.canonical_json_bytes(value))
+
+
+def operator_stop_diagnostics_contract() -> dict[str, Any]:
+    return {
+        "generic_line": OPERATOR_STOP_GENERIC_LINE,
+        "classified_line": OPERATOR_STOP_CLASSIFIED_LINE,
+        "phase_codes": [
+            {"phase": phase, "codes": list(codes)} for phase, codes in OPERATOR_STOP_PHASE_CODES
+        ],
+    }
 
 
 def _read_tracked_json(path: Path, code: str) -> dict[str, Any]:
@@ -404,6 +486,7 @@ def validate_execution_contract(
         "graph",
         "raw_capture",
         "outputs",
+        "operator_stop_diagnostics",
     }:
         _fail("invalid-execution-contract")
     if (
@@ -453,6 +536,9 @@ def validate_execution_contract(
     }
     if evidence_contract != tracked:
         _fail("contract-evidence-mismatch")
+    diagnostics = _object(contract["operator_stop_diagnostics"], "invalid-execution-contract")
+    if diagnostics != operator_stop_diagnostics_contract():
+        _fail("invalid-operator-stop-diagnostics")
     credential = _object(contract["credential_process"], "invalid-execution-contract")
     if credential != {
         "configured_argv": [
