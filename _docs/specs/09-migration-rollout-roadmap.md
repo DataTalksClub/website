@@ -30,7 +30,9 @@ Deliverables:
 - web/worker processes and durable job helpers;
 - Terraform `sandbox/website` stack and GitHub OIDC delivery pipeline;
 - `web.dtcdev.click` deployment with TLS, noindex, logs, alarms, backups, and rollback image.
-- adopted course-platform source/migrations/tests mounted in the unified Django project, with its characterization suite passing before domain changes.
+- generated route-cache registry with every route initially private/disabled unless explicitly
+  classified, plus source/policy tests for the anonymous classifier and zero-TTL rollback;
+- adopted course-platform source/migrations/tests mounted in the unified Django project, with its characterization suite passing before domain changes;
 
 Exit gate: authenticated Studio/API health capability works in development, unauthorized paths fail correctly, and no production data/content is loaded.
 
@@ -44,6 +46,8 @@ Deliverables:
 - main-site adapter for people, articles, podcasts, books, tools, conferences, assets, and hub queries;
 - exact main-site routes, metadata, structured data, sitemap, and internal link validation;
 - Studio/API content source, run, preview, activation, and diagnostics capabilities.
+- durable content-release invalidation intents using the correct first-release `/*` fallback and
+  bounded class TTL behavior when provider submission fails.
 
 Exit gate: every current main-site URL and link passes on development with the expected production canonical, and a broken candidate demonstrably leaves the active site unchanged.
 
@@ -67,6 +71,10 @@ Deliverables:
 - mechanically retargeted existing homework/project/criteria/enrollment relationships to Cohort without replacing their business logic;
 - Studio/API CRUD, duplication, lifecycle, permissions, revisions, idempotency, and audit for these resources;
 - public course/cohort landing, registration, learner account linking, enrollment, dashboard, and calendar;
+- verified account -> shared `MemberProfile` -> course-specific registration flow, deliberately
+  minimized immutable shared-profile snapshots, separately registration-owned
+  email/target/comment/notice/consent evidence, and compatibility projections for adopted account
+  consumers;
 - reviewed legacy `Course edition -> Course parent + Cohort` mapping generator;
 - initial dry-run import with counts, stable-ID maps, and exception report;
 - compatibility routing for current `courses.datatalks.club` pages and APIs.
@@ -83,7 +91,7 @@ Deliverables:
 - deadline schedules and unified email outbox migration;
 - complete Studio/admin API course management parity;
 - current public/data API compatibility and new versioned learner/admin APIs;
-- full rehearsal import and score/certificate reconciliation.
+- full rehearsal import and score/certificate reconciliation;
 - Terraform-managed `courses.datatalks.club` redirect Lambda plan and generated legacy-path map, held inactive until all API consumers are ready.
 
 Exit gate: current course end-to-end and API suites have mapped equivalents, production-like totals reconcile, and operators can perform every supported workflow through both Studio and admin API.
@@ -93,9 +101,12 @@ Exit gate: current course end-to-end and API suites have mapped equivalents, pro
 Deliverables:
 
 - event lifecycle, person relationships, public detail/list, database event import, and calendars;
-- accountless verification, confirmation, management/cancellation, attendance, and privacy flow;
+- accountless event verification, confirmation, management/cancellation, attendance, and privacy
+  flow;
 - versioned Studio/API email templates and preview/test/publish/rollback;
 - durable email delivery/attempt/event/suppression model and SES adapter;
+- profile completion, Slack-access grant, secret-at-send/reveal transactional purpose, rotation, and
+  audited operator resend after the target EmailDelivery lifecycle is available;
 - event and course message purposes, bulk operation resources, delivery diagnostics, and alerts;
 - SES development safeguards and one controlled real delivery smoke test.
 
@@ -110,7 +121,10 @@ Deliverables:
 - production-shaped Terraform plan and runbooks;
 - data freeze/delta-import procedure;
 - DNS/edge cutover procedure, lowered TTL where useful, smoke checklist, owners, and rollback triggers;
-- Search Console/sitemap preparation without submitting development URLs.
+- Search Console/sitemap preparation without submitting development URLs;
+- anonymous public MISS/HIT, credential/private bypass, poisoning, country suggestion, durable
+  invalidation, WAF count/block, cheapest-sufficient plan eligibility, allowance alarms, and
+  TTL-zero rollback reports.
 
 Exit gate: all release criteria pass on `web.dtcdev.click`, open exceptions have explicit owner acceptance, and restore/rollback rehearsals succeed.
 
@@ -119,10 +133,15 @@ Exit gate: all release criteria pass on `web.dtcdev.click`, open exceptions have
 1. Keep old static sites and course platform serving while the final content sync and database delta import run with outbound email disabled.
 2. Reconcile data counts, checksums, scores, certificates, links, routes, and active content commits.
 3. Enable the new production stack behind its edge endpoint and run internal smoke tests.
-4. Switch canonical DNS/edge routing while retaining legacy course-host compatibility; deploy the redirect Lambda only after its browser/API consumer gate passes.
-5. Enable workers and outbound transactional email exactly once after outbox reconciliation.
-6. Submit the production sitemap and monitor errors, crawlers, registrations, enrollments, queue state, email, and top landing pages.
-7. Keep legacy artifacts and databases read-only through the agreed rollback window.
+4. Make the new web revision ready, submit its idempotent application-SHA invalidation, and require
+   provider completion before release finalization. Keep cache disabled/TTL zero unless the full
+   route/viewer matrix, WAF, logging, plan eligibility, and alarms have passed their gates.
+5. Switch canonical DNS/edge routing while retaining legacy course-host compatibility; deploy the redirect Lambda only after its browser/API consumer gate passes.
+6. Enable workers and outbound transactional email exactly once after outbox reconciliation.
+7. Submit the unchanged production sitemap and monitor robots/canonicals, errors, crawlers,
+   registrations, enrollments, profile/Slack delivery, invalidation, cache, WAF, allowance, queue
+   state, email, and top landing pages.
+8. Keep legacy artifacts and databases read-only through the agreed rollback window.
 
 Permanent redirects are enabled only after destinations pass production smoke tests.
 
@@ -136,6 +155,10 @@ Rollback must account for registrations/enrollments written after cutover:
 - keep registration, account, course, Studio, API, and webhook paths routed to a compatible Django revision;
 - pause/reconcile workers before changing revisions;
 - preserve idempotency/outbox state so two revisions cannot send the same message;
+- invalidate under the rollback release identity so old/new templates and routes cannot remain
+  mixed; on cache/classifier uncertainty set public TTLs to zero through reviewed Terraform input;
+- use only the reviewed emergency WAF toggle, never a console-only rule, origin exposure, or broader
+  caching action;
 - do not reverse successful content/data migrations destructively;
 - use retained content releases and legacy static artifacts for read-only fallback.
 
@@ -152,6 +175,47 @@ Quantitative rollback triggers include unexplained URL failure, elevated `5xx`, 
 - Sampled human validation covers active and archived cohorts, complex projects/reviews, certificates, unusual legacy podcast/content, and high-traffic pages.
 - Cutover has an explicit write freeze and final delta plan for each old system.
 
+### Member-profile expand and contract
+
+Create one `accounts.MemberProfile` per preserved `CustomUser` without deleting or renumbering any
+account, social relation, course registration, enrollment, or learner record. Rehearse dry-run and
+apply twice; compare aggregate counts/checksums and only synthetic/test identifiers.
+
+Preserve the adopted account's certificate name, country/region, registration role,
+GitHub/LinkedIn/website URLs, About text, preferred timezone, preferences, login/social relations,
+and course relations throughout the migration.
+
+For each account, seed non-empty adopted `CustomUser` profile columns first. Fill a remaining blank
+only as a suggestion from the most recent linked `CourseRegistration`, ordered by `created_at` then
+primary key; company may suggest organization. Report every conflict and never overwrite a
+non-empty account value from history. Map all adopted role values to the stable version-1 choices.
+CloudFront country is UI-only, lowest precedence, and never a migration source. All migrated or
+suggested values are unconfirmed and cannot satisfy completion until the member submits them.
+
+Activate `MemberProfile` as the single authority only after the shared accounts service can maintain
+temporary `CustomUser` compatibility projections and every new HTML, self API, Studio, admin API,
+and registration write uses it. Direct adapter writes fail tests. Remove compatibility columns only
+in a later reviewed contract phase after all readers move and rollback evidence expires. Historical
+minimized shared-profile snapshots, separately registration-owned normalized email, target
+snapshots, comments, notice/consent evidence, and `accepted_newsletter` remain intact. New
+registrations receive the exact separated shared-profile-snapshot and registration-owned-field
+contract from specification 04.
+
+### Cache and invalidation rollout
+
+Move managed WAF/rate rules through representative count mode before reviewed blocking. Record the
+current cheapest-sufficient plan comparison and exact subscription eligibility before any
+subscription/apply; #78 gates repeated Terraform apply and #94 gates changes to the current
+root/state identity. Development evidence does not silently select production pricing or mutate its
+account/domain.
+
+Enable positive TTL by reviewed route class only after Django headers, viewer classifier,
+origin-response guard, Terraform policies, private-route bypass, poison canaries, logs, and alarms
+agree. Content activation commits its invalidation intent with the pointer swap and never waits for
+network I/O. Deployment waits for its application-SHA invalidation before finalization; rollback
+uses its own identity/invalidation. Terminal content invalidation failure alerts but cannot reverse
+the atomic content pointer; bounded class TTL is the correctness backstop.
+
 ## Documentation and handoff
 
 Each milestone updates:
@@ -161,7 +225,7 @@ Each milestone updates:
 - Studio/API user guide and generated OpenAPI;
 - course/cohort workflow and migration mapping docs;
 - privacy/retention and data-flow inventory;
-- deployment, rollback, backup, and restore docs;
+- deployment, cache/WAF/invalidation/cost, rollback, backup, and restore docs;
 - accepted departures from these specs and their rationale.
 
 ## Completion definition

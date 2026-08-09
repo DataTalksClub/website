@@ -19,7 +19,8 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
 ```
 
 - `core`: bootstrap configuration, health, middleware, request IDs, and future audit primitives.
-- `accounts`: the email-based user model, staff authentication, groups, permissions, and future API credentials.
+- `accounts`: the email-based user model, private one-to-one member profile, Slack-access
+  eligibility, staff authentication, groups, permissions, and future API credentials.
 - `content`: versioned GitHub-owned read models and public content presentation.
 - `content_sync`: GitHub adapters and candidate-release orchestration; depends on `content`, never the reverse.
 - `courses`: database-owned courses, cohorts, and learner workflows.
@@ -30,3 +31,18 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
 - `jobs`: queue wrappers, scheduling, leases, heartbeat, and operator diagnostics.
 
 Apps may depend on `accounts` for actor or ownership references and on `core` for generic primitives. Cross-domain behavior is coordinated by an application service at the owning boundary, using scalar identifiers for queued work. Circular imports are not an acceptable coordination mechanism.
+
+`accounts.MemberProfile` is the database-owned community-membership and learner-onboarding record.
+It is not `content.Person`, which remains the GitHub-owned public editorial identity for authors,
+speakers, guests, hosts, instructors, and maintainers. Neither record implies the other. A future
+reviewed relation may connect them, but it must not synchronize fields or grant authority.
+
+The accounts application service is the only write boundary for member-profile values and their
+temporary `CustomUser` compatibility projections. Course registration asks that service for scalar,
+confirmed values and writes a deliberately minimized immutable shared-profile snapshot owned by
+`courses`; it does not take ownership of the profile. Outside that snapshot, the registration owns
+its normalized verified-email snapshot, target campaign/cohort snapshot, course-specific comment,
+privacy-notice evidence, and optional marketing-consent evidence. Profile completion coordinates a
+`SlackAccessGrant` and an `email_app.EmailDelivery` intent in the same database transaction. Workers
+receive only scalar identifiers and resolve the current Slack secret after commit, so `accounts`
+never imports a worker task or stores a secret-bearing rendered message.

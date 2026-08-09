@@ -46,6 +46,9 @@ Permissions are capability-based rather than a single `is_staff` check. One user
 - Dashboard: service health, content freshness, worker heartbeat, queue age, failed/ambiguous email, upcoming events/cohorts, and recent high-risk actions.
 - Content: sources, sync runs, candidate previews, releases, routes, links, search/graph, and GitHub edit links.
 - People: searchable public profiles and derived author/guest/speaker/host/instructor relationships; profile edits go to GitHub.
+- Members: private account-owned profile completion, Slack grant/delivery state, allowlisted
+  correction, and audited resend. This is distinct from People and never creates, links, edits, or
+  grants authority to a GitHub editorial Person.
 - Courses: courses, cohorts, homework/questions, projects/criteria, schedules, teaching teams, registrations, enrollments, submissions, peer review, scoring, complaints, leaderboards, certificates, and communication status.
 - Events: lifecycle, people, registrations, attendance, exports, calendar changes, and notifications.
 - Email: templates, previews, test sends, deliveries, attempts, SES events, suppression, and worker diagnostics.
@@ -53,7 +56,22 @@ Permissions are capability-based rather than a single `is_staff` check. One user
 - Access: staff users, groups, service principals, API tokens, active sessions, and revocation.
 - Audit: filterable append-only events and export with restricted access.
 
-All authenticated Studio responses use `Cache-Control: private, no-store` and must not appear in search engines or shared caches.
+All authenticated Studio responses use `Cache-Control: private, no-store`, noindex, and an explicit
+zero-TTL edge behavior. They must not appear in search engines or shared caches.
+
+## Member self service
+
+`/accounts/profile/` is the accessible HTML create/edit/resume surface. The separate learner API
+surface is session-authenticated `GET`/`PATCH /api/v1/me/profile`; it is not an admin API and does not
+accept bearer service principals. GET returns only the owner's allowlisted fields plus
+`required_fields`, `missing_fields`, `completion_version`, `completed_at`, and `revision`. PATCH
+requires CSRF and current revision/`If-Match`, rejects mass assignment, and calls the same accounts
+service and validation as HTML and management correction.
+
+`/accounts/community/slack/` is the authenticated private Slack-access status/reveal surface. It may
+return the current secret only in the eligible member's referrer-safe no-store response; the self API
+does not serialize it and provides no email-resend command in the MVP. All profile/Slack responses
+are private, no-store, noindex, absent from sitemap/search, and zero-TTL at the edge.
 
 ## Admin API coverage
 
@@ -65,9 +83,33 @@ Management resources include:
 - events, speakers/hosts, registrations, attendance, calendar changes, and notification operations;
 - email templates/versions, previews/test sends, deliveries, attempts, provider events, suppression, retry/resolution operations;
 - navigation, announcements, sponsors, redirects, site settings, health/operational reports;
-- staff, roles, service principals, credentials, sessions, and audit events.
+- staff, roles, service principals, credentials, sessions, and audit events;
+- member profiles and Slack access/delivery summaries through:
+  `GET /api/v1/admin/member-profiles`,
+  `GET/PATCH /api/v1/admin/member-profiles/<uuid>`, and
+  `POST /api/v1/admin/member-profiles/<uuid>/slack-resend`.
 
 Public and learner APIs live outside `/api/v1/admin/` with separate schemas and authorization. FAQ JSON feeds and course-platform compatibility endpoints keep their existing contracts.
+
+Studio parity for the member endpoints is:
+
+- list/search completion and Slack delivery state at `GET /studio/members/`;
+- inspect one profile/grant/delivery summary at `GET /studio/members/<uuid>/`;
+- correct allowlisted profile fields using a reason and current revision through a Studio `POST` and
+  the admin API `PATCH` with `If-Match`;
+- resend the current Slack-link purpose through a confirmed Studio `POST` and admin API `POST` with
+  `Idempotency-Key`.
+
+The registry uses exact capabilities `accounts.member_profile.view_pii`,
+`accounts.member_profile.correct`, and `accounts.slack_access.manage`. Support operators see masked
+identifiers by default; full PII requires the dedicated permission. Searches are bounded and apply
+the authorized queryset before lookup. No bulk member-profile export is introduced.
+
+Correction calls the accounts service, advances revision, and audits actor, reason, and changed
+field names. Audit metadata never contains old/new profile free text, URLs, email, country
+suggestion, or Slack link. List, detail, resend, OpenAPI, and logs never contain the raw join URL.
+Django admin remains the separately protected break-glass surface and presents MemberProfile and
+Person as distinct records.
 
 ## Authentication
 
@@ -135,6 +177,12 @@ Authorization headers, plaintext credentials, management links, email bodies, an
 - Support preview/view-as functionality is capability-scoped, prominently labeled, read-only by default, and audited. Unrestricted impersonation is not copied from the reference systems.
 - Built-in Django admin is disabled in production or reserved as a separately protected superuser-only break-glass surface; it is not the normal management interface.
 
+CloudFront assigns explicit zero-TTL behaviors to `/studio/`, `/api/v1/admin/`, `/accounts/`,
+`/admin/`, and `/cadmin/`. On mixed public paths, any Authorization, session/auth/CSRF or unknown
+credential-shaped cookie, preview/management token, or other private viewer classification goes to
+origin and is forced private/no-store before cache storage. A warmed anonymous response cannot be
+served to a staff member, learner, or API principal.
+
 ## Acceptance criteria
 
 - The capability registry covers every Studio and admin API management action.
@@ -142,4 +190,7 @@ Authorization headers, plaintext credentials, management links, email bodies, an
 - Each role has positive and negative tests, including object- and field-level PII restrictions.
 - API secrets are one-time display and hashed at rest; rotation/revocation tests pass.
 - Studio/API responses containing authenticated or PII data are never publicly cached.
+- Member self/management adapters have identical allowlisted validation, revision conflict,
+  masking, permission, audit-redaction, and resend/idempotency behavior, with no Person side effect
+  or raw Slack-link serialization.
 - Stale edits, duplicate commands, bulk partial failures, denied operations, and audit redaction behave consistently.

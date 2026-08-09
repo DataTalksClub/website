@@ -37,6 +37,11 @@ The new canonical course structure is:
 
 Existing SEO-bearing static course articles under `/blog/*.html` stay at their current paths during the migration and link to the new course/cohort application. They are not folded into new paths during cutover.
 
+This includes content pages such as
+`/blog/guide-to-free-online-courses-at-datatalks-club.html`: the path, meaningful page content,
+canonical, metadata, links, and sitemap behavior remain the accepted compatibility contract. A lack
+of observed indexing is not permission to rewrite or retire an editorial page.
+
 Existing `courses.datatalks.club` routes initially reach copied compatibility views in the unified Django app. After all links and clients are migrated, that hostname moves to a small Terraform-managed redirect Lambda. HTML paths receive explicit one-hop redirects only after their destination is verified. Existing API routes remain functioning compatibility endpoints until each consumer is updated because API clients may not safely preserve authorization across a cross-host redirect.
 
 The redirect Lambda uses a generated explicit path map, preserves query strings, emits `301` for GET/HEAD HTML, and uses `308` for non-GET only after client tests prove method/body/auth behavior. Unknown paths are logged without PII and return a real `404`, not a homepage redirect.
@@ -65,6 +70,56 @@ Every manifest row is classified as:
 - `retire`: an intentional `410 Gone`, requiring owner approval and evidence that no replacement exists.
 
 No catch-all redirect to the homepage is allowed.
+
+## Route cache and canonical contract
+
+One versioned code-owned registry classifies every Django route. It generates or is consumed by
+Django cache-header tests, Terraform policy assertions, and deployed smoke expectations; CI fails
+for an unclassified route or adapter disagreement. Unlisted routes are private/disabled, not
+implicitly public.
+
+| Route class | Initial examples | Edge TTL and stale policy | Browser policy | Shared-cache key |
+| --- | --- | --- | --- | --- |
+| Fingerprinted static | Versioned `/static/` filenames | 365 days; no stale error object | `public, max-age=31536000, immutable` | Normalized path plus CloudFront-normalized gzip/Brotli only |
+| Stable release asset | Code-owned active-release assets without a fingerprint | 24 hours; invalidate on activation | `public, max-age=3600` | Path plus normalized encoding |
+| Editorial detail | Approved article, podcast, Person, book, docs, FAQ, and wiki details | 600 seconds; stale-if-error at most 24 hours | `max-age=0, must-revalidate`; ETag/Last-Modified | Canonical path plus normalized encoding; no query |
+| Public hub/feed/sitemap | Approved hubs, feeds, sitemap, and explicit public JSON feeds | 300 seconds; stale-if-error at most 1 hour | `max-age=0, must-revalidate` | Canonical path; exact positive `page` only where registered |
+| Public course/event catalog or detail | Anonymous-stable catalog/detail pages only | 60 seconds; stale-if-error at most 5 minutes | `max-age=0, must-revalidate` | Canonical path; exact allowlisted pagination only |
+| Code-owned permanent redirect | Explicit public alias/redirect manifest only | 24 hours | `public, max-age=300` | Normalized source path; query follows the redirect contract |
+| Public 404 | Clean credential-free, query-free unknown `GET`/`HEAD` | 30 seconds; no stale-if-error | `max-age=0` | Normalized path |
+| Search or arbitrary query | Search and unlisted filters | Disabled | `private, no-store` | None |
+| Private/dynamic | Accounts, Studio, admin/cadmin, learner, onboarding/Slack, registration/management, preview, export, and authenticated/private APIs | Disabled, including error caching | `private, no-store` | None |
+| Operational | Health/readiness/metrics, webhooks/callbacks, jobs/providers | Disabled | `private, no-store` or an explicit operational equivalent | None |
+| Unsafe/error | Unsafe methods; 400/401/403/405/409/429/5xx; or responses containing `Set-Cookie`, `private`, `no-store`, `Vary: *`, CSRF, identity, PII, or capability state | Disabled | `no-store` | None |
+
+Only `GET` and `HEAD` are eligible in public classes. All policies retain `min_ttl = 0`, so an
+origin/edge no-store decision wins. CloudFront does not cache a new origin error merely because a
+successful object exists. Stale-if-error serves only a previously cached anonymous public
+representation within the class bound, never registration or other time-sensitive/private state.
+
+Positive caching does not normalize or redesign public URLs. The cached representation carries the
+same production canonical, robots directives, structured data, headings, content, links, and assets
+as a miss. `robots.txt` and sitemap remain explicit versioned public outputs: production exposes the
+accepted crawl/sitemap contracts, while development disallows crawling and exposes no production
+sitemap. Neither robots nor cache status is an authorization control.
+
+## Query and poisoning rules
+
+- Static, detail, feed, and sitemap cache keys contain no query parameter. A named hub may allow
+  one canonical positive-integer `page`; duplicate, empty, overlong, out-of-range, malformed, or
+  unknown parameters become no-store or a safe 400, never an unbounded variant.
+- Known tracking keys may be removed by one safe canonical `GET`/`HEAD` redirect. They are not
+  reflected or forwarded while absent from the key. Search text and arbitrary filters are not
+  cached in the MVP.
+- Host, User-Agent, Referer, Accept-Language, CloudFront country, `X-Forwarded-*`, viewer-supplied
+  internal headers, and arbitrary cookies are not public cache-key inputs. Accept-Encoding uses
+  CloudFront's gzip/Brotli normalization rather than raw viewer values.
+- Cacheable origin requests receive only the per-class allowlist. Duplicate headers/query keys,
+  alternate Host, encoded separators, path normalization, omitted-but-forwarded values, conflicting
+  cache directives, and compression variants have poisoning tests and fail safely.
+- A permanent redirect is cacheable only from the explicit manifest and still obeys its approved
+  query preservation/removal rule. Preview/management tokens and private query variants are never
+  redirected through or stored in a public object.
 
 ## Link preservation checks
 
@@ -127,4 +182,8 @@ The legacy static build and URL manifest remain available throughout the rollbac
 - Every intentional change has one explicit redirect/retirement record, owner, reason, and test.
 - A link checker validates targets and fragments across all site sections and course compatibility routes.
 - Development and previews are demonstrably non-indexable.
+- The generated route registry agrees across Django, Terraform assertions, and smoke tests; an
+  anonymous public miss/hit preserves the same canonical/robots/sitemap contract.
+- Query, header, cookie, encoding, redirect, 404, unsafe-method, and origin-error tests prove that
+  only the exact public classes above create bounded cache objects.
 - DNS cutover is not approved until the complete SEO parity report passes.

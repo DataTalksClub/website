@@ -108,9 +108,50 @@ Reusable/versioned curriculum may be introduced later after consolidation, based
 
 - A reusable registration campaign may belong to a Course.
 - A registration window targets exactly one Cohort.
-- Every submitted registration snapshots its target Cohort and remains unique by cohort plus normalized email.
+- A new registration requires one verified durable account and a completed, member-confirmed
+  `accounts.MemberProfile`. The resumable flow is account ownership, shared profile, a
+  course-specific step, then confirmation; no anonymous `CourseRegistration` is created before
+  verification.
+- The course-specific step identifies the course/cohort/campaign, reuses shared profile values
+  without asking again, and collects only an optional course goal/comment of at most 1,000
+  characters, a versioned course-registration privacy acknowledgement, and a separate optional
+  unchecked newsletter/marketing consent when that integration is enabled. The comment is blank for
+  every new registration. Marketing consent is never required or inferred from account, profile,
+  Slack, course, or historical participation.
+- Every submitted registration owns an immutable target Cohort snapshot and remains unique by
+  cohort plus normalized email.
 - Repointing a campaign cannot change historical registrations or prevent the same person registering for a later cohort.
 - Interest collected before a cohort exists is `CourseInterest`, not a nullable/ambiguous cohort registration.
+
+At successful registration, write one immutable, deliberately minimized shared-profile snapshot
+containing only:
+
+- profile UUID, completion schema version, profile revision, and snapshot timestamp;
+- certificate/display name when present;
+- member-confirmed country code and derived region;
+- organization, work status, professional role, and seniority.
+
+Alongside, and never inside, that shared-profile snapshot, the registration owns:
+
+- its normalized verified-email snapshot;
+- its target campaign/cohort snapshot;
+- its course-specific comment;
+- its versioned privacy-notice acknowledgement evidence; and
+- its separate optional marketing-consent evidence.
+
+Do not copy About/bio, ambitions, why-joined, or social/profile links: cohort reporting and delivery
+do not need them. A later profile edit affects only future prefills and registrations. It never
+rewrites an earlier shared-profile snapshot or any separate registration-owned value/evidence, and
+campaign repointing never rewrites history. Legal
+deletion/anonymization under the approved privacy workflow is the only exception to ordinary
+immutability and leaves non-PII reconciliation evidence.
+
+Existing `CourseRegistration` email, name, company, country/region, role, comment, and newsletter
+snapshots remain migration input and are not deleted or renumbered. A blank canonical profile field
+may be suggested from the most recent linked registration ordered by `created_at`, then primary key;
+registration company may suggest organization. A non-empty account value always wins, conflicts are
+reported, and every imported/suggested value remains unconfirmed until member submission. Historical
+`accepted_newsletter` evidence is preserved even though new consent is separate and optional.
 
 ### Staff scope
 
@@ -191,6 +232,22 @@ After all browser links and API consumers are migrated:
 
 The Lambda stack belongs in `DataTalksClub/aws-infra` as its own small production workload and can be rehearsed on a development hostname first.
 
+## Edge cache classes
+
+An anonymous-stable published course catalog or course/cohort detail may use the registered public
+course/event class: edge TTL 60 seconds, stale-if-error at most 5 minutes, browser
+`max-age=0, must-revalidate`, and only exact allowlisted pagination in the key. Unpublished pages,
+registration campaign/forms/confirmation, account/profile, enrollment, dashboard, calendar,
+homework, submission, peer review, leaderboard preferences, certificates with learner state,
+management, and compatibility API responses remain disabled/zero-TTL unless a later owning contract
+proves an explicitly public stable representation.
+
+Any Authorization, session/auth/CSRF or unknown credential-like cookie, preview/management token,
+`Set-Cookie`, identity-sensitive navigation, learner state, PII, or unsafe/error response forces
+private/no-store. A warmed anonymous catalog/detail object must never be served to a credentialed
+viewer. Course registration, profile, and Slack endpoints also retain stricter application business
+limits even when CloudFront/WAF limits broad traffic.
+
 ## High-risk migration checks
 
 - Reviewed family/cohort mapping instead of regex-only slug inference.
@@ -209,6 +266,15 @@ The Lambda stack belongs in `DataTalksClub/aws-infra` as its own small productio
 
 - The copied course platform passes its characterization suite before structural changes.
 - One reusable Course has multiple Cohorts and a learner can enroll in more than one cohort.
+- New course registration asks shared member values once, stores only the exact minimized
+  shared-profile snapshot above, stores normalized email/target/comment/privacy/consent as separate
+  registration-owned fields/evidence, and preserves both after profile edits or campaign
+  repointing.
+- Existing incomplete accounts keep prior enrollments/history and are gated only for a new
+  registration; migrated values require member confirmation and historical consent evidence remains
+  intact.
+- Public course cache hits remain anonymous-stable while every learner/registration/private path is
+  zero-TTL/no-store.
 - Existing homework/project/peer-review/leaderboard/certificate behavior remains covered by ported tests.
 - Model migrations upgrade a production-like database without re-creating or losing course data.
 - Every current `cadmin`/relevant admin operation is mapped to Studio and admin API.

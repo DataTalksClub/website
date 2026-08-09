@@ -68,7 +68,8 @@ Verification and management tokens are never stored in plaintext, written to log
 
 The same email infrastructure supports:
 
-- course/cohort registration verification and confirmation;
+- course/cohort registration confirmation for an already verified durable member account, not an
+  anonymous pending-course-registration verification flow;
 - enrollment welcome/removal;
 - deadline reminders;
 - homework/project score notifications;
@@ -82,6 +83,37 @@ Course/cohort message idempotency keys include cohort and relevant enrollment/as
 Existing Datamailer audits and external identifiers are migrated for history. New transactional delivery uses the unified outbox and SES provider adapter. Datamailer may remain a temporary compatibility adapter during migration, but it is not the new domain model or source of truth.
 
 Marketing campaigns and newsletters are out of MVP scope. Marketing consent remains separate even if an external mailing service consumes it later.
+
+## Slack-access transactional delivery
+
+MVP Slack access uses the current shared DataTalks.Club join URL. It has no Slack invitation API,
+SCIM/member synchronization, or manual review queue. The join URL exists only in the approved
+runtime secret channel. It is never stored in `MemberProfile`, `SlackAccessGrant`, `EmailDelivery`
+context or retained rendered bodies, audits, logs, metrics, URLs, OpenAPI examples, screenshots, or
+issue evidence. Domain rows carry only a non-secret `invite_version`.
+
+The first valid member-profile completion atomically creates or confirms one access grant and one
+unique delivery intent keyed by account, completion schema version, and invite version. After commit,
+the worker resolves the current secret at send time, renders a fixed code-owned transactional
+template without retaining a secret-bearing body, and submits it only to the verified account email.
+The ordinary lease, retry, suppression, ambiguous-provider, and manual-resend rules below apply.
+Worker/provider/secret failure leaves profile completion and eligibility committed.
+
+A safe code-owned bootstrap template is sufficient until operator-managed templates own this
+purpose. Migrating template ownership must preserve the logical delivery key and the secret-at-send,
+no-secret-retention contract.
+
+An eligible member can reveal the current link at the authenticated private Slack surface. If the
+secret is missing, it shows a delayed/support state rather than rolling back completion. Duplicate
+submit, refresh, retry, and restart do not create another logical delivery. Invite rotation advances
+`invite_version`; an eligible member may reveal/receive the new version without re-entering profile
+data. Ordinary profile edits do not revoke access. Account quarantine, disablement, or deletion
+denies future reveal/resend and cancels safe unsent work, but the site does not claim to revoke an
+already used external Slack membership.
+
+MVP has no member-facing email-resend action because the reveal page remains available. An
+authorized staff resend is a separate audited logical delivery with confirmation, reason,
+idempotency key, and rate limits. It never discloses the raw join URL through Studio/admin API.
 
 ## Email templates
 
@@ -102,12 +134,17 @@ Every transactional email has meaningful plain-text and accessible HTML alternat
 ### EmailDelivery
 
 - UUID and unique logical `idempotency_key`;
-- classification, purpose, template key/version, and related event/cohort/registration/enrollment IDs;
+- classification, purpose, template key/version, and related account/profile/grant/event/cohort/registration/enrollment IDs;
 - immutable recipient, subject, sender, and reply-to snapshots;
 - minimal render context or immutable rendered bodies according to the retention decision;
 - state, attempts, lease owner/expiry, next attempt, provider message ID, safe error summary, and timestamps.
 
 States: `pending`, `leased`, `provider_accepted`, `delivered`, `retryable`, `ambiguous`, `suppressed`, `dead`, `hard_bounced`, and `complained`.
+
+The Slack-link purpose is the explicit secret-bearing exception to ordinary rendered-body
+retention: its durable row stores only the fixed purpose/template identifiers and safe scalar
+context needed to resolve the current invite version. The secret and rendered secret-bearing body
+are never retained.
 
 ### EmailAttempt and provider events
 
@@ -143,6 +180,15 @@ States: `pending`, `leased`, `provider_accepted`, `delivered`, `retryable`, `amb
 - CSV exports escape spreadsheet formulas and require a dedicated permission plus audit event.
 - Raw IP/user-agent data has a short documented retention and never appears in routine logs.
 
+Published anonymous-stable event catalog/detail responses may use the 60-second public edge class
+with stale-if-error at most 5 minutes. Event registration forms and outcomes, verification and
+management links, attendance, exports, provider endpoints, Slack/profile/onboarding, and any
+credentialed response remain zero-TTL, private/no-store. WAF starts in count mode with per-source-IP
+five-minute thresholds of 2,000 for ordinary public cacheable reads and 60 for signup, login,
+profile, Slack, and course/event registration paths. Application services retain stricter limits by
+normalized identity plus safe IP class; edge rate limits are neither account authorization nor a
+complete distributed-bot defense.
+
 ## Studio and API capabilities
 
 Both interfaces can:
@@ -165,4 +211,8 @@ Both interfaces can:
 - Event reschedule/cancellation produces correct calendar sequence and idempotent messages.
 - Worker and provider failures produce the specified durable states without losing business data.
 - Course reminders and event messages share one auditable delivery model.
+- Slack profile completion commits one durable secret-free logical delivery; reveal, send, retry,
+  rotation, resend, suppression, outage, quarantine, and deletion never leak or retain the join URL.
+- Public event catalog/detail caching cannot store a registration, management, provider, profile,
+  Slack, or credentialed response.
 - Every event/email management action has Studio/admin API parity and negative authorization tests.
