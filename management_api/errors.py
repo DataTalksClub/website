@@ -13,6 +13,7 @@ class APIError(Exception):
     message: str
     fields: dict[str, list[str]] | None = None
     headers: dict[str, str] = field(default_factory=dict)
+    safe_result: dict[str, Any] | None = None
 
     def __post_init__(self) -> None:
         Exception.__init__(self, self.message)
@@ -28,6 +29,8 @@ def error_response(request: HttpRequest, error: APIError) -> JsonResponse:
     }
     if error.fields:
         payload["error"]["fields"] = error.fields
+    if error.safe_result is not None:
+        payload["result"] = error.safe_result
     response = JsonResponse(payload, status=error.status)
     for name, value in error.headers.items():
         response[name] = value

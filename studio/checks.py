@@ -3,6 +3,7 @@
 from django.core.checks import Error, Tags, register
 
 from core.capabilities import validate_capability
+from management_auth.policies import resolved_high_risk_policy_keys
 from management_registry import CAPABILITY_REGISTRY
 
 
@@ -11,7 +12,10 @@ def check_capability_registry(app_configs: object, **kwargs: object) -> list[Err
     del app_configs, kwargs
     errors: list[Error] = []
     for capability in CAPABILITY_REGISTRY:
-        for problem in validate_capability(capability):
+        for problem in validate_capability(
+            capability,
+            resolved_high_risk_policies=resolved_high_risk_policy_keys(),
+        ):
             errors.append(
                 Error(
                     problem,

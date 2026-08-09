@@ -4,6 +4,7 @@ import hashlib
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Any
 
 from django.db import transaction
@@ -35,6 +36,24 @@ class OneTimeCommandResult:
     safe_result: JsonObject
 
 
+_CREDENTIAL_OPERATIONS = MappingProxyType(
+    {
+        "management.credentials.create": "management.credential.create",
+        "management.credentials.rotate": "management.credential.rotate",
+        "management.credentials.revoke": "management.credential.revoke",
+    }
+)
+
+
+def credential_idempotency_operation(capability_key: str) -> str:
+    """Resolve a runtime capability to its durable idempotency operation."""
+
+    try:
+        return _CREDENTIAL_OPERATIONS[capability_key]
+    except KeyError as error:
+        raise ValueError("credential capability has no idempotency operation") from error
+
+
 def _fenced_hash(fence: bytes, *parts: bytes) -> str:
     digest = hashlib.sha256()
     digest.update(fence)
@@ -44,7 +63,13 @@ def _fenced_hash(fence: bytes, *parts: bytes) -> str:
     return digest.hexdigest()
 
 
-def _hash_key(principal_id: uuid.UUID, operation: str, key: str) -> str:
+def hash_management_idempotency_key(
+    principal_id: uuid.UUID,
+    operation: str,
+    key: str,
+) -> str:
+    """Return the fenced key digest shared by records and audit evidence."""
+
     key_bytes = key.encode("utf-8")
     if not key_bytes or len(key_bytes) > MAX_IDEMPOTENCY_KEY_BYTES:
         raise ValueError("idempotency key must contain between 1 and 512 UTF-8 bytes")
@@ -77,7 +102,7 @@ def execute_one_time_idempotent(
 ) -> OneTimeCommandResult:
     if not operation or len(operation) > 128 or not operation.isascii():
         raise ValueError("operation must be a bounded ASCII identifier")
-    key_hash = _hash_key(principal.id, operation, key)
+    key_hash = hash_management_idempotency_key(principal.id, operation, key)
     request_hash = _hash_request(principal.id, operation, request)
     now = timezone.now()
     owner_token = uuid.uuid4()

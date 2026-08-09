@@ -45,6 +45,7 @@ h1 { margin: .4rem 0 1rem; font-size: clamp(2.35rem, 8vw, 5.5rem); line-height: 
 form { display: grid; gap: .75rem; margin-top: 1.5rem; }
 label { font-weight: 650; }
 input, select { width: 100%; padding: .8rem; border: 1px solid #aeb8ca; border-radius: .45rem; background: #fff; font: inherit; }
+input[type="checkbox"] { width: 1.2rem; height: 1.2rem; flex: none; }
 button { width: fit-content; padding: .75rem 1.15rem; border: 0; border-radius: .45rem; color: #fff; background: #0b5fff; font: inherit; font-weight: 700; cursor: pointer; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #ffbf47; outline-offset: 3px; }
 button.secondary { color: #17223b; background: #e8edf5; }
@@ -69,6 +70,11 @@ button.secondary { color: #17223b; background: #e8edf5; }
 .audit-detail code { white-space: pre-wrap; word-break: break-word; }
 .pagination { display: flex; gap: 1rem; }
 .credential-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); gap: 1rem; margin: 1.5rem 0; }
+.credential-create { margin: 2rem 0; padding-block: 1rem; border-block: 1px solid #dce2ee; }
+.credential-metadata { display: grid; gap: .65rem; }
+.credential-metadata dt { color: #65708a; font-size: .82rem; font-weight: 700; text-transform: uppercase; }
+.credential-metadata dd { margin: .2rem 0 0; overflow-wrap: anywhere; }
+.check-field { display: flex; align-items: center; gap: .65rem; }
 .one-time-secret { margin: 1.5rem 0; padding: 1.25rem; border: 2px solid #0b5fff; border-radius: .75rem; background: #eef4ff; }
 .one-time-secret code { display: block; margin: 1rem 0; padding: .8rem; border-radius: .45rem; background: #17223b; color: #fff; overflow-wrap: anywhere; }
 

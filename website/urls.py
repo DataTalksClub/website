@@ -64,8 +64,10 @@ urlpatterns = [
     path("slack.html", review_views.slack, name="slack"),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
+    path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),
     path("studio/", include("studio.urls")),
     path("api/v1/admin/", include("website.admin_api_urls")),
+    path("admin", core_views.management_slash_redirect, name="admin-slash-redirect"),
     path("admin/", include("loginas.urls")),
     path("admin/", admin.site.urls),
     path(

@@ -85,6 +85,8 @@ SITE_NAME = "DataTalks.Club"
 APP_VERSION = os.getenv("APP_VERSION", "dev")
 RUNTIME_ENVIRONMENT = parse_environment(os.getenv("DTC_ENVIRONMENT"))
 ENVIRONMENT = RUNTIME_ENVIRONMENT.value
+DEVELOPMENT_OWNER_LOGIN_ENABLED = RUNTIME_ENVIRONMENT is RuntimeEnvironment.DEVELOPMENT
+TEST_PROGRAMMATIC_STAFF_PASSWORD_AUTHENTICATION = False
 CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://datatalks.club").rstrip("/")
 
 INSTALLED_APPS = [
@@ -185,8 +187,8 @@ SOCIALACCOUNT_PROVIDERS = {
 CAN_LOGIN_AS = can_login_as
 
 UNFOLD = {
-    "SITE_HEADER": "Course Management",
-    "SITE_TITLE": "Course Management",
+    "SITE_HEADER": "DataTalks.Club Django admin",
+    "SITE_TITLE": "Django administration",
     "SITE_SYMBOL": "school",
 }
 SHOW_WRAPPED = False

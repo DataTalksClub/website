@@ -48,7 +48,10 @@ class APIPrincipal(RevisionedModel):
 
     class Meta:
         ordering = ("name", "id")
-        permissions = (("read_admin_health", "Can read management API health"),)
+        permissions = (
+            ("read_admin_health", "Can read management API health"),
+            ("manage_api_credentials", "Can manage API credentials"),
+        )
         constraints = [
             models.CheckConstraint(
                 condition=Q(revision__gte=1),

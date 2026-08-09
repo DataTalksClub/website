@@ -4,6 +4,29 @@ from accounts.models import CustomUser
 from accounts.services.timezones import build_timezone_options, is_valid_timezone
 
 
+class DevelopmentOwnerLoginForm(forms.Form):
+    email = forms.EmailField(
+        max_length=254,
+        widget=forms.EmailInput(
+            attrs={
+                "autocomplete": "username",
+                "autocapitalize": "none",
+                "class": "form-control",
+            }
+        ),
+    )
+    password = forms.CharField(
+        max_length=4096,
+        strip=False,
+        widget=forms.PasswordInput(
+            attrs={
+                "autocomplete": "current-password",
+                "class": "form-control",
+            }
+        ),
+    )
+
+
 PREFERRED_TIMEZONE_WIDGET = forms.Select(attrs={"class": "form-control"})
 CERTIFICATE_NAME_WIDGET = forms.TextInput(
     attrs={
@@ -25,9 +48,7 @@ REGISTRATION_ROLE_WIDGET = forms.TextInput(
 )
 GITHUB_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
 LINKEDIN_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
-PERSONAL_WEBSITE_URL_WIDGET = forms.TextInput(
-    attrs={"class": "form-control"}
-)
+PERSONAL_WEBSITE_URL_WIDGET = forms.TextInput(attrs={"class": "form-control"})
 ABOUT_ME_WIDGET = forms.Textarea(
     attrs={
         "class": "form-control",
@@ -84,9 +105,7 @@ class AccountSettingsForm(forms.ModelForm):
             "dark_mode": "Use dark mode",
         }
         help_texts = {
-            "certificate_name": (
-                "Used for certificates across your course enrollments."
-            ),
+            "certificate_name": ("Used for certificates across your course enrollments."),
             "country": "Used to prefill course registration forms.",
             "registration_role": "Used to prefill course registration forms.",
             "preferred_timezone": (

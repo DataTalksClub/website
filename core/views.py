@@ -3,7 +3,14 @@ from typing import Any
 from django.conf import settings
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import (
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotAllowed,
+    HttpResponsePermanentRedirect,
+    JsonResponse,
+)
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
@@ -14,6 +21,18 @@ DEVELOPMENT_SITEMAP_BODY = (
     '<?xml version="1.0" encoding="UTF-8"?>\n'
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
 )
+
+
+def management_slash_redirect(request: HttpRequest) -> HttpResponse:
+    """Canonicalize only safe slashless management requests in one hop."""
+
+    if request.method not in {"GET", "HEAD"}:
+        return HttpResponseNotAllowed(("GET", "HEAD"))
+    query = request.META.get("QUERY_STRING", "")
+    destination = f"{request.path}/"
+    if query:
+        destination = f"{destination}?{query}"
+    return HttpResponsePermanentRedirect(destination)
 
 
 def home(request: HttpRequest):

@@ -6,6 +6,7 @@ from typing import Any
 
 from django.conf import settings
 
+from core.capabilities import ConcurrencyPolicy, IdempotencyPolicy
 from management_registry import CAPABILITY_REGISTRY
 
 SCHEMA_PATH = Path(settings.BASE_DIR) / "_docs/api/admin-openapi.json"
@@ -42,8 +43,58 @@ def _error_schema() -> dict[str, Any]:
                         },
                     },
                 },
-            }
+            },
+            "result": {"$ref": "#/components/schemas/CredentialMetadata"},
         },
+    }
+
+
+def _credential_schema(*, include_token: bool = False) -> dict[str, Any]:
+    required = [
+        "credential_id",
+        "name",
+        "principal_id",
+        "principal_label",
+        "prefix",
+        "scopes",
+        "expires_at",
+        "state",
+        "last_used_at",
+        "created_at",
+        "revision",
+    ]
+    properties: dict[str, Any] = {
+        "credential_id": {"type": "string", "format": "uuid"},
+        "name": {"type": "string", "maxLength": 120},
+        "principal_id": {"type": "string", "format": "uuid"},
+        "principal_label": {"type": "string", "maxLength": 120},
+        "prefix": {"type": "string", "minLength": 16, "maxLength": 16},
+        "scopes": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 64,
+            "items": {"type": "string"},
+        },
+        "expires_at": {"type": "string", "format": "date-time"},
+        "state": {
+            "type": "string",
+            "enum": ["active", "expired", "revoked", "rotated"],
+        },
+        "last_used_at": {"type": ["string", "null"], "format": "date-time"},
+        "created_at": {"type": "string", "format": "date-time"},
+        "revision": {"type": "integer", "minimum": 1},
+    }
+    if include_token:
+        required.append("token")
+        properties["token"] = {
+            "type": "string",
+            "description": "One-time response value; never recoverable.",
+        }
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": required,
+        "properties": properties,
     }
 
 
@@ -86,6 +137,36 @@ def generate_document() -> dict[str, Any]:
                 },
             },
         }
+        parameters: list[dict[str, Any]] = []
+        if capability.idempotency is IdempotencyPolicy.REQUIRED:
+            parameters.append(
+                {
+                    "name": "Idempotency-Key",
+                    "in": "header",
+                    "required": True,
+                    "schema": {"type": "string", "minLength": 1, "maxLength": 512},
+                }
+            )
+        if capability.concurrency is ConcurrencyPolicy.IF_MATCH:
+            parameters.append(
+                {
+                    "name": "If-Match",
+                    "in": "header",
+                    "required": True,
+                    "schema": {"type": "string", "pattern": '^"rev-[1-9][0-9]*"$'},
+                }
+            )
+        if parameters:
+            operation["parameters"] = parameters
+        if adapter.request_schema:
+            operation["requestBody"] = {
+                "required": True,
+                "content": {
+                    "application/json": {
+                        "schema": {"$ref": f"#/components/schemas/{adapter.request_schema}"}
+                    }
+                },
+            }
         paths.setdefault(document_path(adapter.route), {})[adapter.method.casefold()] = operation
     return {
         "openapi": "3.1.0",
@@ -111,6 +192,68 @@ def generate_document() -> dict[str, Any]:
                     "properties": {
                         "status": {"type": "string", "const": "ok"},
                         "version": {"type": "string"},
+                    },
+                },
+                "CredentialMetadata": _credential_schema(),
+                "CredentialSecret": _credential_schema(include_token=True),
+                "CredentialList": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["items", "page", "page_size", "total_count"],
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/CredentialMetadata"},
+                        },
+                        "page": {"type": "integer", "minimum": 1},
+                        "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
+                        "total_count": {"type": "integer", "minimum": 0},
+                    },
+                },
+                "CredentialCreateRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "target_principal_id",
+                        "name",
+                        "scopes",
+                        "confirmed",
+                    ],
+                    "properties": {
+                        "target_principal_id": {"type": "string", "format": "uuid"},
+                        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+                        "scopes": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 64,
+                            "uniqueItems": True,
+                            "items": {"type": "string"},
+                        },
+                        "expires_at": {"type": "string", "format": "date-time"},
+                        "confirmed": {"type": "boolean", "const": True},
+                    },
+                },
+                "CredentialRotateRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["confirmed"],
+                    "properties": {
+                        "expires_at": {"type": "string", "format": "date-time"},
+                        "overlap_seconds": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 3600,
+                            "default": 0,
+                        },
+                        "confirmed": {"type": "boolean", "const": True},
+                    },
+                },
+                "CredentialRevokeRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["confirmed"],
+                    "properties": {
+                        "confirmed": {"type": "boolean", "const": True},
                     },
                 },
                 "APIError": _error_schema(),

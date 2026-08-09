@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
+from core.capabilities import ServiceKind
+from core.management_health import read_management_health
 from management_registry import CAPABILITY_REGISTRY
 
 
@@ -11,6 +14,13 @@ class RuntimeOperation:
     method: str
     capability_key: str
     operation_id: str
+    service: object
+    result_schema: str
+    audit_action: str
+
+
+def _document_route(route: str) -> str:
+    return re.sub(r"<(?:[a-z_][a-z0-9_]*:)?([a-z_][a-z0-9_]*)>", r"{\1}", route)
 
 
 def runtime_operations() -> tuple[RuntimeOperation, ...]:
@@ -21,21 +31,31 @@ def runtime_operations() -> tuple[RuntimeOperation, ...]:
         callback = pattern.callback
         if bool(getattr(callback, "management_api_exempt", False)):
             continue
-        capability_key = getattr(callback, "management_capability_key", "")
-        operation_id = getattr(callback, "management_operation_id", "")
         route = getattr(pattern.pattern, "_route", None)
         if not isinstance(route, str):
             continue
-        capability = CAPABILITY_REGISTRY.get(capability_key)
-        method = capability.admin_api.method if capability is not None else ""
-        operations.append(
-            RuntimeOperation(
-                route=f"/api/v1/admin/{route}",
-                method=method,
-                capability_key=capability_key,
-                operation_id=operation_id,
+        capability_keys = getattr(callback, "management_capability_keys", None)
+        if capability_keys is None:
+            capability_keys = (getattr(callback, "management_capability_key", ""),)
+        for capability_key in capability_keys:
+            capability = CAPABILITY_REGISTRY.get(capability_key)
+            method = capability.admin_api.method if capability is not None else ""
+            method_views = getattr(callback, "management_capability_views", {})
+            bound_view = method_views.get(method, callback)
+            operation_id = (
+                getattr(bound_view, "management_operation_id", "") if capability is not None else ""
             )
-        )
+            operations.append(
+                RuntimeOperation(
+                    route=f"/api/v1/admin/{_document_route(route)}",
+                    method=method,
+                    capability_key=capability_key,
+                    operation_id=operation_id,
+                    service=getattr(bound_view, "management_service", None),
+                    result_schema=getattr(bound_view, "management_result_schema", ""),
+                    audit_action=getattr(bound_view, "management_audit_action", ""),
+                )
+            )
     return tuple(operations)
 
 
@@ -57,10 +77,20 @@ def parity_errors() -> tuple[str, ...]:
             errors.append(f"admin route capability drifted for {capability.key}")
         if operation.operation_id != capability.admin_api.operation_id:
             errors.append(f"admin operation ID drifted for {capability.key}")
-        expected = capability.test_factory()
-        actual = capability.service(None, context=None)
-        if expected != actual:
-            errors.append(f"admin service result drifted for {capability.key}")
+        if operation.service is not capability.service:
+            errors.append(f"admin service drifted for {capability.key}")
+        if operation.result_schema != capability.admin_api.result_schema:
+            errors.append(f"admin result schema drifted for {capability.key}")
+        if operation.audit_action != capability.audit_action:
+            errors.append(f"admin audit action drifted for {capability.key}")
+        if (
+            capability.service_kind is ServiceKind.QUERY
+            and capability.service is read_management_health
+        ):
+            expected = capability.test_factory()
+            actual = capability.service(None, context=None)
+            if expected != actual:
+                errors.append(f"admin service result drifted for {capability.key}")
     for route_method, operation in runtime_by_route.items():
         if route_method not in declarations:
             errors.append(f"runtime admin route lacks a capability: {operation.route}")

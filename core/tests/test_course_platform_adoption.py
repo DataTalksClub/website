@@ -24,6 +24,7 @@ INVENTORY_PATH = ADOPTION_DIR / "behavior-inventory.md"
 EXPECTED_COMMANDS = {
     "account_identity_inventory": "accounts",
     "audit_datamailer_recipient_lists": "courses",
+    "bootstrap_development_owner": "accounts",
     "datamailer_callback_status": "data",
     "datamailer_campaign": "courses",
     "datamailer_outbox_status": "data",
@@ -89,11 +90,14 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(
             set(patches),
             {
+                "accounts/admin.py",
                 "accounts/auth.py",
+                "accounts/forms.py",
                 "accounts/models.py",
                 "accounts/templates/accounts/login.html",
                 "accounts/tests_account_settings.py",
                 "accounts/tests_auth.py",
+                "accounts/tests_token_admin.py",
                 "accounts/views/login.py",
                 "course_management/datamailer_outbox_dispatch.py",
                 "course_platform_templates/base.html",

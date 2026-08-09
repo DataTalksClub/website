@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
@@ -14,7 +15,7 @@ from management_api.concurrency import require_if_match, revision_etag
 from management_api.errors import APIError
 from management_api.json_input import parse_json_object
 from management_api.openapi import generate_document, render_document
-from management_api.parity import parity_errors
+from management_api.parity import parity_errors, runtime_operations
 from management_api.query import parse_page_query
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.services import (
@@ -314,3 +315,27 @@ class AdminAPIContractHelperTests(TestCase):
         ):
             with self.subTest(route=fixture_route), self.assertRaises(Resolver404):
                 resolve(fixture_route)
+
+    def test_runtime_parity_detects_service_result_and_audit_binding_drift(self) -> None:
+        operation = next(
+            item
+            for item in runtime_operations()
+            if item.capability_key == "management.credentials.rotate"
+        )
+        self.assertTrue(callable(operation.service))
+        self.assertEqual(operation.result_schema, "CredentialSecret")
+        self.assertEqual(operation.audit_action, "management.credential.rotated")
+        callback = resolve(
+            "/api/v1/admin/credentials/00000000-0000-0000-0000-000000000001/rotate"
+        ).func
+        cases = (
+            ("management_service", object(), "admin service drifted"),
+            ("management_result_schema", "DriftedResult", "admin result schema drifted"),
+            ("management_audit_action", "management.drifted", "admin audit action drifted"),
+        )
+        for attribute, value, expected in cases:
+            with self.subTest(attribute=attribute), patch.object(callback, attribute, value):
+                self.assertTrue(
+                    any(expected in error for error in parity_errors()),
+                    parity_errors(),
+                )
