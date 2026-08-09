@@ -107,7 +107,9 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/courses"
     )
-    expect(page.get_by_role("link", name="Data Engineering Zoomcamp 2026")).to_be_visible()
+    expect(
+        page.get_by_role("link", name="Data Engineering Zoomcamp 2026", exact=True)
+    ).to_be_visible()
     page.screenshot(path=screenshot_directory / f"courses-{dimensions}.png", full_page=True)
 
     initial = page.request.get(f"{origin}/studio/", max_redirects=0)
