@@ -47,6 +47,7 @@
           data-dark-mode="{% if DARK_MODE %}true{% else %}false{% endif %}"
           data-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}"
           {% if user.is_authenticated %}
+              data-account-id="{{ user.pk }}"
               data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
               data-timezone-update-url="{% url 'update_timezone_preference' %}"
           {% endif %}
@@ -67,7 +68,11 @@
                 } catch (e) {}
             })();
         </script>
-        {% if user.is_authenticated %}<input type="hidden" id="csrf-token" value="{{ csrf_token }}">{% endif %}
+        {% if user.is_authenticated %}
+            <input type="hidden"
+                   id="csrf-token"
+                   value="{{ csrf_token }}">
+        {% endif %}
         {% if IS_IMPERSONATING %}
             <div id="impersonation-banner" class="impersonation-banner">
                 <div class="app-content-shell mx-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-4 py-2 text-sm md:px-8">
@@ -137,16 +142,28 @@
                                     </p>
                                 </div>
                                 <div class="user-menu-actions">
+                                    <a href="{{ courses_url|default:'/courses/' }}"
+                                       class="user-menu-item app-link">
+                                        <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+                                        Courses
+                                    </a>
                                     <a href="{% url 'account_settings' %}" class="user-menu-item app-link">
                                         <i class="fas fa-user-cog" aria-hidden="true"></i>
                                         Account settings
                                     </a>
-                                    {% if user.is_staff %}
+                                    <a href="{% url 'socialaccount_connections' %}"
+                                       class="user-menu-item app-link">
+                                        <i class="fas fa-link" aria-hidden="true"></i>
+                                        Login connections
+                                    </a>
+                                    {% if can_access_studio %}
                                         {% url 'studio:home' as studio_home_url %}
                                         <a href="{{ studio_home_url|default:'/studio/' }}" class="user-menu-item app-link">
                                             <i class="fas fa-sliders-h" aria-hidden="true"></i>
                                             Studio
                                         </a>
+                                    {% endif %}
+                                    {% if can_access_course_admin %}
                                         {% url 'cadmin_course_list' as course_admin_url %}
                                         <a href="{{ course_admin_url|default:'/cadmin/' }}" class="user-menu-item app-link">
                                             <i class="fas fa-tools" aria-hidden="true"></i>
@@ -184,7 +201,7 @@
                                 <i class="fas fa-sun dark-mode-icon-dark"></i>
                             </span>
                         </button>
-                        <a href="{% url 'login' %}"
+                        <a href="{{ account_login_url }}"
                            class="shrink-0 app-heading app-link"
                            title="Login"
                            aria-label="Login">

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Sign-in needs review · DataTalks.Club{% endblock %}
+
+{% block breadcrumbs %}{% endblock %}
+
+{% block content %}
+    <section class="mx-auto max-w-xl space-y-4"
+             aria-labelledby="identity-conflict-title">
+        <p class="text-sm font-semibold uppercase tracking-wide app-muted">
+            Account safety
+        </p>
+        <h1 id="identity-conflict-title"
+            class="text-2xl font-semibold app-heading md:text-3xl">
+            We could not safely link this sign-in
+        </h1>
+        <p class="text-sm leading-6 app-muted">
+            No account was created or linked. Use a login method that is already
+            connected to your account, or contact support for a reviewed recovery.
+        </p>
+        <div class="flex flex-wrap gap-3">
+            <a href="{% url 'login' %}"
+               class="primer-button primer-button-secondary">
+                Try another login method
+            </a>
+            <a href="{% url 'home' %}"
+               class="primer-button primer-button-secondary">
+                Return home
+            </a>
+        </div>
+    </section>
+{% endblock %}

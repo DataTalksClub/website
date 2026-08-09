@@ -133,6 +133,7 @@ MIDDLEWARE = [
     "core.middleware.ReadinessProbeCommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "accounts.middleware.DurableAccountSessionMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "allauth.account.middleware.AccountMiddleware",
@@ -151,6 +152,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "accounts.navigation.account_navigation",
                 "course_management.context_processors.export_settings",
                 "core.context_processors.site_context",
             ]
@@ -161,10 +163,11 @@ WSGI_APPLICATION = "website.wsgi.application"
 ASGI_APPLICATION = "website.asgi.application"
 
 AUTH_USER_MODEL = "accounts.CustomUser"
-AUTHENTICATION_BACKENDS = ["allauth.account.auth_backends.AuthenticationBackend"]
+AUTHENTICATION_BACKENDS = ["accounts.backends.DurableAccountBackend"]
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "home"
+ACCOUNT_CANONICAL_ORIGIN = CANONICAL_ORIGIN
 
 SITE_ID = 2
 ACCOUNT_EMAIL_VERIFICATION = "none"
@@ -259,6 +262,10 @@ SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+# Keep the cookie host-only. Cross-host course continuity uses explicit
+# reauthentication and never broadens the cookie to ``.datatalks.club``.
+SESSION_COOKIE_DOMAIN = None
 # CMP's preserved loginas/browser flows read Django's CSRF cookie and submit it
 # through the standard X-CSRFToken header.
 CSRF_COOKIE_HTTPONLY = False

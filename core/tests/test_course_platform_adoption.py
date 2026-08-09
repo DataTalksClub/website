@@ -22,6 +22,7 @@ PATCH_MANIFEST_PATH = ADOPTION_DIR / "integration-patched-files.tsv"
 TARGET_INTEGRATION_MANIFEST_PATH = ADOPTION_DIR / "target-owned-compatibility-shims.tsv"
 INVENTORY_PATH = ADOPTION_DIR / "behavior-inventory.md"
 EXPECTED_COMMANDS = {
+    "account_identity_inventory": "accounts",
     "audit_datamailer_recipient_lists": "courses",
     "datamailer_callback_status": "data",
     "datamailer_campaign": "courses",
@@ -31,6 +32,7 @@ EXPECTED_COMMANDS = {
     "monitoring_datamailer_health": "data",
     "preview_peer_review_email": "courses",
     "process_datamailer_outbox": "data",
+    "reconcile_accounts": "accounts",
     "send_deadline_reminders": "courses",
     "sync_datamailer_contacts": "courses",
     "sync_datamailer_recipient_lists": "courses",
@@ -44,12 +46,24 @@ EXPECTED_APP_MODULES = {
     "data": "data",
 }
 EXPECTED_MIGRATION_COUNTS = {
-    "accounts": 10,
+    "accounts": 12,
     "api": 0,
     "cadmin": 0,
     "courses": 40,
     "data": 5,
 }
+ORIGINAL_ACCOUNTS_MIGRATIONS = (
+    "0001_initial",
+    "0002_token",
+    "0003_customuser_certificate_name",
+    "0004_customuser_dark_mode",
+    "0005_backfill_certificate_name_from_enrollment",
+    "0006_customuser_country_customuser_region_and_more",
+    "0007_customuser_email_deadline_reminders_and_more",
+    "0008_customuser_email_course_updates",
+    "0009_customuser_preferred_timezone",
+    "0010_remove_customuser_email_course_updates_and_more",
+)
 
 
 def _digest(path: Path) -> str:
@@ -75,6 +89,12 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(
             set(patches),
             {
+                "accounts/auth.py",
+                "accounts/models.py",
+                "accounts/templates/accounts/login.html",
+                "accounts/tests_account_settings.py",
+                "accounts/tests_auth.py",
+                "accounts/views/login.py",
                 "course_management/datamailer_outbox_dispatch.py",
                 "course_platform_templates/base.html",
                 "scripts/generate_production_like_leaderboard_data.py",
@@ -150,10 +170,13 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                     EXPECTED_MIGRATION_COUNTS[app_label],
                 )
 
-        self.assertEqual(migration_names("accounts")[0], "0001_initial")
+        self.assertEqual(
+            tuple(migration_names("accounts")[:10]),
+            ORIGINAL_ACCOUNTS_MIGRATIONS,
+        )
         self.assertEqual(
             migration_names("accounts")[-1],
-            "0010_remove_customuser_email_course_updates_and_more",
+            "0012_backfill_normalized_identity",
         )
         self.assertEqual(migration_names("courses")[0], "0001_initial")
         self.assertEqual(

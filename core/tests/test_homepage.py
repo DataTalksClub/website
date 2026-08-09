@@ -54,7 +54,10 @@ class MainHomepageRoutingTests(TestCase):
 
     def test_cmp_account_is_the_only_shared_shell_login(self) -> None:
         anonymous_response = self.client.get(reverse("home"))
-        self.assertContains(anonymous_response, f'href="{reverse("login")}"')
+        self.assertContains(
+            anonymous_response,
+            f'href="{reverse("login")}?next=%2F"',
+        )
         self.assertContains(anonymous_response, "Login")
 
         user_model = get_user_model()
@@ -76,12 +79,16 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertNotContains(authenticated_response, 'title="Login"')
 
-    def test_staff_account_menu_links_studio_and_preserves_course_admin(self) -> None:
+    def test_course_operator_menu_links_studio_and_course_admin(self) -> None:
+        from accounts.studio_roles import synchronize_studio_roles
+
         user = get_user_model().objects.create(
             username="operator",
             email="operator@example.invalid",
             is_staff=True,
         )
+        groups = {group.name: group for group in synchronize_studio_roles()}
+        user.groups.add(groups["course_operator"])
         self.client.force_login(user)
 
         response = self.client.get(reverse("home"))

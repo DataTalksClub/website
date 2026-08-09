@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from accounts.studio_roles import synchronize_studio_roles
 from accounts.tests_account_settings_base import AccountSettingsViewTestBase
 
 
@@ -34,9 +35,11 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
         self.assertContains(response, "Student One")
         self.assertNotContains(response, cadmin_course_list_url)
 
-    def test_account_menu_shows_cadmin_for_staff(self):
+    def test_account_menu_shows_cadmin_for_authorized_course_operator(self):
         self.user.is_staff = True
         self.user.save()
+        groups = {group.name: group for group in synchronize_studio_roles()}
+        self.user.groups.add(groups["course_operator"])
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
         cadmin_course_list_url = reverse("cadmin_course_list")

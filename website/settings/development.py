@@ -10,6 +10,7 @@ ENVIRONMENT = "development"
 SECRET_KEY = secure_secret_from_environment()  # noqa: F405
 DEVELOPMENT_HOSTNAME = "web.dtcdev.click"
 DEVELOPMENT_ORIGIN = f"https://{DEVELOPMENT_HOSTNAME}"
+ACCOUNT_CANONICAL_ORIGIN = DEVELOPMENT_ORIGIN
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", DEVELOPMENT_HOSTNAME)  # noqa: F405
 if ALLOWED_HOSTS != [DEVELOPMENT_HOSTNAME]:
     raise ImproperlyConfigured("Development requires the exact DJANGO_ALLOWED_HOSTS value")

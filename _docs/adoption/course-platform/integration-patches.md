@@ -21,10 +21,28 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   entry inside the existing CMP account menu; recorded separately in
   `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`. Existing
   CMP login, session, account settings, preference, logout, impersonation, and course-admin
-  behavior remains authoritative;
+  behavior remains authoritative; issue #100 adds the one shared account menu, capability-gated
+  Studio/course-admin links, same-host login, and a non-visual durable-account test hook while
+  retaining readable, line-broken HTML;
 - `course_management/datamailer_outbox_dispatch.py`: issue #98 replaces the copied row-lock claim
   with portable conditional ORM claim and attempt fences while retaining the same delivery,
   acknowledgement, and retry outcomes;
+- `accounts/models.py`: issue #100 expands the adopted `CustomUser` in place with normalized
+  identity state plus durable alias, quarantine, and reconciliation-run evidence; it does not
+  replace or renumber the copied user table;
+- `accounts/auth.py`, `accounts/tests_auth.py`: issue #100 replaces unsafe raw-provider email
+  selection and social auto-link characterization with verified-claim-only, fail-closed linking
+  through a portable compare-and-set account claim and redacted conflict evidence;
+- `accounts/views/login.py`,
+  `accounts/templates/accounts/login.html`: issue #100 adds explicit cross-host reauthentication,
+  propagates validated path-only `next` values to provider login, and gives returning users
+  readable recovery guidance without adding another login system;
+- `accounts/tests_account_settings.py`: issue #100 updates the copied shell characterization so
+  Course admin appears through the explicit Studio/course-operator capability policy rather than
+  `is_staff` alone;
+- `review_import/manifest.py`: issue #100 classifies adopted account, email, provider, session,
+  token, alias, quarantine, and reconciliation rows as sensitive so content-only review imports
+  cannot create or project identity state;
 - `scripts/load_rds_export.py`: issue #99 disables the legacy broad-copy entry point before argument
   parsing or path access and directs operators to the target-owned, allowlisted local review-data
   workflow; copied helper internals remain available for characterization and are not an approved
@@ -50,7 +68,9 @@ The unified setting keeps the CSRF cookie readable by same-origin JavaScript bec
 Playwright is bounded to the source suite's `1.58` compatibility line rather than silently moving the copied live-browser harness to a newer minor release during adoption.
 
 The copied `accounts.CustomUser` remains the adopted identity baseline: it retains AbstractUser's
-`username` field, while its database `email` field is not made required or unique by this issue.
-Allauth remains configured for email login as in the source settings. This supersedes the temporary
-scaffold user model because preserving the source app label and migration identity is part of issue
-#30. No authentication or authorization redesign is attempted here.
+`username` field, while its database `email` field is not made required or directly unique. Issue
+#100 adds an active-only normalized-email constraint through additive migrations while retaining
+legacy identifiers and login compatibility. Allauth still provides the adopted provider flow, now
+with verified ownership and fail-closed linking. Preserving the source app/table and original
+migration prefix remains part of issue #30; the intentional evolution is recorded in
+`integration-patched-files.tsv` and `_docs/architecture/single-durable-account.md`.
