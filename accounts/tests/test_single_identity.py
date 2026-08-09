@@ -1070,6 +1070,17 @@ class SocialLinkingTests(TestCase):
 
 
 class SharedAccountSurfaceTests(TestCase):
+    def test_login_heading_matches_deployed_smoke_contract(self) -> None:
+        response = self.client.get("/accounts/login/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(
+            response.content.decode("utf-8"),
+            r'<h1 class="text-2xl font-semibold app-heading">\s*'
+            r'<i class="fas fa-sign-in-alt" aria-hidden="true"></i>\s*'
+            r"Sign In\s*</h1>",
+        )
+
     def test_signed_out_shell_uses_one_same_host_login_and_no_account_rows(self) -> None:
         identity_counts = {
             "users": CustomUser.objects.count(),
