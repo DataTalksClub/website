@@ -142,6 +142,32 @@ def verify_health(origin: str, version: str, source_sha: str, image_digest: str)
             raise ReleaseContractError(f"readiness {name} check is not successful")
 
 
+def verify_legacy_health(origin: str, source_sha: str) -> None:
+    """Verify the exact health contract served by a recorded schema-1 release."""
+
+    origin = validate_origin(origin)
+    validate_source_sha(source_sha)
+    live = _request(origin, "/health/live")
+    _assert_status(live, 200, "/health/live")
+    _assert_noindex(live, "/health/live")
+    if live.json() != {"status": "ok", "version": source_sha}:
+        raise ReleaseContractError("liveness does not report the exact legacy release identity")
+
+    ready = _request(origin, "/health/ready")
+    _assert_status(ready, 200, "/health/ready")
+    _assert_noindex(ready, "/health/ready")
+    expected = {
+        "status": "ready",
+        "checks": {
+            "configuration": {"status": "ok"},
+            "database": {"status": "ok"},
+            "migrations": {"status": "ok"},
+        },
+    }
+    if ready.json() != expected:
+        raise ReleaseContractError("readiness does not match the exact legacy readiness contract")
+
+
 def run_http_smoke(
     origin: str,
     version: str,

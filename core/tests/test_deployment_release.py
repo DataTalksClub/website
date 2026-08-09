@@ -677,6 +677,140 @@ class CooperativeRecoveryCoordinatorTests(SimpleTestCase):
         self.assertFalse(any(value > 420 for value in gateway.observation_times["worker"]))
         self.assertEqual(gateway.current, 420)
 
+    def test_schema1_recovery_proves_terminal_receipts_before_legacy_public_health(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 0, "worker": 0})
+        legacy_identity = ReleaseIdentity.legacy(SHA_A, DIGEST_A, REPOSITORY)
+        original_update = gateway.update_service
+
+        def update_legacy(*args, **kwargs):  # type: ignore[no-untyped-def]
+            receipt = original_update(*args, **kwargs)
+            workload = receipt.workload
+            snapshot = gateway.snapshots[workload]
+            gateway.snapshots[workload] = ServiceSnapshot(
+                service_name=snapshot.service_name,
+                task_definition_arn=snapshot.task_definition_arn,
+                desired_count=snapshot.desired_count,
+                running_count=snapshot.running_count,
+                pending_count=snapshot.pending_count,
+                source_sha=legacy_identity.source_sha,
+                image_digest=legacy_identity.image_digest,
+                primary_deployment_id=snapshot.primary_deployment_id,
+                version=legacy_identity.version,
+                identity_schema=legacy_identity.identity_schema,
+            )
+            return receipt
+
+        gateway.update_service = update_legacy  # type: ignore[method-assign]
+        targets, terminal, attempted = self.restore_phase()
+        attempted_states: dict[str, ServiceTarget | ServicePredecessor] = dict(attempted)
+
+        _compensate(
+            gateway,
+            targets,
+            terminal,
+            legacy_identity,
+            attempted_states,
+        )
+
+        terminal_index = gateway.operations.index("terminal-at:0")
+        health_index = gateway.operations.index("health-at:0")
+        self.assertLess(terminal_index, health_index)
+        self.assertIn(f"health:{SHA_A}:{SHA_A}", gateway.operations)
+
+    def test_schema1_mixed_worker_never_attempts_or_passes_public_health(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 0, "worker": 0})
+        legacy_identity = ReleaseIdentity.legacy(SHA_A, DIGEST_A, REPOSITORY)
+        original_update = gateway.update_service
+
+        def update_mixed_worker(*args, **kwargs):  # type: ignore[no-untyped-def]
+            receipt = original_update(*args, **kwargs)
+            workload = receipt.workload
+            snapshot = gateway.snapshots[workload]
+            source_sha = "f" * 40 if workload == "worker" else legacy_identity.source_sha
+            gateway.snapshots[workload] = ServiceSnapshot(
+                service_name=snapshot.service_name,
+                task_definition_arn=snapshot.task_definition_arn,
+                desired_count=snapshot.desired_count,
+                running_count=snapshot.running_count,
+                pending_count=snapshot.pending_count,
+                source_sha=source_sha,
+                image_digest=legacy_identity.image_digest,
+                primary_deployment_id=snapshot.primary_deployment_id,
+                version=source_sha,
+                identity_schema=legacy_identity.identity_schema,
+            )
+            return receipt
+
+        gateway.update_service = update_mixed_worker  # type: ignore[method-assign]
+        targets, terminal, attempted = self.restore_phase()
+        attempted_states: dict[str, ServiceTarget | ServicePredecessor] = dict(attempted)
+        Path(".tmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            evidence_path = Path(directory) / "recovery-evidence.json"
+            with self.assertRaises(CompensationError):
+                _compensate(
+                    gateway,
+                    targets,
+                    terminal,
+                    legacy_identity,
+                    attempted_states,
+                    evidence_path=evidence_path,
+                )
+            stages = json.loads(evidence_path.read_text())["stages"]
+
+        self.assertFalse(any(operation.startswith("health") for operation in gateway.operations))
+        terminal_evidence = next(
+            item for item in stages if item["stage"] == "recovery_terminal_pair"
+        )
+        public_evidence = next(item for item in stages if item["stage"] == "recovery_public_health")
+        total_evidence = next(item for item in stages if item["stage"] == "recovery_total")
+        self.assertEqual(terminal_evidence["result"], "contract_contradiction")
+        self.assertEqual(public_evidence["result"], "not_attempted")
+        self.assertEqual(public_evidence["proof"]["attempted"], False)
+        self.assertEqual(public_evidence["proof"]["exact_prior_sha_ready"], False)
+        self.assertEqual(total_evidence["result"], "contract_contradiction")
+        self.assertEqual(total_evidence["proof"]["terminal_pair"], False)
+        self.assertEqual(total_evidence["proof"]["public_health"], False)
+
+    def test_retained_receipt_error_blocks_schema2_public_health_after_terminal_read(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 0, "worker": 0})
+        original_observe = gateway.observe_recovery_receipt
+
+        def observe_with_worker_error(
+            receipt: ServiceUpdateReceipt,
+            *,
+            workload_deadline: float,
+            phase_deadline: float,
+        ) -> bool:
+            if receipt.workload == "worker":
+                raise ReleaseContractError("injected worker receipt contradiction")
+            return original_observe(
+                receipt,
+                workload_deadline=workload_deadline,
+                phase_deadline=phase_deadline,
+            )
+
+        gateway.observe_recovery_receipt = observe_with_worker_error  # type: ignore[method-assign]
+        Path(".tmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            evidence_path = Path(directory) / "recovery-evidence.json"
+            with self.assertRaises(CompensationError):
+                self.compensate(gateway, evidence_path=evidence_path)
+            stages = json.loads(evidence_path.read_text())["stages"]
+
+        self.assertFalse(any(operation.startswith("health") for operation in gateway.operations))
+        terminal_evidence = next(
+            item for item in stages if item["stage"] == "recovery_terminal_pair"
+        )
+        public_evidence = next(item for item in stages if item["stage"] == "recovery_public_health")
+        total_evidence = next(item for item in stages if item["stage"] == "recovery_total")
+        self.assertEqual(terminal_evidence["result"], "passed")
+        self.assertEqual(public_evidence["result"], "not_attempted")
+        self.assertEqual(public_evidence["proof"]["attempted"], False)
+        self.assertEqual(public_evidence["proof"]["exact_prior_sha_ready"], False)
+        self.assertEqual(total_evidence["result"], "contract_contradiction")
+        self.assertEqual(total_evidence["proof"]["public_health"], False)
+
     def test_worker_deadline_cannot_be_rescued_by_a_later_terminal_fixture(self) -> None:
         gateway = CooperativeRecoveryGateway(complete_at={"web": 10, "worker": 430})
 
