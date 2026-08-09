@@ -39,6 +39,7 @@ from deploy.contracts import (
     ServiceTarget,
     ServiceUpdateReceipt,
 )
+from deploy.legacy_development_compatibility import ECR_REPOSITORY_URI
 from deploy.task_definitions import (
     FIXED_NONSECRET_ENVIRONMENT,
     TaskDefinitionConfig,
@@ -5808,3 +5809,27 @@ class MigrationTaskContractTests(SimpleTestCase):
             self.assertRaisesMessage(ReleaseContractError, "ALB target readiness"),
         ):
             gateway.verify_public_web(identity)
+
+    def test_schema1_public_recovery_uses_only_the_legacy_health_contract(self) -> None:
+        gateway = self.gateway(FakeMigrationEcs({}, {}))
+        source_sha = "a" * 40
+        identity = ReleaseIdentity.legacy(
+            source_sha,
+            f"sha256:{'a' * 64}",
+            ECR_REPOSITORY_URI,
+        )
+        gateway._service = Mock(return_value={"desiredCount": 1})  # type: ignore[method-assign]
+        gateway.elbv2 = Mock()
+        gateway.elbv2.describe_target_health.return_value = {
+            "TargetHealthDescriptions": [{"TargetHealth": {"State": "healthy"}}]
+        }
+
+        with (
+            patch("deploy.aws_gateway.time.monotonic", side_effect=[0] * 8),
+            patch("deploy.aws_gateway.verify_legacy_health") as legacy_health,
+            patch("deploy.aws_gateway.verify_health") as schema2_health,
+        ):
+            gateway.verify_public_web(identity)
+
+        legacy_health.assert_called_once_with(gateway.config.base_url, source_sha)
+        schema2_health.assert_not_called()

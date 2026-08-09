@@ -784,9 +784,13 @@ def _compensate(
         },
     )
 
-    public_passed = prior_identity is None
-    if prior_identity is not None:
+    public_applicable = prior_identity is not None
+    public_attempted = False
+    public_passed = not public_applicable
+    if public_applicable and terminal_passed and not errors:
+        public_attempted = True
         try:
+            assert prior_identity is not None
             gateway.verify_public_web(
                 prior_identity,
                 phase_deadline=phase_deadline,
@@ -794,13 +798,22 @@ def _compensate(
             public_passed = True
         except Exception as error:
             retain_error("public health", error)
+    if not public_applicable:
+        public_result = "skipped"
+    elif not public_attempted:
+        public_result = "not_attempted"
+    elif public_passed:
+        public_result = "passed"
+    else:
+        public_result = "failed"
     _record_recovery_evidence(
         evidence_path,
         "recovery_public_health",
-        "skipped" if prior_identity is None else ("passed" if public_passed else "failed"),
+        public_result,
         {
-            "applicable": prior_identity is not None,
-            "exact_prior_sha_ready": public_passed if prior_identity is not None else None,
+            "applicable": public_applicable,
+            "attempted": public_attempted,
+            "exact_prior_sha_ready": public_passed if public_applicable else None,
             **_identity_evidence(prior_identity),
         },
     )

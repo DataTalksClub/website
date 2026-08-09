@@ -24,7 +24,7 @@ from deploy.release_identity import (
     SourceIdentityConstructor,
     validate_schema2_version,
 )
-from deploy.smoke import verify_health
+from deploy.smoke import Response, verify_health, verify_legacy_health
 
 SHA = "3f6c227" + "a" * 33
 DIGEST = f"sha256:{'b' * 64}"
@@ -329,6 +329,127 @@ def test_task_capture_and_smoke_reject_calendar_invalid_version_before_use() -> 
     ):
         verify_health("https://web.dtcdev.click", invalid_version, SHA, DIGEST)
     request.assert_not_called()
+
+
+def test_schema1_health_accepts_the_exact_legacy_contract() -> None:
+    responses = [
+        Response(
+            status=200,
+            headers={"x-robots-tag": "noindex, nofollow"},
+            body=json.dumps({"status": "ok", "version": SHA}).encode(),
+        ),
+        Response(
+            status=200,
+            headers={"x-robots-tag": "noindex, nofollow"},
+            body=json.dumps(
+                {
+                    "status": "ready",
+                    "checks": {
+                        "configuration": {"status": "ok"},
+                        "database": {"status": "ok"},
+                        "migrations": {"status": "ok"},
+                    },
+                }
+            ).encode(),
+        ),
+    ]
+
+    with patch("deploy.smoke._request", side_effect=responses) as request:
+        verify_legacy_health("https://web.dtcdev.click", SHA)
+
+    assert [call.args[1] for call in request.call_args_list] == [
+        "/health/live",
+        "/health/ready",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("live_payload", "ready_payload", "message"),
+    [
+        (
+            {"status": "ok", "version": "4" * 40},
+            {
+                "status": "ready",
+                "checks": {
+                    "configuration": {"status": "ok"},
+                    "database": {"status": "ok"},
+                    "migrations": {"status": "ok"},
+                },
+            },
+            "exact legacy release identity",
+        ),
+        (
+            {"status": "ok", "version": SHA, "source_sha": SHA},
+            {
+                "status": "ready",
+                "checks": {
+                    "configuration": {"status": "ok"},
+                    "database": {"status": "ok"},
+                    "migrations": {"status": "ok"},
+                },
+            },
+            "exact legacy release identity",
+        ),
+        (
+            {"status": "ok", "version": SHA},
+            {
+                "status": "ready",
+                "source_sha": "4" * 40,
+                "checks": {
+                    "configuration": {"status": "ok"},
+                    "database": {"status": "ok"},
+                    "migrations": {"status": "ok"},
+                },
+            },
+            "exact legacy readiness contract",
+        ),
+    ],
+)
+def test_schema1_health_rejects_wrong_or_mixed_identity_contracts(
+    live_payload: dict[str, object],
+    ready_payload: dict[str, object],
+    message: str,
+) -> None:
+    responses = [
+        Response(
+            status=200,
+            headers={"x-robots-tag": "noindex, nofollow"},
+            body=json.dumps(live_payload).encode(),
+        ),
+        Response(
+            status=200,
+            headers={"x-robots-tag": "noindex, nofollow"},
+            body=json.dumps(ready_payload).encode(),
+        ),
+    ]
+
+    with (
+        patch("deploy.smoke._request", side_effect=responses),
+        pytest.raises(ReleaseContractError, match=message),
+    ):
+        verify_legacy_health("https://web.dtcdev.click", SHA)
+
+
+def test_schema2_health_still_rejects_a_mismatched_exact_triplet() -> None:
+    version = f"20260809-143205-{SHA[:7]}"
+    live = Response(
+        status=200,
+        headers={"x-robots-tag": "noindex, nofollow"},
+        body=json.dumps(
+            {
+                "status": "ok",
+                "version": version,
+                "source_sha": "4" * 40,
+                "image_digest": DIGEST,
+            }
+        ).encode(),
+    )
+
+    with (
+        patch("deploy.smoke._request", return_value=live),
+        pytest.raises(ReleaseContractError, match="exact release identity"),
+    ):
+        verify_health("https://web.dtcdev.click", version, SHA, DIGEST)
 
 
 def test_schema2_version_format_has_one_parser_implementation() -> None:

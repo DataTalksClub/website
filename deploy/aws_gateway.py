@@ -39,7 +39,7 @@ from deploy.legacy_development_compatibility import (
     ECR_REPOSITORY_URI,
     RESOURCE_ENVIRONMENT_TAG,
 )
-from deploy.smoke import run_http_smoke, verify_health
+from deploy.smoke import run_http_smoke, verify_health, verify_legacy_health
 from deploy.task_definitions import (
     TaskDefinitionConfig,
     assert_normalized_service_pair,
@@ -2495,12 +2495,15 @@ class AwsReleaseGateway:
 
         while time.monotonic() < deadline:
             try:
-                verify_health(
-                    self.config.base_url,
-                    identity.version,
-                    identity.source_sha,
-                    identity.image_digest,
-                )
+                if identity.identity_schema == 1:
+                    verify_legacy_health(self.config.base_url, identity.source_sha)
+                else:
+                    verify_health(
+                        self.config.base_url,
+                        identity.version,
+                        identity.source_sha,
+                        identity.image_digest,
+                    )
                 self._require_not_after_deadline(deadline, context="public web health")
                 return
             except Exception as error:

@@ -46,7 +46,15 @@ Local runs use `local-development-build-version-not-configured` with null source
 deployed smoke reject it. A strict schema-1 reader exists only for an already-active or recorded
 prior/rollback target and represents its VERSION as its full source SHA; it may not invent a
 timestamp, publish a new schema-1 image, register a schema-1 task, or write a schema-1 success
-record.
+record. Recovery of that prior target first proves the exact receipt-bound ECS task-definition
+pair, task identity, image digest, source SHA, terminal counts, and singleton worker. Its final
+public proof then requires the exact schema-1 health contract: liveness contains only
+`status=ok` plus `version=<full source SHA>`, and readiness contains only `status=ready` plus the
+successful configuration, database, and migrations checks. Schema-1 verification never accepts a
+schema-2 or mixed health shape. Schema-2 recovery continues to require the exact recorded
+VERSION/source/digest triplet on both health endpoints. A retained receipt/observation error or a
+failed terminal-pair proof prevents either schema's public-health request; evidence records
+`not_attempted` and never claims exact prior-SHA readiness in that state.
 
 ## One-time bootstrap
 
@@ -812,8 +820,11 @@ failure after web mutation restores the prior exact web task definition, count, 
 deployment ID. If worker `UpdateService` was actually invoked, its restoration is receipt-bound as
 well. If worker was untouched, compensation issues no worker mutation and instead read-only proves
 its captured task definition, count, PRIMARY deployment ID, terminal state, and singleton bound as
-part of the exact pair. It then validates the prior digest/SHA and public health. The database
-remains migrated forward.
+part of the exact pair. It then validates the prior digest/SHA and uses the identity schema from
+that proved pair to select the final public-health contract: exact legacy full-SHA health for a
+schema-1 prior, or the exact VERSION/source/digest triplet for schema 2. A receipt, observation, or
+terminal-pair failure blocks that request and records public health as not attempted and false.
+The database remains migrated forward.
 
 The workflow concurrency group is `website-development-release` with cancellation disabled. Never
 cancel an in-progress release to start another one.
