@@ -23,6 +23,7 @@ from courses.views.course import course_view
 from courses.views.course_list import course_list_context
 
 from .public_data import PROJECTION_ROOT, event_groups, public_projection
+from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
 WIKI_SPECIAL_CATEGORIES = {
     "guides": "guide",
@@ -656,20 +657,6 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     raise Http404
 
 
-SITEMAP_SECTIONS = (
-    "main",
-    "blog",
-    "podcast",
-    "books",
-    "people",
-    "events",
-    "courses",
-    "wiki",
-    "docs",
-    "faq",
-)
-
-
 @require_safe
 def section_sitemap(request: HttpRequest, section: str) -> HttpResponse:
     del request
@@ -686,8 +673,8 @@ def section_sitemap(request: HttpRequest, section: str) -> HttpResponse:
 
 def production_sitemap() -> str:
     sitemaps = "".join(
-        f"<sitemap><loc>{xml_escape(_canonical(f'/sitemaps/{section}.xml'))}</loc></sitemap>"
-        for section in SITEMAP_SECTIONS
+        f"<sitemap><loc>{xml_escape(location)}</loc></sitemap>"
+        for location in EXPECTED_SITEMAP_LOCATIONS
     )
     return (
         '<?xml version="1.0" encoding="UTF-8"?>'

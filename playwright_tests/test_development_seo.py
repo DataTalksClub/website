@@ -8,6 +8,7 @@ from django.conf import settings
 from django.test import Client, override_settings
 from playwright.sync_api import Page, expect
 
+from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
 from core.preview import SENSITIVE_PREVIEW_QUERY_KEYS
 
 pytestmark = [
@@ -208,10 +209,7 @@ def test_preview_token_and_response_matrix_are_safe(page: Page, live_server) -> 
     assert sitemap.status == 200
     assert sitemap.headers["content-type"] == "application/xml; charset=utf-8"
     assert sitemap.headers["x-robots-tag"] == ROBOTS_VALUE
-    sitemap_body = sitemap.body().decode()
-    assert "<sitemapindex" in sitemap_body
-    assert "https://datatalks.club/sitemaps/events.xml" in sitemap_body
-    assert "<?xml-stylesheet" not in sitemap_body
+    assert validate_sitemap_index(sitemap.body()) == EXPECTED_SITEMAP_LOCATIONS
 
     static = page.request.get(f"{live_server.url}/fixture/asset.css", max_redirects=0)
     assert static.status == 200

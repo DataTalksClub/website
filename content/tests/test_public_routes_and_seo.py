@@ -8,7 +8,7 @@ from xml.etree import ElementTree
 from django.test import TestCase
 
 from content.public_data import public_projection
-from content.public_views import SITEMAP_SECTIONS
+from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
@@ -210,7 +210,7 @@ class PublicRouteAndSeoTests(TestCase):
         ]
         self.assertEqual(
             sitemap_locations,
-            [f"https://datatalks.club/sitemaps/{name}.xml" for name in SITEMAP_SECTIONS],
+            list(EXPECTED_SITEMAP_LOCATIONS),
         )
         seen: set[str] = set()
         for location in sitemap_locations:

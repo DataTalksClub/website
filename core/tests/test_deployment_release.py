@@ -2400,6 +2400,8 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 validate_origin(origin)
 
     def test_http_smoke_checks_safe_404_and_writes_only_redacted_evidence(self) -> None:
+        from content.public_views import production_sitemap
+
         noindex = {"x-robots-tag": ROBOTS_VALUE}
         private = noindex | {"cache-control": "private, no-store"}
         responses = [
@@ -2459,8 +2461,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex | {"content-type": "application/xml; charset=utf-8"},
-                b'<?xml version="1.0" encoding="UTF-8"?>\n'
-                b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n',
+                production_sitemap().encode(),
             ),
             Response(200, noindex | {"content-type": "text/css"}, b"body{}"),
         ]
@@ -2485,6 +2486,14 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             )
             self.assertTrue(courses_check["exact_canonical"])
             self.assertNotIn("canonical_absent", courses_check)
+            sitemap_check = next(
+                check for check in evidence["checks"] if check.get("path") == "/sitemap.xml"
+            )
+            self.assertFalse(sitemap_check["empty"])
+            self.assertEqual(sitemap_check["kind"], "sitemap_index")
+            self.assertEqual(sitemap_check["section_count"], 10)
+            self.assertTrue(sitemap_check["canonical_production_locations"])
+            self.assertTrue(sitemap_check["unique_locations"])
             self.assertEqual(evidence["checks"][-1]["runtime_group"], "analytics")
             for forbidden in ("cookie", "authorization", "set-cookie", "response_body"):
                 self.assertNotIn(forbidden, persisted.lower())
