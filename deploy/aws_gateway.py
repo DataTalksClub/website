@@ -98,6 +98,12 @@ class AwsReleaseConfig:
             )
 
 
+@dataclass(frozen=True)
+class _DeploymentPhaseProof:
+    predecessors_have_zero_work: bool
+    candidate_is_exact_terminal_primary: bool
+
+
 class AwsReleaseGateway:
     def __init__(self, config: AwsReleaseConfig) -> None:
         self.config = config
@@ -746,7 +752,11 @@ class AwsReleaseGateway:
             if "id" in deployment:
                 deployment_id = self._deployment_id(workload, deployment)
             status = deployment.get("status")
-            if "status" in deployment and status not in {"PRIMARY", "ACTIVE"}:
+            if "status" in deployment and status not in {
+                "PRIMARY",
+                "ACTIVE",
+                "DRAINING",
+            }:
                 raise ReleaseContractError(f"{workload} update deployment status differs")
             if status == "PRIMARY":
                 primary_count += 1
@@ -791,26 +801,43 @@ class AwsReleaseGateway:
             predecessor = predecessor_by_id.get(deployment_id or "")
             possible_predecessors = (predecessor,) if predecessor is not None else predecessors
             candidate_is_possible = predecessor is None
-            candidate_matches = candidate_is_possible and self._partial_deployment_matches_target(
-                task_definition,
-                desired,
-                running,
-                pending,
-                failed,
-                rollout_state,
-                target,
-            )
-            matching_predecessors = tuple(
-                item
-                for item in possible_predecessors
-                if self._partial_deployment_matches_predecessor(
+            candidate_matches = (
+                status != "DRAINING"
+                and candidate_is_possible
+                and self._partial_deployment_matches_target(
                     task_definition,
                     desired,
                     running,
                     pending,
                     failed,
                     rollout_state,
-                    item,
+                    target,
+                )
+            )
+            matching_predecessors = tuple(
+                item
+                for item in possible_predecessors
+                if (
+                    self._partial_deployment_matches_draining_predecessor(
+                        deployment_id,
+                        task_definition,
+                        desired,
+                        running,
+                        pending,
+                        failed,
+                        rollout_state,
+                        item,
+                    )
+                    if status == "DRAINING"
+                    else self._partial_deployment_matches_predecessor(
+                        task_definition,
+                        desired,
+                        running,
+                        pending,
+                        failed,
+                        rollout_state,
+                        item,
+                    )
                 )
             )
             if not (candidate_matches or matching_predecessors):
@@ -972,17 +999,20 @@ class AwsReleaseGateway:
             )
         else:
             reason = "partial_acknowledgement_reconciled" if reconciled else "complete_receipt"
+        phase_proof = self._validate_deployment_phase(
+            workload,
+            deployments,
+            target,
+            candidate_id,
+            predecessors,
+        )
         terminal_observed = bool(
             reconciled
-            and candidate.get("status") == "PRIMARY"
             and service_target == target
             and service_running == target.desired_count
             and service_pending == 0
-            and candidate_target == target
-            and candidate_running == target.desired_count
-            and candidate_pending == 0
-            and candidate_failed == 0
-            and candidate_state == "COMPLETED"
+            and phase_proof.predecessors_have_zero_work
+            and phase_proof.candidate_is_exact_terminal_primary
         )
         receipt = ServiceUpdateReceipt(
             workload=workload,
@@ -993,7 +1023,6 @@ class AwsReleaseGateway:
             binding_reason=reason,
             terminal_observed=terminal_observed,
         )
-        self._validate_deployment_allowlist(workload, deployments, receipt)
         return receipt
 
     @staticmethod
@@ -1086,6 +1115,57 @@ class AwsReleaseGateway:
         return retirement
 
     @staticmethod
+    def _is_zero_work_predecessor_remnant(
+        deployment_id: str | None,
+        status: object | None,
+        task_definition: str | None,
+        desired: int | None,
+        running: int | None,
+        pending: int | None,
+        failed: int | None,
+        rollout_state: object | None,
+        predecessor: ServicePredecessor,
+    ) -> bool:
+        return (
+            status in {"ACTIVE", "DRAINING"}
+            and deployment_id == predecessor.primary_deployment_id
+            and task_definition == predecessor.target.task_definition_arn
+            and desired == 0
+            and running == 0
+            and pending == 0
+            and failed == 0
+            and rollout_state in {"IN_PROGRESS", "COMPLETED"}
+        )
+
+    @classmethod
+    def _partial_deployment_matches_draining_predecessor(
+        cls,
+        deployment_id: str | None,
+        task_definition: str | None,
+        desired: int | None,
+        running: int | None,
+        pending: int | None,
+        failed: int | None,
+        rollout_state: object | None,
+        predecessor: ServicePredecessor,
+    ) -> bool:
+        return (
+            cls._partial_member_matches(
+                deployment_id,
+                predecessor.primary_deployment_id,
+            )
+            and cls._partial_member_matches(
+                task_definition,
+                predecessor.target.task_definition_arn,
+            )
+            and cls._partial_member_matches(desired, 0)
+            and cls._partial_member_matches(running, 0)
+            and cls._partial_member_matches(pending, 0)
+            and cls._partial_member_matches(failed, 0)
+            and (rollout_state is None or rollout_state in {"IN_PROGRESS", "COMPLETED"})
+        )
+
+    @staticmethod
     def _is_receipt_initialization(
         observed_target: ServiceTarget,
         running: int,
@@ -1104,20 +1184,31 @@ class AwsReleaseGateway:
             and rollout_state == "IN_PROGRESS"
         )
 
-    def _validate_deployment_allowlist(
+    def _validate_deployment_phase(
         self,
         workload: str,
         deployments: list[dict[str, Any]],
-        receipt: ServiceUpdateReceipt,
-    ) -> None:
+        target: ServiceTarget,
+        candidate_id: str,
+        predecessors: tuple[ServicePredecessor, ...],
+        *,
+        allow_candidate_initialization: bool = True,
+        terminal_predecessors_must_have_zero_work: bool = False,
+    ) -> _DeploymentPhaseProof:
         predecessor_by_id = {
-            predecessor.primary_deployment_id: predecessor for predecessor in receipt.predecessors
+            predecessor.primary_deployment_id: predecessor for predecessor in predecessors
         }
         seen_deployment_ids: set[str] = set()
         worker_tasks = 0
+        predecessors_have_zero_work = True
+        primary_count = 0
+        candidate_is_exact_terminal_primary = False
         for deployment in deployments:
-            if deployment.get("status") not in {"PRIMARY", "ACTIVE"}:
+            status = deployment.get("status")
+            if status not in {"PRIMARY", "ACTIVE", "DRAINING"}:
                 raise ReleaseContractError(f"{workload} deployment status differs")
+            if status == "PRIMARY":
+                primary_count += 1
             deployment_id = self._deployment_id(workload, deployment)
             if deployment_id in seen_deployment_ids:
                 raise ReleaseContractError(f"{workload} deployment ID is duplicated")
@@ -1129,18 +1220,36 @@ class AwsReleaseGateway:
             predecessor = predecessor_by_id.get(deployment_id)
             if rollout_state not in {"IN_PROGRESS", "COMPLETED", "FAILED"}:
                 raise ReleaseContractError(f"{workload} deployment rollout state differs")
+            zero_work_predecessor = predecessor is not None and (
+                self._is_zero_work_predecessor_remnant(
+                    deployment_id,
+                    status,
+                    deployment_target.task_definition_arn,
+                    deployment_target.desired_count,
+                    running,
+                    pending,
+                    failed,
+                    rollout_state,
+                    predecessor,
+                )
+            )
+            if status == "DRAINING" and not zero_work_predecessor:
+                raise ReleaseContractError(
+                    f"{workload} DRAINING deployment is not a recognized predecessor"
+                )
             target_initialization = (
-                deployment_id == receipt.primary_deployment_id
+                allow_candidate_initialization
+                and deployment_id == candidate_id
                 and self._is_receipt_initialization(
                     deployment_target,
                     running,
                     pending,
                     failed,
                     rollout_state,
-                    receipt.target,
+                    target,
                 )
             )
-            is_candidate = deployment_id == receipt.primary_deployment_id
+            is_candidate = deployment_id == candidate_id
             predecessor_retirement = predecessor is not None and (
                 self._partial_deployment_matches_predecessor(
                     deployment_target.task_definition_arn,
@@ -1153,9 +1262,28 @@ class AwsReleaseGateway:
                 )
             )
             if is_candidate:
-                if deployment_target != receipt.target and not target_initialization:
+                if status == "DRAINING":
+                    raise ReleaseContractError(f"{workload} receipt deployment is DRAINING")
+                if deployment_target != target and not target_initialization:
                     raise ReleaseContractError(
                         f"{workload} deployment identity is outside the phase allowlist"
+                    )
+                candidate_is_exact_terminal_primary = (
+                    status == "PRIMARY"
+                    and deployment_target == target
+                    and running == target.desired_count
+                    and pending == 0
+                    and failed == 0
+                    and rollout_state == "COMPLETED"
+                )
+            elif predecessor is None:
+                raise ReleaseContractError(
+                    f"{workload} deployment identity is outside the phase allowlist"
+                )
+            elif terminal_predecessors_must_have_zero_work:
+                if not zero_work_predecessor:
+                    raise ReleaseContractError(
+                        f"terminal {workload} predecessor is not an exact zero-work remnant"
                     )
             elif not predecessor_retirement:
                 raise ReleaseContractError(
@@ -1165,7 +1293,7 @@ class AwsReleaseGateway:
                 if rollout_state == "FAILED" or failed > 0:
                     raise ReleaseContractError(f"{workload} receipt deployment failed")
                 if rollout_state == "COMPLETED" and (
-                    running != receipt.target.desired_count or pending != 0
+                    running != target.desired_count or pending != 0
                 ):
                     raise ReleaseContractError(
                         f"{workload} receipt deployment completed with inexact counts"
@@ -1176,11 +1304,25 @@ class AwsReleaseGateway:
                 and (rollout_state == "FAILED" or failed > 0)
             ):
                 raise ReleaseContractError(f"{workload} terminal predecessor failed")
+            if predecessor is not None and not is_candidate:
+                predecessors_have_zero_work = predecessors_have_zero_work and (
+                    deployment_target.desired_count == 0
+                    and running == 0
+                    and pending == 0
+                    and failed == 0
+                    and rollout_state != "FAILED"
+                )
             worker_tasks += running + pending
             if workload == "worker" and running + pending > 1:
                 raise ReleaseContractError("worker deployment exceeded one running/pending task")
         if workload == "worker" and worker_tasks > 1:
             raise ReleaseContractError("worker deployments exceeded singleton bounds")
+        return _DeploymentPhaseProof(
+            predecessors_have_zero_work=predecessors_have_zero_work,
+            candidate_is_exact_terminal_primary=(
+                primary_count == 1 and candidate_is_exact_terminal_primary
+            ),
+        )
 
     def capture_attempted_predecessor(
         self,
@@ -1228,7 +1370,8 @@ class AwsReleaseGateway:
                     self._deployment_target_and_counts(workload, item)
                 )
                 item_state = item.get("rolloutState")
-                if item.get("status") not in {"PRIMARY", "ACTIVE"} or item_state not in {
+                item_status = item.get("status")
+                if item_status not in {"PRIMARY", "ACTIVE", "DRAINING"} or item_state not in {
                     "IN_PROGRESS",
                     "COMPLETED",
                     "FAILED",
@@ -1238,7 +1381,7 @@ class AwsReleaseGateway:
                     )
                 worker_tasks += item_running + item_pending
                 if item_id == terminal_predecessor.primary_deployment_id:
-                    if not self._partial_deployment_matches_predecessor(
+                    terminal_matches = self._partial_deployment_matches_predecessor(
                         item_target.task_definition_arn,
                         item_target.desired_count,
                         item_running,
@@ -1246,7 +1389,20 @@ class AwsReleaseGateway:
                         item_failed,
                         item_state,
                         terminal_predecessor,
-                    ):
+                    )
+                    if item_status == "DRAINING":
+                        terminal_matches = self._is_zero_work_predecessor_remnant(
+                            item_id,
+                            item_status,
+                            item_target.task_definition_arn,
+                            item_target.desired_count,
+                            item_running,
+                            item_pending,
+                            item_failed,
+                            item_state,
+                            terminal_predecessor,
+                        )
+                    if not terminal_matches:
                         raise ReleaseContractError(
                             f"{workload} recovery capture terminal predecessor state differs"
                         )
@@ -1258,6 +1414,10 @@ class AwsReleaseGateway:
                     item_state,
                     attempted_target,
                 ):
+                    if item_status == "DRAINING":
+                        raise ReleaseContractError(
+                            f"{workload} recovery capture candidate is DRAINING"
+                        )
                     candidate_ids.add(item_id)
                 else:
                     raise ReleaseContractError(
@@ -1366,7 +1526,13 @@ class AwsReleaseGateway:
             if worker_singleton and running + pending > 1:
                 raise ReleaseContractError("worker rollout exceeded one running/pending task")
             deployments = self._deployments(workload, service)
-            self._validate_deployment_allowlist(workload, deployments, receipt)
+            phase_proof = self._validate_deployment_phase(
+                workload,
+                deployments,
+                receipt.target,
+                receipt.primary_deployment_id,
+                receipt.predecessors,
+            )
             primary = [item for item in deployments if item.get("status") == "PRIMARY"]
             if len(primary) != 1:
                 raise ReleaseContractError(f"{workload} service has no unique primary deployment")
@@ -1405,17 +1571,29 @@ class AwsReleaseGateway:
                 if primary_target != receipt.target and not initialization:
                     raise ReleaseContractError(f"{workload} receipt deployment target differs")
                 if service_target == receipt.target and rollout_state == "COMPLETED":
-                    if (
-                        running != receipt.target.desired_count
-                        or pending != 0
-                        or primary_target != receipt.target
-                    ):
+                    if primary_target != receipt.target:
                         raise ReleaseContractError(f"{workload} completed with inexact counts")
-                    self._require_not_after_deadline(
-                        deadline,
-                        context=f"{workload} service stabilization",
+                    if (
+                        running == receipt.target.desired_count
+                        and pending == 0
+                        and phase_proof.predecessors_have_zero_work
+                        and phase_proof.candidate_is_exact_terminal_primary
+                    ):
+                        self._require_not_after_deadline(
+                            deadline,
+                            context=f"{workload} service stabilization",
+                        )
+                        return
+                    phase_task_capacity = receipt.target.desired_count + sum(
+                        item.target.desired_count for item in receipt.predecessors
                     )
-                    return
+                    if (
+                        running < receipt.target.desired_count
+                        or running + pending > phase_task_capacity
+                    ):
+                        raise ReleaseContractError(
+                            f"{workload} completed aggregate counts exceed the phase envelope"
+                        )
             elif predecessor is None:
                 raise ReleaseContractError(f"{workload} PRIMARY deployment ID is unrecognized")
             elif predecessor.role == "terminal" and not (
@@ -1543,7 +1721,29 @@ class AwsReleaseGateway:
         expected_desired_counts: dict[str, int],
         expected_identity: ReleaseIdentity | None,
         expected_primary_deployment_ids: dict[str, str] | None = None,
+        allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
     ) -> None:
+        if allowed_predecessors is not None and set(allowed_predecessors) != {"web", "worker"}:
+            raise ReleaseContractError("terminal predecessor allowlist differs")
+        if allowed_predecessors is not None:
+            for workload in ("web", "worker"):
+                predecessors = allowed_predecessors[workload]
+                if type(predecessors) is not tuple or any(
+                    type(predecessor) is not ServicePredecessor for predecessor in predecessors
+                ):
+                    raise ReleaseContractError("terminal predecessor allowlist is malformed")
+                predecessor_ids = [
+                    predecessor.primary_deployment_id for predecessor in predecessors
+                ]
+                if len(predecessor_ids) != len(set(predecessor_ids)):
+                    raise ReleaseContractError("terminal predecessor allowlist is duplicated")
+                if (
+                    expected_primary_deployment_ids is not None
+                    and expected_primary_deployment_ids[workload] in predecessor_ids
+                ):
+                    raise ReleaseContractError(
+                        f"terminal {workload} receipt ID is reused as a predecessor"
+                    )
         for workload in ("web", "worker"):
             snapshot = self.capture_service(workload)
             if snapshot.task_definition_arn != expected_task_definitions[workload]:
@@ -1561,9 +1761,42 @@ class AwsReleaseGateway:
             ):
                 raise ReleaseContractError(f"terminal {workload} PRIMARY deployment ID differs")
             service = self._service(workload)
+            self._validate_service_identity(workload, service)
+            service_target, service_running, service_pending = self._service_target_and_counts(
+                workload,
+                service,
+            )
+            expected_target = ServiceTarget(
+                expected_task_definitions[workload],
+                expected_desired_counts[workload],
+            )
+            if (
+                service_target != expected_target
+                or service_running != expected_desired_counts[workload]
+                or service_pending != 0
+            ):
+                raise ReleaseContractError(f"terminal {workload} service target/counts differ")
             deployments = self._deployments(workload, service)
-            if any(item.get("status") not in {"PRIMARY", "ACTIVE"} for item in deployments):
-                raise ReleaseContractError(f"terminal {workload} deployment status differs")
+            predecessors = () if allowed_predecessors is None else allowed_predecessors[workload]
+            candidate_id = (
+                snapshot.primary_deployment_id
+                if expected_primary_deployment_ids is None
+                else expected_primary_deployment_ids[workload]
+            )
+            phase_proof = self._validate_deployment_phase(
+                workload,
+                deployments,
+                expected_target,
+                candidate_id,
+                predecessors,
+                allow_candidate_initialization=False,
+                terminal_predecessors_must_have_zero_work=True,
+            )
+            if (
+                not phase_proof.candidate_is_exact_terminal_primary
+                or not phase_proof.predecessors_have_zero_work
+            ):
+                raise ReleaseContractError(f"terminal {workload} deployment phase is not stable")
             primary = [item for item in deployments if item.get("status") == "PRIMARY"]
             if len(primary) != 1:
                 raise ReleaseContractError(f"terminal {workload} has no unique PRIMARY deployment")
@@ -1573,11 +1806,7 @@ class AwsReleaseGateway:
                 self._deployment_target_and_counts(workload, deployment)
             )
             if (
-                primary_target
-                != ServiceTarget(
-                    expected_task_definitions[workload],
-                    expected_desired_counts[workload],
-                )
+                primary_target != expected_target
                 or primary_running != expected_desired_counts[workload]
                 or primary_pending != 0
                 or failed_tasks != 0

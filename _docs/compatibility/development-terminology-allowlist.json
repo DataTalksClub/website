@@ -180,7 +180,7 @@
     },
     {
       "path": "core/tests/test_deployment_release.py",
-      "sha256": "ec57d47da62e84830502f1d85aafeca4e30b2c7b9cb3bdd032e70351f56e70ca",
+      "sha256": "294d3a34c17bfa6c9eb15f1383d5cab43771e2b0fefdd04e23a278f4e57d22f3",
       "class": "legacy_contract_test",
       "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
       "follow_up": "#94",
@@ -188,7 +188,7 @@
     },
     {
       "path": "core/tests/test_deployment_workflow.py",
-      "sha256": "09b2ace0627c2e349217e7543f14ae711d417ce5e0ef773036cf71603297b230",
+      "sha256": "81a10ead3246687edc580538cf388fdc8f5f0d9a78468f3ed739ae041d935521",
       "class": "legacy_contract_test",
       "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, and exact physical values.",
       "follow_up": "#94",
