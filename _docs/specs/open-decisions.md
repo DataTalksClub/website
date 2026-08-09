@@ -30,9 +30,12 @@ Recommendation: new canonical pages live under `datatalks.club/courses/<course>/
 
 Owner input needed: inventory authenticated API clients before redirecting them; cross-host redirects may drop authorization. Keep direct compatibility responses until those clients are migrated.
 
-## 6. Event and course registration verification
+## 6. Accountless event registration verification
 
-Recommendation: accountless registration requires email verification before confirmation/enrollment. Do not create a learner account until email ownership is verified.
+Recommendation: accountless event registration requires email verification before confirmation and
+does not create a learner account. Course registration is a different, account-owned flow: it
+requires a durable account with verified email ownership and a completed member profile before
+creating the confirmed registration, and it never creates an anonymous `CourseRegistration`.
 
 Alternative: immediate confirmation is simpler but makes third-party email abuse and typo registrations easier.
 
@@ -60,7 +63,10 @@ Owner input needed: development/production from and reply-to addresses, and whet
 
 ## 11. Email scope
 
-Recommendation: event/course registration verification and confirmation, cancellation, event cancellation/reschedule, enrollment changes, deadlines, peer review, scores, certificates, account verification, and password recovery. Marketing/newsletters are deferred.
+Recommendation: accountless event-registration verification and confirmation; verified-account
+course/cohort registration confirmation; cancellation, event cancellation/reschedule, enrollment
+changes, deadlines, peer review, scores, certificates, account verification, and password recovery.
+Marketing/newsletters are deferred.
 
 ## 12. Privacy retention
 
@@ -95,3 +101,36 @@ Recommendation: reauthentication and explicit confirmation for staff-role grants
 ## 18. Production cutover scope
 
 Recommendation: do not combine URL redesign or broad SEO improvements with cutover. Preserve first, measure, then improve in later releases.
+
+## 19. Member profile and Slack onboarding
+
+Resolved MVP default: use one private, account-owned `MemberProfile` after verified email ownership.
+It is independent of the GitHub-backed public editorial `Person` and is never linked or synchronized
+by inference. Profile completion creates immediate automated Slack eligibility and a durable
+transactional delivery for the shared join URL held in the approved secret channel. There is no
+Slack invitation API, membership synchronization, public member directory, or manual review queue.
+
+Required work status, professional role, and seniority vocabularies are code-defined and
+migration-stable. Members enter shared values once, edit them in account settings, and confirm them
+before first Slack access or each new course registration. Course registrations retain deliberately
+minimal immutable shared-profile snapshots containing only profile UUID, completion schema version,
+profile revision, snapshot timestamp, optional certificate/display name, country/region,
+organization, work status, professional role, and seniority. Normalized email, target
+campaign/cohort, course comment, privacy-notice evidence, and optional marketing-consent evidence
+remain separate registration-owned values; profile edits affect only future registrations.
+
+## 20. CloudFront cache, WAF, and cost plan
+
+Resolved MVP default: positively cache only explicitly classified anonymous public `GET`/`HEAD`
+responses through a generated route registry and fail every unknown, private, credential-bearing,
+personalized, unsafe, search, or operational request to zero TTL/no-store. Preserve production URL,
+canonical, robots, sitemap, structured-data, and indexing contracts; development stays noindex and
+nofollow for hits, misses, redirects, errors, assets, and WAF denials.
+
+Select the cheapest plan that accepts the exact reviewed distribution, cache/origin policies, WAF
+rules, standard logging, infrastructure automation, and measured/projection allowance with
+headroom. Free is eligible only when the complete contract fits. Prefer Pro when its real
+eligibility check accepts the candidate; otherwise compare pay-as-you-go with Business and select
+the cheaper sufficient option. Retain pay-as-you-go when flat-plan lifecycle cannot be reproduced
+through accepted automation. Premium, targeted/advanced bot control, fraud/account-takeover,
+CAPTCHA, challenge, and real-time logging require a separate owner-approved issue.

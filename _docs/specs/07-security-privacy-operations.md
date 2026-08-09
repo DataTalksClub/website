@@ -8,6 +8,7 @@ Actors include anonymous readers/registrants, learners, content maintainers, cou
 
 Protected assets include:
 
+- private member-profile values, completion history, Slack eligibility, and the Slack join secret;
 - learner, registrant, submission, peer-review, attendance, and certificate data;
 - privacy and optional marketing-consent evidence;
 - account verification/password reset/registration management tokens;
@@ -26,17 +27,86 @@ Protected assets include:
 - Return safe errors without stack traces, secrets, tokens, provider payloads, raw SQL, or object-existence clues.
 - Apply request/body/file/decompression/time limits at edge and application layers.
 - Use AWS WAF/edge rate controls for broad abuse and database-backed per-email/event/principal limits for business actions.
-- Add a honeypot first; use an accessible adaptive challenge only when traffic is suspicious.
+- Add a honeypot first. CAPTCHA/challenge is deferred from the MVP and requires a later reviewed
+  issue with accessibility evidence if traffic eventually warrants it.
 - Never synchronously fetch arbitrary learner-submitted links. Any background validation uses DNS/IP revalidation, protocol/port allowlists, redirect limits, response-size limits, and blocks private/link-local/metadata networks.
 - Sanitize GitHub Markdown/HTML and prohibit unsafe protocols, handlers, inline scripts, traversal, symlink escapes, and arbitrary remote includes.
 - Formula-neutralize CSV exports.
 - Do not log or place secrets/tokens in URLs, metrics, traces, analytics, or error reports.
+
+## Shared-cache trust and poisoning boundary
+
+CloudFront positive caching is deny-by-default. A deterministic versioned viewer-request function,
+without a key-value store, removes every viewer-supplied internal classification header and labels
+the request `anonymous-v1` only when it has no Authorization, signed URL/cookie, session/auth/CSRF
+or unknown credential-shaped cookie, preview/management token, or malformed credential-like state.
+Classifier error or ambiguity is private. The marker participates in public-HTML cache keys and is
+forwarded through the protected edge/origin boundary.
+
+Explicit private paths always use the zero-TTL policy. A credential-bearing request on a mixed public
+path reaches origin, where both Django and an edge origin-response guard force private/no-store
+before storage. A response is ineligible when it has `Set-Cookie`, private/no-store, `Vary: *`, CSRF,
+PII, identity/capability state, an unsafe method, or a disallowed status. If edge-function and policy
+ordering cannot prove that isolation, the route remains zero-TTL.
+
+Anonymous-cacheable templates contain no account-sensitive navigation/data and set no cookie or
+CSRF token. If a route cannot render one anonymous-stable representation, it remains disabled.
+
+Cache/origin keys and forwarded values use the exact per-route allowlists in specifications 02 and
+08. Host, arbitrary headers/cookies/query, raw Accept-Encoding, CloudFront country, and tracking
+values cannot create hidden variants. Duplicate/case/encoding/path/Host tests cover cache poisoning.
+All cache policies have `min_ttl = 0`; errors are not cached except the clean public-404 class.
+
+`CloudFront-Viewer-Country` is accepted only on zero-TTL onboarding/profile consumers when trusted
+edge mode is configured. CloudFront removes a viewer lookalike and supplies its genuine value across
+the CloudFront-prefix-list, expected Host, and generated origin-verification boundary. Django accepts
+only a known uppercase ISO 3166-1 alpha-2 code; special/unknown/lowercase/malformed values,
+local/test/direct-origin requests, and missing headers yield no suggestion. The form labels the
+value as an editable suggestion that the member must confirm or replace. It has lower precedence
+than account/registration migration data and never enters a public cache key. The raw header and
+unconfirmed suggestion are never stored in the profile or ordinary logs/metrics; only the country
+code explicitly confirmed by the member becomes profile data. Onboarding remains fully functional
+without the suggestion.
+
+## Edge and application abuse controls
+
+One Terraform-managed CloudFront-scope WAF ACL starts managed and rate rules in count mode. The
+initial reviewed set covers common web threats, known-bad input, IP reputation, malformed/oversize
+requests, disallowed methods/paths, and rate rules with these per-source-IP five-minute starting
+thresholds:
+
+- 2,000 ordinary cacheable public `GET`/`HEAD` requests;
+- 300 search, unknown-query, or other origin-bound anonymous reads;
+- 300 `/api/` reads;
+- 60 signup, login, profile, Slack, and course/event registration requests;
+- a separately bounded emergency rate/block rule controlled by reviewed Terraform input.
+
+Count mode runs for at least seven representative development days and records only aggregate
+matches and reviewed false positives before blocking. Known exploit/IP-reputation rules may move
+earlier only with deterministic fixtures and no legitimate-user regression. A blocked/rate-limited
+request returns a safe non-cacheable response and provably performs no ALB, Django, database, worker,
+or email work.
+
+Application services keep stricter business limits: login/verification/resend/profile/registration
+use normalized identity plus safe IP class, and admin API uses principal/capability. Edge IP limits
+are not authorization and do not solve distributed botnets. User-Agent is never trusted as crawler
+identity, there is no unconditional verified-bot bypass, and `robots.txt` expresses crawl preference
+rather than enforcement. Production crawlers use ordinary public limits. Baseline high-rate,
+cache-busting, and known-reputation controls plus alarms/emergency rule cover MVP; targeted/advanced
+bot control, fraud/account-takeover, CAPTCHA, challenge, and guaranteed botnet prevention are out of
+scope. Only plan-included common/self-identifying bot analytics or controls may be considered when
+the selected tier supports them without changing this contract.
 
 ## Identity and authorization
 
 - Use one custom email-based user model from the first migration for learners and staff.
 - Human staff login uses OIDC with provider-enforced MFA; local staff passwords are break-glass only.
 - Learner authentication supports verified email and may add social/OIDC login without creating duplicate accounts.
+- Signup and social return collect no member-profile values before verified ownership. A server-side
+  path-only intent resumes Slack, one active course-registration campaign, or account settings
+  without placing email, token, invite secret, or an external next URL in a location.
+- `MemberProfile` is private and owner-readable/writable except for explicit support capabilities.
+  It cannot create, infer, publish, or authorize a GitHub-backed editorial Person.
 - Account linking requires verified ownership and audited conflict resolution.
 - Studio/API authorization is deny-by-default and checks function, object, and sensitive fields.
 - Sessions have idle/absolute timeouts and immediate revocation on staff disablement.
@@ -55,6 +125,24 @@ Engineering must document and the owner/privacy contact must approve:
 - access, correction, deletion/anonymization, restriction, objection, and portable export workflows suitable for users with and without accounts;
 - deletion propagation to projections, search, caches, exports, email providers, and restored backups;
 - minors policy and recording/public-profile expectations.
+
+MemberProfile and every onboarding, self, Slack, Studio, and admin-member response are private,
+no-store, noindex, absent from sitemap/search/public serializers, and excluded from public caches.
+Profile free text is escaped plain text and no analytics event contains profile values. Aggregate
+metrics may use only step, completion version, delivery state, and safe failure category. Optional
+profile URLs accept only safe HTTP/HTTPS values, are not synchronously fetched, and render with safe
+external-link attributes.
+
+Account export contains the member's profile, completion/grant metadata, their course
+registrations' minimized shared-profile snapshots, and the separately registration-owned normalized
+email, target, comment, privacy-notice, and optional marketing-consent evidence, but never the shared
+Slack secret. Correction uses the normal accounts service. The
+deletion/anonymization workflow removes or anonymizes profile PII, future Slack eligibility,
+`CustomUser` compatibility projections, search/cache/export copies, and queued deliveries, and
+prevents reveal/resend for disabled/quarantined/deleted accounts. Historical minimized
+shared-profile snapshots and separate registration-owned fields/evidence follow the approved
+educational-record retention and are not silently rewritten outside that legal workflow. The
+exception leaves non-PII reconciliation evidence and restored backups replay the deletion tombstone.
 
 Recommended initial retention, pending owner/privacy review:
 
@@ -84,7 +172,7 @@ Target WCAG 2.2 AA for the public site, learner course experience, Studio, and t
 
 ## Observability
 
-Structured logs include request/job/message IDs, route/operation, duration, status, safe actor class, content release, cohort/event, queue age, and delivery identifiers. Raw emails and submission content are excluded from default logs.
+Structured logs include request/job/message IDs, route/operation, duration, status, safe actor class, content release, cohort/event, queue age, and delivery identifiers. Raw emails, submission content, Cookie, Authorization, session/CSRF values, complete query, raw IP, country suggestion/header, origin-verification value, preview/management token, Slack link, profile value, and response body are excluded from default logs.
 
 Metrics and alerts cover:
 
@@ -95,9 +183,51 @@ Metrics and alerts cover:
 - SES acceptance latency, bounce, complaint, rejection, suppression, quota, and cost;
 - course scoring/peer-assignment failures and deadline-job lateness;
 - API authentication/authorization failures, rate limiting, high-risk operations, and export volume;
-- database/storage health, backups, restore verification, and edge/origin failures.
+- database/storage health, backups, restore verification, and edge/origin failures;
+- aggregate route/viewer class, cache status and age bucket, cache hit ratio, origin-request rate,
+  bytes/status, invalidation state/latency, WAF rule label/action, allowance usage, and edge-function
+  errors using bounded labels.
 
 Each alert has an owner, threshold, runbook, and escalation path. Optional tracing must fail safely and is configured at process boot, not through a runtime database secret.
+
+Standard CloudFront/WAF logs use encrypted storage, bounded retention, least privilege, and field
+omission/redaction. Real-time logs are not required. Development remains noindex/nofollow for cache
+hits, misses, redirects, errors, assets, and WAF denials; cacheability cannot change a production
+canonical or make preview content indexable.
+
+## Edge cost-plan decision and rollback
+
+Before subscribing or applying, produce a redacted read-only comparison from current AWS
+documentation and the latest 30 days of workload-only metrics, or the available shorter window with
+an explicit projection. Compare request/transfer, hit/miss, WAF evaluated/blocked, log ingestion,
+invalidation, edge compute, ALB origin request/transfer, ECS, RDS, and residual service cost under
+normal, 10x viral, cache-busting, and distributed-bot scenarios. Record exact account/distribution
+eligibility, behaviors/rules/associations, logging mode, bot feature level, allowances, and every
+unsupported association for pay-as-you-go and then-current Free, Pro, Business, and Premium plans.
+
+Use the cheapest sufficient result without weakening security, observability, cache correctness, or
+evidence:
+
+1. Free is eligible only when every required behavior, policy, WAF rule, logging control, and usage
+   allowance fits.
+2. Prefer Pro when the real eligibility check accepts the exact candidate and forecast with
+   headroom.
+3. If Pro rejects a requirement, compare measured/projected pay-as-you-go and Business, then choose
+   the cheaper sufficient option. Business is not selected only for advanced bots outside MVP.
+4. Premium or advanced products require a new owner-approved cost issue.
+5. If flat-plan lifecycle cannot be reproduced through accepted infrastructure automation, retain
+   pay-as-you-go; never create a console-only subscription.
+
+Prices, allowances, included/unsupported features, and treatment of WAF/DDoS-blocked traffic are
+rechecked at implementation because they change. Residual ALB/ECS/RDS, non-included edge compute,
+and unrelated services remain budgeted. Alarms have named owners/runbooks and cover 50%, 80%, and
+100% of selected allowance/forecast; cache hit ratio below 70% after warm-up; origin rate above
+twice reviewed normal peak for 15 minutes; WAF block/rate, 4xx/5xx, invalidation failure/age,
+edge-function error; and ALB/ECS/RDS load/cost rising despite edge controls.
+
+Emergency action is a reviewed Terraform rate/block toggle or cache-disable/TTL-zero rollback. It
+never broadens caching or origin access. Cache/WAF/invalidation alarms and rollback are exercised
+without a live secret or production data before production promotion.
 
 ## Service targets
 
@@ -137,6 +267,12 @@ Recommended initial production targets, subject to approval:
 - Threat model and authorization matrix are reviewed before production data is loaded.
 - Security headers, CSRF, session/token lifecycle, rate/body limits, SSRF, XSS, CSV injection, and error-redaction tests pass.
 - Privacy export/deletion/anonymization and retention jobs include course and event data.
+- Member export/correction/deletion includes profiles, grants, compatibility projections, queued
+  deliveries, retained minimized shared-profile snapshots, and the separate registration-owned
+  email/target/comment/notice/consent evidence without exposing profile values or Slack secrets in
+  logs, metrics, audits, or evidence.
+- Cache classification, poisoning, country trust, WAF count/block, cheapest-sufficient plan evidence,
+  allowance alarms, and TTL-zero/emergency rollback pass local/policy/deployed gates.
 - WCAG automated and manual acceptance passes for critical flows.
 - Alerts and runbooks exist for every release-critical failure mode.
 - A restore drill meets the approved RPO/RTO and does not resend historical email or resurrect deleted data.

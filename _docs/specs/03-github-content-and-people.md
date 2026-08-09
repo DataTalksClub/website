@@ -30,7 +30,8 @@ Studio never creates a conflicting published database override. In the MVP it pr
 - source, immutable commit SHA, parser/rendering version, and status;
 - requested, fetched, validated, activated, superseded, and failed timestamps;
 - initiator, webhook delivery/request ID, counts, warnings, and structured errors;
-- search/graph build identifiers and asset manifest checksum.
+- search/graph build identifiers, asset manifest checksum, and the reviewed public route/invalidation
+  manifest computed for activation.
 
 States are `queued`, `fetching`, `validating`, `ready`, `active`, `superseded`, `invalid`, and `failed`. Only a complete `ready` release can become active.
 
@@ -63,9 +64,18 @@ Assets are stored under release-specific keys. The Django asset resolver selects
 - Public path remains `/people/<short>.html`.
 - Names, bio, portrait, and social links come from the active GitHub profile.
 - Roles are derived from ordered relationships, so the same person can be an author, guest, speaker, host, instructor, book author, or maintainer at the same time.
-- Course/event teaching relationships may optionally link a staff/member user to a public person profile; neither record implies the other.
+- Course/event teaching relationships may explicitly link a staff user to a public person profile;
+  neither record implies the other and the relation grants no account or content authority.
 - A content candidate with an unknown required person key fails validation.
 - Person-key renames require an explicit alias and permanent redirect; a filename rename alone cannot silently create a new identity.
+
+`accounts.MemberProfile` is not a Person. It is a private, database-owned, one-to-one community and
+learner-onboarding record for an authenticated account. Signup, profile completion, Slack access,
+course registration, migration, support correction, export, or deletion must not query for or write
+a Person as a side effect. Names, email, organization, seniority, links, Slack state, and course
+activity never infer a match. A later reviewed relation may connect independently existing records,
+but it synchronizes no fields, publishes no private profile value, assigns no editorial role, and
+grants no account, course, Studio, or staff permission.
 
 ## Repository adapters
 
@@ -114,6 +124,28 @@ Each source uses an explicit adapter with fixtures from real legacy files.
 - Validation finishes before activation. A failure never deletes or partly updates the active release.
 - Scheduled reconciliation detects missed webhooks and branch drift.
 
+## Activation, invalidation, and bounded freshness
+
+Candidate validation computes a deterministic route manifest before activation. It contains changed
+public detail paths and every dependent public hub, alias/redirect, feed, sitemap, search surface,
+and stable asset path whose representation may change. It never contains preview/management links,
+queries, email, member/profile values, or other secrets/PII.
+
+The atomic activation transaction stores that manifest, replaces the path claims and active-release
+pointer, and creates one unique edge-invalidation intent keyed by distribution and content release.
+Network work starts only after commit. A leased worker coalesces compatible paths, records provider
+ID/state, retries bounded transient failures, and alerts on a terminal result. For the first cache
+release, exactly one coalesced `/*` invalidation for an activated release is valid; a later optimized
+manifest must preserve the same correctness.
+
+Invalidation failure never rolls back an already committed active pointer. Public readers may see
+only the prior safe anonymous representation until its route-class TTL expires: editorial details
+at most 600 seconds, hubs/feeds/sitemap at most 300 seconds, public course/event pages at most 60
+seconds, redirects/stable assets according to their explicit longer class. Stale-if-error remains
+bounded by specification 02 and cannot apply to previews, search/query results, authenticated or
+private state. Activation status exposes aggregate invalidation counts/state/latency without raw
+sensitive paths.
+
 ## Search and graph
 
 - Content activation builds a candidate search projection before swapping it active.
@@ -144,4 +176,8 @@ Only security administrators can change repository allowlists, branches, secret 
 - Rendering fixtures cover raw HTML/Liquid, docs features, literal FAQ Jinja, and Podwiki chips/citations.
 - Invalid signatures, replayed deliveries, traversal, unsafe HTML, invalid metadata, oversize repositories, and missing references fail safely.
 - A failed release leaves public routes, assets, search, graph, and active commit unchanged.
+- Activation stores one deterministic public route manifest and durable idempotent invalidation
+  intent; retries, provider failure, and first-release wildcard fallback preserve bounded freshness.
+- Member onboarding and course activity have zero automatic Person lookup, write, link, publication,
+  role, or permission side effect.
 - Studio and API expose the same content management capabilities and permissions.
