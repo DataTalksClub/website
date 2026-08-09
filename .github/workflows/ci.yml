@@ -79,6 +79,7 @@ jobs:
         name: Validate immutable source selection
         env:
           EVENT_NAME: ${{ github.event_name }}
+          EVENT_AFTER: ${{ github.event.after }}
           INPUT_RELEASE_SHA: ${{ inputs.release_sha }}
           INPUT_DEPLOY_DEVELOPMENT: ${{ inputs.deploy_development }}
           INPUT_PROBE_DEVELOPMENT: ${{ inputs.probe_development }}
@@ -238,6 +239,10 @@ jobs:
             fi
           else
             candidate="$GITHUB_SHA"
+            if [[ "$EVENT_AFTER" != "$candidate" ]]; then
+              echo "Push after SHA does not match the workflow source" >&2
+              exit 1
+            fi
           fi
           if [[ ! "$candidate" =~ ^[0-9a-f]{40}$ ]]; then
             echo "Release SHA must be exactly 40 lowercase hexadecimal characters" >&2
@@ -266,6 +271,58 @@ jobs:
           fi
           echo "release_sha=$candidate" >> "$GITHUB_OUTPUT"
 
+  classification:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
+    needs: resolve-release
+    runs-on: ubuntu-latest
+    outputs:
+      profile: ${{ steps.selection.outputs.profile }}
+      reason: ${{ steps.selection.outputs.reason }}
+    defaults:
+      run:
+        working-directory: .tmp/ci-controller
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .tmp/ci-controller
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/release-source
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - id: selection
+        name: Classify the complete source change safely
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.event.after }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp
+          uv run --frozen python -m ci.classifier select \
+            --repository ../release-source \
+            --event "$EVENT_NAME" \
+            --base "$EVENT_BEFORE" \
+            --after "$EVENT_AFTER" \
+            --github-sha "$GITHUB_SHA" \
+            --release-sha "$RELEASE_SHA" \
+            --output .tmp/ci-selection.json \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Preserve the machine-readable CI selection
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/ci-selection.json
+          if-no-files-found: error
+          retention-days: 30
+
   quality:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
@@ -278,6 +335,10 @@ jobs:
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .tmp/ci-controller
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -292,10 +353,13 @@ jobs:
       - run: make migrations-check
       - run: make django-check
       - run: make deployment-check
+      - name: Run CI orchestration contract tests from the workflow controller
+        working-directory: .tmp/ci-controller
+        run: make test-ci
 
   django:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
-    needs: resolve-release
+    needs: [resolve-release, classification]
     runs-on: ubuntu-latest
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
@@ -309,18 +373,49 @@ jobs:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
           fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .tmp/ci-controller
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
+      - name: Restore the reviewed CI selection
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/release-source/.tmp/ci-selection
       - name: Create a fresh ordinary-CI SQLite database
         run: |
           mkdir -p .tmp
           rm -f .tmp/ci.sqlite3 .tmp/ci.sqlite3-shm .tmp/ci.sqlite3-wal
       - run: uv run python manage.py migrate --noinput
-      - run: make test
+      - name: Validate the code-owned test selection
+        working-directory: .tmp/ci-controller
+        run: >-
+          uv run --frozen python -m ci.classifier validate
+          --input ../release-source/.tmp/ci-selection/ci-selection.json
+      - name: Run the selected or complete Django suite
+        env:
+          CI_SELECTION_PATH: .tmp/ci-selection/ci-selection.json
+          SELECTED_PROFILE: ${{ needs.classification.outputs.profile }}
+        run: |
+          set -euo pipefail
+          case "$SELECTED_PROFILE" in
+            focused)
+              make test-ci-focused
+              ;;
+            full)
+              make test
+              ;;
+            *)
+              echo "Classifier emitted an unsupported profile" >&2
+              exit 1
+              ;;
+          esac
 
   playwright:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
@@ -461,7 +556,7 @@ jobs:
             --env "APP_VERSION=$RELEASE_SHA" \
             --publish 8000:8000 "dtc-website:$RELEASE_SHA" web
           trap 'docker logs dtc-web; docker rm --force dtc-web' EXIT
-          for attempt in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = "{\"status\": \"ok\", \"version\": \"$RELEASE_SHA\"}"; then
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
               exit 0
@@ -486,12 +581,62 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
+  ci-gate:
+    if: >-
+      always() &&
+      (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
+    # Preserve the release-image prerequisite boundary checked by the frozen
+    # deployment contract: needs: [resolve-release, quality, django, playwright, container]
+    needs: [resolve-release, classification, quality, django, playwright, container]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - id: selection-download
+        name: Restore classifier evidence for aggregate validation
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-selection
+      - name: Require every non-probe release check
+        env:
+          RESOLVE_RESULT: ${{ needs.resolve-release.result }}
+          CLASSIFICATION_RESULT: ${{ needs.classification.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          DJANGO_RESULT: ${{ needs.django.result }}
+          PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+        run: |
+          uv run --frozen python -m ci.gate normal \
+            --selection .tmp/ci-selection/ci-selection.json \
+            --resolve-release "$RESOLVE_RESULT" \
+            --classification "$CLASSIFICATION_RESULT" \
+            --quality "$QUALITY_RESULT" \
+            --django "$DJANGO_RESULT" \
+            --playwright "$PLAYWRIGHT_RESULT" \
+            --container "$CONTAINER_RESULT" \
+            --output .tmp/ci-gate.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - name: Preserve aggregate CI evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-gate-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-gate.json
+          if-no-files-found: warn
+          retention-days: 30
+
   auto-capture-prior:
     if: >-
+      needs.ci-gate.result == 'success' &&
       github.event_name == 'push' &&
       vars.DEVELOPMENT_AUTO_DEPLOY == 'true' &&
       github.ref == 'refs/heads/main'
-    needs: [resolve-release, quality, django, playwright, container]
+    needs: [resolve-release, classification, quality, django, playwright, container, ci-gate]
     runs-on: ubuntu-latest
     environment:
       name: sandbox
@@ -623,17 +768,13 @@ jobs:
   publish:
     if: >-
       always() &&
-      needs.resolve-release.result == 'success' &&
-      needs.quality.result == 'success' &&
-      needs.django.result == 'success' &&
-      needs.playwright.result == 'success' &&
-      needs.container.result == 'success' &&
+      needs.ci-gate.result == 'success' &&
       ((github.event_name == 'push' && vars.DEVELOPMENT_AUTO_DEPLOY == 'true' &&
       needs.auto-capture-prior.result == 'success') ||
       (github.event_name == 'workflow_dispatch' && inputs.deploy_development == true &&
       inputs.operation != 'probe' && needs.auto-capture-prior.result == 'skipped')) &&
       github.ref == 'refs/heads/main'
-    needs: [resolve-release, quality, django, playwright, container, auto-capture-prior]
+    needs: [resolve-release, classification, quality, django, playwright, container, ci-gate, auto-capture-prior]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -813,13 +954,14 @@ jobs:
   deploy:
     if: >-
       always() &&
+      needs.ci-gate.result == 'success' &&
       needs.publish.result == 'success' &&
       ((github.event_name == 'push' && vars.DEVELOPMENT_AUTO_DEPLOY == 'true' &&
       needs.auto-capture-prior.result == 'success') ||
       (github.event_name == 'workflow_dispatch' && inputs.deploy_development == true &&
       inputs.operation != 'probe' && needs.auto-capture-prior.result == 'skipped')) &&
       github.ref == 'refs/heads/main'
-    needs: [resolve-release, quality, django, playwright, container, auto-capture-prior, publish]
+    needs: [resolve-release, classification, quality, django, playwright, container, ci-gate, auto-capture-prior, publish]
     runs-on: ubuntu-latest
     environment:
       name: sandbox

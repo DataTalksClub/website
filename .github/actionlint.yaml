@@ -1,0 +1,5 @@
+paths:
+  .github/workflows/scheduled-full-regression.yml:
+    ignore:
+      # GitHub supports queued concurrency, but actionlint 1.7.12 predates this syntax.
+      - 'unexpected key "queue" for "concurrency" section'
