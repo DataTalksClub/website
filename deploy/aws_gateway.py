@@ -13,7 +13,13 @@ import boto3  # type: ignore[import-untyped]
 
 from deploy.contracts import (
     IMAGE_DIGEST_PATTERN,
+    MAX_RECOVERY_PHASE_TIMEOUT_SECONDS,
+    MAX_WEB_RECOVERY_TIMEOUT_SECONDS,
+    MAX_WORKER_RECOVERY_TIMEOUT_SECONDS,
+    RECOVERY_PHASE_TIMEOUT_SECONDS,
     SOURCE_SHA_PATTERN,
+    WEB_RECOVERY_TIMEOUT_SECONDS,
+    WORKER_RECOVERY_TIMEOUT_SECONDS,
     ActiveServicePair,
     ReleaseContractError,
     ReleaseIdentity,
@@ -63,6 +69,9 @@ class AwsReleaseConfig:
     timeout_seconds: int = MAX_STAGE_TIMEOUT_SECONDS
     web_stabilization_timeout_seconds: int = WEB_STABILIZATION_TIMEOUT_SECONDS
     worker_stabilization_timeout_seconds: int = WORKER_STABILIZATION_TIMEOUT_SECONDS
+    web_recovery_timeout_seconds: int = WEB_RECOVERY_TIMEOUT_SECONDS
+    worker_recovery_timeout_seconds: int = WORKER_RECOVERY_TIMEOUT_SECONDS
+    recovery_phase_timeout_seconds: int = RECOVERY_PHASE_TIMEOUT_SECONDS
     poll_seconds: int = 10
 
     def __post_init__(self) -> None:
@@ -70,6 +79,9 @@ class AwsReleaseConfig:
             "stage": self.timeout_seconds,
             "web stabilization": self.web_stabilization_timeout_seconds,
             "worker stabilization": self.worker_stabilization_timeout_seconds,
+            "web recovery": self.web_recovery_timeout_seconds,
+            "worker recovery": self.worker_recovery_timeout_seconds,
+            "recovery phase": self.recovery_phase_timeout_seconds,
             "poll": self.poll_seconds,
         }
         if any(type(value) is not int or value < 1 for value in integer_timeouts.values()):
@@ -86,6 +98,17 @@ class AwsReleaseConfig:
             raise ReleaseContractError(
                 "worker stabilization timeout exceeds the recovery-safe maximum"
             )
+        if self.web_recovery_timeout_seconds > MAX_WEB_RECOVERY_TIMEOUT_SECONDS:
+            raise ReleaseContractError("web recovery timeout exceeds the recovery-safe maximum")
+        if self.worker_recovery_timeout_seconds > MAX_WORKER_RECOVERY_TIMEOUT_SECONDS:
+            raise ReleaseContractError("worker recovery timeout exceeds the recovery-safe maximum")
+        if self.recovery_phase_timeout_seconds > MAX_RECOVERY_PHASE_TIMEOUT_SECONDS:
+            raise ReleaseContractError("recovery phase timeout exceeds the recovery-safe maximum")
+        if self.recovery_phase_timeout_seconds < max(
+            self.web_recovery_timeout_seconds,
+            self.worker_recovery_timeout_seconds,
+        ):
+            raise ReleaseContractError("recovery phase cannot contain the workload budgets")
         if self.poll_seconds > self.timeout_seconds:
             raise ReleaseContractError("poll interval must not exceed the stage timeout")
         if self.poll_seconds > self.web_stabilization_timeout_seconds:
@@ -96,6 +119,12 @@ class AwsReleaseConfig:
             raise ReleaseContractError(
                 "poll interval must not exceed the worker stabilization timeout"
             )
+        if self.poll_seconds > self.web_recovery_timeout_seconds:
+            raise ReleaseContractError("poll interval must not exceed the web recovery timeout")
+        if self.poll_seconds > self.worker_recovery_timeout_seconds:
+            raise ReleaseContractError("poll interval must not exceed the worker recovery timeout")
+        if self.poll_seconds > self.recovery_phase_timeout_seconds:
+            raise ReleaseContractError("poll interval must not exceed the recovery phase timeout")
 
 
 @dataclass(frozen=True)
@@ -119,6 +148,18 @@ class AwsReleaseGateway:
     def worker_stabilization_timeout_seconds(self) -> int:
         return self.config.worker_stabilization_timeout_seconds
 
+    @property
+    def web_recovery_timeout_seconds(self) -> int:
+        return self.config.web_recovery_timeout_seconds
+
+    @property
+    def worker_recovery_timeout_seconds(self) -> int:
+        return self.config.worker_recovery_timeout_seconds
+
+    @property
+    def recovery_phase_timeout_seconds(self) -> int:
+        return self.config.recovery_phase_timeout_seconds
+
     def service_stabilization_deadline(self, timeout_seconds: int | None = None) -> float:
         selected = self.config.timeout_seconds if timeout_seconds is None else timeout_seconds
         allowed = {
@@ -130,10 +171,40 @@ class AwsReleaseGateway:
             raise ReleaseContractError("service stabilization deadline budget differs")
         return time.monotonic() + selected
 
-    def _validate_recovery_deadline(self, deadline: object) -> float:
+    def recovery_phase_deadline(self) -> float:
+        return time.monotonic() + self.config.recovery_phase_timeout_seconds
+
+    def recovery_workload_deadline(self, workload: str, phase_deadline: float) -> float:
+        phase_deadline = self._validate_stabilization_deadline(
+            phase_deadline,
+            maximum_seconds=self.config.recovery_phase_timeout_seconds,
+        )
+        self._require_deadline_remaining(phase_deadline, context="recovery phase")
+        if workload == "web":
+            budget = self.config.web_recovery_timeout_seconds
+        elif workload == "worker":
+            budget = self.config.worker_recovery_timeout_seconds
+        else:
+            raise ReleaseContractError("recovery workload differs")
+        return min(time.monotonic() + budget, phase_deadline)
+
+    def ensure_recovery_phase(self, phase_deadline: float) -> None:
+        phase_deadline = self._validate_stabilization_deadline(
+            phase_deadline,
+            maximum_seconds=self.config.recovery_phase_timeout_seconds,
+        )
+        self._require_not_after_deadline(phase_deadline, context="recovery phase")
+
+    def _validate_recovery_deadline(self, workload: str, deadline: object) -> float:
+        if workload == "web":
+            maximum = self.config.web_recovery_timeout_seconds
+        elif workload == "worker":
+            maximum = self.config.worker_recovery_timeout_seconds
+        else:
+            raise ReleaseContractError("recovery workload differs")
         return self._validate_stabilization_deadline(
             deadline,
-            maximum_seconds=self.config.timeout_seconds,
+            maximum_seconds=maximum,
         )
 
     @staticmethod
@@ -589,9 +660,15 @@ class AwsReleaseGateway:
         if timeout_seconds is None:
             return self.config.timeout_seconds
         if workload == "web":
-            maximum = self.config.web_stabilization_timeout_seconds
+            maximum = max(
+                self.config.web_stabilization_timeout_seconds,
+                self.config.web_recovery_timeout_seconds,
+            )
         elif workload == "worker":
-            maximum = self.config.worker_stabilization_timeout_seconds
+            maximum = max(
+                self.config.worker_stabilization_timeout_seconds,
+                self.config.worker_recovery_timeout_seconds,
+            )
         else:
             raise ReleaseContractError("service update workload differs")
         if type(timeout_seconds) is not int or timeout_seconds < 1 or timeout_seconds > maximum:
@@ -1331,7 +1408,7 @@ class AwsReleaseGateway:
         terminal_predecessor: ServicePredecessor,
         deadline: float,
     ) -> ServicePredecessor:
-        deadline = self._validate_recovery_deadline(deadline)
+        deadline = self._validate_recovery_deadline(workload, deadline)
         while True:
             self._require_not_after_deadline(
                 deadline,
@@ -1507,108 +1584,12 @@ class AwsReleaseGateway:
             )
             return
         while True:
-            self._require_not_after_deadline(
-                deadline,
-                context=f"{workload} service stabilization",
-            )
-            service = self._service(workload)
-            self._require_not_after_deadline(
-                deadline,
-                context=f"{workload} service stabilization",
-            )
-            self._validate_service_identity(workload, service)
-            service_target, running, pending = self._service_target_and_counts(workload, service)
-            recognized_targets = {receipt.target} | {item.target for item in receipt.predecessors}
-            if service_target not in recognized_targets:
-                raise ReleaseContractError(
-                    f"{workload} service target is outside the phase allowlist"
+            if self._observe_service_stable_once(receipt, worker_singleton=worker_singleton):
+                self._require_not_after_deadline(
+                    deadline,
+                    context=f"{workload} service stabilization",
                 )
-            if worker_singleton and running + pending > 1:
-                raise ReleaseContractError("worker rollout exceeded one running/pending task")
-            deployments = self._deployments(workload, service)
-            phase_proof = self._validate_deployment_phase(
-                workload,
-                deployments,
-                receipt.target,
-                receipt.primary_deployment_id,
-                receipt.predecessors,
-            )
-            primary = [item for item in deployments if item.get("status") == "PRIMARY"]
-            if len(primary) != 1:
-                raise ReleaseContractError(f"{workload} service has no unique primary deployment")
-            deployment = primary[0]
-            primary_id = self._deployment_id(workload, deployment)
-            primary_target, primary_running, primary_pending, failed_tasks = (
-                self._deployment_target_and_counts(workload, deployment)
-            )
-            rollout_state = deployment.get("rolloutState")
-            if rollout_state not in {"IN_PROGRESS", "COMPLETED", "FAILED"}:
-                raise ReleaseContractError(f"{workload} PRIMARY rollout state differs")
-            predecessor = next(
-                (item for item in receipt.predecessors if item.primary_deployment_id == primary_id),
-                None,
-            )
-            is_target = primary_id == receipt.primary_deployment_id
-            if is_target:
-                if rollout_state == "FAILED":
-                    raise ReleaseContractError(f"{workload} receipt deployment failed")
-                if failed_tasks > 0:
-                    raise ReleaseContractError(f"{workload} receipt deployment has failed tasks")
-                if rollout_state == "COMPLETED" and (
-                    primary_running != receipt.target.desired_count or primary_pending != 0
-                ):
-                    raise ReleaseContractError(
-                        f"{workload} receipt deployment completed with inexact counts"
-                    )
-                initialization = self._is_receipt_initialization(
-                    primary_target,
-                    primary_running,
-                    primary_pending,
-                    failed_tasks,
-                    rollout_state,
-                    receipt.target,
-                )
-                if primary_target != receipt.target and not initialization:
-                    raise ReleaseContractError(f"{workload} receipt deployment target differs")
-                if service_target == receipt.target and rollout_state == "COMPLETED":
-                    if primary_target != receipt.target:
-                        raise ReleaseContractError(f"{workload} completed with inexact counts")
-                    if (
-                        running == receipt.target.desired_count
-                        and pending == 0
-                        and phase_proof.predecessors_have_zero_work
-                        and phase_proof.candidate_is_exact_terminal_primary
-                    ):
-                        self._require_not_after_deadline(
-                            deadline,
-                            context=f"{workload} service stabilization",
-                        )
-                        return
-                    phase_task_capacity = receipt.target.desired_count + sum(
-                        item.target.desired_count for item in receipt.predecessors
-                    )
-                    if (
-                        running < receipt.target.desired_count
-                        or running + pending > phase_task_capacity
-                    ):
-                        raise ReleaseContractError(
-                            f"{workload} completed aggregate counts exceed the phase envelope"
-                        )
-            elif predecessor is None:
-                raise ReleaseContractError(f"{workload} PRIMARY deployment ID is unrecognized")
-            elif predecessor.role == "terminal" and not (
-                self._partial_deployment_matches_predecessor(
-                    primary_target.task_definition_arn,
-                    primary_target.desired_count,
-                    primary_running,
-                    primary_pending,
-                    failed_tasks,
-                    rollout_state,
-                    predecessor,
-                )
-            ):
-                raise ReleaseContractError(f"{workload} terminal predecessor state differs")
-            # An actually attempted predecessor may be failed while recovery replaces it.
+                return
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 break
@@ -1619,15 +1600,184 @@ class AwsReleaseGateway:
         )
         raise AssertionError("unreachable service stabilization deadline state")
 
-    def verify_public_web(self, source_sha: str) -> None:
+    def _observe_service_stable_once(
+        self,
+        receipt: ServiceUpdateReceipt,
+        *,
+        worker_singleton: bool,
+    ) -> bool:
+        workload = receipt.workload
+        service = self._service(workload)
+        self._validate_service_identity(workload, service)
+        service_target, running, pending = self._service_target_and_counts(workload, service)
+        recognized_targets = {receipt.target} | {item.target for item in receipt.predecessors}
+        if service_target not in recognized_targets:
+            raise ReleaseContractError(f"{workload} service target is outside the phase allowlist")
+        if worker_singleton and running + pending > 1:
+            raise ReleaseContractError("worker rollout exceeded one running/pending task")
+        deployments = self._deployments(workload, service)
+        phase_proof = self._validate_deployment_phase(
+            workload,
+            deployments,
+            receipt.target,
+            receipt.primary_deployment_id,
+            receipt.predecessors,
+        )
+        primary = [item for item in deployments if item.get("status") == "PRIMARY"]
+        if len(primary) != 1:
+            raise ReleaseContractError(f"{workload} service has no unique primary deployment")
+        deployment = primary[0]
+        primary_id = self._deployment_id(workload, deployment)
+        primary_target, primary_running, primary_pending, failed_tasks = (
+            self._deployment_target_and_counts(workload, deployment)
+        )
+        rollout_state = deployment.get("rolloutState")
+        if rollout_state not in {"IN_PROGRESS", "COMPLETED", "FAILED"}:
+            raise ReleaseContractError(f"{workload} PRIMARY rollout state differs")
+        predecessor = next(
+            (item for item in receipt.predecessors if item.primary_deployment_id == primary_id),
+            None,
+        )
+        is_target = primary_id == receipt.primary_deployment_id
+        if is_target:
+            if rollout_state == "FAILED":
+                raise ReleaseContractError(f"{workload} receipt deployment failed")
+            if failed_tasks > 0:
+                raise ReleaseContractError(f"{workload} receipt deployment has failed tasks")
+            if rollout_state == "COMPLETED" and (
+                primary_running != receipt.target.desired_count or primary_pending != 0
+            ):
+                raise ReleaseContractError(
+                    f"{workload} receipt deployment completed with inexact counts"
+                )
+            initialization = self._is_receipt_initialization(
+                primary_target,
+                primary_running,
+                primary_pending,
+                failed_tasks,
+                rollout_state,
+                receipt.target,
+            )
+            if primary_target != receipt.target and not initialization:
+                raise ReleaseContractError(f"{workload} receipt deployment target differs")
+            if service_target == receipt.target and rollout_state == "COMPLETED":
+                if primary_target != receipt.target:
+                    raise ReleaseContractError(f"{workload} completed with inexact counts")
+                if (
+                    running == receipt.target.desired_count
+                    and pending == 0
+                    and phase_proof.predecessors_have_zero_work
+                    and phase_proof.candidate_is_exact_terminal_primary
+                ):
+                    return True
+                phase_task_capacity = receipt.target.desired_count + sum(
+                    item.target.desired_count for item in receipt.predecessors
+                )
+                if (
+                    running < receipt.target.desired_count
+                    or running + pending > phase_task_capacity
+                ):
+                    raise ReleaseContractError(
+                        f"{workload} completed aggregate counts exceed the phase envelope"
+                    )
+        elif predecessor is None:
+            raise ReleaseContractError(f"{workload} PRIMARY deployment ID is unrecognized")
+        elif predecessor.role == "terminal" and not (
+            self._partial_deployment_matches_predecessor(
+                primary_target.task_definition_arn,
+                primary_target.desired_count,
+                primary_running,
+                primary_pending,
+                failed_tasks,
+                rollout_state,
+                predecessor,
+            )
+        ):
+            raise ReleaseContractError(f"{workload} terminal predecessor state differs")
+        # An actually attempted predecessor may be failed while recovery replaces it.
+        return False
+
+    def observe_recovery_receipt(
+        self,
+        receipt: ServiceUpdateReceipt,
+        *,
+        workload_deadline: float,
+        phase_deadline: float,
+    ) -> bool:
+        workload = receipt.workload
+        workload_deadline = self._validate_recovery_deadline(workload, workload_deadline)
+        phase_deadline = self._validate_stabilization_deadline(
+            phase_deadline,
+            maximum_seconds=self.config.recovery_phase_timeout_seconds,
+        )
+        if workload_deadline > phase_deadline:
+            raise ReleaseContractError("recovery workload deadline exceeds the phase deadline")
+        self._require_not_after_deadline(phase_deadline, context="recovery phase")
+        self._require_not_after_deadline(
+            workload_deadline,
+            context=f"{workload} recovery receipt",
+        )
+        if receipt.configured_service_identity != self.config.service_names[workload]:
+            raise ReleaseContractError("recovery receipt identity differs")
+        if receipt.terminal_observed:
+            return True
+        stable = self._observe_service_stable_once(
+            receipt,
+            worker_singleton=workload == "worker",
+        )
+        self._require_not_after_deadline(phase_deadline, context="recovery phase")
+        self._require_not_after_deadline(
+            workload_deadline,
+            context=f"{workload} recovery receipt",
+        )
+        if stable:
+            return True
+        if time.monotonic() >= workload_deadline:
+            raise ReleaseContractError(
+                f"{workload} recovery receipt deadline expired",
+                reason_code="receipt_deadline_expired",
+            )
+        return False
+
+    def sleep_recovery_round(
+        self,
+        workload_deadlines: dict[str, float],
+        phase_deadline: float,
+    ) -> None:
+        if not workload_deadlines or not set(workload_deadlines) <= {"web", "worker"}:
+            raise ReleaseContractError("recovery polling workload set differs")
+        phase_deadline = self._validate_stabilization_deadline(
+            phase_deadline,
+            maximum_seconds=self.config.recovery_phase_timeout_seconds,
+        )
+        deadlines = []
+        for workload, deadline in workload_deadlines.items():
+            validated = self._validate_recovery_deadline(workload, deadline)
+            if validated > phase_deadline:
+                raise ReleaseContractError("recovery workload deadline exceeds the phase deadline")
+            deadlines.append(validated)
+        remaining = min([phase_deadline, *deadlines]) - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(self.config.poll_seconds, remaining))
+
+    def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
         deadline = time.monotonic() + self.config.timeout_seconds
+        if phase_deadline is not None:
+            phase_deadline = self._validate_stabilization_deadline(
+                phase_deadline,
+                maximum_seconds=self.config.recovery_phase_timeout_seconds,
+            )
+            self._require_not_after_deadline(phase_deadline, context="recovery phase")
+            deadline = min(deadline, phase_deadline)
         last_error: Exception | None = None
         while time.monotonic() < deadline:
             try:
                 desired = int(self._service("web").get("desiredCount", 0))
+                self._require_not_after_deadline(deadline, context="public web health")
                 target_health = self.elbv2.describe_target_health(
                     TargetGroupArn=self.config.web_target_group_arn
                 )
+                self._require_not_after_deadline(deadline, context="public web health")
                 states = [
                     item.get("TargetHealth", {}).get("State")
                     for item in target_health.get("TargetHealthDescriptions", [])
@@ -1642,7 +1792,9 @@ class AwsReleaseGateway:
                 last_error = ReleaseContractError("ALB targets are not all ready")
             except Exception as error:
                 last_error = error
-            time.sleep(self.config.poll_seconds)
+            remaining = deadline - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(self.config.poll_seconds, remaining))
         else:
             error_name = type(last_error).__name__ if last_error is not None else "unknown"
             raise ReleaseContractError(
@@ -1652,10 +1804,13 @@ class AwsReleaseGateway:
         while time.monotonic() < deadline:
             try:
                 verify_health(self.config.base_url, source_sha)
+                self._require_not_after_deadline(deadline, context="public web health")
                 return
             except Exception as error:
                 last_error = error
-                time.sleep(self.config.poll_seconds)
+                remaining = deadline - time.monotonic()
+                if remaining > 0:
+                    time.sleep(min(self.config.poll_seconds, remaining))
         error_name = type(last_error).__name__ if last_error is not None else "unknown"
         raise ReleaseContractError(
             f"public readiness/liveness did not reach the exact source SHA ({error_name})"
@@ -1722,7 +1877,20 @@ class AwsReleaseGateway:
         expected_identity: ReleaseIdentity | None,
         expected_primary_deployment_ids: dict[str, str] | None = None,
         allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
+        *,
+        phase_deadline: float | None = None,
     ) -> None:
+        if phase_deadline is not None:
+            phase_deadline = self._validate_stabilization_deadline(
+                phase_deadline,
+                maximum_seconds=self.config.recovery_phase_timeout_seconds,
+            )
+            self._require_not_after_deadline(phase_deadline, context="recovery phase")
+
+        def require_phase() -> None:
+            if phase_deadline is not None:
+                self._require_not_after_deadline(phase_deadline, context="recovery phase")
+
         if allowed_predecessors is not None and set(allowed_predecessors) != {"web", "worker"}:
             raise ReleaseContractError("terminal predecessor allowlist differs")
         if allowed_predecessors is not None:
@@ -1745,7 +1913,9 @@ class AwsReleaseGateway:
                         f"terminal {workload} receipt ID is reused as a predecessor"
                     )
         for workload in ("web", "worker"):
+            require_phase()
             snapshot = self.capture_service(workload)
+            require_phase()
             if snapshot.task_definition_arn != expected_task_definitions[workload]:
                 raise ReleaseContractError(f"terminal {workload} task definition differs")
             if snapshot.desired_count != expected_desired_counts[workload]:
@@ -1761,6 +1931,7 @@ class AwsReleaseGateway:
             ):
                 raise ReleaseContractError(f"terminal {workload} PRIMARY deployment ID differs")
             service = self._service(workload)
+            require_phase()
             self._validate_service_identity(workload, service)
             service_target, service_running, service_pending = self._service_target_and_counts(
                 workload,
@@ -1819,6 +1990,7 @@ class AwsReleaseGateway:
             ):
                 raise ReleaseContractError(f"terminal {workload} PRIMARY deployment ID differs")
             tasks = self._active_tasks(workload)
+            require_phase()
             if len(tasks) != expected_desired_counts[workload]:
                 raise ReleaseContractError(f"terminal {workload} active task count differs")
             if workload == "worker" and len(tasks) > 1:
@@ -1836,6 +2008,7 @@ class AwsReleaseGateway:
 
             if expected_identity is not None:
                 task_definition = self._task_definition(snapshot.task_definition_arn)
+                require_phase()
                 matching_containers = [
                     container
                     for container in task_definition.get("containerDefinitions", [])
@@ -1846,6 +2019,7 @@ class AwsReleaseGateway:
                     or matching_containers[0].get("image") != expected_identity.image
                 ):
                     raise ReleaseContractError(f"terminal {workload} repository/digest differs")
+        require_phase()
 
 
 def die(message: str) -> None:

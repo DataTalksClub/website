@@ -5,10 +5,16 @@ import json
 from pathlib import Path
 
 from deploy.aws_gateway import (
+    MAX_RECOVERY_PHASE_TIMEOUT_SECONDS,
     MAX_STAGE_TIMEOUT_SECONDS,
+    MAX_WEB_RECOVERY_TIMEOUT_SECONDS,
     MAX_WEB_STABILIZATION_TIMEOUT_SECONDS,
+    MAX_WORKER_RECOVERY_TIMEOUT_SECONDS,
     MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS,
+    RECOVERY_PHASE_TIMEOUT_SECONDS,
+    WEB_RECOVERY_TIMEOUT_SECONDS,
     WEB_STABILIZATION_TIMEOUT_SECONDS,
+    WORKER_RECOVERY_TIMEOUT_SECONDS,
     WORKER_STABILIZATION_TIMEOUT_SECONDS,
     AwsReleaseConfig,
     AwsReleaseGateway,
@@ -64,6 +70,21 @@ def _add_runtime_arguments(parser: argparse.ArgumentParser) -> None:
         type=int,
         default=WORKER_STABILIZATION_TIMEOUT_SECONDS,
     )
+    parser.add_argument(
+        "--web-recovery-timeout-seconds",
+        type=int,
+        default=WEB_RECOVERY_TIMEOUT_SECONDS,
+    )
+    parser.add_argument(
+        "--worker-recovery-timeout-seconds",
+        type=int,
+        default=WORKER_RECOVERY_TIMEOUT_SECONDS,
+    )
+    parser.add_argument(
+        "--recovery-phase-timeout-seconds",
+        type=int,
+        default=RECOVERY_PHASE_TIMEOUT_SECONDS,
+    )
     parser.add_argument("--poll-seconds", type=int, default=10)
 
 
@@ -72,10 +93,16 @@ def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
         type(arguments.timeout_seconds) is not int
         or type(arguments.web_stabilization_timeout_seconds) is not int
         or type(arguments.worker_stabilization_timeout_seconds) is not int
+        or type(arguments.web_recovery_timeout_seconds) is not int
+        or type(arguments.worker_recovery_timeout_seconds) is not int
+        or type(arguments.recovery_phase_timeout_seconds) is not int
         or type(arguments.poll_seconds) is not int
         or arguments.timeout_seconds < 1
         or arguments.web_stabilization_timeout_seconds < 1
         or arguments.worker_stabilization_timeout_seconds < 1
+        or arguments.web_recovery_timeout_seconds < 1
+        or arguments.worker_recovery_timeout_seconds < 1
+        or arguments.recovery_phase_timeout_seconds < 1
         or arguments.poll_seconds < 1
     ):
         raise ReleaseContractError("timeouts must be positive integers")
@@ -85,12 +112,29 @@ def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
         raise ReleaseContractError("web stabilization timeout exceeds the recovery-safe maximum")
     if arguments.worker_stabilization_timeout_seconds > MAX_WORKER_STABILIZATION_TIMEOUT_SECONDS:
         raise ReleaseContractError("worker stabilization timeout exceeds the recovery-safe maximum")
+    if arguments.web_recovery_timeout_seconds > MAX_WEB_RECOVERY_TIMEOUT_SECONDS:
+        raise ReleaseContractError("web recovery timeout exceeds the recovery-safe maximum")
+    if arguments.worker_recovery_timeout_seconds > MAX_WORKER_RECOVERY_TIMEOUT_SECONDS:
+        raise ReleaseContractError("worker recovery timeout exceeds the recovery-safe maximum")
+    if arguments.recovery_phase_timeout_seconds > MAX_RECOVERY_PHASE_TIMEOUT_SECONDS:
+        raise ReleaseContractError("recovery phase timeout exceeds the recovery-safe maximum")
+    if arguments.recovery_phase_timeout_seconds < max(
+        arguments.web_recovery_timeout_seconds,
+        arguments.worker_recovery_timeout_seconds,
+    ):
+        raise ReleaseContractError("recovery phase cannot contain the workload budgets")
     if arguments.poll_seconds > arguments.timeout_seconds:
         raise ReleaseContractError("poll interval must not exceed the stage timeout")
     if arguments.poll_seconds > arguments.web_stabilization_timeout_seconds:
         raise ReleaseContractError("poll interval must not exceed the web stabilization timeout")
     if arguments.poll_seconds > arguments.worker_stabilization_timeout_seconds:
         raise ReleaseContractError("poll interval must not exceed the worker stabilization timeout")
+    if arguments.poll_seconds > arguments.web_recovery_timeout_seconds:
+        raise ReleaseContractError("poll interval must not exceed the web recovery timeout")
+    if arguments.poll_seconds > arguments.worker_recovery_timeout_seconds:
+        raise ReleaseContractError("poll interval must not exceed the worker recovery timeout")
+    if arguments.poll_seconds > arguments.recovery_phase_timeout_seconds:
+        raise ReleaseContractError("poll interval must not exceed the recovery phase timeout")
     return AwsReleaseGateway(
         AwsReleaseConfig(
             region=arguments.region,
@@ -120,6 +164,9 @@ def _gateway(arguments: argparse.Namespace) -> AwsReleaseGateway:
             timeout_seconds=arguments.timeout_seconds,
             web_stabilization_timeout_seconds=arguments.web_stabilization_timeout_seconds,
             worker_stabilization_timeout_seconds=(arguments.worker_stabilization_timeout_seconds),
+            web_recovery_timeout_seconds=arguments.web_recovery_timeout_seconds,
+            worker_recovery_timeout_seconds=arguments.worker_recovery_timeout_seconds,
+            recovery_phase_timeout_seconds=arguments.recovery_phase_timeout_seconds,
             poll_seconds=arguments.poll_seconds,
         )
     )
@@ -193,12 +240,24 @@ def _restore_finalization(arguments: argparse.Namespace) -> dict[str, object]:
         _gateway(arguments),
         context,
         failed_release,
+        arguments.evidence_path,
     )
     return {
         "status": "restored_prior",
         "release": context.source_sha or "bootstrap-disabled",
         "image_digest": context.image_digest,
         "restorative_receipts": [item.as_evidence() for item in receipts],
+        "recovery": {
+            "web_seconds": WEB_RECOVERY_TIMEOUT_SECONDS,
+            "worker_seconds": WORKER_RECOVERY_TIMEOUT_SECONDS,
+            "phase_seconds": RECOVERY_PHASE_TIMEOUT_SECONDS,
+            "initiation_order": ["web", "worker"],
+            "workload_outcomes": {"web": "passed", "worker": "passed"},
+            "terminal_pair": "passed",
+            "public_health": "skipped" if context.source_sha is None else "passed",
+            "worker_singleton": "passed",
+            "total": "passed",
+        },
     }
 
 
@@ -267,6 +326,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_runtime_arguments(restore_parser)
     restore_parser.add_argument("--recovery-context", type=Path, required=True)
     restore_parser.add_argument("--failed-release-record", type=Path, required=True)
+    restore_parser.add_argument("--evidence-path", type=Path)
     restore_parser.set_defaults(handler=_restore_finalization)
 
     capture_parser = subparsers.add_parser("capture-current")

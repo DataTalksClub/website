@@ -29,6 +29,7 @@ from deploy.release import (
     CompensationError,
     PromotionConfig,
     RecoveryContext,
+    _compensate,
     capture_current_service_pair,
     capture_recovery_context,
     promote,
@@ -131,6 +132,9 @@ def active_pair(source_sha: str = SHA_A, digest: str = DIGEST_A) -> ActiveServic
 class FakeGateway:
     web_stabilization_timeout_seconds = 240
     worker_stabilization_timeout_seconds = 420
+    web_recovery_timeout_seconds = 240
+    worker_recovery_timeout_seconds = 420
+    recovery_phase_timeout_seconds = 720
 
     def __init__(self, *, bootstrap: bool, fail_once: str | None = None) -> None:
         desired = 0 if bootstrap else 1
@@ -267,6 +271,19 @@ class FakeGateway:
     def service_stabilization_deadline(self, timeout_seconds: int | None = None) -> float:
         return float(180 if timeout_seconds is None else timeout_seconds)
 
+    def recovery_phase_deadline(self) -> float:
+        self.operations.append("recovery-deadline:phase=720")
+        return 720.0
+
+    def recovery_workload_deadline(self, workload: str, phase_deadline: float) -> float:
+        budget = 240 if workload == "web" else 420
+        deadline = min(float(budget), phase_deadline)
+        self.operations.append(f"recovery-deadline:{workload}={int(deadline)}")
+        return deadline
+
+    def ensure_recovery_phase(self, phase_deadline: float) -> None:
+        self.operations.append(f"recovery-phase:inside={int(phase_deadline)}")
+
     def wait_service_stable(
         self,
         receipt: ServiceUpdateReceipt,
@@ -285,7 +302,37 @@ class FakeGateway:
         self.operations.append(f"wait-receipt:{workload}:{receipt.primary_deployment_id}")
         self._fail(f"wait:{workload}")
 
-    def verify_public_web(self, source_sha: str) -> None:
+    def observe_recovery_receipt(
+        self,
+        receipt: ServiceUpdateReceipt,
+        *,
+        workload_deadline: float,
+        phase_deadline: float,
+    ) -> bool:
+        self.operations.append(
+            f"observe:{receipt.workload}:deadline={int(workload_deadline)}:"
+            f"phase={int(phase_deadline)}"
+        )
+        self.wait_service_stable(
+            receipt,
+            worker_singleton=receipt.workload == "worker",
+            deadline=workload_deadline,
+        )
+        return True
+
+    def sleep_recovery_round(
+        self,
+        workload_deadlines: dict[str, float],
+        phase_deadline: float,
+    ) -> None:
+        self.operations.append(
+            "recovery-sleep:"
+            + ",".join(sorted(workload_deadlines))
+            + f":phase={int(phase_deadline)}"
+        )
+
+    def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
+        del phase_deadline
         self.operations.append(f"health:{source_sha}")
         self._fail("health")
 
@@ -300,7 +347,10 @@ class FakeGateway:
         expected_identity: ReleaseIdentity | None,
         expected_primary_deployment_ids: dict[str, str] | None = None,
         allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
+        *,
+        phase_deadline: float | None = None,
     ) -> None:
+        del phase_deadline
         self.terminal_allowed_predecessors = allowed_predecessors
         self.operations.append("terminal")
         for workload, snapshot in self.snapshots.items():
@@ -323,6 +373,309 @@ class FakeGateway:
                 raise ReleaseContractError(f"terminal {workload} identity differs")
         if any(value.endswith(":2") for value in expected_task_definitions.values()):
             self._fail("terminal")
+
+
+class CooperativeRecoveryGateway(FakeGateway):
+    def __init__(
+        self,
+        *,
+        complete_at: dict[str, float],
+        fail_bind: str | None = None,
+    ) -> None:
+        super().__init__(bootstrap=False)
+        self.current = 0.0
+        self.complete_at = complete_at
+        self.fail_bind = fail_bind
+        self.observation_times: dict[str, list[float]] = {"web": [], "worker": []}
+
+    def recovery_phase_deadline(self) -> float:
+        deadline = self.current + self.recovery_phase_timeout_seconds
+        self.operations.append(f"phase-deadline:{deadline:g}")
+        return deadline
+
+    def recovery_workload_deadline(self, workload: str, phase_deadline: float) -> float:
+        budget = (
+            self.web_recovery_timeout_seconds
+            if workload == "web"
+            else self.worker_recovery_timeout_seconds
+        )
+        deadline = min(self.current + budget, phase_deadline)
+        self.operations.append(f"deadline:{workload}:{deadline:g}")
+        return deadline
+
+    def ensure_recovery_phase(self, phase_deadline: float) -> None:
+        self.operations.append(f"phase-proof:{self.current:g}")
+        if self.current > phase_deadline:
+            raise ReleaseContractError(
+                "recovery phase deadline expired",
+                reason_code="receipt_deadline_expired",
+            )
+
+    def update_service(
+        self,
+        workload: str,
+        target: ServiceTarget,
+        predecessors: tuple[ServicePredecessor, ...],
+        *,
+        deadline: float | None = None,
+        timeout_seconds: int | None = None,
+    ) -> ServiceUpdateReceipt:
+        self.operations.append(f"bind-at:{workload}:{self.current:g}")
+        if self.fail_bind == workload:
+            raise ReleaseContractError(f"injected {workload} binding contradiction")
+        return super().update_service(
+            workload,
+            target,
+            predecessors,
+            deadline=deadline,
+            timeout_seconds=timeout_seconds,
+        )
+
+    def observe_recovery_receipt(
+        self,
+        receipt: ServiceUpdateReceipt,
+        *,
+        workload_deadline: float,
+        phase_deadline: float,
+    ) -> bool:
+        workload = receipt.workload
+        self.observation_times[workload].append(self.current)
+        self.operations.append(f"observe-at:{workload}:{self.current:g}")
+        if self.current > workload_deadline or self.current > phase_deadline:
+            raise ReleaseContractError(
+                f"{workload} response after deadline",
+                reason_code="receipt_deadline_expired",
+            )
+        if self.current >= self.complete_at[workload]:
+            return True
+        if self.current >= workload_deadline:
+            raise ReleaseContractError(
+                f"{workload} receipt deadline expired",
+                reason_code="receipt_deadline_expired",
+            )
+        return False
+
+    def sleep_recovery_round(
+        self,
+        workload_deadlines: dict[str, float],
+        phase_deadline: float,
+    ) -> None:
+        next_time = min(self.current + 10, phase_deadline, *workload_deadlines.values())
+        self.operations.append(f"sleep:{self.current:g}->{next_time:g}")
+        self.current = next_time
+
+    def verify_terminal(
+        self,
+        expected_task_definitions: dict[str, str],
+        expected_desired_counts: dict[str, int],
+        expected_identity: ReleaseIdentity | None,
+        expected_primary_deployment_ids: dict[str, str] | None = None,
+        allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
+        *,
+        phase_deadline: float | None = None,
+    ) -> None:
+        self.operations.append(f"terminal-at:{self.current:g}")
+        if phase_deadline is not None:
+            self.ensure_recovery_phase(phase_deadline)
+        super().verify_terminal(
+            expected_task_definitions,
+            expected_desired_counts,
+            expected_identity,
+            expected_primary_deployment_ids,
+            allowed_predecessors,
+        )
+
+    def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
+        self.operations.append(f"health-at:{self.current:g}")
+        if phase_deadline is not None:
+            self.ensure_recovery_phase(phase_deadline)
+        super().verify_public_web(source_sha)
+
+
+class CooperativeRecoveryCoordinatorTests(SimpleTestCase):
+    @staticmethod
+    def restore_phase() -> tuple[
+        dict[str, ServiceTarget],
+        dict[str, ServicePredecessor],
+        dict[str, ServicePredecessor],
+    ]:
+        targets = {workload: ServiceTarget(arn(workload, 1), 1) for workload in ("web", "worker")}
+        terminal = {
+            workload: ServicePredecessor(
+                targets[workload],
+                deployment_id(workload, 1),
+                "terminal",
+            )
+            for workload in ("web", "worker")
+        }
+        attempted = {
+            workload: ServicePredecessor(
+                ServiceTarget(arn(workload, 2), 1),
+                f"ecs-svc/{workload}-attempted",
+                "attempted",
+            )
+            for workload in ("web", "worker")
+        }
+        return targets, terminal, attempted
+
+    def compensate(
+        self,
+        gateway: CooperativeRecoveryGateway,
+        *,
+        attempted_workloads: tuple[str, ...] = ("web", "worker"),
+        evidence_path: Path | None = None,
+    ) -> tuple[Any, ...]:
+        targets, terminal, attempted = self.restore_phase()
+        return _compensate(
+            gateway,
+            targets,
+            terminal,
+            ReleaseIdentity(SHA_A, DIGEST_A, REPOSITORY),
+            {workload: attempted[workload] for workload in attempted_workloads},
+            evidence_path=evidence_path,
+        )
+
+    def test_recorded_incident_binds_both_receipts_before_fair_160_280_observation(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 160, "worker": 280})
+        evidence_events: list[str] = []
+
+        def record(*_args: object, **_kwargs: object) -> None:
+            evidence_events.append(f"evidence-at:{gateway.current:g}")
+            gateway.operations.append(evidence_events[-1])
+
+        with patch("deploy.release._record_recovery_evidence", side_effect=record):
+            summaries = self.compensate(gateway)
+
+        self.assertEqual([summary.workload for summary in summaries], ["web", "worker"])
+        web_bind = gateway.operations.index("bind-at:web:0")
+        worker_bind = gateway.operations.index("bind-at:worker:0")
+        first_observe = next(
+            index
+            for index, operation in enumerate(gateway.operations)
+            if operation.startswith("observe-at:")
+        )
+        self.assertLess(web_bind, worker_bind)
+        self.assertLess(worker_bind, first_observe)
+        self.assertFalse(
+            any(
+                operation.startswith(
+                    ("observe-at:", "sleep:", "terminal-at:", "health-at:", "evidence-at:")
+                )
+                for operation in gateway.operations[web_bind + 1 : worker_bind]
+            )
+        )
+        self.assertEqual(gateway.observation_times["web"][-1], 160)
+        self.assertEqual(gateway.observation_times["worker"][-1], 280)
+        self.assertEqual(gateway.current, 280)
+
+    def test_independent_inclusive_240_420_deadlines_have_one_final_read(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 240, "worker": 420})
+
+        self.compensate(gateway)
+
+        self.assertEqual(gateway.observation_times["web"].count(240), 1)
+        self.assertEqual(gateway.observation_times["worker"].count(420), 1)
+        self.assertFalse(any(value > 240 for value in gateway.observation_times["web"]))
+        self.assertFalse(any(value > 420 for value in gateway.observation_times["worker"]))
+        self.assertEqual(gateway.current, 420)
+
+    def test_worker_deadline_cannot_be_rescued_by_a_later_terminal_fixture(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 10, "worker": 430})
+
+        with self.assertRaises(CompensationError) as caught:
+            self.compensate(gateway)
+
+        self.assertEqual(caught.exception.reason_code, "receipt_deadline_expired")
+        self.assertEqual(gateway.observation_times["worker"].count(420), 1)
+        self.assertFalse(any(value > 420 for value in gateway.observation_times["worker"]))
+        self.assertNotIn(430, gateway.observation_times["worker"])
+
+    def test_isolated_web_binding_failure_still_restores_and_observes_worker_once(self) -> None:
+        gateway = CooperativeRecoveryGateway(
+            complete_at={"web": 0, "worker": 20},
+            fail_bind="web",
+        )
+
+        with self.assertRaises(CompensationError) as caught:
+            self.compensate(gateway)
+
+        self.assertEqual(caught.exception.reason_code, "contract_contradiction")
+        self.assertEqual(gateway.operations.count("bind-at:web:0"), 1)
+        self.assertEqual(gateway.operations.count("bind-at:worker:0"), 1)
+        self.assertEqual(gateway.observation_times["worker"][-1], 20)
+
+    def test_web_only_failure_never_mutates_worker_and_proves_empty_allowance(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 10, "worker": 0})
+
+        self.compensate(gateway, attempted_workloads=("web",))
+
+        self.assertFalse(
+            any(operation.startswith("bind-at:worker") for operation in gateway.operations)
+        )
+        assert gateway.terminal_allowed_predecessors is not None
+        self.assertEqual(gateway.terminal_allowed_predecessors["worker"], ())
+
+    def test_invalid_recovery_budget_fails_before_any_mutation(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 0, "worker": 0})
+        gateway.web_recovery_timeout_seconds = True  # type: ignore[misc]
+
+        with self.assertRaisesMessage(ReleaseContractError, "recovery budgets differ"):
+            self.compensate(gateway)
+
+        self.assertFalse(any(operation.startswith("bind-at:") for operation in gateway.operations))
+
+    def test_evidence_has_only_fixed_plan_safe_receipts_outcomes_and_terminal_proofs(self) -> None:
+        gateway = CooperativeRecoveryGateway(complete_at={"web": 10, "worker": 20})
+        Path(".tmp").mkdir(exist_ok=True)
+        with tempfile.TemporaryDirectory(dir=".tmp") as directory:
+            evidence_path = Path(directory) / "recovery-evidence.json"
+            self.compensate(gateway, evidence_path=evidence_path)
+            payload = __import__("json").loads(evidence_path.read_text())
+
+        stages = payload["stages"]
+        plan = next(item for item in stages if item["stage"] == "recovery_plan")
+        self.assertEqual(
+            plan["proof"],
+            {
+                "mode": "automatic_compensation",
+                "web_recovery_seconds": 240,
+                "worker_recovery_seconds": 420,
+                "phase_recovery_seconds": 720,
+                "restore_initiation_order": ["web", "worker"],
+                "cooperative_observation_order": ["web", "worker"],
+                "eligible_workloads": ["web", "worker"],
+                "intentionally_untouched": {"web": False, "worker": False},
+            },
+        )
+        receipts = [item["proof"] for item in stages if item["stage"] == "compensation_receipt"]
+        self.assertEqual([item["workload"] for item in receipts], ["web", "worker"])
+        self.assertTrue(
+            all(
+                set(item) == {"workload", "receipt_id", "receipt_binding", "carried_terminal"}
+                for item in receipts
+            )
+        )
+        outcomes = [item["proof"] for item in stages if item["stage"] == "recovery_workload"]
+        self.assertEqual([item["outcome"] for item in outcomes], ["passed", "passed"])
+        total = next(item for item in stages if item["stage"] == "recovery_total")
+        self.assertEqual(total["result"], "passed")
+        self.assertEqual(total["proof"]["terminal_pair"], True)
+        self.assertEqual(total["proof"]["public_health"], True)
+        self.assertEqual(total["proof"]["worker_singleton"], True)
+        serialized = __import__("json").dumps(payload).lower()
+        for forbidden in (
+            "authorization",
+            "cookie",
+            "credential",
+            "environment",
+            "provider response",
+            "query string",
+            "recovery-context",
+            "request body",
+            "task log",
+            "token",
+        ):
+            self.assertNotIn(forbidden, serialized)
 
 
 class TaskDefinitionBuilderTests(SimpleTestCase):
@@ -1060,10 +1413,14 @@ class PromotionTests(SimpleTestCase):
                     raise RuntimeError("sentinel-secret-must-not-leak")
                 return original_terminal(*args, **kwargs)
 
-            def health_with_secret_failure(source_sha: str) -> None:
+            def health_with_secret_failure(
+                source_sha: str,
+                *,
+                phase_deadline: float | None = None,
+            ) -> None:
                 if restoring["value"] and source_sha == SHA_A and selected_failure == "health":
                     raise RuntimeError("sentinel-secret-must-not-leak")
-                original_health(source_sha)
+                original_health(source_sha, phase_deadline=phase_deadline)
 
             gateway.update_service = update_with_secret_failure  # type: ignore[method-assign]
             gateway.wait_service_stable = wait_with_secret_failure  # type: ignore[method-assign]
@@ -1539,6 +1896,59 @@ class PromotionTests(SimpleTestCase):
                 },
             ],
         )
+
+    def test_finalization_recovery_uses_the_same_bounded_coordinator_and_evidence(self) -> None:
+        failed = ReleaseRecord(
+            source_sha=SHA_B,
+            image_digest=DIGEST_B,
+            web_task_definition_arn=arn("web", 2),
+            worker_task_definition_arn=arn("worker", 2),
+            migration_task_definition_arn=arn("migration", 2),
+            web_desired_count=1,
+            worker_desired_count=1,
+            rollback_eligible=True,
+        )
+        context = RecoveryContext(
+            REPOSITORY,
+            SHA_A,
+            DIGEST_A,
+            arn("web", 1),
+            arn("worker", 1),
+            1,
+            1,
+        )
+        gateway = FakeGateway(bootstrap=False)
+        for workload in ("web", "worker"):
+            snapshot = gateway.snapshots[workload]
+            gateway.update_service(
+                workload,
+                ServiceTarget(arn(workload, 2), 1),
+                (
+                    ServicePredecessor(
+                        ServiceTarget(snapshot.task_definition_arn, snapshot.desired_count),
+                        snapshot.primary_deployment_id,
+                        "terminal",
+                    ),
+                ),
+            )
+        with self._temporary_directory() as directory:
+            evidence_path = Path(directory) / "finalization-evidence.json"
+            restore_after_finalization_failure(gateway, context, failed, evidence_path)
+            stages = __import__("json").loads(evidence_path.read_text())["stages"]
+
+        plan = next(item for item in stages if item["stage"] == "recovery_plan")
+        self.assertEqual(plan["proof"]["mode"], "artifact_finalization")
+        self.assertEqual(plan["proof"]["eligible_workloads"], ["web", "worker"])
+        self.assertEqual(
+            [
+                item["proof"]["workload"]
+                for item in stages
+                if item["stage"] == "finalization_receipt"
+            ],
+            ["web", "worker"],
+        )
+        total = next(item for item in stages if item["stage"] == "recovery_total")
+        self.assertEqual(total["result"], "passed")
 
     def test_finalization_failure_uses_safe_deterministic_restorative_reason(self) -> None:
         failed = ReleaseRecord(

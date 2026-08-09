@@ -963,6 +963,9 @@ jobs:
             --timeout-seconds 180
             --web-stabilization-timeout-seconds 240
             --worker-stabilization-timeout-seconds 420
+            --web-recovery-timeout-seconds 240
+            --worker-recovery-timeout-seconds 420
+            --recovery-phase-timeout-seconds 720
           )
           for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done
           for security_group_id in "${security_group_ids[@]}"; do
@@ -1065,6 +1068,9 @@ jobs:
             --timeout-seconds 180
             --web-stabilization-timeout-seconds 240
             --worker-stabilization-timeout-seconds 420
+            --web-recovery-timeout-seconds 240
+            --worker-recovery-timeout-seconds 420
+            --recovery-phase-timeout-seconds 720
           )
           for subnet_id in "${subnet_ids[@]}"; do runtime_args+=(--subnet-id "$subnet_id"); done
           for security_group_id in "${security_group_ids[@]}"; do
@@ -1272,7 +1278,8 @@ jobs:
           uv run python -m deploy.cli restore-finalization \
             "${runtime_args[@]}" \
             --recovery-context .tmp/deployment/recovery-context.json \
-            --failed-release-record .tmp/deployment/successful-release.json || restore_status=$?
+            --failed-release-record .tmp/deployment/successful-release.json \
+            --evidence-path .tmp/deployment/deployment-evidence.json || restore_status=$?
           RESTORE_STATUS="$restore_status" uv run --frozen python - <<'PY'
           import datetime
           import json
