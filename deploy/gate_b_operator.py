@@ -28,20 +28,37 @@ TMP_ROOT = PROJECT_ROOT / ".tmp"
 MAX_CREDENTIAL_BYTES = 16 * 1024
 AWS_ACCESS_KEY_PATTERN = re.compile(r"ASIA[A-Z0-9]{16}")
 CAPTURE_ID_CLOCK_SKEW_SECONDS = 5
+OPERATOR_STOP_PHASE_CODES = assembler.OPERATOR_STOP_PHASE_CODES
+OPERATOR_STOP_CODE_TO_PHASE = assembler.OPERATOR_STOP_CODE_TO_PHASE
 
 
 class OperatorError(RuntimeError):
     """A fail-closed operator error exposing only a stable safe code."""
 
     def __init__(self, code: str) -> None:
-        if not re.fullmatch(r"[a-z0-9-]+", code):
+        if type(code) is not str or not re.fullmatch(r"[a-z0-9-]+", code):
             code = "invalid-gate-b-operation"
+        self._operator_stop_original_code = code
         self.code = code
         super().__init__(code)
 
 
 def _fail(code: str) -> NoReturn:
     raise OperatorError(code)
+
+
+def _operator_stop_line(error: OperatorError | None = None) -> str:
+    if type(error) is not OperatorError:
+        return assembler.OPERATOR_STOP_GENERIC_LINE
+    state = object.__getattribute__(error, "__dict__")
+    code = dict.get(state, "code")
+    original_code = dict.get(state, "_operator_stop_original_code")
+    if type(code) is not str or type(original_code) is not str or code != original_code:
+        return assembler.OPERATOR_STOP_GENERIC_LINE
+    phase = OPERATOR_STOP_CODE_TO_PHASE.get(code)
+    if phase is None:
+        return assembler.OPERATOR_STOP_GENERIC_LINE
+    return f"gate-b-operator-stop phase={phase} code={code}\n"
 
 
 class Runner(Protocol):
@@ -1239,8 +1256,14 @@ def main(argv: Sequence[str] | None = None) -> int:
             result = run_gate_b(args.capture_id, seed, contract, manifest)
         sys.stdout.buffer.write(evidence.canonical_json_bytes(result) + b"\n")
         return 0
-    except (OperatorError, assembler.AssemblyError, evidence.EvidenceError, KeyboardInterrupt):
-        print("gate-b-operator-stop", file=sys.stderr)
+    except OperatorError as error:
+        sys.stderr.write(_operator_stop_line(error))
+        return 1
+    except (assembler.AssemblyError, evidence.EvidenceError, KeyboardInterrupt):
+        sys.stderr.write(assembler.OPERATOR_STOP_GENERIC_LINE)
+        return 1
+    except Exception:
+        sys.stderr.write(assembler.OPERATOR_STOP_GENERIC_LINE)
         return 1
 
 

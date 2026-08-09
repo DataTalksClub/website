@@ -37,6 +37,83 @@
     "tests_path": "core/tests/test_gate_b_evidence.py",
     "tests_file_sha256": "4dd65a576f3bd3d3bd2dff41170ee161f45ffe5362a4e4e1f8af0feabc081027"
   },
+  "operator_stop_diagnostics": {
+    "generic_line": "gate-b-operator-stop\n",
+    "classified_line": "gate-b-operator-stop phase=<phase> code=<code>\n",
+    "phase_codes": [
+      {
+        "phase": "input",
+        "codes": [
+          "invalid-cli-arguments",
+          "invalid-capture-id",
+          "stale-capture-id"
+        ]
+      },
+      {
+        "phase": "storage",
+        "codes": [
+          "unsafe-tmp-root",
+          "capture-already-exists",
+          "unsafe-private-directory",
+          "unsafe-private-write"
+        ]
+      },
+      {
+        "phase": "credential",
+        "codes": [
+          "unsafe-credential-file",
+          "invalid-aws-config",
+          "credential-process-config-mismatch",
+          "credential-source-mismatch",
+          "credential-resolution-repeated",
+          "credential-process-failed",
+          "invalid-credential-response",
+          "credential-lifetime-out-of-contract"
+        ]
+      },
+      {
+        "phase": "execution",
+        "codes": [
+          "unsafe-bound-executable",
+          "bound-executable-mismatch",
+          "unsafe-bound-execution-context",
+          "unbound-executable",
+          "unbound-provider-operation",
+          "provider-operation-count",
+          "unsafe-aws-child-environment",
+          "unsafe-github-child-environment"
+        ]
+      },
+      {
+        "phase": "provider",
+        "codes": [
+          "credential-reserve-crossed",
+          "provider-command-failed",
+          "provider-output-too-large",
+          "provider-error-too-large",
+          "invalid-provider-json",
+          "invalid-provider-error",
+          "unexpected-provider-result",
+          "unexpected-provider-error"
+        ]
+      },
+      {
+        "phase": "identity",
+        "codes": [
+          "identity-not-first",
+          "binding-validation-stop",
+          "post-identity-graph-mismatch"
+        ]
+      },
+      {
+        "phase": "readback",
+        "codes": [
+          "provider-phase-failed",
+          "readback-validation-stop"
+        ]
+      }
+    ]
+  },
   "credential_process": {
     "configured_argv": [
       "python3",

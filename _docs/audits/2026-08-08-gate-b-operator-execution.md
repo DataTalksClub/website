@@ -61,6 +61,35 @@ separator, whitespace, trailing, partial, or malformed representation. This comp
 does not change the inclusive 840-to-900-second lifetime, 120-second reserve, single resolution,
 or no-persistence boundary.
 
+## Secret-safe STOP classifications
+
+The public operator boundary exposes only an exact dictionary match from the following fixed,
+execution-contract-pinned map. An allowlisted `OperatorError` writes one ASCII stderr line,
+`gate-b-operator-stop phase=<phase> code=<code>\n`, with empty stdout and exit status `1`.
+
+| Phase | Exact public codes |
+| --- | --- |
+| `input` | `invalid-cli-arguments`, `invalid-capture-id`, `stale-capture-id` |
+| `storage` | `unsafe-tmp-root`, `capture-already-exists`, `unsafe-private-directory`, `unsafe-private-write` |
+| `credential` | `unsafe-credential-file`, `invalid-aws-config`, `credential-process-config-mismatch`, `credential-source-mismatch`, `credential-resolution-repeated`, `credential-process-failed`, `invalid-credential-response`, `credential-lifetime-out-of-contract` |
+| `execution` | `unsafe-bound-executable`, `bound-executable-mismatch`, `unsafe-bound-execution-context`, `unbound-executable`, `unbound-provider-operation`, `provider-operation-count`, `unsafe-aws-child-environment`, `unsafe-github-child-environment` |
+| `provider` | `credential-reserve-crossed`, `provider-command-failed`, `provider-output-too-large`, `provider-error-too-large`, `invalid-provider-json`, `invalid-provider-error`, `unexpected-provider-result`, `unexpected-provider-error` |
+| `identity` | `identity-not-first`, `binding-validation-stop`, `post-identity-graph-mismatch` |
+| `readback` | `provider-phase-failed`, `readback-validation-stop` |
+
+Unknown, malformed, empty, future, monkeypatched, constructor-fallback, and unmapped codes,
+including `invalid-gate-b-operation`, retain the exact generic `gate-b-operator-stop\n` line. Only
+an exact, unaltered `OperatorError` instance is eligible for classification; subclasses are made
+generic before any instance-state lookup. `AssemblyError`, `EvidenceError`, `KeyboardInterrupt`,
+and unexpected ordinary exceptions also use only that generic line. The renderer never stringifies
+an exception or interpolates runtime state; neither output form contains a message, type, cause,
+path, argument, timestamp, credential field or value, token, or provider response. STOP output
+remains outside the private evidence inventory and does not alter capture creation, identity
+sealing, raw triplets, assembly, summary, or attestation.
+The mapping changes diagnostics only: the 174-operation graph, #88 UTC/lifetime/reserve rules,
+one credential resolution, zero retries/refreshes, and first-operation identity boundary are
+unchanged. This audit authorizes no credential resolution, provider call, capture, or deployment.
+
 It seals that returned triple into the existing #84 bindings envelope, creates the file
 exclusively at mode `0600`, and runs the unchanged binding validator. Every later AWS child gets
 the same in-memory credentials. GitHub children receive no AWS credential variables. A second

@@ -291,6 +291,32 @@ triple into `bindings.json`, then runs the unchanged #84 binding validator. A fa
 operation two. Every remaining AWS child receives the same in-memory credential triple; GitHub
 children receive none of it.
 
+An allowlisted operator failure writes exactly one ASCII stderr line, with empty stdout and exit
+status `1`:
+
+`gate-b-operator-stop phase=<phase> code=<code>\n`
+
+The phase and code come only from this code- and execution-contract-pinned mapping:
+
+| Phase | Exact public codes |
+| --- | --- |
+| `input` | `invalid-cli-arguments`, `invalid-capture-id`, `stale-capture-id` |
+| `storage` | `unsafe-tmp-root`, `capture-already-exists`, `unsafe-private-directory`, `unsafe-private-write` |
+| `credential` | `unsafe-credential-file`, `invalid-aws-config`, `credential-process-config-mismatch`, `credential-source-mismatch`, `credential-resolution-repeated`, `credential-process-failed`, `invalid-credential-response`, `credential-lifetime-out-of-contract` |
+| `execution` | `unsafe-bound-executable`, `bound-executable-mismatch`, `unsafe-bound-execution-context`, `unbound-executable`, `unbound-provider-operation`, `provider-operation-count`, `unsafe-aws-child-environment`, `unsafe-github-child-environment` |
+| `provider` | `credential-reserve-crossed`, `provider-command-failed`, `provider-output-too-large`, `provider-error-too-large`, `invalid-provider-json`, `invalid-provider-error`, `unexpected-provider-result`, `unexpected-provider-error` |
+| `identity` | `identity-not-first`, `binding-validation-stop`, `post-identity-graph-mismatch` |
+| `readback` | `provider-phase-failed`, `readback-validation-stop` |
+
+Only an exact, unaltered `OperatorError` instance is eligible for classification. Unknown,
+malformed, empty, future, altered, or unmapped operator codes, including
+`invalid-gate-b-operation`, write only `gate-b-operator-stop\n`; subclasses are generic without
+reading their instance state. `AssemblyError`, `EvidenceError`, `KeyboardInterrupt`, and any
+unexpected ordinary exception use that same generic line. Neither form includes exception text,
+type, cause, path, argument, timestamp, credential or token data, or provider output. The
+classified line is not evidence and is never written into the private capture/raw inventory. Do
+not retry or continue after either form.
+
 Before credential vending, the operator opens and verifies the credential interpreter/script,
 AWS virtual-environment interpreter/entry point, and GitHub binary, and holds their exact inodes
 for the full capture. Provider execution is limited to the complete authorized graph. The AWS

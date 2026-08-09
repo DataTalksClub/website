@@ -28,7 +28,7 @@
     },
     {
       "path": "_docs/audits/2026-08-08-gate-b-operator-execution.md",
-      "sha256": "1c2c231e401e630a2907fd8bbc75d06c25ec7e1059646a95bd584810244afe6f",
+      "sha256": "66cf43279fd5435aae7145881562be275af26ceae5c520c604b1967bd83f5d83",
       "class": "frozen_historical",
       "reason": "Timestamped Gate-B execution audit retains its exact historical wording.",
       "follow_up": "none; immutable evidence",
@@ -68,7 +68,7 @@
     },
     {
       "path": "deploy/gate_b_execution_contract.json",
-      "sha256": "8cf5b62e78ee617d46c1338452caf493cd60e1ffa93169c2a026feab6d300342",
+      "sha256": "9fe17df92cd7ca0ecb562a803a07164b506b2378d397cf0ace4e02f5b425ef23",
       "class": "frozen_historical",
       "reason": "Pinned Gate-B execution contract is hash-bound immutable evidence.",
       "follow_up": "none; immutable evidence",
@@ -124,7 +124,7 @@
     },
     {
       "path": "deploy/gate_b_assembler.py",
-      "sha256": "f3d7a431b1cba8e9eb12e1a511f60beb5b70d0d14560d3df4f5428e42f3ad7f7",
+      "sha256": "440fe898c780ca98bb17bccc75168a2c512bd87a956be458647741f96c8219ef",
       "class": "legacy_schema_reader",
       "reason": "Gate-B assembler reads the pinned legacy schema without rewriting it.",
       "follow_up": "#94",
@@ -132,7 +132,7 @@
     },
     {
       "path": "deploy/gate_b_operator.py",
-      "sha256": "487d7266022d4c36b48d0891e8821b0c55d0b0c81062c14c54d69085eba01a33",
+      "sha256": "8cbbc80fa9eee9a5a1f3ab1c0852f388c5543822f55b58258f77e217e179ba20",
       "class": "legacy_schema_reader",
       "reason": "Gate-B operator reads exact historical bindings and physical identifiers.",
       "follow_up": "#94",
@@ -140,7 +140,7 @@
     },
     {
       "path": "core/tests/test_gate_b_operator.py",
-      "sha256": "f4de8251fe38e0595e246fa5db6ba63914bb5a7f788c6ba0fd171587edb624a2",
+      "sha256": "350aa8563f420ed35a337c7da564e144e40d17d88d29f7998bf74639682fe39b",
       "class": "legacy_contract_test",
       "reason": "Gate-B operator tests prove exact historical bindings remain readable.",
       "follow_up": "#94",
