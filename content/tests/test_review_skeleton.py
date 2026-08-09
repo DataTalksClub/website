@@ -14,6 +14,7 @@ from django.urls import Resolver404, resolve
 
 from content.public_data import EXPECTED_COUNTS, event_groups, public_projection
 from courses.models.course import Course
+from scripts import build_public_projection as projection_builder
 
 
 class LinkParser(HTMLParser):
@@ -70,6 +71,44 @@ class PublicProjectionTests(TestCase):
                 self.assertTrue(record["provenance"]["source_path"])
                 self.assertTrue(record["provenance"]["source_key"])
 
+    def test_editorial_provenance_keeps_owner_approved_internal_sources(self) -> None:
+        preferred_revision = self.projection["manifest"]["sources"]["preferred_content"]["revision"]
+        legacy_revision = self.projection["manifest"]["sources"]["legacy_main"]["revision"]
+        for collection, prefix in (
+            ("articles", "articles/"),
+            ("podcasts", "podcasts/"),
+            ("books", "books/"),
+        ):
+            for record in self.projection[collection]:
+                with self.subTest(collection=collection, slug=record["slug"]):
+                    self.assertEqual(record["provenance"]["repository"], "DataTalksClub/content")
+                    self.assertEqual(record["provenance"]["revision"], preferred_revision)
+                    self.assertTrue(record["provenance"]["source_path"].startswith(prefix))
+        for podcast in self.projection["podcasts"]:
+            if podcast["transcript"]:
+                self.assertEqual(
+                    podcast["transcript_provenance"]["repository"],
+                    "DataTalksClub/content",
+                )
+                self.assertEqual(
+                    podcast["transcript_provenance"]["revision"],
+                    preferred_revision,
+                )
+        for person in self.projection["people"]:
+            self.assertEqual(
+                person["provenance"]["repository"],
+                "DataTalksClub/datatalksclub.github.io",
+            )
+            self.assertEqual(person["provenance"]["revision"], legacy_revision)
+            self.assertTrue(person["provenance"]["source_path"].startswith("_people/"))
+        for event in self.projection["events"]:
+            self.assertEqual(
+                event["provenance"]["repository"],
+                "DataTalksClub/datatalksclub.github.io",
+            )
+            self.assertEqual(event["provenance"]["revision"], legacy_revision)
+            self.assertEqual(event["provenance"]["source_path"], "_data/events.yaml")
+
     def test_hubs_render_every_checked_record(self) -> None:
         for path, collection in (
             ("/blog", "articles"),
@@ -85,12 +124,6 @@ class PublicProjectionTests(TestCase):
                 for record in self.projection[collection]:
                     self.assertIn(f'href="{record["public_path"]}"', body)
 
-        people_pages = "".join(
-            self.client.get("/people", {"page": page}).content.decode() for page in range(1, 11)
-        )
-        for record in self.projection["people"]:
-            self.assertIn(f'href="{record["public_path"]}"', people_pages)
-
         events = self.client.get("/events").content.decode()
         for event in self.projection["events"]:
             self.assertIn(f'href="{event["public_path"]}"', events)
@@ -101,13 +134,115 @@ class PublicProjectionTests(TestCase):
                 with self.subTest(collection=collection, slug=record["slug"]):
                     response = self.client.get(record["public_path"])
                     self.assertEqual(response.status_code, 200)
-                    self.assertIn(escape(record["title"]), response.content.decode())
+                    body = response.content.decode()
+                    self.assertIn(escape(record["title"]), body)
                     self.assertContains(
                         response,
                         f'<link rel="canonical" href="https://datatalks.club{record["public_path"]}">',
                     )
+                    provenance = record["provenance"]
+                    blocked_values = {
+                        provenance["repository"],
+                        provenance["revision"],
+                        provenance["checksum"],
+                        provenance["source_url"],
+                        "Checked source",
+                        "View source on GitHub",
+                        "This page is maintained on",
+                    }
+                    transcript_provenance = record.get("transcript_provenance")
+                    if transcript_provenance:
+                        blocked_values.update(
+                            {
+                                transcript_provenance["repository"],
+                                transcript_provenance["revision"],
+                                transcript_provenance["checksum"],
+                                transcript_provenance["source_url"],
+                            }
+                        )
+                    for value in blocked_values:
+                        self.assertNotIn(value, body)
                     self.assertEqual(self.client.head(record["public_path"]).status_code, 200)
                     self.assertEqual(self.client.post(record["public_path"]).status_code, 405)
+
+    def test_people_relationships_use_exact_book_ids_and_collapse_recording_lineage(self) -> None:
+        people = self.projection["people_by_slug"]
+        book_paths = self.projection["books_by_path"]
+        expected_book_relationships = {
+            (author, book["public_path"])
+            for book in self.projection["books"]
+            for author in book["authors"]
+            if author in people
+        }
+        actual_book_relationships = {
+            (person["slug"], relationship["public_path"])
+            for person in self.projection["people"]
+            for relationship in person["relationships"]
+            if relationship["role"] == "author" and relationship["public_path"] in book_paths
+        }
+        self.assertEqual(actual_book_relationships, expected_book_relationships)
+        self.assertIn(
+            {
+                "role": "author",
+                "label": "Designing Machine Learning Systems",
+                "public_path": "/books/20220627-designing-machine-learning-systems.html",
+            },
+            people["chiphuyen"]["relationships"],
+        )
+
+        lineage = projection_builder._podcast_event_lineage(
+            list(self.projection["podcasts"]),
+            list(self.projection["events"]),
+        )
+        podcasts = self.projection["podcasts_by_slug"]
+        events = self.projection["events_by_slug"]
+        for event_slug, podcast_slug in lineage.items():
+            event = events[event_slug]
+            podcast = podcasts[podcast_slug]
+            shared_people = {speaker["key"] for speaker in event["speakers"]} & set(
+                podcast["guests"]
+            )
+            for person_slug in shared_people:
+                with self.subTest(event=event_slug, podcast=podcast_slug, person=person_slug):
+                    relationships = people[person_slug]["relationships"]
+                    self.assertIn(
+                        {
+                            "role": "guest",
+                            "label": podcast["title"],
+                            "public_path": podcast["public_path"],
+                        },
+                        relationships,
+                    )
+                    self.assertNotIn(
+                        {
+                            "role": "speaker",
+                            "label": event["title"],
+                            "public_path": event["public_path"],
+                        },
+                        relationships,
+                    )
+
+        bela_relationships = people["belawiertz"]["relationships"]
+        self.assertIn(
+            {
+                "role": "guest",
+                "label": (
+                    "Early-Stage Investing in Open Source Developer Tools: Deal Sourcing, Due "
+                    "Diligence & Commercialization Models"
+                ),
+                "public_path": "/podcast/investing-in-open-source-developer-tools.html",
+            },
+            bela_relationships,
+        )
+        self.assertNotIn(
+            {
+                "role": "speaker",
+                "label": "Investing in Open-Source Data Tools",
+                "public_path": "/events/2023-07-11-investing-in-open-source-data-tools",
+            },
+            bela_relationships,
+        )
+        self.assertIn("2023-07-11-investing-in-open-source-data-tools", events)
 
     def test_event_boundaries_are_timezone_aware(self) -> None:
         before = event_groups(datetime.fromisoformat("2026-08-30T12:00:00+02:00"))
@@ -241,7 +376,6 @@ class PublicProjectionTests(TestCase):
             "/blog",
             "/podcast",
             "/books",
-            "/people",
             "/events",
             "/courses",
             "/wiki",

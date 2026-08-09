@@ -7,7 +7,7 @@ from playwright.sync_api import Browser, Page, ViewportSize, expect
 SCREENSHOTS = Path(".tmp/screenshots/issue-105")
 FEATURED_EVENT_PATH = "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch"
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
-FEATURED_SPEAKER_PATH = "/people/alexeygrigorev"
+FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
 
 
@@ -33,11 +33,11 @@ def test_public_home_and_hubs(
     assert response is not None and response.status == 200
     expect(page).to_have_title("Welcome to DataTalks.Club")
     expect(page.get_by_role("heading", name="The place to talk about data")).to_be_visible()
-    expect(page.get_by_text("Blog · 55")).to_be_visible()
-    expect(page.get_by_text("Podcast · 205")).to_be_visible()
-    expect(page.get_by_text("Books · 98")).to_be_visible()
-    expect(page.get_by_text("People · 438")).to_be_visible()
-    expect(page.get_by_text("Wiki · 282")).to_be_visible()
+    expect(page.get_by_text("Talk about data, machine learning, and engineering")).to_be_visible()
+    expect(page.get_by_role("heading", name="Upcoming events", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Latest podcast episodes", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Book of the week", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Latest articles", exact=True)).to_be_visible()
     featured_course = page.locator("[data-featured-course]")
     expect(featured_course).to_have_count(1)
     expect(featured_course.get_by_text("AI Dev Tools Zoomcamp", exact=True)).to_be_visible()
@@ -52,16 +52,18 @@ def test_public_home_and_hubs(
         "/courses",
     )
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    expect(
+        page.locator("#site-navigation-links").get_by_role("link", name="People", exact=True)
+    ).to_have_count(0)
     _shot(page, f"home-{suffix}.png", full_page=True)
 
     for label, path, heading in (
         ("Events", "/events", "Events"),
-        ("Courses", "/courses", "Courses"),
-        ("Blog", "/blog", "Blog"),
+        ("Courses", "/courses", "Learn data skills. For free. Together."),
+        ("Blog", "/blog", "Latest Articles"),
         ("Podcast", "/podcast", "Podcast"),
-        ("Wiki", "/wiki", "DataTalks.Club Wiki"),
-        ("Books", "/books", "Books"),
-        ("People", "/people", "People"),
+        ("Wiki", "/wiki", "DataTalks.Club Podcast Wiki"),
+        ("Books", "/books", "Book of the Week"),
     ):
         page.goto(origin)
         if viewport["width"] < 1024:
@@ -70,18 +72,17 @@ def test_public_home_and_hubs(
         expect(page).to_have_url(f"{origin}{path}")
         expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-        if label in {"Events", "Courses", "Blog", "Wiki", "People"}:
-            if label == "Courses":
-                expect(page.locator("[data-course-row]")).to_have_count(12)
-                _shot(page, f"{label.casefold()}-hub-{suffix}.png", full_page=True)
-            else:
-                _shot(page, f"{label.casefold()}-hub-{suffix}.png")
+        if label == "Courses":
+            expect(page.locator("[data-course-row]")).to_have_count(12)
+            _shot(page, f"{label.casefold()}-hub-{suffix}.png", full_page=True)
+        else:
+            _shot(page, f"{label.casefold()}-hub-{suffix}.png")
 
-        if label == "People":
-            expect(page.get_by_text("Page 1 of 10", exact=True)).to_be_visible()
-            page.get_by_role("link", name="Next", exact=True).click()
-            expect(page).to_have_url(f"{origin}/people?page=2")
-            expect(page.get_by_text("Page 2 of 10", exact=True)).to_be_visible()
+        if label == "Wiki":
+            expect(page.locator('nav[aria-label="Wiki exploration"]')).to_have_css(
+                "flex-direction",
+                "column",
+            )
 
     response = page.goto(f"{origin}/courses/ai-dev-tools-zoomcamp")
     assert response is not None and response.status == 200
@@ -146,32 +147,30 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         "/podcast/": "/podcast",
         "/books.html": "/books",
         "/books/": "/books",
-        "/people.html": "/people",
-        "/people/": "/people",
         "/events.html": "/events",
         "/events/": "/events",
         "/courses/": "/courses",
         "/wiki/": "/wiki",
-        "/blog/guide-to-free-online-courses-at-datatalks-club.html": (
-            "/blog/guide-to-free-online-courses-at-datatalks-club"
+        "/blog/guide-to-free-online-courses-at-datatalks-club": (
+            "/blog/guide-to-free-online-courses-at-datatalks-club.html"
         ),
         "/blog/guide-to-free-online-courses-at-datatalks-club/": (
-            "/blog/guide-to-free-online-courses-at-datatalks-club"
+            "/blog/guide-to-free-online-courses-at-datatalks-club.html"
         ),
-        "/podcast/practical-llm-engineering-and-rag.html": (
-            "/podcast/practical-llm-engineering-and-rag"
+        "/podcast/practical-llm-engineering-and-rag": (
+            "/podcast/practical-llm-engineering-and-rag.html"
         ),
         "/podcast/practical-llm-engineering-and-rag/": (
-            "/podcast/practical-llm-engineering-and-rag"
+            "/podcast/practical-llm-engineering-and-rag.html"
         ),
-        "/books/20251006-software-development-at-rocket-speed.html": (
-            "/books/20251006-software-development-at-rocket-speed"
+        "/books/20251006-software-development-at-rocket-speed": (
+            "/books/20251006-software-development-at-rocket-speed.html"
         ),
         "/books/20251006-software-development-at-rocket-speed/": (
-            "/books/20251006-software-development-at-rocket-speed"
+            "/books/20251006-software-development-at-rocket-speed.html"
         ),
-        "/people/alexeygrigorev.html": "/people/alexeygrigorev",
-        "/people/alexeygrigorev/": "/people/alexeygrigorev",
+        "/people/alexeygrigorev": "/people/alexeygrigorev.html",
+        "/people/alexeygrigorev/": "/people/alexeygrigorev.html",
     }
     for source, target in aliases.items():
         response = page.request.get(
@@ -185,6 +184,11 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         expect(page).to_have_url(f"{origin}{target}?source=browser")
         assert navigation.request.redirected_from is not None
         assert navigation.request.redirected_from.redirected_from is None
+
+    for path in ("/people", "/people/", "/people.html"):
+        response = page.request.get(f"{origin}{path}", max_redirects=0)
+        assert response.status == 404
+        assert "location" not in response.headers
 
 
 @pytest.mark.core
@@ -204,7 +208,6 @@ def test_public_pages_remain_meaningful_without_javascript(
             ("/events", "Events"),
             (FEATURED_EVENT_PATH, FEATURED_EVENT_TITLE),
             (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_NAME),
-            ("/people", "People"),
             ("/wiki/search", "Search"),
         ):
             response = page.goto(f"{live_server.url}{path}")
@@ -219,9 +222,9 @@ def test_public_pages_remain_meaningful_without_javascript(
 def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> None:
     origin = live_server.url
     for path in (
-        "/blog/sponsor-datatalks-club",
-        "/podcast/practical-llm-engineering-and-rag",
-        "/books/20251006-software-development-at-rocket-speed",
+        "/blog/sponsor-datatalks-club.html",
+        "/podcast/practical-llm-engineering-and-rag.html",
+        "/books/20251006-software-development-at-rocket-speed.html",
         "/wiki/a-a-testing",
         "/courses/de-zoomcamp-2026",
     ):
@@ -253,7 +256,7 @@ def test_wiki_search_graph_and_removed_mount(page: Page, live_server) -> None:
     expect(page.locator("h1")).to_be_visible()
 
     page.goto(f"{origin}/wiki/graph")
-    expect(page.get_by_role("heading", name="Knowledge graph")).to_be_visible()
+    expect(page.get_by_role("heading", name="Podcast Graph")).to_be_visible()
     expect(page.locator("main a").first).to_be_visible()
 
     response = page.goto(f"{origin}/podwiki")

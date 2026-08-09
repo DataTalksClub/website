@@ -48,8 +48,10 @@ Verification maps every requirement to an automated or explicitly manual gate. T
 
 Critical paths in desktop and mobile viewports:
 
-- navigate the clean Blog, Podcast, Books, People, Events, Courses, and Wiki hubs; clean editorial
-  details and direct redirects from `.html` and slash aliases; internal event/person relationships;
+- navigate the clean Blog, Podcast, Books, Events, Courses, and Wiki hubs; verify that the removed
+  People catalogue paths return unredirected `404`s; navigate linked Person details; established
+  `.html` editorial details and direct redirects from clean and slash aliases; internal
+  event/person relationships;
   Docs; FAQ anchors; Wiki query
   search/graph; and course pages;
 - register/verify/cancel an event without enumeration;

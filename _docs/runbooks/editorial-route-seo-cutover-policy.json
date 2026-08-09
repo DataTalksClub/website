@@ -14,7 +14,7 @@
     "selection_mode": "preferred",
     "required_finals": 796,
     "required_aliases": 1592,
-    "required_content_sha256": "61f7eb360aa04bc51d3ed4515fd0b9d624efb6d50f07e766dbc40c0555318762"
+    "required_content_sha256": "b97732326f44c239b6451244d5bf237bac509dfb6e77e5cd07d065cf5308a3c7"
   },
   "baseline": {
     "timezone": "UTC",
@@ -62,17 +62,17 @@
     {
       "id": "googlebot_http",
       "source": "redacted edge HTTP aggregates for provider-validated Googlebot traffic",
-      "comparison": "old aliases versus mapped clean finals"
+      "comparison": "clean and slash aliases versus mapped .html finals"
     },
     {
       "id": "search_console",
       "source": "production Search Console page-indexing, crawl, canonical, clicks, and impressions exports",
-      "comparison": "manifest-normalized old and clean production URL groups"
+      "comparison": "manifest-normalized alias and .html final production URL groups"
     },
     {
       "id": "organic_landings",
       "source": "production analytics aggregate organic landing sessions",
-      "comparison": "manifest-normalized clean URL group versus the weekday baseline"
+      "comparison": "manifest-normalized .html canonical URL group versus the weekday baseline"
     },
     {
       "id": "robots_sitemap_canonical",

@@ -4,13 +4,52 @@
 {% endblock %}
 {% block content %}
   <header class="max-w-3xl py-6">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ count }} checked records</p>
-    <h1 class="mt-2 text-4xl font-semibold">Events</h1>
+    <h1 class="text-4xl font-semibold">Events</h1>
+    <p class="mt-4 text-lg leading-8 app-text">
+      We host multiple types of events to help you learn and connect with the data science community:
+    </p>
+    <ul class="mt-5 space-y-3 app-text" aria-label="Types of events">
+      <li class="flex items-start gap-3">
+        <i class="fas fa-tv mt-1" aria-hidden="true"></i>
+        <span>Webinars &ndash; events on Tuesday, with slides, mostly technical</span>
+      </li>
+      <li class="flex items-start gap-3">
+        <i class="fas fa-microphone-alt mt-1" aria-hidden="true"></i>
+        <span>
+          Live podcasts &ndash; events on Friday, a discussion without slides, the recording is
+          published as a podcast
+        </span>
+      </li>
+      <li class="flex items-start gap-3">
+        <i class="fas fa-wrench mt-1" aria-hidden="true"></i>
+        <span>Workshop &ndash; hands-on tutorials about technical topics</span>
+      </li>
+      <li class="flex items-start gap-3">
+        <i class="fas fa-briefcase mt-1" aria-hidden="true"></i>
+        <span>
+          Conference &ndash; bigger events with multiple talks, both webinar-type talks and
+          podcast-type talks
+        </span>
+      </li>
+    </ul>
+    <p class="mt-5 app-text">
+      <i class="far fa-calendar-alt mr-2" aria-hidden="true"></i>
+      <strong>Pro tip</strong>: you can also subscribe to
+      <a
+        class="app-link"
+        href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        our Google calendar<span class="sr-only"> (opens in a new tab)</span>
+      </a>
+      to get notified about all our events (subscribing works from desktop only).
+    </p>
   </header>
   <section class="mt-6" aria-labelledby="upcoming-heading">
-    <h2 id="upcoming-heading" class="text-2xl font-semibold">Upcoming</h2>
+    <h2 id="upcoming-heading" class="text-2xl font-semibold">Upcoming events</h2>
     {% if not upcoming_events %}
-      <p class="mt-4 app-text">No upcoming events are listed in the current source snapshot.</p>
+      <p class="mt-4 app-text">No upcoming events.</p>
     {% endif %}
     <div class="mt-4 divide-y app-divide">
       {% for event in upcoming_events %}
@@ -19,7 +58,7 @@
     </div>
   </section>
   <section class="mt-10" aria-labelledby="recent-heading">
-    <h2 id="recent-heading" class="text-2xl font-semibold">Recorded and past events</h2>
+    <h2 id="recent-heading" class="text-2xl font-semibold">Past events</h2>
     <div class="mt-4 divide-y app-divide">
       {% for event in recent_events %}
         {% include "public/_event.html" %}

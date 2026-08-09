@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://datatalks.club/schemas/editorial-route-migration-v1.json",
   "title": "DataTalks.Club exhaustive editorial route migration manifest",
-  "description": "Generated, digest-bound inventory of every clean editorial final and every approved one-hop legacy alias.",
+  "description": "Generated, digest-bound inventory of every established .html editorial final and every approved one-hop clean or slash alias.",
   "type": "object",
   "additionalProperties": false,
   "required": [

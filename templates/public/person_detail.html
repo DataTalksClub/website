@@ -3,10 +3,7 @@
   {{ seo_title }}
 {% endblock %}
 {% block breadcrumbs %}
-  <li>
-    <a class="app-link" href="{% url 'people' %}">People</a>
-  </li>
-  <li class="ml-2">/ {{ record.title }}</li>
+  <li>/ {{ record.title }}</li>
 {% endblock %}
 {% block content %}
   <article class="mx-auto max-w-3xl">
@@ -19,8 +16,7 @@
         height="128"
       >
       <div>
-        <p class="text-sm font-semibold uppercase tracking-wide app-muted">Community profile</p>
-        <h1 class="mt-2 text-4xl font-semibold leading-tight">{{ record.title }}</h1>
+        <h1 class="text-4xl font-semibold leading-tight">{{ record.title }}</h1>
       </div>
     </header>
     {% if record.summary %}
@@ -65,6 +61,5 @@
         {% endfor %}
       </nav>
     {% endif %}
-    {% include "public/_source.html" with provenance=record.provenance %}
   </article>
 {% endblock %}

@@ -6,12 +6,16 @@ Status: draft
 
 The following repositories remain editorial sources of truth:
 
-- `DataTalksClub/datatalksclub.github.io`: main pages, articles, podcasts, people, books, tools, conferences, and legacy editorial data;
+- `DataTalksClub/content`: articles, podcasts, podcast transcripts, and books;
+- `DataTalksClub/datatalksclub.github.io`: main pages, people, tools, conferences, events, and
+  legacy editorial data;
 - `DataTalksClub/docs`: docs pages and navigation hierarchy;
 - `DataTalksClub/faq`: FAQ courses, sections, records, and JSON source;
 - `DataTalksClub/podwiki`: wiki pages, typed links/citations, graph, and search source.
 
 Studio never creates a conflicting published database override. In the MVP it provides source status, candidate preview, validation diagnostics, activation/rollback, and edit-on-GitHub links.
+Public pages do not render repository names, revisions, checksums, source paths, or source/edit links;
+that provenance remains available only to the build, audit, and Studio workflows.
 
 ## Core read models
 
@@ -61,8 +65,10 @@ Assets are stored under release-specific keys. The Django asset resolver selects
 `Person` is the one canonical public profile concept.
 
 - Its stable source key is the existing `short` identifier.
-- Public path is the owner-approved clean `/people/<short>` route; the established `.html` and
-  trailing-slash forms redirect directly to it.
+- Public path preserves the established `/people/<short>.html` canonical. Its clean and
+  trailing-slash aliases redirect directly to the `.html` final.
+- There is no public People catalogue at `/people`; Person details are discovered only through
+  exact content and event relationships.
 - Names, bio, portrait, and social links come from the active GitHub profile.
 - Roles are derived from ordered relationships, so the same person can be an author, guest, speaker, host, instructor, book author, or maintainer at the same time.
 - Course/event teaching relationships may explicitly link a staff user to a public person profile;
@@ -80,9 +86,12 @@ grants no account, course, Studio, or staff permission.
 
 The bounded public projection selects all 438 checked `_people/*.md` profiles from
 `DataTalksClub/datatalksclub.github.io@ee43d3fa0929faf691178d79f19528e6f15a83e5` and excludes
-only `_people/_template.md`. It projects `/people/<short>`, checked portraits, sanitized
-biographies and public social links, and derives roles only from exact checked author, guest, and
-speaker keys. It does not create or join a `MemberProfile`, user, staff identity, or account.
+only `_people/_template.md`. It projects `/people/<short>.html`, checked portraits, sanitized
+biographies and public social links, and derives roles only from exact checked article/book author,
+podcast guest, and event speaker keys. A book author is linked only when its structured identifier
+exactly equals a Person slug. A podcast-type event contribution is suppressed when its exact
+recording URL or YouTube ID matches a podcast and the same Person is both speaker and guest. It does
+not create or join a `MemberProfile`, user, staff identity, or account.
 
 ## Repository adapters
 
@@ -101,7 +110,8 @@ Each source uses an explicit adapter with fixtures from real legacy files.
 
 - Preserves source-path pretty URLs, explicit permalinks, parent/grand-parent navigation, ordering, breadcrumbs, and heading anchors.
 - Supports code fences, tables, callouts, Mermaid, images, and safe `relative_url` rewriting.
-- Preserves edit-on-GitHub and source-derived modification details.
+- Preserves the source edit target and source-derived modification details for Studio/audit use,
+  without rendering repository provenance on the public page.
 - Rejects ambiguous title-based parent references.
 
 ### FAQ adapter
@@ -109,7 +119,8 @@ Each source uses an explicit adapter with fixtures from real legacy files.
 - Preserves course and section order, stable ten-character question anchors, and raw Markdown answers.
 - Does not interpret dbt/Jinja/Liquid-looking expressions inside answers.
 - Generates the exact current course and JSON feed contracts.
-- Preserves edit-on-GitHub links and optional image behavior.
+- Preserves the source edit target for Studio/audit use and optional image behavior, without
+  rendering repository provenance on the public page.
 
 ### Podwiki adapter
 

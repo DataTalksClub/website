@@ -19,7 +19,7 @@ import subprocess
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -75,6 +75,7 @@ LIQUID = re.compile(r"{%.*?%}|{{.*?}}", re.DOTALL)
 MARKDOWN_IMAGE = re.compile(r"!\[([^]]*)\]\([^)]*\)")
 MARKDOWN_LINK = re.compile(r"\[([^]]+)\]\([^)]*\)")
 WIKI_TOKEN = re.compile(r"\[\[([^]]+)\]\]")
+YOUTUBE_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
 
 WIKI_PUBLIC_ASSETS = ("assets/og-default.png",)
 MEDIA_EXTENSIONS = frozenset({".gif", ".jpeg", ".jpg", ".png", ".svg"})
@@ -86,6 +87,7 @@ EDITORIAL_ROUTE_COLLECTIONS = {
 }
 EXPECTED_EDITORIAL_FINALS = sum(EXPECTED_COUNTS[name] for name in EDITORIAL_ROUTE_COLLECTIONS)
 EXPECTED_EDITORIAL_ALIASES = 2 * EXPECTED_EDITORIAL_FINALS
+RECORDING_LINK_LABELS = frozenset({"Watch recording", "Listen to recording"})
 
 
 class ProjectionBuildError(RuntimeError):
@@ -395,7 +397,7 @@ def _main_records(
         articles.append(
             {
                 "slug": slug,
-                "public_path": f"/blog/{slug}",
+                "public_path": f"/blog/{slug}.html",
                 "title": title,
                 "subtitle": _string(
                     metadata.get("subtitle"), field="article subtitle", maximum=2_000, optional=True
@@ -431,7 +433,7 @@ def _main_records(
         legacy_path = _string(raw.get("legacy_path"), field="podcast path", maximum=500)
         if legacy_path != f"/podcast/{slug}.html":
             raise ProjectionBuildError(f"podcast route mismatch: {path.name[:120]}")
-        public_path = f"/podcast/{slug}"
+        public_path = f"/podcast/{slug}.html"
         transcript_path = raw.get("transcript")
         transcript: list[dict[str, Any]] = []
         transcript_provenance: dict[str, str] | None = None
@@ -577,7 +579,7 @@ def _main_records(
         legacy_path = _string(raw.get("legacy_path"), field="book path", maximum=500)
         if legacy_path != f"/books/{slug}.html":
             raise ProjectionBuildError(f"book route mismatch: {path.name[:120]}")
-        public_path = f"/books/{slug}"
+        public_path = f"/books/{slug}.html"
         source_path = f"books/{path.name}" if mode == "preferred" else f"_books/{path.stem}.md"
         source_file = path if mode == "preferred" else legacy_main_root / source_path
         book_links: list[dict[str, str]] = []
@@ -708,7 +710,7 @@ def _people(legacy_main_root: Path) -> list[dict[str, Any]]:
         people.append(
             {
                 "slug": key,
-                "public_path": f"/people/{key}",
+                "public_path": f"/people/{key}.html",
                 "title": _title_from_record(metadata, key),
                 "summary": _string(
                     metadata.get("bio_short"),
@@ -832,6 +834,53 @@ def _events(
         raise ProjectionBuildError("event conference-link omission count mismatch")
     events.sort(key=lambda item: (item["starts_at"], item["slug"]), reverse=True)
     return events
+
+
+def _recording_identities(url: str) -> frozenset[tuple[str, str]]:
+    identities = {("url", url)}
+    parsed = urlsplit(url)
+    hostname = (parsed.hostname or "").casefold().removeprefix("www.")
+    candidate = ""
+    if hostname == "youtu.be":
+        candidate = parsed.path.strip("/").split("/", 1)[0]
+    elif hostname in {"youtube.com", "m.youtube.com"}:
+        if parsed.path == "/watch":
+            video_ids = parse_qs(parsed.query, keep_blank_values=True).get("v", [])
+            candidate = video_ids[0] if len(video_ids) == 1 else ""
+        else:
+            prefix, separator, suffix = parsed.path.strip("/").partition("/")
+            if separator and prefix in {"embed", "live", "shorts"}:
+                candidate = suffix.split("/", 1)[0]
+    if YOUTUBE_VIDEO_ID.fullmatch(candidate):
+        identities.add(("youtube", candidate))
+    return frozenset(identities)
+
+
+def _podcast_event_lineage(
+    podcasts: list[dict[str, Any]], events: list[dict[str, Any]]
+) -> dict[str, str]:
+    podcasts_by_identity: dict[tuple[str, str], set[str]] = {}
+    for podcast in podcasts:
+        for url in podcast["links"].values():
+            for identity in _recording_identities(url):
+                podcasts_by_identity.setdefault(identity, set()).add(podcast["slug"])
+
+    lineage: dict[str, str] = {}
+    for event in events:
+        if event["type"].casefold() != "podcast":
+            continue
+        matches = {
+            podcast_slug
+            for link in event["links"]
+            if link["label"] in RECORDING_LINK_LABELS
+            for identity in _recording_identities(link["url"])
+            for podcast_slug in podcasts_by_identity.get(identity, ())
+        }
+        if len(matches) > 1:
+            raise ProjectionBuildError("ambiguous podcast event recording lineage")
+        if matches:
+            lineage[event["slug"]] = matches.pop()
+    return lineage
 
 
 def _wiki_relations(
@@ -1225,7 +1274,8 @@ def _expected_editorial_routes(
     for collection, prefix in EDITORIAL_ROUTE_COLLECTIONS.items():
         for record in collections[collection]:
             final_path = record["public_path"]
-            if final_path != f"{prefix}/{record['slug']}":
+            clean_path = f"{prefix}/{record['slug']}"
+            if final_path != f"{clean_path}.html":
                 raise ProjectionBuildError("editorial route final does not match its stable key")
             final = {
                 "collection": collection,
@@ -1234,7 +1284,7 @@ def _expected_editorial_routes(
                 "source": dict(record["provenance"]),
             }
             finals.append(final)
-            for source_path in (f"{final_path}.html", f"{final_path}/"):
+            for source_path in (clean_path, f"{clean_path}/"):
                 aliases.append(
                     {
                         "collection": collection,
@@ -1682,6 +1732,16 @@ def build(args: argparse.Namespace) -> None:
             relationships[author].append(
                 {"role": "author", "label": article["title"], "public_path": article["public_path"]}
             )
+    for book in books:
+        for author in book["authors"]:
+            if author in relationships:
+                relationships[author].append(
+                    {
+                        "role": "author",
+                        "label": book["title"],
+                        "public_path": book["public_path"],
+                    }
+                )
     for podcast in podcasts:
         for guest in podcast["guests"]:
             if guest in relationships:
@@ -1692,8 +1752,13 @@ def build(args: argparse.Namespace) -> None:
                         "public_path": podcast["public_path"],
                     }
                 )
+    podcast_by_slug = {podcast["slug"]: podcast for podcast in podcasts}
+    podcast_event_lineage = _podcast_event_lineage(podcasts, events)
     for event in events:
+        canonical_podcast = podcast_by_slug.get(podcast_event_lineage.get(event["slug"], ""))
         for speaker in event["speakers"]:
+            if canonical_podcast is not None and speaker["key"] in canonical_podcast["guests"]:
+                continue
             relationships[speaker["key"]].append(
                 {"role": "speaker", "label": event["title"], "public_path": event["public_path"]}
             )

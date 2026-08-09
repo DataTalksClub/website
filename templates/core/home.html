@@ -5,14 +5,11 @@
 {% block content %}
   <section class="py-6 md:py-10">
     <div class="max-w-4xl">
-      <p class="text-sm font-semibold uppercase tracking-wide app-muted">Global data community</p>
-      <h1 class="mt-3 text-4xl font-semibold leading-tight sm:text-5xl md:text-6xl">The place to talk about data</h1>
+      <h1 class="text-4xl font-semibold leading-tight sm:text-5xl md:text-6xl">
+        The place to talk about data
+      </h1>
       <p class="mt-5 max-w-3xl text-lg leading-8 app-text md:text-xl">
-        Global online community of data science professionals, ML engineers, and AI practitioners.
-      </p>
-      <p class="mt-4 max-w-3xl text-base leading-7 app-text">
-        Learn from practical courses, join weekly events, hear from industry experts, and share what
-        you know with people around the world.
+        Global online community of data science professionals, ML engineers, and AI practitioners
       </p>
       <div class="mt-7 flex flex-wrap gap-3">
         <a class="primer-button primer-button-primary" href="{% url 'events' %}">Explore upcoming events</a>
@@ -20,14 +17,18 @@
         <a class="primer-button primer-button-secondary" href="{% url 'slack' %}">Join our community</a>
       </div>
     </div>
+    <ul class="mt-10 divide-y app-divide border-y app-border text-lg font-semibold">
+      <li class="py-4">Talk about data, machine learning, and engineering</li>
+      <li class="py-4">Attend weekly events and learn from free courses</li>
+      <li class="py-4">Ask career questions and discuss career options</li>
+    </ul>
   </section>
 
   <section class="mt-8 border-y app-border py-8" aria-labelledby="home-events-heading">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-wide app-muted">Learn live</p>
-        <h2 id="home-events-heading" class="mt-2 text-2xl font-semibold md:text-3xl">
-          Events
+        <h2 id="home-events-heading" class="text-2xl font-semibold md:text-3xl">
+          Upcoming events
         </h2>
       </div>
       <a class="app-link" href="{% url 'events' %}">See all events</a>
@@ -39,7 +40,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="mt-5 app-text">No upcoming events are listed in the current source snapshot.</p>
+      <p class="mt-5 app-text">No upcoming events.</p>
       {% for event in recent_events %}
         <p class="mt-3">
           <a class="app-link" href="{{ event.public_path }}">
@@ -48,16 +49,28 @@
         </p>
       {% endfor %}
     {% endif %}
+    <p class="mt-5 app-text">
+      Check <a class="app-link" href="{% url 'events' %}">events</a> for all past events. You can
+      also subscribe to
+      <a
+        class="app-link"
+        href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        our Google calendar<span class="sr-only"> (opens in a new tab)</span>
+      </a>
+      to get notified about all our events.
+    </p>
   </section>
 
   <section class="py-10" aria-labelledby="home-courses-heading">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Learn by building</p>
-    <h2 id="home-courses-heading" class="mt-2 text-2xl font-semibold md:text-3xl">
-      Courses and cohorts
+    <h2 id="home-courses-heading" class="text-2xl font-semibold md:text-3xl">
+      Courses
     </h2>
     <p class="mt-4 max-w-3xl leading-7 app-text">
-      Free, practical courses with a community around them. A course is the long-lived subject;
-      each cohort is a dated learning experience.
+      Community-created courses with practical homework, projects, public leaderboards, and peer
+      review.
     </p>
     <div class="mt-6 divide-y app-divide border-y app-border" data-featured-courses>
       <article
@@ -90,38 +103,35 @@
   </section>
 
   <section class="border-t app-border py-10" aria-labelledby="home-community-heading">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Explore the club</p>
-    <h2 id="home-community-heading" class="mt-2 text-2xl font-semibold md:text-3xl">
-      One community, many ways to take part
+    <h2 id="home-community-heading" class="text-2xl font-semibold md:text-3xl">
+      Latest podcast episodes
     </h2>
     <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'articles' %}">
-        <strong class="text-lg">Blog · {{ counts.articles }}</strong>
-        <span class="app-text">Latest: {{ article.title }}</span>
-      </a>
       <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'podcast' %}">
-        <strong class="text-lg">Podcast · {{ counts.podcasts }}</strong>
-        <span class="app-text">Latest: {{ podcast.title }}</span>
+        <strong class="text-lg">{{ podcast.title }}</strong>
+        <span class="app-text">Listen to the latest episode</span>
       </a>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'wiki-home' %}">
-        <strong class="text-lg">Wiki · {{ counts.wiki }}</strong>
-        <span class="app-text">Discover: {{ wiki_page.title }}</span>
+    </div>
+    <p class="mt-4 app-text">
+      Check the <a class="app-link" href="{% url 'podcast' %}">podcast</a> page for all past podcast
+      episodes.
+    </p>
+
+    <h2 class="mt-10 text-2xl font-semibold md:text-3xl">Book of the week</h2>
+    <div class="mt-6 divide-y app-divide border-y app-border">
+      <a class="block py-4 app-link" href="{{ book.public_path }}">
+        <strong class="text-lg">{{ book.title }}</strong>
       </a>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'books' %}">
-        <strong class="text-lg">Books · {{ counts.books }}</strong>
-        <span class="app-text">Latest: {{ book.title }}</span>
-      </a>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'people' %}">
-        <strong class="text-lg">People · {{ counts.people }}</strong>
-        <span class="app-text">Meet speakers, guests, and authors</span>
-      </a>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'docs-home' %}">
-        <strong class="text-lg">Documentation</strong>
-        <span class="app-text">Course setup and learning guides</span>
-      </a>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'faq-home' %}">
-        <strong class="text-lg">FAQ</strong>
-        <span class="app-text">Answers to common course questions</span>
+    </div>
+    <p class="mt-4 app-text">
+      Check the <a class="app-link" href="{% url 'books' %}">book of the week</a> page for more
+      books!
+    </p>
+
+    <h2 class="mt-10 text-2xl font-semibold md:text-3xl">Latest articles</h2>
+    <div class="mt-6 divide-y app-divide border-y app-border">
+      <a class="block py-4 app-link" href="{{ article.public_path }}">
+        <strong class="text-lg">{{ article.title }}</strong>
       </a>
     </div>
   </section>

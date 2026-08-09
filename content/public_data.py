@@ -54,6 +54,12 @@ COLLECTION_NAMES = (
     "courses",
     "media",
 )
+EVENT_TYPE_ICONS = {
+    "conference": "fas fa-briefcase",
+    "podcast": "fas fa-microphone-alt",
+    "webinar": "fas fa-tv",
+    "workshop": "fas fa-wrench",
+}
 EXPECTED_RECORD_SOURCES = {
     "articles": {("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"])},
     "podcasts": {("DataTalksClub/content", EXPECTED_REVISIONS["preferred_content"])},
@@ -129,7 +135,8 @@ def _expected_editorial_routes(
     for collection, prefix in EDITORIAL_ROUTE_COLLECTIONS.items():
         for record in projection[collection]:
             final_path = record["public_path"]
-            if final_path != f"{prefix}/{record['slug']}":
+            clean_path = f"{prefix}/{record['slug']}"
+            if final_path != f"{clean_path}.html":
                 raise ImproperlyConfigured("Public projection editorial final mismatch.")
             finals.append(
                 {
@@ -139,7 +146,7 @@ def _expected_editorial_routes(
                     "source": dict(record["provenance"]),
                 }
             )
-            for source_path in (f"{final_path}.html", f"{final_path}/"):
+            for source_path in (clean_path, f"{clean_path}/"):
                 aliases.append(
                     {
                         "collection": collection,
@@ -339,12 +346,10 @@ def event_groups(now: datetime | None = None) -> EventGroups:
         event["display_time"] = f"{local_start:%b} {local_start.day}, {local_start:%Y, %H:%M %Z}"
         event["display_date"] = f"{local_start:%b} {local_start.day}, {local_start:%Y}"
         event["display_clock"] = f"{local_start:%H:%M %Z}"
-        event["type_icon"] = {
-            "conference": "fas fa-users",
-            "podcast": "fas fa-microphone-alt",
-            "webinar": "fas fa-video",
-            "workshop": "fas fa-chalkboard-teacher",
-        }.get(event["type"].casefold(), "fas fa-calendar-check")
+        event["type_icon"] = EVENT_TYPE_ICONS.get(
+            event["type"].casefold(),
+            "fas fa-calendar-check",
+        )
         (upcoming if event["starts_at_value"] >= current else recent).append(event)
     upcoming.sort(key=lambda item: (item["starts_at_value"], item["slug"]))
     recent.sort(key=lambda item: (item["starts_at_value"], item["slug"]), reverse=True)
@@ -358,7 +363,6 @@ def public_paths() -> tuple[str, ...]:
         "/blog",
         "/podcast",
         "/books",
-        "/people",
         "/events",
         "/courses",
         "/wiki",

@@ -20,7 +20,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
         self.assertContains(response, "Welcome to DataTalks.Club")
         self.assertContains(response, "The place to talk about data")
-        self.assertContains(response, "Courses and cohorts")
+        self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
         self.assertContains(response, "2026 cohort")
         self.assertContains(response, "Starts August 31, 2026")
@@ -51,13 +51,14 @@ class MainHomepageRoutingTests(TestCase):
             "podcast",
             "wiki-home",
             "books",
-            "people",
             "docs-home",
             "faq-home",
             "slack",
         ):
             with self.subTest(route_name=route_name):
                 self.assertContains(response, f'href="{reverse(route_name)}"')
+
+        self.assertNotContains(response, 'href="/people"')
 
         anchor_destinations = re.findall(
             r'<a\s[^>]*href="([^"]+)"',
@@ -111,7 +112,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, f'href="{reverse("studio:home")}"')
         self.assertContains(response, f'href="{reverse("cadmin_course_list")}"')
 
-    def test_course_discovery_uses_the_checked_catalog(self) -> None:
+    def test_course_discovery_uses_the_public_catalog(self) -> None:
         self.assertEqual(reverse("course_list"), "/courses")
         self.assertIs(resolve("/courses").func, public_views.course_hub)
 
@@ -119,7 +120,7 @@ class MainHomepageRoutingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "<title>Courses — DataTalks.Club</title>", html=True)
-        self.assertContains(response, "12 tracked catalogs")
+        self.assertContains(response, "Learn data skills. For free. Together.")
         self.assertContains(response, "Data Engineering Zoomcamp 2026")
         self.assertEqual(response.content.decode().count("data-course-row"), 12)
         self.assertNotContains(response, "md:grid-cols-2")

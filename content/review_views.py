@@ -12,7 +12,6 @@ from .review_projection import (
     event_groups,
     projected_events,
     projection_context,
-    record_provenance,
     review_projection,
 )
 
@@ -69,7 +68,7 @@ def article_detail(request: HttpRequest) -> HttpResponse:
     return _render(
         request,
         "review/article_detail.html",
-        path="/blog/ai-dev-tools-zoomcamp",
+        path="/blog/ai-dev-tools-zoomcamp.html",
         title="AI Dev Tools Zoomcamp 2026 — DataTalks.Club",
         description=review_projection()["article"]["description"],
         context=projection_context("article"),
@@ -102,7 +101,6 @@ def podcast_detail(request: HttpRequest) -> HttpResponse:
         context={
             "podcast": episode,
             "person": person,
-            "provenance": record_provenance(episode),
         },
     )
 
@@ -124,7 +122,6 @@ def person_detail(request: HttpRequest) -> HttpResponse:
             "person": person,
             "recorded_event": recorded_event,
             "podcast": projection["podcast"],
-            "provenance": record_provenance(person),
         },
     )
 
@@ -222,12 +219,7 @@ def course_family(request: HttpRequest) -> HttpResponse:
     course = review_projection()["course"]
     legacy_course = Course.objects.filter(slug=course["cohort"]["legacy_platform_slug"]).first()
     context = projection_context("course")
-    context.update(
-        {
-            "legacy_course": legacy_course,
-            "platform_provenance": record_provenance(course["platform_provenance"]),
-        }
-    )
+    context.update({"legacy_course": legacy_course})
     return _render(
         request,
         "review/course_family.html",
@@ -254,8 +246,6 @@ def course_cohort(request: HttpRequest) -> HttpResponse:
             "course": course,
             "cohort": cohort,
             "legacy_course": legacy_course,
-            "platform_provenance": record_provenance(course["platform_provenance"]),
-            "provenance": record_provenance(course),
         },
     )
 
@@ -269,7 +259,7 @@ def registration_preview(request: HttpRequest) -> HttpResponse:
         request,
         "review/registration_preview.html",
         path=path,
-        title=f"Registration preview — {cohort['title']}",
-        description="A read-only preview of the future course registration path.",
+        title=f"Registration — {cohort['title']}",
+        description=f"Registration for {cohort['title']} opens soon.",
         context={"course": course, "cohort": cohort},
     )

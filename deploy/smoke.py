@@ -194,7 +194,7 @@ def run_http_smoke(
     canonical = '<link rel="canonical" href="https://datatalks.club/">'
     if html.count(canonical) != 1 or html.count('rel="canonical"') != 1:
         raise ReleaseContractError("home page production canonical differs")
-    if "12 tracked catalogs" in html:
+    if "Learn data skills. For free. Together." in html:
         raise ReleaseContractError("home page regressed to adopted course discovery")
     lowered = html.lower()
     if "traceback" in lowered or "page not found" in lowered or "debug=true" in lowered:
@@ -220,7 +220,7 @@ def run_http_smoke(
     courses_html = courses.body.decode("utf-8")
     if f"Version {version}" not in _visible_text(courses_html):
         raise ReleaseContractError("course footer lacks the exact version")
-    if "12 tracked catalogs" not in courses_html:
+    if "Learn data skills. For free. Together." not in courses_html:
         raise ReleaseContractError("course discovery lacks expected content")
     if "The place to talk about data" in courses_html:
         raise ReleaseContractError("course discovery regressed to the main-site home")

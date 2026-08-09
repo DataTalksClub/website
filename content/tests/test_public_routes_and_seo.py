@@ -7,7 +7,8 @@ from xml.etree import ElementTree
 
 from django.test import TestCase
 
-from content.public_data import public_projection
+from content.public_data import public_paths, public_projection
+from content.review_projection import review_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
@@ -24,8 +25,6 @@ class PublicRouteAndSeoTests(TestCase):
             "/podcast/": "/podcast",
             "/books.html": "/books",
             "/books/": "/books",
-            "/people.html": "/people",
-            "/people/": "/people",
             "/events.html": "/events",
             "/events/": "/events",
             "/courses/": "/courses",
@@ -59,7 +58,19 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertEqual(response.status_code, 404)
                 self.assertNotIn("Location", response.headers)
 
-    def test_editorial_detail_aliases_redirect_directly_to_clean_canonicals(self) -> None:
+    def test_people_catalogue_paths_are_unavailable_without_redirects_or_canonicals(self) -> None:
+        for path in ("/people", "/people/", "/people.html"):
+            with self.subTest(path=path):
+                for method in (self.client.get, self.client.head):
+                    response = method(path, follow=False)
+                    self.assertEqual(response.status_code, 404)
+                    self.assertNotIn("Location", response.headers)
+                    self.assertNotContains(response, 'rel="canonical"', status_code=404)
+        canonical_inventory = set(public_paths())
+        self.assertNotIn("/people", canonical_inventory)
+        self.assertTrue(set(public_projection()["people_by_path"]).issubset(canonical_inventory))
+
+    def test_editorial_detail_aliases_redirect_directly_to_html_canonicals(self) -> None:
         projection = public_projection()
         migration = projection["editorial_route_migration"]
         self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_592})
@@ -70,6 +81,15 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertEqual(len(alias_map), 1_592)
         self.assertEqual(set(alias_map.values()), canonical_paths)
         self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
+        self.assertTrue(all(path.endswith(".html") for path in canonical_paths))
+        self.assertEqual(
+            set(alias_map),
+            {
+                alias
+                for path in canonical_paths
+                for alias in (path.removesuffix(".html"), f"{path.removesuffix('.html')}/")
+            },
+        )
 
         query = "x=%2F&x=&q=A+B&q=A%20B"
         for source, target in alias_map.items():
@@ -89,6 +109,7 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertEqual(final.status_code, 200)
                 self.assertNotIn("Location", final.headers)
                 self.assertEqual(final.headers["X-Robots-Tag"], "noindex, nofollow")
+                self.assertEqual(self.client.post(target).status_code, 405)
                 canonical_url = f"https://datatalks.club{target}"
                 self.assertContains(
                     final,
@@ -112,6 +133,19 @@ class PublicRouteAndSeoTests(TestCase):
                 breadcrumb = next(item for item in graph if item["@type"] == "BreadcrumbList")
                 self.assertEqual(breadcrumb["itemListElement"][-1]["item"], canonical_url)
 
+        guide_path = "/blog/guide-to-free-online-courses-at-datatalks-club.html"
+        guide = self.client.get(guide_path, follow=False)
+        self.assertEqual(guide.status_code, 200)
+        self.assertContains(
+            guide,
+            f'<link rel="canonical" href="https://datatalks.club{guide_path}">',
+            count=1,
+        )
+        for alias in (guide_path.removesuffix(".html"), f"{guide_path.removesuffix('.html')}/"):
+            response = self.client.get(f"{alias}?source=contract", follow=False)
+            self.assertEqual(response.status_code, 301)
+            self.assertEqual(response.headers["Location"], f"{guide_path}?source=contract")
+
         for collection in ("blog", "podcast", "books", "people"):
             for source in (
                 f"/{collection}/missing-record",
@@ -131,6 +165,18 @@ class PublicRouteAndSeoTests(TestCase):
             self.assertNotRegex(body, r'href="https://(?:luma\.com|lu\.ma)')
             self.assertNotIn(" · workshop", body.casefold())
         people_paths = {person["public_path"] for person in projection["people"]}
+        self.assertEqual(len(projection["events"]), 421)
+        self.assertEqual(sum(len(event["speakers"]) for event in projection["events"]), 456)
+        self.assertEqual(
+            len(
+                {
+                    speaker["public_path"]
+                    for event in projection["events"]
+                    for speaker in event["speakers"]
+                }
+            ),
+            322,
+        )
         for event in projection["events"]:
             with self.subTest(event=event["slug"]):
                 self.assertIn(f'href="{event["public_path"]}"', hub)
@@ -144,30 +190,39 @@ class PublicRouteAndSeoTests(TestCase):
                     self.assertIn(f'href="{link["url"]}"', body)
                     self.assertIn("opens in a new tab", body)
 
-    def test_all_people_are_discoverable_and_template_is_excluded(self) -> None:
+    def test_all_podcast_guest_links_resolve_to_person_details(self) -> None:
+        projection = public_projection()
+        guest_profiles = [
+            guest for podcast in projection["podcasts"] for guest in podcast["guest_profiles"]
+        ]
+        linked_guests = [guest for guest in guest_profiles if guest["public_path"]]
+        unresolved_guests = [guest for guest in guest_profiles if not guest["public_path"]]
+        self.assertEqual(len(guest_profiles), 208)
+        self.assertEqual(len(linked_guests), 207)
+        self.assertEqual(
+            unresolved_guests,
+            [{"key": "abouzarabbaspour", "name": "abouzarabbaspour", "public_path": ""}],
+        )
+        for podcast in projection["podcasts"]:
+            response = self.client.get(podcast["public_path"])
+            self.assertEqual(response.status_code, 200)
+            body = response.content.decode()
+            for guest in podcast["guest_profiles"]:
+                if guest["public_path"]:
+                    self.assertIn(f'href="{guest["public_path"]}"', body)
+                    self.assertEqual(self.client.get(guest["public_path"]).status_code, 200)
+                else:
+                    self.assertNotIn(f'href="{guest["public_path"]}"', body)
+
+    def test_all_person_details_remain_available_without_a_people_catalogue(self) -> None:
         projection = public_projection()
         self.assertEqual(len(projection["people"]), 438)
         self.assertNotIn("_template", projection["people_by_slug"])
-        hub = self.client.get("/people")
-        self.assertEqual(hub.status_code, 200)
-        discovered_paths: set[str] = set()
-        for page_number in range(1, 11):
-            response = self.client.get("/people", {"page": page_number})
-            self.assertEqual(response.status_code, 200)
-            body = response.content.decode()
-            discovered_paths.update(
-                person["public_path"]
-                for person in projection["people"]
-                if f'href="{person["public_path"]}"' in body
-            )
-            self.assertContains(response, "data-people-list")
-        self.assertEqual(
-            discovered_paths, {person["public_path"] for person in projection["people"]}
-        )
         for person in projection["people"]:
             response = self.client.get(person["public_path"])
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, 'alt="Portrait of ', count=1)
+            self.assertNotContains(response, 'href="/people"')
 
     def test_representative_details_emit_valid_type_specific_json_ld(self) -> None:
         paths_and_types = (
@@ -200,6 +255,32 @@ class PublicRouteAndSeoTests(TestCase):
                 )
                 self.assertContains(response, 'property="og:url"')
                 self.assertContains(response, 'name="twitter:title"')
+
+    def test_review_backed_public_details_do_not_render_source_provenance(self) -> None:
+        projection = review_projection()
+        blocked = {
+            "Checked source",
+            "View source on GitHub",
+            "This page is maintained on",
+            *(
+                source["repository"].removeprefix("https://github.com/")
+                for source in projection["sources"].values()
+            ),
+            *(source["revision"] for source in projection["sources"].values()),
+        }
+        for path in (
+            "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
+            "/faq/ai-dev-tools-zoomcamp.html",
+            "/slack.html",
+            "/courses/ai-dev-tools-zoomcamp",
+            "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
+        ):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                body = response.content.decode()
+                for value in blocked:
+                    self.assertNotIn(value, body)
 
     def test_every_section_sitemap_entry_is_a_unique_canonical_public_200(self) -> None:
         root = self.client.get("/sitemap.xml")
@@ -238,3 +319,4 @@ class PublicRouteAndSeoTests(TestCase):
         expected = {path for path in public_projection()["events_by_path"]}
         expected.update(path for path in public_projection()["people_by_path"])
         self.assertTrue(expected.issubset(seen))
+        self.assertNotIn("/people", seen)

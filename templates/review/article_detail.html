@@ -1,14 +1,11 @@
 {% extends "core/base.html" %}
-{% block title %}AI Dev Tools Zoomcamp 2026 — DataTalks.Club{% endblock %}
+{% block title %}
+  AI Dev Tools Zoomcamp 2026 — DataTalks.Club
+{% endblock %}
 {% block content %}
   {% url 'articles' as hub_url %}
   {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="Articles" current_label=article.title %}
-  <article
-    class="max-w-4xl"
-    data-source-repository="{{ provenance.repository }}"
-    data-source-revision="{{ provenance.revision }}"
-    data-source-path="{{ provenance.source_path }}"
-  >
+  <article class="max-w-4xl">
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Free course · {{ article.published }}</p>
     <h1 class="mt-2 text-3xl font-semibold leading-tight sm:text-4xl">{{ article.title }}</h1>
     <p class="mt-4 text-xl leading-8 app-text">{{ article.subtitle }}</p>
@@ -28,6 +25,5 @@
         {% endif %}
       </section>
     {% endfor %}
-    {% include "review/_source_link.html" with edit_url=article.edit_url %}
   </article>
 {% endblock %}

@@ -51,10 +51,10 @@ def redact_one_time_token(page: Page, raw_token: str) -> None:
     assert raw_token not in page.content()
 
 
-def assert_visible_cmp_login_controls(page: Page) -> None:
+def assert_visible_login_controls(page: Page) -> None:
     controls = (
-        page.get_by_label("Owner email"),
-        page.get_by_label("Development password"),
+        page.get_by_label("Email"),
+        page.get_by_label("Password"),
     )
     boxes = []
     for control in controls:
@@ -145,22 +145,22 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     assert login is not None and login.status == 200
     assert_private(login)
     expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
-    assert_visible_cmp_login_controls(page)
+    assert_visible_login_controls(page)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
     page.screenshot(path=screenshot_path("development-login", viewport), full_page=True)
 
-    page.get_by_label("Owner email").fill("invalid-owner@example.test")
-    page.get_by_label("Development password").fill("invalid-password")
-    page.get_by_role("button", name="Sign in to development").click()
+    page.get_by_label("Email").fill("invalid-owner@example.test")
+    page.get_by_label("Password").fill("invalid-password")
+    page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text("Sign-in was not successful")
-    expect(page.get_by_label("Development password")).to_have_value("")
+    expect(page.get_by_label("Password")).to_have_value("")
     assert "invalid-password" not in page.content()
-    assert_visible_cmp_login_controls(page)
+    assert_visible_login_controls(page)
     page.screenshot(path=screenshot_path("development-login-invalid", viewport), full_page=True)
 
-    page.get_by_label("Owner email").fill(OWNER_EMAIL)
-    page.get_by_label("Development password").fill(OWNER_PASSWORD)
-    page.get_by_role("button", name="Sign in to development").click()
+    page.get_by_label("Email").fill(OWNER_EMAIL)
+    page.get_by_label("Password").fill(OWNER_PASSWORD)
+    page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page).to_have_url(f"{live_server.url}/studio/")
     expect(page.get_by_role("heading", name="Studio", exact=True)).to_be_visible()
     expect(page.get_by_role("link", name="API credentials")).to_be_visible()

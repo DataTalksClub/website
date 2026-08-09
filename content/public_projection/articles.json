@@ -4,7 +4,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "authors": [
@@ -575,7 +575,7 @@
       "source_path": "articles/2026-07-28-sponsor-datatalks-club.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2026-07-28-sponsor-datatalks-club.md"
     },
-    "public_path": "/blog/sponsor-datatalks-club",
+    "public_path": "/blog/sponsor-datatalks-club.html",
     "published": "2026-07-28",
     "slug": "sponsor-datatalks-club",
     "subtitle": "How companies sponsor our newsletter, free courses, workshops, podcast, and events.",
@@ -586,7 +586,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -1153,7 +1153,7 @@
       "source_path": "articles/2025-09-23-ai-dev-tools-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-09-23-ai-dev-tools-zoomcamp.md"
     },
-    "public_path": "/blog/ai-dev-tools-zoomcamp",
+    "public_path": "/blog/ai-dev-tools-zoomcamp.html",
     "published": "2026-07-28",
     "slug": "ai-dev-tools-zoomcamp",
     "subtitle": "Learn how to build, test, deploy, extend, and audit software with AI developer tools without losing engineering discipline.",
@@ -1164,7 +1164,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -1557,7 +1557,7 @@
       "source_path": "articles/2024-03-07-mlops-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-03-07-mlops-zoomcamp.md"
     },
-    "public_path": "/blog/mlops-zoomcamp",
+    "public_path": "/blog/mlops-zoomcamp.html",
     "published": "2026-05-11",
     "slug": "mlops-zoomcamp",
     "subtitle": "Learn to deploy, monitor, and maintain ML models in production with MLflow, Docker, AWS, and monitoring tools",
@@ -1568,7 +1568,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -2175,7 +2175,7 @@
       "source_path": "articles/2023-08-17-machine-learning-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-08-17-machine-learning-zoomcamp.md"
     },
-    "public_path": "/blog/machine-learning-zoomcamp",
+    "public_path": "/blog/machine-learning-zoomcamp.html",
     "published": "2026-05-11",
     "slug": "machine-learning-zoomcamp",
     "subtitle": "Master Machine Learning Engineering with Python in 4 Months",
@@ -2186,7 +2186,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -2563,7 +2563,7 @@
       "source_path": "articles/2024-11-11-llm-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-11-11-llm-zoomcamp.md"
     },
-    "public_path": "/blog/llm-zoomcamp",
+    "public_path": "/blog/llm-zoomcamp.html",
     "published": "2026-05-11",
     "slug": "llm-zoomcamp",
     "subtitle": "Master LLM Engineering: Build Production-Ready AI Applications from Scratch",
@@ -2574,7 +2574,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -3031,7 +3031,7 @@
       "source_path": "articles/2024-04-11-guide-to-free-online-courses-at-datatalks-club.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-04-11-guide-to-free-online-courses-at-datatalks-club.md"
     },
-    "public_path": "/blog/guide-to-free-online-courses-at-datatalks-club",
+    "public_path": "/blog/guide-to-free-online-courses-at-datatalks-club.html",
     "published": "2026-05-11",
     "slug": "guide-to-free-online-courses-at-datatalks-club",
     "subtitle": "Earn certificates and gain practical experience in ML, data engineering, MLOps, LLMs, AI development tools, and stock market analytics",
@@ -3042,7 +3042,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -3593,7 +3593,7 @@
       "source_path": "articles/2023-11-18-data-engineering-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-11-18-data-engineering-zoomcamp.md"
     },
-    "public_path": "/blog/data-engineering-zoomcamp",
+    "public_path": "/blog/data-engineering-zoomcamp.html",
     "published": "2026-05-11",
     "slug": "data-engineering-zoomcamp",
     "subtitle": "Become a Data Engineer: Master Modern Data Engineering with Hands-On Training",
@@ -3604,7 +3604,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "authors": [
@@ -3919,7 +3919,7 @@
       "source_path": "articles/2026-01-25-benefits-of-learning-in-public.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2026-01-25-benefits-of-learning-in-public.md"
     },
-    "public_path": "/blog/benefits-of-learning-in-public",
+    "public_path": "/blog/benefits-of-learning-in-public.html",
     "published": "2026-01-25",
     "slug": "benefits-of-learning-in-public",
     "subtitle": "How sharing your learning publicly leads to feedback, visibility, and real opportunities",
@@ -3930,7 +3930,7 @@
       {
         "key": "haziqasajid",
         "name": "Haziqa Sajid",
-        "public_path": "/people/haziqasajid"
+        "public_path": "/people/haziqasajid.html"
       }
     ],
     "authors": [
@@ -4493,7 +4493,7 @@
       "source_path": "articles/2025-12-25-open-source-free-ai-agent-evaluation-tools.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-12-25-open-source-free-ai-agent-evaluation-tools.md"
     },
-    "public_path": "/blog/open-source-free-ai-agent-evaluation-tools",
+    "public_path": "/blog/open-source-free-ai-agent-evaluation-tools.html",
     "published": "2025-12-25",
     "slug": "open-source-free-ai-agent-evaluation-tools",
     "subtitle": "7 free and open-source AI agent evaluation tools compared: Arize Phoenix, LangSmith, DeepEval, Ragas, Promptfoo, OpenAI Evals, and Comet Opik for LLM agent testing",
@@ -4504,7 +4504,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -4917,7 +4917,7 @@
       "source_path": "articles/2025-12-10-free-data-engineering-courses.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-12-10-free-data-engineering-courses.md"
     },
-    "public_path": "/blog/free-data-engineering-courses",
+    "public_path": "/blog/free-data-engineering-courses.html",
     "published": "2025-12-10",
     "slug": "free-data-engineering-courses",
     "subtitle": "Find the best data engineering course for you: compare 15 free and 5 paid options with certificates, platforms, and tech stacks",
@@ -4928,7 +4928,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -5409,7 +5409,7 @@
       "source_path": "articles/2025-08-16-free-machine-learning-courses.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-16-free-machine-learning-courses.md"
     },
-    "public_path": "/blog/free-machine-learning-courses",
+    "public_path": "/blog/free-machine-learning-courses.html",
     "published": "2025-10-21",
     "slug": "free-machine-learning-courses",
     "subtitle": "Learn ML from top universities and platforms with these free courses, covering foundations, core algorithms, and practical projects.",
@@ -5420,12 +5420,12 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       },
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -5909,7 +5909,7 @@
       "source_path": "articles/2020-12-23-slack-communities.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-23-slack-communities.md"
     },
-    "public_path": "/blog/slack-communities",
+    "public_path": "/blog/slack-communities.html",
     "published": "2025-10-19",
     "slug": "slack-communities",
     "subtitle": "A guide to the most active Slack groups for data, AI, and machine learning professionals.",
@@ -5920,12 +5920,12 @@
       {
         "key": "alexanderdanielrios",
         "name": "Alexander Daniel Rios",
-        "public_path": "/people/alexanderdanielrios"
+        "public_path": "/people/alexanderdanielrios.html"
       },
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -6387,7 +6387,7 @@
       "source_path": "articles/2025-08-11-how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-11-how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp.md"
     },
-    "public_path": "/blog/how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp",
+    "public_path": "/blog/how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp.html",
     "published": "2025-08-11",
     "slug": "how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp",
     "subtitle": "Learn what you can build after ML Zoomcamp based on a real project from one of the graduates",
@@ -6398,12 +6398,12 @@
       {
         "key": "alexanderdanielrios",
         "name": "Alexander Daniel Rios",
-        "public_path": "/people/alexanderdanielrios"
+        "public_path": "/people/alexanderdanielrios.html"
       },
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -6577,7 +6577,7 @@
       "source_path": "articles/2025-08-11-building-discipline-in-machine-learning-with-ml-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-11-building-discipline-in-machine-learning-with-ml-zoomcamp.md"
     },
-    "public_path": "/blog/building-discipline-in-machine-learning-with-ml-zoomcamp",
+    "public_path": "/blog/building-discipline-in-machine-learning-with-ml-zoomcamp.html",
     "published": "2025-08-11",
     "slug": "building-discipline-in-machine-learning-with-ml-zoomcamp",
     "subtitle": "A disciplined path to data prep, validation, and deployment, plus how public sharing accelerated my skills, connections, and offers.",
@@ -6588,7 +6588,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -6907,7 +6907,7 @@
       "source_path": "articles/2022-07-12-building-data-science-team.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-12-building-data-science-team.md"
     },
-    "public_path": "/blog/building-data-science-team",
+    "public_path": "/blog/building-data-science-team.html",
     "published": "2025-08-10",
     "slug": "building-data-science-team",
     "subtitle": "Complete guide to hiring data scientists, ML engineers, and data engineers. Learn who to hire first, specialists vs generalists, and how to pick the right projects.",
@@ -6918,12 +6918,12 @@
       {
         "key": "serenahaidar",
         "name": "Serena Haidar",
-        "public_path": "/people/serenahaidar"
+        "public_path": "/people/serenahaidar.html"
       },
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -7105,7 +7105,7 @@
       "source_path": "articles/2025-08-05-key-lessons-from-ml-zoomcamp-serena-haidar.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-05-key-lessons-from-ml-zoomcamp-serena-haidar.md"
     },
-    "public_path": "/blog/key-lessons-from-ml-zoomcamp-serena-haidar",
+    "public_path": "/blog/key-lessons-from-ml-zoomcamp-serena-haidar.html",
     "published": "2025-08-05",
     "slug": "key-lessons-from-ml-zoomcamp-serena-haidar",
     "subtitle": "Interview with ML Zoomcamp grad Serena Haidar: practical lessons, getting unstuck, and the impact of the final project",
@@ -7116,12 +7116,12 @@
       {
         "key": "serenahaidar",
         "name": "Serena Haidar",
-        "public_path": "/people/serenahaidar"
+        "public_path": "/people/serenahaidar.html"
       },
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -7565,7 +7565,7 @@
       "source_path": "articles/2025-08-05-how-to-build-waste-classifier-case-study-from-ml-zoomcamp.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-05-how-to-build-waste-classifier-case-study-from-ml-zoomcamp.md"
     },
-    "public_path": "/blog/how-to-build-waste-classifier-case-study-from-ml-zoomcamp",
+    "public_path": "/blog/how-to-build-waste-classifier-case-study-from-ml-zoomcamp.html",
     "published": "2025-08-05",
     "slug": "how-to-build-waste-classifier-case-study-from-ml-zoomcamp",
     "subtitle": "Learn what you can build after ML Zoomcamp based on the final end-to-end ML engineering project from one of the graduates.",
@@ -7576,7 +7576,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "authors": [
@@ -8117,7 +8117,7 @@
       "source_path": "articles/2020-12-14-data-roles.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-14-data-roles.md"
     },
-    "public_path": "/blog/data-roles",
+    "public_path": "/blog/data-roles.html",
     "published": "2025-08-05",
     "slug": "data-roles",
     "subtitle": "Essential guide to PM, Data Analyst, Data Scientist, Data Engineer, ML Engineer, and MLOps/SRE: skills, responsibilities, and how teams ship ML products",
@@ -8128,7 +8128,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -8467,7 +8467,7 @@
       "source_path": "articles/2022-07-16-data-science-manager-vs-data-science-expert.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-16-data-science-manager-vs-data-science-expert.md"
     },
-    "public_path": "/blog/data-science-manager-vs-data-science-expert",
+    "public_path": "/blog/data-science-manager-vs-data-science-expert.html",
     "published": "2025-08-03",
     "slug": "data-science-manager-vs-data-science-expert",
     "subtitle": "Complete comparison of skills, responsibilities, and team roles. Learn when to hire a data science manager vs technical expert and which profile your company needs.",
@@ -8478,7 +8478,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -8827,7 +8827,7 @@
       "source_path": "articles/2025-05-16-datatalks-club-community-demographics.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-05-16-datatalks-club-community-demographics.md"
     },
-    "public_path": "/blog/datatalks-club-community-demographics",
+    "public_path": "/blog/datatalks-club-community-demographics.html",
     "published": "2025-05-16",
     "slug": "datatalks-club-community-demographics",
     "subtitle": "Results of our DataTalks.Club Survey",
@@ -8838,7 +8838,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -9199,7 +9199,7 @@
       "source_path": "articles/2025-04-28-how-do-data-professionals-use-ml-and-mlops-tools-and-practices.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-28-how-do-data-professionals-use-ml-and-mlops-tools-and-practices.md"
     },
-    "public_path": "/blog/how-do-data-professionals-use-ml-and-mlops-tools-and-practices",
+    "public_path": "/blog/how-do-data-professionals-use-ml-and-mlops-tools-and-practices.html",
     "published": "2025-04-28",
     "slug": "how-do-data-professionals-use-ml-and-mlops-tools-and-practices",
     "subtitle": "Results of our DataTalks.Club Survey",
@@ -9210,7 +9210,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -9709,7 +9709,7 @@
       "source_path": "articles/2025-04-15-how-do-data-professionals-use-data-engineering-tools-and-practices.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-15-how-do-data-professionals-use-data-engineering-tools-and-practices.md"
     },
-    "public_path": "/blog/how-do-data-professionals-use-data-engineering-tools-and-practices",
+    "public_path": "/blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
     "published": "2025-04-15",
     "slug": "how-do-data-professionals-use-data-engineering-tools-and-practices",
     "subtitle": "Results of our DataTalks.Club Survey",
@@ -9720,7 +9720,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -10149,7 +10149,7 @@
       "source_path": "articles/2025-04-11-how-do-professionals-use-llm-tools-and-frameworks.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-11-how-do-professionals-use-llm-tools-and-frameworks.md"
     },
-    "public_path": "/blog/how-do-professionals-use-llm-tools-and-frameworks",
+    "public_path": "/blog/how-do-professionals-use-llm-tools-and-frameworks.html",
     "published": "2025-04-11",
     "slug": "how-do-professionals-use-llm-tools-and-frameworks",
     "subtitle": "Results of our DataTalks.Club Survey",
@@ -10160,7 +10160,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -10427,7 +10427,7 @@
       "source_path": "articles/2025-04-10-ai-tools-for-personal-productivity.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-10-ai-tools-for-personal-productivity.md"
     },
-    "public_path": "/blog/ai-tools-for-personal-productivity",
+    "public_path": "/blog/ai-tools-for-personal-productivity.html",
     "published": "2025-04-10",
     "slug": "ai-tools-for-personal-productivity",
     "subtitle": "Results of our DataTalks.Club Survey",
@@ -10438,7 +10438,7 @@
       {
         "key": "sallyanndelucia",
         "name": "Sally-Ann DeLucia",
-        "public_path": "/people/sallyanndelucia"
+        "public_path": "/people/sallyanndelucia.html"
       }
     ],
     "authors": [
@@ -10637,7 +10637,7 @@
       "source_path": "articles/2025-02-26-building-ai-agent-that-thrives-in-real-world.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-02-26-building-ai-agent-that-thrives-in-real-world.md"
     },
-    "public_path": "/blog/building-ai-agent-that-thrives-in-real-world",
+    "public_path": "/blog/building-ai-agent-that-thrives-in-real-world.html",
     "published": "2025-02-26",
     "slug": "building-ai-agent-that-thrives-in-real-world",
     "subtitle": "A Guide to Development, Testing, and Monitoring",
@@ -10648,7 +10648,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -10909,7 +10909,7 @@
       "source_path": "articles/2024-10-21-winning-solutions-from-llm-zoomcamp-2024-competition.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-10-21-winning-solutions-from-llm-zoomcamp-2024-competition.md"
     },
-    "public_path": "/blog/winning-solutions-from-llm-zoomcamp-2024-competition",
+    "public_path": "/blog/winning-solutions-from-llm-zoomcamp-2024-competition.html",
     "published": "2024-10-21",
     "slug": "winning-solutions-from-llm-zoomcamp-2024-competition",
     "subtitle": "Solving High School Mathematics Problems with LLMs",
@@ -10920,7 +10920,7 @@
       {
         "key": "valeriiakuka",
         "name": "Valeriia Kuka",
-        "public_path": "/people/valeriiakuka"
+        "public_path": "/people/valeriiakuka.html"
       }
     ],
     "authors": [
@@ -11169,7 +11169,7 @@
       "source_path": "articles/2023-12-11-8-newsletters-for-data-science-ai-and-ml-enthusiasts.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-12-11-8-newsletters-for-data-science-ai-and-ml-enthusiasts.md"
     },
-    "public_path": "/blog/8-newsletters-for-data-science-ai-and-ml-enthusiasts",
+    "public_path": "/blog/8-newsletters-for-data-science-ai-and-ml-enthusiasts.html",
     "published": "2023-12-11",
     "slug": "8-newsletters-for-data-science-ai-and-ml-enthusiasts",
     "subtitle": "Follow insights and trends with these publications",
@@ -11180,7 +11180,7 @@
       {
         "key": "amberroberts",
         "name": "Amber Roberts",
-        "public_path": "/people/amberroberts"
+        "public_path": "/people/amberroberts.html"
       }
     ],
     "authors": [
@@ -11407,7 +11407,7 @@
       "source_path": "articles/2023-11-18-prepare-for-better-structured-data-extraction.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-11-18-prepare-for-better-structured-data-extraction.md"
     },
-    "public_path": "/blog/prepare-for-better-structured-data-extraction",
+    "public_path": "/blog/prepare-for-better-structured-data-extraction.html",
     "published": "2023-11-18",
     "slug": "prepare-for-better-structured-data-extraction",
     "subtitle": "Structured Data Extraction with OpenAI Function Calling",
@@ -11418,7 +11418,7 @@
       {
         "key": "luisoliveira",
         "name": "Luís Oliveira",
-        "public_path": "/people/luisoliveira"
+        "public_path": "/people/luisoliveira.html"
       }
     ],
     "authors": [
@@ -11891,7 +11891,7 @@
       "source_path": "articles/2023-03-07-how-to-run-postgresql-and-pgadmin-with-docker.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-03-07-how-to-run-postgresql-and-pgadmin-with-docker.md"
     },
-    "public_path": "/blog/how-to-run-postgresql-and-pgadmin-with-docker",
+    "public_path": "/blog/how-to-run-postgresql-and-pgadmin-with-docker.html",
     "published": "2023-03-07",
     "slug": "how-to-run-postgresql-and-pgadmin-with-docker",
     "subtitle": "And an alternative with Docker Compose",
@@ -11902,7 +11902,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -12231,7 +12231,7 @@
       "source_path": "articles/2023-02-21-summary-of-kitchenware-competition.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-02-21-summary-of-kitchenware-competition.md"
     },
-    "public_path": "/blog/summary-of-kitchenware-competition",
+    "public_path": "/blog/summary-of-kitchenware-competition.html",
     "published": "2023-02-21",
     "slug": "summary-of-kitchenware-competition",
     "subtitle": "A deep dive into the Kaggle Competition on Kitchenware Classification, focusing on the winning approach.",
@@ -12242,7 +12242,7 @@
       {
         "key": "luisoliveira",
         "name": "Luís Oliveira",
-        "public_path": "/people/luisoliveira"
+        "public_path": "/people/luisoliveira.html"
       }
     ],
     "authors": [
@@ -12549,7 +12549,7 @@
       "source_path": "articles/2023-01-04-guidelines-to-get-data-engineer-job-against-odds.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-01-04-guidelines-to-get-data-engineer-job-against-odds.md"
     },
-    "public_path": "/blog/guidelines-to-get-data-engineer-job-against-odds",
+    "public_path": "/blog/guidelines-to-get-data-engineer-job-against-odds.html",
     "published": "2023-01-04",
     "slug": "guidelines-to-get-data-engineer-job-against-odds",
     "subtitle": "It worked for me",
@@ -12560,7 +12560,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -12743,7 +12743,7 @@
       "source_path": "articles/2022-12-23-dataops-similarities-and-differences-with-data-engineering-and-data-science.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-12-23-dataops-similarities-and-differences-with-data-engineering-and-data-science.md"
     },
-    "public_path": "/blog/dataops-similarities-and-differences-with-data-engineering-and-data-science",
+    "public_path": "/blog/dataops-similarities-and-differences-with-data-engineering-and-data-science.html",
     "published": "2022-12-23",
     "slug": "dataops-similarities-and-differences-with-data-engineering-and-data-science",
     "subtitle": "A comparison among the DataOps, Data Engineering, and Data Science roles.",
@@ -12754,7 +12754,7 @@
       {
         "key": "luisoliveira",
         "name": "Luís Oliveira",
-        "public_path": "/people/luisoliveira"
+        "public_path": "/people/luisoliveira.html"
       }
     ],
     "authors": [
@@ -13029,7 +13029,7 @@
       "source_path": "articles/2022-10-21-important-sql-fact-that-everyone-should-know.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-10-21-important-sql-fact-that-everyone-should-know.md"
     },
-    "public_path": "/blog/important-sql-fact-that-everyone-should-know",
+    "public_path": "/blog/important-sql-fact-that-everyone-should-know.html",
     "published": "2022-10-21",
     "slug": "important-sql-fact-that-everyone-should-know",
     "subtitle": "How this has several impacts",
@@ -13040,7 +13040,7 @@
       {
         "key": "igordemidov",
         "name": "Igor Demidov",
-        "public_path": "/people/igordemidov"
+        "public_path": "/people/igordemidov.html"
       }
     ],
     "authors": [
@@ -13287,7 +13287,7 @@
       "source_path": "articles/2022-10-02-naming-variables-in-machine-learning.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-10-02-naming-variables-in-machine-learning.md"
     },
-    "public_path": "/blog/naming-variables-in-machine-learning",
+    "public_path": "/blog/naming-variables-in-machine-learning.html",
     "published": "2022-10-02",
     "slug": "naming-variables-in-machine-learning",
     "subtitle": "Why df is a bad name for a dataframe",
@@ -13298,7 +13298,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "authors": [
@@ -13537,7 +13537,7 @@
       "source_path": "articles/2022-09-29-interview-with-valerii-chetvertakov.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-29-interview-with-valerii-chetvertakov.md"
     },
-    "public_path": "/blog/interview-with-valerii-chetvertakov",
+    "public_path": "/blog/interview-with-valerii-chetvertakov.html",
     "published": "2022-09-29",
     "slug": "interview-with-valerii-chetvertakov",
     "subtitle": "Valerii’s story about his work in property valuation, Machine Learning Zoomcamp, and his internship at delphai",
@@ -13548,7 +13548,7 @@
       {
         "key": "luisoliveira",
         "name": "Luís Oliveira",
-        "public_path": "/people/luisoliveira"
+        "public_path": "/people/luisoliveira.html"
       }
     ],
     "authors": [
@@ -13847,7 +13847,7 @@
       "source_path": "articles/2022-09-29-do-you-know-golden-rules-while-working-with-data.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-29-do-you-know-golden-rules-while-working-with-data.md"
     },
-    "public_path": "/blog/do-you-know-golden-rules-while-working-with-data",
+    "public_path": "/blog/do-you-know-golden-rules-while-working-with-data.html",
     "published": "2022-09-29",
     "slug": "do-you-know-golden-rules-while-working-with-data",
     "subtitle": "With these, you will be a great professional",
@@ -13858,7 +13858,7 @@
       {
         "key": "ksenialegostay",
         "name": "Ksenia Legostay",
-        "public_path": "/people/ksenialegostay"
+        "public_path": "/people/ksenialegostay.html"
       }
     ],
     "authors": [
@@ -14129,7 +14129,7 @@
       "source_path": "articles/2022-09-22-regularization-in-regression.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-22-regularization-in-regression.md"
     },
-    "public_path": "/blog/regularization-in-regression",
+    "public_path": "/blog/regularization-in-regression.html",
     "published": "2022-09-22",
     "slug": "regularization-in-regression",
     "subtitle": "Remedy for numerical instability",
@@ -14140,7 +14140,7 @@
       {
         "key": "luisoliveira",
         "name": "Luís Oliveira",
-        "public_path": "/people/luisoliveira"
+        "public_path": "/people/luisoliveira.html"
       }
     ],
     "authors": [
@@ -14523,7 +14523,7 @@
       "source_path": "articles/2022-09-17-how-to-setup-lightweight-local-version-for-airflow.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-17-how-to-setup-lightweight-local-version-for-airflow.md"
     },
-    "public_path": "/blog/how-to-setup-lightweight-local-version-for-airflow",
+    "public_path": "/blog/how-to-setup-lightweight-local-version-for-airflow.html",
     "published": "2022-09-17",
     "slug": "how-to-setup-lightweight-local-version-for-airflow",
     "subtitle": "With Docker and Docker Compose",
@@ -14534,7 +14534,7 @@
       {
         "key": "luisoliveira",
         "name": "Luís Oliveira",
-        "public_path": "/people/luisoliveira"
+        "public_path": "/people/luisoliveira.html"
       }
     ],
     "authors": [
@@ -14761,7 +14761,7 @@
       "source_path": "articles/2022-09-02-data-engineers-arent-plumbers.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-02-data-engineers-arent-plumbers.md"
     },
-    "public_path": "/blog/data-engineers-arent-plumbers",
+    "public_path": "/blog/data-engineers-arent-plumbers.html",
     "published": "2022-09-02",
     "slug": "data-engineers-arent-plumbers",
     "subtitle": "But almost identical to a less known profession",
@@ -14772,7 +14772,7 @@
       {
         "key": "pavelchernetsov",
         "name": "Pavel Chernetsov",
-        "public_path": "/people/pavelchernetsov"
+        "public_path": "/people/pavelchernetsov.html"
       }
     ],
     "authors": [
@@ -15087,7 +15087,7 @@
       "source_path": "articles/2022-09-01-hiring-process-for-data-professionals.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-01-hiring-process-for-data-professionals.md"
     },
-    "public_path": "/blog/hiring-process-for-data-professionals",
+    "public_path": "/blog/hiring-process-for-data-professionals.html",
     "published": "2022-09-01",
     "slug": "hiring-process-for-data-professionals",
     "subtitle": "Advice from a Recruiter",
@@ -15098,7 +15098,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "authors": [
@@ -15229,7 +15229,7 @@
       "source_path": "articles/2022-08-22-interview-with-ken-wu.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-08-22-interview-with-ken-wu.md"
     },
-    "public_path": "/blog/interview-with-ken-wu",
+    "public_path": "/blog/interview-with-ken-wu.html",
     "published": "2022-08-22",
     "slug": "interview-with-ken-wu",
     "subtitle": "Ken’s story about his interest in machine learning, Machine Learning Zoomcamp and work on NLP during his internship at delphai",
@@ -15240,7 +15240,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -15581,7 +15581,7 @@
       "source_path": "articles/2022-07-31-essentials-of-public-speaking-for-career-in-data-science.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-31-essentials-of-public-speaking-for-career-in-data-science.md"
     },
-    "public_path": "/blog/essentials-of-public-speaking-for-career-in-data-science",
+    "public_path": "/blog/essentials-of-public-speaking-for-career-in-data-science.html",
     "published": "2022-07-31",
     "slug": "essentials-of-public-speaking-for-career-in-data-science",
     "subtitle": "Some tips on how to boost your public speaking skills as a data scientist",
@@ -15592,7 +15592,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -15885,7 +15885,7 @@
       "source_path": "articles/2022-07-23-starting-career-as-data-scientist.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-23-starting-career-as-data-scientist.md"
     },
-    "public_path": "/blog/starting-career-as-data-scientist",
+    "public_path": "/blog/starting-career-as-data-scientist.html",
     "published": "2022-07-23",
     "slug": "starting-career-as-data-scientist",
     "subtitle": "Tips on what your Data Science career could look like",
@@ -15896,7 +15896,7 @@
       {
         "key": "mehdiouazza",
         "name": "Mehdi OUAZZA",
-        "public_path": "/people/mehdiouazza"
+        "public_path": "/people/mehdiouazza.html"
       }
     ],
     "authors": [
@@ -16137,7 +16137,7 @@
       "source_path": "articles/2022-07-15-what-open-source-can-do-for-your-data-career.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-15-what-open-source-can-do-for-your-data-career.md"
     },
-    "public_path": "/blog/what-open-source-can-do-for-your-data-career",
+    "public_path": "/blog/what-open-source-can-do-for-your-data-career.html",
     "published": "2022-07-15",
     "slug": "what-open-source-can-do-for-your-data-career",
     "subtitle": "From baby steps on GitHub to Developer Advocate Engineer hero",
@@ -16148,7 +16148,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -16429,7 +16429,7 @@
       "source_path": "articles/2022-06-11-what-dataops-exactly.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-06-11-what-dataops-exactly.md"
     },
-    "public_path": "/blog/what-dataops-exactly",
+    "public_path": "/blog/what-dataops-exactly.html",
     "published": "2022-06-11",
     "slug": "what-dataops-exactly",
     "subtitle": "An overview of DataOps and what makes it different from the other DevOps practices.",
@@ -16440,7 +16440,7 @@
       {
         "key": "tatyjanaankudo",
         "name": "Tatyjana Ankudo",
-        "public_path": "/people/tatyjanaankudo"
+        "public_path": "/people/tatyjanaankudo.html"
       }
     ],
     "authors": [
@@ -16717,7 +16717,7 @@
       "source_path": "articles/2022-05-20-starting-career-in-data-science-at-45.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-05-20-starting-career-in-data-science-at-45.md"
     },
-    "public_path": "/blog/starting-career-in-data-science-at-45",
+    "public_path": "/blog/starting-career-in-data-science-at-45.html",
     "published": "2022-05-20",
     "slug": "starting-career-in-data-science-at-45",
     "subtitle": "From microbiologist to data scientist",
@@ -16728,7 +16728,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -17037,7 +17037,7 @@
       "source_path": "articles/2022-05-15-devops-and-mlops-same-thing.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-05-15-devops-and-mlops-same-thing.md"
     },
-    "public_path": "/blog/devops-and-mlops-same-thing",
+    "public_path": "/blog/devops-and-mlops-same-thing.html",
     "published": "2022-05-15",
     "slug": "devops-and-mlops-same-thing",
     "subtitle": "Compare DevOps and MLOps across pipelines, drift monitoring, team roles, and maturity levels—and when to automate retraining.",
@@ -17048,7 +17048,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "authors": [
@@ -17485,7 +17485,7 @@
       "source_path": "articles/2022-05-02-mlops-10-minutes.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-05-02-mlops-10-minutes.md"
     },
-    "public_path": "/blog/mlops-10-minutes",
+    "public_path": "/blog/mlops-10-minutes.html",
     "published": "2022-05-02",
     "slug": "mlops-10-minutes",
     "subtitle": "Fast, practical overview of experiment tracking, pipelines, deployment, and monitoring",
@@ -17496,7 +17496,7 @@
       {
         "key": "nishantmohan",
         "name": "Nishant Mohan",
-        "public_path": "/people/nishantmohan"
+        "public_path": "/people/nishantmohan.html"
       }
     ],
     "authors": [
@@ -17687,7 +17687,7 @@
       "source_path": "articles/2021-02-01-landing-product-analyst-job.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2021-02-01-landing-product-analyst-job.md"
     },
-    "public_path": "/blog/landing-product-analyst-job",
+    "public_path": "/blog/landing-product-analyst-job.html",
     "published": "2021-02-01",
     "slug": "landing-product-analyst-job",
     "subtitle": "An account of my job search in the field of analytics during Covid-19",
@@ -17698,7 +17698,7 @@
       {
         "key": "sejalvaidya",
         "name": "Sejal Vaidya",
-        "public_path": "/people/sejalvaidya"
+        "public_path": "/people/sejalvaidya.html"
       }
     ],
     "authors": [
@@ -18479,7 +18479,7 @@
       "source_path": "articles/2021-01-01-ml-deployment-lambda.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2021-01-01-ml-deployment-lambda.md"
     },
-    "public_path": "/blog/ml-deployment-lambda",
+    "public_path": "/blog/ml-deployment-lambda.html",
     "published": "2021-01-01",
     "slug": "ml-deployment-lambda",
     "subtitle": "End-to-end guide to train, containerize, and serve ML via Lambda, ECR, SAM, and GitHub Actions",
@@ -18490,7 +18490,7 @@
       {
         "key": "davidgates",
         "name": "David Gates",
-        "public_path": "/people/davidgates"
+        "public_path": "/people/davidgates.html"
       }
     ],
     "authors": [
@@ -18673,7 +18673,7 @@
       "source_path": "articles/2020-12-25-data-narrative.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-25-data-narrative.md"
     },
-    "public_path": "/blog/data-narrative",
+    "public_path": "/blog/data-narrative.html",
     "published": "2020-12-25",
     "slug": "data-narrative",
     "subtitle": "A practical framework and example to turn analysis into action",
@@ -18684,7 +18684,7 @@
       {
         "key": "davidgates",
         "name": "David Gates",
-        "public_path": "/people/davidgates"
+        "public_path": "/people/davidgates.html"
       }
     ],
     "authors": [
@@ -18845,7 +18845,7 @@
       "source_path": "articles/2020-12-17-simplifying-concepts.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-17-simplifying-concepts.md"
     },
-    "public_path": "/blog/simplifying-concepts",
+    "public_path": "/blog/simplifying-concepts.html",
     "published": "2020-12-17",
     "slug": "simplifying-concepts",
     "subtitle": "Use softening language, relatable examples, and clear summaries to avoid communication walls and explain data science effectively",
@@ -18856,7 +18856,7 @@
       {
         "key": "sauravmaheshkar",
         "name": "Saurav Maheshkar",
-        "public_path": "/people/sauravmaheshkar"
+        "public_path": "/people/sauravmaheshkar.html"
       }
     ],
     "authors": [
@@ -19635,7 +19635,7 @@
       "source_path": "articles/2020-12-17-ner-reformers.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-17-ner-reformers.md"
     },
-    "public_path": "/blog/ner-reformers",
+    "public_path": "/blog/ner-reformers.html",
     "published": "2020-12-17",
     "slug": "ner-reformers",
     "subtitle": "Discover NER fundamentals, Transformer vs Reformer basics, and a hands‑on Trax implementation on a Kaggle dataset with training and evaluation.",
@@ -19646,7 +19646,7 @@
       {
         "key": "olegpolivin",
         "name": "Oleg Polivin",
-        "public_path": "/people/olegpolivin"
+        "public_path": "/people/olegpolivin.html"
       }
     ],
     "authors": [
@@ -20441,7 +20441,7 @@
       "source_path": "articles/2020-12-07-practical-guide-better-code.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-07-practical-guide-better-code.md"
     },
-    "public_path": "/blog/practical-guide-better-code",
+    "public_path": "/blog/practical-guide-better-code.html",
     "published": "2020-12-07",
     "slug": "practical-guide-better-code",
     "subtitle": "Step-by-step workflow to secure branches, automate linting, and run tests using GitHub Actions, pre-commit, black/isort/flake8/mypy, and pytest.",
@@ -20452,7 +20452,7 @@
       {
         "key": "nishantmohan",
         "name": "Nishant Mohan",
-        "public_path": "/people/nishantmohan"
+        "public_path": "/people/nishantmohan.html"
       }
     ],
     "authors": [
@@ -20749,7 +20749,7 @@
       "source_path": "articles/2020-11-29-segmentation.md",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-11-29-segmentation.md"
     },
-    "public_path": "/blog/segmentation",
+    "public_path": "/blog/segmentation.html",
     "published": "2020-11-29",
     "slug": "segmentation",
     "subtitle": "Build a 5D RFM+ framework, engineer metrics, and segment responders/non-responders with k-means to power targeted in‑game marketing",

@@ -1,5 +1,7 @@
 {% extends "core/base.html" %}
-{% block title %}Events — DataTalks.Club{% endblock %}
+{% block title %}
+  Events — DataTalks.Club
+{% endblock %}
 {% block content %}
   <header class="max-w-3xl">
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Learn live</p>
@@ -17,10 +19,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="mt-4 app-text">
-        No upcoming events are listed in the current source snapshot. Browse recent recordings
-        below.
-      </p>
+      <p class="mt-4 app-text">No upcoming events. Browse recent recordings below.</p>
     {% endif %}
   </section>
   <section class="mt-10 border-t app-border pt-8" aria-labelledby="recent-events">
@@ -32,7 +31,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="mt-4 app-text">No recent events in this source snapshot.</p>
+      <p class="mt-4 app-text">No recent events.</p>
     {% endif %}
   </section>
 {% endblock %}

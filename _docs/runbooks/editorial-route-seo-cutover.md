@@ -1,6 +1,7 @@
 # Editorial route SEO cutover and rollback runbook
 
-This runbook governs the 796 clean editorial finals and 1,592 direct aliases in
+This runbook governs the 796 established `.html` editorial finals and 1,592 direct clean/slash
+aliases in
 [`editorial_route_migration.json`](../../content/public_projection/editorial_route_migration.json).
 Its machine-checkable thresholds are
 [`editorial-route-seo-cutover-policy.json`](editorial-route-seo-cutover-policy.json). The primary
@@ -23,12 +24,13 @@ Never capture account, token, registration, raw IP, or other production-record d
 
 Build the old/new comparison from the persisted manifest, not a sampled or synthesized route list:
 
-1. Normalize every old `.html` and slash URL to its recorded `final_path`; keep the clean final as
-   its own comparison key.
+1. Normalize every clean and slash alias to its recorded `.html` `final_path`; keep the `.html`
+   final as its own comparison key.
 2. Export production Search Console page-indexing, crawl, Google-selected canonical, clicks, and
    impressions for those exact URL groups. Do not submit or inspect the development hostname.
-3. Aggregate organic landing sessions by the same key and weekday. Report old aliases, clean finals,
-   and their combined group so a redirect-induced spelling change is not mistaken for lost traffic.
+3. Aggregate organic landing sessions by the same key and weekday. Report clean/slash aliases,
+   `.html` finals, and their combined group so a redirect-induced spelling change is not mistaken
+   for lost traffic.
 4. Derive Googlebot HTTP aggregates only from provider-validated crawler traffic. Use the provider's
    published crawler verification method and discard raw addresses after aggregation; a
    `User-Agent` string alone is not crawler identity.

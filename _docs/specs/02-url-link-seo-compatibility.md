@@ -20,15 +20,19 @@ The baseline inventory covers:
 
 ## Route rules that must remain exact
 
-- Main hubs use the owner-approved clean paths `/blog`, `/podcast`, `/events`, `/books`, and
-  `/people`. The explicit historical hub aliases redirect permanently in one hop: `/articles.html`
-  and `/blog/` to `/blog`; the `.html` and slash variants of Podcast, Events, Books, and People to
-  their clean hub; and `/courses/` and `/wiki/` to `/courses` and `/wiki`. Queries are preserved.
-- Main editorial details use the owner-approved clean paths `/blog/<slug>`, `/podcast/<slug>`,
-  `/books/<slug>`, and `/people/<slug>`. Their established `.html` paths and trailing-slash forms
-  redirect permanently in one hop to the clean detail while preserving the raw query. The bounded
-  public course catalog uses `/courses/<slug>`; established `/tools/<slug>.html` and
-  `/conferences/<slug>.html` routes remain unchanged where they currently exist.
+- Main hubs use the owner-approved clean paths `/blog`, `/podcast`, `/events`, and `/books`. The
+  explicit historical hub aliases redirect permanently in one hop: `/articles.html` and `/blog/`
+  to `/blog`; the `.html` and slash variants of Podcast, Events, and Books to their clean hub; and
+  `/courses/` and `/wiki/` to `/courses` and `/wiki`. Queries are preserved.
+- Main editorial details preserve the established canonical paths `/blog/<slug>.html`,
+  `/podcast/<slug>.html`, `/books/<slug>.html`, and `/people/<slug>.html`. Their clean and
+  trailing-slash aliases redirect permanently in one hop to the `.html` detail while preserving the
+  raw query. The bounded public course catalog uses `/courses/<slug>`; established
+  `/tools/<slug>.html` and `/conferences/<slug>.html` routes remain unchanged where they currently
+  exist.
+- There is no public People catalogue. `/people`, `/people/`, and `/people.html` return `404`
+  without a redirect or canonical. Exact Person detail canonicals remain available for linked
+  author, guest, and speaker names.
 - Docs retain pretty trailing-slash paths under `/docs/`.
 - FAQ retains `/faq/<course>.html#<question-id>` and the exact JSON field/path contracts at `/faq/json/`.
 - The podcast Wiki uses `/wiki` for the hub and query search, `/wiki/<slug>` for editorial details,
@@ -59,8 +63,9 @@ The new canonical course structure is:
 - `/courses/<course-slug>/cohorts/<cohort-slug>` for one dated delivery;
 - cohort-relative paths for dashboard, calendar, homework, projects, peer review, leaderboard, and certificates.
 
-Existing SEO-bearing static course articles redirect from `/blog/*.html` to their clean
-`/blog/<slug>` canonical and link to the new course/cohort application.
+Existing SEO-bearing static course articles remain at their established `/blog/<slug>.html`
+canonical and link to the new course/cohort application. Clean and slash aliases redirect directly
+to the `.html` final.
 
 This includes content pages such as
 `/blog/guide-to-free-online-courses-at-datatalks-club.html`: the path, meaningful page content,

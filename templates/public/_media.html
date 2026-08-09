@@ -6,7 +6,11 @@
     loading="lazy"
   >
 {% else %}
-  <div class="mt-5 rounded-md border border-dashed app-border app-surface-muted p-5 app-muted">
-    No local artwork is available in this checked source snapshot.
+  <div
+    class="mt-5 rounded-md border border-dashed app-border app-surface-muted p-5 app-muted"
+    role="img"
+    aria-label="Artwork unavailable"
+  >
+    Artwork unavailable.
   </div>
 {% endif %}

@@ -1,16 +1,16 @@
 {
   "artifacts": {
-    "articles.json": "5ef2b7e4fa3849978819b4d2e399dd34f80df74ee1b606395f3ee7c467321a00",
-    "books.json": "09e0250a2c7dd06bb725cc3e27a10b0040e3df6161be87dec42897f857ca9a48",
+    "articles.json": "e54d717428d502ae6f3581291e077ba1756ccb02f838dca5b2f0925d79272a08",
+    "books.json": "87b98c5841a58c899929dea54987c577ec075346bf524ce6c123f5274990025f",
     "courses.json": "318d7cb156cdcf74f346695d3db2b526e81c3321426c33365e91d3f471211c4d",
-    "editorial_route_migration.json": "e2cc7d76e5cae612cfcff9beb30b93cf4fd918168b83ccc4dd8f408184b54505",
-    "events.json": "7202a6ab1f7a03c1454a159f5cd5650bf8097c9cf5870ef64878a27f5f6e48de",
+    "editorial_route_migration.json": "9687c9edf1e30c1a49f79c4a445d21079f46f6554ef74f51fe0d2b9e8c66e39f",
+    "events.json": "64cdab5893afb3558fdf5a3d81fe23c9ed9481016897d823f41dcdbe5bebf580",
     "media.json": "028de6372f3253d25b294aeca7ef4eefc95b1b9924927ad0c262110712bdddf2",
-    "people.json": "2320397cb9aec68126613e933536b1f17934c519147a9666aa25a0be9387599b",
-    "podcasts.json": "8419d9a2c36effb3242b07fd05cf2ab1cfab0d13f0e97199fa9c6bf076b361ca",
-    "wiki.json": "6ba9245bf411652575bac8b58c0d9ef6d22c0c248fbfd0444275ba9af79f6dee",
-    "wiki_graph.json": "1a9744ceb4267ae642a6e12445a155c515754aee4692d63cfcec3217c0263f91",
-    "wiki_search.json": "c6033919e5a0a89fd7c8825ae4591f2bd07d50bd22899bf8a6385b33e5056f13"
+    "people.json": "5c0e2ab52e710f28f6e4e9d676b772582437fdd3f9d60e032bbacf2e1535ef2d",
+    "podcasts.json": "52a3338ee02b3641ccff02fe12b26f01391bc8057707f259432451f09338641c",
+    "wiki.json": "5f64f4d4a7a7436830d5a5c039e081d82fbf47ac01b7fb891fa6c5816650ce68",
+    "wiki_graph.json": "07f433eab8c818abf4a2d270c1f9a582bc450c16b7ffbbee344b8998eeb4ebb8",
+    "wiki_search.json": "e8f82b7471ce9152f994f2dfc3ef370b8d2a98384834051985dd45c5269f7307"
   },
   "counts": {
     "articles": 55,
@@ -76,7 +76,7 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "b5ee38b30310df2236d724bff97f2f0f5c0d2e34804461ef9fca99994362a852",
+  "tree_sha256": "41363a1cae75e2066f9614b8723713213c9bcdafd14ac57aabcf429d584023d8",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

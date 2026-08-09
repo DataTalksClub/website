@@ -4,11 +4,7 @@
 {% endblock %}
 {% block content %}
   <header class="max-w-3xl py-6">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">282 connected pages</p>
-    <h1 class="mt-2 text-4xl font-semibold">DataTalks.Club Wiki</h1>
-    <p class="mt-3 text-lg leading-8 app-text">
-      Concepts, tools, people, and ideas from podcast conversations.
-    </p>
+    <h1 class="text-4xl font-semibold">DataTalks.Club Podcast Wiki</h1>
     <form class="mt-5 flex max-w-xl gap-2" action="{% url 'wiki-home' %}" method="get">
       <label class="sr-only" for="wiki-query">Search the Wiki</label>
       <input
@@ -20,12 +16,28 @@
       >
       <button class="primer-button primer-button-primary" type="submit">Search</button>
     </form>
-    <nav class="mt-5 flex flex-wrap gap-4" aria-label="Wiki tools">
-      <a class="app-link" href="{% url 'wiki-graph' %}">Knowledge graph</a>
-      <a class="app-link" href="{% url 'wiki-special' %}">Special pages</a>
-      <a class="app-link" href="{% url 'wiki-feed' %}">Feed</a>
+    <nav
+      class="mt-6 flex flex-col divide-y app-divide border-y app-border"
+      aria-label="Wiki exploration"
+    >
+      <a class="block py-4 app-link" href="{% url 'wiki-graph' %}">
+        <strong>Graph</strong>
+        <span class="ml-2 app-text">Explore topic, episode, people, and book connections.</span>
+      </a>
+      <a class="block py-4 app-link" href="{% url 'wiki-home' %}?q=data">
+        <strong>Search</strong>
+        <span class="ml-2 app-text">Find wiki pages, guides, summaries, people, and books.</span>
+      </a>
+      <a class="block py-4 app-link" href="{% url 'wiki-special' %}">
+        <strong>Special pages</strong>
+        <span class="ml-2 app-text">
+          Browse guides, comparisons, roadmaps, how-tos, and transitions.
+        </span>
+      </a>
     </nav>
   </header>
+  <h2 class="mt-8 text-2xl font-semibold">Wiki pages</h2>
+  <p class="mt-2 app-text">Browse full catalog ({{ records|length }} topics A&ndash;Z).</p>
   <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
     {% for record in records %}
       <article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">

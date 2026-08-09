@@ -1,14 +1,11 @@
 {% extends "core/base.html" %}
-{% block title %}How to Build AI That Actually Ships in Production — Podcast{% endblock %}
+{% block title %}
+  How to Build AI That Actually Ships in Production — Podcast
+{% endblock %}
 {% block content %}
   {% url 'podcast' as hub_url %}
   {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="Podcast" current_label=podcast.title %}
-  <article
-    class="max-w-4xl"
-    data-source-repository="{{ provenance.repository }}"
-    data-source-revision="{{ provenance.revision }}"
-    data-source-path="{{ provenance.source_path }}"
-  >
+  <article class="max-w-4xl">
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">
       Season {{ podcast.season }} · Episode {{ podcast.episode }}
     </p>
@@ -35,6 +32,5 @@
         {% endfor %}
       </div>
     </section>
-    {% include "review/_source_link.html" with edit_url=podcast.edit_url %}
   </article>
 {% endblock %}

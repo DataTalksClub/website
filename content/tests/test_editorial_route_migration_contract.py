@@ -66,10 +66,12 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertTrue(all(item["query_policy"] == "preserve_raw" for item in aliases.values()))
         self.assertTrue(all(item["final_path"] not in aliases for item in aliases.values()))
         for final_path, final in finals.items():
+            self.assertTrue(final_path.endswith(".html"))
+            clean_path = final_path.removesuffix(".html")
             self.assertEqual(
                 {
-                    aliases[f"{final_path}.html"]["final_path"],
-                    aliases[f"{final_path}/"]["final_path"],
+                    aliases[clean_path]["final_path"],
+                    aliases[f"{clean_path}/"]["final_path"],
                 },
                 {final_path},
             )
@@ -137,6 +139,7 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertIn("production SEO cutover commander", runbook)
         self.assertIn("Search Console", runbook)
         self.assertIn("Googlebot", runbook)
+        self.assertIn("established `.html` editorial finals", runbook)
         self.assertIn("all 796 final and 1,592 alias probes", runbook)
         self.assertEqual(
             [step["id"] for step in self.policy["rollback_steps"]],
@@ -157,3 +160,17 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertFalse(
             self.policy["human_gate"]["search_console_submission_performed_by_automation_test"]
         )
+
+    def test_open_decision_preserves_established_html_article_canonicals(self) -> None:
+        decisions = (self.root / "_docs" / "specs" / "open-decisions.md").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn(
+            "Static SEO articles preserve their established `/blog/<slug>.html` canonicals.",
+            decisions,
+        )
+        self.assertIn(
+            "`/blog/<slug>` and trailing-slash aliases redirect directly to the `.html` final",
+            decisions,
+        )
+        self.assertNotIn("use clean `/blog/<slug>` canonicals", decisions)

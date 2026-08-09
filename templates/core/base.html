@@ -5,7 +5,7 @@
 {% block head_meta %}
   <meta
     name="description"
-    content="{{ seo_description|default:'DataTalks.Club is the place to talk about data. Join free courses, weekly events, podcasts, and community learning.' }}"
+    content="{{ seo_description|default:'DataTalks.Club is the place to talk about data. Join the global community of data science professionals, ML engineers, and AI practitioners. Access free courses, weekly podcasts, webinars, workshops, and book discussions with industry experts.' }}"
   >
   <meta property="og:type" content="{{ og_type|default:'website' }}">
   <meta property="og:site_name" content="DataTalks.Club">
@@ -15,7 +15,7 @@
   >
   <meta
     property="og:description"
-    content="{{ seo_description|default:'The global community of data science professionals, ML engineers, and AI practitioners.' }}"
+    content="{{ seo_description|default:'Global online community of data science professionals, ML engineers, and AI practitioners.' }}"
   >
   <meta property="og:url" content="{{ canonical_url }}">
   {% if og_image_url %}
@@ -27,7 +27,7 @@
   <meta name="twitter:title" content="{{ seo_title|default:'Welcome to DataTalks.Club' }}">
   <meta
     name="twitter:description"
-    content="{{ seo_description|default:'The global community of data science professionals, ML engineers, and AI practitioners.' }}"
+    content="{{ seo_description|default:'Global online community of data science professionals, ML engineers, and AI practitioners.' }}"
   >
   {% if og_image_url %}
     <meta property="og:image" content="{{ og_image_url }}">

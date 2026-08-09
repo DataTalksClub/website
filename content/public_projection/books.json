@@ -20,7 +20,7 @@
       "source_path": "books/20251006-software-development-at-rocket-speed.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20251006-software-development-at-rocket-speed.yaml"
     },
-    "public_path": "/books/20251006-software-development-at-rocket-speed",
+    "public_path": "/books/20251006-software-development-at-rocket-speed.html",
     "published": "2025-10-06T00:00:00",
     "slug": "20251006-software-development-at-rocket-speed",
     "summary": "This book is a comprehensive and practical guide designed to help entrepreneurs, startup founders, and tech managers create high-quality IT products quickly and efficiently. Written in an accessible yet deeply insightful style, the book walks readers through the complete software development lifecycle, offering concrete tools, methodologies, and real-world examples to demystify technical complexity and accelerate product delivery, whether you're using AI or not. The \"Software Development at Rocket Speed\" book is ideal for startup founders with or without a technical background, product managers and business owners launching IT products, tech team leads looking to streamline delivery, and anyone exploring how to blend modern tools (including AI) with time-tested project management principles. The book outlines how to define tasks clearly and concisely, introducing the concept of Minimum Viable Features (MVF) and stressing the importance of simplicity and clarity, even when working with AI assistants.",
@@ -51,7 +51,7 @@
       "source_path": "books/20250922-how-software-fails.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20250922-how-software-fails.yaml"
     },
-    "public_path": "/books/20250922-how-software-fails",
+    "public_path": "/books/20250922-how-software-fails.html",
     "published": "2025-09-22T00:00:00",
     "slug": "20250922-how-software-fails",
     "summary": "How Software Fails: A Field Guide to Understanding Complex System Disasters\n\nWhy Systems Break in Ways Their Creators Never Imagined.\n\nSoftware failures aren't accidents, they're inevitabilities. In a universe governed by probability rather than certainty, even cosmic rays from distant stars can flip bits in computer memory, causing election machines to miscount votes or video game characters to jump impossibly high. But cosmic interference is just the beginning of how our most critical systems fail in spectacular and unpredictable ways.\n\nThrough gripping real-world case studies, this field guide reveals the hidden laws governing complex system disasters. Discover how Knight Capital lost $460 million in 45 minutes due to a single misplaced software flag. Learn why the Therac-25 radiation machine killed patients despite passing every safety test.Understand how a 40-kilobyte configuration file crashed 8.5 million computers worldwide, grounding flights and shuttering hospitals across the globe.",
@@ -86,7 +86,7 @@
       "source_path": "books/20250908-machine-learning-algorithms-in-depth.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20250908-machine-learning-algorithms-in-depth.yaml"
     },
-    "public_path": "/books/20250908-machine-learning-algorithms-in-depth",
+    "public_path": "/books/20250908-machine-learning-algorithms-in-depth.html",
     "published": "2025-09-08T00:00:00",
     "slug": "20250908-machine-learning-algorithms-in-depth",
     "summary": "Learn how machine learning algorithms work from the ground up so you can effectively troubleshoot your models and improve their performance.\n\nThis book guides you from the core mathematical foundations to Python implementations across a variety of applications, including finance, computer vision, and NLP. With a particular emphasis on probabilistic algorithms, you'll learn the fundamentals of Bayesian inference and deep learning. Each algorithm is mathematically derived, followed by hands-on implementation with insightful code annotations and informative graphics.\n\n**Algorithms You'll Explore**\n\n* Monte Carlo Stock Price Simulation\n* Image Denoising using Mean-Field Variational Inference\n* EM algorithm for Hidden Markov Models\n* Imbalanced Learning, Active Learning and Ensemble Learning\n* Bayesian Optimization for Hyperparameter Tuning\n* Dirichlet Process K-Means for Clustering Applications\n* Stock Clusters based on Inverse Covariance Estimation\n* Energy Minimization using Simulated Annealing\n* Image Search based on ResNet Convolutional Neural Network\n* Anomaly Detection in Time-Series using Variational Autoencoders",
@@ -117,7 +117,7 @@
       "source_path": "books/20250728-production-ready-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20250728-production-ready-data-science.yaml"
     },
-    "public_path": "/books/20250728-production-ready-data-science",
+    "public_path": "/books/20250728-production-ready-data-science.html",
     "published": "2025-07-28T00:00:00",
     "slug": "20250728-production-ready-data-science",
     "summary": "Are you a data scientist or analyst struggling to take your Jupyter Notebook prototypes to the next level? Have you encountered challenges with code organization, reproducibility, or collaboration as your data science projects grow in complexity? This book is the solution you've been seeking.\n\nThis comprehensive guide bridges the gap between data analysis and software engineering, providing you with the essential tools and best practices to transform your data science projects into scalable, maintainable, and collaborative solutions.\n\n**Why This Book?**\n\nComplex concepts explained in simple, accessible terms. Each concept includes clear diagrams and code examples, all coming from actual data science workflows.\n\n**Skills You Will Gain**\n\nThrough practical examples and clear explanations, you'll master techniques for:\n\n* Transform messy notebooks into organized, maintainable code\n* Create reproducible environments across teams and deployments\n* Write modular, reusable, and testable Python code\n* Implement robust data validation and error handling\n* Leverage version control for code and data integrity\n* Implement automated testing to catch bugs early\n* And much more!\n\n**About the Author**\n\nKhuyen Tran transforms how data scientists learn and work. She has written over 180 articles as a top writer on Towards Data Science, helping data professionals bridge the gap between prototyping and production. As founder of CodeCut, she publishes daily Python tips in her newsletter that reach over 10,000 views per month and has built a community of 110,000 LinkedIn followers. Previously an MLOps Engineer and Senior Data Engineer at Accenture, she built enterprise data solutions for clients worldwide.",
@@ -153,7 +153,7 @@
       "source_path": "books/20250505-machine-learning-for-tabular-data.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20250505-machine-learning-for-tabular-data.yaml"
     },
-    "public_path": "/books/20250505-machine-learning-for-tabular-data",
+    "public_path": "/books/20250505-machine-learning-for-tabular-data.html",
     "published": "2025-05-05T00:00:00",
     "slug": "20250505-machine-learning-for-tabular-data",
     "summary": "Business runs on tabular data in databases, spreadsheets, and logs. Crunch that data using deep learning, gradient boosting, and other machine learning techniques.\n\nMachine Learning for Tabular Data teaches you to train insightful machine learning models on common tabular business data sources such as spreadsheets, databases, and logs. You’ll discover how to use XGBoost and LightGBM on tabular data, optimize deep learning libraries like TensorFlow and PyTorch for tabular data, and use cloud tools like Vertex AI to create an automated MLOps pipeline.",
@@ -185,7 +185,7 @@
       "source_path": "books/20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.yaml"
     },
-    "public_path": "/books/20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series",
+    "public_path": "/books/20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.html",
     "published": "2024-11-18T00:00:00",
     "slug": "20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series",
     "summary": "The field of artificial intelligence, data science, and analytics is crippling itself. Exaggerated promises of unrealistic technologies, simplifications of complex projects, and marketing hype are leading to an erosion of trust in one of our most critical approaches to making decisions: data driven.\n\nThis book aims to fix this by countering the AI hype with a dose of realism. Written by two experts in the field, the authors firmly believe in the power of mathematics, computing, and analytics, but if false expectations are set and practitioners and leaders don’t fully understand everything that really goes into data science projects, then a stunning 80% (or more) of analytics projects will continue to fail, costing enterprises and society hundreds of billions of dollars, and leading to non-experts abandoning one of the most important data-driven decision-making capabilities altogether.\n\nFor the first time, business leaders, practitioners, students, and interested laypeople will learn what really makes a data science project successful. By illustrating with many personal stories, the authors reveal the harsh realities of implementing AI and analytics.",
@@ -221,7 +221,7 @@
       "source_path": "books/20241104-llm-engineer-s-handbook.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20241104-llm-engineer-s-handbook.yaml"
     },
-    "public_path": "/books/20241104-llm-engineer-s-handbook",
+    "public_path": "/books/20241104-llm-engineer-s-handbook.html",
     "published": "2024-11-04T00:00:00",
     "slug": "20241104-llm-engineer-s-handbook",
     "summary": "Artificial intelligence has undergone rapid advancements, and Large Language Models (LLMs) are at the forefront of this revolution. This LLM book offers insights into designing, training, and deploying LLMs in real-world scenarios by leveraging MLOps best practices. The guide walks you through building an LLM-powered twin that’s cost-effective, scalable, and modular. It moves beyond isolated Jupyter notebooks, focusing on how to build production-grade end-to-end LLM systems. Throughout this book, you will learn data engineering, supervised fine-tuning, and deployment. The hands-on approach to building the LLM Twin use case will help you implement MLOps components in your own projects. You will also explore cutting-edge advancements in the field, including inference optimization, preference alignment, and real-time data processing, making this a vital resource for those looking to apply LLMs in their projects. By the end of this book, you will be proficient in deploying LLMs that solve practical problems while maintaining low-latency and high-availability inference capabilities. Whether you are new to artificial intelligence or an experienced practitioner, this book delivers guidance and practical techniques that will deepen your understanding of LLMs and sharpen your ability to implement them effectively.",
@@ -256,7 +256,7 @@
       "source_path": "books/20241017-build-large-language-model-from-scratch.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20241017-build-large-language-model-from-scratch.yaml"
     },
-    "public_path": "/books/20241017-build-large-language-model-from-scratch",
+    "public_path": "/books/20241017-build-large-language-model-from-scratch.html",
     "published": "2024-10-14T00:00:00",
     "slug": "20241017-build-large-language-model-from-scratch",
     "summary": "In Build a Large Language Model (From Scratch), you'll learn and understand how large language models (LLMs) work from the inside out by coding them from the ground up, step by step. In this book, I'll guide you through creating your own LLM, explaining each stage with clear text, diagrams, and examples.\n\nThe method described in this book for training and developing your own small-but-functional model for educational purposes mirrors the approach used in creating large-scale foundational models such as those behind ChatGPT. In addition, this book includes code for loading the weights of larger pretrained models for finetuning.",
@@ -291,7 +291,7 @@
       "source_path": "books/20240902-data-storytelling-with-altair-and-ai.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240902-data-storytelling-with-altair-and-ai.yaml"
     },
-    "public_path": "/books/20240902-data-storytelling-with-altair-and-ai",
+    "public_path": "/books/20240902-data-storytelling-with-altair-and-ai.html",
     "published": "2024-09-02T00:00:00",
     "slug": "20240902-data-storytelling-with-altair-and-ai",
     "summary": "Data Storytelling with Altair and AI teaches you how to build enhanced data visualizations using these tools. The book uses hands-on examples to build powerful narratives that can inform, inspire, and motivate. It covers the Altair data visualization library, along with AI techniques like generating text with ChatGPT, creating images with DALL-E, and Python coding with Copilot. You’ll learn by practicing with each interesting data story, from tourist arrivals in Portugal to population growth in the USA to fake news, salmon aquaculture, and more.",
@@ -319,7 +319,7 @@
       "source_path": "books/20240715-ai-data-privacy-and-protection.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240715-ai-data-privacy-and-protection.yaml"
     },
-    "public_path": "/books/20240715-ai-data-privacy-and-protection",
+    "public_path": "/books/20240715-ai-data-privacy-and-protection.html",
     "published": "2024-07-15T00:00:00",
     "slug": "20240715-ai-data-privacy-and-protection",
     "summary": "Empowers business leaders and IT professionals with a deep understanding of the capabilities, challenges, and capacity of AI-driven data solutions.\n\nWe wrote this book for a diverse audience, encompassing business leaders aiming to integrate AI into their strategic vision, IT professionals striving to stay ahead in the dynamic realm of data management, data scientists eager to leverage AI’s transformative capabilities, and students venturing into the world of AI and data. It is equally relevant for policymakers, consultants, and educators interested in the broader implications of AI-driven data solutions. By focusing on a balance of conceptual knowledge, practical insights, and future trends, this book ensures that readers from various backgrounds and expertise levels find content that resonates with their interests and professional needs. Whether you’re a seasoned executive, an emerging tech enthusiast, or someone curious about the AI-driven future, this book offers a comprehensive lens through which to view and engage with the evolving landscape of AI and data management.",
@@ -351,7 +351,7 @@
       "source_path": "books/20240701-prompt-engineering-for-generative-ai.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240701-prompt-engineering-for-generative-ai.yaml"
     },
-    "public_path": "/books/20240701-prompt-engineering-for-generative-ai",
+    "public_path": "/books/20240701-prompt-engineering-for-generative-ai.html",
     "published": "2024-07-01T00:00:00",
     "slug": "20240701-prompt-engineering-for-generative-ai",
     "summary": "Large language models (LLMs) and diffusion models such as ChatGPT and Stable Diffusion have unprecedented potential. Because they have been trained on all the public text and images on the internet, they can make useful contributions to a wide variety of tasks. And with the barrier to entry greatly reduced today, practically any developer can harness LLMs and diffusion models to tackle problems previously unsuitable for automation.\n\nWith this book, you'll gain a solid foundation in generative AI, including how to apply these models in practice. When first integrating LLMs and diffusion models into their workflows, most developers struggle to coax reliable enough results from them to use in automated systems. Authors James Phoenix and Mike Taylor show you how a set of principles called prompt engineering can enable you to work effectively with AI.\n\nLearn how to empower AI to work for you. This book explains:\n\n- The structure of the interaction chain of your program's AI model and the fine-grained steps in between\n- How AI model requests arise from transforming the application problem into a document completion problem in the model training domain\n- The influence of LLM and diffusion model architecture—and how to best interact with it\n- How these principles apply in practice in the domains of natural language processing, text and image generation, and code",
@@ -382,7 +382,7 @@
       "source_path": "books/20240429-fundamentals-of-data-observability.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240429-fundamentals-of-data-observability.yaml"
     },
-    "public_path": "/books/20240429-fundamentals-of-data-observability",
+    "public_path": "/books/20240429-fundamentals-of-data-observability.html",
     "published": "2024-04-29T00:00:00",
     "slug": "20240429-fundamentals-of-data-observability",
     "summary": "Quickly detect, troubleshoot, and prevent a wide range of data issues through data observability, a set of best practices that enables data teams to gain greater visibility of data and its usage. If you're a data engineer, data architect, or machine learning engineer who depends on the quality of your data, this book shows you how to focus on the practical aspects of introducing data observability in your everyday work.\n\nAuthor Andy Petrella helps you build the right habits to identify and solve data issues, such as data drifts and poor quality, so you can stop their propagation in data applications, pipelines, and analytics. You'll learn ways to introduce data observability, including setting up a framework for generating and collecting all the information you need.\n\n- Learn the core principles and benefits of data observability\n- Use data observability to detect, troubleshoot, and prevent data issues\n- Follow the book's recipes to implement observability in your data projects\nUse data observability to create a trustworthy communication framework with data consumers\n- Learn how to educate your peers about the benefits of data observability",
@@ -409,7 +409,7 @@
       "source_path": "books/20240415-understanding-etl.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240415-understanding-etl.yaml"
     },
-    "public_path": "/books/20240415-understanding-etl",
+    "public_path": "/books/20240415-understanding-etl.html",
     "published": "2024-04-15T00:00:00",
     "slug": "20240415-understanding-etl",
     "summary": "Whether your title is data engineer, scientist, or analyst, you’ve likely heard the term ETL. There’s a good chance ETL is a part of your life, even if you don’t know it.\n\nShort for extract, transform, load, ETL is used to describe the foundational workflows most data practitioners are tasked with—taking data from a source system, changing it to suit their needs, and loading it to a target.\n\n- Want to help product leaders make data-driven decisions? ETL builds the critical tables for your reports. \n- Want to train the next iteration of your team’s machine learning model? ETL creates quality datasets. \n- Are you trying to bring more structure and rigor to your company’s storage policies to meet compliance requirements? ETL will bring process, lineage, and observability to your workflows.\n\nIf you want to do anything with data, you need a reliable process or pipeline. This holds true from classic business intelligence (BI) workloads to cutting-edge advancements, like large language models (LLMs) and AI.\n\nIn Understanding ETL, we walk through the components of ETL, step-by-step, discussing architecture, maintainability, and scalability. With a focus on brevity, we’ll give you the tools you need to understand the basics about the pattern that drives data processing at scale.",
@@ -446,7 +446,7 @@
       "source_path": "books/20240408-data-centric-machine-learning-with-python.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240408-data-centric-machine-learning-with-python.yaml"
     },
-    "public_path": "/books/20240408-data-centric-machine-learning-with-python",
+    "public_path": "/books/20240408-data-centric-machine-learning-with-python.html",
     "published": "2024-04-08T00:00:00",
     "slug": "20240408-data-centric-machine-learning-with-python",
     "summary": "In the rapidly advancing data-driven world where data quality is pivotal to the success of machine learning and artificial intelligence projects, this critically timed guide provides a rare, end-to-end overview of data-centric machine learning (DCML), along with hands-on applications of technical and non-technical approaches to generating deeper and more accurate datasets. This book will help you understand what data-centric ML/AI is and how it can help you to realize the potential of ‘small data’. Delving into the building blocks of data-centric ML/AI, you’ll explore the human aspects of data labeling, tackle ambiguity in labeling, and understand the role of synthetic data. From strategies to improve data collection to techniques for refining and augmenting datasets, you’ll learn everything you need to elevate your data-centric practices. Through applied examples and insights for overcoming challenges, you’ll get a roadmap for implementing data-centric ML/AI in diverse applications in Python. By the end of this book, you’ll have developed a profound understanding of data-centric ML/AI and the proficiency to seamlessly integrate common data-centric approaches in the model development lifecycle to unlock the full potential of your machine learning projects by prioritizing data quality and reliability.",
@@ -473,7 +473,7 @@
       "source_path": "books/20240205-creating-intelligent-products.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240205-creating-intelligent-products.yaml"
     },
-    "public_path": "/books/20240205-creating-intelligent-products",
+    "public_path": "/books/20240205-creating-intelligent-products.html",
     "published": "2024-02-05T00:00:00",
     "slug": "20240205-creating-intelligent-products",
     "summary": "Creating Intelligent Products: Generative AI, advanced analytics, smart automation teaches you how to successfully integrate AI into your software products. Written for product managers, team leads, and anyone responsible for the success of a software product or service, this practical book introduces Generative AI, AI-assisted data analytics, intelligent process automation, and more. You’ll love the examples from across many industries that illustrate the power and versatility of AI-powered solutions.\n\nInside Creating Intelligent Products: Generative AI, advanced analytics, smart automation you will learn vital skills for the effective use of AI, including:\n\n- Identifying market and business opportunities for AI\n- Evaluating AI technologies for products and features\n- Effectively communicating with data scientists and ML engineers\n- Designing user-friendly AI interfaces\n- Best practices in AI ethics, governance, and risk management\n\nAI-powered software introduces new opportunities and challenges for product managers. This one-of-a-kind book guides you from initial design conversations through development, deployment, and day-to-day management with techniques to make the process efficient, secure, and cost effective. You’ll learn to capitalize on AI’s full potential for your business with strategies that set you on the path to market leadership in your industry.",
@@ -508,7 +508,7 @@
       "source_path": "books/20240115-distributed-machine-learning-patterns.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20240115-distributed-machine-learning-patterns.yaml"
     },
-    "public_path": "/books/20240115-distributed-machine-learning-patterns",
+    "public_path": "/books/20240115-distributed-machine-learning-patterns.html",
     "published": "2024-01-15T00:00:00",
     "slug": "20240115-distributed-machine-learning-patterns",
     "summary": "Distributed machine learning systems allow developers to handle extremely large datasets across multiple clusters, take advantage of automation tools, and benefit from hardware accelerations. This book reveals best practice techniques and insider tips for tackling the challenges of scaling machine learning systems.\n\nIn Distributed Machine Learning Patterns you will learn how to:\n\n- Apply distributed systems patterns to build scalable and reliable machine learning projects\n- Build ML pipelines with data ingestion, distributed training, model serving, and more\n- Automate ML tasks with Kubernetes, TensorFlow, Kubeflow, and Argo Workflows\n- Make trade-offs between different patterns and approaches\n- Manage and monitor machine learning workloads at scale\n\nInside Distributed Machine Learning Patterns you’ll learn to apply established distributed systems patterns to machine learning projects—plus explore cutting-edge new patterns created specifically for machine learning. Firmly rooted in the real world, this book demonstrates how to apply patterns using examples based in TensorFlow, Kubernetes, Kubeflow, and Argo Workflows. Hands-on projects and clear, practical DevOps techniques let you easily launch, manage, and monitor cloud-native distributed machine learning pipelines.",
@@ -540,7 +540,7 @@
       "source_path": "books/20231106-analytics-engineering-with-sql-and-dbt.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20231106-analytics-engineering-with-sql-and-dbt.yaml"
     },
-    "public_path": "/books/20231106-analytics-engineering-with-sql-and-dbt",
+    "public_path": "/books/20231106-analytics-engineering-with-sql-and-dbt.html",
     "published": "2023-11-06T00:00:00",
     "slug": "20231106-analytics-engineering-with-sql-and-dbt",
     "summary": "With the shift from data warehouses to data lakes, data now lands in repositories before it's been transformed, enabling engineers to model raw data into clean, well-defined datasets. DBT (data build tool) helps you take data further. This practical book shows data analysts, data engineers, BI developers, and data scientists how to create a true self-service transformation platform through the use of dynamic SQL.\n\nAuthors Rui Machado from Monstarlab and Helder Russa from Jumia show you how to quickly deliver new data products by focusing more on value delivery and less on architectural and engineering aspects. If you know your business well and have the technical skills to model raw data into clean, well-defined datasets, you'll learn how to design and deliver data models without any technical influence.\n\nWith this book, you'll learn:\n\n- What DBT is and how a DBT project is structured\n- How DBT fits into the data engineering and analytics worlds\n- How to collaborate on building data models\n- The main tools and architectures for building useful, functional data models\n- How to fit DBT into data warehousing and laking architecture\n- How to build tests for data transformations",
@@ -575,7 +575,7 @@
       "source_path": "books/20230807-driving-data-quality-with-data-contracts.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20230807-driving-data-quality-with-data-contracts.yaml"
     },
-    "public_path": "/books/20230807-driving-data-quality-with-data-contracts",
+    "public_path": "/books/20230807-driving-data-quality-with-data-contracts.html",
     "published": "2023-08-07T00:00:00",
     "slug": "20230807-driving-data-quality-with-data-contracts",
     "summary": "Despite the passage of time and the evolution of technology and architecture, the challenges we face in building data platforms persist. Our data often remains unreliable, lacks trust, and fails to deliver the promised value. With Driving Data Quality with Data Contracts, you’ll discover the potential of data contracts to transform how you build your data platforms, finally overcoming these enduring problems. You’ll learn how establishing contracts as the interface allows you to explicitly assign responsibility and accountability of the data to those who know it best—the data generators—and give them the autonomy to generate and manage data as required. The book will show you how data contracts ensure that consumers get quality data with clearly defined expectations, enabling them to build on that data with confidence to deliver valuable analytics, performant ML models, and trusted data-driven products. By the end of this book, you’ll have gained a comprehensive understanding of how data contracts can revolutionize your organization’s data culture and provide a competitive advantage by unlocking the real value within your data.",
@@ -607,7 +607,7 @@
       "source_path": "books/20230612-hands-on-time-series-analysis-with-python.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20230612-hands-on-time-series-analysis-with-python.yaml"
     },
-    "public_path": "/books/20230612-hands-on-time-series-analysis-with-python",
+    "public_path": "/books/20230612-hands-on-time-series-analysis-with-python.html",
     "published": "2023-06-12T00:00:00",
     "slug": "20230612-hands-on-time-series-analysis-with-python",
     "summary": "Learn the concepts of time series from traditional to bleeding-edge techniques.  This book uses comprehensive examples to clearly illustrate statistical approaches and methods of analyzing time series data and its utilization in the real world. All the code is available in Jupyter notebooks.\n\nYou'll begin by reviewing time series fundamentals, the structure of time series data, pre-processing, and how to craft the features through data wrangling. Next, you'll look at traditional time series techniques like ARMA, SARIMAX, VAR, and VARMA using trending framework like StatsModels and pmdarima. \n\nThe book also explains building classification models using sktime, and covers advanced deep learning-based techniques like ANN, CNN, RNN, LSTM, GRU and Autoencoder to solve time series problem using Tensorflow. It concludes by explaining the popular framework fbprophet for modeling time series analysis. After reading Hands -On Time Series Analysis with Python, you'll be able to apply these new techniques in industries, such as oil and gas, robotics, manufacturing, government, banking, retail, healthcare, and more.",
@@ -638,7 +638,7 @@
       "source_path": "books/20230529-modeling-mindsets.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20230529-modeling-mindsets.yaml"
     },
-    "public_path": "/books/20230529-modeling-mindsets",
+    "public_path": "/books/20230529-modeling-mindsets.html",
     "published": "2023-05-29T00:00:00",
     "slug": "20230529-modeling-mindsets",
     "summary": "Books on modeling often jump right into math and methods. Drowned in detail, it can take years to appreciate the assumptions and limitations of the various modeling mindsets. Written in a clear and concise style, Modeling Mindsets introduces approaches such as Bayesian inference, supervised learning, causal inference, and more.\n\nAfter reading this book, you will have a much better understanding of the different approaches to modeling and be able to choose the right one for your problem.",
@@ -670,7 +670,7 @@
       "source_path": "books/20230306-gpt-3.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20230306-gpt-3.yaml"
     },
-    "public_path": "/books/20230306-gpt-3",
+    "public_path": "/books/20230306-gpt-3.html",
     "published": "2023-03-06T00:00:00",
     "slug": "20230306-gpt-3",
     "summary": "GPT-3 has made creating AI apps simpler than ever. This book provides a comprehensive guide on how to utilize the OpenAI API with ease. It explores imaginative methods of utilizing this tool for your specific needs and showcases successful businesses that have been established through its use.\n\nThe book is divided into two sections, with the first focusing on the fundamentals of the OpenAI API. The second part examines the dynamic and thriving environment that has arisen around GPT-3.\n\nChapter 1 sets the stage with background information and defining key terms. Chapter 2 goes in-depth into the API, breaking it down into its essential components, explaining their functions and offering best practices. Chapter 3, you will build your first app with GPT-3.\n\nChapter 4 features interviews with the founders of successful GPT-3-based products, who share challenges and insights gained. Chapter 5 examines the perspective of enterprises on GPT-3 and its potential for adoption. The problematic consequences of widespread GPT-3 adoption, such as misapplication and bias, are addressed along with efforts to resolve these issues in Chapter 6. Finally, Chapter 7 delves into the future by exploring the most exciting trends and possibilities as GPT-3 becomes increasingly integrated into the commercial ecosystem.",
@@ -705,7 +705,7 @@
       "source_path": "books/20230123-snowflake-definitive-guide.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20230123-snowflake-definitive-guide.yaml"
     },
-    "public_path": "/books/20230123-snowflake-definitive-guide",
+    "public_path": "/books/20230123-snowflake-definitive-guide.html",
     "published": "2023-01-23T00:00:00",
     "slug": "20230123-snowflake-definitive-guide",
     "summary": "Snowflake's ability to eliminate data silos and run workloads from a single platform creates opportunities to democratize data analytics, allowing users at all levels within an organization to make data-driven decisions. Whether you're an IT professional working in data warehousing or data science, a business analyst or technical manager, or an aspiring data professional wanting to get more hands-on experience with the Snowflake platform, this book is for you.\n\nYou'll learn how Snowflake users can build modern integrated data applications and develop new revenue streams based on data. Using hands-on SQL examples, you'll also discover how the Snowflake Data Cloud helps you accelerate data science by avoiding replatforming or migrating data unnecessarily.\n\nYou'll be able to:\n\n- Efficiently capture, store, and process large amounts of data at an amazing speed\n- Ingest and transform real-time data feeds in both structured and semistructured formats and deliver meaningful data insights within minutes\n- Use Snowflake Time Travel and zero-copy cloning to produce a sensible data recovery strategy that balances system resilience with ongoing storage costs\n- Securely share data and reduce or eliminate data integration costs by accessing ready-to-query datasets available in the Snowflake Marketplace",
@@ -739,7 +739,7 @@
       "source_path": "books/20221121-reliable-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20221121-reliable-machine-learning.yaml"
     },
-    "public_path": "/books/20221121-reliable-machine-learning",
+    "public_path": "/books/20221121-reliable-machine-learning.html",
     "published": "2022-12-05T00:00:00",
     "slug": "20221121-reliable-machine-learning",
     "summary": "Whether you're part of a small startup or a multinational corporation, this practical book shows data scientists, software and site reliability engineers, product managers, and business owners how to run and establish ML reliably, effectively, and accountably within your organization. You'll gain insight into everything from how to do model monitoring in production to how to run a well-tuned model development team in a product organization.\n\nBy applying an SRE mindset to machine learning, authors and engineering professionals Cathy Chen, Kranti Parisa, Niall Richard Murphy, D. Sculley, Todd Underwood, and featured guest authors show you how to run an efficient and reliable ML system. Whether you want to increase revenue, optimize decision making, solve problems, or understand and influence customer behavior, you'll learn how to perform day-to-day ML tasks while keeping the bigger picture in mind.\n\nYou'll examine:\n\n- What ML is: how it functions and what it relies on\n- Conceptual frameworks for understanding how ML \"loops\" work\n- How effective productionization can make your ML systems easily monitorable, deployable, and operable\n- Why ML systems make production troubleshooting more difficult, and how to compensate accordingly\n- How ML, product, and production teams can communicate effectively",
@@ -775,7 +775,7 @@
       "source_path": "books/20221107-machine-learning-on-kubernetes.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20221107-machine-learning-on-kubernetes.yaml"
     },
-    "public_path": "/books/20221107-machine-learning-on-kubernetes",
+    "public_path": "/books/20221107-machine-learning-on-kubernetes.html",
     "published": "2022-11-07T00:00:00",
     "slug": "20221107-machine-learning-on-kubernetes",
     "summary": "MLOps is an emerging field that aims to bring repeatability, automation, and standardization of the software engineering domain to data science and machine learning engineering. By implementing MLOps with Kubernetes, data scientists, IT professionals, and data engineers can collaborate and build machine learning solutions that deliver business value for their organization.\n\nYou'll begin by understanding the different components of a machine learning project. Then, you'll design and build a practical end-to-end machine learning project using open source software. As you progress, you'll understand the basics of MLOps and the value it can bring to machine learning projects. You will also gain experience in building, configuring, and using an open source, containerized machine learning platform. In later chapters, you will prepare data, build and deploy machine learning models, and automate workflow tasks using the same platform. Finally, the exercises in this book will help you get hands-on experience in Kubernetes and open source tools, such as JupyterHub, MLflow, and Airflow.\n\nBy the end of this book, you'll have learned how to effectively build, train, and deploy a machine learning model using the machine learning platform you built.\n\nWhat you will learn:\n\n- Understand the different stages of a machine learning project\n- Use open source software to build a machine learning platform on Kubernetes\n- Implement a complete ML project using the machine learning platform presented in this book\n- Improve on your organization's collaborative journey toward machine learning\n- Discover how to use the platform as a data engineer, ML engineer, or data scientist\n- Find out how to apply machine learning to solve real business problems",
@@ -806,7 +806,7 @@
       "source_path": "books/20221107-comet-for-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20221107-comet-for-data-science.yaml"
     },
-    "public_path": "/books/20221107-comet-for-data-science",
+    "public_path": "/books/20221107-comet-for-data-science.html",
     "published": "2022-10-24T00:00:00",
     "slug": "20221107-comet-for-data-science",
     "summary": "This book provides concepts and practical use cases which can be used to quickly build, monitor, and optimize data science projects. Using Comet, you will learn how to manage almost every step of the data science process from data collection through to creating, deploying, and monitoring a machine learning model.\n\nThe book starts by explaining the features of Comet, along with exploratory data analysis and model evaluation in Comet. You’ll see how Comet gives you the freedom to choose from a selection of programming languages, depending on which is best suited to your needs. Next, you will focus on workspaces, projects, experiments, and models. You will also learn how to build a narrative from your data, using the features provided by Comet. Later, you will review the basic concepts behind DevOps and how to extend the GitLab DevOps platform with Comet, further enhancing your ability to deploy your data science projects. Finally, you will cover various use cases of Comet in machine learning, NLP, deep learning, and time series analysis, gaining hands-on experience with some of the most interesting and valuable data science techniques available.\n\nBy the end of this book, you will be able to confidently build data science pipelines according to bespoke specifications and manage them through Comet.",
@@ -833,7 +833,7 @@
       "source_path": "books/20221010-managing-machine-learning-projects.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20221010-managing-machine-learning-projects.yaml"
     },
-    "public_path": "/books/20221010-managing-machine-learning-projects",
+    "public_path": "/books/20221010-managing-machine-learning-projects.html",
     "published": "2022-10-10T00:00:00",
     "slug": "20221010-managing-machine-learning-projects",
     "summary": "In Managing Machine Learning Projects you’ll learn essential machine learning project management techniques, including:\n\n- Understanding an ML project’s requirements\n- Setting up the infrastructure for the project and resourcing a team\n- Working with clients and other stakeholders\n- Dealing with data resources and bringing them into the project for use\n- Handling the lifecycle of models in the project\n- Managing the application of ML algorithms\n- Evaluating the performance of algorithms and models\n- Making decisions about which models to adopt for delivery\n- Taking models through development and testing\n- Integrating models with production systems to create effective applications\n- Steps and behaviors for managing the ethical implications of ML technology\n\nManaging Machine Learning Projects is an end-to-end guide for project managers who need to deliver machine learning applications on time and under budget. It gives you a unique set of tools, approaches, and processes designed to handle the unique requirements of machine learning project management—all proven in practice to deliver success in full-scale business environments. You’ll follow an in-depth case study of a Bike Shop developing their first machine learning application and see how to put each technique into practice. Throughout, the book gives strong consideration to the ethical issues of ML, including data privacy, and community impact. You’ll learn how to avoid and mitigate these issues and keep your machine learning project from being exposed to failure.",
@@ -860,7 +860,7 @@
       "source_path": "books/20220926-graph-algorithms-for-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220926-graph-algorithms-for-data-science.yaml"
     },
-    "public_path": "/books/20220926-graph-algorithms-for-data-science",
+    "public_path": "/books/20220926-graph-algorithms-for-data-science.html",
     "published": "2022-09-26T00:00:00",
     "slug": "20220926-graph-algorithms-for-data-science",
     "summary": "Graphs are the natural way to understand connected data. This book explores the most important algorithms and techniques for graphs in data science, with practical examples and concrete advice on implementation and deployment.\n\nIn Graph Algorithms for Data Science you will learn:\n\n- Labeled-property graph modeling\n- Constructing a graph from structured data such as CSV or SQL\n- NLP techniques to construct a graph from unstructured data\n- Cypher query language syntax to manipulate data and extract insights\n- Social network analysis algorithms like PageRank and community detection\n- How to translate graph structure to a ML model input with node embedding models\n- Using graph features in node classification and link prediction workflows\n\nGraph Algorithms for Data Science is a hands-on guide to working with graph-based data in applications like machine learning, fraud detection, and business data analysis. It’s filled with fascinating and fun projects, demonstrating the ins-and-outs of graphs. You’ll gain practical skills by analyzing Twitter, building graphs with NLP techniques, and much more. You don’t need any graph experience to start benefiting from this insightful guide. These powerful graph algorithms are explained in clear, jargon-free text and illustrations that makes them easy to apply to your own projects.",
@@ -896,7 +896,7 @@
       "source_path": "books/20220919-kaggle-book.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220919-kaggle-book.yaml"
     },
-    "public_path": "/books/20220919-kaggle-book",
+    "public_path": "/books/20220919-kaggle-book.html",
     "published": "2022-09-19T00:00:00",
     "slug": "20220919-kaggle-book",
     "summary": "Millions of data enthusiasts from around the world compete on Kaggle, the most famous data science competition platform of them all. Participating in Kaggle competitions is a surefire way to improve your data analysis skills, network with an amazing community of data scientists, and gain valuable experience to help grow your career.\n\nThe first book of its kind, The Kaggle Book assembles in one place the techniques and skills you’ll need for success in competitions, data science projects, and beyond. Two Kaggle Grandmasters walk you through modeling strategies you won’t easily find elsewhere, and the knowledge they’ve accumulated along the way. As well as Kaggle-specific tips, you’ll learn more general techniques for approaching tasks based on image, tabular, textual data, and reinforcement learning. You’ll design better validation schemes and work more comfortably with different evaluation metrics.\n\nWhether you want to climb the ranks of Kaggle, build some more data science skills, or improve the accuracy of your existing models, this book is for you.",
@@ -927,7 +927,7 @@
       "source_path": "books/20220912-skills-of-successful-software-engineer.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220912-skills-of-successful-software-engineer.yaml"
     },
-    "public_path": "/books/20220912-skills-of-successful-software-engineer",
+    "public_path": "/books/20220912-skills-of-successful-software-engineer.html",
     "published": "2022-09-12T00:00:00",
     "slug": "20220912-skills-of-successful-software-engineer",
     "summary": "Skills to grow from a solo coder into a productive member of a software development team, with seasoned advice on everything from refactoring to acing an interview.\n\nIn Skills of a Successful Software Engineer you will learn:\n\n- The skills you need to succeed on a software development team\n- Best practices for writing maintainable code\n- Testing and commenting code for others to read and use\n- Refactoring code you didn’t write\n- What to expect from a technical interview process\n- How to be a tech leader\n- Getting around gatekeeping in the tech community\n\nSkills of a Successful Software Engineer is a best practices guide for succeeding on a software development team. The book reveals how to optimize both your code and your career, from achieving a good work-life balance to writing the kind of bug-free code delivered by pros. You’ll master essential skills that you might not have learned as a solo coder, including meaningful code commenting, unit testing, and using refactoring to speed up feature delivery. Timeless advice on acing interviews and setting yourself up for leadership will help you throughout your career. Crack open this one-of-a-kind guide, and you’ll soon be working in the professional manner that software managers expect",
@@ -958,7 +958,7 @@
       "source_path": "books/20220829-essential-math-for-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220829-essential-math-for-data-science.yaml"
     },
-    "public_path": "/books/20220829-essential-math-for-data-science",
+    "public_path": "/books/20220829-essential-math-for-data-science.html",
     "published": "2022-08-29T00:00:00",
     "slug": "20220829-essential-math-for-data-science",
     "summary": "Master the math needed to excel in data science, machine learning, and statistics. In this book author Thomas Nield guides you through areas like calculus, probability, linear algebra, and statistics and how they apply to techniques like linear regression, logistic regression, and neural networks. Along the way you'll also gain practical insights into the state of data science and how to use those insights to maximize your career.\n\nLearn how to:\n\n- Use Python code and libraries like SymPy, NumPy, and scikit-learn to explore essential mathematical concepts like calculus, linear algebra, statistics, and machine learning\n- Understand techniques like linear regression, logistic regression, and neural networks in plain English, with minimal mathematical notation and jargon\n- Perform descriptive statistics and hypothesis testing on a dataset to interpret p-values and statistical significance\n- Manipulate vectors and matrices and perform matrix decomposition\n- Integrate and build upon incremental knowledge of calculus, probability, statistics, and linear algebra, and apply it to regression models including neural networks\n- Navigate practically through a data science career and avoid common pitfalls, assumptions, and biases while tuning your skill set to stand out in the job market",
@@ -990,7 +990,7 @@
       "source_path": "books/20220815-fundamentals-of-data-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220815-fundamentals-of-data-engineering.yaml"
     },
-    "public_path": "/books/20220815-fundamentals-of-data-engineering",
+    "public_path": "/books/20220815-fundamentals-of-data-engineering.html",
     "published": "2022-08-15T00:00:00",
     "slug": "20220815-fundamentals-of-data-engineering",
     "summary": "Data engineering has grown rapidly in the past decade, leaving many software engineers, data scientists, and analysts looking for a comprehensive view of this practice. With this practical book, you'll learn how to plan and build systems to serve the needs of your organization and customers by evaluating the best technologies available through the framework of the data engineering lifecycle.\n\nAuthors Joe Reis and Matt Housley walk you through the data engineering lifecycle and show you how to stitch together a variety of cloud technologies to serve the needs of downstream data consumers. You'll understand how to apply the concepts of data generation, ingestion, orchestration, transformation, storage, and governance that are critical in any data environment regardless of the underlying technology.\n\nThis book will help you:\n\n- Get a concise overview of the entire data engineering landscape\n- Assess data engineering problems using an end-to-end data framework of best practices\n- Cut through marketing hype when choosing data technologies, architecture, and processes\n- Use the data engineering lifecycle to design and build a robust architecture\n- Incorporate data governance and security across the data engineering lifecycle",
@@ -1024,7 +1024,7 @@
       "source_path": "books/20220801-data-analytics-initiatives.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220801-data-analytics-initiatives.yaml"
     },
-    "public_path": "/books/20220801-data-analytics-initiatives",
+    "public_path": "/books/20220801-data-analytics-initiatives.html",
     "published": "2022-08-01T00:00:00",
     "slug": "20220801-data-analytics-initiatives",
     "summary": "The categorisation of analytical projects could help to simplify complexity reasonably and, at the same time, clarify the critical aspects of analytical initiatives. But how can this complex work be categorized? What makes it so complex?\n\nData Analytics Initiatives: Managing Analytics for Success emphasizes that each analytics project is different. At the same time, analytics projects have many common aspects, and these features make them unique compared to other projects. Describing these commonalities helps to develop a conceptual understanding of analytical work. However, features specific to each initiative affects the entire analytics project lifecycle. Neglecting them by trying to use general approaches without tailoring them to each project can lead to failure.\n\nIn addition to examining typical characteristics of the analytics project and how to categorise them, the book looks at specific types of projects, provides a high-level assessment of their characteristics from a risk perspective, and comments on the most common problems or challenges. The book also presents examples of questions that could be asked of relevant people to analyse an analytics project. These questions help to position properly the project and to find commonalities and general project challenges.",
@@ -1059,7 +1059,7 @@
       "source_path": "books/20220718-hands-on-data-analysis-with-pandas.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220718-hands-on-data-analysis-with-pandas.yaml"
     },
-    "public_path": "/books/20220718-hands-on-data-analysis-with-pandas",
+    "public_path": "/books/20220718-hands-on-data-analysis-with-pandas.html",
     "published": "2022-07-18T00:00:00",
     "slug": "20220718-hands-on-data-analysis-with-pandas",
     "summary": "Data analysis has become an essential skill in a variety of domains where knowing how to work with data and extract insights can generate significant value. Hands-On Data Analysis with Pandas will show you how to analyze your data, get started with machine learning, and work effectively with the Python libraries often used for data science, such as pandas, NumPy, matplotlib, seaborn, and scikit-learn.\n\nUsing real-world datasets, you will learn how to use the pandas library to perform data wrangling to reshape, clean, and aggregate your data. Then, you will learn how to conduct exploratory data analysis by calculating summary statistics and visualizing the data to find patterns. In the concluding chapters, you will explore some applications of anomaly detection, regression, clustering, and classification using scikit-learn to make predictions based on past data.\n\nThis updated edition will equip you with the skills you need to use pandas 1.x to efficiently perform various data manipulation tasks, reliably reproduce analyses, and visualize your data for effective decision making—valuable knowledge that can be applied across multiple domains.",
@@ -1095,7 +1095,7 @@
       "source_path": "books/20220704-grokking-streaming-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220704-grokking-streaming-systems.yaml"
     },
-    "public_path": "/books/20220704-grokking-streaming-systems",
+    "public_path": "/books/20220704-grokking-streaming-systems.html",
     "published": "2022-07-04T00:00:00",
     "slug": "20220704-grokking-streaming-systems",
     "summary": "A friendly, framework-agnostic tutorial that will help you grok how streaming systems work—and how to build your own!\n\nIn Grokking Streaming Systems you will learn how to:\n\n- Implement and troubleshoot streaming systems\n- Design streaming systems for complex functionalities\n- Assess parallelization requirements\n- Spot networking bottlenecks and resolve back pressure\n- Group data for high-performance systems\n- Handle delayed events in real-time systems\n\nGrokking Streaming Systems is a simple guide to the complex concepts behind streaming systems. This friendly and framework-agnostic tutorial teaches you how to handle real-time events, and even design and build your own streaming job that’s a perfect fit for your needs. Each new idea is carefully explained with diagrams, clear examples, and fun dialogue between perplexed personalities!",
@@ -1130,7 +1130,7 @@
       "source_path": "books/20220627-designing-machine-learning-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220627-designing-machine-learning-systems.yaml"
     },
-    "public_path": "/books/20220627-designing-machine-learning-systems",
+    "public_path": "/books/20220627-designing-machine-learning-systems.html",
     "published": "2022-06-27T00:00:00",
     "slug": "20220627-designing-machine-learning-systems",
     "summary": "Machine learning systems are both complex and unique. Complex because they consist of many different components and involve many different stakeholders. Unique because they're data dependent, with data varying wildly from one use case to the next. In this book, you'll learn a holistic approach to designing ML systems that are reliable, scalable, maintainable, and adaptive to changing environments and business requirements.\n\nAuthor Chip Huyen, co-founder of Claypot AI, considers each design decision--such as how to process and create training data, which features to use, how often to retrain models, and what to monitor--in the context of how it can help your system as a whole achieve its objectives. The iterative framework in this book uses actual case studies backed by ample references.\n\nThis book will help you tackle scenarios such as:\n\n- Engineering data and choosing the right metrics to solve a business problem\n- Automating the process for continually developing, evaluating, deploying, and updating models\n- Developing a monitoring system to quickly detect and address issues your models might encounter in production\n- Architecting an ML platform that serves across use cases\n- Developing responsible ML systems",
@@ -1165,7 +1165,7 @@
       "source_path": "books/20220620-python-machine-learning-by-example.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220620-python-machine-learning-by-example.yaml"
     },
-    "public_path": "/books/20220620-python-machine-learning-by-example",
+    "public_path": "/books/20220620-python-machine-learning-by-example.html",
     "published": "2022-06-20T00:00:00",
     "slug": "20220620-python-machine-learning-by-example",
     "summary": "Python Machine Learning By Example, Third Edition serves as a comprehensive gateway into the world of machine learning (ML).\n\nWith six new chapters, on topics including movie recommendation engine development with Naïve Bayes, recognizing faces with support vector machine, predicting stock prices with artificial neural networks, categorizing images of clothing with convolutional neural networks, predicting with sequences using recurring neural networks, and leveraging reinforcement learning for making decisions, the book has been considerably updated for the latest enterprise requirements.\n\nAt the same time, this book provides actionable insights on the key fundamentals of ML with Python programming. Hayden applies his expertise to demonstrate implementations of algorithms in Python, both from scratch and with libraries.\n\nEach chapter walks through an industry-adopted application. With the help of realistic examples, you will gain an understanding of the mechanics of ML techniques in areas such as exploratory data analysis, feature engineering, classification, regression, clustering, and NLP.\n\nBy the end of this ML Python book, you will have gained a broad picture of the ML ecosystem and will be well-versed in the best practices of applying ML techniques to solve problems.",
@@ -1196,7 +1196,7 @@
       "source_path": "books/20220606-ai-powered-business-intelligence.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220606-ai-powered-business-intelligence.yaml"
     },
-    "public_path": "/books/20220606-ai-powered-business-intelligence",
+    "public_path": "/books/20220606-ai-powered-business-intelligence.html",
     "published": "2022-06-06T00:00:00",
     "slug": "20220606-ai-powered-business-intelligence",
     "summary": "Use business intelligence to power corporate growth, increase efficiency, and improve corporate decision-making. With this practical book, you'll explore the most relevant AI use cases for BI, including improved forecasting, automated classification, and AI-powered recommendations. And you'll learn how to draw insights from unstructured data sources like text, image, and voice audio files.\n\nAuthor Tobias Zwingmann, senior data scientist and cofounder of Germany-based AI startup RAPYD.AI, helps BI, business, and data analysts understand high-impact areas of predictive and prescriptive analytics. You'll learn how to leverage popular AI-as-a-service and AutoML platforms to ship enterprise-grade proof of concepts without the help of software engineers or data scientists.\n\n- Learn how AI can generate business impact in BI environments\n- Use AutoML for automated classification and improved forecasting\n- Implement recommendation services to support decision-making\n- Draw insights from text data at scale with NLP services\n- Extract information from documents and images with computer vision services\n- Make voice audio files accessible for reporting with AI transcription services\n- Build interactive user frontends for AI-powered dashboard prototypes\n- Implement an end-to-end case study for building an AI-powered customer analytics dashboard",
@@ -1231,7 +1231,7 @@
       "source_path": "books/20220523-practical-fairness.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220523-practical-fairness.yaml"
     },
-    "public_path": "/books/20220523-practical-fairness",
+    "public_path": "/books/20220523-practical-fairness.html",
     "published": "2022-05-23T00:00:00",
     "slug": "20220523-practical-fairness",
     "summary": "Fairness is becoming a paramount consideration for data scientists. Mounting evidence indicates that the widespread deployment of machine learning and AI in business and government is reproducing the same biases we're trying to fight in the real world. But what does fairness mean when it comes to code? This practical book covers basic concerns related to data security and privacy to help data and AI professionals use code that's fair and free of bias.\n\nMany realistic best practices are emerging at all steps along the data pipeline today, from data selection and preprocessing to closed model audits. Author Aileen Nielsen guides you through technical, legal, and ethical aspects of making code fair and secure, while highlighting up-to-date academic research and ongoing legal developments related to fairness and algorithms.\n\n- Identify potential bias and discrimination in data science models\n- Use preventive measures to minimize bias when developing data modeling pipelines\n- Understand what data pipeline components implicate security and privacy concerns\n- Write data processing and modeling code that implements best practices for fairness\n- Recognize the complex interrelationships between fairness, privacy, and data security created by the use of machine learning models\n- Apply normative and legal concepts relevant to evaluating the fairness of machine learning models.",
@@ -1263,7 +1263,7 @@
       "source_path": "books/20220516-everyday-ml-questions.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220516-everyday-ml-questions.yaml"
     },
-    "public_path": "/books/20220516-everyday-ml-questions",
+    "public_path": "/books/20220516-everyday-ml-questions.html",
     "published": "2022-05-16T00:00:00",
     "slug": "20220516-everyday-ml-questions",
     "summary": "A different way to learn\n\nThis book aims to teach you something new, one question at a time.\n\nThere are 20,000 + 1 machine learning and data science books out there. That's great, but we wanted something different.\n\nIn April, we started publishing one machine learning question every day. A quick story with a problem and a few possible answers. Something quick, practical, and fun that you could solve in a few seconds. In just 30 days the site attracted more than 80,000 visitors and every day over 1,500 people answer the question and it keeps growing.\n\nMany reached out asking for previous questions.\n\nThis book is a compendium of the 30 questions we published online from April 1 to April 30, 2022.",
@@ -1298,7 +1298,7 @@
       "source_path": "books/20220509-artificial-intelligence-with-python.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220509-artificial-intelligence-with-python.yaml"
     },
-    "public_path": "/books/20220509-artificial-intelligence-with-python",
+    "public_path": "/books/20220509-artificial-intelligence-with-python.html",
     "published": "2022-05-09T00:00:00",
     "slug": "20220509-artificial-intelligence-with-python",
     "summary": "Artificial Intelligence with Python, Second Edition is an updated and expanded version of the bestselling guide to artificial intelligence using the latest version of Python 3.x. Not only does it provide you an introduction to artificial intelligence, this new edition goes further by giving you the tools you need to explore the amazing world of intelligent apps and create your own applications.\n\nThis edition also includes seven new chapters on more advanced concepts of Artificial Intelligence, including fundamental use cases of AI; machine learning data pipelines; feature selection and feature engineering; AI on the cloud; the basics of chatbots; RNNs and DL models; and AI and Big Data.\n\nFinally, this new edition explores various real-world scenarios and teaches you how to apply relevant AI algorithms to a wide swath of problems, starting with the most basic AI concepts and progressively building from there to solve more difficult challenges so that by the end, you will have gained a solid understanding of, and when best to use, these many artificial intelligence techniques.",
@@ -1335,7 +1335,7 @@
       "source_path": "books/20220425-natural-language-processing-with-transformers.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220425-natural-language-processing-with-transformers.yaml"
     },
-    "public_path": "/books/20220425-natural-language-processing-with-transformers",
+    "public_path": "/books/20220425-natural-language-processing-with-transformers.html",
     "published": "2022-04-25T00:00:00",
     "slug": "20220425-natural-language-processing-with-transformers",
     "summary": "Since their introduction in 2017, transformers have quickly become the dominant architecture for achieving state-of-the-art results on a variety of natural language processing tasks. If you're a data scientist or coder, this practical book shows you how to train and scale these large models using Hugging Face Transformers, a Python-based deep learning library.\n\nTransformers have been used to write realistic news stories, improve Google Search queries, and even create chatbots that tell corny jokes. In this guide, authors Lewis Tunstall, Leandro von Werra, and Thomas Wolf, among the creators of Hugging Face Transformers, use a hands-on approach to teach you how transformers work and how to integrate them in your applications. You'll quickly learn a variety of tasks they can help you solve.\n\n- Build, debug, and optimize transformer models for core NLP tasks, such as text classification, named entity recognition, and question answering\n- Learn how transformers can be used for cross-lingual transfer learning\n- Apply transformers in real-world scenarios where labeled data is scarce\n- Make transformer models efficient for deployment using techniques such as distillation, pruning, and quantization\n- Train transformers from scratch and learn how to scale to multiple GPUs and distributed environments",
@@ -1370,7 +1370,7 @@
       "source_path": "books/20220411-interpretable-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220411-interpretable-machine-learning.yaml"
     },
-    "public_path": "/books/20220411-interpretable-machine-learning",
+    "public_path": "/books/20220411-interpretable-machine-learning.html",
     "published": "2022-04-11T00:00:00",
     "slug": "20220411-interpretable-machine-learning",
     "summary": "Machine learning has great potential for improving products, processes and research. But computers usually do not explain their predictions which is a barrier to the adoption of machine learning. This book is about making machine learning models and their decisions interpretable.\n\nAfter exploring the concepts of interpretability, you will learn about simple, interpretable models such as decision trees, decision rules and linear regression. The focus of the book is on model-agnostic methods for interpreting black box models such as feature importance and accumulated local effects, and explaining individual predictions with Shapley values and LIME. In addition, the book presents methods specific to deep neural networks.\n\nAll interpretation methods are explained in depth and discussed critically. How do they work under the hood? What are their strengths and weaknesses? How can their outputs be interpreted? This book will enable you to select and correctly apply the interpretation method that is most suitable for your machine learning project. Reading the book is recommended for machine learning practitioners, data scientists, statisticians, and anyone else interested in making machine learning models interpretable.",
@@ -1405,7 +1405,7 @@
       "source_path": "books/20220328-serverless-analytics-with-amazon-athena.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220328-serverless-analytics-with-amazon-athena.yaml"
     },
-    "public_path": "/books/20220328-serverless-analytics-with-amazon-athena",
+    "public_path": "/books/20220328-serverless-analytics-with-amazon-athena.html",
     "published": "2022-03-28T00:00:00",
     "slug": "20220328-serverless-analytics-with-amazon-athena",
     "summary": "Amazon Athena is an interactive query service that makes it easy to analyze data in Amazon S3 using SQL, without needing to manage any infrastructure.\n\nThis book begins with an overview of the serverless analytics experience offered by Athena and teaches you how to build and tune an S3 Data Lake using Athena, including how to structure your tables using open-source file formats like Parquet. You’ll learn how to build, secure, and connect to a data lake with Athena and Lake Formation. Next, you’ll cover key tasks such as ad hoc data analysis, working with ETL pipelines, monitoring and alerting KPI breaches using CloudWatch Metrics, running customizable connectors with AWS Lambda, and more. Moving on, you’ll work through easy integrations, troubleshooting and tuning common Athena issues, and the most common reasons for query failure. You will also review tips to help diagnose and correct failing queries in your pursuit of operational excellence. Finally, you’ll explore advanced concepts such as Athena Query Federation and Athena ML to generate powerful insights without needing to touch a single server.\n\nBy the end of this book, you’ll be able to build and use a data lake with Amazon Athena to add data-driven features to your app and perform the kind of ad hoc data analysis that often precedes many of today’s ML modeling exercises.",
@@ -1440,7 +1440,7 @@
       "source_path": "books/20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse.yaml"
     },
-    "public_path": "/books/20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse",
+    "public_path": "/books/20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse.html",
     "published": "2022-03-14T00:00:00",
     "slug": "20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse",
     "summary": "In the world of ever-changing data and schemas, it is important to build data pipelines that can auto-adjust to changes. This book will help you build scalable data platforms that managers, data scientists, and data analysts can rely on.\n\nStarting with an introduction to data engineering, along with its key concepts and architectures, this book will show you how to use Microsoft Azure Cloud services effectively for data engineering. You'll cover data lake design patterns and the different stages through which the data needs to flow in a typical data lake. Once you've explored the main features of Delta Lake to build data lakes with fast performance and governance in mind, you'll advance to implementing the lambda architecture using Delta Lake. Packed with practical examples and code snippets, this book takes you through real-world examples based on production scenarios faced by the author in his 10 years of experience working with big data. Finally, you'll cover data lake deployment strategies that play an important role in provisioning the cloud resources and deploying the data pipelines in a repeatable and continuous way.\n\nBy the end of this data engineering book, you'll know how to effectively deal with ever-changing data and create scalable data pipelines to streamline data science, ML, and artificial intelligence (AI) tasks.",
@@ -1475,7 +1475,7 @@
       "source_path": "books/20220228-hands-on-data-preprocessing-in-python.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220228-hands-on-data-preprocessing-in-python.yaml"
     },
-    "public_path": "/books/20220228-hands-on-data-preprocessing-in-python",
+    "public_path": "/books/20220228-hands-on-data-preprocessing-in-python.html",
     "published": "2022-02-28T00:00:00",
     "slug": "20220228-hands-on-data-preprocessing-in-python",
     "summary": "Data preprocessing is the first step in data visualization, data analytics, and machine learning, where data is prepared for analytics functions to get the best possible insights. Around 90% of the time spent on data analytics, data visualization, and machine learning projects is dedicated to performing data preprocessing.\n\nThis book will equip you with the optimum data preprocessing techniques from multiple perspectives. You'll learn about different technical and analytical aspects of data preprocessing - data collection, data cleaning, data integration, data reduction, and data transformation - and get to grips with implementing them using the open source Python programming environment. This book will provide a comprehensive articulation of data preprocessing, its whys and hows, and help you identify opportunities where data analytics could lead to more effective decision making. It also demonstrates the role of data management systems and technologies for effective analytics and how to use APIs to pull data.\n\nBy the end of this Python data preprocessing book, you'll be able to use Python to read, manipulate, and analyze data; perform data cleaning, integration, reduction, and transformation techniques; and handle outliers or missing values to effectively prepare data for analytic tools.",
@@ -1506,7 +1506,7 @@
       "source_path": "books/20220214-a-visual-introduction-to-deep-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220214-a-visual-introduction-to-deep-learning.yaml"
     },
-    "public_path": "/books/20220214-a-visual-introduction-to-deep-learning",
+    "public_path": "/books/20220214-a-visual-introduction-to-deep-learning.html",
     "published": "2022-02-14T00:00:00",
     "slug": "20220214-a-visual-introduction-to-deep-learning",
     "summary": "Deep learning can be quite daunting to learn. With the abundance of learning resources in recent years has emerged another problem-information overload.\n\nThis book aims to compress this knowledge and make the subject approachable. By the end of this book, you will be able to build a visual intuition about deep learning and neural networks.\n\n40% discount for DataTalks.Club: use promocode \"DATATALKS40\". Valid till February 19.",
@@ -1537,7 +1537,7 @@
       "source_path": "books/20220131-effective-pandas.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220131-effective-pandas.yaml"
     },
-    "public_path": "/books/20220131-effective-pandas",
+    "public_path": "/books/20220131-effective-pandas.html",
     "published": "2022-01-31T00:00:00",
     "slug": "20220131-effective-pandas",
     "summary": "Best practices for manipulating data with Pandas. This book will arm you with years of knowledge and experience that are condensed into an easy to follow format. Rather than taking months reading blogs and websites and searching mailing lists and groups, this book will teach you how to write good Pandas code.",
@@ -1568,7 +1568,7 @@
       "source_path": "books/20220117-machine-learning-engineering-with-python.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20220117-machine-learning-engineering-with-python.yaml"
     },
-    "public_path": "/books/20220117-machine-learning-engineering-with-python",
+    "public_path": "/books/20220117-machine-learning-engineering-with-python.html",
     "published": "2022-01-10T00:00:00",
     "slug": "20220117-machine-learning-engineering-with-python",
     "summary": "Machine Learning Engineering with Python takes a hands-on approach to help you get to grips with essential technical concepts, implementation patterns, and development methodologies to have you up and running in no time. You'll begin by understanding key steps of the machine learning development life cycle before moving on to practical illustrations and getting to grips with building and deploying robust machine learning solutions. As you advance, you'll explore how to create your own toolsets for training and deployment across all your projects in a consistent way. The book will also help you get hands-on with deployment architectures and discover methods for scaling up your solutions while building a solid understanding of how to use cloud-based tools effectively. Finally, you'll work through examples to help you solve typical business problems.",
@@ -1599,7 +1599,7 @@
       "source_path": "books/20211213-mastering-spacy.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211213-mastering-spacy.yaml"
     },
-    "public_path": "/books/20211213-mastering-spacy",
+    "public_path": "/books/20211213-mastering-spacy.html",
     "published": "2021-12-13T00:00:00",
     "slug": "20211213-mastering-spacy",
     "summary": "Build end-to-end industrial-strength NLP models using advanced morphological and\nsyntactic features in spaCy to create real-world applications with ease.\n\nspaCy is an industrial-grade, efficient NLP Python library. It offers various pre-trained\nmodels and ready-to-use features. Mastering spaCy provides you with end-to-end coverage\nof spaCy's features and real-world applications.\n\nBy the end of this book, you'll be able to confidently use spaCy, including its linguistic\nfeatures, word vectors, and classifiers, to create your own NLP apps.",
@@ -1630,7 +1630,7 @@
       "source_path": "books/20211206-deep-learning-with-fastai-cookbook.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211206-deep-learning-with-fastai-cookbook.yaml"
     },
-    "public_path": "/books/20211206-deep-learning-with-fastai-cookbook",
+    "public_path": "/books/20211206-deep-learning-with-fastai-cookbook.html",
     "published": "2021-12-06T00:00:00",
     "slug": "20211206-deep-learning-with-fastai-cookbook",
     "summary": "The book begins by summarizing the value of fastai and showing you how to create a simple\n'hello world' deep learning application with fastai. You'll then learn how to use fastai\nfor all four application areas that the framework explicitly supports: tabular data, text\ndata (NLP), recommender systems, and vision data. As you advance, you'll work through\na series of practical examples that illustrate how to create real-world applications of\neach type. Next, you'll learn how to deploy fastai models, including creating a simple\nweb application that predicts what object is depicted in an image. The book wraps up with\nan overview of the advanced features of fastai.",
@@ -1657,7 +1657,7 @@
       "source_path": "books/20211129-own-your-tech-career.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211129-own-your-tech-career.yaml"
     },
-    "public_path": "/books/20211129-own-your-tech-career",
+    "public_path": "/books/20211129-own-your-tech-career.html",
     "published": "2021-11-29T00:00:00",
     "slug": "20211129-own-your-tech-career",
     "summary": "Own Your Tech Career: Soft skills for technologists is a guide to taking control\nof your professional life. It teaches you to approach your career with planning and\npurpose, always making active decisions towards your goals.",
@@ -1692,7 +1692,7 @@
       "source_path": "books/20211122-building-machine-learning-powered-applications.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211122-building-machine-learning-powered-applications.yaml"
     },
-    "public_path": "/books/20211122-building-machine-learning-powered-applications",
+    "public_path": "/books/20211122-building-machine-learning-powered-applications.html",
     "published": "2021-11-22T00:00:00",
     "slug": "20211122-building-machine-learning-powered-applications",
     "summary": "Learn the skills necessary to design, build, and deploy applications powered by machine learning (ML).\nThrough the course of this hands-on book, you’ll build an example ML-driven application from initial\nidea to deployed product. Data scientists, software engineers, and product managers — including experienced\npractitioners and novices alike — will learn the tools, best practices, and challenges involved in\nbuilding a real-world ML application step by step.",
@@ -1724,7 +1724,7 @@
       "source_path": "books/20211115-ace-the-data-science-interview.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211115-ace-the-data-science-interview.yaml"
     },
-    "public_path": "/books/20211115-ace-the-data-science-interview",
+    "public_path": "/books/20211115-ace-the-data-science-interview.html",
     "published": "2021-11-15T00:00:00",
     "slug": "20211115-ace-the-data-science-interview",
     "summary": "This book is the best way to prepare for Data Science, Data Analyst, and Machine Learning interviews,\nso that you can land your dream job at FAANG, tech startups, or Wall Street.",
@@ -1760,7 +1760,7 @@
       "source_path": "books/20211108-generative-ai-with-python-and-tensorflow-2.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211108-generative-ai-with-python-and-tensorflow-2.yaml"
     },
-    "public_path": "/books/20211108-generative-ai-with-python-and-tensorflow-2",
+    "public_path": "/books/20211108-generative-ai-with-python-and-tensorflow-2.html",
     "published": "2021-11-08T00:00:00",
     "slug": "20211108-generative-ai-with-python-and-tensorflow-2",
     "summary": "In this book, you’ll explore the evolution of generative models, from restricted Boltzmann\nmachines and deep belief networks to VAEs and GANs. You’ll learn how to implement models\nyourself in TensorFlow and get to grips with the latest research on deep neural networks.",
@@ -1793,7 +1793,7 @@
       "source_path": "books/20211101-ai-powered-search.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211101-ai-powered-search.yaml"
     },
-    "public_path": "/books/20211101-ai-powered-search",
+    "public_path": "/books/20211101-ai-powered-search.html",
     "published": "2021-11-01T00:00:00",
     "slug": "20211101-ai-powered-search",
     "summary": "Great search is all about delivering the right results. Today’s search engines are expected to be smart,\nunderstanding the nuances of natural language queries, as well as each user’s preferences and context.\nAI-Powered Search teaches you the latest machine learning techniques to create search engines\nthat continuously learn from your users and your content, to drive more domain-aware and intelligent search.\n\nThis book empowers you to create and deploy search engines that take advantage of user interactions and\nthe hidden semantic relationships in your content to constantly get smarter and automatically deliver\nbetter, more relevant search experiences.",
@@ -1824,7 +1824,7 @@
       "source_path": "books/20211025-data-analysis-with-python-and-pyspark.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211025-data-analysis-with-python-and-pyspark.yaml"
     },
-    "public_path": "/books/20211025-data-analysis-with-python-and-pyspark",
+    "public_path": "/books/20211025-data-analysis-with-python-and-pyspark.html",
     "published": "2021-10-25T00:00:00",
     "slug": "20211025-data-analysis-with-python-and-pyspark",
     "summary": "When it comes to data analytics, it pays to think big. PySpark blends the powerful Spark big data\nprocessing engine with the Python programming language to provide a data analysis platform that can\nscale up for nearly any task. Data Analysis with Python and PySpark is your guide to delivering successful\nPython-driven data projects.\n\nPacked with relevant examples and essential techniques, this practical book teaches you to build\nlightning-fast pipelines for reporting, machine learning, and other data-centric tasks.\nNo previous knowledge of Spark is required.",
@@ -1861,7 +1861,7 @@
       "source_path": "books/20211018-blueprints-for-text-analytics-using-python.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211018-blueprints-for-text-analytics-using-python.yaml"
     },
-    "public_path": "/books/20211018-blueprints-for-text-analytics-using-python",
+    "public_path": "/books/20211018-blueprints-for-text-analytics-using-python.html",
     "published": "2021-10-18T00:00:00",
     "slug": "20211018-blueprints-for-text-analytics-using-python",
     "summary": "Turning text into valuable information is essential for businesses looking to gain a competitive\nadvantage. With recent improvements in natural language processing (NLP), users now have many options\nfor solving complex challenges. But it's not always clear which NLP tools or libraries would work for\na business's needs, or which techniques you should use and in what order.\n\nThis practical book provides data scientists and developers with blueprints for best practice\nsolutions to common tasks in text analytics and natural language processing.",
@@ -1897,7 +1897,7 @@
       "source_path": "books/20211011-mastering-transformers.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211011-mastering-transformers.yaml"
     },
-    "public_path": "/books/20211011-mastering-transformers",
+    "public_path": "/books/20211011-mastering-transformers.html",
     "published": "2021-10-11T00:00:00",
     "slug": "20211011-mastering-transformers",
     "summary": "The book gives you an introduction to Transformers by showing you how to write your first hello-world program.\nYou'll then learn how a tokenizer works and how to train your own tokenizer. As you advance, you'll explore\nthe architecture of autoencoding models, such as BERT, and autoregressive models, such as GPT. You'll see\nhow to train and fine-tune models for a variety of natural language understanding (NLU) and natural language\ngeneration (NLG) problems, including text classification, token classification, and text representation.\nFurthermore, this book helps you to learn efficient models for challenging problems, such as long-context\nNLP tasks with limited computational capacity. You'll also work with multilingual and cross-lingual problems,\noptimize models by monitoring their performance, and discover how to deconstruct these models for interpretability\nand explainability. Finally, you'll be able to deploy your transformer models in a production environment.",
@@ -1929,7 +1929,7 @@
       "source_path": "books/20211004-transfer-learning-in-action.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20211004-transfer-learning-in-action.yaml"
     },
-    "public_path": "/books/20211004-transfer-learning-in-action",
+    "public_path": "/books/20211004-transfer-learning-in-action.html",
     "published": "2021-10-04T00:00:00",
     "slug": "20211004-transfer-learning-in-action",
     "summary": "Transfer Learning in Action shows you how using pre-trained models can massively improve the accuracy and performance of your machine learning projects. Focused on the real-world applications of transfer learning, you’ll explore how to enhance everything from computer vision to natural language processing and beyond. Master hands-on techniques taken from the latest research, and discover how you can customize open source models for your specific needs.",
@@ -1960,7 +1960,7 @@
       "source_path": "books/20210927-effective-data-science-infrastructure.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210927-effective-data-science-infrastructure.yaml"
     },
-    "public_path": "/books/20210927-effective-data-science-infrastructure",
+    "public_path": "/books/20210927-effective-data-science-infrastructure.html",
     "published": "2021-09-27T00:00:00",
     "slug": "20210927-effective-data-science-infrastructure",
     "summary": "Effective Data Science Infrastructure: How to make data scientists more productive is a hands-on guide to assembling infrastructure for data science and machine learning applications. It reveals the processes used at Netflix and other data-driven companies to manage their cutting edge data infrastructure. In it, you’ll master scalable techniques for data storage, computation, experiment tracking, and orchestration. You’ll also learn how to collaborate with data scientists to deliver exactly what they need to succeed.",
@@ -1995,7 +1995,7 @@
       "source_path": "books/20210920-python-feature-engineering-cookbook.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210920-python-feature-engineering-cookbook.yaml"
     },
-    "public_path": "/books/20210920-python-feature-engineering-cookbook",
+    "public_path": "/books/20210920-python-feature-engineering-cookbook.html",
     "published": "2021-09-20T00:00:00",
     "slug": "20210920-python-feature-engineering-cookbook",
     "summary": "Feature engineering is invaluable for developing and enriching your machine learning models.\nIn this cookbook, you will work with the best tools to streamline your feature engineering\npipelines and techniques and simplify and improve the quality of your code.\n\n\nUsing Python libraries such as pandas, scikit-learn, Featuretools, and Feature-engine,\nyou’ll learn how to work with both continuous and discrete datasets and be able to transform\nfeatures from unstructured datasets. You will develop the skills necessary to select the best\nfeatures as well as the most suitable extraction techniques. This book will cover Python recipes\nthat will help you automate feature engineering to simplify complex processes. You’ll also get\nto grips with different feature engineering strategies, such as the box-cox transform,\npower transform, and log transform across machine learning, reinforcement learning,\nand natural language processing (NLP) domains.",
@@ -2023,7 +2023,7 @@
       "source_path": "books/20210913-dataops-for-dummies.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210913-dataops-for-dummies.yaml"
     },
-    "public_path": "/books/20210913-dataops-for-dummies",
+    "public_path": "/books/20210913-dataops-for-dummies.html",
     "published": "2021-09-13T00:00:00",
     "slug": "20210913-dataops-for-dummies",
     "summary": "DataOps describes a novel way of development teams working together collaboratively\naround data to achieve rapid results and improve customer satisfaction. This book is\nintended for everyone looking to adopt the DataOps philosophy to improve the governance\nand agility of their data products. The principles in this book should create a shared\nunderstanding of the goals and methods of DataOps and `#TrueDataOps` and create\na starting point for collaboration.",
@@ -2051,7 +2051,7 @@
       "source_path": "books/20210906-software-mistakes-and-tradeoffs.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210906-software-mistakes-and-tradeoffs.yaml"
     },
-    "public_path": "/books/20210906-software-mistakes-and-tradeoffs",
+    "public_path": "/books/20210906-software-mistakes-and-tradeoffs.html",
     "published": "2021-09-06T00:00:00",
     "slug": "20210906-software-mistakes-and-tradeoffs",
     "summary": "In Software Mistakes and Tradeoffs you’ll learn from costly mistakes that Tomasz Lelek and Jon Skeet\nhave encountered over their impressive careers. You’ll explore real-world scenarios where poor\nunderstanding of tradeoffs lead to major problems down the road, to help you make better design decisions.\nPlus, with a little practice, you’ll be able to avoid the pitfalls that trip up even the most experienced\ndevelopers.",
@@ -2087,7 +2087,7 @@
       "source_path": "books/20210830-practical-mlops.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210830-practical-mlops.yaml"
     },
-    "public_path": "/books/20210830-practical-mlops",
+    "public_path": "/books/20210830-practical-mlops.html",
     "published": "2021-08-30T00:00:00",
     "slug": "20210830-practical-mlops",
     "summary": "Getting your models into production is the fundamental challenge of machine learning.\nMLOps offers a set of proven principles aimed at solving this problem in a reliable and automated way.\nThis insightful guide takes you through what MLOps is (and how it differs from DevOps) and shows you\nhow to put it into practice to operationalize your machine learning models.\n\nCurrent and aspiring machine learning engineers--or anyone familiar with data science and Python -- will\nbuild a foundation in MLOps tools and methods (along with AutoML and monitoring and logging), then learn\nhow to implement them in AWS, Microsoft Azure, and Google Cloud. The faster you deliver a machine learning\nsystem that works, the faster you can focus on the business problems you're trying to crack.\nThis book gives you a head start.",
@@ -2118,7 +2118,7 @@
       "source_path": "books/20210823-business-skills-for-data-scientists.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210823-business-skills-for-data-scientists.yaml"
     },
-    "public_path": "/books/20210823-business-skills-for-data-scientists",
+    "public_path": "/books/20210823-business-skills-for-data-scientists.html",
     "published": "2021-08-23T00:00:00",
     "slug": "20210823-business-skills-for-data-scientists",
     "summary": "It takes more than technical skills to succeed as an analytics professional.\n\nThis book explains the foundational business skills you’ll need to deliver business\nvalue and grow your career as an analyst or data scientist. Drawing on best practices,\npublished research, case studies and personal anecdotes from two decades of industry experience,\nDavid Stephenson lays out a practical and concise overview of foundational skills related to Company,\nColleagues, Storytelling, Expectations, Results and Careers -- emphasizing how each topic relates to\nyour unique position as an analytics professional within a larger corporation.",
@@ -2149,7 +2149,7 @@
       "source_path": "books/20210816-tuning-up.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210816-tuning-up.yaml"
     },
-    "public_path": "/books/20210816-tuning-up",
+    "public_path": "/books/20210816-tuning-up.html",
     "published": "2021-08-16T00:00:00",
     "slug": "20210816-tuning-up",
     "summary": "Tuning Up: From A/B testing to Bayesian optimization is a toolbox for optimizing machine learning systems,\nquantitative trading strategies, and more. You’ll start with a deep dive into tests like A/B testing,\nand then graduate to advanced techniques used to measure performance in highly competitive industries\nlike finance and social media. The tests in this unique, practical guide will quickly reveal which\napproaches and features deliver real results for your business.",
@@ -2180,7 +2180,7 @@
       "source_path": "books/20210809-grokking-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210809-grokking-machine-learning.yaml"
     },
-    "public_path": "/books/20210809-grokking-machine-learning",
+    "public_path": "/books/20210809-grokking-machine-learning.html",
     "published": "2021-08-09T00:00:00",
     "slug": "20210809-grokking-machine-learning",
     "summary": "It's time to dispel the myth that machine learning is difficult. Grokking Machine Learning\nteaches you how to apply ML to your projects using only standard Python code and high school-level\nmath. No specialist knowledge is required to tackle the hands-on exercises using readily-available\nmachine learning tools!",
@@ -2211,7 +2211,7 @@
       "source_path": "books/20210802-practical-recommender-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210802-practical-recommender-systems.yaml"
     },
-    "public_path": "/books/20210802-practical-recommender-systems",
+    "public_path": "/books/20210802-practical-recommender-systems.html",
     "published": "2021-08-02T00:00:00",
     "slug": "20210802-practical-recommender-systems",
     "summary": "Online recommender systems help users find movies, jobs, restaurants -- even romance!\nThere’s an art in combining statistics, demographics, and query terms to achieve results\nthat will delight them. Learn to build a recommender system the right way: it can make or\nbreak your application!",
@@ -2243,7 +2243,7 @@
       "source_path": "books/20210726-applied-natural-language-processing-in-the-enterprise.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210726-applied-natural-language-processing-in-the-enterprise.yaml"
     },
-    "public_path": "/books/20210726-applied-natural-language-processing-in-the-enterprise",
+    "public_path": "/books/20210726-applied-natural-language-processing-in-the-enterprise.html",
     "published": "2021-07-26T00:00:00",
     "slug": "20210726-applied-natural-language-processing-in-the-enterprise",
     "summary": "NLP has exploded in popularity over the last few years. But while Google, Facebook, OpenAI,\nand others continue to release larger language models, many teams still struggle with building\nNLP applications that live up to the hype. This hands-on guide helps you get up to speed on the\nlatest and most promising trends in NLP.\n\nWith a basic understanding of machine learning and some Python experience, you'll learn how to\nbuild, train, and deploy models for real-world applications in your organization. Authors Ankur\nPatel and Ajay Uppili Arasanipalai guide you through the process using code and examples that\nhighlight the best practices in modern NLP.",
@@ -2278,7 +2278,7 @@
       "source_path": "books/20210719-interpretable-machine-learning-with-python.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210719-interpretable-machine-learning-with-python.yaml"
     },
-    "public_path": "/books/20210719-interpretable-machine-learning-with-python",
+    "public_path": "/books/20210719-interpretable-machine-learning-with-python.html",
     "published": "2021-07-19T00:00:00",
     "slug": "20210719-interpretable-machine-learning-with-python",
     "summary": "Do you want to understand your models and mitigate risks associated with poor predictions\nusing machine learning interpretation? Interpretable Machine Learning with Python can help\nyou work effectively with ML models.",
@@ -2310,7 +2310,7 @@
       "source_path": "books/20210712-relevant-search.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210712-relevant-search.yaml"
     },
-    "public_path": "/books/20210712-relevant-search",
+    "public_path": "/books/20210712-relevant-search.html",
     "published": "2021-07-12T00:00:00",
     "slug": "20210712-relevant-search",
     "summary": "Relevant Search demystifies relevance work. Using Elasticsearch, it teaches you how to\nreturn engaging search results to your users, helping you understand and leverage the\ninternals of Lucene-based search engines.",
@@ -2345,7 +2345,7 @@
       "source_path": "books/20210705-engineering-mlops.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210705-engineering-mlops.yaml"
     },
-    "public_path": "/books/20210705-engineering-mlops",
+    "public_path": "/books/20210705-engineering-mlops.html",
     "published": "2021-07-05T00:00:00",
     "slug": "20210705-engineering-mlops",
     "summary": "MLOps is a systematic approach to building, deploying, and monitoring machine learning (ML) solutions. It is an engineering discipline that can be applied to various industries and use cases. This book presents comprehensive insights into MLOps coupled with real-world examples to help you to write programs, train robust and scalable ML models, and build ML pipelines to train and deploy models securely in production.\n\nThe book begins by familiarizing you with the MLOps workflow so you can start writing programs to train ML models. Then you’ll then move on to explore options for serializing and packaging ML models post-training to deploy them to facilitate machine learning inference, model interoperability, and end-to-end model traceability. You’ll understand how to build ML pipelines, continuous integration and continuous delivery (CI/CD) pipelines, and monitoring pipelines to systematically build, deploy, monitor, and govern ML solutions for businesses and industries. Finally, you’ll apply the knowledge you’ve gained to build real-world projects.\n\nBy the end of this ML book, you'll have a 360-degree view of MLOps and be ready to implement MLOps in your organization.",
@@ -2385,7 +2385,7 @@
       "source_path": "books/20210628-data-science-on-aws.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210628-data-science-on-aws.yaml"
     },
-    "public_path": "/books/20210628-data-science-on-aws",
+    "public_path": "/books/20210628-data-science-on-aws.html",
     "published": "2021-06-28T00:00:00",
     "slug": "20210628-data-science-on-aws",
     "summary": "With this practical book, AI and machine learning practitioners will learn how to successfully\nbuild and deploy data science projects on Amazon Web Services. The Amazon AI and machine learning\nstack unifies data science, data engineering, and application development to help level upyour skills.\nThis guide shows you how to build and run pipelines in the cloud, then integrate the results into\napplications in minutes instead of days. Throughout the book, authors Chris Fregly and Antje Barth\ndemonstrate how to reduce cost and improve performance.",
@@ -2420,7 +2420,7 @@
       "source_path": "books/20210621-cleaning-data-for-effective-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210621-cleaning-data-for-effective-data-science.yaml"
     },
-    "public_path": "/books/20210621-cleaning-data-for-effective-data-science",
+    "public_path": "/books/20210621-cleaning-data-for-effective-data-science.html",
     "published": "2021-06-21T00:00:00",
     "slug": "20210621-cleaning-data-for-effective-data-science",
     "summary": "It is something of a truism in data science, data analysis, or machine learning that most of\nthe effort needed to achieve your actual purpose lies in cleaning your data. Written in David’s\nsignature friendly and humorous style, this book discusses in detail the essential steps performed\nin every production data science or data analysis pipeline and prepares you for data visualization\nand modeling results.\n\n\nThe book dives into the practical application of tools and techniques needed for data ingestion,\nanomaly detection, value imputation, and feature engineering. It also offers long-form\nexercises at the end of each chapter to practice the skills acquired.",
@@ -2452,7 +2452,7 @@
       "source_path": "books/20210614-graph-databases-in-action.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210614-graph-databases-in-action.yaml"
     },
-    "public_path": "/books/20210614-graph-databases-in-action",
+    "public_path": "/books/20210614-graph-databases-in-action.html",
     "published": "2021-06-14T00:00:00",
     "slug": "20210614-graph-databases-in-action",
     "summary": "Relationships in data often look far more like a web than an orderly set of rows and columns.\nGraph databases shine when it comes to revealing valuable insights within complex, interconnected\ndata such as demographics, financial records, or computer networks.\n\nIn Graph Databases in Action, experts Dave Bechberger and Josh Perryman illuminate the design and\nimplementation of graph databases in real-world applications. You'll learn how to choose the right\ndatabase solutions for your tasks, and how to use your new knowledge to build agile, flexible,\nand high-performing graph-powered applications!",
@@ -2484,7 +2484,7 @@
       "source_path": "books/20210607-building-machine-learning-pipelines.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210607-building-machine-learning-pipelines.yaml"
     },
-    "public_path": "/books/20210607-building-machine-learning-pipelines",
+    "public_path": "/books/20210607-building-machine-learning-pipelines.html",
     "published": "2021-06-07T00:00:00",
     "slug": "20210607-building-machine-learning-pipelines",
     "summary": "Companies are spending billions on machine learning projects, but it’s money wasted if the models\ncan’t be deployed effectively. In this book, Hannes Hapke and Catherine Nelson walk you through\nthe steps of automating a machine learning pipeline using the TensorFlow ecosystem.\nYou’ll learn the techniques and tools that will cut deployment time from days to minutes,\nso that you can focus on developing new models rather than maintaining legacy systems.",
@@ -2515,7 +2515,7 @@
       "source_path": "books/20210531-advanced-algorithms-and-data-structures.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210531-advanced-algorithms-and-data-structures.yaml"
     },
-    "public_path": "/books/20210531-advanced-algorithms-and-data-structures",
+    "public_path": "/books/20210531-advanced-algorithms-and-data-structures.html",
     "published": "2021-05-31T00:00:00",
     "slug": "20210531-advanced-algorithms-and-data-structures",
     "summary": "As a software engineer, you’ll encounter countless programming challenges that initially\nseem confusing, difficult, or even impossible. Don’t despair! Many of these “new” problems\nalready have well-established solutions. Advanced Algorithms and Data Structures teaches\nyou powerful approaches to a wide range of tricky coding challenges that you can adapt and\napply to your own applications. Providing a balanced blend of classic, advanced, and new\nalgorithms, this practical guide upgrades your programming toolbox with new perspectives\nand hands-on techniques.",
@@ -2550,7 +2550,7 @@
       "source_path": "books/20210524-data-governance-the-definitive-guide.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210524-data-governance-the-definitive-guide.yaml"
     },
-    "public_path": "/books/20210524-data-governance-the-definitive-guide",
+    "public_path": "/books/20210524-data-governance-the-definitive-guide.html",
     "published": "2021-05-24T00:00:00",
     "slug": "20210524-data-governance-the-definitive-guide",
     "summary": "As you move data to the cloud, you need to consider a comprehensive approach to data governance,\nalong with well-defined and agreed-upon policies to ensure your organization meets compliance\nrequirements. Data governance incorporates the ways people, processes, and technology work together\nto ensure data is trustworthy and can be used effectively. This practical guide shows you how to\neffectively implement and scale data governance throughout your organization.",
@@ -2581,7 +2581,7 @@
       "source_path": "books/20210517-grokking-deep-reinforcement-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210517-grokking-deep-reinforcement-learning.yaml"
     },
-    "public_path": "/books/20210517-grokking-deep-reinforcement-learning",
+    "public_path": "/books/20210517-grokking-deep-reinforcement-learning.html",
     "published": "2021-05-17T00:00:00",
     "slug": "20210517-grokking-deep-reinforcement-learning",
     "summary": "We all learn through trial and error. We avoid the things that cause us to experience\npain and failure. We embrace and build on the things that give us reward and success.\nThis common pattern is the foundation of deep reinforcement learning: building machine\nlearning systems that explore and learn based on the responses of the environment.\n\nGrokking Deep Reinforcement Learning introduces this powerful machine learning approach,\nusing examples, illustrations, exercises, and crystal-clear teaching. You'll love the\nperfectly paced teaching and the clever, engaging writing style as you dig into this\nawesome exploration of reinforcement learning fundamentals, effective deep learning\ntechniques, and practical applications in this emerging field.",
@@ -2608,7 +2608,7 @@
       "source_path": "books/20210510-the-coding-career-handbook.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210510-the-coding-career-handbook.yaml"
     },
-    "public_path": "/books/20210510-the-coding-career-handbook",
+    "public_path": "/books/20210510-the-coding-career-handbook.html",
     "published": "2021-05-10T00:00:00",
     "slug": "20210510-the-coding-career-handbook",
     "summary": "The Coding will always be the easiest part of a Coding Career. This is a comprehensive guide about the\nprinciples, strategies and tactics developers can use to build an awesome career!\n\n“The book could've been called Hacker News: The Good Parts. All the experience-based advice for career\nsuccess, none of the toxic nonsense.” - Forrest Brazeal, AWS Serverless Hero",
@@ -2645,7 +2645,7 @@
       "source_path": "books/20210503-machine-learning-using-tensorflow-cookbook.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210503-machine-learning-using-tensorflow-cookbook.yaml"
     },
-    "public_path": "/books/20210503-machine-learning-using-tensorflow-cookbook",
+    "public_path": "/books/20210503-machine-learning-using-tensorflow-cookbook.html",
     "published": "2021-05-03T00:00:00",
     "slug": "20210503-machine-learning-using-tensorflow-cookbook",
     "summary": "The independent recipes in Machine Learning Using TensorFlow Cookbook will teach you how to\nperform complex data computations and gain valuable insights into your data. You will work\nthrough recipes on training models, model evaluation, sentiment analysis, regression analysis,\nartificial neural networks, and deep learning - each using Google’s machine learning library, TensorFlow.\n\nThis cookbook begins by introducing you to the fundamentals of the TensorFlow library,\nincluding variables, matrices, and various data sources. You’ll then take a deep dive into\nsome real-world implementations of Keras and TensorFlow and learn how to use estimators to\ntrain linear models and boosted trees, both for classification and for regression to provide\na baseline for tabular data problems.",
@@ -2676,7 +2676,7 @@
       "source_path": "books/20210426-tiny-python-projects.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210426-tiny-python-projects.yaml"
     },
-    "public_path": "/books/20210426-tiny-python-projects",
+    "public_path": "/books/20210426-tiny-python-projects.html",
     "published": "2021-04-26T00:00:00",
     "slug": "20210426-tiny-python-projects",
     "summary": "A long journey is really a lot of little steps. The same is true when you're learning Python,\nso you may as well have some fun along the way! Written in a lighthearted style with entertaining\nexercises that build powerful skills, Tiny Python Projects takes you from amateur to Pythonista as\nyou create 22 bitesize programs. Each tiny project teaches you a new programming concept, from the\nbasics of lists and strings right through to regular expressions and randomness. Along the way you'll\nalso discover how testing can make you a better programmer in any language.",
@@ -2707,7 +2707,7 @@
       "source_path": "books/20210419-transformers-for-natural-language-processing.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210419-transformers-for-natural-language-processing.yaml"
     },
-    "public_path": "/books/20210419-transformers-for-natural-language-processing",
+    "public_path": "/books/20210419-transformers-for-natural-language-processing.html",
     "published": "2021-04-19T00:00:00",
     "slug": "20210419-transformers-for-natural-language-processing",
     "summary": "The transformer architecture has proved to be revolutionary in outperforming the classical RNN\nand CNN models in use today. With an apply-as-you-learn approach, Transformers for Natural\nLanguage Processing investigates in vast detail the deep learning for machine translations,\nspeech-to-text, text-to-speech, language modeling, question answering, and many more NLP domains with transformers.\n\nThe book takes you through NLP with Python and examines various eminent models and datasets\nwithin the transformer architecture created by pioneers such as Google, Facebook, Microsoft,\nOpenAI, and Hugging Face.",
@@ -2734,7 +2734,7 @@
       "source_path": "books/20210412-ai-and-machine-learning-for-coders.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210412-ai-and-machine-learning-for-coders.yaml"
     },
-    "public_path": "/books/20210412-ai-and-machine-learning-for-coders",
+    "public_path": "/books/20210412-ai-and-machine-learning-for-coders.html",
     "published": "2021-04-12T00:00:00",
     "slug": "20210412-ai-and-machine-learning-for-coders",
     "summary": "If you’re looking to make a career move from programmer to AI specialist, this is the ideal place\nto start. Based on Laurence Moroney's extremely successful AI courses, this introductory book provides\na hands-on, code-first approach to help you build confidence while you learn key topics.\n\nYou’ll understand how to implement the most common scenarios in machine learning, such as computer\nvision, natural language processing (NLP), and sequence modeling for web, mobile, cloud, and embedded\nruntimes. Most books on machine learning begin with a daunting amount of advanced math. This guide\nis built on practical lessons that let you work directly with the code.",
@@ -2765,7 +2765,7 @@
       "source_path": "books/20210405-the-practitioners-guide-to-graph-data.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210405-the-practitioners-guide-to-graph-data.yaml"
     },
-    "public_path": "/books/20210405-the-practitioners-guide-to-graph-data",
+    "public_path": "/books/20210405-the-practitioners-guide-to-graph-data.html",
     "published": "2021-04-05T00:00:00",
     "slug": "20210405-the-practitioners-guide-to-graph-data",
     "summary": "Graph data closes the gap between the way humans and computers view the world. While computers\nrely on static rows and columns of data, people navigate and reason about life through relationships.\nThis practical guide demonstrates how graph data brings these two approaches together.\nBy working with concepts from graph theory, database schema, distributed systems, and data analysis,\nyou’ll arrive at a unique intersection known as graph thinking.",
@@ -2800,7 +2800,7 @@
       "source_path": "books/20210329-learning-tensorflow-js.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210329-learning-tensorflow-js.yaml"
     },
-    "public_path": "/books/20210329-learning-tensorflow-js",
+    "public_path": "/books/20210329-learning-tensorflow-js.html",
     "published": "2021-03-29T00:00:00",
     "slug": "20210329-learning-tensorflow-js",
     "summary": "Combining the demand for AI with the ubiquity of JavaScript was inevitable. With Google's TensorFlow.js\nframework, seasoned AI veterans and web developers alike can help propel the future of AI-driven websites.\nIn this guide, author Gant Laborde--Google Developer Expert in machine learning and the web--provides a\nhands-on, end-to-end approach to TensorFlow.js fundamentals for a broad technical audience that includes\ndata scientists, engineers, web developers, students, and researchers.\n\nYou'll begin by working through some basic examples in TensorFlow.js before diving deeper into neural\nnetwork architectures, DataFrames, TensorFlow Hub, model conversion, transfer learning, and more. Once\nyou finish this book, you'll know how to build and deploy production-ready deep learning systems with\nTensorFlow.js.",
@@ -2831,7 +2831,7 @@
       "source_path": "books/20210322-street-coder.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210322-street-coder.yaml"
     },
-    "public_path": "/books/20210322-street-coder",
+    "public_path": "/books/20210322-street-coder.html",
     "published": "2021-03-22T00:00:00",
     "slug": "20210322-street-coder",
     "summary": "Software development isn't an \"ivory tower\" exercise. Street coders get the job done by\nprioritizing tasks, making quick decisions, and knowing which rules to break.\n\nStreet Coder: Rules to break and how to break them is a programmer's survival guide,\nfull of tips, tricks, and hacks that will make you a more efficient programmer. This book's\nrebel mindset challenges status quo thinking and exposes the important skills you need on the\njob. You'll learn the crucial importance of algorithms and data structures, turn programming\nchores into programming pleasures, and shatter dogmatic principles keeping you from your full potential.",
@@ -2866,7 +2866,7 @@
       "source_path": "books/20210315-database-internals.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210315-database-internals.yaml"
     },
-    "public_path": "/books/20210315-database-internals",
+    "public_path": "/books/20210315-database-internals.html",
     "published": "2021-03-15T00:00:00",
     "slug": "20210315-database-internals",
     "summary": "Have you ever wanted to learn more about Databases but did not know where to start?\nThis is a book just for you. \n\nWe can treat databases and other infrastructure components as black boxes, but it doesn’t\nhave to be that way. Sometimes we have to take a closer look at what’s going on because of\nperformance issues. Sometimes databases misbehave, and we need to find out what exactly is\ngoing on. Some of us want to work in infrastructure and develop databases. This book’s main\nintention is to introduce you to the cornerstone concepts and help you understand how\ndatabases work.\n\nThe book consists of two parts: Storage Engines and Distributed Systems since that’s where most\nof the differences between the vast majority of databases is coming from.",
@@ -2897,7 +2897,7 @@
       "source_path": "books/20210308-designing-data-intensive-applications.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210308-designing-data-intensive-applications.yaml"
     },
-    "public_path": "/books/20210308-designing-data-intensive-applications",
+    "public_path": "/books/20210308-designing-data-intensive-applications.html",
     "published": "2021-03-08T00:00:00",
     "slug": "20210308-designing-data-intensive-applications",
     "summary": "NoSQL... Big Data... Scalability... CAP Theorem... Eventual Consistency... Sharding...\n\nNice buzzwords, but how does the stuff actually work?\n\nAs software engineers, we need to build applications that are reliable, scalable and maintainable\nin the long run. We need to understand the range of available tools and their trade-offs. For that,\nwe have to dig deeper than buzzwords.\n\nThis book will help you navigate the diverse and fast-changing landscape of technologies for storing\nand processing data. We compare a broad variety of tools and approaches, so that you can see the\nstrengths and weaknesses of each, and decide what’s best for your application.",
@@ -2928,7 +2928,7 @@
       "source_path": "books/20210301-ml-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210301-ml-engineering.yaml"
     },
-    "public_path": "/books/20210301-ml-engineering",
+    "public_path": "/books/20210301-ml-engineering.html",
     "published": "2021-03-01T00:00:00",
     "slug": "20210301-ml-engineering",
     "summary": "Machine Learning Engineering in Action is a roadmap to delivering successful machine learning projects.\nIt teaches you to adopt an efficient, sustainable, and goal-driven approach that author\nBen Wilson has developed over a decade of data science experience. Every method in this book\nhas been used to solve a breakdown in a real-world project, and is illustrated with production-ready\nsource code and easily reproducible examples.\n\nYou’ll learn how to plan and scope your project, manage cross-team logistics that avoid fatal\ncommunication failures, and design your code’s architecture for improved resilience. You’ll\neven discover when not to use machine learning—and the alternative approaches that might be\ncheaper and more effective. When you’re done working through this toolbox guide, you’ll be\nable to reliably deliver cost-effective solutions for organizations big and small alike.",
@@ -2971,7 +2971,7 @@
       "source_path": "books/20210222-ml-algotrading-2ed.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210222-ml-algotrading-2ed.yaml"
     },
-    "public_path": "/books/20210222-ml-algotrading-2ed",
+    "public_path": "/books/20210222-ml-algotrading-2ed.html",
     "published": "2021-02-22T00:00:00",
     "slug": "20210222-ml-algotrading-2ed",
     "summary": "The explosive growth of digital data has boosted the demand for expertise in trading strategies\nthat use machine learning (ML). This thoroughly revised and expanded second edition enables you\nto build and evaluate sophisticated supervised, unsupervised, and reinforcement learning models.\n\nThis edition introduces end-to-end machine learning for the trading workflow, from the idea and\nfeature engineering to model optimization, strategy design, and backtesting. It illustrates this\nworkflow using examples that range from linear models and tree-based ensembles to deep-learning\ntechniques from the cutting edge of the research frontier.",
@@ -3002,7 +3002,7 @@
       "source_path": "books/20210215-math-for-programmers.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210215-math-for-programmers.yaml"
     },
-    "public_path": "/books/20210215-math-for-programmers",
+    "public_path": "/books/20210215-math-for-programmers.html",
     "published": "2021-02-15T00:00:00",
     "slug": "20210215-math-for-programmers",
     "summary": "To score a job in data science, machine learning, computer graphics, and cryptography, you need\nto bring strong math skills to the party. Math for Programmers teaches the math you need for these\nhot careers, concentrating on what you need to know as a developer. Filled with lots of helpful\ngraphics and more than 200 exercises and mini-projects, this book unlocks the door to\ninteresting–and lucrative!–careers in some of today’s hottest programming fields.",
@@ -3035,7 +3035,7 @@
       "source_path": "books/20210208-ml-design-patterns.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210208-ml-design-patterns.yaml"
     },
-    "public_path": "/books/20210208-ml-design-patterns",
+    "public_path": "/books/20210208-ml-design-patterns.html",
     "published": "2021-02-08T00:00:00",
     "slug": "20210208-ml-design-patterns",
     "summary": "The design patterns in this book capture best practices and solutions to recurring problems\nin machine learning. The authors, three Google engineers, catalog proven methods to help data\nscientists tackle common problems throughout the ML process. These design patterns codify the\nexperience of hundreds of experts into straightforward, approachable advice.\n\nIn this book, you will find detailed explanations of 30 patterns for data and problem\nrepresentation, operationalization, repeatability, reproducibility, flexibility, explainability,\nand fairness. Each pattern includes a description of the problem, a variety of potential solutions,\nand recommendations for choosing the best technique for your situation.",
@@ -3066,7 +3066,7 @@
       "source_path": "books/20210201-data-teams.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210201-data-teams.yaml"
     },
-    "public_path": "/books/20210201-data-teams",
+    "public_path": "/books/20210201-data-teams.html",
     "published": "2021-02-01T00:00:00",
     "slug": "20210201-data-teams",
     "summary": "Are you starting a data team and don’t know where to start? Are your data teams working but not\nproducing, and you don’t know why? I’ve written this book to share my extensive experience helping\ncompanies create value with data.\n\nData Teams goes in-depth on the unified model for creating successful data teams. Being successful\nincludes ensuring you have the three fundamental teams: data science, data engineering, and operations.\nWithout all three teams, the data teams won’t achieve their highest and best output. For some\norganizations, the team model is there but isn’t working. Data Teams helps you diagnose the problems\nso you get the right teams in the right places.",
@@ -3101,7 +3101,7 @@
       "source_path": "books/20210125-mastering-ml-algorithms-2ed.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210125-mastering-ml-algorithms-2ed.yaml"
     },
-    "public_path": "/books/20210125-mastering-ml-algorithms-2ed",
+    "public_path": "/books/20210125-mastering-ml-algorithms-2ed.html",
     "published": "2021-01-25T00:00:00",
     "slug": "20210125-mastering-ml-algorithms-2ed",
     "summary": "Mastering Machine Learning Algorithms, Second Edition helps you harness the real power of\nmachine learning algorithms in order to implement smarter ways of meeting today's overwhelming\ndata needs. This newly updated and revised guide will help you master algorithms used widely in\nsemi-supervised learning, reinforcement learning, supervised learning, and unsupervised learning domains.",
@@ -3132,7 +3132,7 @@
       "source_path": "books/20210118-deep-learning-structured-data.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210118-deep-learning-structured-data.yaml"
     },
-    "public_path": "/books/20210118-deep-learning-structured-data",
+    "public_path": "/books/20210118-deep-learning-structured-data.html",
     "published": "2021-01-18T00:00:00",
     "slug": "20210118-deep-learning-structured-data",
     "summary": "Deep learning offers the potential to identify complex patterns and relationships hidden in data of all sorts. Deep Learning with Structured Data shows you how to apply powerful deep learning analysis techniques to the kind of structured, tabular data you'll find in the relational databases that real-world businesses depend on. Filled with practical, relevant applications, this book teaches you how deep learning can augment your existing machine learning and business intelligence systems.",
@@ -3163,7 +3163,7 @@
       "source_path": "books/20210111-reinforcement-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20210111-reinforcement-learning.yaml"
     },
-    "public_path": "/books/20210111-reinforcement-learning",
+    "public_path": "/books/20210111-reinforcement-learning.html",
     "published": "2021-01-11T00:00:00",
     "slug": "20210111-reinforcement-learning",
     "summary": "Reinforcement learning (RL) will deliver one of the biggest breakthroughs in AI over the next decade,\nenabling algorithms to learn from their environment to achieve arbitrary goals. This exciting development\navoids constraints found in traditional machine learning (ML) algorithms. This practical book shows data\nscience and AI professionals how to learn by reinforcement and enable a machine to learn by itself.",
@@ -3198,7 +3198,7 @@
       "source_path": "books/20201214-ml-bookcamp.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/books/20201214-ml-bookcamp.yaml"
     },
-    "public_path": "/books/20201214-ml-bookcamp",
+    "public_path": "/books/20201214-ml-bookcamp.html",
     "published": "2020-12-14T00:00:00",
     "slug": "20201214-ml-bookcamp",
     "summary": "Machine Learning Bookcamp: learn machine learning by doing projects and get the skills needed to work as a data scientist or machine learning engineer.",

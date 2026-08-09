@@ -1,5 +1,7 @@
 {% extends "core/base.html" %}
-{% block title %}Podcast — DataTalks.Club{% endblock %}
+{% block title %}
+  Podcast — DataTalks.Club
+{% endblock %}
 {% block content %}
   <header class="max-w-3xl">
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Stories from practice</p>
@@ -8,12 +10,7 @@
       Conversations with people who build and operate data and AI systems.
     </p>
   </header>
-  <article
-    class="mt-10 border-y app-border py-6"
-    data-source-repository="{{ provenance.repository }}"
-    data-source-revision="{{ provenance.revision }}"
-    data-source-path="{{ provenance.source_path }}"
-  >
+  <article class="mt-10 border-y app-border py-6">
     <p class="text-sm app-muted">Season {{ podcast.season }}, episode {{ podcast.episode }}</p>
     <h2 class="mt-2 text-2xl font-semibold">
       <a class="app-link" href="{% url 'podcast-ai-production' %}">

@@ -22,15 +22,19 @@
       {% if record.finished %}
         Finished
       {% else %}
-        Current catalog
+        Active
       {% endif %}
     </span>
     <h1 class="mt-3 text-4xl font-semibold leading-tight">{{ record.title }}</h1>
-    <p class="mt-5 text-lg leading-8 app-text">
-      This tracked edition contains {{ record.homework_count }} homework assignments and
-      {{ record.project_count }} projects.
-    </p>
     <dl class="mt-6 grid gap-4 rounded-md border app-border p-5 sm:grid-cols-2">
+      <div>
+        <dt class="text-sm app-muted">Homework</dt>
+        <dd class="mt-1 font-medium">{{ record.homework_count }} assignments</dd>
+      </div>
+      <div>
+        <dt class="text-sm app-muted">Projects</dt>
+        <dd class="mt-1 font-medium">{{ record.project_count }}</dd>
+      </div>
       <div>
         <dt class="text-sm app-muted">First deadline</dt>
         <dd class="mt-1 font-medium">{{ record.first_deadline }}</dd>
@@ -40,6 +44,5 @@
         <dd class="mt-1 font-medium">{{ record.last_deadline }}</dd>
       </div>
     </dl>
-    {% include "public/_source.html" with provenance=record.provenance %}
   </article>
 {% endblock %}
