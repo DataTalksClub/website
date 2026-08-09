@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import ipaddress
 import json
 import re
 from dataclasses import asdict, dataclass
@@ -17,6 +19,14 @@ SOURCE_SHA_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 IMAGE_DIGEST_PATTERN = re.compile(r"^sha256:[0-9a-f]{64}$")
 TASK_DEFINITION_ARN_PATTERN = re.compile(
     r"^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:task-definition/[A-Za-z0-9_-]+:[1-9][0-9]*$"
+)
+TASK_ARN_PATTERN = re.compile(
+    r"^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:task/"
+    r"(?:[A-Za-z0-9_-]+/)?[0-9a-f]{32}$"
+)
+NETWORK_INTERFACE_ID_PATTERN = re.compile(r"^eni-[0-9a-f]{8,17}$")
+RFC1918_IPV4_NETWORKS = tuple(
+    ipaddress.IPv4Network(cidr) for cidr in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")
 )
 PLACEHOLDER_DIGEST = f"sha256:{'1' * 64}"
 RELEASE_MANAGER = "DataTalksClub/website"
@@ -78,6 +88,20 @@ def validate_image_digest(value: str) -> str:
         )
     if value == PLACEHOLDER_DIGEST:
         raise ReleaseContractError("the Terraform bootstrap placeholder is not a release")
+    return value
+
+
+def validate_rfc1918_ipv4(value: object) -> str:
+    """Return an IPv4 string only when it belongs to a literal RFC1918 block."""
+
+    if not isinstance(value, str):
+        raise ReleaseContractError("web runtime private address is malformed")
+    try:
+        address = ipaddress.IPv4Address(value)
+    except ValueError:
+        raise ReleaseContractError("web runtime private address is malformed") from None
+    if not any(address in network for network in RFC1918_IPV4_NETWORKS):
+        raise ReleaseContractError("web runtime private address is malformed")
     return value
 
 
@@ -204,6 +228,116 @@ class ServiceUpdateReceipt:
             raise ReleaseContractError("service update receipt terminal observation differs")
         if self.terminal_observed and self.binding_reason != "partial_acknowledgement_reconciled":
             raise ReleaseContractError("service update receipt terminal attribution differs")
+
+
+@dataclass(frozen=True)
+class WebRuntimeBinding:
+    """One immutable receipt/task/network/target identity held only in controller memory."""
+
+    configured_service_identity: str
+    primary_deployment_id: str
+    task_definition_arn: str
+    predecessors: tuple[ServicePredecessor, ...]
+    source_sha: str
+    image_digest: str
+    task_arn: str
+    network_attachment_id: str
+    network_interface_id: str
+    private_ipv4_address: str
+    container_port: int
+    target_port: int
+
+    def __post_init__(self) -> None:
+        if not self.configured_service_identity.strip():
+            raise ReleaseContractError("web runtime service identity is empty")
+        _validate_deployment_id(
+            self.primary_deployment_id,
+            context="web runtime PRIMARY deployment ID",
+        )
+        validate_task_definition_arn(self.task_definition_arn)
+        if type(self.predecessors) is not tuple or any(
+            type(item) is not ServicePredecessor for item in self.predecessors
+        ):
+            raise ReleaseContractError("web runtime predecessors are malformed")
+        if sum(item.role == "terminal" for item in self.predecessors) != 1:
+            raise ReleaseContractError("web runtime terminal predecessor differs")
+        predecessor_ids = [item.primary_deployment_id for item in self.predecessors]
+        if (
+            len(predecessor_ids) != len(set(predecessor_ids))
+            or self.primary_deployment_id in predecessor_ids
+        ):
+            raise ReleaseContractError("web runtime predecessor identity differs")
+        validate_source_sha(self.source_sha)
+        validate_image_digest(self.image_digest)
+        if not TASK_ARN_PATTERN.fullmatch(self.task_arn):
+            raise ReleaseContractError("web runtime task identity is malformed")
+        if not self.network_attachment_id.strip():
+            raise ReleaseContractError("web runtime attachment identity is empty")
+        if not NETWORK_INTERFACE_ID_PATTERN.fullmatch(self.network_interface_id):
+            raise ReleaseContractError("web runtime network-interface identity is malformed")
+        validate_rfc1918_ipv4(self.private_ipv4_address)
+        for name, value in (
+            ("container port", self.container_port),
+            ("target port", self.target_port),
+        ):
+            if type(value) is not int or not 1 <= value <= 65535:
+                raise ReleaseContractError(f"web runtime {name} is invalid")
+        if self.container_port != self.target_port:
+            raise ReleaseContractError("web runtime container and target ports differ")
+
+    @property
+    def fingerprint(self) -> str:
+        fields = (
+            self.configured_service_identity,
+            self.primary_deployment_id,
+            self.task_definition_arn,
+            tuple(
+                (
+                    item.target.task_definition_arn,
+                    item.target.desired_count,
+                    item.primary_deployment_id,
+                    item.role,
+                )
+                for item in self.predecessors
+            ),
+            self.source_sha,
+            self.image_digest,
+            self.task_arn,
+            self.network_attachment_id,
+            self.network_interface_id,
+            self.private_ipv4_address,
+            self.container_port,
+            self.target_port,
+        )
+        encoded = json.dumps(fields, separators=(",", ":")).encode()
+        return hashlib.sha256(encoded).hexdigest()
+
+    def safe_evidence(
+        self,
+        *,
+        observation_count: int,
+        deadline_budget_seconds: int,
+    ) -> dict[str, Any]:
+        if type(observation_count) is not int or observation_count < 1:
+            raise ReleaseContractError("web runtime observation count is invalid")
+        if type(deadline_budget_seconds) is not int or deadline_budget_seconds < 1:
+            raise ReleaseContractError("web runtime deadline budget is invalid")
+        return {
+            "receipt_id": self.primary_deployment_id,
+            "expected_task_definition_arn": self.task_definition_arn,
+            "expected_source_sha": self.source_sha,
+            "expected_image_digest": self.image_digest,
+            "observation_count": observation_count,
+            "deadline_budget_seconds": deadline_budget_seconds,
+            "coherence_checks": {
+                "service_primary": True,
+                "task_runtime": True,
+                "task_definition_identity": True,
+                "network_interface": True,
+                "target_health": True,
+            },
+            "binding_fingerprint": self.fingerprint,
+        }
 
 
 @dataclass(frozen=True)

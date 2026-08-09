@@ -180,11 +180,19 @@
     },
     {
       "path": "core/tests/test_deployment_release.py",
-      "sha256": "ce4944bb797d2480ec14422048fc9982bf2e590384e471b7f559f65127127dfd",
+      "sha256": "0bf8fa13f1d1fa5315ded31ab154791ba39979d1aa8dc852a237924c191ac614",
       "class": "legacy_contract_test",
       "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
       "follow_up": "#94",
-      "expected_count": 5
+      "expected_count": 7
+    },
+    {
+      "path": "core/tests/test_web_runtime_coherence.py",
+      "sha256": "6c12350dc41810cd0e56d76e94a5b927d0b3418407742704f51fcb9495fb80d6",
+      "class": "legacy_contract_test",
+      "reason": "Web runtime coherence tests exercise the exact development service, task, target, and repository identifiers.",
+      "follow_up": "#94",
+      "expected_count": 22
     },
     {
       "path": "core/tests/test_deployment_workflow.py",

@@ -21,6 +21,7 @@ from deploy.contracts import (
     ServiceSnapshot,
     ServiceTarget,
     ServiceUpdateReceipt,
+    WebRuntimeBinding,
     validate_image_digest,
     validate_prior_pair,
     validate_source_sha,
@@ -121,6 +122,7 @@ class ReleaseGateway(Protocol):
         *,
         deadline: float | None = None,
         timeout_seconds: int | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
     ) -> ServiceUpdateReceipt: ...
 
     def capture_attempted_predecessor(
@@ -133,6 +135,8 @@ class ReleaseGateway(Protocol):
 
     def service_stabilization_deadline(self, timeout_seconds: int | None = None) -> float: ...
 
+    def web_coherence_deadline(self) -> float: ...
+
     def recovery_phase_deadline(self) -> float: ...
 
     def recovery_workload_deadline(self, workload: str, phase_deadline: float) -> float: ...
@@ -141,6 +145,9 @@ class ReleaseGateway(Protocol):
 
     @property
     def web_stabilization_timeout_seconds(self) -> int: ...
+
+    @property
+    def web_coherence_timeout_seconds(self) -> int: ...
 
     @property
     def worker_stabilization_timeout_seconds(self) -> int: ...
@@ -161,7 +168,23 @@ class ReleaseGateway(Protocol):
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
         deadline: float | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
     ) -> None: ...
+
+    def establish_web_runtime_binding(
+        self,
+        receipt: ServiceUpdateReceipt,
+        identity: ReleaseIdentity,
+        *,
+        deadline: float,
+    ) -> WebRuntimeBinding: ...
+
+    def revalidate_web_runtime_binding(
+        self,
+        binding: WebRuntimeBinding,
+        *,
+        deadline: float,
+    ) -> bool: ...
 
     def observe_recovery_receipt(
         self,
@@ -195,6 +218,8 @@ class ReleaseGateway(Protocol):
         allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
         *,
         phase_deadline: float | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
+        web_runtime_deadline: float | None = None,
     ) -> None: ...
 
 
@@ -998,7 +1023,12 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             timeout_seconds=gateway.web_stabilization_timeout_seconds,
             deadline=web_deadline,
         )
-        gateway.verify_public_web(config.identity.source_sha)
+        coherence_deadline = gateway.web_coherence_deadline()
+        web_runtime_binding = gateway.establish_web_runtime_binding(
+            web_receipt,
+            config.identity,
+            deadline=coherence_deadline,
+        )
         _record_evidence(
             config.evidence_path,
             "web",
@@ -1010,10 +1040,13 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "primary_deployment_id": web_receipt.primary_deployment_id,
                 "receipt_binding": web_receipt.binding_reason,
                 "ecs_stable": True,
-                "alb_ready": True,
                 "readiness": True,
                 "liveness": True,
                 "stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds,
+                **web_runtime_binding.safe_evidence(
+                    observation_count=2,
+                    deadline_budget_seconds=gateway.web_coherence_timeout_seconds,
+                ),
             },
         )
 
@@ -1025,10 +1058,15 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             {"stabilization_timeout_seconds": gateway.worker_stabilization_timeout_seconds},
         )
         worker_target = ServiceTarget(registered["worker"], config.worker_desired_count)
-        attempted["worker"] = worker_target
         worker_deadline = gateway.service_stabilization_deadline(
             gateway.worker_stabilization_timeout_seconds
         )
+        if not gateway.revalidate_web_runtime_binding(
+            web_runtime_binding,
+            deadline=worker_deadline,
+        ):
+            raise ReleaseContractError("bound web runtime is temporarily absent")
+        attempted["worker"] = worker_target
         worker_receipt = gateway.update_service(
             "worker",
             worker_target,
@@ -1044,6 +1082,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             ),
             deadline=worker_deadline,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+            web_runtime_binding=web_runtime_binding,
         )
         _record_evidence(
             config.evidence_path,
@@ -1065,6 +1104,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
             deadline=worker_deadline,
+            web_runtime_binding=web_runtime_binding,
         )
         _record_evidence(
             config.evidence_path,
@@ -1092,6 +1132,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
         )
         active_stage = "terminal"
         _record_evidence(config.evidence_path, "terminal", "started")
+        terminal_deadline = gateway.service_stabilization_deadline()
         gateway.verify_terminal(
             {"web": registered["web"], "worker": registered["worker"]},
             {
@@ -1107,6 +1148,8 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "web": web_receipt.predecessors,
                 "worker": worker_receipt.predecessors,
             },
+            web_runtime_binding=web_runtime_binding,
+            web_runtime_deadline=terminal_deadline,
         )
         _record_evidence(
             config.evidence_path,
@@ -1124,6 +1167,7 @@ def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
                 "worker_singleton": True,
                 "source_sha": config.identity.source_sha,
                 "image_digest": config.identity.image_digest,
+                "binding_fingerprint": web_runtime_binding.fingerprint,
             },
         )
         record = ReleaseRecord(
@@ -1330,7 +1374,12 @@ def rollback(
             timeout_seconds=gateway.web_stabilization_timeout_seconds,
             deadline=web_deadline,
         )
-        gateway.verify_public_web(target.source_sha)
+        coherence_deadline = gateway.web_coherence_deadline()
+        web_runtime_binding = gateway.establish_web_runtime_binding(
+            web_receipt,
+            target_identity,
+            deadline=coherence_deadline,
+        )
         _record_evidence(
             evidence_path,
             "web",
@@ -1342,10 +1391,13 @@ def rollback(
                 "primary_deployment_id": web_receipt.primary_deployment_id,
                 "receipt_binding": web_receipt.binding_reason,
                 "ecs_stable": True,
-                "alb_ready": True,
                 "readiness": True,
                 "liveness": True,
                 "stabilization_timeout_seconds": gateway.web_stabilization_timeout_seconds,
+                **web_runtime_binding.safe_evidence(
+                    observation_count=2,
+                    deadline_budget_seconds=gateway.web_coherence_timeout_seconds,
+                ),
             },
         )
         active_stage = "worker"
@@ -1359,10 +1411,15 @@ def rollback(
             target.worker_task_definition_arn,
             target.worker_desired_count,
         )
-        attempted["worker"] = worker_target
         worker_deadline = gateway.service_stabilization_deadline(
             gateway.worker_stabilization_timeout_seconds
         )
+        if not gateway.revalidate_web_runtime_binding(
+            web_runtime_binding,
+            deadline=worker_deadline,
+        ):
+            raise ReleaseContractError("bound web runtime is temporarily absent")
+        attempted["worker"] = worker_target
         worker_receipt = gateway.update_service(
             "worker",
             worker_target,
@@ -1378,6 +1435,7 @@ def rollback(
             ),
             deadline=worker_deadline,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
+            web_runtime_binding=web_runtime_binding,
         )
         _record_evidence(
             evidence_path,
@@ -1399,6 +1457,7 @@ def rollback(
             worker_singleton=True,
             timeout_seconds=gateway.worker_stabilization_timeout_seconds,
             deadline=worker_deadline,
+            web_runtime_binding=web_runtime_binding,
         )
         _record_evidence(
             evidence_path,
@@ -1424,6 +1483,7 @@ def rollback(
         )
         active_stage = "terminal"
         _record_evidence(evidence_path, "terminal", "started")
+        terminal_deadline = gateway.service_stabilization_deadline()
         gateway.verify_terminal(
             {
                 "web": target.web_task_definition_arn,
@@ -1442,6 +1502,8 @@ def rollback(
                 "web": web_receipt.predecessors,
                 "worker": worker_receipt.predecessors,
             },
+            web_runtime_binding=web_runtime_binding,
+            web_runtime_deadline=terminal_deadline,
         )
         _record_evidence(
             evidence_path,
@@ -1459,6 +1521,7 @@ def rollback(
                 "worker_singleton": True,
                 "source_sha": target.source_sha,
                 "image_digest": target.image_digest,
+                "binding_fingerprint": web_runtime_binding.fingerprint,
             },
         )
         active_stage = "release_record"

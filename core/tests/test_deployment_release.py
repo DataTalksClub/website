@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import tempfile
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
@@ -22,6 +23,7 @@ from deploy.contracts import (
     ServiceSnapshot,
     ServiceTarget,
     ServiceUpdateReceipt,
+    WebRuntimeBinding,
 )
 from deploy.release import (
     RELEASE_A_SHA,
@@ -130,6 +132,7 @@ def active_pair(source_sha: str = SHA_A, digest: str = DIGEST_A) -> ActiveServic
 
 
 class FakeGateway:
+    web_coherence_timeout_seconds = 180
     web_stabilization_timeout_seconds = 240
     worker_stabilization_timeout_seconds = 420
     web_recovery_timeout_seconds = 240
@@ -212,8 +215,11 @@ class FakeGateway:
         *,
         deadline: float | None = None,
         timeout_seconds: int | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
     ) -> ServiceUpdateReceipt:
-        del deadline, timeout_seconds
+        del timeout_seconds
+        if web_runtime_binding is not None:
+            self.operations.append(f"guard:update:{web_runtime_binding.fingerprint}")
         self.operations.append(
             f"update:{workload}:{target.task_definition_arn}:{target.desired_count}"
         )
@@ -238,6 +244,11 @@ class FakeGateway:
         )
         if lose_response:
             self._fail(f"update:{workload}")
+        if web_runtime_binding is not None:
+            self.revalidate_web_runtime_binding(
+                web_runtime_binding,
+                deadline=float(420 if deadline is None else deadline),
+            )
         return ServiceUpdateReceipt(
             workload,
             f"service-{workload}",
@@ -271,6 +282,10 @@ class FakeGateway:
     def service_stabilization_deadline(self, timeout_seconds: int | None = None) -> float:
         return float(180 if timeout_seconds is None else timeout_seconds)
 
+    def web_coherence_deadline(self) -> float:
+        self.operations.append("coherence-deadline:180")
+        return 180.0
+
     def recovery_phase_deadline(self) -> float:
         self.operations.append("recovery-deadline:phase=720")
         return 720.0
@@ -291,8 +306,8 @@ class FakeGateway:
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
         deadline: float | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
     ) -> None:
-        del deadline
         workload = receipt.workload
         self.operations.append(
             f"wait:{workload}:singleton={worker_singleton}:timeout={timeout_seconds}:"
@@ -300,7 +315,50 @@ class FakeGateway:
             f"desired={receipt.target.desired_count}"
         )
         self.operations.append(f"wait-receipt:{workload}:{receipt.primary_deployment_id}")
+        if web_runtime_binding is not None:
+            self.operations.append(f"guard:wait:{web_runtime_binding.fingerprint}")
+            self.revalidate_web_runtime_binding(
+                web_runtime_binding,
+                deadline=float(420 if deadline is None else deadline),
+            )
         self._fail(f"wait:{workload}")
+
+    def establish_web_runtime_binding(
+        self,
+        receipt: ServiceUpdateReceipt,
+        identity: ReleaseIdentity,
+        *,
+        deadline: float,
+    ) -> WebRuntimeBinding:
+        self.operations.append(f"coherence:establish:{int(deadline)}")
+        self._fail("private-address")
+        self.operations.append(f"health:{identity.source_sha}")
+        self._fail("health")
+        self._fail("coherence")
+        return WebRuntimeBinding(
+            configured_service_identity=receipt.configured_service_identity,
+            primary_deployment_id=receipt.primary_deployment_id,
+            task_definition_arn=receipt.target.task_definition_arn,
+            predecessors=receipt.predecessors,
+            source_sha=identity.source_sha,
+            image_digest=identity.image_digest,
+            task_arn=("arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/" + "a" * 32),
+            network_attachment_id="attachment-web",
+            network_interface_id="eni-0123456789abcdef0",
+            private_ipv4_address="10.0.1.17",
+            container_port=8000,
+            target_port=8000,
+        )
+
+    def revalidate_web_runtime_binding(
+        self,
+        binding: WebRuntimeBinding,
+        *,
+        deadline: float,
+    ) -> bool:
+        self.operations.append(f"coherence:revalidate:{int(deadline)}:{binding.fingerprint}")
+        self._fail("web-binding")
+        return True
 
     def observe_recovery_receipt(
         self,
@@ -349,8 +407,18 @@ class FakeGateway:
         allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
         *,
         phase_deadline: float | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
+        web_runtime_deadline: float | None = None,
     ) -> None:
         del phase_deadline
+        if web_runtime_binding is not None:
+            self.operations.append(
+                f"guard:terminal:{int(web_runtime_deadline or 0)}:{web_runtime_binding.fingerprint}"
+            )
+            self.revalidate_web_runtime_binding(
+                web_runtime_binding,
+                deadline=float(180 if web_runtime_deadline is None else web_runtime_deadline),
+            )
         self.terminal_allowed_predecessors = allowed_predecessors
         self.operations.append("terminal")
         for workload, snapshot in self.snapshots.items():
@@ -419,6 +487,7 @@ class CooperativeRecoveryGateway(FakeGateway):
         *,
         deadline: float | None = None,
         timeout_seconds: int | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
     ) -> ServiceUpdateReceipt:
         self.operations.append(f"bind-at:{workload}:{self.current:g}")
         if self.fail_bind == workload:
@@ -429,6 +498,7 @@ class CooperativeRecoveryGateway(FakeGateway):
             predecessors,
             deadline=deadline,
             timeout_seconds=timeout_seconds,
+            web_runtime_binding=web_runtime_binding,
         )
 
     def observe_recovery_receipt(
@@ -473,6 +543,8 @@ class CooperativeRecoveryGateway(FakeGateway):
         allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
         *,
         phase_deadline: float | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
+        web_runtime_deadline: float | None = None,
     ) -> None:
         self.operations.append(f"terminal-at:{self.current:g}")
         if phase_deadline is not None:
@@ -483,6 +555,8 @@ class CooperativeRecoveryGateway(FakeGateway):
             expected_identity,
             expected_primary_deployment_ids,
             allowed_predecessors,
+            web_runtime_binding=web_runtime_binding,
+            web_runtime_deadline=web_runtime_deadline,
         )
 
     def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
@@ -866,6 +940,175 @@ class PromotionTests(SimpleTestCase):
                 for value in gateway.operations
             )
         )
+        establish = gateway.operations.index("coherence:establish:180")
+        pre_worker = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("coherence:revalidate:420:")
+        )
+        worker_update = gateway.operations.index(f"update:worker:{arn('worker', 2)}:1")
+        smoke = gateway.operations.index(f"smoke:{SHA_B}")
+        terminal_guard = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("guard:terminal:180:")
+        )
+        self.assertLess(establish, pre_worker)
+        self.assertLess(pre_worker, worker_update)
+        self.assertLess(worker_update, smoke)
+        self.assertLess(smoke, terminal_guard)
+
+    def test_promotion_carries_one_web_binding_through_worker_smoke_and_terminal(self) -> None:
+        gateway = FakeGateway(bootstrap=False)
+        with self._temporary_directory() as directory:
+            config = self._config(directory, prior=successful_record())
+            promote(gateway, config)
+            assert config.evidence_path is not None
+            evidence = json.loads(config.evidence_path.read_text())
+
+        establish = gateway.operations.index("coherence:establish:180")
+        pre_worker = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("coherence:revalidate:420:")
+        )
+        worker_update = gateway.operations.index(f"update:worker:{arn('worker', 2)}:1")
+        worker_guard = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("guard:update:")
+        )
+        worker_wait = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("wait:worker:singleton=True")
+        )
+        wait_guard = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("guard:wait:")
+        )
+        smoke = gateway.operations.index(f"smoke:{SHA_B}")
+        terminal_guard = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("guard:terminal:180:")
+        )
+        self.assertLess(establish, pre_worker)
+        self.assertLess(pre_worker, worker_update)
+        self.assertLess(worker_guard, worker_update)
+        self.assertLess(worker_update, worker_wait)
+        self.assertLess(worker_wait, wait_guard)
+        self.assertLess(wait_guard, smoke)
+        self.assertLess(smoke, terminal_guard)
+        fingerprints = {
+            value.rsplit(":", 1)[-1]
+            for value in gateway.operations
+            if value.startswith(("coherence:revalidate:", "guard:update:", "guard:wait:"))
+        }
+        fingerprints.add(
+            next(
+                value.rsplit(":", 1)[-1]
+                for value in gateway.operations
+                if value.startswith("guard:terminal:")
+            )
+        )
+        self.assertEqual(len(fingerprints), 1)
+
+        web_pass = next(
+            item
+            for item in evidence["stages"]
+            if item["stage"] == "web" and item["result"] == "passed"
+        )
+        proof = web_pass["proof"]
+        self.assertEqual(proof["observation_count"], 2)
+        self.assertEqual(proof["deadline_budget_seconds"], 180)
+        evidence_text = json.dumps(evidence, sort_keys=True)
+        for forbidden in (
+            "arn:aws:ecs:eu-west-1:817685572750:task/website-sandbox/",
+            "eni-0123456789abcdef0",
+            "10.0.1.17",
+            "attachment-web",
+        ):
+            self.assertNotIn(forbidden, evidence_text)
+
+    def test_preworker_binding_failure_restores_only_web_and_never_runs_smoke(self) -> None:
+        gateway = FakeGateway(bootstrap=False, fail_once="web-binding")
+        with self._temporary_directory() as directory:
+            config = self._config(directory, prior=successful_record())
+            with self.assertRaisesMessage(ReleaseContractError, "injected web-binding"):
+                promote(gateway, config)
+            assert config.evidence_path is not None
+            evidence = json.loads(config.evidence_path.read_text())
+
+        self.assertNotIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
+        self.assertNotIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
+        self.assertIn(f"update:web:{arn('web', 1)}:1", gateway.operations)
+        self.assertNotIn(f"smoke:{SHA_B}", gateway.operations)
+        self.assertFalse(any(item["stage"] == "smoke" for item in evidence["stages"]))
+        self.assertFalse(config.release_record_path.exists())
+
+    def test_non_rfc1918_preworker_failure_is_redacted_and_leaves_worker_untouched(
+        self,
+    ) -> None:
+        gateway = FakeGateway(bootstrap=False, fail_once="private-address")
+        with self._temporary_directory() as directory:
+            config = self._config(directory, prior=successful_record())
+            with self.assertRaisesMessage(ReleaseContractError, "injected private-address"):
+                promote(gateway, config)
+            assert config.evidence_path is not None
+            evidence = json.loads(config.evidence_path.read_text())
+
+        self.assertIn("coherence:establish:180", gateway.operations)
+        self.assertNotIn(f"health:{SHA_B}", gateway.operations)
+        self.assertNotIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
+        self.assertNotIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
+        self.assertIn(f"update:web:{arn('web', 1)}:1", gateway.operations)
+        self.assertNotIn(f"smoke:{SHA_B}", gateway.operations)
+        self.assertFalse(config.release_record_path.exists())
+        failure = next(
+            item
+            for item in evidence["stages"]
+            if item["stage"] == "web" and item["result"] == "failed"
+        )
+        self.assertEqual(
+            failure["proof"],
+            {
+                "error_class": "ReleaseContractError",
+                "reason_code": "contract_contradiction",
+            },
+        )
+        evidence_text = json.dumps(evidence, sort_keys=True)
+        self.assertNotIn("private-address", evidence_text)
+        self.assertFalse(any(item["stage"] == "smoke" for item in evidence["stages"]))
+
+    def test_worker_phase_binding_failure_compensates_pair_before_smoke(self) -> None:
+        gateway = FakeGateway(bootstrap=False)
+        original = gateway.revalidate_web_runtime_binding
+        calls = 0
+
+        def fail_after_worker_mutation(
+            binding: WebRuntimeBinding,
+            *,
+            deadline: float,
+        ) -> bool:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                return original(binding, deadline=deadline)
+            raise ReleaseContractError("injected worker-phase web replacement")
+
+        gateway.revalidate_web_runtime_binding = fail_after_worker_mutation  # type: ignore[method-assign]
+        with self._temporary_directory() as directory:
+            config = self._config(directory, prior=successful_record())
+            with self.assertRaisesMessage(ReleaseContractError, "worker-phase web replacement"):
+                promote(gateway, config)
+
+        self.assertIn(f"update:worker:{arn('worker', 2)}:1", gateway.operations)
+        self.assertIn(f"update:web:{arn('web', 1)}:1", gateway.operations)
+        self.assertIn(f"update:worker:{arn('worker', 1)}:1", gateway.operations)
+        self.assertNotIn(f"smoke:{SHA_B}", gateway.operations)
+        self.assertFalse(config.release_record_path.exists())
 
     def test_bootstrap_recovery_context_discards_valid_looking_placeholder_identity(self) -> None:
         gateway = FakeGateway(bootstrap=True)
@@ -1213,12 +1456,14 @@ class PromotionTests(SimpleTestCase):
             worker_singleton: bool = False,
             timeout_seconds: int | None = None,
             deadline: float | None = None,
+            web_runtime_binding: WebRuntimeBinding | None = None,
         ) -> None:
             original_wait(
                 receipt,
                 worker_singleton=worker_singleton,
                 timeout_seconds=timeout_seconds,
                 deadline=deadline,
+                web_runtime_binding=web_runtime_binding,
             )
             if receipt.workload == "web" and receipt.target.task_definition_arn.endswith(":1"):
                 worker = gateway.snapshots["worker"]
@@ -1343,6 +1588,7 @@ class PromotionTests(SimpleTestCase):
             worker_singleton: bool = False,
             timeout_seconds: int | None = None,
             deadline: float | None = None,
+            web_runtime_binding: WebRuntimeBinding | None = None,
         ) -> None:
             try:
                 original_wait(
@@ -1350,6 +1596,7 @@ class PromotionTests(SimpleTestCase):
                     worker_singleton=worker_singleton,
                     timeout_seconds=timeout_seconds,
                     deadline=deadline,
+                    web_runtime_binding=web_runtime_binding,
                 )
             except ReleaseContractError:
                 gateway.fail_once = "compensation"
@@ -1379,6 +1626,7 @@ class PromotionTests(SimpleTestCase):
                 *,
                 deadline: float | None = None,
                 timeout_seconds: int | None = None,
+                web_runtime_binding: WebRuntimeBinding | None = None,
             ) -> ServiceUpdateReceipt:
                 if target.task_definition_arn.endswith(":1"):
                     restoring["value"] = True
@@ -1390,6 +1638,7 @@ class PromotionTests(SimpleTestCase):
                     predecessors,
                     deadline=deadline,
                     timeout_seconds=timeout_seconds,
+                    web_runtime_binding=web_runtime_binding,
                 )
 
             def wait_with_secret_failure(
@@ -1398,6 +1647,7 @@ class PromotionTests(SimpleTestCase):
                 worker_singleton: bool = False,
                 timeout_seconds: int | None = None,
                 deadline: float | None = None,
+                web_runtime_binding: WebRuntimeBinding | None = None,
             ) -> None:
                 if restoring["value"] and selected_failure == "wait":
                     raise RuntimeError("sentinel-secret-must-not-leak")
@@ -1406,6 +1656,7 @@ class PromotionTests(SimpleTestCase):
                     worker_singleton=worker_singleton,
                     timeout_seconds=timeout_seconds,
                     deadline=deadline,
+                    web_runtime_binding=web_runtime_binding,
                 )
 
             def terminal_with_secret_failure(*args, **kwargs):  # type: ignore[no-untyped-def]
@@ -1485,6 +1736,7 @@ class PromotionTests(SimpleTestCase):
             worker_singleton: bool = False,
             timeout_seconds: int | None = None,
             deadline: float | None = None,
+            web_runtime_binding: WebRuntimeBinding | None = None,
         ) -> None:
             if receipt.target.task_definition_arn.endswith(":1"):
                 raise ReleaseContractError(
@@ -1496,6 +1748,7 @@ class PromotionTests(SimpleTestCase):
                 worker_singleton=worker_singleton,
                 timeout_seconds=timeout_seconds,
                 deadline=deadline,
+                web_runtime_binding=web_runtime_binding,
             )
 
         gateway.wait_service_stable = expire_restorative_wait  # type: ignore[method-assign]
@@ -1664,6 +1917,23 @@ class PromotionTests(SimpleTestCase):
                 for value in gateway.operations
             )
         )
+        establish = gateway.operations.index("coherence:establish:180")
+        pre_worker = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("coherence:revalidate:420:")
+        )
+        worker_update = gateway.operations.index(f"update:worker:{arn('worker', 2)}:1")
+        smoke = gateway.operations.index(f"smoke:{SHA_B}")
+        terminal_guard = next(
+            index
+            for index, value in enumerate(gateway.operations)
+            if value.startswith("guard:terminal:180:")
+        )
+        self.assertLess(establish, pre_worker)
+        self.assertLess(pre_worker, worker_update)
+        self.assertLess(worker_update, smoke)
+        self.assertLess(smoke, terminal_guard)
 
     def test_each_rollback_failure_compensates_to_current_exact_pair(self) -> None:
         current = successful_record()
@@ -1865,6 +2135,7 @@ class PromotionTests(SimpleTestCase):
             worker_singleton: bool = False,
             timeout_seconds: int | None = None,
             deadline: float | None = None,
+            web_runtime_binding: WebRuntimeBinding | None = None,
         ) -> None:
             if receipt.workload == "web" and receipt.target.task_definition_arn.endswith(":1"):
                 raise RuntimeError("sentinel-provider-payload-must-not-leak")
@@ -1873,6 +2144,7 @@ class PromotionTests(SimpleTestCase):
                 worker_singleton=worker_singleton,
                 timeout_seconds=timeout_seconds,
                 deadline=deadline,
+                web_runtime_binding=web_runtime_binding,
             )
 
         gateway.wait_service_stable = fail_restorative_web_wait  # type: ignore[method-assign]
@@ -1998,6 +2270,7 @@ class PromotionTests(SimpleTestCase):
                 worker_singleton: bool = False,
                 timeout_seconds: int | None = None,
                 deadline: float | None = None,
+                web_runtime_binding: WebRuntimeBinding | None = None,
                 selected_failure_kind: str = failure_kind,
                 selected_original_wait: Any = original_wait,
             ) -> None:
@@ -2018,6 +2291,7 @@ class PromotionTests(SimpleTestCase):
                     worker_singleton=worker_singleton,
                     timeout_seconds=timeout_seconds,
                     deadline=deadline,
+                    web_runtime_binding=web_runtime_binding,
                 )
 
             gateway.wait_service_stable = fail_restorative_wait  # type: ignore[method-assign]

@@ -28,6 +28,8 @@ from deploy.contracts import (
     ServiceSnapshot,
     ServiceTarget,
     ServiceUpdateReceipt,
+    WebRuntimeBinding,
+    validate_rfc1918_ipv4,
 )
 from deploy.legacy_development_compatibility import (
     ECR_REPOSITORY_NAME,
@@ -143,6 +145,10 @@ class AwsReleaseGateway:
     @property
     def web_stabilization_timeout_seconds(self) -> int:
         return self.config.web_stabilization_timeout_seconds
+
+    @property
+    def web_coherence_timeout_seconds(self) -> int:
+        return self.config.timeout_seconds
 
     @property
     def worker_stabilization_timeout_seconds(self) -> int:
@@ -555,6 +561,7 @@ class AwsReleaseGateway:
         *,
         deadline: float | None = None,
         timeout_seconds: int | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
     ) -> ServiceUpdateReceipt:
         if type(target) is not ServiceTarget:
             raise ReleaseContractError("service update target differs")
@@ -579,6 +586,9 @@ class AwsReleaseGateway:
             deadline,
             context=f"{workload} update receipt",
         )
+        if web_runtime_binding is not None:
+            if workload != "worker" or type(web_runtime_binding) is not WebRuntimeBinding:
+                raise ReleaseContractError("web runtime guard is restricted to worker rollout")
         arguments: dict[str, Any] = {
             "cluster": self.config.cluster_arn,
             "service": self.config.service_names[workload],
@@ -609,7 +619,10 @@ class AwsReleaseGateway:
                 predecessors,
                 reconciled=False,
             )
-            if receipt is not None:
+            web_coherent = web_runtime_binding is None or self.revalidate_web_runtime_binding(
+                web_runtime_binding, deadline=deadline
+            )
+            if receipt is not None and web_coherent:
                 self._require_not_after_deadline(
                     deadline,
                     context=f"{workload} update receipt",
@@ -636,7 +649,10 @@ class AwsReleaseGateway:
                 predecessors,
                 reconciled=True,
             )
-            if receipt is not None:
+            web_coherent = web_runtime_binding is None or self.revalidate_web_runtime_binding(
+                web_runtime_binding, deadline=deadline
+            )
+            if receipt is not None and web_coherent:
                 if receipt.terminal_observed:
                     self._require_not_after_deadline(
                         deadline,
@@ -1557,6 +1573,7 @@ class AwsReleaseGateway:
         worker_singleton: bool = False,
         timeout_seconds: int | None = None,
         deadline: float | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
     ) -> None:
         workload = receipt.workload
         if receipt.configured_service_identity != self.config.service_names[workload]:
@@ -1577,14 +1594,29 @@ class AwsReleaseGateway:
                 deadline,
                 maximum_seconds=maximum,
             )
+        if web_runtime_binding is not None and (
+            workload != "worker" or type(web_runtime_binding) is not WebRuntimeBinding
+        ):
+            raise ReleaseContractError("web runtime guard is restricted to worker rollout")
         if receipt.terminal_observed:
             self._require_not_after_deadline(
                 deadline,
                 context=f"{workload} service stabilization",
             )
-            return
+            if web_runtime_binding is None or self.revalidate_web_runtime_binding(
+                web_runtime_binding,
+                deadline=deadline,
+            ):
+                return
         while True:
-            if self._observe_service_stable_once(receipt, worker_singleton=worker_singleton):
+            stable = self._observe_service_stable_once(
+                receipt,
+                worker_singleton=worker_singleton,
+            )
+            web_coherent = web_runtime_binding is None or self.revalidate_web_runtime_binding(
+                web_runtime_binding, deadline=deadline
+            )
+            if stable and web_coherent:
                 self._require_not_after_deadline(
                     deadline,
                     context=f"{workload} service stabilization",
@@ -1760,6 +1792,572 @@ class AwsReleaseGateway:
         if remaining > 0:
             time.sleep(min(self.config.poll_seconds, remaining))
 
+    def web_coherence_deadline(self) -> float:
+        """Return the existing general-stage deadline used by coherent public proof."""
+        return time.monotonic() + self.config.timeout_seconds
+
+    def _validate_web_coherence_deadline(self, deadline: object) -> float:
+        return self._validate_stabilization_deadline(
+            deadline,
+            maximum_seconds=self.config.timeout_seconds,
+        )
+
+    def _prove_web_receipt_service(
+        self,
+        receipt: ServiceUpdateReceipt,
+        *,
+        deadline: float,
+    ) -> None:
+        if (
+            type(receipt) is not ServiceUpdateReceipt
+            or receipt.workload != "web"
+            or receipt.configured_service_identity != self.config.service_names["web"]
+            or receipt.target.desired_count != 1
+        ):
+            raise ReleaseContractError("web runtime receipt identity differs")
+        try:
+            service = self._service("web")
+        except ReleaseContractError:
+            raise
+        except Exception:
+            raise ReleaseContractError("web runtime service request failed") from None
+        self._require_not_after_deadline(deadline, context="web runtime coherence")
+        self._validate_service_identity("web", service)
+        service_target, running, pending = self._service_target_and_counts("web", service)
+        if service_target != receipt.target or running != 1 or pending != 0:
+            raise ReleaseContractError("web runtime service target or counts differ")
+        deployments = self._deployments("web", service)
+        phase = self._validate_deployment_phase(
+            "web",
+            deployments,
+            receipt.target,
+            receipt.primary_deployment_id,
+            receipt.predecessors,
+            allow_candidate_initialization=False,
+            terminal_predecessors_must_have_zero_work=True,
+        )
+        primary = [item for item in deployments if item.get("status") == "PRIMARY"]
+        if len(primary) != 1:
+            raise ReleaseContractError("web runtime has no unique PRIMARY deployment")
+        target, primary_running, primary_pending, failed = self._deployment_target_and_counts(
+            "web",
+            primary[0],
+        )
+        if (
+            self._deployment_id("web", primary[0]) != receipt.primary_deployment_id
+            or target != receipt.target
+            or primary_running != 1
+            or primary_pending != 0
+            or failed != 0
+            or primary[0].get("rolloutState") != "COMPLETED"
+            or not phase.candidate_is_exact_terminal_primary
+            or not phase.predecessors_have_zero_work
+        ):
+            raise ReleaseContractError("web runtime receipt PRIMARY is not terminal")
+
+    def _list_running_web_task_arns(self, *, deadline: float) -> list[str]:
+        task_arns: list[str] = []
+        seen_task_arns: set[str] = set()
+        seen_tokens: set[str] = set()
+        next_token: str | None = None
+        while True:
+            arguments: dict[str, Any] = {
+                "cluster": self.config.cluster_arn,
+                "serviceName": self.config.service_names["web"],
+                "desiredStatus": "RUNNING",
+            }
+            if next_token is not None:
+                arguments["nextToken"] = next_token
+            try:
+                response = self.ecs.list_tasks(**arguments)
+            except Exception:
+                raise ReleaseContractError("web runtime task inventory request failed") from None
+            self._require_not_after_deadline(deadline, context="web runtime coherence")
+            if not isinstance(response, dict):
+                raise ReleaseContractError("web runtime task inventory is malformed")
+            page = response.get("taskArns")
+            if not isinstance(page, list) or any(
+                not isinstance(task_arn, str) or not task_arn.strip() for task_arn in page
+            ):
+                raise ReleaseContractError("web runtime task inventory is malformed")
+            for task_arn in page:
+                if task_arn in seen_task_arns:
+                    raise ReleaseContractError("web runtime task inventory is duplicated")
+                seen_task_arns.add(task_arn)
+                task_arns.append(task_arn)
+            token = response.get("nextToken")
+            if token is None:
+                return task_arns
+            if not isinstance(token, str) or not token.strip() or token in seen_tokens:
+                raise ReleaseContractError("web runtime task pagination is malformed")
+            seen_tokens.add(token)
+            next_token = token
+
+    def _describe_running_web_tasks(
+        self,
+        task_arns: list[str],
+        *,
+        deadline: float,
+    ) -> list[dict[str, Any]]:
+        described: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for offset in range(0, len(task_arns), 100):
+            requested = task_arns[offset : offset + 100]
+            try:
+                response = self.ecs.describe_tasks(
+                    cluster=self.config.cluster_arn,
+                    tasks=requested,
+                )
+            except Exception:
+                raise ReleaseContractError("web runtime task description request failed") from None
+            self._require_not_after_deadline(deadline, context="web runtime coherence")
+            if not isinstance(response, dict):
+                raise ReleaseContractError("web runtime task descriptions are malformed")
+            failures = response.get("failures")
+            tasks = response.get("tasks")
+            if (
+                failures != []
+                or not isinstance(tasks, list)
+                or any(not isinstance(task, dict) for task in tasks)
+            ):
+                raise ReleaseContractError("web runtime task descriptions failed")
+            returned: set[str] = set()
+            for task in tasks:
+                task_arn = task.get("taskArn")
+                if not isinstance(task_arn, str) or task_arn in returned or task_arn in seen:
+                    raise ReleaseContractError("web runtime task descriptions are malformed")
+                returned.add(task_arn)
+                seen.add(task_arn)
+                described.append(task)
+            if returned != set(requested):
+                raise ReleaseContractError("web runtime task description membership differs")
+        return described
+
+    @staticmethod
+    def _require_private_ipv4(value: object) -> str:
+        return validate_rfc1918_ipv4(value)
+
+    @staticmethod
+    def _container_environment(container: dict[str, Any]) -> list[dict[str, str]]:
+        environment = container.get("environment")
+        if not isinstance(environment, list) or any(
+            not isinstance(item, dict)
+            or not isinstance(item.get("name"), str)
+            or not isinstance(item.get("value"), str)
+            for item in environment
+        ):
+            raise ReleaseContractError("web runtime task-definition environment is malformed")
+        return environment
+
+    def _describe_web_task_definition(
+        self,
+        task_definition_arn: str,
+        identity: ReleaseIdentity,
+        *,
+        deadline: float,
+    ) -> tuple[dict[str, Any], tuple[tuple[int, int], ...]]:
+        try:
+            response = self.ecs.describe_task_definition(taskDefinition=task_definition_arn)
+        except Exception:
+            raise ReleaseContractError("web runtime task-definition request failed") from None
+        self._require_not_after_deadline(deadline, context="web runtime coherence")
+        if not isinstance(response, dict) or not isinstance(response.get("taskDefinition"), dict):
+            raise ReleaseContractError("web runtime task definition is malformed")
+        task_definition = response["taskDefinition"]
+        if (
+            task_definition.get("taskDefinitionArn") != task_definition_arn
+            or task_definition.get("status") != "ACTIVE"
+            or task_definition.get("networkMode") != "awsvpc"
+        ):
+            raise ReleaseContractError("web runtime task definition identity differs")
+        containers = task_definition.get("containerDefinitions")
+        if not isinstance(containers, list) or any(
+            not isinstance(container, dict) for container in containers
+        ):
+            raise ReleaseContractError("web runtime task-definition containers are malformed")
+        matching = [
+            container
+            for container in containers
+            if container.get("name") == self.config.container_names["web"]
+        ]
+        if len(matching) != 1:
+            raise ReleaseContractError("web runtime task definition has no exact web container")
+        container = matching[0]
+        environment = self._container_environment(container)
+        versions = [item["value"] for item in environment if item["name"] == "APP_VERSION"]
+        if versions != [identity.source_sha]:
+            raise ReleaseContractError("web runtime task-definition APP_VERSION differs")
+        if container.get("image") != identity.image:
+            raise ReleaseContractError("web runtime task-definition repository or digest differs")
+        raw_mappings = container.get("portMappings")
+        if (
+            not isinstance(raw_mappings, list)
+            or not raw_mappings
+            or any(not isinstance(mapping, dict) for mapping in raw_mappings)
+        ):
+            raise ReleaseContractError("web runtime task-definition ports are malformed")
+        mappings: list[tuple[int, int]] = []
+        for mapping in raw_mappings:
+            container_port = mapping.get("containerPort")
+            host_port = mapping.get("hostPort", container_port)
+            if (
+                type(container_port) is not int
+                or type(host_port) is not int
+                or not 1 <= container_port <= 65535
+                or host_port != container_port
+                or mapping.get("protocol", "tcp") != "tcp"
+            ):
+                raise ReleaseContractError("web runtime task-definition ports are malformed")
+            pair = (container_port, host_port)
+            if pair in mappings:
+                raise ReleaseContractError("web runtime task-definition ports are duplicated")
+            mappings.append(pair)
+        return container, tuple(mappings)
+
+    @staticmethod
+    def _prove_no_app_version_override(task: dict[str, Any]) -> None:
+        overrides = task.get("overrides")
+        if not isinstance(overrides, dict):
+            raise ReleaseContractError("web runtime task overrides are malformed")
+        container_overrides = overrides.get("containerOverrides", [])
+        if not isinstance(container_overrides, list) or any(
+            not isinstance(container, dict) for container in container_overrides
+        ):
+            raise ReleaseContractError("web runtime task overrides are malformed")
+        for container in container_overrides:
+            environment = container.get("environment", [])
+            if not isinstance(environment, list) or any(
+                not isinstance(item, dict)
+                or not isinstance(item.get("name"), str)
+                or not isinstance(item.get("value"), str)
+                for item in environment
+            ):
+                raise ReleaseContractError("web runtime task overrides are malformed")
+            if any(item["name"] == "APP_VERSION" for item in environment):
+                raise ReleaseContractError("web runtime task overrides APP_VERSION")
+
+    def _web_task_runtime_identity(
+        self,
+        task: dict[str, Any],
+        receipt: ServiceUpdateReceipt,
+        identity: ReleaseIdentity,
+        definition_ports: tuple[tuple[int, int], ...],
+    ) -> tuple[str, str, str, str, int]:
+        task_arn = task.get("taskArn")
+        if not isinstance(task_arn, str) or not task_arn.strip():
+            raise ReleaseContractError("web runtime task identity is malformed")
+        if (
+            task.get("taskDefinitionArn") != receipt.target.task_definition_arn
+            or task.get("desiredStatus") != "RUNNING"
+            or task.get("lastStatus") != "RUNNING"
+            or task.get("healthStatus") != "HEALTHY"
+        ):
+            raise ReleaseContractError("web runtime active task identity or health differs")
+        self._prove_no_app_version_override(task)
+        containers = task.get("containers")
+        if not isinstance(containers, list) or any(
+            not isinstance(container, dict) for container in containers
+        ):
+            raise ReleaseContractError("web runtime task containers are malformed")
+        matching = [
+            container
+            for container in containers
+            if container.get("name") == self.config.container_names["web"]
+        ]
+        if len(matching) != 1:
+            raise ReleaseContractError("web runtime task has no exact web container")
+        container = matching[0]
+        if (
+            container.get("healthStatus") != "HEALTHY"
+            or container.get("image") != identity.image
+            or container.get("imageDigest") != identity.image_digest
+        ):
+            raise ReleaseContractError("web runtime container identity or health differs")
+
+        attachments = task.get("attachments")
+        if not isinstance(attachments, list) or any(
+            not isinstance(attachment, dict) for attachment in attachments
+        ):
+            raise ReleaseContractError("web runtime task attachments are malformed")
+        network_attachments = [
+            attachment
+            for attachment in attachments
+            if attachment.get("type") == "ElasticNetworkInterface"
+        ]
+        if len(network_attachments) != 1 or network_attachments[0].get("status") != "ATTACHED":
+            raise ReleaseContractError("web runtime attached network interface differs")
+        attachment = network_attachments[0]
+        attachment_id = attachment.get("id")
+        details = attachment.get("details")
+        if (
+            not isinstance(attachment_id, str)
+            or not attachment_id.strip()
+            or not isinstance(details, list)
+        ):
+            raise ReleaseContractError("web runtime attached network interface is malformed")
+        detail_values: dict[str, str] = {}
+        for detail in details:
+            if (
+                not isinstance(detail, dict)
+                or not isinstance(detail.get("name"), str)
+                or not isinstance(detail.get("value"), str)
+                or detail["name"] in detail_values
+            ):
+                raise ReleaseContractError("web runtime attached network interface is malformed")
+            detail_values[detail["name"]] = detail["value"]
+        network_interface_id = detail_values.get("networkInterfaceId")
+        attachment_address = self._require_private_ipv4(detail_values.get("privateIPv4Address"))
+        if not isinstance(network_interface_id, str):
+            raise ReleaseContractError("web runtime network-interface identity is malformed")
+
+        interfaces = container.get("networkInterfaces")
+        if (
+            not isinstance(interfaces, list)
+            or len(interfaces) != 1
+            or not isinstance(interfaces[0], dict)
+        ):
+            raise ReleaseContractError("web runtime container network interface is malformed")
+        container_address = self._require_private_ipv4(interfaces[0].get("privateIpv4Address"))
+        if (
+            interfaces[0].get("attachmentId") != attachment_id
+            or container_address != attachment_address
+        ):
+            raise ReleaseContractError("web runtime attachment and container interface differ")
+
+        raw_bindings = container.get("networkBindings", [])
+        if not isinstance(raw_bindings, list) or any(
+            not isinstance(binding, dict) for binding in raw_bindings
+        ):
+            raise ReleaseContractError("web runtime network bindings are malformed")
+        runtime_ports: list[tuple[int, int]] = []
+        for binding in raw_bindings:
+            container_port = binding.get("containerPort")
+            host_port = binding.get("hostPort")
+            if (
+                type(container_port) is not int
+                or type(host_port) is not int
+                or (container_port, host_port) not in definition_ports
+            ):
+                raise ReleaseContractError("web runtime network bindings are malformed")
+            runtime_ports.append((container_port, host_port))
+        selected_ports = runtime_ports or list(definition_ports)
+        if len(selected_ports) != 1:
+            raise ReleaseContractError("web runtime network port is ambiguous")
+        container_port, host_port = selected_ports[0]
+        if container_port != host_port:
+            raise ReleaseContractError("web runtime host and container ports differ")
+        return (
+            task_arn,
+            attachment_id,
+            network_interface_id,
+            attachment_address,
+            container_port,
+        )
+
+    def _prove_web_target(
+        self,
+        private_address: str,
+        target_port: int,
+        *,
+        frozen: bool,
+        deadline: float,
+    ) -> bool:
+        try:
+            response = self.elbv2.describe_target_health(
+                TargetGroupArn=self.config.web_target_group_arn
+            )
+        except Exception:
+            raise ReleaseContractError("web runtime target-health request failed") from None
+        self._require_not_after_deadline(deadline, context="web runtime coherence")
+        if not isinstance(response, dict):
+            raise ReleaseContractError("web runtime target health is malformed")
+        descriptions = response.get("TargetHealthDescriptions")
+        if not isinstance(descriptions, list) or any(
+            not isinstance(description, dict) for description in descriptions
+        ):
+            raise ReleaseContractError("web runtime target health is malformed")
+        seen: set[tuple[str, int]] = set()
+        candidate_state: str | None = None
+        for description in descriptions:
+            target = description.get("Target")
+            health = description.get("TargetHealth")
+            if not isinstance(target, dict) or not isinstance(health, dict):
+                raise ReleaseContractError("web runtime target health is malformed")
+            target_id = self._require_private_ipv4(target.get("Id"))
+            port = target.get("Port")
+            state = health.get("State")
+            if type(port) is not int or not 1 <= port <= 65535 or not isinstance(state, str):
+                raise ReleaseContractError("web runtime target health is malformed")
+            target_tuple = (target_id, port)
+            if target_tuple in seen:
+                raise ReleaseContractError("web runtime target tuple is duplicated")
+            seen.add(target_tuple)
+            if target_tuple == (private_address, target_port):
+                candidate_state = state
+            elif state != "draining":
+                raise ReleaseContractError("web runtime has an alien non-draining target")
+        if candidate_state == "healthy":
+            return True
+        if frozen:
+            raise ReleaseContractError("bound web runtime target is no longer healthy")
+        return False
+
+    def _observe_web_runtime_once(
+        self,
+        receipt: ServiceUpdateReceipt,
+        identity: ReleaseIdentity,
+        *,
+        deadline: float,
+        frozen_binding: WebRuntimeBinding | None,
+    ) -> WebRuntimeBinding | None:
+        self._require_not_after_deadline(deadline, context="web runtime coherence")
+        self._prove_web_receipt_service(receipt, deadline=deadline)
+        task_arns = self._list_running_web_task_arns(deadline=deadline)
+        if not task_arns:
+            return None
+        tasks = self._describe_running_web_tasks(task_arns, deadline=deadline)
+        active: list[dict[str, Any]] = []
+        for task in tasks:
+            last_status = task.get("lastStatus")
+            desired_status = task.get("desiredStatus")
+            if last_status == "STOPPED" and desired_status in {"STOPPED", "RUNNING"}:
+                continue
+            if last_status != "RUNNING" or desired_status != "RUNNING":
+                raise ReleaseContractError("web runtime task inventory contains mixed active state")
+            active.append(task)
+        if not active:
+            return None
+        if len(active) != 1:
+            raise ReleaseContractError("web runtime active task count differs")
+        task = active[0]
+        if frozen_binding is not None and task.get("taskArn") != frozen_binding.task_arn:
+            raise ReleaseContractError("bound web runtime task was replaced")
+        _definition_container, definition_ports = self._describe_web_task_definition(
+            receipt.target.task_definition_arn,
+            identity,
+            deadline=deadline,
+        )
+        task_arn, attachment_id, network_interface_id, private_address, port = (
+            self._web_task_runtime_identity(
+                task,
+                receipt,
+                identity,
+                definition_ports,
+            )
+        )
+        if not self._prove_web_target(
+            private_address,
+            port,
+            frozen=frozen_binding is not None,
+            deadline=deadline,
+        ):
+            return None
+        observed = WebRuntimeBinding(
+            configured_service_identity=receipt.configured_service_identity,
+            primary_deployment_id=receipt.primary_deployment_id,
+            task_definition_arn=receipt.target.task_definition_arn,
+            predecessors=receipt.predecessors,
+            source_sha=identity.source_sha,
+            image_digest=identity.image_digest,
+            task_arn=task_arn,
+            network_attachment_id=attachment_id,
+            network_interface_id=network_interface_id,
+            private_ipv4_address=private_address,
+            container_port=port,
+            target_port=port,
+        )
+        if frozen_binding is not None and observed != frozen_binding:
+            raise ReleaseContractError("bound web runtime identity changed")
+        return observed
+
+    def _sleep_web_coherence_poll(self, deadline: float) -> None:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise ReleaseContractError(
+                "web runtime coherence deadline expired",
+                reason_code="receipt_deadline_expired",
+            )
+        time.sleep(min(self.config.poll_seconds, remaining))
+
+    def establish_web_runtime_binding(
+        self,
+        receipt: ServiceUpdateReceipt,
+        identity: ReleaseIdentity,
+        *,
+        deadline: float,
+    ) -> WebRuntimeBinding:
+        deadline = self._validate_web_coherence_deadline(deadline)
+        if type(identity) is not ReleaseIdentity or identity.repository_uri != ECR_REPOSITORY_URI:
+            raise ReleaseContractError("web runtime expected repository differs")
+        binding: WebRuntimeBinding | None = None
+        while binding is None:
+            self._require_not_after_deadline(deadline, context="web runtime coherence")
+            binding = self._observe_web_runtime_once(
+                receipt,
+                identity,
+                deadline=deadline,
+                frozen_binding=None,
+            )
+            if binding is None:
+                self._sleep_web_coherence_poll(deadline)
+        self._require_deadline_remaining(deadline, context="web runtime coherence")
+
+        while True:
+            self._require_not_after_deadline(deadline, context="web runtime coherence")
+            try:
+                verify_health(self.config.base_url, identity.source_sha)
+            except Exception:
+                self._sleep_web_coherence_poll(deadline)
+                continue
+            self._require_not_after_deadline(deadline, context="web runtime coherence")
+            break
+        self._require_deadline_remaining(deadline, context="web runtime coherence")
+
+        while True:
+            observed = self._observe_web_runtime_once(
+                receipt,
+                identity,
+                deadline=deadline,
+                frozen_binding=binding,
+            )
+            if observed is not None:
+                return binding
+            self._sleep_web_coherence_poll(deadline)
+
+    def revalidate_web_runtime_binding(
+        self,
+        binding: WebRuntimeBinding,
+        *,
+        deadline: float,
+    ) -> bool:
+        if type(binding) is not WebRuntimeBinding:
+            raise ReleaseContractError("web runtime binding is malformed")
+        deadline = self._validate_stabilization_deadline(
+            deadline,
+            maximum_seconds=self.config.worker_stabilization_timeout_seconds,
+        )
+        receipt = ServiceUpdateReceipt(
+            workload="web",
+            configured_service_identity=binding.configured_service_identity,
+            target=ServiceTarget(binding.task_definition_arn, 1),
+            primary_deployment_id=binding.primary_deployment_id,
+            predecessors=binding.predecessors,
+        )
+        identity = ReleaseIdentity(
+            source_sha=binding.source_sha,
+            image_digest=binding.image_digest,
+            repository_uri=ECR_REPOSITORY_URI,
+        )
+        return (
+            self._observe_web_runtime_once(
+                receipt,
+                identity,
+                deadline=deadline,
+                frozen_binding=binding,
+            )
+            is not None
+        )
+
     def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
         deadline = time.monotonic() + self.config.timeout_seconds
         if phase_deadline is not None:
@@ -1879,7 +2477,11 @@ class AwsReleaseGateway:
         allowed_predecessors: dict[str, tuple[ServicePredecessor, ...]] | None = None,
         *,
         phase_deadline: float | None = None,
+        web_runtime_binding: WebRuntimeBinding | None = None,
+        web_runtime_deadline: float | None = None,
     ) -> None:
+        if (web_runtime_binding is None) != (web_runtime_deadline is None):
+            raise ReleaseContractError("terminal web runtime proof is incomplete")
         if phase_deadline is not None:
             phase_deadline = self._validate_stabilization_deadline(
                 phase_deadline,
@@ -2020,6 +2622,13 @@ class AwsReleaseGateway:
                 ):
                     raise ReleaseContractError(f"terminal {workload} repository/digest differs")
         require_phase()
+        if web_runtime_binding is not None:
+            assert web_runtime_deadline is not None
+            if not self.revalidate_web_runtime_binding(
+                web_runtime_binding,
+                deadline=web_runtime_deadline,
+            ):
+                raise ReleaseContractError("terminal bound web runtime is temporarily absent")
 
 
 def die(message: str) -> None:
