@@ -1,5 +1,7 @@
 {% extends "core/base.html" %}
-{% block title %}Documentation — DataTalks.Club{% endblock %}
+{% block title %}
+  Documentation — DataTalks.Club
+{% endblock %}
 {% block content %}
   <header>
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course guides</p>
@@ -8,12 +10,7 @@
       Find setup guides and practical instructions for DataTalks.Club courses.
     </p>
   </header>
-  <article
-    class="mt-10 border-y app-border py-6"
-    data-source-repository="{{ provenance.repository }}"
-    data-source-revision="{{ provenance.revision }}"
-    data-source-path="{{ provenance.source_path }}"
-  >
+  <article class="mt-10 border-y app-border py-6">
     <p class="text-sm app-muted">AI Dev Tools Zoomcamp</p>
     <h2 class="mt-2 text-2xl font-semibold">
       <a class="app-link" href="{% url 'docs-ai-dev-tools-getting-started' %}">

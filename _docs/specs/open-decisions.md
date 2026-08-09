@@ -27,9 +27,10 @@ Owner input needed: authoritative family names/slugs for unusual or one-off lega
 ## 5. Course URL consolidation
 
 Recommendation: new canonical pages live under `datatalks.club/courses/<course>/cohorts/<cohort>/`.
-Static SEO articles use clean `/blog/<slug>` canonicals with explicit redirects from their
-established `.html` paths. Route the old course hostname to compatibility views until all consumers
-migrate, then replace it with a Terraform-managed redirect Lambda using an explicit path map.
+Static SEO articles preserve their established `/blog/<slug>.html` canonicals. Their clean
+`/blog/<slug>` and trailing-slash aliases redirect directly to the `.html` final while preserving
+the raw query. Route the old course hostname to compatibility views until all consumers migrate,
+then replace it with a Terraform-managed redirect Lambda using an explicit path map.
 
 Owner input needed: inventory authenticated API clients before redirecting them; cross-host redirects may drop authorization. Keep direct compatibility responses until those clients are migrated.
 

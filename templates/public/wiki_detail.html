@@ -10,7 +10,8 @@
 {% endblock %}
 {% block content %}
   <article class="mx-auto max-w-3xl">
-    <h1 class="text-4xl font-semibold leading-tight">{{ record.title }}</h1>
+    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Wiki</p>
+    <h1 class="mt-2 text-4xl font-semibold leading-tight">{{ record.title }}</h1>
     <p class="mt-4 text-lg leading-8 app-text">{{ record.summary }}</p>
     {% if record.relations %}
       <section class="mt-6" aria-label="Related concepts and sources">
@@ -27,7 +28,6 @@
             {% else %}
               <span
                 class="app-badge app-badge-neutral"
-                title="Not included in this public projection"
                 data-relation-type="{{ relation.type }}"
               >
                 <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
@@ -43,6 +43,5 @@
     <div class="mt-8">
       {% include "public/_body.html" with blocks=record.blocks %}
     </div>
-    {% include "public/_source.html" with provenance=record.provenance %}
   </article>
 {% endblock %}

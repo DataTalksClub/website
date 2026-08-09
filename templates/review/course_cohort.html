@@ -1,17 +1,11 @@
 {% extends "core/base.html" %}
-{% block title %}{{ cohort.title }} — DataTalks.Club{% endblock %}
+{% block title %}
+  {{ cohort.title }} — DataTalks.Club
+{% endblock %}
 {% block content %}
   {% url 'course-family-ai-dev-tools' as hub_url %}
   {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label=course.title current_label=cohort.title %}
-  <article
-    class="max-w-4xl"
-    data-source-repository="{{ provenance.repository }}"
-    data-source-revision="{{ provenance.revision }}"
-    data-source-path="{{ provenance.source_path }}"
-    data-platform-source-repository="{{ platform_provenance.repository }}"
-    data-platform-source-revision="{{ platform_provenance.revision }}"
-    data-platform-source-path="{{ platform_provenance.source_path }}"
-  >
+  <article class="max-w-4xl">
     <span class="app-badge app-badge-info app-badge-upper">2026 cohort</span>
     <h1 class="mt-3 text-3xl font-semibold sm:text-4xl">{{ cohort.title }}</h1>
     <p class="mt-4 text-lg app-text">
@@ -23,7 +17,7 @@
         class="primer-button primer-button-primary"
         href="{% url 'course-registration-preview-ai-dev-tools-2026' %}"
       >
-        Registration preview
+        Registration
       </a>
       <a
         class="primer-button primer-button-secondary"

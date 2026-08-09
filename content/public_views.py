@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import json
-from itertools import groupby
 from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
-from django.core.paginator import Paginator
 from django.http import (
     FileResponse,
     Http404,
@@ -124,7 +122,11 @@ def events(request: HttpRequest) -> HttpResponse:
         "public/events.html",
         path="/events",
         title="Events — DataTalks.Club",
-        description="All public DataTalks.Club events from the checked source snapshot.",
+        description=(
+            "Join our data science events including webinars, live podcasts, workshops, and "
+            "conferences. Connect with experts and learn about the latest trends in data, ML, "
+            "and AI."
+        ),
         context={"upcoming_events": groups.upcoming, "recent_events": groups.recent, "count": 421},
     )
 
@@ -179,9 +181,32 @@ def event_detail(request: HttpRequest, slug: str) -> HttpResponse:
 def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
     projection = public_projection()
     configuration = {
-        "articles": ("Blog", "/blog", "Community articles and practical guides."),
-        "podcasts": ("Podcast", "/podcast", "Conversations with data and AI practitioners."),
-        "books": ("Books", "/books", "Book discussions with authors and community readers."),
+        "articles": (
+            "Articles",
+            "/blog",
+            (
+                "Explore the latest articles on data science, machine learning, and AI from "
+                "the DataTalks.Club community. Insights, tutorials, and best practices from "
+                "industry experts."
+            ),
+        ),
+        "podcasts": (
+            "DataTalks.Club Podcast",
+            "/podcast",
+            (
+                "DataTalks.Club weekly podcast episodes with data science experts, ML "
+                "engineers, and AI researchers. Listen on Apple Podcasts, Spotify, YouTube."
+            ),
+        ),
+        "books": (
+            "Book of the Week",
+            "/books",
+            (
+                "Discover the latest books in data science, machine learning, and AI. Join our "
+                "weekly book discussions with authors at DataTalks.Club and win free copies of "
+                "featured books."
+            ),
+        ),
     }
     title, path, description = configuration[collection]
     return _render(
@@ -313,37 +338,6 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @require_safe
-def people_hub(request: HttpRequest) -> HttpResponse:
-    records = sorted(
-        public_projection()["people"],
-        key=lambda record: (record["title"].casefold(), record["slug"]),
-    )
-    page = Paginator(records, 48).get_page(request.GET.get("page"))
-    grouped_records = tuple(
-        (
-            initial,
-            tuple(group),
-        )
-        for initial, group in groupby(
-            page.object_list,
-            key=lambda record: record["title"][0].upper(),
-        )
-    )
-    return _render(
-        request,
-        "public/people_hub.html",
-        path="/people",
-        title="People — DataTalks.Club",
-        description="Public profiles of DataTalks.Club speakers, guests, and authors.",
-        context={
-            "count": len(records),
-            "grouped_records": grouped_records,
-            "page": page,
-        },
-    )
-
-
-@require_safe
 def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
     person = public_projection()["people_by_slug"].get(slug)
     if person is None:
@@ -353,7 +347,7 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
         "public/person_detail.html",
         path=person["public_path"],
         title=f"{person['title']} — DataTalks.Club",
-        description=person["summary"] or f"Public DataTalks.Club profile for {person['title']}.",
+        description=person["summary"] or f"{person['title']} — DataTalks.Club",
         context={
             "record": person,
             "og_type": "profile",
@@ -366,7 +360,7 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     "sameAs": [link["url"] for link in person["links"]],
                     **({"image": _canonical(person["image_path"])} if person["image_path"] else {}),
                 },
-                (("Home", "/"), ("People", "/people"), (person["title"], person["public_path"])),
+                (("Home", "/"), (person["title"], person["public_path"])),
             ),
         },
     )
@@ -389,8 +383,14 @@ def course_hub(request: HttpRequest) -> HttpResponse:
         "public/course_hub.html",
         path="/courses",
         title="Courses — DataTalks.Club",
-        description="Twelve tracked DataTalks.Club course catalogs.",
-        context={"records": courses},
+        description=(
+            "Community-created courses with practical homework, projects, public "
+            "leaderboards, and peer review."
+        ),
+        context={
+            "active_records": tuple(record for record in courses if not record["finished"]),
+            "archive_records": tuple(record for record in courses if record["finished"]),
+        },
     )
 
 
@@ -408,7 +408,7 @@ def course_detail(request: HttpRequest, slug: str) -> HttpResponse:
         "public/course_detail.html",
         path=course["public_path"],
         title=f"{course['title']} — DataTalks.Club",
-        description="A checked course-catalog snapshot with its assignment schedule.",
+        description="Practical lessons, homework, projects, and peer review.",
         context={
             "record": course,
             "structured_data": _json_ld(
@@ -440,8 +440,8 @@ def wiki_hub(request: HttpRequest) -> HttpResponse:
         request,
         "public/wiki_hub.html",
         path="/wiki",
-        title="Wiki — DataTalks.Club",
-        description="Connected notes from DataTalks.Club podcast conversations.",
+        title="Podcast Wiki — DataTalks.Club",
+        description="Find wiki pages, guides, summaries, people, and books.",
         context={"records": public_projection()["wiki"]},
     )
 
@@ -506,7 +506,7 @@ def wiki_search(request: HttpRequest) -> HttpResponse:
         "public/wiki_search.html",
         path="/wiki",
         title="Search — DataTalks.Club Wiki",
-        description="Search the checked DataTalks.Club Wiki snapshot.",
+        description="Find wiki pages, guides, summaries, people, and books.",
         context={"query": query, "results": _wiki_search_results(query)},
     )
 
@@ -518,8 +518,11 @@ def wiki_graph(request: HttpRequest) -> HttpResponse:
         request,
         "public/wiki_graph.html",
         path="/wiki/graph",
-        title="Knowledge graph — DataTalks.Club Wiki",
-        description="Browse the server-rendered Wiki knowledge graph.",
+        title="Podcast Graph — DataTalks.Club Wiki",
+        description=(
+            "Explore wiki topics, typed content pages, people, podcasts, and books across the "
+            "DataTalks.Club podcast archive."
+        ),
         context={"nodes": nodes},
     )
 
@@ -550,7 +553,9 @@ def wiki_special(request: HttpRequest, category: str = "all") -> HttpResponse:
         "public/wiki_special.html",
         path="/wiki/special-pages" if category == "all" else f"/wiki/special-pages/{category}",
         title="Special pages — DataTalks.Club Wiki",
-        description="Browse Wiki pages by checked catalog tag.",
+        description=(
+            "Browse the guides, comparisons, roadmaps, transitions, and how-tos in the wiki."
+        ),
         context={
             "records": pages,
             "category": category,
@@ -639,9 +644,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             (record["public_path"], record["published"][:10]) for record in projection["books"]
         )
     if section == "people":
-        return (("/people", ""),) + tuple(
-            (record["public_path"], "") for record in projection["people"]
-        )
+        return tuple((record["public_path"], "") for record in projection["people"])
     if section == "events":
         return (("/events", ""),) + tuple(
             (record["public_path"], record["starts_at"][:10]) for record in projection["events"]

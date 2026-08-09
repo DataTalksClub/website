@@ -44,8 +44,10 @@ Deliverables:
 - baseline manifest crawler and comparison reports;
 - common content-source/release/document/relation/asset models;
 - GitHub webhook verification, sync queue, reconciliation, candidate validation, preview, activation, and rollback;
-- main-site adapter for people, articles, podcasts, books, tools, conferences, assets, and hub queries;
-- exact main-site routes, metadata, structured data, sitemap, and internal link validation;
+- main-site adapter for Person details and relationships, articles, podcasts, books, tools,
+  conferences, assets, and the approved non-People hub queries;
+- exact main-site routes, including established `.html` editorial detail canonicals and direct
+  clean/slash aliases, metadata, structured data, sitemap, and internal link validation;
 - Studio/API content source, run, preview, activation, and diagnostics capabilities.
 - durable content-release invalidation intents using the correct first-release `/*` fallback and
   bounded class TTL behavior when provider submission fails.

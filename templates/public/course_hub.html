@@ -4,47 +4,34 @@
 {% endblock %}
 {% block content %}
   <header class="max-w-3xl py-6">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">12 tracked catalogs</p>
-    <h1 class="mt-2 text-4xl font-semibold">Courses</h1>
-    <p class="mt-3 text-lg leading-8 app-text">Free, practical learning with homework and projects.</p>
+    <h1 class="text-4xl font-semibold">Learn data skills. For free. Together.</h1>
+    <p class="mt-4 text-lg leading-8 app-text">
+      Community-created courses with practical homework, projects, public leaderboards, and peer
+      review.
+    </p>
   </header>
-  <div class="mt-6 divide-y app-divide border-y app-border" data-course-catalog>
-    {% for record in records %}
-      <article
-        class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"
-        data-course-row
-      >
-        <div class="min-w-0">
-          <span
-            class="app-badge
-              {% if record.finished %}
-                app-badge-neutral
-              {% else %}
-                app-badge-info
-              {% endif %}
-            "
-          >
-            {% if record.finished %}
-              Finished
-            {% else %}
-              Current catalog
-            {% endif %}
-          </span>
-          <h2 class="mt-3 text-xl font-semibold">
-            <a class="app-link" href="{{ record.public_path }}">{{ record.title }}</a>
-          </h2>
-          <p class="mt-2 app-text">
-            {{ record.homework_count }} homework assignments · {{ record.project_count }} projects
-          </p>
-        </div>
-        <a
-          class="shrink-0 self-start app-link sm:self-auto"
-          href="{{ record.public_path }}"
-          aria-label="View {{ record.title }}"
-        >
-          View course →
-        </a>
-      </article>
-    {% endfor %}
-  </div>
+  <section class="mt-8" aria-labelledby="active-courses-heading">
+    <h2 id="active-courses-heading" class="text-2xl font-semibold">Active courses</h2>
+    <p class="mt-1 text-sm app-muted">
+      Courses listed here are open for participation and assignment submissions.
+    </p>
+    <div class="mt-5 divide-y app-divide border-y app-border" data-course-catalog>
+      {% for record in active_records %}
+        {% include "public/_course_row.html" with badge_label="Active" badge_class="app-badge-success" %}
+      {% empty %}
+        <p class="py-5 app-text">No active courses right now.</p>
+      {% endfor %}
+    </div>
+  </section>
+  <section class="mt-10" aria-labelledby="course-archive-heading">
+    <h2 id="course-archive-heading" class="text-2xl font-semibold">Course archive</h2>
+    <p class="mt-1 text-sm app-muted">
+      Past cohorts remain open for self check; late submissions are not possible.
+    </p>
+    <div class="mt-5 divide-y app-divide border-y app-border">
+      {% for record in archive_records %}
+        {% include "public/_course_row.html" with badge_label="Finished" badge_class="app-badge-neutral" %}
+      {% endfor %}
+    </div>
+  </section>
 {% endblock %}

@@ -61,6 +61,65 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertNotIn("secret", str(blocks))
         self.assertIn("Visible text", str(blocks))
 
+    def test_podcast_event_lineage_uses_only_exact_recording_identity(self) -> None:
+        podcasts = [
+            {
+                "slug": "canonical-youtube",
+                "links": {"youtube": "https://www.youtube.com/watch?v=ExactVideo1"},
+            },
+            {
+                "slug": "canonical-audio",
+                "links": {"anchor": "https://podcasters.example/episodes/exact-recording"},
+            },
+        ]
+        events = [
+            {
+                "slug": "youtube-lineage",
+                "title": "A deliberately different title",
+                "type": "podcast",
+                "links": [{"label": "Watch recording", "url": "https://youtu.be/ExactVideo1"}],
+            },
+            {
+                "slug": "audio-lineage",
+                "title": "Another title",
+                "type": "podcast",
+                "links": [
+                    {
+                        "label": "Listen to recording",
+                        "url": "https://podcasters.example/episodes/exact-recording",
+                    }
+                ],
+            },
+            {
+                "slug": "same-title-is-not-identity",
+                "title": "A deliberately different title",
+                "type": "podcast",
+                "links": [{"label": "Watch recording", "url": "https://youtu.be/OtherVideo01"}],
+            },
+            {
+                "slug": "non-podcast-is-not-lineage",
+                "title": "A deliberately different title",
+                "type": "webinar",
+                "links": [{"label": "Watch recording", "url": "https://youtu.be/ExactVideo1"}],
+            },
+            {
+                "slug": "non-recording-link-is-not-lineage",
+                "title": "A deliberately different title",
+                "type": "podcast",
+                "links": [
+                    {"label": "Open external event page", "url": "https://youtu.be/ExactVideo1"}
+                ],
+            },
+        ]
+
+        self.assertEqual(
+            builder._podcast_event_lineage(podcasts, events),
+            {
+                "audio-lineage": "canonical-audio",
+                "youtube-lineage": "canonical-youtube",
+            },
+        )
+
     def editorial_route_fixture(
         self,
     ) -> tuple[dict[str, list[dict]], dict[str, str], dict]:
@@ -90,6 +149,10 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertEqual(manifest["counts"], {"finals": 796, "aliases": 1_592})
         self.assertEqual(len(manifest["finals"]), 796)
         self.assertEqual(len(manifest["aliases"]), 1_592)
+        self.assertTrue(all(item["final_path"].endswith(".html") for item in manifest["finals"]))
+        self.assertTrue(
+            all(not item["source_path"].endswith(".html") for item in manifest["aliases"])
+        )
         self.assertEqual(
             manifest["content_sha256"],
             builder._editorial_route_manifest_digest(manifest),

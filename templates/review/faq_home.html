@@ -1,5 +1,7 @@
 {% extends "core/base.html" %}
-{% block title %}Frequently Asked Questions — DataTalks.Club{% endblock %}
+{% block title %}
+  Frequently Asked Questions — DataTalks.Club
+{% endblock %}
 {% block content %}
   <header>
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course help</p>
@@ -8,12 +10,7 @@
       Answers to common questions from DataTalks.Club learners.
     </p>
   </header>
-  <article
-    class="mt-10 border-y app-border py-6"
-    data-source-repository="{{ provenance.repository }}"
-    data-source-revision="{{ provenance.revision }}"
-    data-source-path="{{ provenance.source_path }}"
-  >
+  <article class="mt-10 border-y app-border py-6">
     <p class="text-sm app-muted">{{ faq.course }}</p>
     <h2 class="mt-2 text-xl font-semibold">
       <a class="app-link" href="{% url 'faq-ai-dev-tools' %}#{{ faq.question_id }}">

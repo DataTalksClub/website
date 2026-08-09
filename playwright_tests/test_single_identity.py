@@ -107,7 +107,7 @@ def test_signed_out_login_and_explicit_reauthentication_are_one_safe_flow(
     login.click()
     expect(page).to_have_url(f"{live_server.url}/accounts/login/?next=%2F")
     expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
-    expect(page.get_by_text("No login providers configured")).to_be_visible()
+    expect(page.get_by_text("Sign-in is temporarily unavailable")).to_be_visible()
     page.screenshot(
         path=_screenshot_path("returning-login", viewport),
         full_page=True,

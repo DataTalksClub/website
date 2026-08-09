@@ -17,8 +17,8 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
 - `website/admin_api_views.py`: target-owned compatibility shim preserving the scaffold's
   staff-gated, versioned admin-health response without modifying copied CMP API behavior;
 - `course_platform_templates/base.html`: target validated explicit-only canonical-link integration,
-  labelled keyboard-accessible local website navigation using the approved clean public hubs,
-  homepage brand destination, and Studio
+  labelled keyboard-accessible local website navigation using the approved clean public hubs while
+  omitting the removed People catalogue, homepage brand destination, and Studio
   entry inside the existing CMP account menu; recorded separately in
   `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`. Existing
   CMP login, session, account settings, preference, logout, impersonation, and course-admin
@@ -45,7 +45,9 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
 - `accounts/views/login.py`,
   `accounts/templates/accounts/login.html`: issue #100 adds explicit cross-host reauthentication,
   propagates validated path-only `next` values to provider login, and gives returning users
-  readable recovery guidance without adding another login system;
+  readable recovery guidance without adding another login system; issue #105 shortens the
+  visitor-facing sign-in labels and generic unavailable guidance without changing the adopted
+  provider or development-owner login behavior;
 - `accounts/tests_account_settings.py`: issue #100 updates the copied shell characterization so
   Course admin appears through the explicit Studio/course-operator capability policy rather than
   `is_staff` alone;

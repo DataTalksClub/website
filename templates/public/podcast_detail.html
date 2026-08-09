@@ -38,9 +38,9 @@
         {% endfor %}
       </div>
     {% endif %}
-    <section class="mt-10 border-t app-border pt-8" aria-labelledby="transcript-heading">
-      <h2 id="transcript-heading" class="text-2xl font-semibold">Transcript</h2>
-      {% if record.transcript %}
+    {% if record.transcript %}
+      <section class="mt-10 border-t app-border pt-8" aria-labelledby="transcript-heading">
+        <h2 id="transcript-heading" class="text-2xl font-semibold">Transcript</h2>
         {% for entry in record.transcript %}
           {% if entry.header %}
             <h3 class="mt-8 text-xl font-semibold">{{ entry.header }}</h3>
@@ -56,10 +56,7 @@
             </p>
           {% endif %}
         {% endfor %}
-      {% else %}
-        <p class="mt-4 app-text">No transcript is available in this checked source snapshot.</p>
-      {% endif %}
-    </section>
-    {% include "public/_source.html" with provenance=record.provenance %}
+      </section>
+    {% endif %}
   </article>
 {% endblock %}

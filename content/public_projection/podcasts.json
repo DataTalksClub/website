@@ -6,7 +6,7 @@
       {
         "key": "hugobowneanderson",
         "name": "Hugo Bowne-Anderson",
-        "public_path": "/people/hugobowneanderson"
+        "public_path": "/people/hugobowneanderson.html"
       }
     ],
     "guests": [
@@ -28,7 +28,7 @@
       "source_path": "podcasts/practical-llm-engineering-and-rag.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/practical-llm-engineering-and-rag.yaml"
     },
-    "public_path": "/podcast/practical-llm-engineering-and-rag",
+    "public_path": "/podcast/practical-llm-engineering-and-rag.html",
     "published": "2025-10-27",
     "season": 22,
     "short": "How to Build and Evaluate AI systems in the Age of LLMs",
@@ -1264,7 +1264,7 @@
       {
         "key": "sebastianayalaruano",
         "name": "Sebastian Ayala Ruano",
-        "public_path": "/people/sebastianayalaruano"
+        "public_path": "/people/sebastianayalaruano.html"
       }
     ],
     "guests": [
@@ -1286,7 +1286,7 @@
       "source_path": "podcasts/bioinformatics-worflows-tools-and-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/bioinformatics-worflows-tools-and-data-science.yaml"
     },
-    "public_path": "/podcast/bioinformatics-worflows-tools-and-data-science",
+    "public_path": "/podcast/bioinformatics-worflows-tools-and-data-science.html",
     "published": "2025-10-27",
     "season": 22,
     "short": "Applying Data Science Concepts, Tools, and Workflows to Accelerate Biological Research",
@@ -2384,7 +2384,7 @@
       {
         "key": "dashelruizperez",
         "name": "Dashel Ruiz Perez",
-        "public_path": "/people/dashelruizperez"
+        "public_path": "/people/dashelruizperez.html"
       }
     ],
     "guests": [
@@ -2406,7 +2406,7 @@
       "source_path": "podcasts/from-semiconductor-data-to-applied-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-semiconductor-data-to-applied-machine-learning.yaml"
     },
-    "public_path": "/podcast/from-semiconductor-data-to-applied-machine-learning",
+    "public_path": "/podcast/from-semiconductor-data-to-applied-machine-learning.html",
     "published": "2025-10-21",
     "season": 21,
     "short": "From Semiconductors to Machine Learning: A Career in Data and Teaching",
@@ -3486,7 +3486,7 @@
       {
         "key": "aishwaryajadhav",
         "name": "Aishwarya Jadhav",
-        "public_path": "/people/aishwaryajadhav"
+        "public_path": "/people/aishwaryajadhav.html"
       }
     ],
     "guests": [
@@ -3508,7 +3508,7 @@
       "source_path": "podcasts/from-computer-vision-research-to-autonomous-driving-ai.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-computer-vision-research-to-autonomous-driving-ai.yaml"
     },
-    "public_path": "/podcast/from-computer-vision-research-to-autonomous-driving-ai",
+    "public_path": "/podcast/from-computer-vision-research-to-autonomous-driving-ai.html",
     "published": "2025-10-21",
     "season": 22,
     "short": "Lessons from Applied AI: Tesla, Waymo, and Beyond",
@@ -4720,7 +4720,7 @@
       {
         "key": "ranjithakulkarni",
         "name": "Ranjitha Kulkarni",
-        "public_path": "/people/ranjithakulkarni"
+        "public_path": "/people/ranjithakulkarni.html"
       }
     ],
     "guests": [
@@ -4742,7 +4742,7 @@
       "source_path": "podcasts/building-agentic-ai-engineering-tooling-retrieval-evaluation.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-agentic-ai-engineering-tooling-retrieval-evaluation.yaml"
     },
-    "public_path": "/podcast/building-agentic-ai-engineering-tooling-retrieval-evaluation",
+    "public_path": "/podcast/building-agentic-ai-engineering-tooling-retrieval-evaluation.html",
     "published": "2025-10-21",
     "season": 22,
     "short": "Building reliable AI products in the era of Gen AI and Agents",
@@ -5643,7 +5643,7 @@
       "source_path": "podcasts/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.yaml"
     },
-    "public_path": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
+    "public_path": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
     "published": "2025-10-21",
     "season": 21,
     "short": "From Theme Parks to Tesla: Building Data Products That Work",
@@ -6924,7 +6924,7 @@
       {
         "key": "micheallanham",
         "name": "Micheal Lanham",
-        "public_path": "/people/micheallanham"
+        "public_path": "/people/micheallanham.html"
       }
     ],
     "guests": [
@@ -6946,7 +6946,7 @@
       "source_path": "podcasts/from-game-ai-to-modern-ai-agents.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-game-ai-to-modern-ai-agents.yaml"
     },
-    "public_path": "/podcast/from-game-ai-to-modern-ai-agents",
+    "public_path": "/podcast/from-game-ai-to-modern-ai-agents.html",
     "published": "2025-10-01",
     "season": 21,
     "short": "Lessons from Two Decades of AI",
@@ -8053,7 +8053,7 @@
       {
         "key": "danielegbo",
         "name": "Daniel Egbo",
-        "public_path": "/people/danielegbo"
+        "public_path": "/people/danielegbo.html"
       }
     ],
     "guests": [
@@ -8075,7 +8075,7 @@
       "source_path": "podcasts/from-radio-astronomy-to-machine-learning-and-data-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-radio-astronomy-to-machine-learning-and-data-engineering.yaml"
     },
-    "public_path": "/podcast/from-radio-astronomy-to-machine-learning-and-data-engineering",
+    "public_path": "/podcast/from-radio-astronomy-to-machine-learning-and-data-engineering.html",
     "published": "2025-09-30",
     "season": 21,
     "short": "From Astronomy to Applied ML",
@@ -9287,7 +9287,7 @@
       {
         "key": "pastorsoto",
         "name": "Pastor Soto",
-        "public_path": "/people/pastorsoto"
+        "public_path": "/people/pastorsoto.html"
       }
     ],
     "guests": [
@@ -9309,7 +9309,7 @@
       "source_path": "podcasts/nonlinear-path-to-machine-learning-freelancing-and-public-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/nonlinear-path-to-machine-learning-freelancing-and-public-learning.yaml"
     },
-    "public_path": "/podcast/nonlinear-path-to-machine-learning-freelancing-and-public-learning",
+    "public_path": "/podcast/nonlinear-path-to-machine-learning-freelancing-and-public-learning.html",
     "published": "2025-08-22",
     "season": 21,
     "short": "From Medicine to Machine Learning: How Public Learning Turned into a Career",
@@ -10224,7 +10224,7 @@
       {
         "key": "liorbarak",
         "name": "Lior Barak",
-        "public_path": "/people/liorbarak"
+        "public_path": "/people/liorbarak.html"
       }
     ],
     "guests": [
@@ -10246,7 +10246,7 @@
       "source_path": "podcasts/mindful-data-strategy-for-business-impact.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mindful-data-strategy-for-business-impact.yaml"
     },
-    "public_path": "/podcast/mindful-data-strategy-for-business-impact",
+    "public_path": "/podcast/mindful-data-strategy-for-business-impact.html",
     "published": "2025-08-18",
     "season": 21,
     "short": "Mindful Data Strategy: From Pipelines to Business Impact",
@@ -11686,7 +11686,7 @@
       {
         "key": "orellgarten",
         "name": "Orell Garten",
-        "public_path": "/people/orellgarten"
+        "public_path": "/people/orellgarten.html"
       }
     ],
     "guests": [
@@ -11708,7 +11708,7 @@
       "source_path": "podcasts/from-academic-research-to-data-engineering-freelancing.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-academic-research-to-data-engineering-freelancing.yaml"
     },
-    "public_path": "/podcast/from-academic-research-to-data-engineering-freelancing",
+    "public_path": "/podcast/from-academic-research-to-data-engineering-freelancing.html",
     "published": "2025-08-05",
     "season": 21,
     "short": "From Simulation Algorithms to Production-Grade Data Systems",
@@ -12554,7 +12554,7 @@
       {
         "key": "dimitrivisnadi",
         "name": "Dimitri Visnadi",
-        "public_path": "/people/dimitrivisnadi"
+        "public_path": "/people/dimitrivisnadi.html"
       }
     ],
     "guests": [
@@ -12576,7 +12576,7 @@
       "source_path": "podcasts/data-freelancing-career-strategy-market-demand-and-client-acquisition.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-freelancing-career-strategy-market-demand-and-client-acquisition.yaml"
     },
-    "public_path": "/podcast/data-freelancing-career-strategy-market-demand-and-client-acquisition",
+    "public_path": "/podcast/data-freelancing-career-strategy-market-demand-and-client-acquisition.html",
     "published": "2025-07-28",
     "season": 20,
     "short": "Taking your Freelance Career to the Next Level",
@@ -13209,7 +13209,7 @@
       {
         "key": "willrussell",
         "name": "Will Russell",
-        "public_path": "/people/willrussell"
+        "public_path": "/people/willrussell.html"
       }
     ],
     "guests": [
@@ -13231,7 +13231,7 @@
       "source_path": "podcasts/practical-devrel-demofirst-education-and-open-source.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/practical-devrel-demofirst-education-and-open-source.yaml"
     },
-    "public_path": "/podcast/practical-devrel-demofirst-education-and-open-source",
+    "public_path": "/podcast/practical-devrel-demofirst-education-and-open-source.html",
     "published": "2025-05-26",
     "season": 20,
     "short": "Developer Advocacy Through Community Impact",
@@ -15013,7 +15013,7 @@
       {
         "key": "lavanyagupta",
         "name": "Lavanya Gupta",
-        "public_path": "/people/lavanyagupta"
+        "public_path": "/people/lavanyagupta.html"
       }
     ],
     "guests": [
@@ -15035,7 +15035,7 @@
       "source_path": "podcasts/applied-llm-research-and-career-growth-in-practice.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/applied-llm-research-and-career-growth-in-practice.yaml"
     },
-    "public_path": "/podcast/applied-llm-research-and-career-growth-in-practice",
+    "public_path": "/podcast/applied-llm-research-and-career-growth-in-practice.html",
     "published": "2025-05-12",
     "season": 20,
     "short": "Build a Strong Career in Data",
@@ -16112,7 +16112,7 @@
       {
         "key": "eddyzulkifly",
         "name": "Eddy Zulkifly",
-        "public_path": "/people/eddyzulkifly"
+        "public_path": "/people/eddyzulkifly.html"
       }
     ],
     "guests": [
@@ -16134,7 +16134,7 @@
       "source_path": "podcasts/finops-for-data-engineers.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/finops-for-data-engineers.yaml"
     },
-    "public_path": "/podcast/finops-for-data-engineers",
+    "public_path": "/podcast/finops-for-data-engineers.html",
     "published": "2025-04-30",
     "season": 20,
     "short": "From Supply Chain Management to Digital Warehousing and FinOps",
@@ -17076,7 +17076,7 @@
       {
         "key": "bartoszmikulski",
         "name": "Bartosz Mikulski",
-        "public_path": "/people/bartoszmikulski"
+        "public_path": "/people/bartoszmikulski.html"
       }
     ],
     "guests": [
@@ -17098,7 +17098,7 @@
       "source_path": "podcasts/production-ready-ai-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/production-ready-ai-engineering.yaml"
     },
-    "public_path": "/podcast/production-ready-ai-engineering",
+    "public_path": "/podcast/production-ready-ai-engineering.html",
     "published": "2025-03-26",
     "season": 20,
     "short": "Data Intensive AI",
@@ -18352,7 +18352,7 @@
       {
         "key": "nemanjaradojkovic",
         "name": "Nemanja Radojkovic",
-        "public_path": "/people/nemanjaradojkovic"
+        "public_path": "/people/nemanjaradojkovic.html"
       }
     ],
     "guests": [
@@ -18374,7 +18374,7 @@
       "source_path": "podcasts/lean-mlops-for-startups.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/lean-mlops-for-startups.yaml"
     },
-    "public_path": "/podcast/lean-mlops-for-startups",
+    "public_path": "/podcast/lean-mlops-for-startups.html",
     "published": "2025-03-15",
     "season": 20,
     "short": "MLOps in Corporations and Startups",
@@ -19790,7 +19790,7 @@
       {
         "key": "adrianbrudaru",
         "name": "Adrian Brudaru",
-        "public_path": "/people/adrianbrudaru"
+        "public_path": "/people/adrianbrudaru.html"
       }
     ],
     "guests": [
@@ -19812,7 +19812,7 @@
       "source_path": "podcasts/trends-in-modern-data-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/trends-in-modern-data-engineering.yaml"
     },
-    "public_path": "/podcast/trends-in-modern-data-engineering",
+    "public_path": "/podcast/trends-in-modern-data-engineering.html",
     "published": "2025-03-14",
     "season": 20,
     "short": "Trends in Data Engineering",
@@ -20505,7 +20505,7 @@
       {
         "key": "alexanderguschin",
         "name": "Alexander Guschin",
-        "public_path": "/people/alexanderguschin"
+        "public_path": "/people/alexanderguschin.html"
       }
     ],
     "guests": [
@@ -20527,7 +20527,7 @@
       "source_path": "podcasts/kaggle-grandmaster-to-production-ml-and-education.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/kaggle-grandmaster-to-production-ml-and-education.yaml"
     },
-    "public_path": "/podcast/kaggle-grandmaster-to-production-ml-and-education",
+    "public_path": "/podcast/kaggle-grandmaster-to-production-ml-and-education.html",
     "published": "2025-02-26",
     "season": 20,
     "short": "Competitive Machine Learning and Teaching",
@@ -21385,7 +21385,7 @@
       {
         "key": "andreycheptsov",
         "name": "Andrey Cheptsov",
-        "public_path": "/people/andreycheptsov"
+        "public_path": "/people/andreycheptsov.html"
       }
     ],
     "guests": [
@@ -21407,7 +21407,7 @@
       "source_path": "podcasts/ai-infrastructure-hybrid-cloud-on-prem-distributed-training.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ai-infrastructure-hybrid-cloud-on-prem-distributed-training.yaml"
     },
-    "public_path": "/podcast/ai-infrastructure-hybrid-cloud-on-prem-distributed-training",
+    "public_path": "/podcast/ai-infrastructure-hybrid-cloud-on-prem-distributed-training.html",
     "published": "2025-02-26",
     "season": 20,
     "short": "Trends in AI Infrastructure",
@@ -22250,7 +22250,7 @@
       {
         "key": "tamaraatanasoska",
         "name": "Tamara Atanasoska",
-        "public_path": "/people/tamaraatanasoska"
+        "public_path": "/people/tamaraatanasoska.html"
       }
     ],
     "guests": [
@@ -22272,7 +22272,7 @@
       "source_path": "podcasts/fairness-in-ai-ml-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/fairness-in-ai-ml-engineering.yaml"
     },
-    "public_path": "/podcast/fairness-in-ai-ml-engineering",
+    "public_path": "/podcast/fairness-in-ai-ml-engineering.html",
     "published": "2025-02-24",
     "season": 19,
     "short": "Linguistics and Fairness",
@@ -23295,7 +23295,7 @@
       {
         "key": "agitajaunzeme",
         "name": "Agita Jaunzeme",
-        "public_path": "/people/agitajaunzeme"
+        "public_path": "/people/agitajaunzeme.html"
       }
     ],
     "guests": [
@@ -23317,7 +23317,7 @@
       "source_path": "podcasts/from-devops-to-data-engineering-automation-open-source-volunteering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-devops-to-data-engineering-automation-open-source-volunteering.yaml"
     },
-    "public_path": "/podcast/from-devops-to-data-engineering-automation-open-source-volunteering",
+    "public_path": "/podcast/from-devops-to-data-engineering-automation-open-source-volunteering.html",
     "published": "2025-01-12",
     "season": 19,
     "short": "Career choices, transitions and promotions in and out of tech",
@@ -24484,7 +24484,7 @@
       {
         "key": "mariasukhareva",
         "name": "Maria Sukhareva",
-        "public_path": "/people/mariasukhareva"
+        "public_path": "/people/mariasukhareva.html"
       }
     ],
     "guests": [
@@ -24506,7 +24506,7 @@
       "source_path": "podcasts/generative-ai-chatbots-in-production-security.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/generative-ai-chatbots-in-production-security.yaml"
     },
-    "public_path": "/podcast/generative-ai-chatbots-in-production-security",
+    "public_path": "/podcast/generative-ai-chatbots-in-production-security.html",
     "published": "2024-12-17",
     "season": 19,
     "short": "AI in Industry: Trust, Return on Investment and Future",
@@ -25352,7 +25352,7 @@
       {
         "key": "anastasiakaravdina",
         "name": "Anastasia Karavdina",
-        "public_path": "/people/anastasiakaravdina"
+        "public_path": "/people/anastasiakaravdina.html"
       }
     ],
     "guests": [
@@ -25374,7 +25374,7 @@
       "source_path": "podcasts/from-large-hadron-collider-to-data-science-research-software-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-large-hadron-collider-to-data-science-research-software-engineering.yaml"
     },
-    "public_path": "/podcast/from-large-hadron-collider-to-data-science-research-software-engineering",
+    "public_path": "/podcast/from-large-hadron-collider-to-data-science-research-software-engineering.html",
     "published": "2024-12-17",
     "season": 19,
     "short": "Large Hadron Collider and Mentorship",
@@ -26217,7 +26217,7 @@
       {
         "key": "isabellabicalho",
         "name": "Isabella Bicalho",
-        "public_path": "/people/isabellabicalho"
+        "public_path": "/people/isabellabicalho.html"
       }
     ],
     "guests": [
@@ -26239,7 +26239,7 @@
       "source_path": "podcasts/from-biology-to-machine-learning-data-science-portfolio-open-source-computer-vision-transformers.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-biology-to-machine-learning-data-science-portfolio-open-source-computer-vision-transformers.yaml"
     },
-    "public_path": "/podcast/from-biology-to-machine-learning-data-science-portfolio-open-source-computer-vision-transformers",
+    "public_path": "/podcast/from-biology-to-machine-learning-data-science-portfolio-open-source-computer-vision-transformers.html",
     "published": "2024-12-17",
     "season": 19,
     "short": "Career advice, learning, and featuring women in ML and AI",
@@ -27241,7 +27241,7 @@
       {
         "key": "raphaelhoogvliets",
         "name": "Raphaël Hoogvliets",
-        "public_path": "/people/raphaelhoogvliets"
+        "public_path": "/people/raphaelhoogvliets.html"
       }
     ],
     "guests": [
@@ -27263,7 +27263,7 @@
       "source_path": "podcasts/mlops-at-scale-reproducibility-adoption.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mlops-at-scale-reproducibility-adoption.yaml"
     },
-    "public_path": "/podcast/mlops-at-scale-reproducibility-adoption",
+    "public_path": "/podcast/mlops-at-scale-reproducibility-adoption.html",
     "published": "2024-11-16",
     "season": 19,
     "short": "MLOps as a Team",
@@ -28082,7 +28082,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "guests": [
@@ -28104,7 +28104,7 @@
       "source_path": "podcasts/datatalksclub-scaling-and-free-courses.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/datatalksclub-scaling-and-free-courses.yaml"
     },
-    "public_path": "/podcast/datatalksclub-scaling-and-free-courses",
+    "public_path": "/podcast/datatalksclub-scaling-and-free-courses.html",
     "published": "2024-11-08",
     "season": 19,
     "short": "DataTalks.Club Anniversary Podcast",
@@ -29250,7 +29250,7 @@
       {
         "key": "rachellim",
         "name": "Rachel Lim",
-        "public_path": "/people/rachellim"
+        "public_path": "/people/rachellim.html"
       }
     ],
     "guests": [
@@ -29272,7 +29272,7 @@
       "source_path": "podcasts/urban-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/urban-data-science.yaml"
     },
-    "public_path": "/podcast/urban-data-science",
+    "public_path": "/podcast/urban-data-science.html",
     "published": "2024-11-06",
     "season": 19,
     "short": "Using Data to Create Liveable Cities",
@@ -30100,7 +30100,7 @@
       {
         "key": "katarzynaforemniak",
         "name": "Katarzyna Foremniak",
-        "public_path": "/people/katarzynaforemniak"
+        "public_path": "/people/katarzynaforemniak.html"
       }
     ],
     "guests": [
@@ -30122,7 +30122,7 @@
       "source_path": "podcasts/human-centered-ai-automatic-speech-recognition.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/human-centered-ai-automatic-speech-recognition.yaml"
     },
-    "public_path": "/podcast/human-centered-ai-automatic-speech-recognition",
+    "public_path": "/podcast/human-centered-ai-automatic-speech-recognition.html",
     "published": "2024-10-10",
     "season": 19,
     "short": "Human-Centered AI for Disordered Speech Recognition",
@@ -30998,7 +30998,7 @@
       {
         "key": "christopherbergh",
         "name": "Christopher Bergh",
-        "public_path": "/people/christopherbergh"
+        "public_path": "/people/christopherbergh.html"
       }
     ],
     "guests": [
@@ -31020,7 +31020,7 @@
       "source_path": "podcasts/dataops-for-data-engineering.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/dataops-for-data-engineering.yaml"
     },
-    "public_path": "/podcast/dataops-for-data-engineering",
+    "public_path": "/podcast/dataops-for-data-engineering.html",
     "published": "2024-09-04",
     "season": 18,
     "short": "DataOps, Observability, and The Cure for Data Team Blues",
@@ -31407,7 +31407,7 @@
       {
         "key": "sabinafirtala",
         "name": "Sabina Firtala",
-        "public_path": "/people/sabinafirtala"
+        "public_path": "/people/sabinafirtala.html"
       }
     ],
     "guests": [
@@ -31429,7 +31429,7 @@
       "source_path": "podcasts/building-domestic-risk-assessment-tool.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-domestic-risk-assessment-tool.yaml"
     },
-    "public_path": "/podcast/building-domestic-risk-assessment-tool",
+    "public_path": "/podcast/building-domestic-risk-assessment-tool.html",
     "published": "2024-07-15",
     "season": 18,
     "short": "Building a Domestic Risk Assessment Tool",
@@ -31445,7 +31445,7 @@
       {
         "key": "erumafzal",
         "name": "Erum Afzal",
-        "public_path": "/people/erumafzal"
+        "public_path": "/people/erumafzal.html"
       }
     ],
     "guests": [
@@ -31467,7 +31467,7 @@
       "source_path": "podcasts/community-building-and-teaching-in-ai-tech.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/community-building-and-teaching-in-ai-tech.yaml"
     },
-    "public_path": "/podcast/community-building-and-teaching-in-ai-tech",
+    "public_path": "/podcast/community-building-and-teaching-in-ai-tech.html",
     "published": "2024-05-12",
     "season": 18,
     "short": "Community Building and Teaching in AI & Tech",
@@ -32190,7 +32190,7 @@
       {
         "key": "vincentwarmerdam",
         "name": "Vincent Warmerdam",
-        "public_path": "/people/vincentwarmerdam"
+        "public_path": "/people/vincentwarmerdam.html"
       }
     ],
     "guests": [
@@ -32212,7 +32212,7 @@
       "source_path": "podcasts/open-source-ml-tools-strategy-and-business-models.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/open-source-ml-tools-strategy-and-business-models.yaml"
     },
-    "public_path": "/podcast/open-source-ml-tools-strategy-and-business-models",
+    "public_path": "/podcast/open-source-ml-tools-strategy-and-business-models.html",
     "published": "2024-05-06",
     "season": 18,
     "short": "Working in Open Source - Probabl.ai and sklearn",
@@ -33247,7 +33247,7 @@
       {
         "key": "tanyabergerwolf",
         "name": "Tanya Berger-Wolf",
-        "public_path": "/people/tanyabergerwolf"
+        "public_path": "/people/tanyabergerwolf.html"
       }
     ],
     "guests": [
@@ -33269,7 +33269,7 @@
       "source_path": "podcasts/ai-for-ecology-biodiversity-and-conservation.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ai-for-ecology-biodiversity-and-conservation.yaml"
     },
-    "public_path": "/podcast/ai-for-ecology-biodiversity-and-conservation",
+    "public_path": "/podcast/ai-for-ecology-biodiversity-and-conservation.html",
     "published": "2024-04-28",
     "season": 18,
     "short": "AI for Ecology, Biodiversity, and Conservation",
@@ -33285,7 +33285,7 @@
       {
         "key": "anahitapakiman",
         "name": "Anahita Pakiman",
-        "public_path": "/people/anahitapakiman"
+        "public_path": "/people/anahitapakiman.html"
       }
     ],
     "guests": [
@@ -33307,7 +33307,7 @@
       "source_path": "podcasts/knowledge-graphs-and-llms-for-automotive-rnd.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/knowledge-graphs-and-llms-for-automotive-rnd.yaml"
     },
-    "public_path": "/podcast/knowledge-graphs-and-llms-for-automotive-rnd",
+    "public_path": "/podcast/knowledge-graphs-and-llms-for-automotive-rnd.html",
     "published": "2024-04-07",
     "season": 18,
     "short": "Knowledge Graphs and LLMs Across Academia and Industry",
@@ -34162,7 +34162,7 @@
       {
         "key": "terezaiofciu",
         "name": "Tereza Iofciu",
-        "public_path": "/people/terezaiofciu"
+        "public_path": "/people/terezaiofciu.html"
       }
     ],
     "guests": [
@@ -34183,7 +34183,7 @@
       "source_path": "podcasts/data-leadership-coaching.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-leadership-coaching.yaml"
     },
-    "public_path": "/podcast/data-leadership-coaching",
+    "public_path": "/podcast/data-leadership-coaching.html",
     "published": "2024-03-31",
     "season": 18,
     "short": "Inclusive Data Leadership Coaching",
@@ -35155,7 +35155,7 @@
       {
         "key": "danielsvonava",
         "name": "Daniel Svonava",
-        "public_path": "/people/danielsvonava"
+        "public_path": "/people/danielsvonava.html"
       }
     ],
     "guests": [
@@ -35177,7 +35177,7 @@
       "source_path": "podcasts/building-production-search-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-production-search-systems.yaml"
     },
-    "public_path": "/podcast/building-production-search-systems",
+    "public_path": "/podcast/building-production-search-systems.html",
     "published": "2024-03-25",
     "season": 17,
     "short": "Building Production Search Systems",
@@ -35984,7 +35984,7 @@
       {
         "key": "reemmahmoud",
         "name": "Reem Mahmoud",
-        "public_path": "/people/reemmahmoud"
+        "public_path": "/people/reemmahmoud.html"
       }
     ],
     "guests": [
@@ -36006,7 +36006,7 @@
       "source_path": "podcasts/production-ml-search-vector-search-embeddings-hybrid-search.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/production-ml-search-vector-search-embeddings-hybrid-search.yaml"
     },
-    "public_path": "/podcast/production-ml-search-vector-search-embeddings-hybrid-search",
+    "public_path": "/podcast/production-ml-search-vector-search-embeddings-hybrid-search.html",
     "published": "2024-03-17",
     "season": 17,
     "short": "Building Machine Learning Products",
@@ -36786,7 +36786,7 @@
       {
         "key": "saraelateif",
         "name": "Sara EL-ATEIF",
-        "public_path": "/people/saraelateif"
+        "public_path": "/people/saraelateif.html"
       }
     ],
     "guests": [
@@ -36808,7 +36808,7 @@
       "source_path": "podcasts/open-source-and-volunteering-in-ai-for-data-ml-career-growth.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/open-source-and-volunteering-in-ai-for-data-ml-career-growth.yaml"
     },
-    "public_path": "/podcast/open-source-and-volunteering-in-ai-for-data-ml-career-growth",
+    "public_path": "/podcast/open-source-and-volunteering-in-ai-for-data-ml-career-growth.html",
     "published": "2024-02-29",
     "season": 17,
     "short": "Make an Impact Through Volunteering Open Source Work",
@@ -37900,7 +37900,7 @@
       {
         "key": "sarahmestiri",
         "name": "Sarah Mestiri",
-        "public_path": "/people/sarahmestiri"
+        "public_path": "/people/sarahmestiri.html"
       }
     ],
     "guests": [
@@ -37922,7 +37922,7 @@
       "source_path": "podcasts/job-search-strategy-in-tech-projects-skills-cv-networking.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/job-search-strategy-in-tech-projects-skills-cv-networking.yaml"
     },
-    "public_path": "/podcast/job-search-strategy-in-tech-projects-skills-cv-networking",
+    "public_path": "/podcast/job-search-strategy-in-tech-projects-skills-cv-networking.html",
     "published": "2024-02-03",
     "season": 17,
     "short": "Accelerating The Job Hunt for The Perfect Job in Tech",
@@ -38789,7 +38789,7 @@
       {
         "key": "nemanjaradojkovic",
         "name": "Nemanja Radojkovic",
-        "public_path": "/people/nemanjaradojkovic"
+        "public_path": "/people/nemanjaradojkovic.html"
       }
     ],
     "guests": [
@@ -38811,7 +38811,7 @@
       "source_path": "podcasts/mlops-and-ml-engineering-in-finance.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mlops-and-ml-engineering-in-finance.yaml"
     },
-    "public_path": "/podcast/mlops-and-ml-engineering-in-finance",
+    "public_path": "/podcast/mlops-and-ml-engineering-in-finance.html",
     "published": "2024-01-29",
     "season": 17,
     "short": "Machine Learning Engineering in Finance",
@@ -39732,7 +39732,7 @@
       {
         "key": "ivanbrigida",
         "name": "Ivan Brigida",
-        "public_path": "/people/ivanbrigida"
+        "public_path": "/people/ivanbrigida.html"
       }
     ],
     "guests": [
@@ -39754,7 +39754,7 @@
       "source_path": "podcasts/algorithmic-trading-with-python-and-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/algorithmic-trading-with-python-and-machine-learning.yaml"
     },
-    "public_path": "/podcast/algorithmic-trading-with-python-and-machine-learning",
+    "public_path": "/podcast/algorithmic-trading-with-python-and-machine-learning.html",
     "published": "2024-01-24",
     "season": 17,
     "short": "Stock Market Analysis with Python and Machine Learning",
@@ -40627,7 +40627,7 @@
       {
         "key": "robzinkov",
         "name": "Rob Zinkov",
-        "public_path": "/people/robzinkov"
+        "public_path": "/people/robzinkov.html"
       }
     ],
     "guests": [
@@ -40649,7 +40649,7 @@
       "source_path": "podcasts/bayesian-modeling-workflows-and-tools.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/bayesian-modeling-workflows-and-tools.yaml"
     },
-    "public_path": "/podcast/bayesian-modeling-workflows-and-tools",
+    "public_path": "/podcast/bayesian-modeling-workflows-and-tools.html",
     "published": "2024-01-22",
     "season": 17,
     "short": "Bayesian Modeling and Probabilistic Programming",
@@ -41684,7 +41684,7 @@
       {
         "key": "atitaarora",
         "name": "Atita Arora",
-        "public_path": "/people/atitaarora"
+        "public_path": "/people/atitaarora.html"
       }
     ],
     "guests": [
@@ -41706,7 +41706,7 @@
       "source_path": "podcasts/modern-search-systems-vector-databases-llms-semantic-retrieval.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/modern-search-systems-vector-databases-llms-semantic-retrieval.yaml"
     },
-    "public_path": "/podcast/modern-search-systems-vector-databases-llms-semantic-retrieval",
+    "public_path": "/podcast/modern-search-systems-vector-databases-llms-semantic-retrieval.html",
     "published": "2024-01-07",
     "season": 17,
     "short": "Searching Beyond the Surface: Navigating Challenges and Innovations in Search Technologies",
@@ -42627,7 +42627,7 @@
       {
         "key": "adrianbrudaru",
         "name": "Adrian Brudaru",
-        "public_path": "/people/adrianbrudaru"
+        "public_path": "/people/adrianbrudaru.html"
       }
     ],
     "guests": [
@@ -42649,7 +42649,7 @@
       "source_path": "podcasts/from-data-freelancer-to-startup-open-source-products.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-data-freelancer-to-startup-open-source-products.yaml"
     },
-    "public_path": "/podcast/from-data-freelancer-to-startup-open-source-products",
+    "public_path": "/podcast/from-data-freelancer-to-startup-open-source-products.html",
     "published": "2023-12-18",
     "season": 17,
     "short": "The Entrepreneurship Journey: From Freelancing to Starting a Company",
@@ -43615,7 +43615,7 @@
       {
         "key": "dimitrivisnadi",
         "name": "Dimitri Visnadi",
-        "public_path": "/people/dimitrivisnadi"
+        "public_path": "/people/dimitrivisnadi.html"
       }
     ],
     "guests": [
@@ -43637,7 +43637,7 @@
       "source_path": "podcasts/becoming-data-freelancer.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/becoming-data-freelancer.yaml"
     },
-    "public_path": "/podcast/becoming-data-freelancer",
+    "public_path": "/podcast/becoming-data-freelancer.html",
     "published": "2023-12-09",
     "season": 16,
     "short": "Become a Data Freelancer",
@@ -44642,7 +44642,7 @@
       {
         "key": "mariabruckert",
         "name": "Maria Bruckert",
-        "public_path": "/people/mariabruckert"
+        "public_path": "/people/mariabruckert.html"
       }
     ],
     "guests": [
@@ -44664,7 +44664,7 @@
       "source_path": "podcasts/building-ai-digital-health-startups.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-ai-digital-health-startups.yaml"
     },
-    "public_path": "/podcast/building-ai-digital-health-startups",
+    "public_path": "/podcast/building-ai-digital-health-startups.html",
     "published": "2023-12-03",
     "season": 16,
     "short": "AI for Digital Health",
@@ -45522,7 +45522,7 @@
       {
         "key": "christophmolnar",
         "name": "Christoph Molnar",
-        "public_path": "/people/christophmolnar"
+        "public_path": "/people/christophmolnar.html"
       }
     ],
     "guests": [
@@ -45544,7 +45544,7 @@
       "source_path": "podcasts/interpretable-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/interpretable-machine-learning.yaml"
     },
-    "public_path": "/podcast/interpretable-machine-learning",
+    "public_path": "/podcast/interpretable-machine-learning.html",
     "published": "2023-11-27",
     "season": 16,
     "short": "",
@@ -46633,7 +46633,7 @@
       {
         "key": "jackblandin",
         "name": "Jack Blandin",
-        "public_path": "/people/jackblandin"
+        "public_path": "/people/jackblandin.html"
       }
     ],
     "guests": [
@@ -46655,7 +46655,7 @@
       "source_path": "podcasts/from-software-engineering-to-vp-of-machine-learning-applied-ml-leadership.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-software-engineering-to-vp-of-machine-learning-applied-ml-leadership.yaml"
     },
-    "public_path": "/podcast/from-software-engineering-to-vp-of-machine-learning-applied-ml-leadership",
+    "public_path": "/podcast/from-software-engineering-to-vp-of-machine-learning-applied-ml-leadership.html",
     "published": "2023-11-20",
     "season": 16,
     "short": "The Unwritten Rules for Success in Machine Learning",
@@ -47603,7 +47603,7 @@
       {
         "key": "verenaweber",
         "name": "Verena Weber",
-        "public_path": "/people/verenaweber"
+        "public_path": "/people/verenaweber.html"
       }
     ],
     "guests": [
@@ -47625,7 +47625,7 @@
       "source_path": "podcasts/practical-generative-ai-consulting-from-expertise-to-impact.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/practical-generative-ai-consulting-from-expertise-to-impact.yaml"
     },
-    "public_path": "/podcast/practical-generative-ai-consulting-from-expertise-to-impact",
+    "public_path": "/podcast/practical-generative-ai-consulting-from-expertise-to-impact.html",
     "published": "2023-11-12",
     "season": 16,
     "short": "From a Research Scientist at Amazon to a Machine Learning/AI Consultant",
@@ -48777,7 +48777,7 @@
       {
         "key": "ioannismesionis",
         "name": "Ioannis Mesionis",
-        "public_path": "/people/ioannismesionis"
+        "public_path": "/people/ioannismesionis.html"
       }
     ],
     "guests": [
@@ -48799,7 +48799,7 @@
       "source_path": "podcasts/building-data-products-lead-data-scientist.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-data-products-lead-data-scientist.yaml"
     },
-    "public_path": "/podcast/building-data-products-lead-data-scientist",
+    "public_path": "/podcast/building-data-products-lead-data-scientist.html",
     "published": "2023-10-29",
     "season": 16,
     "short": "Collaborative Data Science in Business",
@@ -49951,7 +49951,7 @@
       {
         "key": "elenistamatelou",
         "name": "Eleni Stamatelou",
-        "public_path": "/people/elenistamatelou"
+        "public_path": "/people/elenistamatelou.html"
       }
     ],
     "guests": [
@@ -49973,7 +49973,7 @@
       "source_path": "podcasts/building-healthcare-machine-learning-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-healthcare-machine-learning-systems.yaml"
     },
-    "public_path": "/podcast/building-healthcare-machine-learning-systems",
+    "public_path": "/podcast/building-healthcare-machine-learning-systems.html",
     "published": "2023-10-23",
     "season": 16,
     "short": "Bridging Data Science and Healthcare",
@@ -50822,12 +50822,12 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       },
       {
         "key": "johannabayer",
         "name": "Johanna Bayer",
-        "public_path": "/people/johannabayer"
+        "public_path": "/people/johannabayer.html"
       }
     ],
     "guests": [
@@ -50850,7 +50850,7 @@
       "source_path": "podcasts/datatalksclub-building-sustainable-data-community-3-years-anniversary.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/datatalksclub-building-sustainable-data-community-3-years-anniversary.yaml"
     },
-    "public_path": "/podcast/datatalksclub-building-sustainable-data-community-3-years-anniversary",
+    "public_path": "/podcast/datatalksclub-building-sustainable-data-community-3-years-anniversary.html",
     "published": "2023-10-16",
     "season": 16,
     "short": "DataTalks.Club Anniversary Interview",
@@ -51747,7 +51747,7 @@
       {
         "key": "angelaramirez",
         "name": "Angela Ramirez",
-        "public_path": "/people/angelaramirez"
+        "public_path": "/people/angelaramirez.html"
       }
     ],
     "guests": [
@@ -51769,7 +51769,7 @@
       "source_path": "podcasts/building-and-scaling-data-engineering-systems-for-fraud-detection.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-and-scaling-data-engineering-systems-for-fraud-detection.yaml"
     },
-    "public_path": "/podcast/building-and-scaling-data-engineering-systems-for-fraud-detection",
+    "public_path": "/podcast/building-and-scaling-data-engineering-systems-for-fraud-detection.html",
     "published": "2023-10-07",
     "season": 15,
     "short": "Data Engineering for Fraud Prevention",
@@ -52759,7 +52759,7 @@
       {
         "key": "loicmagnien",
         "name": "Loïc Magnien",
-        "public_path": "/people/loicmagnien"
+        "public_path": "/people/loicmagnien.html"
       }
     ],
     "guests": [
@@ -52781,7 +52781,7 @@
       "source_path": "podcasts/from-iot-data-engineering-to-leading-data-architect.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-iot-data-engineering-to-leading-data-architect.yaml"
     },
-    "public_path": "/podcast/from-iot-data-engineering-to-leading-data-architect",
+    "public_path": "/podcast/from-iot-data-engineering-to-leading-data-architect.html",
     "published": "2023-10-01",
     "season": 15,
     "short": "From Data Manager to Data Architect",
@@ -53450,7 +53450,7 @@
       {
         "key": "mariavechtomova",
         "name": "Maria Vechtomova",
-        "public_path": "/people/mariavechtomova"
+        "public_path": "/people/mariavechtomova.html"
       }
     ],
     "guests": [
@@ -53472,7 +53472,7 @@
       "source_path": "podcasts/pragmatic-and-standardized-mlops.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/pragmatic-and-standardized-mlops.yaml"
     },
-    "public_path": "/podcast/pragmatic-and-standardized-mlops",
+    "public_path": "/podcast/pragmatic-and-standardized-mlops.html",
     "published": "2023-09-25",
     "season": 15,
     "short": "Pragmatic and Standardized MLOps",
@@ -54489,7 +54489,7 @@
       {
         "key": "aleksandermolak",
         "name": "Aleksander Molak",
-        "public_path": "/people/aleksandermolak"
+        "public_path": "/people/aleksandermolak.html"
       }
     ],
     "guests": [
@@ -54511,7 +54511,7 @@
       "source_path": "podcasts/causal-inference-for-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/causal-inference-for-machine-learning.yaml"
     },
-    "public_path": "/podcast/causal-inference-for-machine-learning",
+    "public_path": "/podcast/causal-inference-for-machine-learning.html",
     "published": "2023-09-10",
     "season": 15,
     "short": "Democratizing Causality",
@@ -55498,7 +55498,7 @@
       {
         "key": "josemaria",
         "name": "José María Sánchez Salas",
-        "public_path": "/people/josemaria"
+        "public_path": "/people/josemaria.html"
       }
     ],
     "guests": [
@@ -55520,7 +55520,7 @@
       "source_path": "podcasts/remote-data-engineering-work-and-building-iot-platforms.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/remote-data-engineering-work-and-building-iot-platforms.yaml"
     },
-    "public_path": "/podcast/remote-data-engineering-work-and-building-iot-platforms",
+    "public_path": "/podcast/remote-data-engineering-work-and-building-iot-platforms.html",
     "published": "2023-08-28",
     "season": 15,
     "short": "Mastering Data Engineering as a Remote Worker",
@@ -56636,7 +56636,7 @@
       {
         "key": "sandrakublik",
         "name": "Sandra Kublik",
-        "public_path": "/people/sandrakublik"
+        "public_path": "/people/sandrakublik.html"
       }
     ],
     "guests": [
@@ -56658,7 +56658,7 @@
       "source_path": "podcasts/practical-llm-use-cases-and-product-patterns.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/practical-llm-use-cases-and-product-patterns.yaml"
     },
-    "public_path": "/podcast/practical-llm-use-cases-and-product-patterns",
+    "public_path": "/podcast/practical-llm-use-cases-and-product-patterns.html",
     "published": "2023-08-06",
     "season": 15,
     "short": "The Good, the Bad and the Ugly of GPT",
@@ -57300,7 +57300,7 @@
       {
         "key": "meryemarik",
         "name": "Meryem Arik",
-        "public_path": "/people/meryemarik"
+        "public_path": "/people/meryemarik.html"
       }
     ],
     "guests": [
@@ -57322,7 +57322,7 @@
       "source_path": "podcasts/deploying-llms-in-production-fine-tuning-retrieval-open-source-api.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/deploying-llms-in-production-fine-tuning-retrieval-open-source-api.yaml"
     },
-    "public_path": "/podcast/deploying-llms-in-production-fine-tuning-retrieval-open-source-api",
+    "public_path": "/podcast/deploying-llms-in-production-fine-tuning-retrieval-open-source-api.html",
     "published": "2023-07-29",
     "season": 15,
     "short": "LLMs for Everyone",
@@ -58237,7 +58237,7 @@
       {
         "key": "belawiertz",
         "name": "Bela Wiertz",
-        "public_path": "/people/belawiertz"
+        "public_path": "/people/belawiertz.html"
       }
     ],
     "guests": [
@@ -58259,7 +58259,7 @@
       "source_path": "podcasts/investing-in-open-source-developer-tools.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/investing-in-open-source-developer-tools.yaml"
     },
-    "public_path": "/podcast/investing-in-open-source-developer-tools",
+    "public_path": "/podcast/investing-in-open-source-developer-tools.html",
     "published": "2023-07-23",
     "season": 15,
     "short": "Investing in Open-Source Data Tools",
@@ -59108,7 +59108,7 @@
       {
         "key": "valeriybabushkin",
         "name": "Valerii Babushkin",
-        "public_path": "/people/valeriybabushkin"
+        "public_path": "/people/valeriybabushkin.html"
       }
     ],
     "guests": [
@@ -59130,7 +59130,7 @@
       "source_path": "podcasts/ml-system-design.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ml-system-design.yaml"
     },
-    "public_path": "/podcast/ml-system-design",
+    "public_path": "/podcast/ml-system-design.html",
     "published": "2023-07-16",
     "season": 15,
     "short": "Why Machine Learning Design is Broken",
@@ -59823,7 +59823,7 @@
       {
         "key": "polinamosolova",
         "name": "Polina Mosolova",
-        "public_path": "/people/polinamosolova"
+        "public_path": "/people/polinamosolova.html"
       }
     ],
     "guests": [
@@ -59845,7 +59845,7 @@
       "source_path": "podcasts/building-explainable-and-actionable-ai-ml-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-explainable-and-actionable-ai-ml-systems.yaml"
     },
-    "public_path": "/podcast/building-explainable-and-actionable-ai-ml-systems",
+    "public_path": "/podcast/building-explainable-and-actionable-ai-ml-systems.html",
     "published": "2023-07-08",
     "season": 14,
     "short": "Build Explainable and Actionable AI/ML Systems",
@@ -60775,7 +60775,7 @@
       {
         "key": "simonstiebellehner",
         "name": "Simon Stiebellehner",
-        "public_path": "/people/simonstiebellehner"
+        "public_path": "/people/simonstiebellehner.html"
       }
     ],
     "guests": [
@@ -60797,7 +60797,7 @@
       "source_path": "podcasts/building-production-ml-platform-and-mlops-team.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-production-ml-platform-and-mlops-team.yaml"
     },
-    "public_path": "/podcast/building-production-ml-platform-and-mlops-team",
+    "public_path": "/podcast/building-production-ml-platform-and-mlops-team.html",
     "published": "2023-07-02",
     "season": 14,
     "short": "From Scratch to Success: Building an MLOps Team and ML Platform",
@@ -61703,7 +61703,7 @@
       {
         "key": "santonatuli",
         "name": "Santona Tuli",
-        "public_path": "/people/santonatuli"
+        "public_path": "/people/santonatuli.html"
       }
     ],
     "guests": [
@@ -61725,7 +61725,7 @@
       "source_path": "podcasts/modern-data-pipelines-orchestration-ingestion-modeling.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/modern-data-pipelines-orchestration-ingestion-modeling.yaml"
     },
-    "public_path": "/podcast/modern-data-pipelines-orchestration-ingestion-modeling",
+    "public_path": "/podcast/modern-data-pipelines-orchestration-ingestion-modeling.html",
     "published": "2023-06-24",
     "season": 14,
     "short": "Modern Data Pipelines",
@@ -62445,7 +62445,7 @@
       {
         "key": "hugobowneanderson",
         "name": "Hugo Bowne-Anderson",
-        "public_path": "/people/hugobowneanderson"
+        "public_path": "/people/hugobowneanderson.html"
       }
     ],
     "guests": [
@@ -62467,7 +62467,7 @@
       "source_path": "podcasts/devrel-open-source-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/devrel-open-source-machine-learning.yaml"
     },
-    "public_path": "/podcast/devrel-open-source-machine-learning",
+    "public_path": "/podcast/devrel-open-source-machine-learning.html",
     "published": "2023-06-17",
     "season": 14,
     "short": "DevRel Role for Machine Learning",
@@ -63259,7 +63259,7 @@
       {
         "key": "antonisstellas",
         "name": "Antonis Stellas",
-        "public_path": "/people/antonisstellas"
+        "public_path": "/people/antonisstellas.html"
       }
     ],
     "guests": [
@@ -63281,7 +63281,7 @@
       "source_path": "podcasts/from-startup-engineering-to-freelance-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-startup-engineering-to-freelance-data-science.yaml"
     },
-    "public_path": "/podcast/from-startup-engineering-to-freelance-data-science",
+    "public_path": "/podcast/from-startup-engineering-to-freelance-data-science.html",
     "published": "2023-06-10",
     "season": 14,
     "short": "Lessons Learned from Freelancing and Working in a Start-up",
@@ -64295,7 +64295,7 @@
       {
         "key": "bartvandekerckhove",
         "name": "Bart Vandekerckhove",
-        "public_path": "/people/bartvandekerckhove"
+        "public_path": "/people/bartvandekerckhove.html"
       }
     ],
     "guests": [
@@ -64317,7 +64317,7 @@
       "source_path": "podcasts/data-governance-data-access-management.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-governance-data-access-management.yaml"
     },
-    "public_path": "/podcast/data-governance-data-access-management",
+    "public_path": "/podcast/data-governance-data-access-management.html",
     "published": "2023-06-03",
     "season": 14,
     "short": "Data Governance & Data Access Management",
@@ -65181,7 +65181,7 @@
       {
         "key": "boyanangelov",
         "name": "Boyan Angelov",
-        "public_path": "/people/boyanangelov"
+        "public_path": "/people/boyanangelov.html"
       }
     ],
     "guests": [
@@ -65203,7 +65203,7 @@
       "source_path": "podcasts/data-strategy-and-dataops-for-ai-powered-products.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-strategy-and-dataops-for-ai-powered-products.yaml"
     },
-    "public_path": "/podcast/data-strategy-and-dataops-for-ai-powered-products",
+    "public_path": "/podcast/data-strategy-and-dataops-for-ai-powered-products.html",
     "published": "2023-05-27",
     "season": 14,
     "short": "Data Strategy: Key Principles and Best Practices",
@@ -66064,7 +66064,7 @@
       {
         "key": "katharinejarmul",
         "name": "Katharine Jarmul",
-        "public_path": "/people/katharinejarmul"
+        "public_path": "/people/katharinejarmul.html"
       }
     ],
     "guests": [
@@ -66086,7 +66086,7 @@
       "source_path": "podcasts/data-privacy-engineering-gdpr-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-privacy-engineering-gdpr-machine-learning.yaml"
     },
-    "public_path": "/podcast/data-privacy-engineering-gdpr-machine-learning",
+    "public_path": "/podcast/data-privacy-engineering-gdpr-machine-learning.html",
     "published": "2023-05-20",
     "season": 14,
     "short": "Practical Data Privacy",
@@ -67178,7 +67178,7 @@
       {
         "key": "arsenykravchenko",
         "name": "Arseny Kravchenko",
-        "public_path": "/people/arsenykravchenko"
+        "public_path": "/people/arsenykravchenko.html"
       }
     ],
     "guests": [
@@ -67200,7 +67200,7 @@
       "source_path": "podcasts/building-scalable-and-reliable-machine-learning-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-scalable-and-reliable-machine-learning-systems.yaml"
     },
-    "public_path": "/podcast/building-scalable-and-reliable-machine-learning-systems",
+    "public_path": "/podcast/building-scalable-and-reliable-machine-learning-systems.html",
     "published": "2023-05-13",
     "season": 14,
     "short": "Building Scalable and Reliable Machine Learning Systems",
@@ -67917,7 +67917,7 @@
       {
         "key": "johanneshotter",
         "name": "Johannes Hötter",
-        "public_path": "/people/johanneshotter"
+        "public_path": "/people/johanneshotter.html"
       }
     ],
     "guests": [
@@ -67939,7 +67939,7 @@
       "source_path": "podcasts/building-open-source-nlp-tool.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-open-source-nlp-tool.yaml"
     },
-    "public_path": "/podcast/building-open-source-nlp-tool",
+    "public_path": "/podcast/building-open-source-nlp-tool.html",
     "published": "2023-04-23",
     "season": 13,
     "short": "Build Open-Source NLP Tools",
@@ -68884,7 +68884,7 @@
       {
         "key": "rosonaeldred",
         "name": "Rosona Eldred",
-        "public_path": "/people/rosonaeldred"
+        "public_path": "/people/rosonaeldred.html"
       }
     ],
     "guests": [
@@ -68906,7 +68906,7 @@
       "source_path": "podcasts/industrial-data-small-data-production-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/industrial-data-small-data-production-machine-learning.yaml"
     },
-    "public_path": "/podcast/industrial-data-small-data-production-machine-learning",
+    "public_path": "/podcast/industrial-data-small-data-production-machine-learning.html",
     "published": "2023-04-16",
     "season": 13,
     "short": "Navigating Industrial Data Challenges",
@@ -70346,7 +70346,7 @@
       {
         "key": "aaishamuhammad",
         "name": "Aaisha Muhammad",
-        "public_path": "/people/aaishamuhammad"
+        "public_path": "/people/aaishamuhammad.html"
       }
     ],
     "guests": [
@@ -70368,7 +70368,7 @@
       "source_path": "podcasts/learning-machine-learning-self-taught-bioinformatics.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/learning-machine-learning-self-taught-bioinformatics.yaml"
     },
-    "public_path": "/podcast/learning-machine-learning-self-taught-bioinformatics",
+    "public_path": "/podcast/learning-machine-learning-self-taught-bioinformatics.html",
     "published": "2023-04-08",
     "season": 13,
     "short": "Mastering Self-Learning in Machine Learning",
@@ -71508,7 +71508,7 @@
       {
         "key": "shirmeirlador",
         "name": "Shir Meir Lador",
-        "public_path": "/people/shirmeirlador"
+        "public_path": "/people/shirmeirlador.html"
       }
     ],
     "guests": [
@@ -71530,7 +71530,7 @@
       "source_path": "podcasts/data-science-management-and-agile-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-management-and-agile-machine-learning.yaml"
     },
-    "public_path": "/podcast/data-science-management-and-agile-machine-learning",
+    "public_path": "/podcast/data-science-management-and-agile-machine-learning.html",
     "published": "2023-04-01",
     "season": 13,
     "short": "The Secret Sauce of Data Science Management",
@@ -72520,7 +72520,7 @@
       {
         "key": "nadianahar",
         "name": "Nadia Nahar",
-        "public_path": "/people/nadianahar"
+        "public_path": "/people/nadianahar.html"
       }
     ],
     "guests": [
@@ -72542,7 +72542,7 @@
       "source_path": "podcasts/software-engineering-for-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/software-engineering-for-machine-learning.yaml"
     },
-    "public_path": "/podcast/software-engineering-for-machine-learning",
+    "public_path": "/podcast/software-engineering-for-machine-learning.html",
     "published": "2023-03-27",
     "season": 13,
     "short": "Software Engineering for ML",
@@ -73349,7 +73349,7 @@
       {
         "key": "aleksanderkruszelnicki",
         "name": "Aleksander Kruszelnicki",
-        "public_path": "/people/aleksanderkruszelnicki"
+        "public_path": "/people/aleksanderkruszelnicki.html"
       }
     ],
     "guests": [
@@ -73371,7 +73371,7 @@
       "source_path": "podcasts/data-consulting-business-pricing-and-client-acquisition.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-consulting-business-pricing-and-client-acquisition.yaml"
     },
-    "public_path": "/podcast/data-consulting-business-pricing-and-client-acquisition",
+    "public_path": "/podcast/data-consulting-business-pricing-and-client-acquisition.html",
     "published": "2023-03-19",
     "season": 13,
     "short": "Starting a Consultancy in the Data Space",
@@ -74307,7 +74307,7 @@
       {
         "key": "ruslanshchuchkin",
         "name": "Ruslan Shchuchkin",
-        "public_path": "/people/ruslanshchuchkin"
+        "public_path": "/people/ruslanshchuchkin.html"
       }
     ],
     "guests": [
@@ -74329,7 +74329,7 @@
       "source_path": "podcasts/biohacking-productivity-for-data-scientists-and-ml-engineers.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/biohacking-productivity-for-data-scientists-and-ml-engineers.yaml"
     },
-    "public_path": "/podcast/biohacking-productivity-for-data-scientists-and-ml-engineers",
+    "public_path": "/podcast/biohacking-productivity-for-data-scientists-and-ml-engineers.html",
     "published": "2023-03-11",
     "season": 13,
     "short": "Biohacking for Data Scientists and ML Engineers",
@@ -75721,7 +75721,7 @@
       {
         "key": "parvathykrishnan",
         "name": "Parvathy Krishnan",
-        "public_path": "/people/parvathykrishnan"
+        "public_path": "/people/parvathykrishnan.html"
       }
     ],
     "guests": [
@@ -75743,7 +75743,7 @@
       "source_path": "podcasts/data-science-and-analytics-for-nonprofits-tech-for-good.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-and-analytics-for-nonprofits-tech-for-good.yaml"
     },
-    "public_path": "/podcast/data-science-and-analytics-for-nonprofits-tech-for-good",
+    "public_path": "/podcast/data-science-and-analytics-for-nonprofits-tech-for-good.html",
     "published": "2023-03-04",
     "season": 13,
     "short": "Analytics for a Better World",
@@ -76502,7 +76502,7 @@
       {
         "key": "daniameira",
         "name": "Dânia Meira",
-        "public_path": "/people/daniameira"
+        "public_path": "/people/daniameira.html"
       }
     ],
     "guests": [
@@ -76524,7 +76524,7 @@
       "source_path": "podcasts/building-ml-communities-diversity-and-career-growth.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-ml-communities-diversity-and-career-growth.yaml"
     },
-    "public_path": "/podcast/building-ml-communities-diversity-and-career-growth",
+    "public_path": "/podcast/building-ml-communities-diversity-and-career-growth.html",
     "published": "2023-02-25",
     "season": 13,
     "short": "Accelerating the Adoption of AI through Diversity",
@@ -77490,7 +77490,7 @@
       {
         "key": "tatianagabruseva",
         "name": "Tatiana Gabruseva",
-        "public_path": "/people/tatianagabruseva"
+        "public_path": "/people/tatianagabruseva.html"
       }
     ],
     "guests": [
@@ -77512,7 +77512,7 @@
       "source_path": "podcasts/from-academia-to-staff-ai-engineer-interviews-and-career-growth.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-academia-to-staff-ai-engineer-interviews-and-career-growth.yaml"
     },
-    "public_path": "/podcast/from-academia-to-staff-ai-engineer-interviews-and-career-growth",
+    "public_path": "/podcast/from-academia-to-staff-ai-engineer-interviews-and-career-growth.html",
     "published": "2023-02-18",
     "season": 12,
     "short": "Transitioning from Academia to Industry as a Staff AI Engineer",
@@ -78364,7 +78364,7 @@
       {
         "key": "krzysztofszafanek",
         "name": "Krzysztof Szafanek",
-        "public_path": "/people/krzysztofszafanek"
+        "public_path": "/people/krzysztofszafanek.html"
       }
     ],
     "guests": [
@@ -78386,7 +78386,7 @@
       "source_path": "podcasts/how-to-grow-your-ml-engineering-career.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/how-to-grow-your-ml-engineering-career.yaml"
     },
-    "public_path": "/podcast/how-to-grow-your-ml-engineering-career",
+    "public_path": "/podcast/how-to-grow-your-ml-engineering-career.html",
     "published": "2023-02-04",
     "season": 12,
     "short": "How to Grow Your ML Engineering Career",
@@ -79457,7 +79457,7 @@
       {
         "key": "lukewhipps",
         "name": "Luke Whipps",
-        "public_path": "/people/lukewhipps"
+        "public_path": "/people/lukewhipps.html"
       }
     ],
     "guests": [
@@ -79479,7 +79479,7 @@
       "source_path": "podcasts/machine-learning-data-science-interview-prep.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/machine-learning-data-science-interview-prep.yaml"
     },
-    "public_path": "/podcast/machine-learning-data-science-interview-prep",
+    "public_path": "/podcast/machine-learning-data-science-interview-prep.html",
     "published": "2023-01-28",
     "season": 12,
     "short": "Master Machine Learning & Data Science Interviews",
@@ -80529,7 +80529,7 @@
       {
         "key": "paulineclavelloux",
         "name": "Pauline Clavelloux",
-        "public_path": "/people/paulineclavelloux"
+        "public_path": "/people/paulineclavelloux.html"
       }
     ],
     "guests": [
@@ -80551,7 +80551,7 @@
       "source_path": "podcasts/data-scientist-and-indie-hacker-bootstrapping-side-projects.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-scientist-and-indie-hacker-bootstrapping-side-projects.yaml"
     },
-    "public_path": "/podcast/data-scientist-and-indie-hacker-bootstrapping-side-projects",
+    "public_path": "/podcast/data-scientist-and-indie-hacker-bootstrapping-side-projects.html",
     "published": "2023-01-21",
     "season": 12,
     "short": "Indie Hacking and Bootstrapping Side Projects for Data Scientists",
@@ -81877,7 +81877,7 @@
       {
         "key": "johannabayer",
         "name": "Johanna Bayer",
-        "public_path": "/people/johannabayer"
+        "public_path": "/people/johannabayer.html"
       }
     ],
     "guests": [
@@ -81899,7 +81899,7 @@
       "source_path": "podcasts/teaching-reproducible-research-and-open-science-coding-practices-for-academia.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/teaching-reproducible-research-and-open-science-coding-practices-for-academia.yaml"
     },
-    "public_path": "/podcast/teaching-reproducible-research-and-open-science-coding-practices-for-academia",
+    "public_path": "/podcast/teaching-reproducible-research-and-open-science-coding-practices-for-academia.html",
     "published": "2023-01-14",
     "season": 12,
     "short": "Teaching Open Science & Reproducible Research",
@@ -82961,7 +82961,7 @@
       {
         "key": "marysiawinkels",
         "name": "Marysia Winkels",
-        "public_path": "/people/marysiawinkels"
+        "public_path": "/people/marysiawinkels.html"
       }
     ],
     "guests": [
@@ -82983,7 +82983,7 @@
       "source_path": "podcasts/data-centric-ai.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-centric-ai.yaml"
     },
-    "public_path": "/podcast/data-centric-ai",
+    "public_path": "/podcast/data-centric-ai.html",
     "published": "2023-01-07",
     "season": 12,
     "short": "Data-Centric AI",
@@ -84027,7 +84027,7 @@
       {
         "key": "lorismarini",
         "name": "Loris Marini",
-        "public_path": "/people/lorismarini"
+        "public_path": "/people/lorismarini.html"
       }
     ],
     "guests": [
@@ -84049,7 +84049,7 @@
       "source_path": "podcasts/data-professionals-business-skills-in-saas.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-professionals-business-skills-in-saas.yaml"
     },
-    "public_path": "/podcast/data-professionals-business-skills-in-saas",
+    "public_path": "/podcast/data-professionals-business-skills-in-saas.html",
     "published": "2022-12-17",
     "season": 12,
     "short": "Practical Skills for Data Professionals in SaaS",
@@ -84931,7 +84931,7 @@
       {
         "key": "sadatanwar",
         "name": "Sadat Anwar",
-        "public_path": "/people/sadatanwar"
+        "public_path": "/people/sadatanwar.html"
       }
     ],
     "guests": [
@@ -84953,7 +84953,7 @@
       "source_path": "podcasts/from-software-engineering-to-leading-data-science-teams.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-software-engineering-to-leading-data-science-teams.yaml"
     },
-    "public_path": "/podcast/from-software-engineering-to-leading-data-science-teams",
+    "public_path": "/podcast/from-software-engineering-to-leading-data-science-teams.html",
     "published": "2022-12-10",
     "season": 12,
     "short": "From Software Engineer to Data Science Manager",
@@ -86267,7 +86267,7 @@
       {
         "key": "irinabrudaru",
         "name": "Irina Brudaru",
-        "public_path": "/people/irinabrudaru"
+        "public_path": "/people/irinabrudaru.html"
       }
     ],
     "guests": [
@@ -86289,7 +86289,7 @@
       "source_path": "podcasts/teaching-mentoring-data-analytics-fintech.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/teaching-mentoring-data-analytics-fintech.yaml"
     },
-    "public_path": "/podcast/teaching-mentoring-data-analytics-fintech",
+    "public_path": "/podcast/teaching-mentoring-data-analytics-fintech.html",
     "published": "2022-12-03",
     "season": 11,
     "short": "Teaching and Mentoring in Data Analytics",
@@ -87720,7 +87720,7 @@
       {
         "key": "angelicaloduca",
         "name": "Angelica Lo Duca",
-        "public_path": "/people/angelicaloduca"
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "guests": [
@@ -87742,7 +87742,7 @@
       "source_path": "podcasts/data-journalism-python-visualization-storytelling.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-journalism-python-visualization-storytelling.yaml"
     },
-    "public_path": "/podcast/data-journalism-python-visualization-storytelling",
+    "public_path": "/podcast/data-journalism-python-visualization-storytelling.html",
     "published": "2022-11-26",
     "season": 11,
     "short": "Technical Writing and Data Journalism",
@@ -88657,7 +88657,7 @@
       {
         "key": "nikolamaksimovic",
         "name": "Nikola Maksimovic",
-        "public_path": "/people/nikolamaksimovic"
+        "public_path": "/people/nikolamaksimovic.html"
       }
     ],
     "guests": [
@@ -88679,7 +88679,7 @@
       "source_path": "podcasts/from-marketing-to-analytics-engineering-sql-dbt-career-switch.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-marketing-to-analytics-engineering-sql-dbt-career-switch.yaml"
     },
-    "public_path": "/podcast/from-marketing-to-analytics-engineering-sql-dbt-career-switch",
+    "public_path": "/podcast/from-marketing-to-analytics-engineering-sql-dbt-career-switch.html",
     "published": "2022-11-19",
     "season": 11,
     "short": "From Digital Marketing to Analytics Engineering",
@@ -89498,7 +89498,7 @@
       {
         "key": "annahannemann",
         "name": "Anna Hannemann",
-        "public_path": "/people/annahannemann"
+        "public_path": "/people/annahannemann.html"
       }
     ],
     "guests": [
@@ -89520,7 +89520,7 @@
       "source_path": "podcasts/building-data-products-product-owner-vs-product-manager.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-data-products-product-owner-vs-product-manager.yaml"
     },
-    "public_path": "/podcast/building-data-products-product-owner-vs-product-manager",
+    "public_path": "/podcast/building-data-products-product-owner-vs-product-manager.html",
     "published": "2022-11-11",
     "season": 11,
     "short": "Product Owners in Data Science",
@@ -90348,7 +90348,7 @@
       {
         "key": "andreyshtylenko",
         "name": "Andrey Shtylenko",
-        "public_path": "/people/andreyshtylenko"
+        "public_path": "/people/andreyshtylenko.html"
       }
     ],
     "guests": [
@@ -90370,7 +90370,7 @@
       "source_path": "podcasts/building-and-scaling-data-science-practice-industrial-ai-mlops.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-and-scaling-data-science-practice-industrial-ai-mlops.yaml"
     },
-    "public_path": "/podcast/building-and-scaling-data-science-practice-industrial-ai-mlops",
+    "public_path": "/podcast/building-and-scaling-data-science-practice-industrial-ai-mlops.html",
     "published": "2022-11-05",
     "season": 11,
     "short": "Building and Scaling Data Science Practice in Industrial Enterprises",
@@ -91069,7 +91069,7 @@
       {
         "key": "sonalgoyal",
         "name": "Sonal Goyal",
-        "public_path": "/people/sonalgoyal"
+        "public_path": "/people/sonalgoyal.html"
       }
     ],
     "guests": [
@@ -91091,7 +91091,7 @@
       "source_path": "podcasts/building-open-source-data-product-for-identity-resolution.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-open-source-data-product-for-identity-resolution.yaml"
     },
-    "public_path": "/podcast/building-open-source-data-product-for-identity-resolution",
+    "public_path": "/podcast/building-open-source-data-product-for-identity-resolution.html",
     "published": "2022-10-29",
     "season": 11,
     "short": "Building an Open-Source ML-Powered Identity Resolution Tool",
@@ -92033,7 +92033,7 @@
       {
         "key": "tomaszhinc",
         "name": "Tomasz Hinc",
-        "public_path": "/people/tomaszhinc"
+        "public_path": "/people/tomaszhinc.html"
       }
     ],
     "guests": [
@@ -92055,7 +92055,7 @@
       "source_path": "podcasts/dataops-and-gitops-best-practices-for-data-teams.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/dataops-and-gitops-best-practices-for-data-teams.yaml"
     },
-    "public_path": "/podcast/dataops-and-gitops-best-practices-for-data-teams",
+    "public_path": "/podcast/dataops-and-gitops-best-practices-for-data-teams.html",
     "published": "2022-10-22",
     "season": 11,
     "short": "From Data Science to DataOps",
@@ -92832,7 +92832,7 @@
       {
         "key": "katiebauer",
         "name": "Katie Bauer",
-        "public_path": "/people/katiebauer"
+        "public_path": "/people/katiebauer.html"
       }
     ],
     "guests": [
@@ -92854,7 +92854,7 @@
       "source_path": "podcasts/hiring-and-managing-data-science-teams-in-b2b-saas.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/hiring-and-managing-data-science-teams-in-b2b-saas.yaml"
     },
-    "public_path": "/podcast/hiring-and-managing-data-science-teams-in-b2b-saas",
+    "public_path": "/podcast/hiring-and-managing-data-science-teams-in-b2b-saas.html",
     "published": "2022-10-15",
     "season": 11,
     "short": "How to Hire, Manage, and Grow a Data Science Team in B2B SaaS",
@@ -93805,7 +93805,7 @@
       {
         "key": "alvaronavaspeire",
         "name": "Alvaro Navas Peire",
-        "public_path": "/people/alvaronavaspeire"
+        "public_path": "/people/alvaronavaspeire.html"
       }
     ],
     "guests": [
@@ -93827,7 +93827,7 @@
       "source_path": "podcasts/how-to-transition-into-ml-and-data-engineering-from-qa.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/how-to-transition-into-ml-and-data-engineering-from-qa.yaml"
     },
-    "public_path": "/podcast/how-to-transition-into-ml-and-data-engineering-from-qa",
+    "public_path": "/podcast/how-to-transition-into-ml-and-data-engineering-from-qa.html",
     "published": "2022-10-07",
     "season": 11,
     "short": "From Testing Phones to Managing NLP Projects",
@@ -94937,7 +94937,7 @@
       {
         "key": "supreetkaur",
         "name": "Supreet Kaur",
-        "public_path": "/people/supreetkaur"
+        "public_path": "/people/supreetkaur.html"
       }
     ],
     "guests": [
@@ -94959,7 +94959,7 @@
       "source_path": "podcasts/responsible-explainable-ai-bias-detection.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/responsible-explainable-ai-bias-detection.yaml"
     },
-    "public_path": "/podcast/responsible-explainable-ai-bias-detection",
+    "public_path": "/podcast/responsible-explainable-ai-bias-detection.html",
     "published": "2022-10-02",
     "season": 10,
     "short": "Responsible and Explainable AI",
@@ -95955,7 +95955,7 @@
       {
         "key": "davidbader",
         "name": "David Bader",
-        "public_path": "/people/davidbader"
+        "public_path": "/people/davidbader.html"
       }
     ],
     "guests": [
@@ -95977,7 +95977,7 @@
       "source_path": "podcasts/building-data-science-programs-and-democratizing-high-performance-computing.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-data-science-programs-and-democratizing-high-performance-computing.yaml"
     },
-    "public_path": "/podcast/building-data-science-programs-and-democratizing-high-performance-computing",
+    "public_path": "/podcast/building-data-science-programs-and-democratizing-high-performance-computing.html",
     "published": "2022-09-16",
     "season": 10,
     "short": "Leading Data Research",
@@ -96874,7 +96874,7 @@
       {
         "key": "christiannswart",
         "name": "Christiaan Swart",
-        "public_path": "/people/christiannswart"
+        "public_path": "/people/christiannswart.html"
       }
     ],
     "guests": [
@@ -96896,7 +96896,7 @@
       "source_path": "podcasts/nlp-dataset-creation-annotation-tools-workflows.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/nlp-dataset-creation-annotation-tools-workflows.yaml"
     },
-    "public_path": "/podcast/nlp-dataset-creation-annotation-tools-workflows",
+    "public_path": "/podcast/nlp-dataset-creation-annotation-tools-workflows.html",
     "published": "2022-09-09",
     "season": 10,
     "short": "Dataset Creation and Curation",
@@ -97565,7 +97565,7 @@
       {
         "key": "zhamakdehghani",
         "name": "Zhamak Dehghani",
-        "public_path": "/people/zhamakdehghani"
+        "public_path": "/people/zhamakdehghani.html"
       }
     ],
     "guests": [
@@ -97587,7 +97587,7 @@
       "source_path": "podcasts/data-mesh-architecture-decentralized-data-products.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-mesh-architecture-decentralized-data-products.yaml"
     },
-    "public_path": "/podcast/data-mesh-architecture-decentralized-data-products",
+    "public_path": "/podcast/data-mesh-architecture-decentralized-data-products.html",
     "published": "2022-09-02",
     "season": 10,
     "short": "Data Mesh 101",
@@ -98292,7 +98292,7 @@
       {
         "key": "mehdiouazza",
         "name": "Mehdi OUAZZA",
-        "public_path": "/people/mehdiouazza"
+        "public_path": "/people/mehdiouazza.html"
       }
     ],
     "guests": [
@@ -98314,7 +98314,7 @@
       "source_path": "podcasts/scaling-data-engineering-teams-self-service-platforms.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/scaling-data-engineering-teams-self-service-platforms.yaml"
     },
-    "public_path": "/podcast/scaling-data-engineering-teams-self-service-platforms",
+    "public_path": "/podcast/scaling-data-engineering-teams-self-service-platforms.html",
     "published": "2022-08-29",
     "season": 10,
     "short": "Growing Data Engineering Team in a Scale-Up",
@@ -99226,7 +99226,7 @@
       {
         "key": "alexanderhendorf",
         "name": "Alexander Hendorf",
-        "public_path": "/people/alexanderhendorf"
+        "public_path": "/people/alexanderhendorf.html"
       }
     ],
     "guests": [
@@ -99248,7 +99248,7 @@
       "source_path": "podcasts/scaling-enterprise-ai-mlops-data-first-strategy.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/scaling-enterprise-ai-mlops-data-first-strategy.yaml"
     },
-    "public_path": "/podcast/scaling-enterprise-ai-mlops-data-first-strategy",
+    "public_path": "/podcast/scaling-enterprise-ai-mlops-data-first-strategy.html",
     "published": "2022-08-19",
     "season": 10,
     "short": "Lessons Learned About Data & AI at Enterprises",
@@ -99965,7 +99965,7 @@
       {
         "key": "dannyleybzon",
         "name": "Danny Leybzon",
-        "public_path": "/people/dannyleybzon"
+        "public_path": "/people/dannyleybzon.html"
       }
     ],
     "guests": [
@@ -99987,7 +99987,7 @@
       "source_path": "podcasts/mlops-model-monitoring-data-observability.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mlops-model-monitoring-data-observability.yaml"
     },
-    "public_path": "/podcast/mlops-model-monitoring-data-observability",
+    "public_path": "/podcast/mlops-model-monitoring-data-observability.html",
     "published": "2022-08-13",
     "season": 10,
     "short": "MLOps Architect",
@@ -101019,7 +101019,7 @@
       {
         "key": "terezaiofciu",
         "name": "Tereza Iofciu",
-        "public_path": "/people/terezaiofciu"
+        "public_path": "/people/terezaiofciu.html"
       }
     ],
     "guests": [
@@ -101041,7 +101041,7 @@
       "source_path": "podcasts/data-science-job-red-flags-and-mismatched-roles.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-job-red-flags-and-mismatched-roles.yaml"
     },
-    "public_path": "/podcast/data-science-job-red-flags-and-mismatched-roles",
+    "public_path": "/podcast/data-science-job-red-flags-and-mismatched-roles.html",
     "published": "2022-08-06",
     "season": 10,
     "short": "How to Spot Misleading Job Titles, Hiring Red Flags & Build Better Data Teams",
@@ -102016,7 +102016,7 @@
       {
         "key": "christinecepelak",
         "name": "Christine Cepelak",
-        "public_path": "/people/christinecepelak"
+        "public_path": "/people/christinecepelak.html"
       }
     ],
     "guests": [
@@ -102038,7 +102038,7 @@
       "source_path": "podcasts/data-science-for-public-policy-ethical-ai-social-impact.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-for-public-policy-ethical-ai-social-impact.yaml"
     },
-    "public_path": "/podcast/data-science-for-public-policy-ethical-ai-social-impact",
+    "public_path": "/podcast/data-science-for-public-policy-ethical-ai-social-impact.html",
     "published": "2022-07-30",
     "season": 10,
     "short": "Data Science for Social Impact",
@@ -103124,7 +103124,7 @@
       {
         "key": "olgaivina",
         "name": "Olga Ivina",
-        "public_path": "/people/olgaivina"
+        "public_path": "/people/olgaivina.html"
       }
     ],
     "guests": [
@@ -103146,7 +103146,7 @@
       "source_path": "podcasts/hiring-for-data-science-jobs-interview-questions-skills.md.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/hiring-for-data-science-jobs-interview-questions-skills.md.yaml"
     },
-    "public_path": "/podcast/hiring-for-data-science-jobs-interview-questions-skills.md",
+    "public_path": "/podcast/hiring-for-data-science-jobs-interview-questions-skills.md.html",
     "published": "2022-07-22",
     "season": 9,
     "short": "Hiring Data Science Talent",
@@ -104289,7 +104289,7 @@
       {
         "key": "willmcgugan",
         "name": "Will McGugan",
-        "public_path": "/people/willmcgugan"
+        "public_path": "/people/willmcgugan.html"
       }
     ],
     "guests": [
@@ -104311,7 +104311,7 @@
       "source_path": "podcasts/open-source-turned-into-career-and-startup-creation.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/open-source-turned-into-career-and-startup-creation.yaml"
     },
-    "public_path": "/podcast/open-source-turned-into-career-and-startup-creation",
+    "public_path": "/podcast/open-source-turned-into-career-and-startup-creation.html",
     "published": "2022-07-15",
     "season": 9,
     "short": "From Open-Source Maintainer to Founder",
@@ -105529,7 +105529,7 @@
       {
         "key": "lisacohen",
         "name": "Lisa Cohen",
-        "public_path": "/people/lisacohen"
+        "public_path": "/people/lisacohen.html"
       }
     ],
     "guests": [
@@ -105551,7 +105551,7 @@
       "source_path": "podcasts/data-science-team-structure-and-org-design.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-team-structure-and-org-design.yaml"
     },
-    "public_path": "/podcast/data-science-team-structure-and-org-design",
+    "public_path": "/podcast/data-science-team-structure-and-org-design.html",
     "published": "2022-07-08",
     "season": 9,
     "short": "Designing a Data Science Team",
@@ -106433,7 +106433,7 @@
       {
         "key": "mervenoyan",
         "name": "Merve Noyan",
-        "public_path": "/people/mervenoyan"
+        "public_path": "/people/mervenoyan.html"
       }
     ],
     "guests": [
@@ -106455,7 +106455,7 @@
       "source_path": "podcasts/hugging-face-contributions-and-nlp-portfolio.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/hugging-face-contributions-and-nlp-portfolio.yaml"
     },
-    "public_path": "/podcast/hugging-face-contributions-and-nlp-portfolio",
+    "public_path": "/podcast/hugging-face-contributions-and-nlp-portfolio.html",
     "published": "2022-07-02",
     "season": 9,
     "short": "Developer Advocacy Engineer for Open-Source",
@@ -107475,7 +107475,7 @@
       {
         "key": "misraturp",
         "name": "Mısra Turp",
-        "public_path": "/people/misraturp"
+        "public_path": "/people/misraturp.html"
       }
     ],
     "guests": [
@@ -107497,7 +107497,7 @@
       "source_path": "podcasts/how-to-break-into-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/how-to-break-into-data-science.yaml"
     },
-    "public_path": "/podcast/how-to-break-into-data-science",
+    "public_path": "/podcast/how-to-break-into-data-science.html",
     "published": "2022-06-25",
     "season": 9,
     "short": "Data Scientists at Work",
@@ -108502,7 +108502,7 @@
       {
         "key": "adrianbrudaru",
         "name": "Adrian Brudaru",
-        "public_path": "/people/adrianbrudaru"
+        "public_path": "/people/adrianbrudaru.html"
       }
     ],
     "guests": [
@@ -108524,7 +108524,7 @@
       "source_path": "podcasts/freelance-data-engineering-pricing-and-clients.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/freelance-data-engineering-pricing-and-clients.yaml"
     },
-    "public_path": "/podcast/freelance-data-engineering-pricing-and-clients",
+    "public_path": "/podcast/freelance-data-engineering-pricing-and-clients.html",
     "published": "2022-06-18",
     "season": 9,
     "short": "Freelancing and Consulting with Data Engineering",
@@ -109724,7 +109724,7 @@
       {
         "key": "jeffkatz",
         "name": "Jeff Katz",
-        "public_path": "/people/jeffkatz"
+        "public_path": "/people/jeffkatz.html"
       }
     ],
     "guests": [
@@ -109746,7 +109746,7 @@
       "source_path": "podcasts/get-data-engineering-job-prep-and-interview.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/get-data-engineering-job-prep-and-interview.yaml"
     },
-    "public_path": "/podcast/get-data-engineering-job-prep-and-interview",
+    "public_path": "/podcast/get-data-engineering-job-prep-and-interview.html",
     "published": "2022-06-10",
     "season": 9,
     "short": "Getting a Data Engineering Job (Summary and Q&A)",
@@ -110433,7 +110433,7 @@
       {
         "key": "daynancrull",
         "name": "Daynan Crull",
-        "public_path": "/people/daynancrull"
+        "public_path": "/people/daynancrull.html"
       }
     ],
     "guests": [
@@ -110455,7 +110455,7 @@
       "source_path": "podcasts/machine-learning-for-asteroid-mining-and-water-detection.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/machine-learning-for-asteroid-mining-and-water-detection.yaml"
     },
-    "public_path": "/podcast/machine-learning-for-asteroid-mining-and-water-detection",
+    "public_path": "/podcast/machine-learning-for-asteroid-mining-and-water-detection.html",
     "published": "2022-06-04",
     "season": 9,
     "short": "Using Data for Asteroid Mining",
@@ -111160,7 +111160,7 @@
       {
         "key": "juanorduz",
         "name": "Juan Orduz",
-        "public_path": "/people/juanorduz"
+        "public_path": "/people/juanorduz.html"
       }
     ],
     "guests": [
@@ -111182,7 +111182,7 @@
       "source_path": "podcasts/machine-learning-in-marketing-attribution-marketing-mix-modeling.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/machine-learning-in-marketing-attribution-marketing-mix-modeling.yaml"
     },
-    "public_path": "/podcast/machine-learning-in-marketing-attribution-marketing-mix-modeling",
+    "public_path": "/podcast/machine-learning-in-marketing-attribution-marketing-mix-modeling.html",
     "published": "2022-05-28",
     "season": 9,
     "short": "Machine Learning in Marketing",
@@ -112079,7 +112079,7 @@
       {
         "key": "gloriaquiceno",
         "name": "Gloria Quiceno",
-        "public_path": "/people/gloriaquiceno"
+        "public_path": "/people/gloriaquiceno.html"
       }
     ],
     "guests": [
@@ -112101,7 +112101,7 @@
       "source_path": "podcasts/get-data-analytics-and-data-engineering-job.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/get-data-analytics-and-data-engineering-job.yaml"
     },
-    "public_path": "/podcast/get-data-analytics-and-data-engineering-job",
+    "public_path": "/podcast/get-data-analytics-and-data-engineering-job.html",
     "published": "2022-05-21",
     "season": 8,
     "short": "From Academia to Data Analytics and Engineering",
@@ -113223,7 +113223,7 @@
       {
         "key": "jeffkatz",
         "name": "Jeff Katz",
-        "public_path": "/people/jeffkatz"
+        "public_path": "/people/jeffkatz.html"
       }
     ],
     "guests": [
@@ -113245,7 +113245,7 @@
       "source_path": "podcasts/data-engineering-career-path-and-skills.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-engineering-career-path-and-skills.yaml"
     },
-    "public_path": "/podcast/data-engineering-career-path-and-skills",
+    "public_path": "/podcast/data-engineering-career-path-and-skills.html",
     "published": "2022-05-16",
     "season": 8,
     "short": "Teaching Data Engineers",
@@ -114358,7 +114358,7 @@
       {
         "key": "jessicagreene",
         "name": "Jessica Greene",
-        "public_path": "/people/jessicagreene"
+        "public_path": "/people/jessicagreene.html"
       }
     ],
     "guests": [
@@ -114380,7 +114380,7 @@
       "source_path": "podcasts/how-to-switch-to-ml-tech-without-experience.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/how-to-switch-to-ml-tech-without-experience.yaml"
     },
-    "public_path": "/podcast/how-to-switch-to-ml-tech-without-experience",
+    "public_path": "/podcast/how-to-switch-to-ml-tech-without-experience.html",
     "published": "2022-05-07",
     "season": 8,
     "short": "From Roasting Coffee to Backend Development",
@@ -115286,7 +115286,7 @@
       {
         "key": "nicolasrassam",
         "name": "Nicolas Rassam",
-        "public_path": "/people/nicolasrassam"
+        "public_path": "/people/nicolasrassam.html"
       }
     ],
     "guests": [
@@ -115308,7 +115308,7 @@
       "source_path": "podcasts/hiring-for-data-engineering-jobs-in-europe.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/hiring-for-data-engineering-jobs-in-europe.yaml"
     },
-    "public_path": "/podcast/hiring-for-data-engineering-jobs-in-europe",
+    "public_path": "/podcast/hiring-for-data-engineering-jobs-in-europe.html",
     "published": "2022-04-30",
     "season": 8,
     "short": "Recruiting Data Engineers",
@@ -115950,7 +115950,7 @@
       {
         "key": "christopherbergh",
         "name": "Christopher Bergh",
-        "public_path": "/people/christopherbergh"
+        "public_path": "/people/christopherbergh.html"
       }
     ],
     "guests": [
@@ -115972,7 +115972,7 @@
       "source_path": "podcasts/dataops-automation-and-reliable-data-pipelines.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/dataops-automation-and-reliable-data-pipelines.yaml"
     },
-    "public_path": "/podcast/dataops-automation-and-reliable-data-pipelines",
+    "public_path": "/podcast/dataops-automation-and-reliable-data-pipelines.html",
     "published": "2022-04-23",
     "season": 8,
     "short": "Storytime for DataOps",
@@ -116788,7 +116788,7 @@
       {
         "key": "stefangudmundsson",
         "name": "Stefan Gudmundsson",
-        "public_path": "/people/stefangudmundsson"
+        "public_path": "/people/stefangudmundsson.html"
       }
     ],
     "guests": [
@@ -116810,7 +116810,7 @@
       "source_path": "podcasts/ai-in-healthcare-and-digital-therapeutics.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ai-in-healthcare-and-digital-therapeutics.yaml"
     },
-    "public_path": "/podcast/ai-in-healthcare-and-digital-therapeutics",
+    "public_path": "/podcast/ai-in-healthcare-and-digital-therapeutics.html",
     "published": "2022-04-16",
     "season": 8,
     "short": "Machine Learning and Personalization in Healthcare",
@@ -117800,7 +117800,7 @@
       {
         "key": "liesbethdingemans",
         "name": "Liesbeth Dingemans",
-        "public_path": "/people/liesbethdingemans"
+        "public_path": "/people/liesbethdingemans.html"
       }
     ],
     "guests": [
@@ -117822,7 +117822,7 @@
       "source_path": "podcasts/ai-ml-product-design-and-experimentation.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ai-ml-product-design-and-experimentation.yaml"
     },
-    "public_path": "/podcast/ai-ml-product-design-and-experimentation",
+    "public_path": "/podcast/ai-ml-product-design-and-experimentation.html",
     "published": "2022-04-10",
     "season": 8,
     "short": "Innovation and Design for Machine Learning",
@@ -118615,7 +118615,7 @@
       {
         "key": "marijnmarkus",
         "name": "Marijn Markus",
-        "public_path": "/people/marijnmarkus"
+        "public_path": "/people/marijnmarkus.html"
       }
     ],
     "guests": [
@@ -118637,7 +118637,7 @@
       "source_path": "podcasts/how-to-stand-out-in-data-science.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/how-to-stand-out-in-data-science.yaml"
     },
-    "public_path": "/podcast/how-to-stand-out-in-data-science",
+    "public_path": "/podcast/how-to-stand-out-in-data-science.html",
     "published": "2022-04-01",
     "season": 8,
     "short": "Hacking Your Data Career",
@@ -119621,7 +119621,7 @@
       {
         "key": "meoramer",
         "name": "Meor Amer",
-        "public_path": "/people/meoramer"
+        "public_path": "/people/meoramer.html"
       }
     ],
     "guests": [
@@ -119643,7 +119643,7 @@
       "source_path": "podcasts/visualizing-machine-learning-concepts-to-explain-ml.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/visualizing-machine-learning-concepts-to-explain-ml.yaml"
     },
-    "public_path": "/podcast/visualizing-machine-learning-concepts-to-explain-ml",
+    "public_path": "/podcast/visualizing-machine-learning-concepts-to-explain-ml.html",
     "published": "2022-03-26",
     "season": 8,
     "short": "Using Visualizations to Explain Machine Learning",
@@ -120366,7 +120366,7 @@
       {
         "key": "juanpablo",
         "name": "Juan Pablo",
-        "public_path": "/people/juanpablo"
+        "public_path": "/people/juanpablo.html"
       }
     ],
     "guests": [
@@ -120388,7 +120388,7 @@
       "source_path": "podcasts/from-math-graduate-to-data-analytics.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-math-graduate-to-data-analytics.yaml"
     },
-    "public_path": "/podcast/from-math-graduate-to-data-analytics",
+    "public_path": "/podcast/from-math-graduate-to-data-analytics.html",
     "published": "2022-03-19",
     "season": 7,
     "short": "From Math Teacher to Analytics Engineer",
@@ -121420,7 +121420,7 @@
       {
         "key": "ellenkonig",
         "name": "Ellen König",
-        "public_path": "/people/ellenkonig"
+        "public_path": "/people/ellenkonig.html"
       }
     ],
     "guests": [
@@ -121442,7 +121442,7 @@
       "source_path": "podcasts/from-software-engineering-data-science-to-data-engineering-leadership.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-software-engineering-data-science-to-data-engineering-leadership.yaml"
     },
-    "public_path": "/podcast/from-software-engineering-data-science-to-data-engineering-leadership",
+    "public_path": "/podcast/from-software-engineering-data-science-to-data-engineering-leadership.html",
     "published": "2022-03-14",
     "season": 7,
     "short": "From Data Science to Data Engineering",
@@ -122579,7 +122579,7 @@
       {
         "key": "16rahuljain",
         "name": "Rahul Jain",
-        "public_path": "/people/16rahuljain"
+        "public_path": "/people/16rahuljain.html"
       }
     ],
     "guests": [
@@ -122601,7 +122601,7 @@
       "source_path": "podcasts/data-engineering-leadership-and-modern-data-platforms.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-engineering-leadership-and-modern-data-platforms.yaml"
     },
-    "public_path": "/podcast/data-engineering-leadership-and-modern-data-platforms",
+    "public_path": "/podcast/data-engineering-leadership-and-modern-data-platforms.html",
     "published": "2022-03-06",
     "season": 7,
     "short": "Becoming a Data Engineering Manager",
@@ -123486,7 +123486,7 @@
       {
         "key": "jakobgraff",
         "name": "Jakob Graff",
-        "public_path": "/people/jakobgraff"
+        "public_path": "/people/jakobgraff.html"
       }
     ],
     "guests": [
@@ -123508,7 +123508,7 @@
       "source_path": "podcasts/ab-testing-and-product-experimentation.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ab-testing-and-product-experimentation.yaml"
     },
-    "public_path": "/podcast/ab-testing-and-product-experimentation",
+    "public_path": "/podcast/ab-testing-and-product-experimentation.html",
     "published": "2022-02-27",
     "season": 7,
     "short": "A/B Testing",
@@ -124218,7 +124218,7 @@
       {
         "key": "valeriybabushkin",
         "name": "Valerii Babushkin",
-        "public_path": "/people/valeriybabushkin"
+        "public_path": "/people/valeriybabushkin.html"
       }
     ],
     "guests": [
@@ -124240,7 +124240,7 @@
       "source_path": "podcasts/machine-learning-system-design-interview.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/machine-learning-system-design-interview.yaml"
     },
-    "public_path": "/podcast/machine-learning-system-design-interview",
+    "public_path": "/podcast/machine-learning-system-design-interview.html",
     "published": "2022-02-19",
     "season": 7,
     "short": "Machine Learning System Design Interview",
@@ -125458,7 +125458,7 @@
       {
         "key": "lindsaymcquade",
         "name": "Lindsay McQuade",
-        "public_path": "/people/lindsaymcquade"
+        "public_path": "/people/lindsaymcquade.html"
       }
     ],
     "guests": [
@@ -125480,7 +125480,7 @@
       "source_path": "podcasts/get-junior-data-job-and-transferable-skills.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/get-junior-data-job-and-transferable-skills.yaml"
     },
-    "public_path": "/podcast/get-junior-data-job-and-transferable-skills",
+    "public_path": "/podcast/get-junior-data-job-and-transferable-skills.html",
     "published": "2022-02-12",
     "season": 7,
     "short": "Career Coaching",
@@ -126323,7 +126323,7 @@
       {
         "key": "gregcoquillo",
         "name": "Greg Coquillo",
-        "public_path": "/people/gregcoquillo"
+        "public_path": "/people/gregcoquillo.html"
       }
     ],
     "guests": [
@@ -126345,7 +126345,7 @@
       "source_path": "podcasts/building-and-scaling-ai-data-products-with-mlops.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-and-scaling-ai-data-products-with-mlops.yaml"
     },
-    "public_path": "/podcast/building-and-scaling-ai-data-products-with-mlops",
+    "public_path": "/podcast/building-and-scaling-ai-data-products-with-mlops.html",
     "published": "2022-02-06",
     "season": 7,
     "short": "Product Management Essentials for Data Professionals",
@@ -126987,7 +126987,7 @@
       {
         "key": "alicjanotowska",
         "name": "Alicja Notowska",
-        "public_path": "/people/alicjanotowska"
+        "public_path": "/people/alicjanotowska.html"
       }
     ],
     "guests": [
@@ -127009,7 +127009,7 @@
       "source_path": "podcasts/hiring-data-scientists-and-analysts.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/hiring-data-scientists-and-analysts.yaml"
     },
-    "public_path": "/podcast/hiring-data-scientists-and-analysts",
+    "public_path": "/podcast/hiring-data-scientists-and-analysts.html",
     "published": "2022-01-29",
     "season": 7,
     "short": "Recruiting Data Professionals",
@@ -127912,12 +127912,12 @@
       {
         "key": "eugeneyan",
         "name": "Eugene Yan",
-        "public_path": "/people/eugeneyan"
+        "public_path": "/people/eugeneyan.html"
       },
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "guests": [
@@ -127940,7 +127940,7 @@
       "source_path": "podcasts/datatalksclub-building-scaling-data-community.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/datatalksclub-building-scaling-data-community.yaml"
     },
-    "public_path": "/podcast/datatalksclub-building-scaling-data-community",
+    "public_path": "/podcast/datatalksclub-building-scaling-data-community.html",
     "published": "2022-01-23",
     "season": 7,
     "short": "DataTalks.Club Behind the Scenes",
@@ -128591,7 +128591,7 @@
       {
         "key": "marianosemelman",
         "name": "Mariano Semelman",
-        "public_path": "/people/marianosemelman"
+        "public_path": "/people/marianosemelman.html"
       }
     ],
     "guests": [
@@ -128613,7 +128613,7 @@
       "source_path": "podcasts/data-science-leadership-hiring-mlops.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-leadership-hiring-mlops.yaml"
     },
-    "public_path": "/podcast/data-science-leadership-hiring-mlops",
+    "public_path": "/podcast/data-science-leadership-hiring-mlops.html",
     "published": "2022-01-09",
     "season": 6,
     "short": "Becoming a Data Science Manager",
@@ -129375,7 +129375,7 @@
       {
         "key": "ivanbilan",
         "name": "Ivan Bilan",
-        "public_path": "/people/ivanbilan"
+        "public_path": "/people/ivanbilan.html"
       }
     ],
     "guests": [
@@ -129397,7 +129397,7 @@
       "source_path": "podcasts/nlp-team-hiring-and-production-mlops.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/nlp-team-hiring-and-production-mlops.yaml"
     },
-    "public_path": "/podcast/nlp-team-hiring-and-production-mlops",
+    "public_path": "/podcast/nlp-team-hiring-and-production-mlops.html",
     "published": "2021-12-26",
     "season": 6,
     "short": "Leading NLP Teams",
@@ -130312,7 +130312,7 @@
       {
         "key": "geojolly",
         "name": "Geo Jolly",
-        "public_path": "/people/geojolly"
+        "public_path": "/people/geojolly.html"
       }
     ],
     "guests": [
@@ -130334,7 +130334,7 @@
       "source_path": "podcasts/ml-product-manager-and-mlops-platform-strategy.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ml-product-manager-and-mlops-platform-strategy.yaml"
     },
-    "public_path": "/podcast/ml-product-manager-and-mlops-platform-strategy",
+    "public_path": "/podcast/ml-product-manager-and-mlops-platform-strategy.html",
     "published": "2021-12-17",
     "season": 6,
     "short": "Product Management for Machine Learning",
@@ -131186,7 +131186,7 @@
       {
         "key": "cjjenkins",
         "name": "CJ Jenkins",
-        "public_path": "/people/cjjenkins"
+        "public_path": "/people/cjjenkins.html"
       }
     ],
     "guests": [
@@ -131208,7 +131208,7 @@
       "source_path": "podcasts/postdoc-to-data-science-lead-career-transition.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/postdoc-to-data-science-lead-career-transition.yaml"
     },
-    "public_path": "/podcast/postdoc-to-data-science-lead-career-transition",
+    "public_path": "/podcast/postdoc-to-data-science-lead-career-transition.html",
     "published": "2021-12-11",
     "season": 6,
     "short": "Moving from Academia to Industry",
@@ -132171,7 +132171,7 @@
       {
         "key": "elenitziritazacharatou",
         "name": "Eleni Tzirita Zacharatou",
-        "public_path": "/people/elenitziritazacharatou"
+        "public_path": "/people/elenitziritazacharatou.html"
       }
     ],
     "guests": [
@@ -132193,7 +132193,7 @@
       "source_path": "podcasts/big-data-analytics-and-postdoc-research.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/big-data-analytics-and-postdoc-research.yaml"
     },
-    "public_path": "/podcast/big-data-analytics-and-postdoc-research",
+    "public_path": "/podcast/big-data-analytics-and-postdoc-research.html",
     "published": "2021-12-05",
     "season": 6,
     "short": "Advancing Big Data Analytics: Post-Doctoral Research",
@@ -132979,7 +132979,7 @@
       {
         "key": "saramenefee",
         "name": "Sara Menefee",
-        "public_path": "/people/saramenefee"
+        "public_path": "/people/saramenefee.html"
       }
     ],
     "guests": [
@@ -133001,7 +133001,7 @@
       "source_path": "podcasts/product-designer-to-data-product-manager.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/product-designer-to-data-product-manager.yaml"
     },
-    "public_path": "/podcast/product-designer-to-data-product-manager",
+    "public_path": "/podcast/product-designer-to-data-product-manager.html",
     "published": "2021-11-26",
     "season": 6,
     "short": "Becoming a Data Product Manager",
@@ -133814,7 +133814,7 @@
       {
         "key": "barbarasobkowiak",
         "name": "Barbara Sobkowiak",
-        "public_path": "/people/barbarasobkowiak"
+        "public_path": "/people/barbarasobkowiak.html"
       }
     ],
     "guests": [
@@ -133836,7 +133836,7 @@
       "source_path": "podcasts/data-science-manager-vs-expert-hiring-guide.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-manager-vs-expert-hiring-guide.yaml"
     },
-    "public_path": "/podcast/data-science-manager-vs-expert-hiring-guide",
+    "public_path": "/podcast/data-science-manager-vs-expert-hiring-guide.html",
     "published": "2021-11-21",
     "season": 6,
     "short": "Data Science Manager vs Data Science Expert",
@@ -134668,7 +134668,7 @@
       {
         "key": "nicksingh",
         "name": "Nick Singh",
-        "public_path": "/people/nicksingh"
+        "public_path": "/people/nicksingh.html"
       }
     ],
     "guests": [
@@ -134690,7 +134690,7 @@
       "source_path": "podcasts/data-interview-behavioral-and-portfolio-prep-guide.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-interview-behavioral-and-portfolio-prep-guide.yaml"
     },
-    "public_path": "/podcast/data-interview-behavioral-and-portfolio-prep-guide",
+    "public_path": "/podcast/data-interview-behavioral-and-portfolio-prep-guide.html",
     "published": "2021-11-12",
     "season": 6,
     "short": "Ace Non-Technical Data Science Interviews",
@@ -135706,7 +135706,7 @@
       {
         "key": "noahgift",
         "name": "Noah Gift",
-        "public_path": "/people/noahgift"
+        "public_path": "/people/noahgift.html"
       }
     ],
     "guests": [
@@ -135728,7 +135728,7 @@
       "source_path": "podcasts/solopreneur-developer-and-data-professional.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/solopreneur-developer-and-data-professional.yaml"
     },
-    "public_path": "/podcast/solopreneur-developer-and-data-professional",
+    "public_path": "/podcast/solopreneur-developer-and-data-professional.html",
     "published": "2021-11-06",
     "season": 6,
     "short": "Solopreneur Guide: Diversify Income with Courses, Consulting, Books & Side-Gigs",
@@ -136799,7 +136799,7 @@
       {
         "key": "thomives",
         "name": "Thom Ives",
-        "public_path": "/people/thomives"
+        "public_path": "/people/thomives.html"
       }
     ],
     "guests": [
@@ -136821,7 +136821,7 @@
       "source_path": "podcasts/feature-engineering-model-monitoring-and-data-governance.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/feature-engineering-model-monitoring-and-data-governance.yaml"
     },
-    "public_path": "/podcast/feature-engineering-model-monitoring-and-data-governance",
+    "public_path": "/podcast/feature-engineering-model-monitoring-and-data-governance.html",
     "published": "2021-10-30",
     "season": 5,
     "short": "Building Business Acumen for Data Professionals",
@@ -137550,7 +137550,7 @@
       {
         "key": "caitlinmoorman",
         "name": "Caitlin Moorman",
-        "public_path": "/people/caitlinmoorman"
+        "public_path": "/people/caitlinmoorman.html"
       }
     ],
     "guests": [
@@ -137572,7 +137572,7 @@
       "source_path": "podcasts/last-mile-data-delivery-and-data-product-adoption-modern-data-stack.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/last-mile-data-delivery-and-data-product-adoption-modern-data-stack.yaml"
     },
-    "public_path": "/podcast/last-mile-data-delivery-and-data-product-adoption-modern-data-stack",
+    "public_path": "/podcast/last-mile-data-delivery-and-data-product-adoption-modern-data-stack.html",
     "published": "2021-10-23",
     "season": 5,
     "short": "Conquering the Last Mile in Data",
@@ -138257,7 +138257,7 @@
       {
         "key": "rishabhbhargava",
         "name": "Rishabh Bhargava",
-        "public_path": "/people/rishabhbhargava"
+        "public_path": "/people/rishabhbhargava.html"
       }
     ],
     "guests": [
@@ -138279,7 +138279,7 @@
       "source_path": "podcasts/production-ml-mlops-and-data-team-building.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/production-ml-mlops-and-data-team-building.yaml"
     },
-    "public_path": "/podcast/production-ml-mlops-and-data-team-building",
+    "public_path": "/podcast/production-ml-mlops-and-data-team-building.html",
     "published": "2021-10-16",
     "season": 5,
     "short": "Similarities and Differences between ML and Analytics",
@@ -138959,7 +138959,7 @@
       {
         "key": "tammyliang",
         "name": "Tammy Liang",
-        "public_path": "/people/tammyliang"
+        "public_path": "/people/tammyliang.html"
       }
     ],
     "guests": [
@@ -138981,7 +138981,7 @@
       "source_path": "podcasts/building-and-scaling-data-team.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-and-scaling-data-team.yaml"
     },
-    "public_path": "/podcast/building-and-scaling-data-team",
+    "public_path": "/podcast/building-and-scaling-data-team.html",
     "published": "2021-10-09",
     "season": 5,
     "short": "Building and Leading Data Teams",
@@ -140014,7 +140014,7 @@
       {
         "key": "mihaileric",
         "name": "Mihail Eric",
-        "public_path": "/people/mihaileric"
+        "public_path": "/people/mihaileric.html"
       }
     ],
     "guests": [
@@ -140036,7 +140036,7 @@
       "source_path": "podcasts/research-to-production-ml-systems-roadmap.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/research-to-production-ml-systems-roadmap.yaml"
     },
-    "public_path": "/podcast/research-to-production-ml-systems-roadmap",
+    "public_path": "/podcast/research-to-production-ml-systems-roadmap.html",
     "published": "2021-10-02",
     "season": 5,
     "short": "What Researchers and Engineers Can Learn from Each Other",
@@ -140798,7 +140798,7 @@
       {
         "key": "mariannadiachuk",
         "name": "Marianna Diachuk",
-        "public_path": "/people/mariannadiachuk"
+        "public_path": "/people/mariannadiachuk.html"
       }
     ],
     "guests": [
@@ -140820,7 +140820,7 @@
       "source_path": "podcasts/solopreneur-data-scientist.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/solopreneur-data-scientist.yaml"
     },
-    "public_path": "/podcast/solopreneur-data-scientist",
+    "public_path": "/podcast/solopreneur-data-scientist.html",
     "published": "2021-09-25",
     "season": 5,
     "short": "Introducing Data Science in Startups",
@@ -141579,7 +141579,7 @@
       {
         "key": "adamsroka",
         "name": "Adam Sroka",
-        "public_path": "/people/adamsroka"
+        "public_path": "/people/adamsroka.html"
       }
     ],
     "guests": [
@@ -141601,7 +141601,7 @@
       "source_path": "podcasts/ml-engineering-kpis-and-metrics-strategy.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/ml-engineering-kpis-and-metrics-strategy.yaml"
     },
-    "public_path": "/podcast/ml-engineering-kpis-and-metrics-strategy",
+    "public_path": "/podcast/ml-engineering-kpis-and-metrics-strategy.html",
     "published": "2021-09-19",
     "season": 5,
     "short": "Defining Success: Metrics and KPIs",
@@ -142156,7 +142156,7 @@
       {
         "key": "nataliekwong",
         "name": "Natalie Kwong",
-        "public_path": "/people/nataliekwong"
+        "public_path": "/people/nataliekwong.html"
       }
     ],
     "guests": [
@@ -142178,7 +142178,7 @@
       "source_path": "podcasts/data-engineering-tools-modern-data-stack.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-engineering-tools-modern-data-stack.yaml"
     },
-    "public_path": "/podcast/data-engineering-tools-modern-data-stack",
+    "public_path": "/podcast/data-engineering-tools-modern-data-stack.html",
     "published": "2021-09-11",
     "season": 5,
     "short": "Making Sense of Data Engineering Acronyms and Buzzwords",
@@ -143264,7 +143264,7 @@
       {
         "key": "marcellolarocca",
         "name": "Marcello La Rocca",
-        "public_path": "/people/marcellolarocca"
+        "public_path": "/people/marcellolarocca.html"
       }
     ],
     "guests": [
@@ -143286,7 +143286,7 @@
       "source_path": "podcasts/algorithms-data-structures-for-engineers.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/algorithms-data-structures-for-engineers.yaml"
     },
-    "public_path": "/podcast/algorithms-data-structures-for-engineers",
+    "public_path": "/podcast/algorithms-data-structures-for-engineers.html",
     "published": "2021-09-05",
     "season": 5,
     "short": "Mastering Algorithms and Data Structures",
@@ -143988,7 +143988,7 @@
       {
         "key": "marcodesa",
         "name": "Marco De Sa",
-        "public_path": "/people/marcodesa"
+        "public_path": "/people/marcodesa.html"
       }
     ],
     "guests": [
@@ -144010,7 +144010,7 @@
       "source_path": "podcasts/chief-data-officer-data-strategy-and-org-design.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/chief-data-officer-data-strategy-and-org-design.yaml"
     },
-    "public_path": "/podcast/chief-data-officer-data-strategy-and-org-design",
+    "public_path": "/podcast/chief-data-officer-data-strategy-and-org-design.html",
     "published": "2021-08-29",
     "season": 4,
     "short": "Chief Data Officer",
@@ -144787,7 +144787,7 @@
       {
         "key": "mikiobraun",
         "name": "Mikio Braun",
-        "public_path": "/people/mikiobraun"
+        "public_path": "/people/mikiobraun.html"
       }
     ],
     "guests": [
@@ -144809,7 +144809,7 @@
       "source_path": "podcasts/freelancing-in-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/freelancing-in-machine-learning.yaml"
     },
-    "public_path": "/podcast/freelancing-in-machine-learning",
+    "public_path": "/podcast/freelancing-in-machine-learning.html",
     "published": "2021-08-20",
     "season": 4,
     "short": "Freelancing in Machine Learning",
@@ -146075,7 +146075,7 @@
       {
         "key": "carminepaolino",
         "name": "Carmine Paolino",
-        "public_path": "/people/carminepaolino"
+        "public_path": "/people/carminepaolino.html"
       }
     ],
     "guests": [
@@ -146097,7 +146097,7 @@
       "source_path": "podcasts/launch-and-build-retail-startup.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/launch-and-build-retail-startup.yaml"
     },
-    "public_path": "/podcast/launch-and-build-retail-startup",
+    "public_path": "/podcast/launch-and-build-retail-startup.html",
     "published": "2021-08-15",
     "season": 4,
     "short": "Launching a Startup: From Idea to First Hire",
@@ -147042,7 +147042,7 @@
       {
         "key": "linaweichbrodt",
         "name": "Lina Weichbrodt",
-        "public_path": "/people/linaweichbrodt"
+        "public_path": "/people/linaweichbrodt.html"
       }
     ],
     "guests": [
@@ -147064,7 +147064,7 @@
       "source_path": "podcasts/human-centered-mlops-and-model-monitoring.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/human-centered-mlops-and-model-monitoring.yaml"
     },
-    "public_path": "/podcast/human-centered-mlops-and-model-monitoring",
+    "public_path": "/podcast/human-centered-mlops-and-model-monitoring.html",
     "published": "2021-08-01",
     "season": 4,
     "short": "Humans in the Loop",
@@ -147940,7 +147940,7 @@
       {
         "key": "benwilson",
         "name": "Ben Wilson",
-        "public_path": "/people/benwilson"
+        "public_path": "/people/benwilson.html"
       }
     ],
     "guests": [
@@ -147962,7 +147962,7 @@
       "source_path": "podcasts/machine-learning-engineering-production-best-practices.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/machine-learning-engineering-production-best-practices.yaml"
     },
-    "public_path": "/podcast/machine-learning-engineering-production-best-practices",
+    "public_path": "/podcast/machine-learning-engineering-production-best-practices.html",
     "published": "2021-07-23",
     "season": 4,
     "short": "Running from Complexity",
@@ -148735,7 +148735,7 @@
       {
         "key": "elenasamuylova",
         "name": "Elena Samuylova",
-        "public_path": "/people/elenasamuylova"
+        "public_path": "/people/elenasamuylova.html"
       }
     ],
     "guests": [
@@ -148757,7 +148757,7 @@
       "source_path": "podcasts/building-mlops-startup.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-mlops-startup.yaml"
     },
-    "public_path": "/podcast/building-mlops-startup",
+    "public_path": "/podcast/building-mlops-startup.html",
     "published": "2021-07-16",
     "season": 4,
     "short": "I Want to Build a Machine Learning Startup!",
@@ -149857,7 +149857,7 @@
       {
         "key": "roksolanadiachuk",
         "name": "Roksolana Diachuk",
-        "public_path": "/people/roksolanadiachuk"
+        "public_path": "/people/roksolanadiachuk.html"
       }
     ],
     "guests": [
@@ -149879,7 +149879,7 @@
       "source_path": "podcasts/big-data-engineer-vs-data-scientist.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/big-data-engineer-vs-data-scientist.yaml"
     },
-    "public_path": "/podcast/big-data-engineer-vs-data-scientist",
+    "public_path": "/podcast/big-data-engineer-vs-data-scientist.html",
     "published": "2021-07-10",
     "season": 4,
     "short": "Big Data Engineer vs Data Scientist",
@@ -151088,7 +151088,7 @@
       {
         "key": "andreaskretz",
         "name": "Andreas Kretz",
-        "public_path": "/people/andreaskretz"
+        "public_path": "/people/andreaskretz.html"
       }
     ],
     "guests": [
@@ -151110,7 +151110,7 @@
       "source_path": "podcasts/production-ml-pipelines-with-aws-and-kafka.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/production-ml-pipelines-with-aws-and-kafka.yaml"
     },
-    "public_path": "/podcast/production-ml-pipelines-with-aws-and-kafka",
+    "public_path": "/podcast/production-ml-pipelines-with-aws-and-kafka.html",
     "published": "2021-07-02",
     "season": 4,
     "short": "Build Your Own Data Pipeline",
@@ -151944,7 +151944,7 @@
       {
         "key": "svpino",
         "name": "Santiago Valdarrama",
-        "public_path": "/people/svpino"
+        "public_path": "/people/svpino.html"
       }
     ],
     "guests": [
@@ -151966,7 +151966,7 @@
       "source_path": "podcasts/from-software-engineer-to-machine-learning.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-software-engineer-to-machine-learning.yaml"
     },
-    "public_path": "/podcast/from-software-engineer-to-machine-learning",
+    "public_path": "/podcast/from-software-engineer-to-machine-learning.html",
     "published": "2021-06-25",
     "season": 4,
     "short": "From Software Engineering to Machine Learning",
@@ -152848,7 +152848,7 @@
       {
         "key": "victoriaperezmola",
         "name": "Victoria Perez Mola",
-        "public_path": "/people/victoriaperezmola"
+        "public_path": "/people/victoriaperezmola.html"
       }
     ],
     "guests": [
@@ -152870,7 +152870,7 @@
       "source_path": "podcasts/analytics-engineer-skills-tools.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/analytics-engineer-skills-tools.yaml"
     },
-    "public_path": "/podcast/analytics-engineer-skills-tools",
+    "public_path": "/podcast/analytics-engineer-skills-tools.html",
     "published": "2021-06-19",
     "season": 3,
     "short": "Analytics Engineer: New Role in a Data Team",
@@ -153587,12 +153587,12 @@
       {
         "key": "jessiashdown",
         "name": "Jessi Ashdown",
-        "public_path": "/people/jessiashdown"
+        "public_path": "/people/jessiashdown.html"
       },
       {
         "key": "urigilad",
         "name": "Uri Gilad",
-        "public_path": "/people/urigilad"
+        "public_path": "/people/urigilad.html"
       }
     ],
     "guests": [
@@ -153615,7 +153615,7 @@
       "source_path": "podcasts/cloud-data-governance.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/cloud-data-governance.yaml"
     },
-    "public_path": "/podcast/cloud-data-governance",
+    "public_path": "/podcast/cloud-data-governance.html",
     "published": "2021-06-13",
     "season": 3,
     "short": "Data Governance",
@@ -154345,7 +154345,7 @@
       {
         "key": "yurykashnitsky",
         "name": "Yury Kashnitsky",
-        "public_path": "/people/yurykashnitsky"
+        "public_path": "/people/yurykashnitsky.html"
       }
     ],
     "guests": [
@@ -154367,7 +154367,7 @@
       "source_path": "podcasts/data-science-failures-and-mlops-lessons.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-failures-and-mlops-lessons.yaml"
     },
-    "public_path": "/podcast/data-science-failures-and-mlops-lessons",
+    "public_path": "/podcast/data-science-failures-and-mlops-lessons.html",
     "published": "2021-06-06",
     "season": 3,
     "short": "What Data Scientists Don’t Mention in Their LinkedIn Profiles",
@@ -155042,7 +155042,7 @@
       {
         "key": "arpitchoudhury",
         "name": "Arpit Choudhury",
-        "public_path": "/people/arpitchoudhury"
+        "public_path": "/people/arpitchoudhury.html"
       }
     ],
     "guests": [
@@ -155064,7 +155064,7 @@
       "source_path": "podcasts/data-led-growth-event-tracking-and-reverse-etl.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-led-growth-event-tracking-and-reverse-etl.yaml"
     },
-    "public_path": "/podcast/data-led-growth-event-tracking-and-reverse-etl",
+    "public_path": "/podcast/data-led-growth-event-tracking-and-reverse-etl.html",
     "published": "2021-05-29",
     "season": 3,
     "short": "Becoming a Data-led Professional",
@@ -155802,7 +155802,7 @@
       {
         "key": "swyx",
         "name": "Shawn Swyx Wang",
-        "public_path": "/people/swyx"
+        "public_path": "/people/swyx.html"
       }
     ],
     "guests": [
@@ -155824,7 +155824,7 @@
       "source_path": "podcasts/developer-personal-brand-learn-in-public.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/developer-personal-brand-learn-in-public.yaml"
     },
-    "public_path": "/podcast/developer-personal-brand-learn-in-public",
+    "public_path": "/podcast/developer-personal-brand-learn-in-public.html",
     "published": "2021-05-22",
     "season": 3,
     "short": "Learn in Public: Personal Branding & Career Marketing for Developers",
@@ -157077,7 +157077,7 @@
       {
         "key": "tatianagabruseva",
         "name": "Tatiana Gabruseva",
-        "public_path": "/people/tatianagabruseva"
+        "public_path": "/people/tatianagabruseva.html"
       }
     ],
     "guests": [
@@ -157099,7 +157099,7 @@
       "source_path": "podcasts/from-physics-to-computer-vision-career-transition.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/from-physics-to-computer-vision-career-transition.yaml"
     },
-    "public_path": "/podcast/from-physics-to-computer-vision-career-transition",
+    "public_path": "/podcast/from-physics-to-computer-vision-career-transition.html",
     "published": "2021-05-14",
     "season": 3,
     "short": "From Physics to Machine Learning",
@@ -158063,7 +158063,7 @@
       {
         "key": "olegnovikov",
         "name": "Oleg Novikov",
-        "public_path": "/people/olegnovikov"
+        "public_path": "/people/olegnovikov.html"
       }
     ],
     "guests": [
@@ -158085,7 +158085,7 @@
       "source_path": "podcasts/data-science-interview-and-cv-guide.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-interview-and-cv-guide.yaml"
     },
-    "public_path": "/podcast/data-science-interview-and-cv-guide",
+    "public_path": "/podcast/data-science-interview-and-cv-guide.html",
     "published": "2021-05-07",
     "season": 3,
     "short": "Data Science Interview Guide: CV Optimization, Take-Home Projects, Mock Interviews & Negotiation",
@@ -158726,7 +158726,7 @@
       {
         "key": "liorbarak",
         "name": "Lior Barak",
-        "public_path": "/people/liorbarak"
+        "public_path": "/people/liorbarak.html"
       }
     ],
     "guests": [
@@ -158748,7 +158748,7 @@
       "source_path": "podcasts/data-translator-role-and-data-strategy.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-translator-role-and-data-strategy.yaml"
     },
-    "public_path": "/podcast/data-translator-role-and-data-strategy",
+    "public_path": "/podcast/data-translator-role-and-data-strategy.html",
     "published": "2021-05-01",
     "season": 3,
     "short": "Data Strategist Guide to Driving Growth: Prototypes, MVPs & Building Data Trust",
@@ -159383,7 +159383,7 @@
       {
         "key": "barrmoses",
         "name": "Barr Moses",
-        "public_path": "/people/barrmoses"
+        "public_path": "/people/barrmoses.html"
       }
     ],
     "guests": [
@@ -159405,7 +159405,7 @@
       "source_path": "podcasts/data-quality-data-observability-data-reliability.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-quality-data-observability-data-reliability.yaml"
     },
-    "public_path": "/podcast/data-quality-data-observability-data-reliability",
+    "public_path": "/podcast/data-quality-data-observability-data-reliability.html",
     "published": "2021-04-24",
     "season": 3,
     "short": "Data Observability: The Next Frontier of Data Engineering",
@@ -160163,7 +160163,7 @@
       {
         "key": "andradaolteanu",
         "name": "Andrada Olteanu",
-        "public_path": "/people/andradaolteanu"
+        "public_path": "/people/andradaolteanu.html"
       }
     ],
     "guests": [
@@ -160185,7 +160185,7 @@
       "source_path": "podcasts/analytics-to-data-science-with-kaggle-portfolio.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/analytics-to-data-science-with-kaggle-portfolio.yaml"
     },
-    "public_path": "/podcast/analytics-to-data-science-with-kaggle-portfolio",
+    "public_path": "/podcast/analytics-to-data-science-with-kaggle-portfolio.html",
     "published": "2021-04-16",
     "season": 3,
     "short": "Shifting Career from Analytics to Data Science",
@@ -160911,7 +160911,7 @@
       {
         "key": "ksenialegostay",
         "name": "Ksenia Legostay",
-        "public_path": "/people/ksenialegostay"
+        "public_path": "/people/ksenialegostay.html"
       }
     ],
     "guests": [
@@ -160933,7 +160933,7 @@
       "source_path": "podcasts/project-manager-to-data-scientist.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/project-manager-to-data-scientist.yaml"
     },
-    "public_path": "/podcast/project-manager-to-data-scientist",
+    "public_path": "/podcast/project-manager-to-data-scientist.html",
     "published": "2021-04-10",
     "season": 3,
     "short": "Transitioning from Project Management to Data Science",
@@ -161595,7 +161595,7 @@
       {
         "key": "demetriosbrinkmann",
         "name": "Demetrios Brinkmann",
-        "public_path": "/people/demetriosbrinkmann"
+        "public_path": "/people/demetriosbrinkmann.html"
       }
     ],
     "guests": [
@@ -161617,7 +161617,7 @@
       "source_path": "podcasts/mlops-community-building-and-meetups.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mlops-community-building-and-meetups.yaml"
     },
-    "public_path": "/podcast/mlops-community-building-and-meetups",
+    "public_path": "/podcast/mlops-community-building-and-meetups.html",
     "published": "2021-04-02",
     "season": 2,
     "short": "Building Online Tech Communities",
@@ -162518,7 +162518,7 @@
       {
         "key": "larsalbertsson",
         "name": "Lars Albertsson",
-        "public_path": "/people/larsalbertsson"
+        "public_path": "/people/larsalbertsson.html"
       }
     ],
     "guests": [
@@ -162540,7 +162540,7 @@
       "source_path": "podcasts/dataops-principles-and-scalable-data-platforms.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/dataops-principles-and-scalable-data-platforms.yaml"
     },
-    "public_path": "/podcast/dataops-principles-and-scalable-data-platforms",
+    "public_path": "/podcast/dataops-principles-and-scalable-data-platforms.html",
     "published": "2021-03-27",
     "season": 2,
     "short": "DataOps 101",
@@ -163186,7 +163186,7 @@
       {
         "key": "bentaylor",
         "name": "Ben Taylor",
-        "public_path": "/people/bentaylor"
+        "public_path": "/people/bentaylor.html"
       }
     ],
     "guests": [
@@ -163208,7 +163208,7 @@
       "source_path": "podcasts/public-speaking-for-data-scientists.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/public-speaking-for-data-scientists.yaml"
     },
-    "public_path": "/podcast/public-speaking-for-data-scientists",
+    "public_path": "/podcast/public-speaking-for-data-scientists.html",
     "published": "2021-03-20",
     "season": 2,
     "short": "The Essentials of Public Speaking for Career in Data Science",
@@ -163916,7 +163916,7 @@
       {
         "key": "vinvashishta",
         "name": "Vin Vashishta",
-        "public_path": "/people/vinvashishta"
+        "public_path": "/people/vinvashishta.html"
       }
     ],
     "guests": [
@@ -163938,7 +163938,7 @@
       "source_path": "podcasts/make-money-with-machine-learning-roles-skills.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/make-money-with-machine-learning-roles-skills.yaml"
     },
-    "public_path": "/podcast/make-money-with-machine-learning-roles-skills",
+    "public_path": "/podcast/make-money-with-machine-learning-roles-skills.html",
     "published": "2021-03-12",
     "season": 2,
     "short": "New Roles and Key Skills to Monetize Machine Learning",
@@ -164825,7 +164825,7 @@
       {
         "key": "admondleekinlim",
         "name": "Admond Lee Kin Lim",
-        "public_path": "/people/admondleekinlim"
+        "public_path": "/people/admondleekinlim.html"
       }
     ],
     "guests": [
@@ -164847,7 +164847,7 @@
       "source_path": "podcasts/personal-brand-for-data-professionals.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/personal-brand-for-data-professionals.yaml"
     },
-    "public_path": "/podcast/personal-brand-for-data-professionals",
+    "public_path": "/podcast/personal-brand-for-data-professionals.html",
     "published": "2021-03-05",
     "season": 2,
     "short": "Personal Branding",
@@ -166035,7 +166035,7 @@
       {
         "key": "dannyma",
         "name": "Danny Ma",
-        "public_path": "/people/dannyma"
+        "public_path": "/people/dannyma.html"
       }
     ],
     "guests": [
@@ -166057,7 +166057,7 @@
       "source_path": "podcasts/data-science-career-abc-framework.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-science-career-abc-framework.yaml"
     },
-    "public_path": "/podcast/data-science-career-abc-framework",
+    "public_path": "/podcast/data-science-career-abc-framework.html",
     "published": "2021-02-26",
     "season": 2,
     "short": "The ABC’s of Data Science",
@@ -167021,7 +167021,7 @@
       {
         "key": "eugeneyan",
         "name": "Eugene Yan",
-        "public_path": "/people/eugeneyan"
+        "public_path": "/people/eugeneyan.html"
       }
     ],
     "guests": [
@@ -167041,7 +167041,7 @@
       "source_path": "podcasts/technical-writing-for-data-scientists.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/technical-writing-for-data-scientists.yaml"
     },
-    "public_path": "/podcast/technical-writing-for-data-scientists",
+    "public_path": "/podcast/technical-writing-for-data-scientists.html",
     "published": "2021-02-23",
     "season": 2,
     "short": "Master Technical Writing: 7-Day Workflow to Accelerate Your Data Science Career",
@@ -167797,7 +167797,7 @@
       {
         "key": "vincentwarmerdam",
         "name": "Vincent Warmerdam",
-        "public_path": "/people/vincentwarmerdam"
+        "public_path": "/people/vincentwarmerdam.html"
       }
     ],
     "guests": [
@@ -167819,7 +167819,7 @@
       "source_path": "podcasts/open-source-ml-contributions.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/open-source-ml-contributions.yaml"
     },
-    "public_path": "/podcast/open-source-ml-contributions",
+    "public_path": "/podcast/open-source-ml-contributions.html",
     "published": "2021-02-23",
     "season": 2,
     "short": "Getting Started with Open Source",
@@ -168611,7 +168611,7 @@
       {
         "key": "theofilospapapanagiotou",
         "name": "Theofilos Papapanagiotou",
-        "public_path": "/people/theofilospapapanagiotou"
+        "public_path": "/people/theofilospapapanagiotou.html"
       }
     ],
     "guests": [
@@ -168633,7 +168633,7 @@
       "source_path": "podcasts/mlops-kubeflow-model-monitoring.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mlops-kubeflow-model-monitoring.yaml"
     },
-    "public_path": "/podcast/mlops-kubeflow-model-monitoring",
+    "public_path": "/podcast/mlops-kubeflow-model-monitoring.html",
     "published": "2021-02-23",
     "season": 2,
     "short": "The Rise of MLOps",
@@ -169536,7 +169536,7 @@
       {
         "key": "willempienaar",
         "name": "Willem Pienaar",
-        "public_path": "/people/willempienaar"
+        "public_path": "/people/willempienaar.html"
       }
     ],
     "guests": [
@@ -169558,7 +169558,7 @@
       "source_path": "podcasts/mlops-feature-stores-feature-stores-feast-tecton.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mlops-feature-stores-feature-stores-feast-tecton.yaml"
     },
-    "public_path": "/podcast/mlops-feature-stores-feature-stores-feast-tecton",
+    "public_path": "/podcast/mlops-feature-stores-feature-stores-feast-tecton.html",
     "published": "2021-02-23",
     "season": 2,
     "short": "Feature Stores in MLOps Explained",
@@ -170386,7 +170386,7 @@
       {
         "key": "rahuljain",
         "name": "Rahul Jain",
-        "public_path": "/people/rahuljain"
+        "public_path": "/people/rahuljain.html"
       }
     ],
     "guests": [
@@ -170406,7 +170406,7 @@
       "source_path": "podcasts/mentoring-in-tech-how-to-find-and-become-a-mentor.md.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/mentoring-in-tech-how-to-find-and-become-a-mentor.md.yaml"
     },
-    "public_path": "/podcast/mentoring-in-tech-how-to-find-and-become-a-mentor.md",
+    "public_path": "/podcast/mentoring-in-tech-how-to-find-and-become-a-mentor.md.html",
     "published": "2021-02-23",
     "season": 1,
     "short": "Mentoring",
@@ -171066,7 +171066,7 @@
       {
         "key": "danbecker",
         "name": "Dan Becker",
-        "public_path": "/people/danbecker"
+        "public_path": "/people/danbecker.html"
       }
     ],
     "guests": [
@@ -171088,7 +171088,7 @@
       "source_path": "podcasts/machine-learning-decision-optimization.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/machine-learning-decision-optimization.yaml"
     },
-    "public_path": "/podcast/machine-learning-decision-optimization",
+    "public_path": "/podcast/machine-learning-decision-optimization.html",
     "published": "2021-02-23",
     "season": 2,
     "short": "Decision Optimization",
@@ -171712,7 +171712,7 @@
       {
         "key": "lukewhipps",
         "name": "Luke Whipps",
-        "public_path": "/people/lukewhipps"
+        "public_path": "/people/lukewhipps.html"
       }
     ],
     "guests": [
@@ -171734,7 +171734,7 @@
       "source_path": "podcasts/get-data-scientist-job.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/get-data-scientist-job.yaml"
     },
-    "public_path": "/podcast/get-data-scientist-job",
+    "public_path": "/podcast/get-data-scientist-job.html",
     "published": "2021-02-23",
     "season": 1,
     "short": "Standing out as a Data Scientist",
@@ -172541,7 +172541,7 @@
       {
         "key": "elleobrien",
         "name": "Elle O'Brien",
-        "public_path": "/people/elleobrien"
+        "public_path": "/people/elleobrien.html"
       }
     ],
     "guests": [
@@ -172563,7 +172563,7 @@
       "source_path": "podcasts/devrel-data-science-open-source-tools.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/devrel-data-science-open-source-tools.yaml"
     },
-    "public_path": "/podcast/devrel-data-science-open-source-tools",
+    "public_path": "/podcast/devrel-data-science-open-source-tools.html",
     "published": "2021-02-23",
     "season": 2,
     "short": "Developer Advocacy for Data Science",
@@ -173304,7 +173304,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "guests": [
@@ -173324,7 +173324,7 @@
       "source_path": "podcasts/data-team-roles.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/data-team-roles.yaml"
     },
-    "public_path": "/podcast/data-team-roles",
+    "public_path": "/podcast/data-team-roles.html",
     "published": "2021-02-23",
     "season": 1,
     "short": "Roles in a Data Team",
@@ -173792,7 +173792,7 @@
       {
         "key": "alexeygrigorev",
         "name": "Alexey Grigorev",
-        "public_path": "/people/alexeygrigorev"
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "guests": [
@@ -173812,7 +173812,7 @@
       "source_path": "podcasts/crisp-dm.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/crisp-dm.yaml"
     },
-    "public_path": "/podcast/crisp-dm",
+    "public_path": "/podcast/crisp-dm.html",
     "published": "2021-02-23",
     "season": 1,
     "short": "Processes in a Data Science Project",
@@ -174202,7 +174202,7 @@
       {
         "key": "dattran",
         "name": "Dat Tran",
-        "public_path": "/people/dattran"
+        "public_path": "/people/dattran.html"
       }
     ],
     "guests": [
@@ -174224,7 +174224,7 @@
       "source_path": "podcasts/building-data-team.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/building-data-team.yaml"
     },
-    "public_path": "/podcast/building-data-team",
+    "public_path": "/podcast/building-data-team.html",
     "published": "2021-02-23",
     "season": 1,
     "short": "Building a Data Science Team",
@@ -175010,7 +175010,7 @@
       {
         "key": "aleksandrkim",
         "name": "Aleksandr Kim",
-        "public_path": "/people/aleksandrkim"
+        "public_path": "/people/aleksandrkim.html"
       }
     ],
     "guests": [
@@ -175032,7 +175032,7 @@
       "source_path": "podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.yaml"
     },
-    "public_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production",
+    "public_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
     "published": "",
     "season": 24,
     "short": "How to Build AI That Actually Ships in Production",
@@ -175962,7 +175962,7 @@
       {
         "key": "ivanbilan",
         "name": "Ivan Bilan",
-        "public_path": "/people/ivanbilan"
+        "public_path": "/people/ivanbilan.html"
       }
     ],
     "guests": [
@@ -175984,7 +175984,7 @@
       "source_path": "podcasts/s24e05-ai-adoption-in-enterprise-beyond-writing-code.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s24e05-ai-adoption-in-enterprise-beyond-writing-code.yaml"
     },
-    "public_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code",
+    "public_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
     "published": "",
     "season": 24,
     "short": "AI Adoption in Enterprise Beyond Writing Code",
@@ -177040,7 +177040,7 @@
       {
         "key": "nikitakozodoi",
         "name": "Nikita Kozodoi",
-        "public_path": "/people/nikitakozodoi"
+        "public_path": "/people/nikitakozodoi.html"
       }
     ],
     "guests": [
@@ -177062,7 +177062,7 @@
       "source_path": "podcasts/s24e04-from-genai-pilots-to-production.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s24e04-from-genai-pilots-to-production.yaml"
     },
-    "public_path": "/podcast/s24e04-from-genai-pilots-to-production",
+    "public_path": "/podcast/s24e04-from-genai-pilots-to-production.html",
     "published": "",
     "season": 24,
     "short": "From GenAI Pilots to Production",
@@ -178379,7 +178379,7 @@
       {
         "key": "marianosemelman",
         "name": "Mariano Semelman",
-        "public_path": "/people/marianosemelman"
+        "public_path": "/people/marianosemelman.html"
       }
     ],
     "guests": [
@@ -178401,7 +178401,7 @@
       "source_path": "podcasts/s24e03-from-notebook-to-production-building-end-to-end-ai-systems.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s24e03-from-notebook-to-production-building-end-to-end-ai-systems.yaml"
     },
-    "public_path": "/podcast/s24e03-from-notebook-to-production-building-end-to-end-ai-systems",
+    "public_path": "/podcast/s24e03-from-notebook-to-production-building-end-to-end-ai-systems.html",
     "published": "",
     "season": 24,
     "short": "From Notebook to Production: Building End-to-End AI Systems",
@@ -179760,7 +179760,7 @@
       {
         "key": "tatianagabruseva",
         "name": "Tatiana Gabruseva",
-        "public_path": "/people/tatianagabruseva"
+        "public_path": "/people/tatianagabruseva.html"
       }
     ],
     "guests": [
@@ -179782,7 +179782,7 @@
       "source_path": "podcasts/s24e01-competitions-beyond-kaggle-leaderboard.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s24e01-competitions-beyond-kaggle-leaderboard.yaml"
     },
-    "public_path": "/podcast/s24e01-competitions-beyond-kaggle-leaderboard",
+    "public_path": "/podcast/s24e01-competitions-beyond-kaggle-leaderboard.html",
     "published": "",
     "season": 24,
     "short": "Competitions: Beyond the Kaggle Leaderboard",
@@ -180460,7 +180460,7 @@
       {
         "key": "leonidkholkine",
         "name": "Leonid Kholkine",
-        "public_path": "/people/leonidkholkine"
+        "public_path": "/people/leonidkholkine.html"
       }
     ],
     "guests": [
@@ -180482,7 +180482,7 @@
       "source_path": "podcasts/s23e09-starting-data-conference-data-makers-fest-story.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e09-starting-data-conference-data-makers-fest-story.yaml"
     },
-    "public_path": "/podcast/s23e09-starting-data-conference-data-makers-fest-story",
+    "public_path": "/podcast/s23e09-starting-data-conference-data-makers-fest-story.html",
     "published": "",
     "season": 23,
     "short": "Starting a Data Conference: The Data Makers Fest Story",
@@ -181517,7 +181517,7 @@
       {
         "key": "nasserqadri",
         "name": "Nasser Qadri",
-        "public_path": "/people/nasserqadri"
+        "public_path": "/people/nasserqadri.html"
       }
     ],
     "guests": [
@@ -181539,7 +181539,7 @@
       "source_path": "podcasts/s23e07-understanding-ai-engineer-role.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e07-understanding-ai-engineer-role.yaml"
     },
-    "public_path": "/podcast/s23e07-understanding-ai-engineer-role",
+    "public_path": "/podcast/s23e07-understanding-ai-engineer-role.html",
     "published": "",
     "season": 23,
     "short": "Understanding the AI Engineer Role",
@@ -182691,7 +182691,7 @@
       {
         "key": "slawomirtulski",
         "name": "Slawomir Tulski",
-        "public_path": "/people/slawomirtulski"
+        "public_path": "/people/slawomirtulski.html"
       }
     ],
     "guests": [
@@ -182713,7 +182713,7 @@
       "source_path": "podcasts/s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for.yaml"
     },
-    "public_path": "/podcast/s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for",
+    "public_path": "/podcast/s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for.html",
     "published": "",
     "season": 23,
     "short": "Data Engineer Career in 2026: Roles, Specializations, and What Companies Look for",
@@ -184189,7 +184189,7 @@
       {
         "key": "ruslanshchuchkin",
         "name": "Ruslan Shchuchkin",
-        "public_path": "/people/ruslanshchuchkin"
+        "public_path": "/people/ruslanshchuchkin.html"
       }
     ],
     "guests": [
@@ -184211,7 +184211,7 @@
       "source_path": "podcasts/s23e05-inside-ai-engineer-role-tools-skills-and-career-path.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e05-inside-ai-engineer-role-tools-skills-and-career-path.yaml"
     },
-    "public_path": "/podcast/s23e05-inside-ai-engineer-role-tools-skills-and-career-path",
+    "public_path": "/podcast/s23e05-inside-ai-engineer-role-tools-skills-and-career-path.html",
     "published": "",
     "season": 23,
     "short": "Inside the AI Engineer Role: Tools, Skills, and Career Path",
@@ -185687,7 +185687,7 @@
       {
         "key": "revathyramalingam",
         "name": "Revathy Ramalingam",
-        "public_path": "/people/revathyramalingam"
+        "public_path": "/people/revathyramalingam.html"
       }
     ],
     "guests": [
@@ -185709,7 +185709,7 @@
       "source_path": "podcasts/s23e04-how-to-become-ai-engineer-after-career-break.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e04-how-to-become-ai-engineer-after-career-break.yaml"
     },
-    "public_path": "/podcast/s23e04-how-to-become-ai-engineer-after-career-break",
+    "public_path": "/podcast/s23e04-how-to-become-ai-engineer-after-career-break.html",
     "published": "",
     "season": 23,
     "short": "How to Become an AI Engineer After a Career Break",
@@ -186630,7 +186630,7 @@
       {
         "key": "adityagautam",
         "name": "Aditya Gautam",
-        "public_path": "/people/adityagautam"
+        "public_path": "/people/adityagautam.html"
       }
     ],
     "guests": [
@@ -186652,7 +186652,7 @@
       "source_path": "podcasts/s23e03-future-of-ai-agents.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e03-future-of-ai-agents.yaml"
     },
-    "public_path": "/podcast/s23e03-future-of-ai-agents",
+    "public_path": "/podcast/s23e03-future-of-ai-agents.html",
     "published": "",
     "season": 23,
     "short": "The Future of AI Agents",
@@ -187705,7 +187705,7 @@
       {
         "key": "juanmanuelperafan",
         "name": "Juan Manuel Perafan",
-        "public_path": "/people/juanmanuelperafan"
+        "public_path": "/people/juanmanuelperafan.html"
       }
     ],
     "guests": [
@@ -187727,7 +187727,7 @@
       "source_path": "podcasts/s23e02-foundations-of-analytics-engineer-role-skills-scope-and-modern-practices.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e02-foundations-of-analytics-engineer-role-skills-scope-and-modern-practices.yaml"
     },
-    "public_path": "/podcast/s23e02-foundations-of-analytics-engineer-role-skills-scope-and-modern-practices",
+    "public_path": "/podcast/s23e02-foundations-of-analytics-engineer-role-skills-scope-and-modern-practices.html",
     "published": "",
     "season": 23,
     "short": "Foundations of Analytics Engineer Role: Skills, Scope, and Modern Practices",
@@ -188819,7 +188819,7 @@
       {
         "key": "pauliusztin",
         "name": "Paul Iusztin",
-        "public_path": "/people/pauliusztin"
+        "public_path": "/people/pauliusztin.html"
       }
     ],
     "guests": [
@@ -188841,7 +188841,7 @@
       "source_path": "podcasts/s23e01-ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s23e01-ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products.yaml"
     },
-    "public_path": "/podcast/s23e01-ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products",
+    "public_path": "/podcast/s23e01-ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products.html",
     "published": "",
     "season": 23,
     "short": "AI Engineering: Skill Stack, Agents, LLMOps, and How to Ship AI Products",
@@ -189423,7 +189423,7 @@
       {
         "key": "sofyayulpatova",
         "name": "Sofya Yulpatova",
-        "public_path": "/people/sofyayulpatova"
+        "public_path": "/people/sofyayulpatova.html"
       }
     ],
     "guests": [
@@ -189445,7 +189445,7 @@
       "source_path": "podcasts/s22e08-building-pet-health-tech-ml-sensors-and-dog-behavior-data.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s22e08-building-pet-health-tech-ml-sensors-and-dog-behavior-data.yaml"
     },
-    "public_path": "/podcast/s22e08-building-pet-health-tech-ml-sensors-and-dog-behavior-data",
+    "public_path": "/podcast/s22e08-building-pet-health-tech-ml-sensors-and-dog-behavior-data.html",
     "published": "",
     "season": 22,
     "short": "Building Pet Health Tech: ML, Sensors, and Dog Behavior Data",
@@ -190063,7 +190063,7 @@
       {
         "key": "xiahebleinagel",
         "name": "Xia He-Bleinagel",
-        "public_path": "/people/xiahebleinagel"
+        "public_path": "/people/xiahebleinagel.html"
       }
     ],
     "guests": [
@@ -190085,7 +190085,7 @@
       "source_path": "podcasts/s22e07-reinventing-career-in-tech.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s22e07-reinventing-career-in-tech.yaml"
     },
-    "public_path": "/podcast/s22e07-reinventing-career-in-tech",
+    "public_path": "/podcast/s22e07-reinventing-career-in-tech.html",
     "published": "",
     "season": 22,
     "short": "Reinventing a Career in Tech",
@@ -190661,7 +190661,7 @@
       {
         "key": "anushaakkina",
         "name": "Anusha Akkina",
-        "public_path": "/people/anushaakkina"
+        "public_path": "/people/anushaakkina.html"
       }
     ],
     "guests": [
@@ -190683,7 +190683,7 @@
       "source_path": "podcasts/s22e06-from-black-box-systems-to-augmented-decision-making.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/s22e06-from-black-box-systems-to-augmented-decision-making.yaml"
     },
-    "public_path": "/podcast/s22e06-from-black-box-systems-to-augmented-decision-making",
+    "public_path": "/podcast/s22e06-from-black-box-systems-to-augmented-decision-making.html",
     "published": "",
     "season": 22,
     "short": "From Black-Box Systems to Augmented Decision-Making",
@@ -191616,7 +191616,7 @@
       {
         "key": "jekaterinakokatjuhha",
         "name": "Jekaterina Kokatjuhha",
-        "public_path": "/people/jekaterinakokatjuhha"
+        "public_path": "/people/jekaterinakokatjuhha.html"
       }
     ],
     "guests": [
@@ -191638,7 +191638,7 @@
       "source_path": "podcasts/_s12e08.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/podcasts/_s12e08.yaml"
     },
-    "public_path": "/podcast/_s12e08",
+    "public_path": "/podcast/_s12e08.html",
     "published": "",
     "season": 12,
     "short": "The Journey of a Data Generalist: From Bioinformatics to Freelancing",

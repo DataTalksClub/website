@@ -2702,7 +2702,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"12 tracked catalogs"
+                b"Learn data skills. For free. Together."
                 + f"Version {VERSION_A}".encode()
                 + b'<link rel="canonical" href="https://datatalks.club/courses">'
                 + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
@@ -2791,7 +2791,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 Response(
                     200,
                     noindex,
-                    b"12 tracked catalogs"
+                    b"Learn data skills. For free. Together."
                     + f"Version {VERSION_A}".encode()
                     + b'<link rel="stylesheet" href="/static/core.fixture.css">',
                 ),
@@ -2838,7 +2838,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             invalid_responses[4] = Response(
                 200,
                 noindex,
-                b"12 tracked catalogs"
+                b"Learn data skills. For free. Together."
                 + f"Version {VERSION_A}".encode()
                 + rendered_canonical
                 + b'<link rel="stylesheet" href="/static/courses.fixture.css">',

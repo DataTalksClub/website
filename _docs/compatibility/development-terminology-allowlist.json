@@ -180,7 +180,7 @@
     },
     {
       "path": "core/tests/test_deployment_release.py",
-      "sha256": "9d8881f2fbb73182bdafd5dcb06629e93ad08dada39a0c86e90626d8038f062a",
+      "sha256": "3f4ce277100cedab69cdec741da7e0040af311a801eb8974f65588e6b533ae25",
       "class": "legacy_contract_test",
       "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
       "follow_up": "#94",
@@ -204,7 +204,7 @@
     },
     {
       "path": "content/public_projection/podcasts.json",
-      "sha256": "8419d9a2c36effb3242b07fd05cf2ab1cfab0d13f0e97199fa9c6bf076b361ca",
+      "sha256": "52a3338ee02b3641ccff02fe12b26f01391bc8057707f259432451f09338641c",
       "class": "captured_compatibility",
       "reason": "Hash-bound issue #105 projection preserves source-authored public podcast transcript wording.",
       "follow_up": "#105; regenerate only from the pinned accepted sources",
@@ -212,7 +212,7 @@
     },
     {
       "path": "content/public_projection/wiki.json",
-      "sha256": "6ba9245bf411652575bac8b58c0d9ef6d22c0c248fbfd0444275ba9af79f6dee",
+      "sha256": "5f64f4d4a7a7436830d5a5c039e081d82fbf47ac01b7fb891fa6c5816650ce68",
       "class": "captured_compatibility",
       "reason": "Hash-bound issue #105 projection preserves source-authored public Wiki wording.",
       "follow_up": "#105; regenerate only from the pinned accepted sources",
@@ -220,7 +220,7 @@
     },
     {
       "path": "content/public_projection/wiki_search.json",
-      "sha256": "c6033919e5a0a89fd7c8825ae4591f2bd07d50bd22899bf8a6385b33e5056f13",
+      "sha256": "e8f82b7471ce9152f994f2dfc3ef370b8d2a98384834051985dd45c5269f7307",
       "class": "captured_compatibility",
       "reason": "Hash-bound issue #105 search projection preserves source-authored public Wiki wording.",
       "follow_up": "#105; regenerate only from the pinned accepted sources",

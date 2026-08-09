@@ -1,12 +1,9 @@
 {% extends "core/base.html" %}
-{% block title %}Join our Slack — DataTalks.Club{% endblock %}
+{% block title %}
+  Join our Slack — DataTalks.Club
+{% endblock %}
 {% block content %}
-  <article
-    class="max-w-4xl"
-    data-source-repository="{{ provenance.repository }}"
-    data-source-revision="{{ provenance.revision }}"
-    data-source-path="{{ provenance.source_path }}"
-  >
+  <article class="max-w-4xl">
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Community</p>
     <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">{{ slack.title }}</h1>
     <p class="mt-4 text-lg leading-8 app-text">{{ slack.lead }}</p>
@@ -29,6 +26,5 @@
         Contact the community team <span class="sr-only">(opens in a new tab)</span>
       </a>.
     </p>
-    {% include "review/_source_link.html" with edit_url=slack.edit_url %}
   </article>
 {% endblock %}

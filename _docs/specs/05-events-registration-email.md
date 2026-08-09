@@ -7,7 +7,7 @@ Status: draft
 Before database Event cutover, the bounded checked projection exposes each legacy public event at
 `/events/<event-slug>`. Homepage and hub links enter that internal detail first. Provider and
 recording destinations appear only as clearly labelled safe external actions on the detail, and
-every checked speaker key resolves to `/people/<short>`. This surface is read-only and does
+every checked speaker key resolves to `/people/<short>.html`. This surface is read-only and does
 not introduce registration, email, or provider mutations.
 
 ### Event
