@@ -177,6 +177,7 @@ def _promote(arguments: argparse.Namespace) -> ReleaseRecord:
         source_sha=arguments.source_sha,
         image_digest=arguments.image_digest,
         repository_uri=arguments.repository_uri,
+        version=arguments.version,
     )
     task_config = TaskDefinitionConfig(
         families={
@@ -244,7 +245,9 @@ def _restore_finalization(arguments: argparse.Namespace) -> dict[str, object]:
     )
     return {
         "status": "restored_prior",
-        "release": context.source_sha or "bootstrap-disabled",
+        "identity_schema": context.identity_schema if context.source_sha is not None else None,
+        "version": context.version,
+        "source_sha": context.source_sha,
         "image_digest": context.image_digest,
         "restorative_receipts": [item.as_evidence() for item in receipts],
         "recovery": {
@@ -294,6 +297,7 @@ def build_parser() -> argparse.ArgumentParser:
     promote_parser = subparsers.add_parser("promote")
     _add_runtime_arguments(promote_parser)
     promote_parser.add_argument("--source-sha", required=True)
+    promote_parser.add_argument("--version", required=True)
     promote_parser.add_argument("--image-digest", required=True)
     promote_parser.add_argument("--repository-uri", required=True)
     promote_parser.add_argument("--web-desired-count", type=int, required=True)
@@ -361,7 +365,18 @@ def main() -> None:
     elif arguments.command == "capture-recovery":
         print(json.dumps({"status": "recovery_checkpoint_captured"}, sort_keys=True))
     else:
-        print(json.dumps({"status": "successful", "release": record.source_sha}, sort_keys=True))
+        print(
+            json.dumps(
+                {
+                    "status": "successful",
+                    "identity_schema": record.identity_schema,
+                    "version": record.version,
+                    "source_sha": record.source_sha,
+                    "image_digest": record.image_digest,
+                },
+                sort_keys=True,
+            )
+        )
 
 
 if __name__ == "__main__":

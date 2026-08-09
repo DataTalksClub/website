@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import html.parser
 import json
 import re
 import ssl
@@ -13,7 +14,12 @@ from pathlib import Path
 from typing import Any
 
 from core.source_policy import analytics_runtime_violations
-from deploy.contracts import ReleaseContractError, validate_source_sha
+from deploy.contracts import (
+    ReleaseContractError,
+    validate_image_digest,
+    validate_source_sha,
+    validate_version,
+)
 from deploy.legacy_development_compatibility import ORIGIN as DEVELOPMENT_ORIGIN
 
 ROBOTS_VALUE = "noindex, nofollow"
@@ -23,6 +29,21 @@ SITEMAP_BODY = (
     b'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
 )
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
+
+
+class _TextParser(html.parser.HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+
+def _visible_text(document: str) -> str:
+    parser = _TextParser()
+    parser.feed(document)
+    return " ".join(" ".join(parser.parts).split())
 
 
 @dataclass(frozen=True)
@@ -92,14 +113,21 @@ def validate_origin(origin: str) -> str:
     return normalized
 
 
-def verify_health(origin: str, source_sha: str) -> None:
+def verify_health(origin: str, version: str, source_sha: str, image_digest: str) -> None:
     origin = validate_origin(origin)
     validate_source_sha(source_sha)
+    validate_image_digest(image_digest)
+    validate_version(version, source_sha)
+    expected_identity = {
+        "version": version,
+        "source_sha": source_sha,
+        "image_digest": image_digest,
+    }
     live = _request(origin, "/health/live")
     _assert_status(live, 200, "/health/live")
     _assert_noindex(live, "/health/live")
-    if live.json() != {"status": "ok", "version": source_sha}:
-        raise ReleaseContractError("liveness does not report the exact source SHA")
+    if live.json() != {"status": "ok", **expected_identity}:
+        raise ReleaseContractError("liveness does not report the exact release identity")
 
     ready = _request(origin, "/health/ready")
     _assert_status(ready, 200, "/health/ready")
@@ -107,6 +135,8 @@ def verify_health(origin: str, source_sha: str) -> None:
     payload = ready.json()
     if payload.get("status") != "ready":
         raise ReleaseContractError("readiness status is not ready")
+    if {name: payload.get(name) for name in expected_identity} != expected_identity:
+        raise ReleaseContractError("readiness does not report the exact release identity")
     checks = payload.get("checks")
     if not isinstance(checks, dict):
         raise ReleaseContractError("readiness checks are missing")
@@ -117,16 +147,20 @@ def verify_health(origin: str, source_sha: str) -> None:
 
 def run_http_smoke(
     origin: str,
+    version: str,
     source_sha: str,
+    image_digest: str,
     evidence_path: Path | None = None,
 ) -> dict[str, Any]:
     origin = validate_origin(origin)
-    verify_health(origin, source_sha)
+    verify_health(origin, version, source_sha, image_digest)
 
     home = _request(origin, "/")
     _assert_status(home, 200, "/")
     _assert_noindex(home, "/")
     html = home.body.decode("utf-8")
+    if f"Version {version}" not in _visible_text(html):
+        raise ReleaseContractError("home page footer lacks the exact version")
     for expected in (
         "Welcome to DataTalks.Club",
         "The place to talk about data",
@@ -161,6 +195,8 @@ def run_http_smoke(
     _assert_status(courses, 200, "/courses/")
     _assert_noindex(courses, "/courses/")
     courses_html = courses.body.decode("utf-8")
+    if f"Version {version}" not in _visible_text(courses_html):
+        raise ReleaseContractError("course footer lacks the exact version")
     if "Learn data skills. For free. Together." not in courses_html:
         raise ReleaseContractError("course discovery lacks expected content")
     if "The place to talk about data" in courses_html:
@@ -187,6 +223,17 @@ def run_http_smoke(
     _assert_private(login, "/accounts/login/")
     if "Sign In" not in login.body.decode("utf-8"):
         raise ReleaseContractError("sign-in page lacks the expected heading")
+
+    api_health = _request(origin, "/api/health/")
+    _assert_status(api_health, 200, "/api/health/")
+    _assert_noindex(api_health, "/api/health/")
+    if api_health.json() != {
+        "status": "ok",
+        "version": version,
+        "source_sha": source_sha,
+        "image_digest": image_digest,
+    }:
+        raise ReleaseContractError("API health does not report the exact release identity")
 
     admin = _request(origin, "/api/v1/admin/health")
     _assert_status(admin, 401, "/api/v1/admin/health")
@@ -242,6 +289,8 @@ def run_http_smoke(
         "mode": "read_only",
         "origin": origin,
         "source_sha": source_sha,
+        "version": version,
+        "image_digest": image_digest,
         "checks": [
             {"path": "/health/live", "status": 200, "noindex": True, "exact_version": True},
             {
@@ -313,8 +362,15 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Run the read-only development HTTP smoke")
     parser.add_argument("--base-url", default=DEVELOPMENT_ORIGIN)
     parser.add_argument("--source-sha", required=True)
+    parser.add_argument("--version", required=True)
+    parser.add_argument("--image-digest", required=True)
     arguments = parser.parse_args()
-    run_http_smoke(arguments.base_url, arguments.source_sha)
+    run_http_smoke(
+        arguments.base_url,
+        arguments.version,
+        arguments.source_sha,
+        arguments.image_digest,
+    )
 
 
 if __name__ == "__main__":

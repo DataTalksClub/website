@@ -63,6 +63,14 @@ DJANGO_SECRET_ARN = (
 )
 
 
+def version_for(source_sha: str) -> str:
+    return f"20260809-143205-{source_sha[:7]}"
+
+
+VERSION_A = version_for(SHA_A)
+VERSION_B = version_for(SHA_B)
+
+
 def arn(workload: str, revision: int) -> str:
     return f"arn:aws:ecs:eu-west-1:817685572750:task-definition/{FAMILIES[workload]}:{revision}"
 
@@ -117,6 +125,7 @@ def successful_record(source_sha: str = SHA_A, digest: str = DIGEST_A) -> Releas
         web_desired_count=1,
         worker_desired_count=1,
         rollback_eligible=True,
+        version=version_for(source_sha),
     )
 
 
@@ -128,6 +137,7 @@ def active_pair(source_sha: str = SHA_A, digest: str = DIGEST_A) -> ActiveServic
         worker_task_definition_arn=arn("worker", 1),
         web_desired_count=1,
         worker_desired_count=1,
+        version=version_for(source_sha),
     )
 
 
@@ -142,6 +152,7 @@ class FakeGateway:
     def __init__(self, *, bootstrap: bool, fail_once: str | None = None) -> None:
         desired = 0 if bootstrap else 1
         source = None if bootstrap else SHA_A
+        version = None if bootstrap else VERSION_A
         digest = PLACEHOLDER_DIGEST if bootstrap else DIGEST_A
         self.snapshots = {
             workload: ServiceSnapshot(
@@ -153,6 +164,8 @@ class FakeGateway:
                 source_sha=source,
                 image_digest=digest,
                 primary_deployment_id=deployment_id(workload, 1),
+                version=version,
+                identity_schema=None if bootstrap else 2,
             )
             for workload in ("web", "worker")
         }
@@ -184,10 +197,11 @@ class FakeGateway:
     ) -> None:
         self.operations.append(f"verify-pair:{pair.source_sha}:{identity.image_digest}")
 
-    def verify_image_digest_exists(
-        self, repository_uri: str, source_sha: str, image_digest: str
-    ) -> None:
-        self.operations.append(f"verify-image:{repository_uri}:{source_sha}@{image_digest}")
+    def verify_image_digest_exists(self, identity: ReleaseIdentity) -> None:
+        self.operations.append(
+            f"verify-image:{identity.repository_uri}:{identity.version}:"
+            f"{identity.source_sha}@{identity.image_digest}"
+        )
         self._fail("verify-image")
 
     def register_task_definition(
@@ -241,6 +255,8 @@ class FakeGateway:
             source_sha=SHA_B if target.task_definition_arn.endswith(":2") else SHA_A,
             image_digest=DIGEST_B if target.task_definition_arn.endswith(":2") else DIGEST_A,
             primary_deployment_id=receipt_id,
+            version=VERSION_B if target.task_definition_arn.endswith(":2") else VERSION_A,
+            identity_schema=2,
         )
         if lose_response:
             self._fail(f"update:{workload}")
@@ -348,6 +364,8 @@ class FakeGateway:
             private_ipv4_address="10.0.1.17",
             container_port=8000,
             target_port=8000,
+            version=identity.version,
+            identity_schema=identity.identity_schema,
         )
 
     def revalidate_web_runtime_binding(
@@ -389,13 +407,15 @@ class FakeGateway:
             + f":phase={int(phase_deadline)}"
         )
 
-    def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
+    def verify_public_web(
+        self, identity: ReleaseIdentity, *, phase_deadline: float | None = None
+    ) -> None:
         del phase_deadline
-        self.operations.append(f"health:{source_sha}")
+        self.operations.append(f"health:{identity.version}:{identity.source_sha}")
         self._fail("health")
 
-    def run_deployed_smoke(self, source_sha: str) -> None:
-        self.operations.append(f"smoke:{source_sha}")
+    def run_deployed_smoke(self, identity: ReleaseIdentity) -> None:
+        self.operations.append(f"smoke:{identity.version}:{identity.source_sha}")
         self._fail("smoke")
 
     def verify_terminal(
@@ -435,8 +455,10 @@ class FakeGateway:
             ):
                 raise ReleaseContractError(f"terminal {workload} receipt ID differs")
             if expected_identity is not None and (
-                snapshot.source_sha != expected_identity.source_sha
+                snapshot.version != expected_identity.version
+                or snapshot.source_sha != expected_identity.source_sha
                 or snapshot.image_digest != expected_identity.image_digest
+                or snapshot.identity_schema != expected_identity.identity_schema
             ):
                 raise ReleaseContractError(f"terminal {workload} identity differs")
         if any(value.endswith(":2") for value in expected_task_definitions.values()):
@@ -559,11 +581,13 @@ class CooperativeRecoveryGateway(FakeGateway):
             web_runtime_deadline=web_runtime_deadline,
         )
 
-    def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
+    def verify_public_web(
+        self, identity: ReleaseIdentity, *, phase_deadline: float | None = None
+    ) -> None:
         self.operations.append(f"health-at:{self.current:g}")
         if phase_deadline is not None:
             self.ensure_recovery_phase(phase_deadline)
-        super().verify_public_web(source_sha)
+        super().verify_public_web(identity)
 
 
 class CooperativeRecoveryCoordinatorTests(SimpleTestCase):
@@ -604,7 +628,7 @@ class CooperativeRecoveryCoordinatorTests(SimpleTestCase):
             gateway,
             targets,
             terminal,
-            ReleaseIdentity(SHA_A, DIGEST_A, REPOSITORY),
+            ReleaseIdentity(SHA_A, DIGEST_A, REPOSITORY, VERSION_A),
             {workload: attempted[workload] for workload in attempted_workloads},
             evidence_path=evidence_path,
         )
@@ -719,6 +743,10 @@ class CooperativeRecoveryCoordinatorTests(SimpleTestCase):
                 "cooperative_observation_order": ["web", "worker"],
                 "eligible_workloads": ["web", "worker"],
                 "intentionally_untouched": {"web": False, "worker": False},
+                "identity_schema": 2,
+                "version": VERSION_A,
+                "source_sha": SHA_A,
+                "image_digest": DIGEST_A,
             },
         )
         receipts = [item["proof"] for item in stages if item["stage"] == "compensation_receipt"]
@@ -760,7 +788,7 @@ class TaskDefinitionBuilderTests(SimpleTestCase):
             task_role_arn=TASK_ROLE,
             execution_role_arn=EXECUTION_ROLE,
         )
-        self.identity = ReleaseIdentity(SHA_B, DIGEST_B, REPOSITORY)
+        self.identity = ReleaseIdentity(SHA_B, DIGEST_B, REPOSITORY, VERSION_B)
 
     def test_builder_normalizes_all_workloads_from_one_contract(self) -> None:
         tasks = build_task_definitions(
@@ -776,7 +804,10 @@ class TaskDefinitionBuilderTests(SimpleTestCase):
             self.assertEqual(container["image"], f"{REPOSITORY}@{DIGEST_B}")
             self.assertEqual(container["user"], "10001:10001")
             environment = {item["name"]: item["value"] for item in container["environment"]}
-            self.assertEqual(environment["APP_VERSION"], SHA_B)
+            self.assertEqual(environment["VERSION"], VERSION_B)
+            self.assertEqual(environment["SOURCE_SHA"], SHA_B)
+            self.assertEqual(environment["IMAGE_DIGEST"], DIGEST_B)
+            self.assertNotIn("APP_VERSION", environment)
             self.assertLessEqual(SAFETY_ENVIRONMENT.items(), environment.items())
             environments.append(environment)
             secrets.append(container["secrets"])
@@ -824,7 +855,9 @@ class TaskDefinitionBuilderTests(SimpleTestCase):
                 item["name"]: item["value"]
                 for item in task["containerDefinitions"][0]["environment"]
             }
-            self.assertEqual(environment["APP_VERSION"], SHA_B)
+            self.assertEqual(environment["VERSION"], VERSION_B)
+            self.assertEqual(environment["SOURCE_SHA"], SHA_B)
+            self.assertEqual(environment["IMAGE_DIGEST"], DIGEST_B)
             self.assertEqual(environment["DATAMAILER_TRANSACTIONAL_DRY_RUN"], "1")
 
     def test_builder_rejects_extra_environment_duplicate_secret_names_and_wrong_arns(self) -> None:
@@ -855,7 +888,7 @@ class TaskDefinitionBuilderTests(SimpleTestCase):
                 self.subTest(source=source, digest=digest),
                 self.assertRaises(ReleaseContractError),
             ):
-                ReleaseIdentity(source, digest, REPOSITORY)
+                ReleaseIdentity(source, digest, REPOSITORY, version_for(source))
 
 
 class PromotionTests(SimpleTestCase):
@@ -868,7 +901,7 @@ class PromotionTests(SimpleTestCase):
         source_sha: str = SHA_B,
     ) -> PromotionConfig:
         return PromotionConfig(
-            identity=ReleaseIdentity(source_sha, DIGEST_B, REPOSITORY),
+            identity=ReleaseIdentity(source_sha, DIGEST_B, REPOSITORY, version_for(source_sha)),
             task_definitions=TaskDefinitionConfig(
                 families=FAMILIES,
                 container_names=CONTAINERS,
@@ -907,6 +940,29 @@ class PromotionTests(SimpleTestCase):
             self.assertEqual(web_proofs[-1]["receipt_binding"], "complete_receipt")
             worker_proofs = [item["proof"] for item in stages if item["stage"] == "worker"]
             self.assertEqual(worker_proofs[-1]["receipt_binding"], "complete_receipt")
+            expected_identity = {
+                "identity_schema": 2,
+                "version": VERSION_B,
+                "source_sha": SHA_B,
+                "image_digest": DIGEST_B,
+            }
+            for stage_name in (
+                "registration",
+                "migration",
+                "pre_update_gate",
+                "web",
+                "worker",
+                "smoke",
+                "terminal",
+                "release_record",
+            ):
+                with self.subTest(stage=stage_name):
+                    proof = next(
+                        item["proof"]
+                        for item in reversed(stages)
+                        if item["stage"] == stage_name and item["result"] == "passed"
+                    )
+                    self.assertLessEqual(expected_identity.items(), proof.items())
         migration = next(
             i for i, value in enumerate(gateway.operations) if value.startswith("migrate:")
         )
@@ -947,7 +1003,7 @@ class PromotionTests(SimpleTestCase):
             if value.startswith("coherence:revalidate:420:")
         )
         worker_update = gateway.operations.index(f"update:worker:{arn('worker', 2)}:1")
-        smoke = gateway.operations.index(f"smoke:{SHA_B}")
+        smoke = gateway.operations.index(f"smoke:{VERSION_B}:{SHA_B}")
         terminal_guard = next(
             index
             for index, value in enumerate(gateway.operations)
@@ -988,7 +1044,7 @@ class PromotionTests(SimpleTestCase):
             for index, value in enumerate(gateway.operations)
             if value.startswith("guard:wait:")
         )
-        smoke = gateway.operations.index(f"smoke:{SHA_B}")
+        smoke = gateway.operations.index(f"smoke:{VERSION_B}:{SHA_B}")
         terminal_guard = next(
             index
             for index, value in enumerate(gateway.operations)
@@ -1171,6 +1227,8 @@ class PromotionTests(SimpleTestCase):
                     source_sha=SHA_B,
                     image_digest=DIGEST_B,
                     primary_deployment_id=deployment_id("worker", 2),
+                    version=VERSION_B,
+                    identity_schema=2,
                 )
             return result
 
@@ -1201,6 +1259,8 @@ class PromotionTests(SimpleTestCase):
                 source_sha=SHA_B,
                 image_digest=DIGEST_B,
                 primary_deployment_id=deployment_id("worker", 2),
+                version=VERSION_B,
+                identity_schema=2,
             )
 
         gateway.run_migration = migration_then_external_change  # type: ignore[method-assign]
@@ -1476,6 +1536,8 @@ class PromotionTests(SimpleTestCase):
                     source_sha=worker.source_sha,
                     image_digest=worker.image_digest,
                     primary_deployment_id="ecs-svc/worker-alien",
+                    version=worker.version,
+                    identity_schema=worker.identity_schema,
                 )
 
         gateway.wait_service_stable = change_untouched_worker_after_web_restore  # type: ignore[method-assign]
@@ -1665,13 +1727,17 @@ class PromotionTests(SimpleTestCase):
                 return original_terminal(*args, **kwargs)
 
             def health_with_secret_failure(
-                source_sha: str,
+                identity: ReleaseIdentity,
                 *,
                 phase_deadline: float | None = None,
             ) -> None:
-                if restoring["value"] and source_sha == SHA_A and selected_failure == "health":
+                if (
+                    restoring["value"]
+                    and identity.source_sha == SHA_A
+                    and selected_failure == "health"
+                ):
                     raise RuntimeError("sentinel-secret-must-not-leak")
-                original_health(source_sha, phase_deadline=phase_deadline)
+                original_health(identity, phase_deadline=phase_deadline)
 
             gateway.update_service = update_with_secret_failure  # type: ignore[method-assign]
             gateway.wait_service_stable = wait_with_secret_failure  # type: ignore[method-assign]
@@ -1832,6 +1898,8 @@ class PromotionTests(SimpleTestCase):
             source_sha=SHA_A,
             image_digest=DIGEST_A,
             primary_deployment_id=deployment_id("web", 1),
+            version=VERSION_A,
+            identity_schema=2,
         )
         mixed = FakeGateway(bootstrap=False)
         mixed.snapshots["worker"] = ServiceSnapshot(
@@ -1843,6 +1911,8 @@ class PromotionTests(SimpleTestCase):
             source_sha="c" * 40,
             image_digest=DIGEST_A,
             primary_deployment_id=deployment_id("worker", 1),
+            version=version_for("c" * 40),
+            identity_schema=2,
         )
 
         cases = (
@@ -1893,6 +1963,7 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         with self._temporary_directory() as directory:
             rollback(
@@ -1924,7 +1995,7 @@ class PromotionTests(SimpleTestCase):
             if value.startswith("coherence:revalidate:420:")
         )
         worker_update = gateway.operations.index(f"update:worker:{arn('worker', 2)}:1")
-        smoke = gateway.operations.index(f"smoke:{SHA_B}")
+        smoke = gateway.operations.index(f"smoke:{VERSION_B}:{SHA_B}")
         terminal_guard = next(
             index
             for index, value in enumerate(gateway.operations)
@@ -1946,6 +2017,7 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         for failure in (
             "update:web",
@@ -1980,6 +2052,7 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         gateway = FakeGateway(bootstrap=False, fail_once="wait:web")
         with self._temporary_directory() as directory:
@@ -2018,9 +2091,19 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         contexts = (
-            RecoveryContext(REPOSITORY, SHA_A, DIGEST_A, arn("web", 1), arn("worker", 1), 1, 1),
+            RecoveryContext(
+                REPOSITORY,
+                SHA_A,
+                DIGEST_A,
+                arn("web", 1),
+                arn("worker", 1),
+                1,
+                1,
+                VERSION_A,
+            ),
             RecoveryContext(REPOSITORY, None, None, arn("web", 1), arn("worker", 1), 0, 0),
         )
         for context in contexts:
@@ -2103,6 +2186,7 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         context = RecoveryContext(
             REPOSITORY,
@@ -2112,6 +2196,7 @@ class PromotionTests(SimpleTestCase):
             arn("worker", 1),
             1,
             1,
+            VERSION_A,
         )
         gateway = FakeGateway(bootstrap=False)
         for workload in ("web", "worker"):
@@ -2179,6 +2264,7 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         context = RecoveryContext(
             REPOSITORY,
@@ -2188,6 +2274,7 @@ class PromotionTests(SimpleTestCase):
             arn("worker", 1),
             1,
             1,
+            VERSION_A,
         )
         gateway = FakeGateway(bootstrap=False)
         for workload in ("web", "worker"):
@@ -2232,6 +2319,7 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         context = RecoveryContext(
             REPOSITORY,
@@ -2241,6 +2329,7 @@ class PromotionTests(SimpleTestCase):
             arn("worker", 1),
             1,
             1,
+            VERSION_A,
         )
         cases = (
             ("deadline", "receipt_deadline_expired"),
@@ -2333,6 +2422,7 @@ class PromotionTests(SimpleTestCase):
             arn("worker", 1),
             1,
             1,
+            VERSION_A,
         )
         failed = ReleaseRecord(
             source_sha=SHA_B,
@@ -2343,6 +2433,7 @@ class PromotionTests(SimpleTestCase):
             web_desired_count=1,
             worker_desired_count=1,
             rollback_eligible=True,
+            version=VERSION_B,
         )
         with self.assertRaisesMessage(ReleaseContractError, "differ from"):
             restore_after_finalization_failure(gateway, context, failed)
@@ -2370,7 +2461,9 @@ class PromotionTests(SimpleTestCase):
         parser = argparse.ArgumentParser()
         payload = {
             "status": "restored_prior",
-            "release": SHA_A,
+            "identity_schema": 2,
+            "version": VERSION_A,
+            "source_sha": SHA_A,
             "image_digest": DIGEST_A,
             "restorative_receipts": [
                 {
@@ -2391,6 +2484,27 @@ class PromotionTests(SimpleTestCase):
         self.assertEqual(__import__("json").loads(stdout.getvalue()), payload)
         self.assertNotIn("sentinel-provider-payload", stdout.getvalue())
 
+    def test_cli_success_reports_the_complete_release_identity(self) -> None:
+        parser = argparse.ArgumentParser()
+        parser.parse_args = lambda: SimpleNamespace(  # type: ignore[assignment]
+            handler=lambda _arguments: successful_record(),
+            command="promote",
+        )
+        stdout = io.StringIO()
+        with patch("deploy.cli.build_parser", return_value=parser), redirect_stdout(stdout):
+            release_cli_main()
+
+        self.assertEqual(
+            __import__("json").loads(stdout.getvalue()),
+            {
+                "status": "successful",
+                "identity_schema": 2,
+                "version": VERSION_A,
+                "source_sha": SHA_A,
+                "image_digest": DIGEST_A,
+            },
+        )
+
 
 class RemoteSmokeSafetyTests(SimpleTestCase):
     def test_remote_smoke_is_restricted_to_the_exact_development_origin(self) -> None:
@@ -2403,12 +2517,34 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
         noindex = {"x-robots-tag": ROBOTS_VALUE}
         private = noindex | {"cache-control": "private, no-store"}
         responses = [
-            Response(200, noindex, f'{{"status":"ok","version":"{SHA_A}"}}'.encode()),
             Response(
                 200,
                 noindex,
-                b'{"status":"ready","checks":{"configuration":{"status":"ok"},'
-                b'"database":{"status":"ok"},"migrations":{"status":"ok"}}}',
+                json.dumps(
+                    {
+                        "status": "ok",
+                        "version": VERSION_A,
+                        "source_sha": SHA_A,
+                        "image_digest": DIGEST_A,
+                    }
+                ).encode(),
+            ),
+            Response(
+                200,
+                noindex,
+                json.dumps(
+                    {
+                        "status": "ready",
+                        "version": VERSION_A,
+                        "source_sha": SHA_A,
+                        "image_digest": DIGEST_A,
+                        "checks": {
+                            "configuration": {"status": "ok"},
+                            "database": {"status": "ok"},
+                            "migrations": {"status": "ok"},
+                        },
+                    }
+                ).encode(),
             ),
             Response(
                 200,
@@ -2417,8 +2553,9 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 b"The place to talk about data"
                 b"Global online community of data science professionals, ML engineers, "
                 b"and AI practitioners"
-                b'<link rel="canonical" href="https://datatalks.club/">'
-                b'<link rel="stylesheet" href="/static/core.fixture.css">',
+                + f"Version {VERSION_A}".encode()
+                + b'<link rel="canonical" href="https://datatalks.club/">'
+                + b'<link rel="stylesheet" href="/static/core.fixture.css">',
             ),
             Response(
                 200,
@@ -2430,8 +2567,9 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 200,
                 noindex,
                 b"Learn data skills. For free. Together."
-                b'<link rel="canonical" href="https://datatalks.club/courses/">'
-                b'<link rel="stylesheet" href="/static/courses.fixture.css">',
+                + f"Version {VERSION_A}".encode()
+                + b'<link rel="canonical" href="https://datatalks.club/courses/">'
+                + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
             ),
             Response(
                 302,
@@ -2439,6 +2577,18 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 b"",
             ),
             Response(200, private, b"Sign In"),
+            Response(
+                200,
+                noindex,
+                json.dumps(
+                    {
+                        "status": "ok",
+                        "version": VERSION_A,
+                        "source_sha": SHA_A,
+                        "image_digest": DIGEST_A,
+                    }
+                ).encode(),
+            ),
             Response(
                 401,
                 private
@@ -2468,7 +2618,9 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
         with tempfile.TemporaryDirectory(dir=".tmp") as directory:
             path = Path(directory) / "http-evidence.json"
             with patch("deploy.smoke._request", side_effect=responses) as request:
-                evidence = run_http_smoke("https://web.dtcdev.click", SHA_A, path)
+                evidence = run_http_smoke(
+                    "https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A, path
+                )
             self.assertEqual(
                 [call.args[1] for call in request.call_args_list][-4:],
                 [
@@ -2497,7 +2649,8 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     200,
                     noindex,
                     b"Learn data skills. For free. Together."
-                    b'<link rel="stylesheet" href="/static/core.fixture.css">',
+                    + f"Version {VERSION_A}".encode()
+                    + b'<link rel="stylesheet" href="/static/core.fixture.css">',
                 ),
                 "home page lacks expected content",
             ),
@@ -2508,7 +2661,8 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     200,
                     noindex,
                     b"The place to talk about data"
-                    b'<link rel="stylesheet" href="/static/courses.fixture.css">',
+                    + f"Version {VERSION_A}".encode()
+                    + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
                 ),
                 "course discovery lacks expected content",
             ),
@@ -2521,7 +2675,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     patch("deploy.smoke._request", side_effect=invalid_responses),
                     self.assertRaisesMessage(ReleaseContractError, error_message),
                 ):
-                    run_http_smoke("https://web.dtcdev.click", SHA_A)
+                    run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
 
         exact_courses_canonical = b'<link rel="canonical" href="https://datatalks.club/courses/">'
         invalid_courses_canonicals = (
@@ -2542,6 +2696,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 200,
                 noindex,
                 b"Learn data skills. For free. Together."
+                + f"Version {VERSION_A}".encode()
                 + rendered_canonical
                 + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
             )
@@ -2553,7 +2708,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     "course discovery production canonical differs",
                 ),
             ):
-                run_http_smoke("https://web.dtcdev.click", SHA_A)
+                run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
 
         invalid_admin_responses = (
             (
@@ -2584,9 +2739,9 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
         for admin_response, error_message in invalid_admin_responses:
             with self.subTest(error_message=error_message):
                 invalid_responses = [*responses]
-                invalid_responses[7] = admin_response
+                invalid_responses[8] = admin_response
                 with (
                     patch("deploy.smoke._request", side_effect=invalid_responses),
                     self.assertRaisesMessage(ReleaseContractError, error_message),
                 ):
-                    run_http_smoke("https://web.dtcdev.click", SHA_A)
+                    run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)

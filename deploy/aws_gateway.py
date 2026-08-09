@@ -29,7 +29,10 @@ from deploy.contracts import (
     ServiceTarget,
     ServiceUpdateReceipt,
     WebRuntimeBinding,
+    validate_image_digest,
     validate_rfc1918_ipv4,
+    validate_source_sha,
+    validate_version,
 )
 from deploy.legacy_development_compatibility import (
     ECR_REPOSITORY_NAME,
@@ -275,7 +278,9 @@ class AwsReleaseGateway:
             raise ReleaseContractError(f"task definition {reference} has no readable tags")
         return task, tags
 
-    def _identity(self, task_definition_arn: str, workload: str) -> tuple[str | None, str | None]:
+    def _identity(
+        self, task_definition_arn: str, workload: str
+    ) -> tuple[str | None, str | None, str | None, int | None]:
         task = self._task_definition(task_definition_arn)
         containers = task.get("containerDefinitions", [])
         matches = [
@@ -284,17 +289,40 @@ class AwsReleaseGateway:
         if len(matches) != 1:
             raise ReleaseContractError(f"{workload} task does not have its exact container")
         container = matches[0]
-        environment = {
-            item.get("name"): item.get("value") for item in container.get("environment", [])
-        }
-        source_sha = environment.get("APP_VERSION")
-        if not isinstance(source_sha, str) or not SOURCE_SHA_PATTERN.fullmatch(source_sha):
-            source_sha = None
+        raw_environment = container.get("environment", [])
+        identity_names = {"VERSION", "SOURCE_SHA", "IMAGE_DIGEST", "APP_VERSION"}
+        identity_items = [item for item in raw_environment if item.get("name") in identity_names]
+        names = [item.get("name") for item in identity_items]
+        if len(names) != len(set(names)):
+            raise ReleaseContractError(f"{workload} task has duplicate release identity variables")
+        environment = {item.get("name"): item.get("value") for item in identity_items}
         image = container.get("image", "")
         digest = image.rsplit("@", 1)[-1] if "@" in image else None
         if not isinstance(digest, str) or not IMAGE_DIGEST_PATTERN.fullmatch(digest):
             digest = None
-        return source_sha, digest
+        schema2_names = {"VERSION", "SOURCE_SHA", "IMAGE_DIGEST"}
+        if schema2_names & set(environment):
+            if set(environment) != schema2_names or digest is None:
+                raise ReleaseContractError(f"{workload} task release identity is incomplete")
+            version = environment["VERSION"]
+            source_sha = environment["SOURCE_SHA"]
+            environment_digest = environment["IMAGE_DIGEST"]
+            if not all(
+                isinstance(value, str) for value in (version, source_sha, environment_digest)
+            ):
+                raise ReleaseContractError(f"{workload} task release identity is malformed")
+            validate_source_sha(source_sha)
+            validate_image_digest(environment_digest)
+            validate_version(version, source_sha)
+            if environment_digest != digest:
+                raise ReleaseContractError(f"{workload} task image digest identity differs")
+            return version, source_sha, digest, 2
+        legacy_sha = environment.get("APP_VERSION")
+        if isinstance(legacy_sha, str) and SOURCE_SHA_PATTERN.fullmatch(legacy_sha) and digest:
+            return legacy_sha, legacy_sha, digest, 1
+        if environment:
+            raise ReleaseContractError(f"{workload} task release identity is malformed")
+        return None, None, digest, None
 
     def capture_service(self, workload: str) -> ServiceSnapshot:
         service = self._service(workload)
@@ -321,7 +349,9 @@ class AwsReleaseGateway:
         ):
             raise ReleaseContractError(f"{workload} captured terminal counts differ")
         task_definition_arn = target.task_definition_arn
-        source_sha, image_digest = self._identity(task_definition_arn, workload)
+        version, source_sha, image_digest, identity_schema = self._identity(
+            task_definition_arn, workload
+        )
         return ServiceSnapshot(
             service_name=self.config.service_names[workload],
             task_definition_arn=task_definition_arn,
@@ -331,6 +361,8 @@ class AwsReleaseGateway:
             source_sha=source_sha,
             image_digest=image_digest,
             primary_deployment_id=primary_id,
+            version=version,
+            identity_schema=identity_schema,
         )
 
     def source_task_definition(self, workload: str) -> dict[str, Any]:
@@ -365,6 +397,18 @@ class AwsReleaseGateway:
         return tasks
 
     def verify_release_record(self, record: ReleaseRecord, identity: ReleaseIdentity) -> None:
+        if (
+            record.version,
+            record.source_sha,
+            record.image_digest,
+            record.identity_schema,
+        ) != (
+            identity.version,
+            identity.source_sha,
+            identity.image_digest,
+            identity.identity_schema,
+        ):
+            raise ReleaseContractError("release record identity differs")
         tasks = self._managed_task_definitions(
             {
                 "web": record.web_task_definition_arn,
@@ -386,6 +430,18 @@ class AwsReleaseGateway:
     def verify_active_service_pair(
         self, pair: ActiveServicePair, identity: ReleaseIdentity
     ) -> None:
+        if (
+            pair.version,
+            pair.source_sha,
+            pair.image_digest,
+            pair.identity_schema,
+        ) != (
+            identity.version,
+            identity.source_sha,
+            identity.image_digest,
+            identity.identity_schema,
+        ):
+            raise ReleaseContractError("active service pair identity differs")
         tasks = self._managed_task_definitions(
             {
                 "web": pair.web_task_definition_arn,
@@ -403,41 +459,52 @@ class AwsReleaseGateway:
             ),
         )
 
-    def verify_image_digest_exists(
-        self,
-        repository_uri: str,
-        source_sha: str,
-        image_digest: str,
-    ) -> None:
-        if repository_uri != ECR_REPOSITORY_URI:
+    def verify_image_digest_exists(self, identity: ReleaseIdentity) -> None:
+        if identity.repository_uri != ECR_REPOSITORY_URI:
             raise ReleaseContractError(
                 "active image repository is outside the development boundary"
             )
         tagged = self.ecr.describe_images(
             repositoryName=ECR_REPOSITORY_NAME,
-            imageIds=[{"imageTag": source_sha}],
+            imageIds=[{"imageTag": identity.source_sha}],
         )
         tagged_details = tagged.get("imageDetails", [])
-        if len(tagged_details) != 1 or tagged_details[0].get("imageDigest") != image_digest:
+        if (
+            len(tagged_details) != 1
+            or tagged_details[0].get("imageDigest") != identity.image_digest
+        ):
             raise ReleaseContractError(
                 "active source SHA tag does not resolve to the exact development image digest"
             )
         described = self.ecr.describe_images(
             repositoryName=ECR_REPOSITORY_NAME,
-            imageIds=[{"imageDigest": image_digest}],
+            imageIds=[{"imageDigest": identity.image_digest}],
         )
         details = described.get("imageDetails", [])
-        if len(details) != 1 or details[0].get("imageDigest") != image_digest:
+        if len(details) != 1 or details[0].get("imageDigest") != identity.image_digest:
             raise ReleaseContractError("active image digest is missing from development ECR")
+        if identity.identity_schema == 2:
+            versioned = self.ecr.describe_images(
+                repositoryName=ECR_REPOSITORY_NAME,
+                imageIds=[{"imageTag": identity.version}],
+            )
+            versioned_details = versioned.get("imageDetails", [])
+            if (
+                len(versioned_details) != 1
+                or versioned_details[0].get("imageDigest") != identity.image_digest
+            ):
+                raise ReleaseContractError(
+                    "active VERSION tag does not resolve to the exact development image digest"
+                )
         manifest = self.ecr.batch_get_image(
             repositoryName=ECR_REPOSITORY_NAME,
-            imageIds=[{"imageDigest": image_digest}],
+            imageIds=[{"imageDigest": identity.image_digest}],
         )
         images = manifest.get("images", [])
         if (
             manifest.get("failures")
             or len(images) != 1
-            or images[0].get("imageId", {}).get("imageDigest") != image_digest
+            or images[0].get("imageId", {}).get("imageDigest") != identity.image_digest
             or not images[0].get("imageManifest")
         ):
             raise ReleaseContractError("active image manifest is missing from development ECR")
@@ -1984,9 +2051,22 @@ class AwsReleaseGateway:
             raise ReleaseContractError("web runtime task definition has no exact web container")
         container = matching[0]
         environment = self._container_environment(container)
-        versions = [item["value"] for item in environment if item["name"] == "APP_VERSION"]
-        if versions != [identity.source_sha]:
-            raise ReleaseContractError("web runtime task-definition APP_VERSION differs")
+        expected_identity = (
+            {
+                "VERSION": identity.version,
+                "SOURCE_SHA": identity.source_sha,
+                "IMAGE_DIGEST": identity.image_digest,
+            }
+            if identity.identity_schema == 2
+            else {"APP_VERSION": identity.source_sha}
+        )
+        observed_identity = [
+            (item["name"], item["value"])
+            for item in environment
+            if item["name"] in {"VERSION", "SOURCE_SHA", "IMAGE_DIGEST", "APP_VERSION"}
+        ]
+        if observed_identity != sorted(expected_identity.items()):
+            raise ReleaseContractError("web runtime task-definition release identity differs")
         if container.get("image") != identity.image:
             raise ReleaseContractError("web runtime task-definition repository or digest differs")
         raw_mappings = container.get("portMappings")
@@ -2015,7 +2095,7 @@ class AwsReleaseGateway:
         return container, tuple(mappings)
 
     @staticmethod
-    def _prove_no_app_version_override(task: dict[str, Any]) -> None:
+    def _prove_no_identity_override(task: dict[str, Any]) -> None:
         overrides = task.get("overrides")
         if not isinstance(overrides, dict):
             raise ReleaseContractError("web runtime task overrides are malformed")
@@ -2033,8 +2113,11 @@ class AwsReleaseGateway:
                 for item in environment
             ):
                 raise ReleaseContractError("web runtime task overrides are malformed")
-            if any(item["name"] == "APP_VERSION" for item in environment):
-                raise ReleaseContractError("web runtime task overrides APP_VERSION")
+            if any(
+                item["name"] in {"VERSION", "SOURCE_SHA", "IMAGE_DIGEST", "APP_VERSION"}
+                for item in environment
+            ):
+                raise ReleaseContractError("web runtime task overrides release identity")
 
     def _web_task_runtime_identity(
         self,
@@ -2053,7 +2136,7 @@ class AwsReleaseGateway:
             or task.get("healthStatus") != "HEALTHY"
         ):
             raise ReleaseContractError("web runtime active task identity or health differs")
-        self._prove_no_app_version_override(task)
+        self._prove_no_identity_override(task)
         containers = task.get("containers")
         if not isinstance(containers, list) or any(
             not isinstance(container, dict) for container in containers
@@ -2265,6 +2348,8 @@ class AwsReleaseGateway:
             private_ipv4_address=private_address,
             container_port=port,
             target_port=port,
+            version=identity.version,
+            identity_schema=identity.identity_schema,
         )
         if frozen_binding is not None and observed != frozen_binding:
             raise ReleaseContractError("bound web runtime identity changed")
@@ -2305,7 +2390,12 @@ class AwsReleaseGateway:
         while True:
             self._require_not_after_deadline(deadline, context="web runtime coherence")
             try:
-                verify_health(self.config.base_url, identity.source_sha)
+                verify_health(
+                    self.config.base_url,
+                    identity.version,
+                    identity.source_sha,
+                    identity.image_digest,
+                )
             except Exception:
                 self._sleep_web_coherence_poll(deadline)
                 continue
@@ -2347,6 +2437,8 @@ class AwsReleaseGateway:
             source_sha=binding.source_sha,
             image_digest=binding.image_digest,
             repository_uri=ECR_REPOSITORY_URI,
+            version=binding.version,
+            identity_schema=binding.identity_schema,
         )
         return (
             self._observe_web_runtime_once(
@@ -2358,7 +2450,9 @@ class AwsReleaseGateway:
             is not None
         )
 
-    def verify_public_web(self, source_sha: str, *, phase_deadline: float | None = None) -> None:
+    def verify_public_web(
+        self, identity: ReleaseIdentity, *, phase_deadline: float | None = None
+    ) -> None:
         deadline = time.monotonic() + self.config.timeout_seconds
         if phase_deadline is not None:
             phase_deadline = self._validate_stabilization_deadline(
@@ -2401,7 +2495,12 @@ class AwsReleaseGateway:
 
         while time.monotonic() < deadline:
             try:
-                verify_health(self.config.base_url, source_sha)
+                verify_health(
+                    self.config.base_url,
+                    identity.version,
+                    identity.source_sha,
+                    identity.image_digest,
+                )
                 self._require_not_after_deadline(deadline, context="public web health")
                 return
             except Exception as error:
@@ -2411,14 +2510,16 @@ class AwsReleaseGateway:
                     time.sleep(min(self.config.poll_seconds, remaining))
         error_name = type(last_error).__name__ if last_error is not None else "unknown"
         raise ReleaseContractError(
-            f"public readiness/liveness did not reach the exact source SHA ({error_name})"
+            f"public readiness/liveness did not reach the exact release identity ({error_name})"
         )
 
-    def run_deployed_smoke(self, source_sha: str) -> None:
+    def run_deployed_smoke(self, identity: ReleaseIdentity) -> None:
         try:
             run_http_smoke(
                 self.config.base_url,
-                source_sha,
+                identity.version,
+                identity.source_sha,
+                identity.image_digest,
                 self.config.screenshot_directory / "http-evidence.json",
             )
         except ReleaseContractError:
@@ -2443,7 +2544,9 @@ class AwsReleaseGateway:
                 env={
                     **os.environ,
                     "DTC_TEST_BASE_URL": self.config.base_url,
-                    "DTC_EXPECTED_APP_VERSION": source_sha,
+                    "DTC_EXPECTED_VERSION": identity.version,
+                    "DTC_EXPECTED_SOURCE_SHA": identity.source_sha,
+                    "DTC_EXPECTED_IMAGE_DIGEST": identity.image_digest,
                     "DTC_SCREENSHOT_DIR": str(self.config.screenshot_directory),
                     "DJANGO_ALLOW_ASYNC_UNSAFE": "true",
                 },
@@ -2603,8 +2706,10 @@ class AwsReleaseGateway:
             ):
                 raise ReleaseContractError(f"terminal {workload} tasks are mixed")
             if expected_identity is not None and (
-                snapshot.source_sha != expected_identity.source_sha
+                snapshot.version != expected_identity.version
+                or snapshot.source_sha != expected_identity.source_sha
                 or snapshot.image_digest != expected_identity.image_digest
+                or snapshot.identity_schema != expected_identity.identity_schema
             ):
                 raise ReleaseContractError(f"terminal {workload} release identity differs")
 

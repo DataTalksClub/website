@@ -75,6 +75,23 @@
     overflow: visible;
     white-space: normal;
   }
+
+  .site-footer-meta,
+  .footer-version {
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 100%;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .footer-version-value {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-align: center;
+    text-overflow: clip;
+    white-space: normal;
+  }
 }
 
 @media (min-width: 80rem) {

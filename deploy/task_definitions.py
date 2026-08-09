@@ -139,6 +139,8 @@ def build_task_definitions(
     identity: ReleaseIdentity,
     config: TaskDefinitionConfig,
 ) -> dict[str, dict[str, Any]]:
+    if identity.identity_schema != 2:
+        raise ReleaseContractError("new task definitions require a schema-2 release identity")
     if set(source_tasks) != set(WORKLOADS):
         raise ReleaseContractError("source tasks must define web, worker, and migration")
 
@@ -154,7 +156,8 @@ def build_task_definitions(
             )
         container = _only_container(task, config.container_names[workload])
         source_environment = _environment(container)
-        source_environment.pop("APP_VERSION", None)
+        for identity_name in ("APP_VERSION", "VERSION", "SOURCE_SHA", "IMAGE_DIGEST"):
+            source_environment.pop(identity_name, None)
         if source_environment != FIXED_NONSECRET_ENVIRONMENT:
             raise ReleaseContractError(
                 f"{workload} source environment differs from the development contract"
@@ -169,7 +172,9 @@ def build_task_definitions(
 
     common_environment = {
         **FIXED_NONSECRET_ENVIRONMENT,
-        "APP_VERSION": identity.source_sha,
+        "VERSION": identity.version,
+        "SOURCE_SHA": identity.source_sha,
+        "IMAGE_DIGEST": identity.image_digest,
     }
     normalized: dict[str, dict[str, Any]] = {}
     for workload in WORKLOADS:
@@ -221,14 +226,29 @@ def _assert_normalized_workloads(
         if container.get("user") != "10001:10001":
             raise ReleaseContractError(f"{workload} must run as 10001:10001")
         environment = _environment(container)
-        if environment.get("APP_VERSION") != identity.source_sha:
-            raise ReleaseContractError(f"{workload} APP_VERSION is not the source SHA")
+        expected_identity = (
+            {
+                "VERSION": identity.version,
+                "SOURCE_SHA": identity.source_sha,
+                "IMAGE_DIGEST": identity.image_digest,
+            }
+            if identity.identity_schema == 2
+            else {"APP_VERSION": identity.source_sha}
+        )
+        if {name: environment.get(name) for name in expected_identity} != expected_identity:
+            raise ReleaseContractError(f"{workload} release identity differs")
+        if identity.identity_schema == 2 and "APP_VERSION" in environment:
+            raise ReleaseContractError(f"{workload} must not deploy APP_VERSION")
+        if identity.identity_schema == 1 and any(
+            name in environment for name in ("VERSION", "SOURCE_SHA", "IMAGE_DIGEST")
+        ):
+            raise ReleaseContractError(f"{workload} legacy release identity is mixed")
         for name, value in SAFETY_ENVIRONMENT.items():
             if environment.get(name) != value:
                 raise ReleaseContractError(f"{workload} has unsafe {name}")
         expected_environment = {
             **FIXED_NONSECRET_ENVIRONMENT,
-            "APP_VERSION": identity.source_sha,
+            **expected_identity,
         }
         if environment != expected_environment:
             raise ReleaseContractError(f"{workload} non-secret environment is not exact")

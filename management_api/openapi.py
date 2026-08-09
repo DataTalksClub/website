@@ -172,7 +172,7 @@ def generate_document() -> dict[str, Any]:
         "openapi": "3.1.0",
         "info": {
             "title": "DataTalks.Club management API",
-            "version": "1.0.0",
+            "version": settings.VERSION,
         },
         "servers": [{"url": "/api/v1/admin"}],
         "paths": paths,
@@ -188,10 +188,12 @@ def generate_document() -> dict[str, Any]:
                 "AdminHealth": {
                     "type": "object",
                     "additionalProperties": False,
-                    "required": ["status", "version"],
+                    "required": ["status", "version", "source_sha", "image_digest"],
                     "properties": {
                         "status": {"type": "string", "const": "ok"},
                         "version": {"type": "string"},
+                        "source_sha": {"type": ["string", "null"]},
+                        "image_digest": {"type": ["string", "null"]},
                     },
                 },
                 "CredentialMetadata": _credential_schema(),

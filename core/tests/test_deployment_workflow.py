@@ -225,9 +225,64 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         self.assertIn("Every B run after its migration drill must reuse", resolve)
         self.assertIn("Rollback requires reuse with no failure injection", resolve)
-        self.assertIn('keys == ["image_config_digest"', resolve)
+        self.assertIn("deploy.release_identity inspect-published", resolve)
+        self.assertIn("identity_schema", resolve)
         self.assertIn('.platform == "linux/amd64"', resolve)
         self.assertIn('.user == "10001:10001"', resolve)
+
+    def test_schema2_identity_is_constructed_once_and_propagated_without_new_aws_access(
+        self,
+    ) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        document = yaml.safe_load(workflow)
+
+        self.assertEqual(workflow.count("deploy.release_identity construct"), 1)
+        self.assertNotIn("get-download-url-for-layer", workflow)
+        self.assertNotIn('--env "APP_VERSION=', workflow)
+
+        resolve = document["jobs"]["resolve-release"]
+        self.assertEqual(
+            set(resolve["outputs"]),
+            {"release_sha", "version", "constructed_at", "identity_schema"},
+        )
+        upload = next(
+            step
+            for step in resolve["steps"]
+            if step.get("name") == "Preserve the one sealed source identity"
+        )
+        self.assertEqual(upload["with"]["name"], "release-source-identity-${{ github.run_id }}")
+        self.assertIn("github.run_attempt == 1", upload["if"])
+
+        build = next(
+            step
+            for step in document["jobs"]["container"]["steps"]
+            if step.get("name") == "Build the production image once for development architecture"
+        )["run"]
+        for label in (
+            "org.opencontainers.image.version=$VERSION",
+            "org.opencontainers.image.revision=$RELEASE_SHA",
+            "org.opencontainers.image.created=$CONSTRUCTED_AT",
+        ):
+            self.assertIn(label, build)
+
+        fresh_publish = next(
+            step
+            for step in document["jobs"]["publish"]["steps"]
+            if step.get("name") == "Push once and write the non-release published-image record"
+        )["run"]
+        self.assertIn('docker image push "$ECR_REPOSITORY_URI:$RELEASE_SHA"', fresh_publish)
+        self.assertIn('docker image push "$ECR_REPOSITORY_URI:$VERSION"', fresh_publish)
+        self.assertIn("aws ecr put-image \\", fresh_publish)
+        self.assertIn('test "$version_digest" = "$image_digest"', fresh_publish)
+        self.assertIn('test "$remote_config_digest" = "$local_config_digest"', fresh_publish)
+
+        reuse = next(
+            step
+            for step in document["jobs"]["publish"]["steps"]
+            if step.get("name") == "Verify and preserve the recorded immutable image without Docker"
+        )["run"]
+        self.assertIn('test "$version_digest" = "$recorded_digest"', reuse)
+        self.assertIn(".config.digest) == $config", reuse)
 
     def test_automatic_rerun_restores_exact_sha_cache_and_can_never_rebuild(self) -> None:
         document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
@@ -259,7 +314,10 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertTrue(handoff["with"]["overwrite"])
         publish_steps = document["jobs"]["publish"]["steps"]
         download = next(
-            step for step in publish_steps if step.get("uses") == "actions/download-artifact@v4"
+            step
+            for step in publish_steps
+            if step.get("uses") == "actions/download-artifact@v4"
+            and step.get("with", {}).get("name", "").startswith("release-image-")
         )
         self.assertEqual(download["with"]["name"], handoff["with"]["name"])
 
@@ -1220,7 +1278,9 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
 
         self.assertNotIn("migrate", entrypoint)
         self.assertIn("USER 10001:10001", dockerfile)
-        self.assertIn("org.opencontainers.image.revision", dockerfile)
+        self.assertNotIn("APP_VERSION", dockerfile)
+        self.assertNotIn("SOURCE_SHA", dockerfile)
+        self.assertNotIn("org.opencontainers.image.", dockerfile)
 
 
 class FakeWorkerClock:
@@ -1784,9 +1844,11 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
                 1,
                 1,
                 0,
-                None,
-                None,
+                "a" * 40,
+                f"sha256:{'b' * 64}",
                 "ecs-svc/web-b",
+                "20260809-143205-aaaaaaa",
+                2,
             ),
             "worker": ServiceSnapshot(
                 "worker",
@@ -1794,9 +1856,11 @@ class ServiceReceiptAdoptionContractTests(SimpleTestCase):
                 1,
                 1,
                 0,
-                None,
-                None,
+                "a" * 40,
+                f"sha256:{'b' * 64}",
                 "ecs-svc/worker-b",
+                "20260809-143205-aaaaaaa",
+                2,
             ),
         }
         services = {"web": web_service, "worker": worker_service}
@@ -5590,7 +5654,8 @@ class MigrationTaskContractTests(SimpleTestCase):
         source_sha = "a" * 40
         image_digest = f"sha256:{'a' * 64}"
         repository = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
-        identity = ReleaseIdentity(source_sha, image_digest, repository)
+        version = f"20260809-143205-{source_sha[:7]}"
+        identity = ReleaseIdentity(source_sha, image_digest, repository, version)
         config = TaskDefinitionConfig(
             families=gateway.config.task_families,
             container_names=gateway.config.container_names,
@@ -5644,6 +5709,7 @@ class MigrationTaskContractTests(SimpleTestCase):
             worker_task_definition_arn=references["worker"],
             web_desired_count=1,
             worker_desired_count=1,
+            version=version,
         )
         exact_tags = [
             {"key": "ReleaseManager", "value": "DataTalksClub/website"},
@@ -5674,7 +5740,15 @@ class MigrationTaskContractTests(SimpleTestCase):
         gateway.ecr = Mock()
         source_sha = "a" * 40
         image_digest = f"sha256:{'a' * 64}"
+        version = f"20260809-143205-{source_sha[:7]}"
+        identity = ReleaseIdentity(
+            source_sha,
+            image_digest,
+            "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+            version,
+        )
         gateway.ecr.describe_images.side_effect = [
+            {"imageDetails": [{"imageDigest": image_digest}]},
             {"imageDetails": [{"imageDigest": image_digest}]},
             {"imageDetails": [{"imageDigest": image_digest}]},
         ]
@@ -5687,11 +5761,7 @@ class MigrationTaskContractTests(SimpleTestCase):
                 }
             ],
         }
-        gateway.verify_image_digest_exists(
-            "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
-            source_sha,
-            image_digest,
-        )
+        gateway.verify_image_digest_exists(identity)
         self.assertEqual(
             gateway.ecr.describe_images.call_args_list[0].kwargs["imageIds"],
             [{"imageTag": source_sha}],
@@ -5702,14 +5772,17 @@ class MigrationTaskContractTests(SimpleTestCase):
             "imageDetails": [{"imageDigest": f"sha256:{'b' * 64}"}]
         }
         with self.assertRaisesMessage(ReleaseContractError, "source SHA tag"):
-            gateway.verify_image_digest_exists(
-                "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
-                source_sha,
-                image_digest,
-            )
+            gateway.verify_image_digest_exists(identity)
 
     def test_public_health_polls_until_exact_readiness_or_timeout(self) -> None:
         gateway = self.gateway(FakeMigrationEcs({}, {}))
+        source_sha = "a" * 40
+        identity = ReleaseIdentity(
+            source_sha,
+            f"sha256:{'a' * 64}",
+            "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox",
+            f"20260809-143205-{source_sha[:7]}",
+        )
         gateway._service = Mock(return_value={"desiredCount": 1})  # type: ignore[method-assign]
         gateway.elbv2 = Mock()
         gateway.elbv2.describe_target_health.return_value = {
@@ -5723,7 +5796,7 @@ class MigrationTaskContractTests(SimpleTestCase):
                 side_effect=[ReleaseContractError("not ready"), None],
             ) as health,
         ):
-            gateway.verify_public_web("a" * 40)
+            gateway.verify_public_web(identity)
         self.assertEqual(health.call_count, 2)
 
         gateway.elbv2.describe_target_health.return_value = {
@@ -5734,4 +5807,4 @@ class MigrationTaskContractTests(SimpleTestCase):
             patch("deploy.aws_gateway.time.sleep"),
             self.assertRaisesMessage(ReleaseContractError, "ALB target readiness"),
         ):
-            gateway.verify_public_web("a" * 40)
+            gateway.verify_public_web(identity)

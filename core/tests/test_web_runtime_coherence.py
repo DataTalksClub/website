@@ -23,6 +23,7 @@ from deploy.legacy_development_compatibility import ECR_REPOSITORY_URI
 
 SOURCE_SHA = "a" * 40
 IMAGE_DIGEST = f"sha256:{'b' * 64}"
+VERSION = f"20260809-143205-{SOURCE_SHA[:7]}"
 WEB_DEFINITION = "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:14"
 OLD_WEB_DEFINITION = "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-web:13"
 WORKER_DEFINITION = "arn:aws:ecs:eu-west-1:817685572750:task-definition/website-sandbox-worker:14"
@@ -95,7 +96,7 @@ def receipt() -> ServiceUpdateReceipt:
 
 
 def identity() -> ReleaseIdentity:
-    return ReleaseIdentity(SOURCE_SHA, IMAGE_DIGEST, ECR_REPOSITORY_URI)
+    return ReleaseIdentity(SOURCE_SHA, IMAGE_DIGEST, ECR_REPOSITORY_URI, VERSION)
 
 
 def task_definition() -> dict[str, Any]:
@@ -107,7 +108,11 @@ def task_definition() -> dict[str, Any]:
             {
                 "name": "web",
                 "image": f"{ECR_REPOSITORY_URI}@{IMAGE_DIGEST}",
-                "environment": [{"name": "APP_VERSION", "value": SOURCE_SHA}],
+                "environment": [
+                    {"name": "IMAGE_DIGEST", "value": IMAGE_DIGEST},
+                    {"name": "SOURCE_SHA", "value": SOURCE_SHA},
+                    {"name": "VERSION", "value": VERSION},
+                ],
                 "portMappings": [
                     {
                         "containerPort": TARGET_PORT,
@@ -282,6 +287,7 @@ def observed_binding() -> WebRuntimeBinding:
         private_ipv4_address=PRIVATE_ADDRESS,
         container_port=TARGET_PORT,
         target_port=TARGET_PORT,
+        version=VERSION,
     )
 
 
@@ -778,6 +784,8 @@ class WebRuntimeCoherenceTests(SimpleTestCase):
                 "expected_task_definition_arn",
                 "expected_source_sha",
                 "expected_image_digest",
+                "expected_version",
+                "identity_schema",
                 "observation_count",
                 "deadline_budget_seconds",
                 "coherence_checks",

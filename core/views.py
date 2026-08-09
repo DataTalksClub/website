@@ -79,7 +79,7 @@ def sitemap(request: HttpRequest) -> HttpResponse:
 @require_GET
 def liveness(request: HttpRequest) -> JsonResponse:
     del request
-    return JsonResponse({"status": "ok", "version": settings.APP_VERSION})
+    return JsonResponse(settings.RUNTIME_IDENTITY.payload())
 
 
 def _configuration_status() -> tuple[str, list[str]]:
@@ -130,7 +130,8 @@ def readiness(request: HttpRequest) -> JsonResponse:
         checks["migrations"]["message"] = migration_error
 
     ready = all(check["status"] == "ok" for check in checks.values())
-    return JsonResponse(
-        {"status": "ready" if ready else "not_ready", "checks": checks},
-        status=200 if ready else 503,
+    payload: dict[str, Any] = settings.RUNTIME_IDENTITY.payload(
+        status="ready" if ready else "not_ready"
     )
+    payload["checks"] = checks
+    return JsonResponse(payload, status=200 if ready else 503)

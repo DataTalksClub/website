@@ -14,7 +14,7 @@
     </nav>
     <dl class="status-grid">
       <div><dt>Application</dt><dd>Ready</dd></div>
-      <div><dt>Version</dt><dd>{{ app_version }}</dd></div>
+      <div><dt>Version</dt><dd>{{ VERSION }}</dd></div>
     </dl>
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary" type="submit">Sign out</button></form>
   </section>

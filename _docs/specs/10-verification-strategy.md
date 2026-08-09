@@ -55,7 +55,11 @@ Tests that create real data are clearly tagged and cannot target a shared enviro
 - policy checks preventing hosted-zone creation, public RDS, open task ports, unencrypted data, wildcard deploy permissions, and committed secrets;
 - container non-root/runtime checks and vulnerability scan;
 - migration dry run and `makemigrations --check`;
-- readiness/liveness and exact deployed-SHA verification;
+- one-shot UTC VERSION construction, strict sealed/published record parsing, dual-alias and remote
+  OCI-label proof, and rejection of clock/Git reconstruction during reuse;
+- exact digest-pinned task environments for web/worker/migration and rejection of inherited,
+  duplicate, overridden, mixed-schema, malformed, or local-fallback identity;
+- readiness/liveness, footer, API/OpenAPI/event, and exact deployed VERSION/SHA/digest verification;
 - backup verification, restore drill, image rollback, and worker/outbox reconciliation;
 - TLS, DNS, edge/origin restrictions, noindex, cache policy, and controlled SES delivery.
 
@@ -151,7 +155,7 @@ crawls, accessibility, dependency/security, restore, and deployed-environment sm
 
 Each release candidate produces one report containing:
 
-- source commit and image digest;
+- identity schema, VERSION, source commit, construction timestamp, and image/config digests;
 - active content commits and import counts;
 - URL/link/SEO difference summary;
 - course migration reconciliation;

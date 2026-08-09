@@ -173,3 +173,6 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "docker buildx build" in container
     assert "scripts.verify_static_manifest" in container
     assert "/health/live" in container
+    assert "APP_VERSION" not in container
+    assert '"source_sha": null, "image_digest": null' in container
+    assert "local-development-build-version-not-configured" in container

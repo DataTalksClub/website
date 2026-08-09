@@ -49,6 +49,10 @@ class BootstrapParserTests(SimpleTestCase):
             "DJANGO_SECRET_KEY",
             "DTC_ENVIRONMENT",
             "DTC_USE_SQLITE",
+            "APP_VERSION",
+            "VERSION",
+            "SOURCE_SHA",
+            "IMAGE_DIGEST",
             "DATAMAILER_SYNC_ON_USER_CREATE",
             "DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY",
             "DATAMAILER_TRANSACTIONAL_DRY_RUN",
@@ -67,6 +71,9 @@ class BootstrapParserTests(SimpleTestCase):
                 ),
                 "DJANGO_SECRET_KEY": "strong-test-only-secret-" + "x" * 48,
                 "DTC_ENVIRONMENT": module,
+                "VERSION": "20260809-143205-aaaaaaa",
+                "SOURCE_SHA": "a" * 40,
+                "IMAGE_DIGEST": f"sha256:{'b' * 64}",
             }
         )
         environment.update(overrides or {})

@@ -86,6 +86,12 @@ Target WCAG 2.2 AA for the public site, learner course experience, Studio, and t
 
 Structured logs include request/job/message IDs, route/operation, duration, status, safe actor class, content release, cohort/event, queue age, and delivery identifiers. Raw emails and submission content are excluded from default logs.
 
+Application events also include the stable non-secret fields `version`, `source_sha`, and
+`image_digest`, copied from the sealed runtime identity. They are log/evidence fields, not metric
+dimensions. Health, deployment smoke, release/rollback records, and recovery evidence compare the
+same triplet; they never substitute a mutable tag for the immutable digest or expose the raw task
+environment/provider response.
+
 Metrics and alerts cover:
 
 - public/learner/Studio/API availability, latency, and error rate;
@@ -130,6 +136,9 @@ Recommended initial production targets, subject to approval:
 - Concurrent course/event edits: reject stale revision.
 - Concurrent scoring/registration/enrollment: database invariants win and tasks remain idempotent.
 - Deployment regression: roll back immutable app image without sending old outbox messages twice.
+- Deployment identity mismatch: fail before mutation or success recording; rollback/recovery uses
+  the exact recorded VERSION, source SHA, digest, task definitions, and service counts without a
+  clock or fabricated timestamp.
 - Secret/provider expiry: alert before expiry and follow a tested rotation runbook.
 
 ## Acceptance criteria

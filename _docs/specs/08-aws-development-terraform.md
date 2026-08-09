@@ -100,7 +100,7 @@ Direct task ports are never internet-accessible even when a task has a public IP
 - One-off predeploy migration task; web/worker entrypoints never race migrations.
 - One explicit scheduler owner registers recurring jobs.
 - ALB target group and static liveness/dependency-aware readiness checks.
-- Rolling or blue/green deployment with immutable SHA/version labels and automatic failed-readiness rollback.
+- Rolling or blue/green deployment with immutable schema-2 release identity and automatic failed-readiness rollback.
 
 ### Database and storage
 
@@ -131,14 +131,25 @@ Direct task ports are never internet-accessible even when a task has a public IP
 GitHub Actions in `DataTalksClub/website`:
 
 1. Run lint, type, migration, unit/integration, OpenAPI drift, security, URL contract, and selected browser tests.
-2. Build one image and scan it.
-3. Authenticate through GitHub OIDC, not long-lived AWS access keys.
-4. Push a SHA/timestamp-tagged image to ECR.
-5. Run a one-off migration task.
-6. Deploy web and worker using the exact image digest.
-7. Poll readiness and verify `/health` returns the expected commit/version.
-8. Run non-destructive development smoke tests, including a controlled email path.
-9. Record deployed SHA and preserve a rollback target.
+2. At the resolve boundary, construct exactly one sealed schema-2 record containing VERSION,
+   lowercase full source SHA, and one-instant RFC3339 UTC construction time. Reruns and reuse read
+   that record and never consult a clock or Git to rebuild it.
+3. Build one `linux/amd64` image with matching OCI version/revision/created labels and scan it.
+4. Authenticate through GitHub OIDC, not long-lived AWS access keys.
+5. Push immutable VERSION and full-SHA aliases to the same ECR digest, then require the remote
+   manifest config digest to equal the locally inspected config carrying the sealed labels before
+   writing the published-image record.
+6. Register digest-pinned migration, web, and worker definitions with exactly one each of VERSION,
+   SOURCE_SHA, and IMAGE_DIGEST and no `APP_VERSION`, inherited identity, or override.
+7. Run the one-off migration, deploy web and worker, and poll readiness/liveness for the exact
+   triplet and receipt-bound runtime.
+8. Run non-destructive development smoke, including public footer VERSION checks.
+9. Record the schema, VERSION, source SHA, digest, task definitions, and counts as the rollback
+   target. A failed stage never produces that successful record.
+
+Already-active schema-1 releases are readable only as bounded prior/rollback targets with
+`version == source_sha`. They retain independent SHA/digest/task/count verification and cannot be
+republished, normalized into schema 2, or used to create a new schema-1 task/success record.
 
 Terraform plan/apply remains in the infrastructure repository with separate OIDC permissions and protected approval appropriate to the environment. Application deployment cannot mutate infrastructure outside its narrowly scoped ECS/ECR actions.
 

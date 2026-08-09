@@ -10,8 +10,43 @@ remain unchanged until #94. They name this development deployment; they do not d
 environment.
 
 Never paste secret values into a workflow input, command, release record, screenshot, issue,
-or log. A release record contains only source/digest/task-definition/count identifiers. A
+or log. A release record contains only identity-schema/version/source/digest/task-definition/count
+identifiers. A
 database migration is forward-only: compensation and rollback never run a reverse migration.
+
+## Current release-identity contract
+
+Issue #110 supersedes older identity wording in the historical release-A/B evidence below without
+rewriting that evidence. Every newly resolved release is schema 2. The resolve job invokes the
+constructor exactly once and seals:
+
+- `identity_schema=2`;
+- `version=YYYYMMDD-HHMMSS-<source_sha[:7]>` from one UTC instant;
+- the lowercase 40-character `source_sha`;
+- RFC3339 UTC `constructed_at` from that same instant.
+
+A workflow rerun downloads the sealed record from its original run; image reuse, promotion,
+rollback, recovery, and evidence read the recorded fields and never ask Git or a clock to recreate
+VERSION. Publication appends repository URI, ECR image/config digests, platform, and runtime user.
+Every schema-2 reader uses the constructor module's one compact VERSION parser; a fixed-width value
+whose month, day, hour, minute, or second is not a real UTC calendar instant fails before task
+registration, service mutation, runtime startup, record acceptance, or smoke.
+Both VERSION and full-SHA ECR aliases must resolve to the same image digest, and the remote config
+digest must equal the locally inspected config carrying the matching OCI
+`org.opencontainers.image.version`, `revision`, and `created` labels. Reuse revalidates that same
+content-addressed config digest without adding registry permissions or pulling the image.
+
+The migration, web, and worker definitions all use that same image by digest. Each container has
+exactly one each of `VERSION`, `SOURCE_SHA`, and `IMAGE_DIGEST`; inherited/duplicate/overridden
+identity fields and deployed `APP_VERSION` are failures. Django keeps `APP_VERSION = VERSION` only
+as a Python compatibility alias. Deployed liveness/readiness, API health, footers, task/runtime
+binding, smoke, success records, rollback, and recovery must agree on the exact recorded triplet.
+
+Local runs use `local-development-build-version-not-configured` with null source/digest. ECS and
+deployed smoke reject it. A strict schema-1 reader exists only for an already-active or recorded
+prior/rollback target and represents its VERSION as its full source SHA; it may not invent a
+timestamp, publish a new schema-1 image, register a schema-1 task, or write a schema-1 success
+record.
 
 ## One-time bootstrap
 
@@ -727,23 +762,23 @@ Set `deploy_development=true` and `operation=promote` only for an authorized rel
   `prior_release_record`.
 - Later ordinary releases use the prior run's
   `development-successful-release-<sha>-attempt-<attempt>` artifact. The
-  active task ARNs, counts, source SHA, and digest must match it before registration or migration.
+  active task ARNs, counts, identity schema, VERSION, source SHA, and digest must match it before
+  registration or migration.
 
 Leave `failure_injection=none` for every normal promotion and rollback. Controlled failure
 choices are dispatch-only and promotion-only; the controller rejects them without a valid prior
 release record, so they can never run during release-A bootstrap or rollback.
 
-The build path builds once for `linux/amd64`, proves OCI revision and runtime user `10001:10001`,
-and preserves that tested image as a short-lived artifact. The publisher either pushes a new
-full-SHA tag once or proves an existing immutable tag has the same image-config digest. It then
-uploads a compact non-secret published-image record containing source SHA, exact repository URI,
-ECR digest, image-config digest, platform, and user. This artifact is produced before deployment
-and is **not** a successful or rollback-eligible release record.
+The build path builds once for `linux/amd64`, proves the sealed OCI version/revision/created labels
+and runtime user `10001:10001`, and preserves that tested image as a short-lived artifact. The
+publisher applies both the VERSION and full-SHA aliases to one immutable digest (or proves both
+already resolve there), verifies the remote config digest and labels, then uploads the strict
+non-secret schema-2 published-image record. This artifact is produced before deployment and is **not** a successful or rollback-eligible release record.
 
 The reuse path performs no Docker build, load, login, pull, or push. Under the publisher role it
-requires the full-SHA tag to resolve to the record's exact ECR digest and requires
-`BatchGetImage` to resolve the manifest's exact recorded image-config digest. Missing records,
-missing tags, malformed fields, repository/source mismatches, or digest mismatches fail closed.
+requires both recorded aliases to resolve to the exact ECR digest and requires `BatchGetImage` to
+resolve the manifest's exact recorded image-config digest and labels. Missing records, aliases,
+malformed fields, repository/identity mismatches, or digest/label mismatches fail closed.
 The same recorded ECR digest then reaches the deployer. The deployer registers the exact digest
 task definitions, runs migration, promotes web, verifies readiness and liveness SHA, promotes the
 singleton worker, and runs the complete read-only smoke. Only deployment success produces a
@@ -762,7 +797,8 @@ The controller entry points, also useful for offline argument inspection, are:
 ```console
 uv run python -m deploy.cli promote --help
 uv run python -m deploy.cli rollback --help
-uv run python -m deploy.smoke --base-url https://web.dtcdev.click --source-sha <40hex>
+uv run python -m deploy.smoke --base-url https://web.dtcdev.click \
+  --version <YYYYMMDD-HHMMSS-sha7> --source-sha <40hex> --image-digest <sha256:64hex>
 ```
 
 The workflow supplies all cluster, service, family, container, network, role, tag, count,
@@ -954,8 +990,9 @@ separate development prior-capture job attached to the legacy GitHub environment
 captures the active application state with read-only ECS
 calls. A failed/invalid capture therefore prevents publication as well as deployment.
 
-That capture is a distinct active-service-pair schema containing only source SHA, image digest,
-exact web/worker task-definition ARNs, and desired counts. Automatic compensation needs no prior
+That capture is a distinct active-service-pair schema containing identity schema, VERSION, source
+SHA, image digest, exact web/worker task-definition ARNs, and desired counts. Automatic
+compensation needs no prior
 migration identifier, so prior capture/recovery never guesses a cross-family revision or reads
 family `latest`, and never broadens IAM to list task definitions. Registration still reads each exact configured family as its
 normalized source template. Web and worker must be stable, nonzero, unmixed,
@@ -1004,7 +1041,8 @@ Web completion still requires its expected task-definition ARN and desired count
 counts, and `rolloutState=COMPLETED`. Missing or duplicate primary deployments, `FAILED`, failed
 tasks, a wrong/mixed task definition, a wrong desired count, or `COMPLETED` with inexact counts fail
 immediately. A running task, ALB response, or partial target health is never ECS completion. The
-coherent public-runtime gate below follows ECS stabilization and must report the exact source SHA.
+coherent public-runtime gate below follows ECS stabilization and must report the exact
+VERSION/source/digest triplet.
 Worker completion retains the same terminal requirements plus no more than one running plus pending
 task; queue activity, heartbeat, or a processed job is not completion.
 
@@ -1022,9 +1060,10 @@ performs this ordered chain:
    `DescribeTasks` every deduplicated returned ARN. Require one authoritative
    `RUNNING/RUNNING/HEALTHY` task and one healthy web container on the receipt's exact task
    definition.
-3. Read that exact task definition. Require one web container, exactly one `APP_VERSION` equal to
-   the source SHA, the exact development repository plus immutable digest, the runtime container's
-   same `imageDigest`, and no task override of `APP_VERSION`.
+3. Read that exact task definition. Require one web container, exactly one each of `VERSION`,
+   `SOURCE_SHA`, and `IMAGE_DIGEST` equal to the sealed identity, no `APP_VERSION`, the exact
+   development repository plus immutable digest, the runtime container's same `imageDigest`, and
+   no task override of any identity variable.
 4. Join its sole attached Elastic Network Interface to the container's matching attachment and
    private IPv4 address in the literal RFC1918 `10/8`, `172.16/12`, or `192.168/16` blocks. The
    broader Python `is_private` classification is not accepted: documentation, shared, loopback,
@@ -1035,7 +1074,8 @@ performs this ordered chain:
    `draining` state.
 6. Freeze the receipt ID, task definition, exact task ARN, digest, network attachment/interface,
    private address, and target tuple as one in-memory binding; verify public liveness and readiness
-   for the exact source SHA; then repeat the complete chain against that same frozen binding.
+   for the exact VERSION/source/digest triplet; then repeat the complete chain against that same
+   frozen binding.
 
 The controller never adopts a replacement, even when it uses the same task definition, digest, or
 SHA. The second complete sample must match the first task, interface, address, port, target, and
@@ -1045,10 +1085,10 @@ fingerprint. Only after sample B passes may the singleton worker be changed.
 | --- | --- | --- |
 | Before the first binding, inventory is empty or all described tasks are recently stopped | retryable convergence | Poll immediately, then sleep only `min(poll interval, remaining)` under the same 180-second deadline. |
 | Before the first binding, the exact candidate target is absent or not yet healthy | retryable convergence | Keep the same deadline; it never proves success. |
-| Public live/ready is unavailable, not ready, or does not report the exact SHA | retryable convergence | Keep the same deadline and require sample B afterward. |
+| Public live/ready is unavailable, not ready, or does not report the exact triplet | retryable convergence | Keep the same deadline and require sample B afterward. |
 | After binding, the frozen task is temporarily missing or described stopped with no replacement | retryable stale read | It cannot prove a worker phase; later reads may validate only the same frozen task. |
 | Wrong, duplicate, mixed, pending, or unhealthy active task/container | contradiction | Fail immediately. |
-| Malformed/looped pagination, task membership mismatch, provider API failure, wrong definition/image/digest/SHA, or `APP_VERSION` override | contradiction | Fail immediately without exposing the provider payload. |
+| Malformed/looped pagination, task membership mismatch, provider API failure, wrong definition/image/identity, or any identity override | contradiction | Fail immediately without exposing the provider payload. |
 | Missing/duplicate/detached ENI, attachment/interface disagreement, address outside literal RFC1918, ambiguous port, or changed ENI | contradiction | Fail immediately. |
 | Duplicate target tuple, wrong candidate mapping, alien healthy/non-draining target, or a frozen candidate no longer healthy | contradiction | Fail immediately. |
 | Different active task, digest, ENI, address, port, or target after binding | contradiction | Fail immediately; never rebind. |
@@ -1077,7 +1117,7 @@ untouched. A failure after worker mutation uses the existing #102 exact-pair com
 coordinator; its `240/420/720` receipt ordering and recovery budgets are unchanged.
 
 Coherence evidence contains only stage/result/timestamp, receipt ID, expected task-definition ARN,
-expected SHA/digest, safe counts, observation count, fixed deadline budget, boolean check results,
+expected identity schema/VERSION/SHA/digest, safe counts, observation count, fixed deadline budget,
 one SHA-256 binding fingerprint, and allowlisted error class/reason code. It never contains task
 ARNs, attachment or ENI IDs, private addresses, target tuples, target-health descriptions,
 container environment/overrides, raw AWS responses, request metadata, or provider messages. During
@@ -1353,7 +1393,8 @@ below. This is an operational limitation, not permission to broaden application 
 
 Artifact names end in `attempt-<github.run_attempt>`; never mix records from different attempts.
 `development-deployment-evidence-<run-id>-attempt-<attempt>` contains bounded non-secret JSON: run
-URL/ID/attempt, controller/source SHA, image digest, captured prior, gate results, each current-main
+URL/ID/attempt, identity schema, VERSION, controller/source SHA, image digest, captured prior, gate
+results, each current-main
 checkpoint timestamp, actual controller stage events, final ARNs/counts, and redacted HTTP results.
 It contains no raw headers/bodies, cookies, credentials, or recovery context.
 `controller_succeeded_pending_artifact_finalization` means the AWS controller finished, but the

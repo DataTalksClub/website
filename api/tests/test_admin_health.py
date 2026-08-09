@@ -46,7 +46,15 @@ class AdminHealthIntegrationTests(TestCase):
             HTTP_AUTHORIZATION=f"Bearer {issued.response['token']}",
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["status"], "ok")
+        self.assertEqual(
+            response.json(),
+            {
+                "status": "ok",
+                "version": "local-development-build-version-not-configured",
+                "source_sha": None,
+                "image_digest": None,
+            },
+        )
         self.assertNotIn("actor", response.json())
         self.assertIn("private", response.headers["Cache-Control"])
         self.assertIn("no-store", response.headers["Cache-Control"])

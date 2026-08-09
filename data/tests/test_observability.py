@@ -18,7 +18,9 @@ class ObservabilityEventTests(SimpleTestCase):
     @override_settings(
         OBSERVABILITY_ENVIRONMENT="test",
         OBSERVABILITY_EVENT_SCHEMA_VERSION="1",
-        VERSION="test-release",
+        VERSION="20260809-143205-aaaaaaa",
+        SOURCE_SHA="a" * 40,
+        IMAGE_DIGEST="sha256:" + "b" * 64,
     )
     def test_event_properties_use_project_schema(self):
         event = AppEvent(
@@ -36,7 +38,9 @@ class ObservabilityEventTests(SimpleTestCase):
         self.assertEqual(properties["event"], "homework.submitted")
         self.assertEqual(properties["schema_version"], "1")
         self.assertEqual(properties["environment"], "test")
-        self.assertEqual(properties["release"], "test-release")
+        self.assertEqual(properties["version"], "20260809-143205-aaaaaaa")
+        self.assertEqual(properties["source_sha"], "a" * 40)
+        self.assertEqual(properties["image_digest"], "sha256:" + "b" * 64)
         self.assertEqual(properties["course_slug"], "mlops")
         self.assertEqual(properties["app_event"], "custom")
         self.assertEqual(
@@ -61,7 +65,9 @@ class ObservabilityEventTests(SimpleTestCase):
     @override_settings(
         OBSERVABILITY_ENVIRONMENT="test",
         CLOUDWATCH_APP_METRIC_NAMESPACE="CMP/Test",
-        VERSION="release-1",
+        VERSION="20260809-143205-aaaaaaa",
+        SOURCE_SHA="a" * 40,
+        IMAGE_DIGEST="sha256:" + "b" * 64,
     )
     def test_cloudwatch_metric_payload_uses_emf_schema(self):
         event = AppEvent(
@@ -78,7 +84,9 @@ class ObservabilityEventTests(SimpleTestCase):
         self.assertEqual(payload["event"], "project.submitted")
         self.assertEqual(payload["schema_version"], "1")
         self.assertEqual(payload["environment"], "test")
-        self.assertEqual(payload["release"], "release-1")
+        self.assertEqual(payload["version"], "20260809-143205-aaaaaaa")
+        self.assertEqual(payload["source_sha"], "a" * 40)
+        self.assertEqual(payload["image_digest"], "sha256:" + "b" * 64)
         self.assertEqual(payload["project_slug"], "capstone")
         self.assertEqual(payload["distinct_id"], "user:2")
         self.assertEqual(payload["AppEventCount"], 1)

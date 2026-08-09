@@ -30,6 +30,8 @@ Deliverables:
 - web/worker processes and durable job helpers;
 - Terraform `sandbox/website` stack and GitHub OIDC delivery pipeline;
 - `web.dtcdev.click` deployment with TLS, noindex, logs, alarms, backups, and rollback image.
+- one-shot readable schema-2 application VERSION propagated through immutable image publication,
+  exact task runtime identity, public/health/API surfaces, and rollback/recovery records;
 - adopted course-platform source/migrations/tests mounted in the unified Django project, with its characterization suite passing before domain changes.
 
 Exit gate: authenticated Studio/API health capability works in development, unauthorized paths fail correctly, and no production data/content is loaded.
@@ -129,6 +131,11 @@ Permanent redirects are enabled only after destinations pass production smoke te
 ## Rollback
 
 Preferred rollback is an immutable application-image rollback with the new database and dynamic endpoints retained. Database changes follow expand/migrate/contract rules so the previous release can read newly written data.
+
+Application rollback selects the exact recorded identity schema, VERSION, full source SHA, image
+digest, task definitions, and service counts. It never derives a replacement timestamp or trusts a
+mutable image tag. During the bounded transition an existing schema-1 target retains its full SHA
+as VERSION; every newly published or successful release is schema 2.
 
 Rollback must account for registrations/enrollments written after cutover:
 

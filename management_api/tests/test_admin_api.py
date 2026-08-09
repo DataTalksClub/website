@@ -4,6 +4,7 @@ import json
 from datetime import timedelta
 from unittest.mock import patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.http import QueryDict
@@ -78,6 +79,8 @@ class AdminAPIHealthTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["status"], "ok")
         self.assertIn("version", response.json())
+        self.assertEqual(response.json()["source_sha"], None)
+        self.assertEqual(response.json()["image_digest"], None)
         self.assertNotIn("actor", response.json())
         self.assertNotIn("email", json.dumps(response.json()).casefold())
         self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
@@ -89,6 +92,18 @@ class AdminAPIHealthTests(TestCase):
         self.bearer()
         self.credential.refresh_from_db()
         self.assertEqual(self.credential.last_used_at, first_used)
+
+    def test_openapi_uses_the_canonical_release_identity_contract(self) -> None:
+        document = generate_document()
+        health = document["components"]["schemas"]["AdminHealth"]
+
+        self.assertEqual(document["info"]["version"], settings.VERSION)
+        self.assertEqual(
+            health["required"],
+            ["status", "version", "source_sha", "image_digest"],
+        )
+        self.assertEqual(health["properties"]["source_sha"]["type"], ["string", "null"])
+        self.assertEqual(health["properties"]["image_digest"]["type"], ["string", "null"])
 
     def test_failure_matrix_is_generic_and_confused_deputies_are_rejected(self) -> None:
         staff = get_user_model().objects.create_user(username="session-staff", is_staff=True)

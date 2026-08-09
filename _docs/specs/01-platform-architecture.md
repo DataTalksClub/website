@@ -121,6 +121,26 @@ cross-source activation to win; the prior active release remains public after an
 - Search failure does not make content pages unavailable.
 - Studio/API failure must not prevent public content reads.
 
+## Application release identity
+
+Every new application release has one sealed schema-2 identity. The resolve boundary constructs it
+once from one UTC instant as `VERSION=YYYYMMDD-HHMMSS-<source_sha[:7]>`, the lowercase 40-character
+`SOURCE_SHA`, and the matching RFC3339 `constructed_at`. No build, reuse, deploy, rollback, or
+recovery step may consult Git or a clock to reconstruct it.
+The constructor, record readers, deployment controller, task capture, smoke, and Django runtime use
+one compact VERSION parser that rejects regex-shaped but calendar-invalid UTC timestamps.
+
+Publication attaches the immutable image and config digests to that sealed identity. The VERSION
+and full-SHA ECR aliases must resolve to the same image, whose OCI version, revision, and creation
+labels must match the sealed record. Web, worker, and migration use the same digest-pinned image and
+receive exactly one each of `VERSION`, `SOURCE_SHA`, and `IMAGE_DIGEST`; `APP_VERSION` is only a
+Python compatibility alias for `VERSION`, never a deployed environment variable.
+
+Django exposes VERSION in all three public shells, in API metadata, and with the source SHA and
+image digest on operational health surfaces and structured events. Local execution uses the
+explicit `local-development-build-version-not-configured` fallback with nullable SHA/digest.
+Deployed settings fail closed on that fallback or an incomplete/mismatched triplet.
+
 ## Acceptance criteria
 
 - App boundaries above exist without circular dependencies.
