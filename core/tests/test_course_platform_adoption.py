@@ -101,6 +101,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "accounts/views/login.py",
                 "course_management/datamailer_outbox_dispatch.py",
                 "course_platform_templates/base.html",
+                "courses/static/courses.css",
                 "scripts/generate_production_like_leaderboard_data.py",
                 "scripts/load_rds_export.py",
                 "scripts/score_project_dev.py",
