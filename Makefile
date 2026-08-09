@@ -1,5 +1,5 @@
 .PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
-	test-core test test-compatibility compatibility-source-artifacts-check \
+	test-core test test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-playwright-core test-playwright migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
@@ -37,7 +37,7 @@ format-check:
 	uv run ruff format --check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
 
 typecheck:
-	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy \
+	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy ci \
 		review_import \
 		management_auth management_api management_registry.py \
 		$(COMPATIBILITY_PYTHON) \
@@ -85,6 +85,14 @@ test-content:
 
 test: test-compatibility
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test --parallel
+
+test-ci:
+	uv run --frozen pytest ci/tests -q
+
+test-ci-focused:
+	@test -n "$$CI_SELECTION_PATH" || (echo "CI_SELECTION_PATH is required" >&2; exit 2)
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.focused_tests \
+		--selection "$$CI_SELECTION_PATH"
 
 test-compatibility:
 	uv run pytest compatibility/tests -q

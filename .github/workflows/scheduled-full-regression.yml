@@ -1,0 +1,285 @@
+name: Scheduled full regression
+
+on:
+  schedule:
+    - cron: "17 */4 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: website-scheduled-full-regression
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  selector:
+    runs-on: ubuntu-latest
+    outputs:
+      decision: ${{ steps.history.outputs.decision }}
+      reason: ${{ steps.history.outputs.reason }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - id: history
+        name: Select full regression from bounded workflow history
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp
+          uv run --frozen python -m ci.schedule \
+            --repository "$GITHUB_REPOSITORY" \
+            --workflow scheduled-full-regression.yml \
+            --current-run-id "$GITHUB_RUN_ID" \
+            --current-sha "$GITHUB_SHA" \
+            --current-ref "$GITHUB_REF" \
+            --checkout . \
+            --output .tmp/scheduled-selection.json \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Preserve the scheduled selection
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduled-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/scheduled-selection.json
+          if-no-files-found: error
+          retention-days: 30
+
+  quality:
+    if: needs.selector.outputs.decision == 'run_full'
+    needs: selector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: make terminology-check
+      - run: make database-portability-check
+      - run: make lint
+      - run: make format-check
+      - run: make typecheck
+      - run: make migrations-check
+      - run: make django-check
+      - run: make deployment-check
+      - run: make test-ci
+
+  django:
+    if: needs.selector.outputs.decision == 'run_full'
+    needs: selector
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: website.settings.test
+      DTC_SQLITE_PATH: .tmp/scheduled-ci.sqlite3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - name: Create a fresh scheduled-CI SQLite database
+        run: |
+          mkdir -p .tmp
+          rm -f .tmp/scheduled-ci.sqlite3 .tmp/scheduled-ci.sqlite3-shm .tmp/scheduled-ci.sqlite3-wal
+      - run: uv run python manage.py migrate --noinput
+      - run: make test
+
+  playwright:
+    if: needs.selector.outputs.decision == 'run_full'
+    needs: selector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: uv run playwright install --with-deps chromium
+      - run: make test-playwright-core
+
+  container:
+    if: needs.selector.outputs.decision == 'run_full'
+    needs: selector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - name: Build the exact scheduled production image
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker buildx build \
+            --platform linux/amd64 \
+            --provenance=false \
+            --label "org.opencontainers.image.revision=$RELEASE_SHA" \
+            --tag "dtc-website:$RELEASE_SHA" \
+            --load \
+            .
+      - name: Verify image provenance, architecture, and exact runtime user
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          image="dtc-website:$RELEASE_SHA"
+          test "$(docker image inspect --format '{{.Architecture}}' "$image")" = "amd64"
+          test "$(docker image inspect --format '{{.Config.User}}' "$image")" = "10001:10001"
+          test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$RELEASE_SHA"
+          test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
+          test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
+      - name: Verify the built runtime static manifest
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          image="dtc-website:$RELEASE_SHA"
+          fixtures="$PWD/.tmp/static-manifest-fixtures"
+          mkdir -p "$fixtures/absent"
+          printf '{\n' > "$fixtures/malformed.json"
+          printf '{"paths": {}, "version": "1.1", "hash": "fixture"}\n' > "$fixtures/missing-entry.json"
+
+          verify_manifest() {
+            settings_module="$1"
+            shift
+            docker run --rm \
+              --entrypoint sh \
+              --env "DJANGO_SETTINGS_MODULE=$settings_module" \
+              "$@" \
+              "$image" -c 'uv run --no-sync python -m scripts.verify_static_manifest'
+          }
+
+          verify_manifest website.settings.collectstatic
+          if verify_manifest website.settings.collectstatic \
+            --mount "type=bind,source=$fixtures/absent,target=/app/staticfiles,readonly"; then
+            echo "Static verification accepted an absent manifest." >&2
+            exit 1
+          fi
+          if verify_manifest website.settings.collectstatic \
+            --mount "type=bind,source=$fixtures/malformed.json,target=/app/staticfiles/staticfiles.json,readonly"; then
+            echo "Static verification accepted a malformed manifest." >&2
+            exit 1
+          fi
+          if verify_manifest website.settings.collectstatic \
+            --mount "type=bind,source=$fixtures/missing-entry.json,target=/app/staticfiles/staticfiles.json,readonly"; then
+            echo "Static verification accepted a manifest without courses.css." >&2
+            exit 1
+          fi
+          if verify_manifest website.settings.test; then
+            echo "Static verification accepted an incompatible storage backend." >&2
+            exit 1
+          fi
+      - name: Smoke-test scheduled image liveness
+        env:
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker run --detach --name dtc-web-scheduled \
+            --env DJANGO_SETTINGS_MODULE=website.settings.local \
+            --env "APP_VERSION=$RELEASE_SHA" \
+            --publish 8000:8000 "dtc-website:$RELEASE_SHA" web
+          trap 'docker logs dtc-web-scheduled; docker rm --force dtc-web-scheduled' EXIT
+          for _ in $(seq 1 30); do
+            if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = "{\"status\": \"ok\", \"version\": \"$RELEASE_SHA\"}"; then
+              curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+
+  full-regression:
+    name: full-regression
+    if: >-
+      always() &&
+      needs.selector.result == 'success' &&
+      needs.selector.outputs.decision == 'run_full'
+    needs: [selector, quality, django, playwright, container]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - name: Require every selected full-regression component
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          DJANGO_RESULT: ${{ needs.django.result }}
+          PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+        run: |
+          uv run --frozen python -m ci.gate marker \
+            --quality "$QUALITY_RESULT" \
+            --django "$DJANGO_RESULT" \
+            --playwright "$PLAYWRIGHT_RESULT" \
+            --container "$CONTAINER_RESULT"
+
+  scheduled-gate:
+    if: always()
+    needs: [selector, quality, django, playwright, container, full-regression]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - name: Restore scheduled selection evidence
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: scheduled-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/scheduled-selection
+      - name: Validate the scheduled decision and all component outcomes
+        env:
+          SELECTOR_RESULT: ${{ needs.selector.result }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          DJANGO_RESULT: ${{ needs.django.result }}
+          PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
+          CONTAINER_RESULT: ${{ needs.container.result }}
+          FULL_REGRESSION_RESULT: ${{ needs.full-regression.result }}
+        run: |
+          uv run --frozen python -m ci.gate scheduled \
+            --decision .tmp/scheduled-selection/scheduled-selection.json \
+            --selector "$SELECTOR_RESULT" \
+            --quality "$QUALITY_RESULT" \
+            --django "$DJANGO_RESULT" \
+            --playwright "$PLAYWRIGHT_RESULT" \
+            --container "$CONTAINER_RESULT" \
+            --full-regression "$FULL_REGRESSION_RESULT" \
+            --output .tmp/scheduled-gate.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - name: Preserve scheduled aggregate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scheduled-gate-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/scheduled-gate.json
+          if-no-files-found: warn
+          retention-days: 30
