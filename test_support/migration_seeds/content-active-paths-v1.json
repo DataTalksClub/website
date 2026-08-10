@@ -1,0 +1,33 @@
+{
+  "expected": {
+    "active_paths": 2,
+    "rows": 5,
+    "unresolved": []
+  },
+  "payload": {
+    "assets": [
+      {
+        "path": "/assets/synthetic-migration.svg"
+      }
+    ],
+    "documents": [
+      {
+        "path": "/Synthetic/Migration.html"
+      }
+    ],
+    "release": {
+      "sequence": 1,
+      "status": "active"
+    },
+    "source": {
+      "enabled": true,
+      "stable_id": "synthetic-migration"
+    }
+  },
+  "payload_sha256": "47ca335ffb059ff8870a956445e311b39ed6694633d3c346156f6d5eae33413f",
+  "reversible": true,
+  "schema_version": 1,
+  "seed_version": "content-active-paths-v1",
+  "start": ["content", "0001_initial"],
+  "target": ["content", "0002_active_content_path_claims"]
+}

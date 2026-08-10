@@ -34,8 +34,8 @@ def test_checked_real_inputs_write_blocked_report_and_exit_nonzero() -> None:
         output.unlink(missing_ok=True)
 
 
-def test_programmatic_command_rejects_output_outside_project_scratch(tmp_path: Path) -> None:
-    output = tmp_path / "outside-report.json"
+def test_programmatic_command_rejects_output_outside_project_scratch() -> None:
+    output = ROOT / "compatibility" / "outside-report.json"
 
     with pytest.raises(CommandError, match="below project .tmp"):
         call_command(

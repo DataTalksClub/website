@@ -215,7 +215,7 @@ class ProductionSettingsTests(SimpleTestCase):
         )
         environment.pop("DTC_SQLITE_PATH", None)
 
-        for module, filename in (("local", "local.sqlite3"), ("test", "test.sqlite3")):
+        for module in ("local", "test"):
             with self.subTest(module=module):
                 result = subprocess.run(
                     [sys.executable, "-c", command, module],
@@ -228,7 +228,28 @@ class ProductionSettingsTests(SimpleTestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 database = json.loads(result.stdout)
                 self.assertEqual(database["ENGINE"], "django.db.backends.sqlite3")
-                self.assertEqual(database["NAME"], str(BASE_DIR / ".tmp" / filename))
+                if module == "local":
+                    self.assertEqual(database["NAME"], str(BASE_DIR / ".tmp" / "local.sqlite3"))
+                else:
+                    path = BASE_DIR / database["NAME"]
+                    relative = path.relative_to(BASE_DIR / ".tmp" / "tests")
+                    self.assertEqual(len(relative.parts[0]), 20)
+                    self.assertEqual(relative.parts[2:], ("main", "database", "test.sqlite3"))
+
+    def test_test_settings_reject_a_caller_selected_database_path(self) -> None:
+        environment = os.environ.copy()
+        environment["DTC_SQLITE_PATH"] = ".tmp/caller-selected.sqlite3"
+        result = subprocess.run(
+            [sys.executable, "-c", "import website.settings.test"],
+            cwd=os.getcwd(),
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("cannot override the owned test worker database", result.stderr)
 
     def test_local_sqlite_relative_path_override_is_repository_scoped(self) -> None:
         environment = os.environ.copy()

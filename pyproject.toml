@@ -88,4 +88,12 @@ django_settings_module = "website.settings.test"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "website.settings.test"
 python_files = ["test_*.py"]
-markers = ["core: fast release-critical browser coverage"]
+addopts = "--strict-markers -p no:cacheprovider"
+markers = [
+    "core: bounded release-critical local Playwright coverage",
+    "full: additional deterministic local Playwright coverage",
+    "remote_readonly: explicit deployed read-only coverage",
+    "remote_mutation: explicit isolated-development synthetic mutation",
+    "live_email: explicit controlled-recipient live email smoke",
+    "live_provider: explicit provider/webhook integration smoke",
+]

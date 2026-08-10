@@ -49,10 +49,10 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     assert not any("services" in job for job in jobs.values())
     django = jobs["django"]
     assert set(django["needs"]) == {"resolve-release", "classification"}
-    assert django["env"]["DTC_SQLITE_PATH"] == ".tmp/ci.sqlite3"
+    assert "DTC_SQLITE_PATH" not in django["env"]
     script = runs(django)
-    assert "rm -f .tmp/ci.sqlite3" in script
-    assert "manage.py migrate --noinput" in script
+    assert "rm -f .tmp/ci.sqlite3" not in script
+    assert "manage.py migrate --noinput" not in script
     assert "ci.classifier validate" in script
     assert "make test-ci-focused" in script
     selected_step = next(
@@ -61,6 +61,8 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
         if step.get("name") == "Run the selected or complete Django suite"
     )
     assert selected_step["env"]["CI_SELECTION_PATH"] == ".tmp/ci-selection/ci-selection.json"
+    assert "make test-factories" in script
+    assert "make test-migrations" in script
     assert "make test" in script
     assert "postgres" not in script.lower()
     validation = next(
@@ -131,6 +133,8 @@ def test_scheduled_workflow_has_no_mutation_or_aws_jobs_and_checks_exact_sha() -
     assert set(jobs) == {
         "selector",
         "quality",
+        "factories",
+        "migrations",
         "django",
         "playwright",
         "container",
@@ -160,15 +164,19 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert set(jobs["full-regression"]["needs"]) == {
         "selector",
         "quality",
+        "factories",
+        "migrations",
         "django",
         "playwright",
         "container",
     }
     assert jobs["scheduled-gate"]["if"] == "always()"
     assert "ci.gate scheduled" in runs(jobs["scheduled-gate"])
-    assert jobs["django"]["env"]["DTC_SQLITE_PATH"] == ".tmp/scheduled-ci.sqlite3"
+    assert "DTC_SQLITE_PATH" not in jobs["django"]["env"]
+    assert "make test-factories" in runs(jobs["factories"])
+    assert "make test-migrations" in runs(jobs["migrations"])
     assert "make test" in runs(jobs["django"])
-    assert "make test-playwright-core" in runs(jobs["playwright"])
+    assert "make test-playwright" in runs(jobs["playwright"])
     container = runs(jobs["container"])
     assert "docker buildx build" in container
     assert "scripts.verify_static_manifest" in container

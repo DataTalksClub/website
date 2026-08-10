@@ -3,11 +3,6 @@ from unittest.mock import patch
 import requests
 from django.test import override_settings
 
-from data.models import (
-    DatamailerSendAudit,
-    DatamailerSendAuditStatus,
-    DatamailerSendAuditType,
-)
 from course_management.datamailer.sync.transactional import (
     send_transactional_email,
 )
@@ -15,16 +10,20 @@ from courses.tests.datamailer_contact_base import (
     DATAMAILER_SETTINGS,
     DatamailerContactBase,
 )
+from data.models import (
+    DatamailerSendAudit,
+    DatamailerSendAuditStatus,
+    DatamailerSendAuditType,
+)
 
 
+@override_settings(DATAMAILER_TRANSACTIONAL_DRY_RUN=False)
 class DatamailerTransactionalTest(DatamailerContactBase):
     @override_settings(**DATAMAILER_SETTINGS, DATAMAILER_FROM_EMAIL="")
     @patch(
         "course_management.datamailer.client_transactional.DatamailerTransactionalClient.send_transactional"
     )
-    def test_send_transactional_email_uses_datamailer_client(
-        self, send
-    ):
+    def test_send_transactional_email_uses_datamailer_client(self, send):
         self.configure_transactional_send_success(send)
 
         payload = self.transactional_email_payload()
@@ -59,9 +58,7 @@ class DatamailerTransactionalTest(DatamailerContactBase):
     @patch(
         "course_management.datamailer.client_transactional.DatamailerTransactionalClient.send_transactional"
     )
-    def test_send_transactional_email_adds_configured_from_email(
-        self, send
-    ):
+    def test_send_transactional_email_adds_configured_from_email(self, send):
         send.return_value = {"id": "message-id"}
         payload = {
             "template_key": "welcome",
@@ -86,9 +83,7 @@ class DatamailerTransactionalTest(DatamailerContactBase):
     @patch(
         "course_management.datamailer.client_transactional.DatamailerTransactionalClient.send_transactional"
     )
-    def test_send_transactional_email_keeps_explicit_from_email(
-        self, send
-    ):
+    def test_send_transactional_email_keeps_explicit_from_email(self, send):
         send.return_value = {"id": "message-id"}
         payload = {
             "template_key": "welcome",

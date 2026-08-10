@@ -338,6 +338,7 @@ def _force_full_reason(paths: tuple[str, ...]) -> str | None:
         "playwright_tests",
         "scripts",
         "templates",
+        "test_support",
         "website",
     }:
         return "configuration_or_dependency"
@@ -359,8 +360,10 @@ def _is_root_configuration(path: str) -> bool:
             ".python-version",
             "Dockerfile",
             "Makefile",
+            "conftest.py",
             "manage.py",
             "pyproject.toml",
+            "sitecustomize.py",
             "uv.lock",
         }
         or path.endswith((".lock", ".toml", ".yaml", ".yml"))

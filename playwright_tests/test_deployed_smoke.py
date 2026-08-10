@@ -11,7 +11,7 @@ from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitema
 from deploy.contracts import validate_image_digest, validate_source_sha, validate_version
 from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
 
-pytestmark = pytest.mark.core
+pytestmark = [pytest.mark.core, pytest.mark.remote_readonly]
 
 
 @pytest.fixture

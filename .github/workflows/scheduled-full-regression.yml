@@ -77,13 +77,10 @@ jobs:
       - run: make deployment-check
       - run: make test-ci
 
-  django:
+  factories:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
     runs-on: ubuntu-latest
-    env:
-      DJANGO_SETTINGS_MODULE: website.settings.test
-      DTC_SQLITE_PATH: .tmp/scheduled-ci.sqlite3
     steps:
       - uses: actions/checkout@v4
         with:
@@ -94,11 +91,40 @@ jobs:
           enable-cache: true
       - run: uv sync --locked
       - run: uv lock --check
-      - name: Create a fresh scheduled-CI SQLite database
-        run: |
-          mkdir -p .tmp
-          rm -f .tmp/scheduled-ci.sqlite3 .tmp/scheduled-ci.sqlite3-shm .tmp/scheduled-ci.sqlite3-wal
-      - run: uv run python manage.py migrate --noinput
+      - run: make test-factories
+
+  migrations:
+    if: needs.selector.outputs.decision == 'run_full'
+    needs: selector
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: make test-migrations
+
+  django:
+    if: needs.selector.outputs.decision == 'run_full'
+    needs: selector
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SETTINGS_MODULE: website.settings.test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
       - run: make test
 
   playwright:
@@ -116,7 +142,7 @@ jobs:
       - run: uv sync --locked
       - run: uv lock --check
       - run: uv run playwright install --with-deps chromium
-      - run: make test-playwright-core
+      - run: make test-playwright
 
   container:
     if: needs.selector.outputs.decision == 'run_full'
@@ -212,7 +238,7 @@ jobs:
       always() &&
       needs.selector.result == 'success' &&
       needs.selector.outputs.decision == 'run_full'
-    needs: [selector, quality, django, playwright, container]
+    needs: [selector, quality, factories, migrations, django, playwright, container]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -225,19 +251,23 @@ jobs:
       - name: Require every selected full-regression component
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
+          FACTORIES_RESULT: ${{ needs.factories.result }}
+          MIGRATIONS_RESULT: ${{ needs.migrations.result }}
           DJANGO_RESULT: ${{ needs.django.result }}
           PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
         run: |
           uv run --frozen python -m ci.gate marker \
             --quality "$QUALITY_RESULT" \
+            --factories "$FACTORIES_RESULT" \
+            --migrations "$MIGRATIONS_RESULT" \
             --django "$DJANGO_RESULT" \
             --playwright "$PLAYWRIGHT_RESULT" \
             --container "$CONTAINER_RESULT"
 
   scheduled-gate:
     if: always()
-    needs: [selector, quality, django, playwright, container, full-regression]
+    needs: [selector, quality, factories, migrations, django, playwright, container, full-regression]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -257,6 +287,8 @@ jobs:
         env:
           SELECTOR_RESULT: ${{ needs.selector.result }}
           QUALITY_RESULT: ${{ needs.quality.result }}
+          FACTORIES_RESULT: ${{ needs.factories.result }}
+          MIGRATIONS_RESULT: ${{ needs.migrations.result }}
           DJANGO_RESULT: ${{ needs.django.result }}
           PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
@@ -266,6 +298,8 @@ jobs:
             --decision .tmp/scheduled-selection/scheduled-selection.json \
             --selector "$SELECTOR_RESULT" \
             --quality "$QUALITY_RESULT" \
+            --factories "$FACTORIES_RESULT" \
+            --migrations "$MIGRATIONS_RESULT" \
             --django "$DJANGO_RESULT" \
             --playwright "$PLAYWRIGHT_RESULT" \
             --container "$CONTAINER_RESULT" \

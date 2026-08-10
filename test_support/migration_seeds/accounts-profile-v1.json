@@ -1,0 +1,32 @@
+{
+  "expected": {
+    "profile_updates": 1,
+    "rows": 2,
+    "unresolved": []
+  },
+  "payload": {
+    "enrollments": [
+      {
+        "about_me": "Synthetic profile",
+        "certificate_name": "Synthetic Learner",
+        "github_url": "https://github.example.invalid/synthetic",
+        "id": 201,
+        "linkedin_url": null,
+        "personal_website_url": "https://profile.example.invalid",
+        "student_id": 101
+      }
+    ],
+    "users": [
+      {
+        "id": 101,
+        "username": "synthetic-profile"
+      }
+    ]
+  },
+  "payload_sha256": "e92e63ffb8b08c6c725a90106bf5d61f44b1aa906ffb1d59c226563c775c6627",
+  "reversible": true,
+  "schema_version": 1,
+  "seed_version": "accounts-profile-v1",
+  "start": ["accounts", "0004_customuser_dark_mode"],
+  "target": ["accounts", "0005_backfill_certificate_name_from_enrollment"]
+}

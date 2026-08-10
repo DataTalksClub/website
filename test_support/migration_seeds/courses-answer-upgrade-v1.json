@@ -1,0 +1,32 @@
+{
+  "expected": {
+    "answer_text": "2",
+    "correct_answer": "2",
+    "first_homework_scored": true,
+    "possible_answers": "Alpha\nBeta\nGamma",
+    "rows": 7,
+    "unresolved": []
+  },
+  "payload": {
+    "answer": {
+      "answer_text": "Beta",
+      "id": 501
+    },
+    "course": {
+      "id": 301,
+      "slug": "synthetic-course"
+    },
+    "question": {
+      "correct_answer": "Beta",
+      "id": 401,
+      "possible_answers": "Alpha,Beta,Gamma",
+      "question_type": "MC"
+    }
+  },
+  "payload_sha256": "51d80b4d3c2ba34e0054d12da846efa0b4341b51a361b7bf8021eedacacb6aec",
+  "reversible": false,
+  "schema_version": 1,
+  "seed_version": "courses-answer-upgrade-v1",
+  "start": ["courses", "0002_alter_enrollment_student"],
+  "target": ["courses", "0006_course_first_homework_scored"]
+}

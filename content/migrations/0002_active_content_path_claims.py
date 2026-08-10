@@ -6,7 +6,7 @@ import django.core.validators
 import django.db.models.deletion
 from django.db import migrations, models
 
-import content.models
+import content.migration_validators
 
 
 def backfill_active_content_paths(apps, schema_editor):
@@ -81,7 +81,8 @@ class Migration(migrations.Migration):
                 (
                     "exact_public_path",
                     models.CharField(
-                        max_length=2048, validators=[content.models.validate_exact_public_path]
+                        max_length=2048,
+                        validators=[content.migration_validators.validate_exact_public_path],
                     ),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),

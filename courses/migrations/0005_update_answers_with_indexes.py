@@ -3,8 +3,6 @@ import logging
 
 from django.db import migrations
 
-from courses.models import Answer, QuestionTypes
-
 logger = logging.getLogger("courses.migrations")
 
 
@@ -39,18 +37,18 @@ def replace_answers_with_indexes(possible_answers, answers, question_id=None):
 
 
 def update_answers_with_indexes(apps, schema_editor):
+    Answer = apps.get_model("courses", "Answer")
     updated_answers = []
 
     for answer in Answer.objects.all():
         question = answer.question
-        if question.question_type not in [
-            QuestionTypes.MULTIPLE_CHOICE.value,
-            QuestionTypes.CHECKBOXES.value,
-        ]:
+        if question.question_type not in ["MC", "CB"]:
             continue
 
         if question.possible_answers and answer.answer_text:
-            possible_answers = question.get_possible_answers()
+            possible_answers = [
+                value.strip() for value in question.possible_answers.split("\n")
+            ]
 
             updated_answer = replace_answers_with_indexes(
                 possible_answers, answer.answer_text, question.id

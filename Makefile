@@ -1,7 +1,8 @@
-.PHONY: setup lint format format-check typecheck migrations-check django-check deployment-check \
+.PHONY: setup lock-check lint format format-check typecheck migrations-check django-check deployment-check \
 	test-core test test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
-	test-content test-playwright-core test-playwright migrate run worker \
+	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
+	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
 	database-portability-check review-data review-data-dry-run review-data-cleanup run-review-data
 
@@ -27,6 +28,9 @@ setup:
 	mkdir -p .tmp/screenshots
 	uv run playwright install chromium
 
+lock-check:
+	uv lock --check
+
 lint:
 	uv run ruff check . $(ADOPTION_INTEGRATION_PYTHON) $(COMPATIBILITY_PYTHON)
 
@@ -38,6 +42,7 @@ format-check:
 
 typecheck:
 	uv run mypy manage.py website core content content_sync events email_app studio jobs deploy ci \
+		test_support conftest.py sitecustomize.py \
 		review_import \
 		management_auth management_api management_registry.py \
 		$(COMPATIBILITY_PYTHON) \
@@ -71,7 +76,8 @@ terraform-seo-source-check:
 		--expected-commit "$(AWS_INFRA_EXPECTED_COMMIT)"
 
 test-core:
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test \
 		accounts core studio api management_auth management_api --parallel
 
 check-openapi:
@@ -81,21 +87,36 @@ check-management-parity:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py check_management_parity
 
 test-content:
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test content.tests
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test content.tests
 
 test: test-compatibility
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py test --parallel
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel
 
 test-ci:
 	uv run --frozen pytest ci/tests -q
 
 test-ci-focused:
 	@test -n "$$CI_SELECTION_PATH" || (echo "CI_SELECTION_PATH is required" >&2; exit 2)
-	DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.focused_tests \
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.focused_tests \
 		--selection "$$CI_SELECTION_PATH"
 
 test-compatibility:
-	uv run pytest compatibility/tests -q
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		uv run --frozen pytest compatibility/tests -q
+
+test-factories:
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		uv run --frozen pytest test_support/tests/test_factories.py \
+		test_support/tests/test_runtime.py test_support/tests/test_safety.py -q
+
+test-migrations:
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test \
+		test_support.tests.test_migrations accounts.tests.test_identity_migrations \
+		content.tests.test_editorial_route_migration_contract content.tests.test_migrations
 
 compatibility-source-artifacts-check:
 	uv run python scripts/build_pinned_legacy_sources.py --check
@@ -130,10 +151,36 @@ compatibility-real-gate-blocked-check:
 	uv run python -c 'import hashlib,json,pathlib; root=pathlib.Path("_docs/compatibility"); p=json.load(open(".tmp/compatibility/checked-real-seo-parity-report.json", encoding="utf-8")); digest=lambda name: hashlib.sha256((root/name).read_bytes()).hexdigest(); assert p["status"] == "BLOCKED" and p["expectation_count"] == 0; assert p["manifest_sha256"] == digest("legacy-manifest.jsonl"); assert p["differences_sha256"] == digest("legacy-manifest-differences.json"); assert p["public_contracts_sha256"] == digest("public-contracts.jsonl")'
 
 test-playwright-core:
-	DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true uv run pytest playwright_tests -m core -v
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+		uv run --frozen pytest playwright_tests \
+		-m 'core and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-playwright:
-	DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true uv run pytest playwright_tests -v
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+		uv run --frozen pytest playwright_tests \
+		-m '(core or full) and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
+
+test-browser: test-playwright
+
+test-remote-readonly:
+	DTC_TEST_SAFETY_COMMAND=remote_readonly uv run --frozen pytest -m remote_readonly -v
+
+test-remote-mutation:
+	DTC_TEST_SAFETY_COMMAND=remote_mutation uv run --frozen pytest -m remote_mutation -v
+
+test-live-email:
+	DTC_TEST_SAFETY_COMMAND=live_email uv run --frozen pytest -m live_email -v
+
+test-live-provider:
+	DTC_TEST_SAFETY_COMMAND=live_provider uv run --frozen pytest -m live_provider -v
+
+.NOTPARALLEL: test-all
+test-all: lock-check terminology-check database-portability-check lint format-check typecheck \
+	migrations-check django-check deployment-check compatibility-source-artifacts-check \
+	compatibility-artifacts-check check-links check-seo test-factories test-migrations test \
+	test-playwright
 
 migrate:
 	uv run python manage.py migrate

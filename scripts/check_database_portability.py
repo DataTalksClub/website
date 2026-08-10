@@ -78,20 +78,23 @@ def check_workflow() -> list[str]:
     django_environment = django_job.get("env", {}) if isinstance(django_job, dict) else {}
     if django_environment.get("DJANGO_SETTINGS_MODULE") != "website.settings.test":
         errors.append("ordinary Django CI does not select website.settings.test")
-    if not django_environment.get("DTC_SQLITE_PATH"):
-        errors.append("ordinary Django CI does not declare an isolated SQLite path")
+    if django_environment.get("DTC_SQLITE_PATH"):
+        errors.append("ordinary Django CI bypasses the owned test-runtime SQLite path")
     django_steps = django_job.get("steps", []) if isinstance(django_job, dict) else []
-    commands = [step.get("run", "") for step in django_steps if isinstance(step, dict)]
-    migrate_index = next(
-        (index for index, command in enumerate(commands) if "manage.py migrate" in command),
-        None,
-    )
-    test_index = next(
-        (index for index, command in enumerate(commands) if "make test" in command),
-        None,
-    )
-    if migrate_index is None or test_index is None or migrate_index >= test_index:
-        errors.append("ordinary Django CI must migrate fresh SQLite before the full suite")
+    command_lines = [
+        line.strip()
+        for step in django_steps
+        if isinstance(step, dict)
+        for line in str(step.get("run", "")).splitlines()
+    ]
+    required_full_commands = ("make test-factories", "make test-migrations", "make test")
+    try:
+        full_indices = tuple(command_lines.index(command) for command in required_full_commands)
+    except ValueError:
+        errors.append("ordinary Django CI does not run the owned full SQLite harness")
+    else:
+        if tuple(sorted(full_indices)) != full_indices:
+            errors.append("ordinary Django CI runs the full SQLite harness out of order")
     return errors
 
 

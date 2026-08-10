@@ -1,0 +1,13 @@
+{
+  "artifact_url": "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/webfonts/fa-brands-400.woff",
+  "artifact_version": "5.15.1",
+  "byte_sha256": "a0375c054a0041bd58e2a0bf7fa3df7c3904bfc4f790fd24e32ff3ee70fd0eef",
+  "commit": "57005cea6da7d1c67f3466974aecd25485f60452",
+  "repository": "https://github.com/FortAwesome/Font-Awesome.git",
+  "sanitization": [
+    "Unmodified cdnjs Font Awesome 5.15.1 release asset."
+  ],
+  "schema_version": 1,
+  "source_kind": "release_build",
+  "source_path": "webfonts/fa-brands-400.woff"
+}
