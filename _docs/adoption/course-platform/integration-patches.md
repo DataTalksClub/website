@@ -28,7 +28,13 @@ overlays:
   remains authoritative; issue #100 adds the one shared account menu, capability-gated Studio
   access, same-host login, and a non-visual durable-account test hook, issue #105 preserves the
   approved clean public navigation, and issue #59 makes Studio the single capability-gated
-  management entry point;
+  management entry point. Issue #75 serves the preserved Tailwind Play CDN 3.4.17 and Font Awesome
+  5.15.1 assets from target-owned static paths, with exact source/target checksums and licenses in
+  `_docs/provenance/course-platform-vendor-assets.json`; the Tailwind configuration remains before
+  the runtime script and the browser no longer requires either production CDN;
+- `courses/templates/projects/project.html`: issue #75 replaces the external commit-ID screenshot
+  with concise accessible text explaining where to copy the first seven commit characters. Project
+  submission fields, validation, persistence, and operator controls remain unchanged;
 - `cadmin/`, copied staff links under `courses/`, and `accounts/views/impersonation.py`: issue #59
   mounts the complete copied operations surface canonically at `/studio/courses`, gives its route
   names and visitor-facing labels the logical Studio Courses name, and returns copied internal
