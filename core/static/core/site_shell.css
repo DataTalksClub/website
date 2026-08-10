@@ -76,13 +76,20 @@
     white-space: normal;
   }
 
-  .site-footer-meta,
-  .footer-version {
-    flex-wrap: wrap;
+  .site-footer-meta {
+    flex-wrap: nowrap;
     justify-content: center;
     max-width: 100%;
-    white-space: normal;
     width: 100%;
+  }
+
+  .footer-version {
+    flex: 0 1 auto;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: calc(100% - 2rem);
+    white-space: normal;
+    width: auto;
   }
 
   .footer-version-value {

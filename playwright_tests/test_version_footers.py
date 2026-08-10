@@ -61,6 +61,18 @@ def test_all_three_shells_show_only_the_readable_version(
         assert page.locator(".footer-version-value").evaluate(
             "element => element.scrollWidth <= element.clientWidth + 1"
         )
+        if viewport_name == "mobile":
+            footer_meta = page.locator(".site-footer-meta")
+            github_link = footer_meta.locator(".site-footer-link")
+            footer_version = footer_meta.locator(".footer-version")
+            assert footer_meta.evaluate("element => element.scrollWidth <= element.clientWidth + 1")
+            github_box = github_link.bounding_box()
+            version_box = footer_version.bounding_box()
+            assert github_box is not None
+            assert version_box is not None
+            github_center = github_box["y"] + github_box["height"] / 2
+            version_center = version_box["y"] + version_box["height"] / 2
+            assert abs(github_center - version_center) <= 1
         _capture(page, name, viewport_name)
 
     _authenticate(page, live_server, suffix=viewport_name)
