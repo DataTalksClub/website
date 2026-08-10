@@ -31,7 +31,7 @@ from .helpers import (
 def homework_score(request, course_slug, homework_slug):
     """Score a homework"""
     if request.method != "POST":
-        response = redirect("cadmin_course", course_slug=course_slug)
+        response = redirect("studio_courses_course", course_slug=course_slug)
         return response
     course = get_object_or_404(Course, slug=course_slug)
     homework = get_object_or_404(
@@ -46,7 +46,7 @@ def homework_score(request, course_slug, homework_slug):
         messages.warning(request, message)
 
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 
@@ -54,7 +54,7 @@ def homework_score(request, course_slug, homework_slug):
 def homework_extend_deadline(request, course_slug, homework_slug):
     """Push the homework due date forward by a fixed amount."""
     if request.method != "POST":
-        return redirect("cadmin_course", course_slug=course_slug)
+        return redirect("studio_courses_course", course_slug=course_slug)
     course = get_object_or_404(Course, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
@@ -66,7 +66,7 @@ def homework_extend_deadline(request, course_slug, homework_slug):
             "Only open homework can have its deadline extended.",
         )
         return redirect_after_action(
-            request, "cadmin_course", course_slug=course_slug
+            request, "studio_courses_course", course_slug=course_slug
         )
 
     return extend_deadlines(
@@ -85,7 +85,7 @@ def homework_rescore(request, course_slug, homework_slug):
     Resets the homework to OPEN so the normal scoring logic applies.
     """
     if request.method != "POST":
-        return redirect("cadmin_course", course_slug=course_slug)
+        return redirect("studio_courses_course", course_slug=course_slug)
     course = get_object_or_404(Course, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
@@ -98,7 +98,7 @@ def homework_rescore(request, course_slug, homework_slug):
             "Use Score submissions instead.",
         )
         return redirect_after_action(
-            request, "cadmin_course", course_slug=course_slug
+            request, "studio_courses_course", course_slug=course_slug
         )
 
     homework.state = HomeworkState.OPEN.value
@@ -112,7 +112,7 @@ def homework_rescore(request, course_slug, homework_slug):
         messages.warning(request, message)
 
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 
@@ -120,7 +120,7 @@ def homework_rescore(request, course_slug, homework_slug):
 def homework_notify_scores(request, course_slug, homework_slug):
     """Send score notification emails for an already-scored homework"""
     if request.method != "POST":
-        response = redirect("cadmin_course", course_slug=course_slug)
+        response = redirect("studio_courses_course", course_slug=course_slug)
         return response
     course = get_object_or_404(Course, slug=course_slug)
     homework = get_object_or_404(
@@ -134,7 +134,7 @@ def homework_notify_scores(request, course_slug, homework_slug):
             "Score it before notifying students.",
         )
         return redirect_after_action(
-            request, "cadmin_course", course_slug=course_slug
+            request, "studio_courses_course", course_slug=course_slug
         )
 
     send_homework_score_notification(homework)
@@ -144,7 +144,7 @@ def homework_notify_scores(request, course_slug, homework_slug):
     )
 
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 
@@ -152,7 +152,7 @@ def homework_notify_scores(request, course_slug, homework_slug):
 def homework_set_correct_answers(request, course_slug, homework_slug):
     """Set correct answers to most popular for a homework"""
     if request.method != "POST":
-        response = redirect("cadmin_course", course_slug=course_slug)
+        response = redirect("studio_courses_course", course_slug=course_slug)
         return response
     course = get_object_or_404(Course, slug=course_slug)
     homework = get_object_or_404(
@@ -167,7 +167,7 @@ def homework_set_correct_answers(request, course_slug, homework_slug):
     )
 
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 
@@ -175,7 +175,7 @@ def homework_set_correct_answers(request, course_slug, homework_slug):
 def homework_clear_correct_answers(request, course_slug, homework_slug):
     """Clear correct answers for a homework"""
     if request.method != "POST":
-        response = redirect("cadmin_course", course_slug=course_slug)
+        response = redirect("studio_courses_course", course_slug=course_slug)
         return response
     course = get_object_or_404(Course, slug=course_slug)
     homework = get_object_or_404(
@@ -190,7 +190,7 @@ def homework_clear_correct_answers(request, course_slug, homework_slug):
     )
 
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 
@@ -225,7 +225,7 @@ def homework_submissions(request, course_slug, homework_slug):
 def homework_save_answers(request, course_slug, homework_slug):
     """Save correct answers from the submissions page"""
     if request.method != "POST":
-        return redirect("cadmin_course", course_slug=course_slug)
+        return redirect("studio_courses_course", course_slug=course_slug)
     course = get_object_or_404(Course, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
@@ -252,7 +252,7 @@ def homework_save_answers(request, course_slug, homework_slug):
         f"Correct answers for {homework.title} updated.",
     )
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 

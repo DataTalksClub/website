@@ -136,7 +136,7 @@ def homework_submission_edit_success(data):
         f"Homework submission for {data.submission.student.username} updated successfully",
     )
     response = redirect(
-        "cadmin_homework_submissions",
+        "studio_courses_homework_submissions",
         course_slug=data.course.slug,
         homework_slug=data.homework.slug,
     )

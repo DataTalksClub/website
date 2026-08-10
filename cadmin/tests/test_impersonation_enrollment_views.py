@@ -17,7 +17,7 @@ class ImpersonationEnrollmentCadminViewTests(
             course=self.course,
         )
         url = reverse(
-            "cadmin_enrollment_edit",
+            "studio_courses_enrollment_edit",
             kwargs={
                 "course_slug": self.course.slug,
                 "enrollment_id": enrollment.id,

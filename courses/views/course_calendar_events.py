@@ -160,7 +160,7 @@ def course_calendar_lines(course, events):
     return [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
-        "PRODID:-//DataTalks.Club//Course Management Platform//EN",
+        "PRODID:-//DataTalks.Club//Courses//EN",
         "CALSCALE:GREGORIAN",
         "METHOD:PUBLISH",
         f"X-WR-CALNAME:{course_title} deadlines",

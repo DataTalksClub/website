@@ -95,7 +95,7 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertNotContains(authenticated_response, 'title="Login"')
 
-    def test_course_operator_menu_links_studio_and_course_admin(self) -> None:
+    def test_course_operator_menu_uses_studio_as_the_management_entrypoint(self) -> None:
         from accounts.studio_roles import synchronize_studio_roles
 
         user = get_user_model().objects.create(
@@ -110,7 +110,11 @@ class MainHomepageRoutingTests(TestCase):
         response = self.client.get(reverse("home"))
 
         self.assertContains(response, f'href="{reverse("studio:home")}"')
-        self.assertContains(response, f'href="{reverse("cadmin_course_list")}"')
+        self.assertNotContains(
+            response,
+            f'href="{reverse("studio_courses_course_list")}"',
+        )
+        self.assertNotContains(response, "Course admin")
 
     def test_course_discovery_uses_the_public_catalog(self) -> None:
         self.assertEqual(reverse("course_list"), "/courses")

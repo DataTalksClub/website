@@ -1306,6 +1306,11 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   gap: 0.75rem;
 }
 
+.cadmin-page-header > :first-child {
+  max-width: 100%;
+  width: 100%;
+}
+
 .cadmin-support-strip {
   border-bottom: 1px solid var(--border-muted);
   padding-bottom: 1rem;

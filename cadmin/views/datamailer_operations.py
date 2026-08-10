@@ -74,7 +74,7 @@ def handle_datamailer_operations_post(request):
         request,
         f"Requeued {requeued} Datamailer outbox event(s).",
     )
-    response = redirect("cadmin_datamailer_operations")
+    response = redirect("studio_courses_datamailer_operations")
     return response
 
 

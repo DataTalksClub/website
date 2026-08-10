@@ -3,11 +3,11 @@
 {% block title %}Datamailer events{% endblock %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'cadmin_course_list' %}">Course Admin</a></li>
+  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
   <li>Datamailer events</li>
 {% endblock %}
 
-{% block cadmin_content %}
+{% block studio_courses_content %}
 <section class="border-b app-border pb-5">
   <div class="min-w-0">
     <p class="text-xs font-semibold uppercase tracking-wide app-muted">Operations</p>
@@ -70,7 +70,7 @@
   {% if selected_event_type or search_query %}
     <p class="mb-4 text-sm app-muted">
       Filters are active.
-      <a href="{% url 'cadmin_datamailer_events' %}" class="app-link">Clear filters</a>
+      <a href="{% url 'studio_courses_datamailer_events' %}" class="app-link">Clear filters</a>
     </p>
   {% endif %}
 

@@ -18,16 +18,34 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   staff-gated, versioned admin-health response without modifying copied CMP API behavior;
 - `course_platform_templates/base.html`: target validated explicit-only canonical-link integration,
   labelled keyboard-accessible local website navigation using the approved clean public hubs while
-  omitting the removed People catalogue, homepage brand destination, and Studio
-  entry inside the existing CMP account menu; recorded separately in
-  `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`. Existing
-  CMP login, session, account settings, preference, logout, impersonation, and course-admin
-  behavior remains authoritative; issue #100 adds the one shared account menu, capability-gated
-  Studio/course-admin links, same-host login, and a non-visual durable-account test hook while
-  retaining readable, line-broken HTML;
+  omitting the removed People catalogue, plus the homepage brand destination, unified
+  DataTalks.Club title, and Studio entry inside the existing CMP account menu; recorded separately
+  in `integration-patched-files.tsv` while the source checksum remains in `copied-files.tsv`.
+  Existing CMP login, session, account settings, preference, logout, and impersonation behavior
+  remains authoritative; issue #100 adds the one shared account menu, capability-gated Studio
+  access, same-host login, and a non-visual durable-account test hook, issue #105 preserves the
+  approved clean public navigation, and issue #59 makes Studio the single capability-gated
+  management entry point;
+- `cadmin/`, copied staff links under `courses/`, and `accounts/views/impersonation.py`: issue #59
+  mounts the complete copied operations surface canonically at `/studio/courses/`, gives its route
+  names and visitor-facing labels the logical Studio Courses name, and returns copied internal
+  redirects to those canonical names. The Python package and all copied query, form, mutation,
+  scoring, repair, communication, and observability behavior remain in place. Staff-only
+  `/cadmin...` compatibility redirects are target-owned and preserve query strings and non-GET
+  methods without a redirect chain. Both canonical operations and compatibility redirects require
+  an explicit `site_admin` or `course_operator` role; generic Django staff and every unrelated
+  Studio role fail closed before resource lookup or mutation;
+- `courses/static/courses.css`: issue #59 retains the adopted design system while constraining
+  Studio Courses page headers to the mobile viewport; long course titles wrap instead of being
+  clipped or expanding the document width;
+- copied account, logout, and social-account templates: issue #59 replaces the obsolete
+  Course Management page-title suffix with DataTalks.Club while leaving authentication behavior
+  unchanged;
 - `course_management/datamailer_outbox_dispatch.py`: issue #98 replaces the copied row-lock claim
   with portable conditional ORM claim and attempt fences while retaining the same delivery,
   acknowledgement, and retry outcomes;
+- `api/openapi/spec.py`: issue #59 gives the staff-facing copied API schema the unified
+  DataTalks.Club Courses name without changing its operations or authentication behavior;
 - `api/openapi/course_schemas.py`, `api/views/health.py`, and
   `course_management/observability/events.py`: issue #110 extends the adopted health route/schema
   and structured event envelope with the sealed runtime
@@ -49,8 +67,8 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   visitor-facing sign-in labels and generic unavailable guidance without changing the adopted
   provider or development-owner login behavior;
 - `accounts/tests_account_settings.py`: issue #100 updates the copied shell characterization so
-  Course admin appears through the explicit Studio/course-operator capability policy rather than
-  `is_staff` alone;
+  Studio appears through the explicit course-operator capability policy rather than `is_staff`
+  alone;
 - `review_import/manifest.py`: issue #100 classifies adopted account, email, provider, session,
   token, alias, quarantine, and reconciliation rows as sensitive so content-only review imports
   cannot create or project identity state;
@@ -75,7 +93,10 @@ The two target-owned admin API compatibility shims are recorded with classificat
 size, and SHA-256 in `target-owned-compatibility-shims.tsv`. The provenance verifier requires both
 exact paths and validates their recorded bytes.
 
-No scoring, submission, peer-review, leaderboard, certificate, communication, API serializer, cadmin, or other CMP business expectation is modified by integration.
+No scoring, submission, peer-review, leaderboard, certificate, communication, API serializer, or
+other CMP business behavior is modified by this integration. The copied management presentation
+and route names change under issue #59; its operational logic remains characterized by the copied
+suite.
 
 The unified setting keeps the CSRF cookie readable by same-origin JavaScript because the copied loginas and submission browser flows obtain it and send the standard `X-CSRFToken` header. Session cookies remain HttpOnly.
 

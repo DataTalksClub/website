@@ -4,6 +4,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.studio_test_support import grant_studio_role
 from courses.models import (
     Course,
     Homework,
@@ -12,7 +13,6 @@ from courses.models import (
     ProjectState,
     User,
 )
-
 
 credentials = dict(
     username="test@test.com",
@@ -30,12 +30,13 @@ class CourseCadminViewTests(TestCase):
     def setUp(self):
         self.client = Client()
         User.objects.create_user(**credentials)
-        User.objects.create_user(
+        admin_user = User.objects.create_user(
             username="admin@test.com",
             email="admin@test.com",
             password="admin123",
             is_staff=True,
         )
+        grant_studio_role(admin_user, "course_operator")
         self.course = Course.objects.create(
             slug="test-course",
             title="Test Course",
@@ -56,8 +57,8 @@ class CourseCadminViewTests(TestCase):
         self.assertEqual(courses[-1], finished_course)
 
     def assert_course_list_links(self, response):
-        cadmin_course_url = reverse(
-            "cadmin_course",
+        studio_courses_course_url = reverse(
+            "studio_courses_course",
             kwargs={"course_slug": self.course.slug},
         )
         public_course_url = reverse(
@@ -65,9 +66,9 @@ class CourseCadminViewTests(TestCase):
             kwargs={"course_slug": self.course.slug},
         )
         django_admin_url = f"/admin/courses/course/{self.course.id}/change/"
-        datamailer_operations_url = reverse("cadmin_datamailer_operations")
+        datamailer_operations_url = reverse("studio_courses_datamailer_operations")
 
-        self.assertContains(response, cadmin_course_url)
+        self.assertContains(response, studio_courses_course_url)
         self.assertContains(response, public_course_url)
         self.assertContains(response, django_admin_url)
         self.assertContains(response, datamailer_operations_url)
@@ -91,7 +92,7 @@ class CourseCadminViewTests(TestCase):
 
     def test_course_list_unauthenticated_redirects(self):
         """Test that unauthenticated users are redirected from course list"""
-        url = reverse("cadmin_course_list")
+        url = reverse("studio_courses_course_list")
 
         response = self.client.get(url)
 
@@ -100,7 +101,7 @@ class CourseCadminViewTests(TestCase):
 
     def test_course_list_non_staff_denied(self):
         """Test that non-staff users cannot access course list"""
-        url = reverse("cadmin_course_list")
+        url = reverse("studio_courses_course_list")
 
         self.client.login(**credentials)
         response = self.client.get(url)
@@ -118,14 +119,15 @@ class CourseCadminViewTests(TestCase):
             slug="active-course",
             title="Active Course",
         )
-        url = reverse("cadmin_course_list")
+        url = reverse("studio_courses_course_list")
 
         self.client.login(**admin_credentials)
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Course admin")
-        self.assertNotContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, "Courses")
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, reverse("studio:home"))
         self.assert_course_list_order(response, active_course, finished_course)
         self.assert_course_list_links(response)
         self.assertNotContains(response, "> Manage <")
@@ -135,7 +137,7 @@ class CourseCadminViewTests(TestCase):
         """Test that staff users can access course admin page"""
         self.create_course_work_items()
         url = reverse(
-            "cadmin_course",
+            "studio_courses_course",
             kwargs={"course_slug": self.course.slug},
         )
         public_course_url = reverse(
@@ -149,9 +151,9 @@ class CourseCadminViewTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.course.title)
-        self.assertContains(response, "Course admin")
+        self.assertContains(response, "Courses")
         self.assertContains(response, 'aria-label="Breadcrumb"')
-        self.assertContains(response, "Course Admin")
+        self.assertNotContains(response, "Course Admin")
         self.assertContains(response, public_course_url)
         self.assertContains(response, django_admin_url)
         self.assertContains(response, 'title="View public course page"')

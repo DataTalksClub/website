@@ -4,6 +4,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.studio_test_support import grant_studio_role
 from courses.models import (
     Course,
     Enrollment,
@@ -141,12 +142,12 @@ class ProjectCadminViewTestBase(TestCase):
         payload.update(overrides)
         return payload
 
-    def cadmin_project_submissions_url(self):
+    def studio_courses_project_submissions_url(self):
         kwargs = {
             "course_slug": self.course.slug,
             "project_slug": self.project.slug,
         }
-        return reverse("cadmin_project_submissions", kwargs=kwargs)
+        return reverse("studio_courses_project_submissions", kwargs=kwargs)
 
     def project_submissions_url(self):
         kwargs = {
@@ -175,25 +176,25 @@ class ProjectCadminViewTestBase(TestCase):
             "project_slug": self.project.slug,
             "submission_id": submission.id,
         }
-        return reverse("cadmin_project_submission_edit", kwargs=kwargs)
+        return reverse("studio_courses_project_submission_edit", kwargs=kwargs)
 
-    def cadmin_project_score_url(self):
+    def studio_courses_project_score_url(self):
         kwargs = {
             "course_slug": self.course.slug,
             "project_slug": self.project.slug,
         }
-        return reverse("cadmin_project_score", kwargs=kwargs)
+        return reverse("studio_courses_project_score", kwargs=kwargs)
 
-    def cadmin_project_assign_reviews_url(self):
+    def studio_courses_project_assign_reviews_url(self):
         kwargs = {
             "course_slug": self.course.slug,
             "project_slug": self.project.slug,
         }
-        return reverse("cadmin_project_assign_reviews", kwargs=kwargs)
+        return reverse("studio_courses_project_assign_reviews", kwargs=kwargs)
 
-    def cadmin_course_url(self):
+    def studio_courses_course_url(self):
         kwargs = {"course_slug": self.course.slug}
-        return reverse("cadmin_course", kwargs=kwargs)
+        return reverse("studio_courses_course", kwargs=kwargs)
 
     def assert_project_scores(self, submission):
         self.assertEqual(submission.project_score, 6)
@@ -223,12 +224,13 @@ class ProjectCadminViewTestBase(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(**credentials)
-        User.objects.create_user(
+        admin_user = User.objects.create_user(
             username="admin@test.com",
             email="admin@test.com",
             password="admin123",
             is_staff=True,
         )
+        grant_studio_role(admin_user, "course_operator")
         self.course = Course.objects.create(
             slug="test-course",
             title="Test Course",

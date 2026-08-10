@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from accounts.studio_test_support import grant_studio_role
 from courses.models import Course, Enrollment, LeaderboardComplaint, User
 
 
@@ -44,6 +45,7 @@ class LeaderboardCadminViewTests(TestCase):
             password="admin123",
             is_staff=True,
         )
+        grant_studio_role(self.admin_user, "course_operator")
         self.course = Course.objects.create(
             slug="test-course",
             title="Test Course",
@@ -132,7 +134,7 @@ class LeaderboardCadminViewTests(TestCase):
         reporter = self.create_complaint_reporter()
         second = self.create_complaint_sorting_target(reporter)
         url = reverse(
-            "cadmin_leaderboard_complaints",
+            "studio_courses_leaderboard_complaints",
             kwargs={"course_slug": self.course.slug},
         )
 
@@ -169,7 +171,7 @@ class LeaderboardCadminViewTests(TestCase):
 
     def complaint_resolve_url(self, complaint):
         return reverse(
-            "cadmin_leaderboard_complaint_resolve",
+            "studio_courses_leaderboard_complaint_resolve",
             kwargs={
                 "course_slug": self.course.slug,
                 "complaint_id": complaint.id,
@@ -178,6 +180,6 @@ class LeaderboardCadminViewTests(TestCase):
 
     def leaderboard_complaints_url(self):
         return reverse(
-            "cadmin_leaderboard_complaints",
+            "studio_courses_leaderboard_complaints",
             kwargs={"course_slug": self.course.slug},
         )

@@ -1,17 +1,17 @@
 {% extends 'cadmin/base.html' %}
 {% load custom_filters %}
 {% block breadcrumbs %}
-  <li><a href="{% url 'cadmin_course_list' %}">Course Admin</a></li>
-  <li><a href="{% url 'cadmin_course' course.slug %}">{{ course.title }}</a></li>
-  <li><a href="{% url 'cadmin_project_submissions' course.slug project.slug %}">{{ project.title }} Submissions</a></li>
-  <li><a href="{% url 'cadmin_project_submission_edit' course.slug project.slug submission.id %}">Edit Submission</a></li>
+  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
+  <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
+  <li><a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}">{{ project.title }} Submissions</a></li>
+  <li><a href="{% url 'studio_courses_project_submission_edit' course.slug project.slug submission.id %}">Edit Submission</a></li>
 {% endblock %}
-{% block cadmin_content %}
+{% block studio_courses_content %}
   <section class="border-b app-border pb-5">
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ project.title }}</p>
     <h1 class="mt-2 text-2xl font-semibold app-heading md:text-3xl">Edit Project Submission</h1>
     <div class="dense-utility-links mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-      <a href="{% url 'cadmin_project_submissions' course.slug project.slug %}" class="app-link">Back to Submissions</a>
+      <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}" class="app-link">Back to Submissions</a>
       <a href="{% url 'project' course.slug project.slug %}" class="app-link">
         <i class="fas fa-external-link-alt"></i> Public
       </a>
@@ -27,7 +27,7 @@
         <dd class="mt-1 min-w-0">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span class="font-semibold app-heading">{{ submission.student.username }}</span>
-            <a href="{% url 'cadmin_enrollment_edit' course.slug submission.enrollment.id %}" class="app-link">
+            <a href="{% url 'studio_courses_enrollment_edit' course.slug submission.enrollment.id %}" class="app-link">
               <i class="fas fa-user-edit"></i> Manage enrollment
             </a>
           </div>
@@ -151,7 +151,7 @@
     </section>
     <div class="flex flex-wrap gap-2 border-t app-border pt-5">
       <button type="submit" class="primer-button cadmin-primary">Save Changes</button>
-      <a href="{% url 'cadmin_project_submissions' course.slug project.slug %}" class="primer-button primer-button-secondary">Cancel</a>
+      <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}" class="primer-button primer-button-secondary">Cancel</a>
     </div>
   </form>
   <script>

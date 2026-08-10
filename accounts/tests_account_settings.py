@@ -10,9 +10,7 @@ class AccountSettingsAuthViewTestCase(AccountSettingsViewTestBase):
     def test_account_settings_requires_login(self):
         account_settings_url = reverse("account_settings")
         login_url = reverse("login")
-        expected_redirect_url = (
-            f"{login_url}?next={account_settings_url}"
-        )
+        expected_redirect_url = f"{login_url}?next={account_settings_url}"
 
         response = self.client.get(account_settings_url)
 
@@ -25,7 +23,7 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
     def test_account_settings_shows_user_and_enrolled_courses(self):
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
-        cadmin_course_list_url = reverse("cadmin_course_list")
+        courses_studio_url = reverse("studio_courses_course_list")
 
         response = self.client.get(account_settings_url)
 
@@ -33,27 +31,26 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
         self.assertContains(response, "student@example.com")
         self.assertContains(response, "Data Course")
         self.assertContains(response, "Student One")
-        self.assertNotContains(response, cadmin_course_list_url)
+        self.assertNotContains(response, courses_studio_url)
 
-    def test_account_menu_shows_cadmin_for_authorized_course_operator(self):
+    def test_account_menu_uses_studio_for_authorized_course_operator(self):
         self.user.is_staff = True
         self.user.save()
         groups = {group.name: group for group in synchronize_studio_roles()}
         self.user.groups.add(groups["course_operator"])
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
-        cadmin_course_list_url = reverse("cadmin_course_list")
+        studio_url = reverse("studio:home")
+        courses_studio_url = reverse("studio_courses_course_list")
 
         response = self.client.get(account_settings_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, cadmin_course_list_url)
-        self.assertContains(response, "Course admin")
+        self.assertContains(response, studio_url)
+        self.assertNotContains(response, courses_studio_url)
+        self.assertNotContains(response, "Course admin")
 
-    @patch(
-        "accounts.views.email_preferences."
-        "get_email_preferences_for_user"
-    )
+    @patch("accounts.views.email_preferences.get_email_preferences_for_user")
     def test_account_settings_does_not_block_on_datamailer_preferences(
         self,
         get_email_preferences,

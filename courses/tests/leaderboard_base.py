@@ -198,7 +198,7 @@ class LeaderboardTestBase(TestCase):
 
     def admin_enrollment_edit_url(self, enrollment):
         return reverse(
-            "cadmin_enrollment_edit",
+            "studio_courses_enrollment_edit",
             kwargs={
                 "course_slug": self.course.slug,
                 "enrollment_id": enrollment.id,

@@ -3,6 +3,7 @@
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
+from accounts.studio_roles import set_single_studio_role
 from review_import.workflow import SYNTHETIC_ADMIN_EMAIL
 
 
@@ -60,3 +61,4 @@ def create_synthetic_admin(password: str) -> None:
     user.is_active = True
     user.set_password(password)
     user.save()
+    set_single_studio_role(user, "course_operator")

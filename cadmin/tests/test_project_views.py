@@ -1,21 +1,19 @@
+from cadmin.tests.project_view_base import (
+    ProjectCadminViewTestBase,
+    admin_credentials,
+)
 from courses.models import (
     Enrollment,
     ProjectState,
     ProjectSubmission,
-)
-from cadmin.tests.project_view_base import (
-    admin_credentials,
-    ProjectCadminViewTestBase,
 )
 
 
 class ProjectCadminViewTests(ProjectCadminViewTestBase):
     def assert_project_submission_actions(self, response):
         project_url = self.project_url()
-        django_admin_url = (
-            f"/admin/courses/project/{self.project.id}/change/"
-        )
-        assign_reviews_url = self.cadmin_project_assign_reviews_url()
+        django_admin_url = f"/admin/courses/project/{self.project.id}/change/"
+        assign_reviews_url = self.studio_courses_project_assign_reviews_url()
 
         self.assertContains(response, project_url)
         self.assertContains(response, django_admin_url)
@@ -23,7 +21,7 @@ class ProjectCadminViewTests(ProjectCadminViewTestBase):
         self.assertContains(response, assign_reviews_url)
 
     def assert_project_scoring_action(self, response):
-        score_url = self.cadmin_project_score_url()
+        score_url = self.studio_courses_project_score_url()
 
         self.assertContains(response, "Score projects")
         self.assertContains(response, score_url)
@@ -53,10 +51,10 @@ class ProjectCadminViewTests(ProjectCadminViewTestBase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn("cadmin", response.url)
+        self.assertIn("/studio/courses/", response.url)
 
-    def test_cadmin_project_submissions_staff_allowed(self):
-        url = self.cadmin_project_submissions_url()
+    def test_studio_courses_project_submissions_staff_allowed(self):
+        url = self.studio_courses_project_submissions_url()
 
         self.client.login(**admin_credentials)
         response = self.client.get(url)
@@ -64,8 +62,8 @@ class ProjectCadminViewTests(ProjectCadminViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.project.title)
 
-    def test_cadmin_project_submissions_shows_project_actions(self):
-        url = self.cadmin_project_submissions_url()
+    def test_studio_courses_project_submissions_shows_project_actions(self):
+        url = self.studio_courses_project_submissions_url()
 
         self.login_admin()
         response = self.client.get(url)
@@ -93,10 +91,8 @@ class ProjectCadminViewTests(ProjectCadminViewTestBase):
             enrollment=enrollment,
             total_score=10,
         )
-        url = self.cadmin_project_submissions_url()
-        leaderboard_url = self.leaderboard_score_breakdown_url(
-            enrollment
-        )
+        url = self.studio_courses_project_submissions_url()
+        leaderboard_url = self.leaderboard_score_breakdown_url(enrollment)
 
         self.client.login(**admin_credentials)
         response = self.client.get(url)
@@ -108,20 +104,18 @@ class ProjectCadminViewTests(ProjectCadminViewTestBase):
         self,
     ):
         self.create_project_search_submissions(30)
-        url = self.cadmin_project_submissions_url()
+        url = self.studio_courses_project_submissions_url()
 
         self.client.login(**admin_credentials)
         response = self.client.get(url, {"q": "project-student-29"})
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "project-student-29@example.com")
-        self.assertNotContains(
-            response, "project-student-00@example.com"
-        )
+        self.assertNotContains(response, "project-student-00@example.com")
 
     def test_project_submissions_paginated_by_50(self):
         self.create_project_page_submissions(55)
-        url = self.cadmin_project_submissions_url()
+        url = self.studio_courses_project_submissions_url()
 
         self.login_admin()
         response = self.client.get(url)

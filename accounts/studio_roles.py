@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from types import MappingProxyType
+from typing import Any
 
 from django.contrib.auth.models import Group, Permission
 from django.db import transaction
@@ -67,3 +68,16 @@ def synchronize_studio_roles() -> tuple[Group, ...]:
         group.permissions.set(_permission_objects(permission_names))
         groups.append(group)
     return tuple(groups)
+
+
+@transaction.atomic
+def set_single_studio_role(user: Any, role: str) -> Group:
+    """Assign one exact code-owned role without materializing unrelated roles."""
+
+    permission_names = ROLE_PERMISSIONS.get(role)
+    if permission_names is None:
+        raise ValueError("unknown Studio role")
+    group, _created = Group.objects.get_or_create(name=role)
+    group.permissions.set(_permission_objects(permission_names))
+    user.groups.set([group])
+    return group

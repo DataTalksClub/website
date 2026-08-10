@@ -1022,9 +1022,40 @@ def _assert_final_database(path: Path, expected: AllowedDataset, create_admin: b
                 or not user["is_superuser"]
             ):
                 raise ImportFailure("target-account-boundary", table="accounts_customuser")
+            role_permissions = connection.execute(
+                """
+                SELECT auth_group.name AS group_name,
+                       django_content_type.app_label || '.' || auth_permission.codename
+                           AS permission_name
+                FROM accounts_customuser
+                JOIN accounts_customuser_groups
+                  ON accounts_customuser_groups.customuser_id = accounts_customuser.id
+                JOIN auth_group
+                  ON auth_group.id = accounts_customuser_groups.group_id
+                JOIN auth_group_permissions
+                  ON auth_group_permissions.group_id = auth_group.id
+                JOIN auth_permission
+                  ON auth_permission.id = auth_group_permissions.permission_id
+                JOIN django_content_type
+                  ON django_content_type.id = auth_permission.content_type_id
+                WHERE accounts_customuser.email = ?
+                ORDER BY auth_group.name, permission_name
+                """,
+                (SYNTHETIC_ADMIN_EMAIL,),
+            ).fetchall()
+            if [(row["group_name"], row["permission_name"]) for row in role_permissions] != [
+                ("course_operator", "core.access_studio")
+            ]:
+                raise ImportFailure("target-account-boundary", table="auth_group")
         deny_counts = _sensitive_zero_counts(connection)
+        synthetic_role_counts = {
+            "accounts_customuser": expected_users,
+            "accounts_customuser_groups": expected_users,
+            "auth_group": expected_users,
+            "auth_group_permissions": expected_users,
+        }
         for table, count in deny_counts.items():
-            allowed_count = expected_users if table == "accounts_customuser" else 0
+            allowed_count = synthetic_role_counts.get(table, 0)
             if count != allowed_count:
                 raise ImportFailure("denylist-not-empty", table=table, count=count)
     _run_django(path, ("migrate", "--check", "--verbosity", "0"), "migration-check")

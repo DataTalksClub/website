@@ -15,6 +15,7 @@ from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.navigation import can_access_course_studio
 from accounts.studio_authorization import (
     StudioAuthenticationRequired,
     StudioAuthorizationDenied,
@@ -56,6 +57,14 @@ from .auth import capability_required, staff_required
 
 def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
     navigation: list[dict[str, str]] = []
+    if can_access_course_studio(request.user):
+        navigation.append(
+            {
+                "key": "studio.courses",
+                "label": "Courses",
+                "route": "studio_courses_course_list",
+            }
+        )
     for capability in CAPABILITY_REGISTRY:
         if (
             capability.test_only

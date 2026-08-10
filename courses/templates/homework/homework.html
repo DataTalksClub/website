@@ -89,10 +89,10 @@
                     <a href="{% url 'homework_statistics' course.slug homework.slug %}"
                        class="inline-flex items-center font-medium app-link">View public statistics</a>
                 {% endif %}
-                {% if user.is_staff %}
-                    <a href="{% url 'cadmin_homework_submissions' course.slug homework.slug %}"
+                {% if can_access_course_studio %}
+                    <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}"
                        class="inline-flex items-center font-medium app-link">
-                        <i class="fas fa-cog mr-2"></i> Manage homework in cadmin
+                        <i class="fas fa-cog mr-2"></i> Manage homework in Studio
                     </a>
                 {% endif %}
             </div>

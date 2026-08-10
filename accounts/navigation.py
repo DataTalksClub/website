@@ -174,20 +174,24 @@ def login_url_for_path(path: str) -> str:
     return f"{login_path}?{urlencode({'next': path})}"
 
 
+def can_access_studio(user) -> bool:
+    authenticated = bool(user is not None and user.is_authenticated and user.is_active)
+    return bool(authenticated and user.is_staff and has_explicit_permission(user, STUDIO_ACCESS))
+
+
+def can_access_course_studio(user) -> bool:
+    if not can_access_studio(user):
+        return False
+    group_names = set()
+    if user.is_staff:
+        group_names = set(user.groups.values_list("name", flat=True))
+    return bool(group_names.intersection({"site_admin", "course_operator"}))
+
+
 def account_navigation(request):
     user = getattr(request, "user", None)
-    authenticated = bool(user is not None and user.is_authenticated and user.is_active)
-    can_access_studio = bool(
-        authenticated and user.is_staff and has_explicit_permission(user, STUDIO_ACCESS)
-    )
-    group_names = set()
-    if authenticated and user.is_staff:
-        group_names = set(user.groups.values_list("name", flat=True))
-    can_access_course_admin = bool(
-        can_access_studio and group_names.intersection({"site_admin", "course_operator"})
-    )
     return {
         "account_login_url": login_url_for_path(safe_next_path(request)),
-        "can_access_studio": can_access_studio,
-        "can_access_course_admin": can_access_course_admin,
+        "can_access_studio": can_access_studio(user),
+        "can_access_course_studio": can_access_course_studio(user),
     }

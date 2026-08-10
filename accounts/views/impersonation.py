@@ -19,5 +19,5 @@ def stop_impersonating(request):
         },
     )
     restore_original_login(request)
-    response = redirect("cadmin_course_list")
+    response = redirect("studio_courses_course_list")
     return response

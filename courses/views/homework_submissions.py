@@ -2,6 +2,8 @@ from django.contrib import messages
 from django.http import HttpRequest
 from django.shortcuts import redirect
 
+from accounts.navigation import can_access_course_studio
+
 
 def homework_submissions(
     request: HttpRequest,
@@ -10,7 +12,7 @@ def homework_submissions(
 ):
     user = request.user
 
-    if not user.is_authenticated or not user.is_staff:
+    if not can_access_course_studio(user):
         messages.error(
             request,
             "You do not have permission to view this page.",
@@ -24,7 +26,7 @@ def homework_submissions(
         return response
 
     response = redirect(
-        "cadmin_homework_submissions",
+        "studio_courses_homework_submissions",
         course_slug=course_slug,
         homework_slug=homework_slug,
     )

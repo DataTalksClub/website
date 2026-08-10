@@ -29,7 +29,7 @@ class CampaignCadminViewTests(CampaignCadminViewBase):
 
         self.client.login(**admin_credentials)
         url = reverse(
-            "cadmin_campaign_registrations",
+            "studio_courses_campaign_registrations",
             kwargs={"campaign_slug": campaign.slug},
         )
         response = self.client.get(url)
@@ -42,7 +42,7 @@ class CampaignCadminViewTests(CampaignCadminViewBase):
 
     def test_campaign_create_staff_allowed(self):
         self.client.login(**admin_credentials)
-        url = reverse("cadmin_campaign_create")
+        url = reverse("studio_courses_campaign_create")
         response = self.client.get(f"{url}?course={self.course.slug}")
 
         self.assert_campaign_create_page(response)
@@ -52,7 +52,7 @@ class CampaignCadminViewTests(CampaignCadminViewBase):
 
         campaign = RegistrationCampaign.objects.get(slug="llm-zoomcamp")
         redirect_url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
         self.assertRedirects(response, redirect_url)
@@ -60,7 +60,7 @@ class CampaignCadminViewTests(CampaignCadminViewBase):
 
     def test_campaign_create_non_staff_denied(self):
         self.client.login(**credentials)
-        url = reverse("cadmin_campaign_create")
+        url = reverse("studio_courses_campaign_create")
 
         response = self.client.get(url)
 
@@ -73,7 +73,7 @@ class CampaignCadminViewTests(CampaignCadminViewBase):
             marketing_markdown="Old copy",
         )
         url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
 
@@ -91,7 +91,7 @@ class CampaignCadminViewTests(CampaignCadminViewBase):
     def test_campaign_edit_shows_datamailer_campaign_controls(self):
         campaign = self.create_llm_registration_campaign()
         url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
 

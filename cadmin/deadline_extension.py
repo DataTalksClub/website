@@ -75,7 +75,7 @@ def extend_deadlines(request, obj, date_fields, target_label, course_slug):
     if days is None:
         messages.warning(request, "Invalid deadline extension.")
         return redirect_after_action(
-            request, "cadmin_course", course_slug=course_slug
+            request, "studio_courses_course", course_slug=course_slug
         )
 
     delta = timedelta(days=days)
@@ -90,5 +90,5 @@ def extend_deadlines(request, obj, date_fields, target_label, course_slug):
         f"Extended {target_label} by {extension_label}.",
     )
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )

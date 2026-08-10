@@ -4,6 +4,7 @@ from unittest.mock import patch
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
+from accounts.studio_test_support import grant_studio_role
 from course_management.observability.cloudwatch_dashboard import (
     cloudwatch_dashboard_context,
 )
@@ -28,11 +29,12 @@ class CloudWatchDashboardViewTests(TestCase):
             email="user@test.com",
             **USER_CREDENTIALS,
         )
-        User.objects.create_user(
+        admin_user = User.objects.create_user(
             email="admin@test.com",
             is_staff=True,
             **ADMIN_CREDENTIALS,
         )
+        grant_studio_role(admin_user, "course_operator")
 
     def dashboard_context(self):
         return {
@@ -61,7 +63,7 @@ class CloudWatchDashboardViewTests(TestCase):
     )
     def test_cloudwatch_dashboard_staff_allowed(self, context_mock):
         context_mock.return_value = self.dashboard_context()
-        url = reverse("cadmin_cloudwatch_dashboard")
+        url = reverse("studio_courses_cloudwatch_dashboard")
 
         self.client.login(**ADMIN_CREDENTIALS)
         response = self.client.get(url)
@@ -74,7 +76,7 @@ class CloudWatchDashboardViewTests(TestCase):
         context_mock.assert_called_once_with(environment=None, hours=24)
 
     def test_cloudwatch_dashboard_non_staff_denied(self):
-        url = reverse("cadmin_cloudwatch_dashboard")
+        url = reverse("studio_courses_cloudwatch_dashboard")
 
         self.client.login(**USER_CREDENTIALS)
         response = self.client.get(url)
@@ -87,8 +89,8 @@ class CloudWatchDashboardViewTests(TestCase):
             title="Test Course",
             description="Test Course Description",
         )
-        url = reverse("cadmin_course_list")
-        cloudwatch_url = reverse("cadmin_cloudwatch_dashboard")
+        url = reverse("studio_courses_course_list")
+        cloudwatch_url = reverse("studio_courses_cloudwatch_dashboard")
 
         self.client.login(**ADMIN_CREDENTIALS)
         response = self.client.get(url)

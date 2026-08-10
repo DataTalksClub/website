@@ -44,7 +44,7 @@ def project_extend_deadline(request, course_slug, project_slug):
     review deadline together so their spacing is preserved.
     """
     if request.method != "POST":
-        return redirect("cadmin_course", course_slug=course_slug)
+        return redirect("studio_courses_course", course_slug=course_slug)
     course = get_object_or_404(Course, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
@@ -58,7 +58,7 @@ def project_extend_deadline(request, course_slug, project_slug):
             "for submissions or peer review.",
         )
         return redirect_after_action(
-            request, "cadmin_course", course_slug=course_slug
+            request, "studio_courses_course", course_slug=course_slug
         )
 
     return extend_deadlines(
@@ -74,7 +74,7 @@ def project_extend_deadline(request, course_slug, project_slug):
 def project_assign_reviews(request, course_slug, project_slug):
     """Assign peer reviews for a project"""
     if request.method != "POST":
-        response = redirect("cadmin_course", course_slug=course_slug)
+        response = redirect("studio_courses_course", course_slug=course_slug)
         return response
     course = get_object_or_404(Course, slug=course_slug)
     project = get_object_or_404(
@@ -90,7 +90,7 @@ def project_assign_reviews(request, course_slug, project_slug):
         messages.warning(request, message)
 
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 
@@ -98,7 +98,7 @@ def project_assign_reviews(request, course_slug, project_slug):
 def project_score(request, course_slug, project_slug):
     """Score a project"""
     if request.method != "POST":
-        response = redirect("cadmin_course", course_slug=course_slug)
+        response = redirect("studio_courses_course", course_slug=course_slug)
         return response
     course = get_object_or_404(Course, slug=course_slug)
     project = get_object_or_404(
@@ -114,7 +114,7 @@ def project_score(request, course_slug, project_slug):
         messages.warning(request, message)
 
     return redirect_after_action(
-        request, "cadmin_course", course_slug=course_slug
+        request, "studio_courses_course", course_slug=course_slug
     )
 
 

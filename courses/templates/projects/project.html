@@ -89,10 +89,10 @@
                     Project statistics <span class="ml-2" aria-hidden="true">-&gt;</span>
                 </a>
             {% endif %}
-            {% if user.is_staff %}
-                <a href="{% url 'cadmin_project_submissions' course.slug project.slug %}"
+            {% if can_access_course_studio %}
+                <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}"
                    class="inline-flex items-center font-medium app-link">
-                    <i class="fas fa-cog mr-2"></i> Manage project in cadmin
+                    <i class="fas fa-cog mr-2"></i> Manage project in Studio
                 </a>
             {% endif %}
         </div>

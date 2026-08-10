@@ -76,7 +76,6 @@ ACCOUNT_NAVIGATION_ACTIONS = (
     ("social_connections", "socialaccount_connections"),
     ("course_discovery", "course_list"),
     ("studio", "studio:home"),
-    ("course_admin", "cadmin_course_list"),
     ("logout", "account_logout"),
 )
 
@@ -257,11 +256,8 @@ def relationship_evidence(
             .values_list("pk", f"{spec.field_name}_id")
         )
         logical_rows = [
-            [str(row_id), aliases.get(int(user_id), int(user_id))]
-            for row_id, user_id in rows
+            [str(row_id), aliases.get(int(user_id), int(user_id))] for row_id, user_id in rows
         ]
         counts[spec.key] = len(rows)
-        checksums[spec.key] = sha256_text(
-            canonical_json({"rows": logical_rows})
-        )
+        checksums[spec.key] = sha256_text(canonical_json({"rows": logical_rows}))
     return counts, checksums

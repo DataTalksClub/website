@@ -358,7 +358,10 @@ def load_public_contract_inventory(
                 "host",
                 "name",
                 "route_pattern",
+                "source_example_path",
                 "source_id",
+                "source_name",
+                "source_route_pattern",
                 "source_revision",
                 "surface",
                 "urlconf",
@@ -369,10 +372,26 @@ def load_public_contract_inventory(
         if row["authenticated_production_probe"] != "not_performed":
             raise ContractInventoryError("course route unexpectedly contains production evidence")
         source = _source_for(row, sources)
-        reference = _string(row, "example_path")
+        reference = _string(row, "source_example_path")
         urlconf = _string(row, "urlconf")
-        route_pattern = _string(row, "route_pattern")
+        route_pattern = _string(row, "source_route_pattern")
         callback = _string(row, "callback")
+        if row["surface"] == "Studio Courses":
+            target_example = _string(row, "example_path")
+            target_pattern = _string(row, "route_pattern")
+            target_name = _string(row, "name")
+            if (
+                not target_example.startswith("/studio/courses/")
+                or not target_pattern.startswith("/studio/courses/")
+                or not target_name.startswith("studio_courses_")
+                or reference != f"/cadmin/{target_example.removeprefix('/studio/courses/')}"
+                or route_pattern != f"/cadmin/{target_pattern.removeprefix('/studio/courses/')}"
+                or _string(row, "source_name")
+                != f"cadmin_{target_name.removeprefix('studio_courses_')}"
+            ):
+                raise ContractInventoryError(
+                    "Studio Courses target/source compatibility mapping is invalid"
+                )
         course_source_path = f"{urlconf.replace('.', '/')}.py"
         if urlsplit(source.origin).netloc != _string(row, "host"):
             raise ContractInventoryError("course route host contradicts source provenance")
@@ -387,7 +406,7 @@ def load_public_contract_inventory(
                 expected_status=_nullable_status(row, "expected_status"),
                 machine_contract=False,
                 route_pattern=route_pattern,
-                route_name=_nullable_string(row, "name"),
+                route_name=_nullable_string(row, "source_name"),
                 route_urlconf=urlconf,
                 route_callback=callback,
             )
