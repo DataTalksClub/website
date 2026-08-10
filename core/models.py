@@ -233,6 +233,10 @@ class OperationalSetting(RevisionedModel):
 
     class Meta:
         ordering = ("key",)
+        permissions = (
+            ("read_operational_settings", "Can read operational settings"),
+            ("change_operational_settings", "Can change operational settings"),
+        )
         constraints = [
             models.CheckConstraint(
                 condition=Q(revision__gte=1),
@@ -270,10 +274,10 @@ class OperationalSettingRevision(models.Model):
         related_name="operational_setting_revisions",
     )
     changed_by_ref = models.CharField(max_length=128, blank=True)
-    audit_event = models.OneToOneField(
+    audit_event = models.ForeignKey(
         AuditEvent,
         on_delete=models.PROTECT,
-        related_name="setting_revision",
+        related_name="setting_revisions",
     )
     created_at = models.DateTimeField(auto_now_add=True)
 

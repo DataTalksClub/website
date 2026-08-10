@@ -76,7 +76,8 @@ def test_capability_filtered_navigation_and_empty_state(
     assert content_home.status == 200
     assert_private_response(content_home)
     expect(page.get_by_role("heading", name="Studio", exact=True)).to_be_visible()
-    expect(page.get_by_text("You do not have any Studio sections assigned.")).to_be_visible()
+    expect(page.get_by_role("link", name="Site settings")).to_be_visible()
+    expect(page.get_by_text("You do not have any Studio sections assigned.")).to_have_count(0)
     expect(page.get_by_role("link", name="Audit")).to_have_count(0)
     page.screenshot(path=screenshot_path("empty-sections", viewport), full_page=True)
 
@@ -90,6 +91,7 @@ def test_capability_filtered_navigation_and_empty_state(
     assert auditor_home is not None
     assert auditor_home.status == 200
     expect(page.get_by_role("link", name="Audit")).to_be_visible()
+    expect(page.get_by_role("link", name="Site settings")).to_be_visible()
     expect(page.get_by_text("You do not have any Studio sections assigned.")).to_have_count(0)
     page.get_by_role("link", name="Audit").focus()
     assert page.get_by_role("link", name="Audit").evaluate(

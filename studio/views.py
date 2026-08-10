@@ -31,9 +31,20 @@ from core.audit_queries import (
     present_audit_event,
 )
 from core.capabilities import Capability
-from core.idempotency import JsonObject, execute_idempotent
+from core.idempotency import (
+    IdempotencyConflict,
+    IdempotencyInProgress,
+    JsonObject,
+    execute_idempotent,
+)
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
+from core.site_settings import (
+    ANNOUNCEMENT_ENABLED_KEY,
+    ANNOUNCEMENT_MESSAGE_KEY,
+    InvalidSiteSettingsBatch,
+    SiteSettingsRevisionConflict,
+)
 from events.importers import ProtectedSourceError
 from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
 from events.services import (
@@ -52,7 +63,7 @@ from management_auth.policies import require_high_risk_policy
 from management_auth.services import manageable_service_principals, principal_has_permission
 from management_registry import CAPABILITY_REGISTRY
 
-from .auth import capability_required, staff_required
+from .auth import audit_site_settings_denial, capability_required, staff_required
 
 
 def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
@@ -93,6 +104,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                 "label": {
                     "studio.audit.browse": "Audit",
                     "management.credentials.list": "API credentials",
+                    "site.settings.read": "Site settings",
                     "events.historical_registration_import.manage": (
                         "Historical registration totals"
                     ),
@@ -297,6 +309,200 @@ def home(request: HttpRequest) -> HttpResponse:
         "studio/home.html",
         {"studio_navigation": _navigation(request)},
     )
+
+
+def _site_settings_can_write(request: HttpRequest) -> bool:
+    capability = CAPABILITY_REGISTRY.require("site.settings.write")
+    try:
+        authorize_studio_request(
+            request_user=request.user,
+            session_reference=session_reference(request),
+            capability=capability,
+        )
+    except (StudioAuthenticationRequired, StudioAuthorizationDenied):
+        return False
+    return True
+
+
+def _audit_site_settings_denial(request: HttpRequest, *, reason: str) -> None:
+    audit_site_settings_denial(
+        request,
+        reason=reason,
+        idempotency_key=request.POST.get("idempotency_key", ""),
+    )
+
+
+def _site_settings_page_context(
+    request: HttpRequest,
+    *,
+    submitted_enabled: object | None = None,
+    submitted_message: object | None = None,
+    idempotency_key: object | None = None,
+    error_message: str = "",
+    field_errors: dict[str, str] | None = None,
+) -> dict[str, object]:
+    read_capability = CAPABILITY_REGISTRY.require("site.settings.read")
+    result = read_capability.service(context=_service_context(request))
+    items = {
+        item["key"]: item
+        for item in result["settings"]
+        if isinstance(item, dict) and isinstance(item.get("key"), str)
+    }
+    enabled = items[ANNOUNCEMENT_ENABLED_KEY]
+    message = items[ANNOUNCEMENT_MESSAGE_KEY]
+    return {
+        "enabled_setting": enabled,
+        "message_setting": message,
+        "enabled_value": (enabled["value"] if submitted_enabled is None else submitted_enabled),
+        "message_value": (message["value"] if submitted_message is None else submitted_message),
+        "can_write": _site_settings_can_write(request),
+        "idempotency_key": idempotency_key or uuid.uuid4(),
+        "error_message": error_message,
+        "field_errors": field_errors or {},
+        "saved": request.GET.get("saved") == "1",
+        "studio_navigation": _navigation(request),
+    }
+
+
+@capability_required("site.settings.read")
+def site_settings_read(request: HttpRequest) -> HttpResponse:
+    try:
+        context = _site_settings_page_context(request)
+    except Exception:
+        return HttpResponse("Site settings are unavailable", status=500)
+    return render(request, "studio/settings.html", context)
+
+
+@capability_required("site.settings.write")
+def site_settings_write(request: HttpRequest) -> HttpResponse:
+    read_capability = CAPABILITY_REGISTRY.require("site.settings.read")
+    try:
+        authorize_studio_request(
+            request_user=request.user,
+            session_reference=session_reference(request),
+            capability=read_capability,
+        )
+    except (StudioAuthenticationRequired, StudioAuthorizationDenied):
+        _audit_site_settings_denial(request, reason="permission_denied")
+        return HttpResponseForbidden("Studio access denied")
+
+    raw_enabled = request.POST.get("announcement_enabled")
+    enabled = raw_enabled == "true"
+    message = request.POST.get("announcement_message", "")
+    raw_idempotency = request.POST.get("idempotency_key", "")
+    safe_idempotency: object = uuid.uuid4()
+    form_state_valid = (
+        raw_enabled in {None, "true"}
+        and len(request.POST.getlist("announcement_enabled")) <= 1
+        and len(request.POST.getlist("announcement_message")) == 1
+        and len(request.POST.getlist("idempotency_key")) == 1
+        and len(request.POST.getlist("enabled_expected_revision")) == 1
+        and len(request.POST.getlist("message_expected_revision")) == 1
+    )
+    try:
+        parsed_idempotency = uuid.UUID(raw_idempotency)
+        if str(parsed_idempotency) != raw_idempotency:
+            raise ValueError("non-canonical idempotency key")
+        safe_idempotency = raw_idempotency
+    except (AttributeError, TypeError, ValueError):
+        form_state_valid = False
+    try:
+        enabled_revision = int(request.POST.get("enabled_expected_revision", ""))
+        message_revision = int(request.POST.get("message_expected_revision", ""))
+        if enabled_revision < 0 or message_revision < 0:
+            raise ValueError("negative revision")
+    except (TypeError, ValueError):
+        form_state_valid = False
+        enabled_revision = -1
+        message_revision = -1
+    if not form_state_valid:
+        _audit_site_settings_denial(request, reason="invalid_request")
+        context = _site_settings_page_context(
+            request,
+            submitted_enabled=enabled,
+            submitted_message=message,
+            idempotency_key=safe_idempotency,
+            error_message="Correct the highlighted settings and try again.",
+            field_errors={"form": "The settings form state is invalid."},
+        )
+        return render(request, "studio/settings.html", context, status=400)
+
+    capability = request.studio_principal.capability  # type: ignore[attr-defined]
+    try:
+        capability.service(
+            updates=[
+                {
+                    "key": ANNOUNCEMENT_ENABLED_KEY,
+                    "value": enabled,
+                    "expected_revision": enabled_revision,
+                },
+                {
+                    "key": ANNOUNCEMENT_MESSAGE_KEY,
+                    "value": message,
+                    "expected_revision": message_revision,
+                },
+            ],
+            source="studio",
+            idempotency_key=raw_idempotency,
+            actor_ref=f"user:{request.user.pk}",
+            actor_id=request.user.pk,
+            context=_service_context(request),
+        )
+    except SiteSettingsRevisionConflict:
+        _audit_site_settings_denial(request, reason="revision_conflict")
+        context = _site_settings_page_context(
+            request,
+            submitted_enabled=enabled,
+            submitted_message=message,
+            idempotency_key=raw_idempotency,
+            error_message="The settings changed in another session. Review and save again.",
+            field_errors={"form": "A submitted revision is stale."},
+        )
+        return render(request, "studio/settings.html", context, status=409)
+    except (IdempotencyConflict, IdempotencyInProgress):
+        _audit_site_settings_denial(request, reason="idempotency_conflict")
+        context = _site_settings_page_context(
+            request,
+            submitted_enabled=enabled,
+            submitted_message=message,
+            idempotency_key=raw_idempotency,
+            error_message="This save request conflicts with an earlier submission.",
+            field_errors={"form": "Reload the page before trying again."},
+        )
+        return render(request, "studio/settings.html", context, status=409)
+    except (InvalidSiteSettingsBatch, TypeError, ValueError):
+        _audit_site_settings_denial(request, reason="invalid_request")
+        context = _site_settings_page_context(
+            request,
+            submitted_enabled=enabled,
+            submitted_message=message,
+            idempotency_key=raw_idempotency,
+            error_message="Correct the highlighted settings and try again.",
+            field_errors={
+                "announcement_message": ("Enter one plain-text line of 500 characters or fewer.")
+            },
+        )
+        return render(request, "studio/settings.html", context, status=400)
+    except Exception:
+        _audit_site_settings_denial(request, reason="internal_error")
+        return HttpResponse("Site settings could not be saved", status=500)
+    return HttpResponseRedirect(f"{reverse('studio:settings')}?saved=1")
+
+
+def site_settings(request: HttpRequest) -> HttpResponse:
+    if request.method in {"GET", "HEAD"}:
+        return site_settings_read(request)
+    return site_settings_write(request)
+
+
+site_settings.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.settings.read",
+    "site.settings.write",
+)
+site_settings.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": site_settings_read,
+    "POST": site_settings_write,
+}
 
 
 @capability_required("studio.audit.browse")

@@ -17,6 +17,8 @@ from accounts.studio_roles import (
     HISTORICAL_REGISTRATION_IMPORT_MANAGE,
     HISTORICAL_REGISTRATION_MAPPING_MANAGE,
     MANAGE_API_CREDENTIALS,
+    SITE_SETTINGS_READ,
+    SITE_SETTINGS_WRITE,
     STUDIO_ACCESS,
     synchronize_studio_roles,
 )
@@ -188,6 +190,8 @@ def bootstrap_development_owner(
         credential_management = _permission(MANAGE_API_CREDENTIALS, using=using)
         historical_import = _permission(HISTORICAL_REGISTRATION_IMPORT_MANAGE, using=using)
         historical_mapping = _permission(HISTORICAL_REGISTRATION_MAPPING_MANAGE, using=using)
+        site_settings_read = _permission(SITE_SETTINGS_READ, using=using)
+        site_settings_write = _permission(SITE_SETTINGS_WRITE, using=using)
 
         if existing_user is None:
             if (
@@ -256,7 +260,14 @@ def bootstrap_development_owner(
                 using=using,
                 update_fields=("is_active", "revision", "updated_at"),
             )
-        human.permissions.set((studio_access, credential_management))
+        human.permissions.set(
+            (
+                studio_access,
+                credential_management,
+                site_settings_read,
+                site_settings_write,
+            )
+        )
 
         service, service_created = APIPrincipal.objects.using(using).get_or_create(
             identity_snapshot=DEVELOPMENT_AUTOMATION_PRINCIPAL,
@@ -275,7 +286,15 @@ def bootstrap_development_owner(
                 using=using,
                 update_fields=("is_active", "revision", "updated_at"),
             )
-        service.permissions.set((studio_access, historical_import, historical_mapping))
+        service.permissions.set(
+            (
+                studio_access,
+                historical_import,
+                historical_mapping,
+                site_settings_read,
+                site_settings_write,
+            )
+        )
 
         revoked_sessions = 0
         revoked_credentials = 0

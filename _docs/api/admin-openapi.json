@@ -34,7 +34,14 @@
             "type": "object"
           },
           "result": {
-            "$ref": "#/components/schemas/CredentialMetadata"
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CredentialMetadata"
+              },
+              {
+                "$ref": "#/components/schemas/SiteSettingRevisionConflict"
+              }
+            ]
           }
         },
         "required": [
@@ -730,6 +737,453 @@
           "count",
           "total_revision",
           "contributions"
+        ],
+        "type": "object"
+      },
+      "SiteSetting": {
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "default": {
+                "type": "boolean"
+              },
+              "key": {
+                "const": "site.announcement.enabled"
+              },
+              "validation": {
+                "maxProperties": 0,
+                "type": "object"
+              },
+              "value": {
+                "type": "boolean"
+              },
+              "value_type": {
+                "const": "boolean"
+              }
+            }
+          },
+          {
+            "properties": {
+              "default": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "key": {
+                "const": "site.announcement.message"
+              },
+              "validation": {
+                "additionalProperties": false,
+                "properties": {
+                  "markup": {
+                    "const": false
+                  },
+                  "max_length": {
+                    "const": 500
+                  },
+                  "single_line": {
+                    "const": true
+                  },
+                  "trim": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "max_length",
+                  "single_line",
+                  "trim",
+                  "markup"
+                ],
+                "type": "object"
+              },
+              "value": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value_type": {
+                "const": "string"
+              }
+            }
+          }
+        ],
+        "properties": {
+          "cache_policy": {
+            "const": "uncached",
+            "type": "string"
+          },
+          "default": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "definition_version": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "docs_reference": {
+            "pattern": "^_docs/",
+            "type": "string"
+          },
+          "group": {
+            "const": "site.announcement",
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "site.announcement.enabled",
+              "site.announcement.message"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "lifecycle": {
+            "const": "active",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sensitivity": {
+            "const": "public",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "code_default",
+              "studio",
+              "admin_api"
+            ],
+            "type": "string"
+          },
+          "validation": {
+            "type": "object"
+          },
+          "value": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "value_type": {
+            "enum": [
+              "boolean",
+              "string"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "label",
+          "description",
+          "value_type",
+          "default",
+          "validation",
+          "docs_reference",
+          "lifecycle",
+          "cache_policy",
+          "sensitivity",
+          "value",
+          "source",
+          "definition_version",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "SiteSettingResult": {
+        "additionalProperties": false,
+        "oneOf": [
+          {
+            "properties": {
+              "default": {
+                "type": "boolean"
+              },
+              "key": {
+                "const": "site.announcement.enabled"
+              },
+              "validation": {
+                "maxProperties": 0,
+                "type": "object"
+              },
+              "value": {
+                "type": "boolean"
+              },
+              "value_type": {
+                "const": "boolean"
+              }
+            }
+          },
+          {
+            "properties": {
+              "default": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "key": {
+                "const": "site.announcement.message"
+              },
+              "validation": {
+                "additionalProperties": false,
+                "properties": {
+                  "markup": {
+                    "const": false
+                  },
+                  "max_length": {
+                    "const": 500
+                  },
+                  "single_line": {
+                    "const": true
+                  },
+                  "trim": {
+                    "const": true
+                  }
+                },
+                "required": [
+                  "max_length",
+                  "single_line",
+                  "trim",
+                  "markup"
+                ],
+                "type": "object"
+              },
+              "value": {
+                "maxLength": 500,
+                "type": "string"
+              },
+              "value_type": {
+                "const": "string"
+              }
+            }
+          }
+        ],
+        "properties": {
+          "cache_policy": {
+            "const": "uncached",
+            "type": "string"
+          },
+          "changed": {
+            "type": "boolean"
+          },
+          "default": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "definition_version": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "description": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "docs_reference": {
+            "pattern": "^_docs/",
+            "type": "string"
+          },
+          "group": {
+            "const": "site.announcement",
+            "type": "string"
+          },
+          "key": {
+            "enum": [
+              "site.announcement.enabled",
+              "site.announcement.message"
+            ],
+            "type": "string"
+          },
+          "label": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "lifecycle": {
+            "const": "active",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "sensitivity": {
+            "const": "public",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "code_default",
+              "studio",
+              "admin_api"
+            ],
+            "type": "string"
+          },
+          "validation": {
+            "type": "object"
+          },
+          "value": {
+            "type": [
+              "boolean",
+              "string"
+            ]
+          },
+          "value_type": {
+            "enum": [
+              "boolean",
+              "string"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "group",
+          "label",
+          "description",
+          "value_type",
+          "default",
+          "validation",
+          "docs_reference",
+          "lifecycle",
+          "cache_policy",
+          "sensitivity",
+          "value",
+          "source",
+          "definition_version",
+          "revision",
+          "changed"
+        ],
+        "type": "object"
+      },
+      "SiteSettingRevisionConflict": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "enum": [
+              "site.announcement.enabled",
+              "site.announcement.message"
+            ],
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "key",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "SiteSettings": {
+        "additionalProperties": false,
+        "properties": {
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/SiteSetting"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          }
+        },
+        "required": [
+          "settings"
+        ],
+        "type": "object"
+      },
+      "SiteSettingsBatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "updates": {
+            "items": {
+              "oneOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "expected_revision": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "key": {
+                      "const": "site.announcement.enabled",
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "expected_revision"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "expected_revision": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "key": {
+                      "const": "site.announcement.message",
+                      "type": "string"
+                    },
+                    "value": {
+                      "description": "One public-safe line; the server trims Unicode whitespace and rejects markup and control characters.",
+                      "maxLength": 500,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "expected_revision"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "updates"
+        ],
+        "type": "object"
+      },
+      "SiteSettingsBatchResult": {
+        "additionalProperties": false,
+        "properties": {
+          "replayed": {
+            "type": "boolean"
+          },
+          "settings": {
+            "items": {
+              "$ref": "#/components/schemas/SiteSettingResult"
+            },
+            "maxItems": 2,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "settings",
+          "replayed"
         ],
         "type": "object"
       }
@@ -3413,6 +3867,310 @@
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
+      }
+    },
+    "/settings": {
+      "get": {
+        "operationId": "site.settings.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteSettings"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "site.settings.read"
+            ]
+          }
+        ],
+        "summary": "Read public-safe site settings",
+        "x-audit-action": "core.operational_settings.read",
+        "x-capability-key": "site.settings.read",
+        "x-concurrency": "none",
+        "x-django-permission": "core.read_operational_settings",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      },
+      "post": {
+        "operationId": "site.settings.write",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteSettingsBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteSettingsBatchResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "site.settings.write"
+            ]
+          }
+        ],
+        "summary": "Update public-safe site settings",
+        "x-audit-action": "core.operational_settings.batch_updated",
+        "x-capability-key": "site.settings.write",
+        "x-concurrency": "revision",
+        "x-django-permission": "core.change_operational_settings",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 1
       }
     }
   },

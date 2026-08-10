@@ -1,0 +1,125 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Site settings · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="site-settings-heading">
+    <p class="eyebrow">Studio · Site</p>
+    <h1 id="site-settings-heading">Site settings</h1>
+    <p class="lede">
+      Manage public-safe operational settings. Never enter secrets, credentials, personal data,
+      private links, or HTML here.
+    </p>
+
+    <nav aria-label="Studio sections" class="studio-navigation">
+      {% for item in studio_navigation %}
+        <a href="{% url item.route %}">
+          {{ item.label }}
+        </a>
+      {% endfor %}
+    </nav>
+
+    {% if saved %}
+      <p class="foundation-note" role="status">
+        Site settings saved.
+      </p>
+    {% endif %}
+
+    {% if error_message %}
+      <section
+        id="settings-errors"
+        class="error"
+        role="alert"
+        aria-labelledby="settings-errors-heading"
+        tabindex="-1"
+      >
+        <h2 id="settings-errors-heading">There is a problem</h2>
+        <p>{{ error_message }}</p>
+        <ul>
+          {% for field, message in field_errors.items %}
+            <li>
+              {% if field == "announcement_message" %}
+                <a href="#announcement-message">{{ message }}</a>
+              {% else %}
+                <a href="#site-announcement-fields">{{ message }}</a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
+      <script>
+        document.getElementById("settings-errors").focus();
+      </script>
+    {% endif %}
+
+    <form method="post" action="{% url 'studio:settings' %}">
+      {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <input
+        type="hidden"
+        name="enabled_expected_revision"
+        value="{{ enabled_setting.revision }}"
+      >
+      <input
+        type="hidden"
+        name="message_expected_revision"
+        value="{{ message_setting.revision }}"
+      >
+
+      <fieldset id="site-announcement-fields">
+        <legend>Site announcement</legend>
+
+        <label class="check-field" for="announcement-enabled">
+          <input
+            id="announcement-enabled"
+            type="checkbox"
+            name="announcement_enabled"
+            value="true"
+            aria-describedby="announcement-enabled-help"
+            {% if enabled_value %}checked{% endif %}
+            {% if not can_write %}disabled{% endif %}
+          >
+          <span>{{ enabled_setting.label }}</span>
+        </label>
+        <p id="announcement-enabled-help">
+          {{ enabled_setting.description }} Type: Boolean. Default: Off. Current source:
+          {% if enabled_setting.source == "code_default" %}
+            Code default.
+          {% elif enabled_setting.source == "admin_api" %}
+            Admin API.
+          {% else %}
+            Studio.
+          {% endif %}
+          Revision {{ enabled_setting.revision }}.
+        </p>
+
+        <label for="announcement-message">{{ message_setting.label }}</label>
+        <input
+          id="announcement-message"
+          name="announcement_message"
+          value="{{ message_value }}"
+          maxlength="500"
+          aria-describedby="announcement-message-help"
+          {% if field_errors.announcement_message %}aria-invalid="true"{% endif %}
+          {% if not can_write %}readonly{% endif %}
+        >
+        <p id="announcement-message-help">
+          {{ message_setting.description }} Type: String. Default: empty. Plain text only, up to 500
+          characters. Current source:
+          {% if message_setting.source == "code_default" %}
+            Code default.
+          {% elif message_setting.source == "admin_api" %}
+            Admin API.
+          {% else %}
+            Studio.
+          {% endif %}
+          Revision {{ message_setting.revision }}.
+        </p>
+      </fieldset>
+
+      {% if can_write %}
+        <button type="submit">Save site settings</button>
+      {% endif %}
+    </form>
+  </section>
+{% endblock %}

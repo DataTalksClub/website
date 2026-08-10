@@ -15,6 +15,8 @@ HIGH_RISK_FIXTURE = "core.execute_high_risk_fixture"
 MANAGE_API_CREDENTIALS = "management_auth.manage_api_credentials"
 HISTORICAL_REGISTRATION_IMPORT_MANAGE = "events.historical_registration_import_manage"
 HISTORICAL_REGISTRATION_MAPPING_MANAGE = "events.historical_registration_mapping_manage"
+SITE_SETTINGS_READ = "core.read_operational_settings"
+SITE_SETTINGS_WRITE = "core.change_operational_settings"
 
 _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
@@ -25,9 +27,11 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 MANAGE_API_CREDENTIALS,
                 HISTORICAL_REGISTRATION_IMPORT_MANAGE,
                 HISTORICAL_REGISTRATION_MAPPING_MANAGE,
+                SITE_SETTINGS_READ,
+                SITE_SETTINGS_WRITE,
             }
         ),
-        "content_operator": frozenset({STUDIO_ACCESS}),
+        "content_operator": frozenset({STUDIO_ACCESS, SITE_SETTINGS_READ, SITE_SETTINGS_WRITE}),
         "course_operator": frozenset({STUDIO_ACCESS}),
         "event_operator": frozenset(
             {
@@ -38,10 +42,23 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
         ),
         "email_operator": frozenset({STUDIO_ACCESS}),
         "support_operator": frozenset({STUDIO_ACCESS}),
-        "auditor": frozenset({STUDIO_ACCESS, AUDIT_BROWSE}),
+        "auditor": frozenset({STUDIO_ACCESS, AUDIT_BROWSE, SITE_SETTINGS_READ}),
     }
 )
 ROLE_PERMISSIONS = _ROLE_PERMISSIONS
+
+
+def _validate_role_dependencies() -> None:
+    invalid = sorted(
+        role
+        for role, permissions in ROLE_PERMISSIONS.items()
+        if SITE_SETTINGS_WRITE in permissions and SITE_SETTINGS_READ not in permissions
+    )
+    if invalid:
+        raise RuntimeError("site settings writers must also have read authority")
+
+
+_validate_role_dependencies()
 
 
 def _permission_objects(permission_names: frozenset[str]) -> list[Permission]:

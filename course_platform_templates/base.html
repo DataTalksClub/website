@@ -206,6 +206,16 @@
                 </div>
             </nav>
         </header>
+        {% if site_announcement %}
+            <aside
+                class="site-announcement border-b app-border app-surface"
+                aria-label="Site announcement"
+            >
+                <div class="app-content-shell mx-auto px-4 py-3 text-sm app-heading md:px-8 md:text-base">
+                    {{ site_announcement.message }}
+                </div>
+            </aside>
+        {% endif %}
         <div class="app-content-shell mx-auto w-full flex-1 px-4 py-5 md:px-8 md:py-10">
             {% block breadcrumbs_nav %}
                 <nav class="breadcrumbs mb-6 text-sm app-muted md:mb-8"

@@ -6,6 +6,7 @@ app_name = "studio"
 
 urlpatterns = [
     path("", views.home, name="home"),
+    path("settings", views.site_settings, name="settings"),
     path("access/api-credentials/", views.credential_list, name="credential-list"),
     path(
         "access/api-credentials/<uuid:credential_id>/rotate/",

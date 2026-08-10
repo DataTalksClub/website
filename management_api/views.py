@@ -9,6 +9,7 @@ from django.utils import timezone
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress, execute_idempotent
 from core.models import RevisionConflict
 from core.services import ServiceContext
+from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionConflict
 from events.importers import ProtectedSourceError
 from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
 from events.services import (
@@ -23,11 +24,12 @@ from management_auth.idempotency import (
 )
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.policies import require_high_risk_policy
-from management_auth.services import CredentialStateConflict
+from management_auth.services import CredentialStateConflict, principal_has_permission
+from management_registry import CAPABILITY_REGISTRY
 
 from .concurrency import require_if_match
 from .dispatch import admin_capability
-from .errors import APIError, error_response
+from .errors import APIError, error_response, permission_denied
 from .json_input import parse_json_object
 from .policies import enforce_writable_fields, scoped_object_or_404
 from .query import parse_page_query
@@ -130,6 +132,23 @@ def _historical_error(error: Exception) -> APIError:
     return APIError(500, "internal_error", "The historical aggregate request failed safely.")
 
 
+def _site_settings_error(error: Exception) -> APIError:
+    if isinstance(error, APIError):
+        return error
+    if isinstance(error, (IdempotencyConflict, IdempotencyInProgress)):
+        return APIError(409, "idempotency_conflict", "The idempotency request conflicts.")
+    if isinstance(error, SiteSettingsRevisionConflict):
+        return APIError(
+            409,
+            "revision_conflict",
+            "A site setting revision changed.",
+            safe_result={"key": error.key, "revision": error.actual},
+        )
+    if isinstance(error, (InvalidSiteSettingsBatch, TypeError, ValueError)):
+        return APIError(400, "invalid_request", "The site settings request is invalid.")
+    return APIError(500, "internal_error", "The site settings request failed safely.")
+
+
 def _historical_context(request: HttpRequest) -> ServiceContext:
     identity = request.api_identity  # type: ignore[attr-defined]
     return ServiceContext.from_current(actor_ref=f"api_principal:{identity.principal.id}")
@@ -156,6 +175,40 @@ def admin_health(request: HttpRequest) -> JsonResponse:
         context=ServiceContext.from_current(actor_ref=f"api_principal:{identity.principal.id}"),
     )
     return JsonResponse(result)
+
+
+@admin_capability("site.settings.read")
+def site_settings_read(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(context=_historical_context(request))
+    except Exception as error:
+        raise _site_settings_error(error) from error
+    return JsonResponse(result)
+
+
+@admin_capability("site.settings.write")
+def site_settings_write(request: HttpRequest) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    read_capability = CAPABILITY_REGISTRY.require("site.settings.read")
+    if not principal_has_permission(identity.principal, read_capability.django_permission):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(request, payload, required=frozenset({"updates"}))
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            updates=payload["updates"],
+            source="admin_api",
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _site_settings_error(error) from error
+    return JsonResponse(result.as_dict())
 
 
 @admin_capability("management.credentials.list")
