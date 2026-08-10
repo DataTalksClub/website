@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -27,6 +28,42 @@ def _acquire(run_id: str) -> TestRuntime:
     environment.pop(OWNER_TOKEN_ENV, None)
     with patch.dict(os.environ, environment, clear=True):
         return TestRuntime.acquire(REPOSITORY)
+
+
+def test_runtime_module_import_is_inert_without_git_or_repository() -> None:
+    scratch = REPOSITORY / ".tmp" / "runtime-import-regression" / f"run-{os.getpid()}"
+    empty_path = scratch / "empty-path"
+    working_directory = scratch / "outside-repository"
+    empty_path.mkdir(parents=True)
+    working_directory.mkdir()
+    environment = os.environ.copy()
+    for name in tuple(environment):
+        if name.startswith("DTC_TEST_"):
+            environment.pop(name)
+    environment.update(
+        {
+            "PATH": str(empty_path),
+            "PYTHONPATH": os.fspath(REPOSITORY),
+        }
+    )
+    command = (
+        "import json; import test_support.runtime as runtime; "
+        "print(json.dumps({'runtime_constructed': runtime._RUNTIME is not None}))"
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", command],
+            cwd=working_directory,
+            env=environment,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        shutil.rmtree(scratch)
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {"runtime_constructed": False}
 
 
 def test_exact_worker_tree_and_database_are_project_local() -> None:
