@@ -99,6 +99,26 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert "release-image-" in str(jobs["container"])
 
 
+def test_deploy_smoke_has_exact_readonly_authority_and_pinned_base_url() -> None:
+    deploy = workflow("ci.yml")["jobs"]["deploy"]
+    release = next(step for step in deploy["steps"] if step.get("id") == "release")
+
+    assert {
+        name: release["env"][name]
+        for name in (
+            "DTC_TEST_SAFETY_COMMAND",
+            "DTC_TEST_TARGET_CLASS",
+            "DTC_TEST_REMOTE_NAMESPACE",
+        )
+    } == {
+        "DTC_TEST_SAFETY_COMMAND": "remote_readonly",
+        "DTC_TEST_TARGET_CLASS": "isolated_development",
+        "DTC_TEST_REMOTE_NAMESPACE": "deploy-${{ github.run_id }}-${{ github.run_attempt }}",
+    }
+    assert "DTC_TEST_BASE_URL" not in release["env"]
+    assert "--base-url https://web.dtcdev.click" in release["run"]
+
+
 def test_manual_release_is_full_and_probe_contract_stays_separate() -> None:
     jobs = workflow("ci.yml")["jobs"]
     assert "manual_dispatch" in (ROOT / "ci" / "classifier.py").read_text(encoding="utf-8")

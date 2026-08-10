@@ -1,6 +1,9 @@
 # Course platform integration patches
 
-Copied CMP files remain byte-identical to the pinned source. Integration is confined to target-owned files:
+`copied-files.tsv` records the byte-identical pinned CMP source. Copied destinations remain exact
+unless an intentional target overlay is recorded with its current checksum and rationale in
+`integration-patched-files.tsv`. Integration is confined to target-owned files and those explicit
+overlays:
 
 - `pyproject.toml` and `uv.lock`: bounded dependencies required by copied imports and E2E tests;
 - `Makefile` and the Ruff/mypy configuration in `pyproject.toml`: keep byte-frozen adopted Python
@@ -46,6 +49,15 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
 - `course_management/datamailer_outbox_dispatch.py`: issue #98 replaces the copied row-lock claim
   with portable conditional ORM claim and attempt fences while retaining the same delivery,
   acknowledgement, and retry outcomes;
+- `courses/migrations/0004_update_correct_answer_indexes.py`,
+  `courses/migrations/0005_update_answers_with_indexes.py`, and
+  `courses/migrations/0006_course_first_homework_scored.py`: issue #75 resolves models through the
+  historical migration app registry and uses the stored legacy question values so fresh and
+  maintained migration replay does not import current runtime models;
+- `courses/tests/test_datamailer_signals.py` and
+  `courses/tests/test_datamailer_transactional.py`: issue #75 explicitly opts the copied
+  characterizations into their mocked synchronization and transactional-send paths while the
+  shared deterministic test settings keep contact sync and delivery disabled by default;
 - `api/openapi/spec.py`: issue #59 gives the staff-facing copied API schema the unified
   DataTalks.Club Courses name without changing its operations or authentication behavior;
 - `api/openapi/course_schemas.py`, `api/views/health.py`, and

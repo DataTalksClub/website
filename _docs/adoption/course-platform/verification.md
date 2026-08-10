@@ -1,8 +1,10 @@
 # Course-platform adoption verification
 
 All results below were produced from source commit
-`98a235283904b4ef9ad29e196298540756cf1bcc`. Copied characterization and E2E files remained
-unchanged; the copy verifier checks their recorded bytes.
+`98a235283904b4ef9ad29e196298540756cf1bcc`. The copy verifier checks all 768 pinned-source
+checksums, then checks each intentional copied-destination overlay against its separately recorded
+target checksum. Copied characterization and E2E files remain unchanged except for the explicit
+overlays in `integration-patched-files.tsv`.
 
 ## Characterization results
 
@@ -12,7 +14,7 @@ unchanged; the copy verifier checks their recorded bytes.
 | Unified Django suite | 787 passed, 0 skipped, 0 failed | Includes 6 target adoption-contract tests |
 | Copied E2E suite | 48 collected: 45 passed, 1 skipped, 2 xfailed, 0 failed | Playwright 1.58, fresh local database, ephemeral local dependency configuration |
 | Target foundation Playwright | 3 passed, 0 skipped, 0 failed | Desktop/mobile homepage and anonymous staff sign-in surface |
-| Adoption contract | 6 passed | 768 copied checksums, 2 target shim checksums, 89 routes, 13 commands, app/migration identity, generated inventory |
+| Adoption contract | 6 passed | 768 pinned-source checksums, copied-destination overlay checksums, 2 target shim checksums, 89 routes, 13 commands, app/migration identity, generated inventory |
 
 The copied E2E suite was first run without a Datamailer preference service. Two account-settings
 checks reached the correct page with HTTP 200 but timed out waiting for browser `networkidle`
@@ -40,9 +42,10 @@ leaderboard, cadmin, helper, and fallback-cleanup checks passed.
 
 ## Inventory and repository checks
 
-- `uv run python scripts/verify_course_platform_adoption.py`: 768 copied files verified against
-  the clean pinned checkout and explicit integration-patch state, plus both required target-owned
-  admin API compatibility shims verified against their per-file checksums and rationales.
+- `uv run python scripts/verify_course_platform_adoption.py`: the 768-row source ledger verified
+  against the clean pinned checkout; every copied destination verified against either that source
+  checksum or its explicit integration-patch checksum; and both required target-owned admin API
+  compatibility shims verified against their per-file checksums and rationales.
 - `behavior-inventory.md`: 89 routes (9 accounts, 29 compatibility API, 26 cadmin, 25 public
   course) and 13 management commands generated from Django's registries and smoke-resolved by the
   adoption-contract test.
