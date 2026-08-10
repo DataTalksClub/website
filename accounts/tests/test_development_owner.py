@@ -13,13 +13,13 @@ from django.core.management.base import CommandError
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from accounts.forms import DevelopmentOwnerLoginForm
 from accounts.development_owner import (
     DEVELOPMENT_AUTOMATION_PRINCIPAL,
     DEVELOPMENT_OWNER_PRINCIPAL,
     DevelopmentOwnerBootstrapDenied,
     bootstrap_development_owner,
 )
+from accounts.forms import DevelopmentOwnerLoginForm
 from accounts.models import Token
 from accounts.studio_roles import MANAGE_API_CREDENTIALS
 from core.bootstrap import RuntimeEnvironment
@@ -68,6 +68,8 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("management_auth", "manage_api_credentials"),
                 ("events", "historical_registration_import_manage"),
                 ("events", "historical_registration_mapping_manage"),
+                ("core", "read_operational_settings"),
+                ("core", "change_operational_settings"),
             },
         )
 
@@ -82,7 +84,12 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                     "codename",
                 )
             ),
-            {("core", "access_studio"), ("management_auth", "manage_api_credentials")},
+            {
+                ("core", "access_studio"),
+                ("core", "read_operational_settings"),
+                ("core", "change_operational_settings"),
+                ("management_auth", "manage_api_credentials"),
+            },
         )
         self.assertEqual(
             set(
@@ -93,6 +100,8 @@ class DevelopmentOwnerBootstrapTests(TestCase):
             ),
             {
                 ("core", "access_studio"),
+                ("core", "read_operational_settings"),
+                ("core", "change_operational_settings"),
                 ("events", "historical_registration_import_manage"),
                 ("events", "historical_registration_mapping_manage"),
             },

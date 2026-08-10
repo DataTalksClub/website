@@ -43,7 +43,8 @@ h1 { margin: .4rem 0 1rem; font-size: clamp(2.35rem, 8vw, 5.5rem); line-height: 
 .panel.narrow { max-width: 32rem; margin: 0 auto; }
 .panel h1 { font-size: clamp(2rem, 6vw, 3.5rem); }
 form { display: grid; gap: .75rem; margin-top: 1.5rem; }
-label { font-weight: 650; }
+fieldset { min-width: 0; }
+label { min-width: 0; font-weight: 650; overflow-wrap: anywhere; }
 input, select { width: 100%; padding: .8rem; border: 1px solid #aeb8ca; border-radius: .45rem; background: #fff; font: inherit; }
 input[type="checkbox"] { width: 1.2rem; height: 1.2rem; flex: none; }
 button { width: fit-content; padding: .75rem 1.15rem; border: 0; border-radius: .45rem; color: #fff; background: #0b5fff; font: inherit; font-weight: 700; cursor: pointer; }

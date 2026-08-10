@@ -54,8 +54,26 @@ historical_mapping_collection.management_capability_views = {  # type: ignore[at
     "POST": views.historical_mapping_create,
 }
 
+
+@csrf_exempt
+def site_settings_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.site_settings_read(request, *args, **kwargs)
+    return views.site_settings_write(request, *args, **kwargs)
+
+
+site_settings_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.settings.read",
+    "site.settings.write",
+)
+site_settings_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.site_settings_read,
+    "POST": views.site_settings_write,
+}
+
 urlpatterns = [
     path("health", views.admin_health, name="admin-health"),
+    path("settings", site_settings_collection, name="admin-site-settings"),
     path("credentials", credential_collection, name="admin-credential-list"),
     path(
         "historical-registration-imports",

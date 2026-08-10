@@ -53,9 +53,16 @@ from core.services import ServiceContext
 BOOLEAN_SETTING = register_operational_setting(
     OperationalSettingDefinition(
         key="tests.shared.enabled",
+        group="tests.shared",
+        label="Shared primitive test setting",
+        description="Exercise the shared operational-setting service.",
         value_type=OperationalSetting.ValueType.BOOLEAN,
         default=False,
-        description="Exercise the shared operational-setting service.",
+        validation={},
+        docs_reference="_docs/specs/01-platform-architecture.md#configuration",
+        lifecycle="active",
+        cache_policy="uncached",
+        sensitivity="public",
     )
 )
 
@@ -152,9 +159,16 @@ class OperationalSettingTests(TestCase):
             register_operational_setting(
                 OperationalSettingDefinition(
                     key="integration.api-token",
+                    group="integration",
+                    label="Rejected secret-bearing setting",
+                    description="This must be rejected.",
                     value_type=OperationalSetting.ValueType.STRING,
                     default="not-a-secret-store",
-                    description="This must be rejected.",
+                    validation={},
+                    docs_reference="_docs/specs/01-platform-architecture.md#configuration",
+                    lifecycle="active",
+                    cache_policy="uncached",
+                    sensitivity="public",
                 )
             )
         with self.assertRaises(InvalidOperationalSetting):

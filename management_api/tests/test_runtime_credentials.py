@@ -368,7 +368,12 @@ class RuntimeCredentialAPITests(RuntimeCredentialAPIBase):
         rendered = render_document()
         self.assertEqual(
             document["components"]["schemas"]["APIError"]["properties"]["result"],
-            {"$ref": "#/components/schemas/CredentialMetadata"},
+            {
+                "oneOf": [
+                    {"$ref": "#/components/schemas/CredentialMetadata"},
+                    {"$ref": "#/components/schemas/SiteSettingRevisionConflict"},
+                ]
+            },
         )
         self.assertNotIn("_fixtures/credentials", rendered)
         self.assertNotIn("example.test", rendered)

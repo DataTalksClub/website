@@ -20,6 +20,7 @@ from core.capabilities import (
     ServiceKind,
 )
 from core.management_health import management_health_factory, read_management_health
+from core.site_settings import SITE_SETTING_CAPABILITIES
 from events.capabilities import EVENT_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
 from management_auth.policies import resolved_high_risk_policy_keys
@@ -128,6 +129,7 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         STUDIO_HOME,
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,
+        *SITE_SETTING_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,
         *EVENT_CAPABILITIES,
         *CREDENTIAL_FIXTURE_CAPABILITIES,

@@ -2,19 +2,20 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
-from dataclasses import dataclass
-from typing import Any
+from dataclasses import dataclass, replace
+from typing import Any, cast
 
 from django.db import transaction
 
 from core.audit import AuditWriteContext, record_audit_event
-from core.idempotency import JsonObject, JsonValue, canonical_json
+from core.idempotency import JsonObject, JsonValue, UnsafeJsonValue, canonical_json
 from core.models import (
     AuditEvent,
     OperationalSetting,
     OperationalSettingRevision,
     RevisionConflict,
 )
+from core.redaction import is_sensitive_text
 
 _SETTING_KEY = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
 _SETTING_SOURCE = re.compile(r"^[a-z][a-z0-9_.:-]{0,63}$")
@@ -47,15 +48,28 @@ class OperationalSettingDefinitionConflict(RuntimeError):
     """Two code paths attempted to register different definitions for one key."""
 
 
-SettingValidator = Callable[[JsonValue], None]
+SettingValidator = Callable[[JsonValue], JsonValue | None]
+
+_SETTING_GROUP = re.compile(r"^[a-z][a-z0-9_.-]{0,127}$")
+_DOCS_REFERENCE = re.compile(r"^_docs/[A-Za-z0-9_./#-]{1,240}$")
+_SETTING_LIFECYCLES = frozenset({"active"})
+_SETTING_CACHE_POLICIES = frozenset({"uncached"})
+_SETTING_SENSITIVITIES = frozenset({"public"})
 
 
 @dataclass(frozen=True, slots=True)
 class OperationalSettingDefinition:
     key: str
+    group: str
+    label: str
+    description: str
     value_type: str
     default: JsonValue
-    description: str
+    validation: JsonObject
+    docs_reference: str
+    lifecycle: str
+    cache_policy: str
+    sensitivity: str
     version: int = 1
     validator: SettingValidator | None = None
 
@@ -73,6 +87,19 @@ class ResolvedOperationalSetting:
 _registry: dict[str, OperationalSettingDefinition] = {}
 
 
+def _definition_copy(
+    definition: OperationalSettingDefinition,
+) -> OperationalSettingDefinition:
+    validation = canonical_json(definition.validation)
+    if not isinstance(validation, dict):
+        raise InvalidOperationalSetting("setting validation metadata must be an object")
+    return replace(
+        definition,
+        default=canonical_json(definition.default),
+        validation=cast(JsonObject, validation),
+    )
+
+
 def _normalized_name(value: str) -> str:
     return "".join(character for character in value.casefold() if character.isalnum())
 
@@ -82,48 +109,72 @@ def _contains_secret_name(value: str) -> bool:
     return any(fragment in normalized for fragment in _SECRET_KEY_FRAGMENTS)
 
 
-def _validate_no_secret_keys(value: JsonValue, *, path: str) -> None:
+def _validate_no_sensitive_content(value: JsonValue, *, path: str) -> None:
     if isinstance(value, dict):
         for key, child in value.items():
             if _contains_secret_name(key):
                 raise InvalidOperationalSetting(
                     f"{path}.{key} looks secret-bearing and cannot be database-backed"
                 )
-            _validate_no_secret_keys(child, path=f"{path}.{key}")
+            _validate_no_sensitive_content(child, path=f"{path}.{key}")
     elif isinstance(value, list):
         for index, child in enumerate(value):
-            _validate_no_secret_keys(child, path=f"{path}[{index}]")
+            _validate_no_sensitive_content(child, path=f"{path}[{index}]")
+    elif isinstance(value, str) and is_sensitive_text(value):
+        raise InvalidOperationalSetting(
+            f"{path} contains sensitive text and cannot be database-backed"
+        )
 
 
 def _validated_value(
     definition: OperationalSettingDefinition,
     value: Any,
 ) -> JsonValue:
-    normalized = canonical_json(value)
-    value_type = definition.value_type
+    try:
+        normalized = canonical_json(value)
+    except UnsafeJsonValue as error:
+        raise InvalidOperationalSetting(
+            f"setting {definition.key} contains an unsafe value"
+        ) from error
 
-    if value_type == OperationalSetting.ValueType.BOOLEAN:
-        valid = isinstance(normalized, bool)
-    elif value_type == OperationalSetting.ValueType.INTEGER:
-        valid = isinstance(normalized, int) and not isinstance(normalized, bool)
-    elif value_type == OperationalSetting.ValueType.STRING:
-        valid = isinstance(normalized, str) and len(normalized) <= 4_096
-    elif value_type == OperationalSetting.ValueType.STRING_LIST:
-        valid = (
-            isinstance(normalized, list)
-            and len(normalized) <= 100
-            and all(isinstance(item, str) and len(item) <= 512 for item in normalized)
-        )
-    elif value_type == OperationalSetting.ValueType.JSON_OBJECT:
-        valid = isinstance(normalized, dict)
-    else:
-        raise InvalidOperationalSetting(f"unsupported setting type {value_type}")
+    def validate_shape(candidate: JsonValue) -> None:
+        value_type = definition.value_type
 
-    if not valid:
-        raise InvalidOperationalSetting(f"setting {definition.key} requires a {value_type} value")
-    _validate_no_secret_keys(normalized, path=definition.key)
+        if value_type == OperationalSetting.ValueType.BOOLEAN:
+            valid = isinstance(candidate, bool)
+        elif value_type == OperationalSetting.ValueType.INTEGER:
+            valid = isinstance(candidate, int) and not isinstance(candidate, bool)
+        elif value_type == OperationalSetting.ValueType.STRING:
+            valid = isinstance(candidate, str) and len(candidate) <= 4_096
+        elif value_type == OperationalSetting.ValueType.STRING_LIST:
+            valid = (
+                isinstance(candidate, list)
+                and len(candidate) <= 100
+                and all(isinstance(item, str) and len(item) <= 512 for item in candidate)
+            )
+        elif value_type == OperationalSetting.ValueType.JSON_OBJECT:
+            valid = isinstance(candidate, dict)
+        else:
+            raise InvalidOperationalSetting(f"unsupported setting type {value_type}")
+
+        if not valid:
+            raise InvalidOperationalSetting(
+                f"setting {definition.key} requires a {value_type} value"
+            )
+
+    validate_shape(normalized)
+    _validate_no_sensitive_content(normalized, path=definition.key)
     if definition.validator is not None:
-        definition.validator(normalized)
+        validated = definition.validator(normalized)
+        if validated is not None:
+            try:
+                normalized = canonical_json(validated)
+            except UnsafeJsonValue as error:
+                raise InvalidOperationalSetting(
+                    f"setting {definition.key} normalized to an unsafe value"
+                ) from error
+            validate_shape(normalized)
+            _validate_no_sensitive_content(normalized, path=definition.key)
     return normalized
 
 
@@ -134,23 +185,49 @@ def register_operational_setting(
         raise InvalidOperationalSetting("setting key must be a stable lowercase identifier")
     if _contains_secret_name(definition.key):
         raise InvalidOperationalSetting("secret-bearing settings must remain in the secret store")
+    if not _SETTING_GROUP.fullmatch(definition.group):
+        raise InvalidOperationalSetting("setting definitions require a stable lowercase group")
+    if not definition.label.strip():
+        raise InvalidOperationalSetting("setting definitions require a label")
     if not definition.description.strip():
         raise InvalidOperationalSetting("setting definitions require a description")
+    if is_sensitive_text(definition.label) or is_sensitive_text(definition.description):
+        raise InvalidOperationalSetting("setting definition text must be public-safe")
+    if not _DOCS_REFERENCE.fullmatch(definition.docs_reference):
+        raise InvalidOperationalSetting("setting definitions require a repository docs reference")
+    if definition.lifecycle not in _SETTING_LIFECYCLES:
+        raise InvalidOperationalSetting("setting lifecycle is unsupported")
+    if definition.cache_policy not in _SETTING_CACHE_POLICIES:
+        raise InvalidOperationalSetting("setting cache policy is unsupported")
+    if definition.sensitivity not in _SETTING_SENSITIVITIES:
+        raise InvalidOperationalSetting("setting sensitivity is unsupported")
     if definition.version < 1:
         raise InvalidOperationalSetting("setting definition version must be positive")
-    _validated_value(definition, definition.default)
+    try:
+        validation = canonical_json(definition.validation)
+    except UnsafeJsonValue as error:
+        raise InvalidOperationalSetting("setting validation metadata is unsafe") from error
+    if not isinstance(validation, dict):
+        raise InvalidOperationalSetting("setting validation metadata must be an object")
+    _validate_no_sensitive_content(validation, path=f"{definition.key}.validation")
+    normalized_default = _validated_value(definition, definition.default)
 
     registered = _registry.get(definition.key)
-    if registered is not None and registered != definition:
+    if registered is not None:
         raise OperationalSettingDefinitionConflict(
-            f"setting {definition.key} already has a different definition"
+            f"setting {definition.key} is already registered"
         )
-    _registry[definition.key] = definition
-    return definition
+    normalized_definition = replace(
+        definition,
+        default=normalized_default,
+        validation=cast(JsonObject, validation),
+    )
+    _registry[definition.key] = normalized_definition
+    return _definition_copy(normalized_definition)
 
 
 def registered_operational_settings() -> tuple[OperationalSettingDefinition, ...]:
-    return tuple(_registry[key] for key in sorted(_registry))
+    return tuple(_definition_copy(_registry[key]) for key in sorted(_registry))
 
 
 def _definition(key: str) -> OperationalSettingDefinition:
@@ -158,6 +235,12 @@ def _definition(key: str) -> OperationalSettingDefinition:
         return _registry[key]
     except KeyError as error:
         raise UnknownOperationalSetting(f"operational setting {key} is not registered") from error
+
+
+def validate_operational_setting_value(key: str, value: Any) -> JsonValue:
+    """Normalize one value through its code-owned definition."""
+
+    return _validated_value(_definition(key), value)
 
 
 def resolve_operational_setting(

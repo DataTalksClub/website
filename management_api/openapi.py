@@ -44,7 +44,12 @@ def _error_schema() -> dict[str, Any]:
                     },
                 },
             },
-            "result": {"$ref": "#/components/schemas/CredentialMetadata"},
+            "result": {
+                "oneOf": [
+                    {"$ref": "#/components/schemas/CredentialMetadata"},
+                    {"$ref": "#/components/schemas/SiteSettingRevisionConflict"},
+                ]
+            },
         },
     }
 
@@ -96,6 +101,123 @@ def _credential_schema(*, include_token: bool = False) -> dict[str, Any]:
         "required": required,
         "properties": properties,
     }
+
+
+def _site_setting_schema(*, include_changed: bool = False) -> dict[str, Any]:
+    required = [
+        "key",
+        "group",
+        "label",
+        "description",
+        "value_type",
+        "default",
+        "validation",
+        "docs_reference",
+        "lifecycle",
+        "cache_policy",
+        "sensitivity",
+        "value",
+        "source",
+        "definition_version",
+        "revision",
+    ]
+    properties: dict[str, Any] = {
+        "key": {
+            "type": "string",
+            "enum": ["site.announcement.enabled", "site.announcement.message"],
+        },
+        "group": {"type": "string", "const": "site.announcement"},
+        "label": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "value_type": {"type": "string", "enum": ["boolean", "string"]},
+        "default": {"type": ["boolean", "string"]},
+        "validation": {"type": "object"},
+        "docs_reference": {"type": "string", "pattern": "^_docs/"},
+        "lifecycle": {"type": "string", "const": "active"},
+        "cache_policy": {"type": "string", "const": "uncached"},
+        "sensitivity": {"type": "string", "const": "public"},
+        "value": {"type": ["boolean", "string"]},
+        "source": {"type": "string", "enum": ["code_default", "studio", "admin_api"]},
+        "definition_version": {"type": "integer", "minimum": 1},
+        "revision": {"type": "integer", "minimum": 0},
+    }
+    if include_changed:
+        required.append("changed")
+        properties["changed"] = {"type": "boolean"}
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": required,
+        "properties": properties,
+        "oneOf": [
+            {
+                "properties": {
+                    "key": {"const": "site.announcement.enabled"},
+                    "value_type": {"const": "boolean"},
+                    "default": {"type": "boolean"},
+                    "value": {"type": "boolean"},
+                    "validation": {
+                        "type": "object",
+                        "maxProperties": 0,
+                    },
+                }
+            },
+            {
+                "properties": {
+                    "key": {"const": "site.announcement.message"},
+                    "value_type": {"const": "string"},
+                    "default": {"type": "string", "maxLength": 500},
+                    "value": {"type": "string", "maxLength": 500},
+                    "validation": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["max_length", "single_line", "trim", "markup"],
+                        "properties": {
+                            "max_length": {"const": 500},
+                            "single_line": {"const": True},
+                            "trim": {"const": True},
+                            "markup": {"const": False},
+                        },
+                    },
+                }
+            },
+        ],
+    }
+
+
+def _site_setting_update_schemas() -> list[dict[str, Any]]:
+    common = {
+        "expected_revision": {"type": "integer", "minimum": 0},
+    }
+    return [
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["key", "value", "expected_revision"],
+            "properties": {
+                "key": {"type": "string", "const": "site.announcement.enabled"},
+                "value": {"type": "boolean"},
+                **common,
+            },
+        },
+        {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["key", "value", "expected_revision"],
+            "properties": {
+                "key": {"type": "string", "const": "site.announcement.message"},
+                "value": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": (
+                        "One public-safe line; the server trims Unicode whitespace and rejects "
+                        "markup and control characters."
+                    ),
+                },
+                **common,
+            },
+        },
+    ]
 
 
 def generate_document() -> dict[str, Any]:
@@ -194,6 +316,63 @@ def generate_document() -> dict[str, Any]:
                         "version": {"type": "string"},
                         "source_sha": {"type": ["string", "null"]},
                         "image_digest": {"type": ["string", "null"]},
+                    },
+                },
+                "SiteSetting": _site_setting_schema(),
+                "SiteSettingResult": _site_setting_schema(include_changed=True),
+                "SiteSettings": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["settings"],
+                    "properties": {
+                        "settings": {
+                            "type": "array",
+                            "minItems": 2,
+                            "maxItems": 2,
+                            "items": {"$ref": "#/components/schemas/SiteSetting"},
+                        }
+                    },
+                },
+                "SiteSettingsBatchRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["updates"],
+                    "properties": {
+                        "updates": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 2,
+                            "items": {"oneOf": _site_setting_update_schemas()},
+                        }
+                    },
+                },
+                "SiteSettingsBatchResult": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["settings", "replayed"],
+                    "properties": {
+                        "settings": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 2,
+                            "items": {"$ref": "#/components/schemas/SiteSettingResult"},
+                        },
+                        "replayed": {"type": "boolean"},
+                    },
+                },
+                "SiteSettingRevisionConflict": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["key", "revision"],
+                    "properties": {
+                        "key": {
+                            "type": "string",
+                            "enum": [
+                                "site.announcement.enabled",
+                                "site.announcement.message",
+                            ],
+                        },
+                        "revision": {"type": "integer", "minimum": 0},
                     },
                 },
                 "CredentialMetadata": _credential_schema(),
