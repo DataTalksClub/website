@@ -41,6 +41,24 @@ The baseline inventory covers:
 - Course-platform compatibility routes remain available on `courses.datatalks.club` until every known browser, script, certificate tool, and email template has migrated.
 - Path case, percent encoding, Unicode, query strings used by public behavior, and trailing-slash behavior are tested rather than normalized globally.
 
+### Podcast catalogue pagination
+
+The `/podcast` catalogue groups episodes under explicit season headings, orders seasons by numeric
+season descending, and orders episodes within each season by numeric episode descending. Duplicate
+season/episode values use published date descending and then slug ascending as deterministic
+tie-breakers; genuine gaps and duplicates are preserved. Pages contain three complete seasons, so a
+season is never split, and expose numbered links plus accessible Previous/Next controls.
+
+The only accepted query is one exact ASCII positive `page=N` value. No query and `page=1` render the
+first page and canonicalize to `https://datatalks.club/podcast`; later in-range pages have an exact
+self-canonical, page-specific title, and normalized `prev`/`next` links. Page 1 links use the clean
+path. Duplicate, empty, signed, zero, leading-zero, encoded, overlong, or unknown parameters return
+`400` with `no-store`; a canonical positive page beyond the final page returns `404` with
+`no-store`. The `.html` and slash aliases preserve the raw query in their one-hop redirects.
+Paginated hub URLs stay out of the sitemap, while every canonical podcast detail `.html` URL remains
+present. The shared canonical validator's query exception is limited to normalized later podcast
+pages; all other canonical-query rejection remains unchanged.
+
 ### Canonical Wiki route
 
 The product owner selected `/wiki` as the sole podcast-Wiki route family on 2026-08-09 and then

@@ -93,6 +93,16 @@ exactly equals a Person slug. A podcast-type event contribution is suppressed wh
 recording URL or YouTube ID matches a podcast and the same Person is both speaker and guest. It does
 not create or join a `MemberProfile`, user, staff identity, or account.
 
+## Podcast projection contract
+
+The accepted podcast snapshot consumes `DataTalksClub/content` at immutable commit
+`e29f56ce70bd997171a78a9f0facc9354797f421`. Its season and episode fields are required positive
+JSON integers: missing values, booleans, non-integers, zero, and negative values fail candidate
+preparation rather than being coerced. Projection generation remains deterministic and retains its
+source record order; public catalogue and homepage presentation share the validated numeric
+ordering defined in specification 02. Episode descriptions come from this source snapshot, with no
+website-authored fallback copy.
+
 ## Repository adapters
 
 Each source uses an explicit adapter with fixtures from real legacy files.

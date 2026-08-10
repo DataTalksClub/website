@@ -23,7 +23,7 @@ urlpatterns = [
         public_views.permanent_detail_redirect,
         {"collection": "blog"},
     ),
-    path("podcast", public_views.collection_hub, {"collection": "podcasts"}, name="podcast"),
+    path("podcast", public_views.podcast_hub, name="podcast"),
     path("podcast.html", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path("podcast/", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path(

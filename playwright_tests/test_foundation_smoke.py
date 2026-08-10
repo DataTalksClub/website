@@ -5,6 +5,7 @@ import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-105")
+PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-119")
 FEATURED_EVENT_PATH = "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch"
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
@@ -14,6 +15,11 @@ FEATURED_SPEAKER_NAME = "Alexey Grigorev"
 def _shot(page: Page, name: str, *, full_page: bool = False) -> None:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=SCREENSHOTS / name, full_page=full_page)
+
+
+def _podcast_shot(page: Page, name: str) -> None:
+    PODCAST_SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=PODCAST_SCREENSHOTS / name, full_page=True)
 
 
 @pytest.mark.core
@@ -138,6 +144,50 @@ def test_internal_event_to_person_flow(
 
 
 @pytest.mark.core
+@pytest.mark.parametrize(
+    ("viewport", "suffix"),
+    [({"width": 1280, "height": 800}, "desktop"), ({"width": 390, "height": 844}, "mobile")],
+)
+def test_podcast_first_middle_and_last_pages(
+    page: Page,
+    live_server,
+    viewport: ViewportSize,
+    suffix: str,
+) -> None:
+    page.set_viewport_size(viewport)
+    origin = live_server.url
+    failed_requests: list[str] = []
+    page.on("requestfailed", lambda request: failed_requests.append(request.url))
+
+    scenarios = (
+        (1, (24, 23, 22)),
+        (4, (15, 14, 13)),
+        (8, (3, 2, 1)),
+    )
+    for page_number, seasons in scenarios:
+        path = "/podcast" if page_number == 1 else f"/podcast?page={page_number}"
+        response = page.goto(f"{origin}{path}")
+        assert response is not None and response.status == 200
+        expect(page.get_by_role("heading", name="Podcast", exact=True)).to_be_visible()
+        for season in seasons:
+            expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
+        expect(page.locator('[aria-current="page"]')).to_have_text(str(page_number))
+        expect(page.locator('[aria-current="page"]')).to_have_attribute(
+            "aria-label",
+            f"Podcast page {page_number}, current page",
+        )
+        canonical_path = "/podcast" if page_number == 1 else path
+        expect(page.locator('link[rel="canonical"]')).to_have_attribute(
+            "href",
+            f"https://datatalks.club{canonical_path}",
+        )
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+        _podcast_shot(page, f"podcast-page-{page_number}-{suffix}.png")
+
+    assert failed_requests == []
+
+
+@pytest.mark.core
 def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server) -> None:
     origin = live_server.url
     aliases = {
@@ -173,15 +223,16 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         "/people/alexeygrigorev/": "/people/alexeygrigorev.html",
     }
     for source, target in aliases.items():
+        query = "page=2" if source in {"/podcast.html", "/podcast/"} else "source=browser"
         response = page.request.get(
-            f"{origin}{source}?source=browser",
+            f"{origin}{source}?{query}",
             max_redirects=0,
         )
         assert response.status == 301
-        assert response.headers["location"] == f"{target}?source=browser"
-        navigation = page.goto(f"{origin}{source}?source=browser")
+        assert response.headers["location"] == f"{target}?{query}"
+        navigation = page.goto(f"{origin}{source}?{query}")
         assert navigation is not None and navigation.status == 200
-        expect(page).to_have_url(f"{origin}{target}?source=browser")
+        expect(page).to_have_url(f"{origin}{target}?{query}")
         assert navigation.request.redirected_from is not None
         assert navigation.request.redirected_from.redirected_from is None
 

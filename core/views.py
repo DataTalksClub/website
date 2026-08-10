@@ -14,7 +14,7 @@ from django.http import (
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
-from content.public_data import event_groups, public_projection
+from content.public_data import event_groups, ordered_podcasts, public_projection
 from content.review_projection import review_projection
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
@@ -45,7 +45,7 @@ def home(request: HttpRequest):
             "recent_events": events.recent[:1],
             "featured_course": review_projection()["course"],
             "article": projection["articles"][0],
-            "podcast": projection["podcasts"][0],
+            "podcast": ordered_podcasts(projection["podcasts"])[0],
             "book": projection["books"][0],
             "wiki_page": projection["wiki"][0],
             "counts": projection["manifest"]["counts"],

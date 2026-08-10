@@ -204,10 +204,10 @@
     },
     {
       "path": "content/public_projection/podcasts.json",
-      "sha256": "52a3338ee02b3641ccff02fe12b26f01391bc8057707f259432451f09338641c",
+      "sha256": "33409b09c184a02ff6b685d805d9ad05d74bb15d5b34ea86f34c5a10b4cb0c8d",
       "class": "captured_compatibility",
-      "reason": "Hash-bound issue #105 projection preserves source-authored public podcast transcript wording.",
-      "follow_up": "#105; regenerate only from the pinned accepted sources",
+      "reason": "Hash-bound issue #119 projection preserves source-authored public podcast descriptions and transcript wording.",
+      "follow_up": "#119; regenerate only from the pinned accepted sources",
       "expected_count": 8
     },
     {

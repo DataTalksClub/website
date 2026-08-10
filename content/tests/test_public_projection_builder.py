@@ -40,6 +40,16 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         with self.assertRaisesRegex(builder.ProjectionBuildError, "invalid public field"):
             builder._string("x" * 101, field="test", maximum=100)
 
+    def test_podcast_numbers_require_positive_integer_source_values(self) -> None:
+        self.assertEqual(builder._positive_integer(1, field="podcast season"), 1)
+        for value in (None, False, True, "1", 0, -1, 1.0):
+            with self.subTest(value=value):
+                with self.assertRaisesRegex(
+                    builder.ProjectionBuildError,
+                    "invalid positive integer: podcast season",
+                ):
+                    builder._positive_integer(value, field="podcast season")
+
     def test_unsafe_svg_is_rejected_before_it_can_be_projected(self) -> None:
         with self.temporary_directory() as directory:
             root = Path(directory) / "source"

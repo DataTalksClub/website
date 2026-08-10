@@ -1,0 +1,101 @@
+{% extends "core/base.html" %}
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+{% block head_meta %}
+  {{ block.super }}
+  {% if previous_url %}
+    <link rel="prev" href="{{ previous_url }}">
+  {% endif %}
+  {% if next_url %}
+    <link rel="next" href="{{ next_url }}">
+  {% endif %}
+{% endblock %}
+{% block content %}
+  <header class="max-w-3xl py-6">
+    <h1 class="text-4xl font-semibold">Podcast</h1>
+    <p class="mt-4 text-lg leading-8 app-text">
+      Listen to conversations with data science experts, machine learning practitioners, and AI
+      researchers. Subscribe to stay updated with the latest episodes.
+    </p>
+    <p class="mt-4 app-text">
+      Register for upcoming podcast events in
+      <a class="app-link" href="{% url 'events' %}">events</a>.
+    </p>
+  </header>
+
+  {% for season in seasons %}
+    <section class="mt-10" aria-labelledby="podcast-season-{{ season.number }}">
+      <h2 id="podcast-season-{{ season.number }}" class="text-2xl font-semibold">
+        Season {{ season.number }}
+      </h2>
+      <div class="mt-4 divide-y app-divide border-y app-border" data-podcast-season="{{ season.number }}">
+        {% for record in season.episodes %}
+          <article class="py-5" data-podcast-episode>
+            <p class="text-sm app-muted">
+              Season {{ record.season }} · Episode {{ record.episode }}
+              {% if record.published %}
+                · {{ record.published|slice:":10" }}
+              {% endif %}
+            </p>
+            <h3 class="mt-2 text-xl font-semibold">
+              <a class="app-link" href="{{ record.public_path }}">
+                {{ record.title }}
+              </a>
+            </h3>
+            <p class="mt-2 max-w-3xl leading-6 app-text">{{ record.description }}</p>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endfor %}
+
+  <nav class="mt-10" aria-label="Podcast pagination">
+    <p class="sr-only">Page {{ page_number }} of {{ total_pages }}</p>
+    <ul class="flex flex-wrap items-center gap-2">
+      {% if previous_path %}
+        <li>
+          <a
+            class="primer-button primer-button-secondary"
+            href="{{ previous_path }}"
+            aria-label="Previous podcast page, page {{ page_number|add:'-1' }}"
+          >
+            Previous
+          </a>
+        </li>
+      {% endif %}
+      {% for page_link in page_links %}
+        <li>
+          {% if page_link.number == page_number %}
+            <span
+              class="primer-button primer-button-primary"
+              aria-current="page"
+              aria-label="Podcast page {{ page_link.number }}, current page"
+            >
+              {{ page_link.number }}
+            </span>
+          {% else %}
+            <a
+              class="primer-button primer-button-secondary"
+              href="{{ page_link.path }}"
+              aria-label="Podcast page {{ page_link.number }}"
+            >
+              {{ page_link.number }}
+            </a>
+          {% endif %}
+        </li>
+      {% endfor %}
+      {% if next_path %}
+        <li>
+          <a
+            class="primer-button primer-button-secondary"
+            href="{{ next_path }}"
+            aria-label="Next podcast page, page {{ page_number|add:'1' }}"
+          >
+            Next
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endblock %}
