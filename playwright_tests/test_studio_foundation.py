@@ -160,11 +160,30 @@ def test_audit_filter_detail_redaction_and_layout(
 def test_revocation_prevents_back_cache_and_reload(page: Page, live_server) -> None:
     auditor = make_studio_user(username="revoked-browser", roles=("auditor",))
     _client, session_id = authenticated_cookie(page, live_server, auditor)
+    timezone_url = f"{live_server.url}/accounts/settings/timezone/"
+    timezone_posts = []
+
+    def record_timezone_post(request) -> None:
+        if request.url == timezone_url and request.method == "POST":
+            timezone_posts.append(request)
+
+    page.on("request", record_timezone_post)
     loaded = page.goto(f"{live_server.url}/studio/audit/")
     assert loaded is not None and loaded.status == 200
     expect(page.get_by_role("heading", name="Audit events")).to_be_visible()
 
-    page.goto(f"{live_server.url}/")
+    with page.expect_response(
+        lambda response: response.url == timezone_url and response.request.method == "POST",
+        timeout=60_000,
+    ) as timezone_response_info:
+        home = page.goto(f"{live_server.url}/", wait_until="domcontentloaded", timeout=60_000)
+    assert home is not None and home.status == 200
+    timezone_response = timezone_response_info.value
+    assert timezone_response.status == 200
+    assert timezone_response.json()["timezone"] == "UTC"
+    auditor.refresh_from_db()
+    assert auditor.preferred_timezone == "UTC"
+
     revoke_staff_session(session_id, user=auditor)
     back = page.go_back()
     assert back is not None
@@ -177,3 +196,4 @@ def test_revocation_prevents_back_cache_and_reload(page: Page, live_server) -> N
     assert reloaded.status == 403
     assert_private_response(reloaded)
     expect(page.get_by_text("Studio access denied", exact=True)).to_be_visible()
+    assert len(timezone_posts) == 1

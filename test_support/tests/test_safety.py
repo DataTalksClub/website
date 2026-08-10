@@ -84,6 +84,10 @@ def test_deployed_missing_page_expectation_is_exact_and_cdn_masking_is_removed()
         "http://127.0.0.1:8000/static/core/vendor/arbitrary.woff2",
         "net::ERR_ABORTED",
     )
+    assert not _expected_local_asset_abort(
+        "http://127.0.0.1:8000/accounts/settings/timezone/",
+        "net::ERR_ABORTED",
+    )
 
 
 def test_public_provenance_rejects_changed_missing_extra_malformed_and_traversal(
