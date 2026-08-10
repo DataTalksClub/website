@@ -924,7 +924,7 @@ with (
         side_effect=AssertionError('raw socket attempted'),
     ) as socket_connect,
 ):
-    admin_index = client.get('/studio/courses/')
+    admin_index = client.get('/studio/courses')
     if admin_index.status_code != 200:
         raise SystemExit(34)
     if b'/studio/courses/cloudwatch/' not in admin_index.content:
@@ -943,7 +943,7 @@ with (
         raise SystemExit(40)
 
     legacy_checks = (
-        ('/cadmin/?source=review', '/studio/courses/?source=review'),
+        ('/cadmin/?source=review', '/studio/courses?source=review'),
         ('/cadmin/cloudwatch/?source=review', '/studio/courses/cloudwatch/?source=review'),
         ('/cadmin/datamailer/?source=review', '/studio/courses/datamailer/?source=review'),
     )
