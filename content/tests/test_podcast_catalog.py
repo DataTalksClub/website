@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from django.core.exceptions import ImproperlyConfigured
-from django.test import SimpleTestCase, TestCase
+from django.test import Client, SimpleTestCase, TestCase
 
 from content.public_data import ordered_podcasts, podcast_seasons, public_projection
 from core.seo import validated_canonical_url
@@ -285,7 +285,12 @@ class PodcastPaginationTests(TestCase):
             public_projection()["podcasts"][0]["title"],
         )
 
-    def test_get_and_head_are_supported_but_post_is_not(self) -> None:
-        self.assertEqual(self.client.get("/podcast?page=2").status_code, 200)
-        self.assertEqual(self.client.head("/podcast?page=2").status_code, 200)
-        self.assertEqual(self.client.post("/podcast?page=2").status_code, 405)
+    def test_get_and_head_are_supported_but_post_is_rejected_before_csrf(self) -> None:
+        csrf_client = Client(enforce_csrf_checks=True)
+
+        self.assertEqual(csrf_client.get("/podcast?page=2").status_code, 200)
+        self.assertEqual(csrf_client.head("/podcast?page=2").status_code, 200)
+
+        response = csrf_client.post("/podcast?page=2")
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.headers["Allow"], "GET, HEAD")

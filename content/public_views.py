@@ -16,6 +16,7 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from courses.models.course import Course
@@ -238,6 +239,9 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
     )
 
 
+# CSRF middleware runs before method decorators. This read-only callback is exempt so
+# unsafe methods reach the explicit 405 response; it performs no mutation.
+@csrf_exempt
 @require_safe
 def podcast_hub(request: HttpRequest) -> HttpResponse:
     page_number = _podcast_page_number(request)
