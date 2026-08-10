@@ -33,63 +33,15 @@ from test_support.safety import (
 )
 
 PUBLIC_FIXTURE_ROOT = Path(__file__).resolve().parent / "test_support" / "fixtures" / "public"
-OFFLINE_ROUTE_FIXTURES = {
-    "https://cdn.tailwindcss.com": (
-        "tailwindcss-3.4.17.js",
-        "tailwindcss-3.4.17.provenance.json",
-        "application/javascript; charset=utf-8",
-    ),
-    "https://cdn.tailwindcss.com/": (
-        "tailwindcss-3.4.17.js",
-        "tailwindcss-3.4.17.provenance.json",
-        "application/javascript; charset=utf-8",
-    ),
-    "https://cdn.tailwindcss.com/3.4.17": (
-        "tailwindcss-3.4.17.js",
-        "tailwindcss-3.4.17.provenance.json",
-        "application/javascript; charset=utf-8",
-    ),
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css": (
-        "fontawesome-5.15.1-all.min.css",
-        "fontawesome-5.15.1-all.min.provenance.json",
-        "text/css; charset=utf-8",
-    ),
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/webfonts/fa-solid-900.woff2": (
-        "fa-solid-900.woff2",
-        "fa-solid-900.provenance.json",
-        "font/woff2",
-    ),
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/webfonts/fa-regular-400.woff2": (
-        "fa-regular-400.woff2",
-        "fa-regular-400.provenance.json",
-        "font/woff2",
-    ),
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/webfonts/fa-brands-400.woff2": (
-        "fa-brands-400.woff2",
-        "fa-brands-400.provenance.json",
-        "font/woff2",
-    ),
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/webfonts/fa-solid-900.woff": (
-        "fa-solid-900.woff",
-        "fa-solid-900-woff.provenance.json",
-        "font/woff",
-    ),
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/webfonts/fa-regular-400.woff": (
-        "fa-regular-400.woff",
-        "fa-regular-400-woff.provenance.json",
-        "font/woff",
-    ),
-    "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/webfonts/fa-brands-400.woff": (
-        "fa-brands-400.woff",
-        "fa-brands-400-woff.provenance.json",
-        "font/woff",
-    ),
-}
+OFFLINE_ROUTE_FIXTURES: dict[str, tuple[str, str, str]] = {}
 EXPECTED_ABORTED_LOCAL_ASSETS = frozenset(
     {
         "/static/alerts.js",
         "/static/core/site.css",
         "/static/core/site_navigation.js",
+        "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-brands-400.woff2",
+        "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-regular-400.woff2",
+        "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-solid-900.woff2",
         "/static/dark_mode.js",
         "/static/local_date.js",
         "/static/time_left.js",
@@ -98,6 +50,9 @@ EXPECTED_ABORTED_LOCAL_ASSETS = frozenset(
     }
 )
 EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
+    "test_deployed_public_and_studio_html_are_exact_and_read_only": (
+        (re.compile(r"^/__dtc_deployed_smoke_missing__$"), 404),
+    ),
     "test_fixture_redirect_gone_and_unknown_are_direct": (
         (re.compile(r"^/gone$"), 410),
         (re.compile(r"^/does-not-exist$"), 404),
