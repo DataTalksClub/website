@@ -26,7 +26,7 @@ from django.urls import URLPattern, URLResolver  # noqa: E402
 URL_SURFACES = (
     ("Accounts", "accounts.urls", "accounts/"),
     ("Compatibility API", "api.urls", "api/"),
-    ("Studio Courses", "cadmin.urls", "studio/courses/"),
+    ("Studio Courses", "cadmin.urls", "studio/courses"),
     ("Public courses", "courses.urls", ""),
 )
 SOURCE_APP_LABELS = ("accounts", "api", "cadmin", "courses", "data")
@@ -76,7 +76,9 @@ def _walk_patterns(
 ) -> list[RouteEntry]:
     entries = []
     for pattern in patterns:
-        route = prefix + str(pattern.pattern)
+        pattern_route = str(pattern.pattern)
+        separator = "/" if prefix and pattern_route and not prefix.endswith("/") else ""
+        route = prefix + separator + pattern_route
         if isinstance(pattern, URLResolver):
             entries.extend(
                 _walk_patterns(

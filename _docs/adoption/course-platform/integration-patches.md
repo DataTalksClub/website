@@ -27,14 +27,16 @@ Copied CMP files remain byte-identical to the pinned source. Integration is conf
   approved clean public navigation, and issue #59 makes Studio the single capability-gated
   management entry point;
 - `cadmin/`, copied staff links under `courses/`, and `accounts/views/impersonation.py`: issue #59
-  mounts the complete copied operations surface canonically at `/studio/courses/`, gives its route
+  mounts the complete copied operations surface canonically at `/studio/courses`, gives its route
   names and visitor-facing labels the logical Studio Courses name, and returns copied internal
-  redirects to those canonical names. The Python package and all copied query, form, mutation,
-  scoring, repair, communication, and observability behavior remain in place. Staff-only
-  `/cadmin...` compatibility redirects are target-owned and preserve query strings and non-GET
-  methods without a redirect chain. Both canonical operations and compatibility redirects require
-  an explicit `site_admin` or `course_operator` role; generic Django staff and every unrelated
-  Studio role fail closed before resource lookup or mutation;
+  redirects to those canonical names. The authorized trailing-slash root redirects permanently
+  and directly to the slashless canonical while preserving query strings and unsafe methods;
+  unauthorized requests remain at the safe login boundary. The Python package and all copied
+  query, form, mutation, scoring, repair, communication, and observability behavior remain in
+  place. Staff-only `/cadmin...` compatibility redirects are target-owned and preserve query
+  strings and non-GET methods without a redirect chain. Both canonical operations and compatibility
+  redirects require an explicit `site_admin` or `course_operator` role; generic Django staff and
+  every unrelated Studio role fail closed before resource lookup or mutation;
 - `courses/static/courses.css`: issue #59 retains the adopted design system while constraining
   Studio Courses page headers to the mobile viewport; long course titles wrap instead of being
   clipped or expanding the document width;

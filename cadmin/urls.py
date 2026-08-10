@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponsePermanentRedirect
+from django.shortcuts import resolve_url
 from django.urls import URLPattern, path
 
 from .views import (
@@ -12,6 +13,7 @@ from .views import (
     observability,
     projects,
 )
+from .views.helpers import staff_required
 
 RouteDefinition = tuple[str, Callable[..., HttpResponse], str]
 
@@ -129,12 +131,33 @@ ROUTE_DEFINITIONS: tuple[RouteDefinition, ...] = (
 )
 
 
-def _patterns(name_prefix: str) -> list[URLPattern]:
-    return [
-        path(route, view, name=f"{name_prefix}{name}") for route, view, name in ROUTE_DEFINITIONS
-    ]
+def _patterns(
+    name_prefix: str,
+    definitions: tuple[RouteDefinition, ...] = ROUTE_DEFINITIONS,
+) -> list[URLPattern]:
+    return [path(route, view, name=f"{name_prefix}{name}") for route, view, name in definitions]
+
+
+def canonical_root_pattern(route: str) -> URLPattern:
+    relative_route, view, name = ROUTE_DEFINITIONS[0]
+    if relative_route:
+        raise RuntimeError("Studio Courses root route must remain empty")
+    return path(route, view, name=f"studio_courses_{name}")
+
+
+@staff_required
+def course_list_slash_redirect(request: HttpRequest) -> HttpResponse:
+    destination = resolve_url("studio_courses_course_list")
+    query_string = request.META.get("QUERY_STRING", "")
+    if query_string:
+        destination = f"{destination}?{query_string}"
+    return HttpResponsePermanentRedirect(
+        destination,
+        preserve_request=request.method not in {"GET", "HEAD"},
+    )
 
 
 # The copied operation inventory keeps its implementation in this package, while every
 # route name exposed by the unified platform uses the Studio Courses product language.
 urlpatterns = _patterns("studio_courses_")
+child_urlpatterns = _patterns("studio_courses_", ROUTE_DEFINITIONS[1:])

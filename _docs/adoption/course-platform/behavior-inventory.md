@@ -79,7 +79,7 @@ Mounted from `cadmin.urls`.
 
 | Route | Name | Callback |
 | --- | --- | --- |
-| `/studio/courses/` | `studio_courses_course_list` | `cadmin.views.course_admin.course_list` |
+| `/studio/courses` | `studio_courses_course_list` | `cadmin.views.course_admin.course_list` |
 | `/studio/courses/campaigns/new/` | `studio_courses_campaign_create` | `cadmin.views.campaigns.campaign_create` |
 | `/studio/courses/campaigns/<slug:campaign_slug>/edit/` | `studio_courses_campaign_edit` | `cadmin.views.campaigns.campaign_edit` |
 | `/studio/courses/registrations/<slug:campaign_slug>/` | `studio_courses_campaign_registrations` | `cadmin.views.campaigns.campaign_registrations` |

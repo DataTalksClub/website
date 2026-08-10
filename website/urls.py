@@ -4,6 +4,7 @@ from django.urls import include, path
 
 from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
+from cadmin import urls as studio_course_urls
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from core import views as core_views
@@ -45,7 +46,9 @@ urlpatterns = [
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
     path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),
-    path("studio/courses/", include("cadmin.urls")),
+    studio_course_urls.canonical_root_pattern("studio/courses"),
+    path("studio/courses/", studio_course_urls.course_list_slash_redirect),
+    path("studio/courses/", include(studio_course_urls.child_urlpatterns)),
     path("studio/", include("studio.urls")),
     path("api/v1/admin/", include("website.admin_api_urls")),
     path("admin", core_views.management_slash_redirect, name="admin-slash-redirect"),
