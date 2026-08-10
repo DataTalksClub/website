@@ -4,7 +4,9 @@
   "records": [
     {
       "build_tool": "copied-django-urlconf",
+      "build_tool_binary_sha256": null,
       "build_tool_sha256": null,
+      "build_tool_url": null,
       "build_tool_version": "issue-30-adoption",
       "deterministic_overrides": [
         "authenticated-production-probes-not-performed"
@@ -21,14 +23,17 @@
     },
     {
       "build_tool": "rustkyll-linux-amd64",
-      "build_tool_sha256": "8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5",
-      "build_tool_version": "v0.4.6",
+      "build_tool_binary_sha256": "ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e",
+      "build_tool_sha256": "ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e",
+      "build_tool_url": "https://github.com/alexeygrigorev/rustkyll/releases/download/v0.4.10/rustkyll-linux-amd64",
+      "build_tool_version": "v0.4.10",
       "deterministic_overrides": [
-        "deploy-workflow-version-over-makefile-v0.4.7"
+        "compatibility-release-over-makefile-v0.4.7",
+        "source-date-epoch=1786017922"
       ],
       "output_directory": "_site",
       "output_file_count": 174,
-      "output_tree_sha256": "b952b74d200da24eeb0c409f464f6ce0f256df8348626d6229d261a1dcfbf669",
+      "output_tree_sha256": "aa28a452d6f5dadd8d52078b53e043534850b43e44ac47a2122942240e66b0cf",
       "path_prefix": "/docs",
       "public_base_url": "https://datatalks.club/docs",
       "repository": "https://github.com/DataTalksClub/docs.git",
@@ -38,7 +43,9 @@
     },
     {
       "build_tool": "uv-run-frozen-website-generator",
+      "build_tool_binary_sha256": null,
       "build_tool_sha256": "f8070e0954a5bca6e7bd58c76854fd51b906b47a5d5f93b7423541ef436dc8f8",
+      "build_tool_url": null,
       "build_tool_version": "Python 3.13 + website/uv.lock",
       "deterministic_overrides": [
         "generation_time=2000-01-01 00:00:00"
@@ -55,12 +62,16 @@
     },
     {
       "build_tool": "rustkyll-linux-amd64",
-      "build_tool_sha256": "8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5",
-      "build_tool_version": "v0.4.6",
-      "deterministic_overrides": [],
+      "build_tool_binary_sha256": "ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e",
+      "build_tool_sha256": "ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e",
+      "build_tool_url": "https://github.com/alexeygrigorev/rustkyll/releases/download/v0.4.10/rustkyll-linux-amd64",
+      "build_tool_version": "v0.4.10",
+      "deterministic_overrides": [
+        "source-date-epoch=1785872368"
+      ],
       "output_directory": "_site",
       "output_file_count": 2301,
-      "output_tree_sha256": "4ac3b1088f4d24fd33077a4bcb519e88136af1a233fd9d0fa4a21d9e508550b0",
+      "output_tree_sha256": "54d711db906ecdf65e91073b721a975a3f4fdf19d68853f2d8d0b15f1ab3eb56",
       "path_prefix": "/",
       "public_base_url": "https://datatalks.club/",
       "repository": "https://github.com/DataTalksClub/datatalksclub.github.io.git",
@@ -70,12 +81,16 @@
     },
     {
       "build_tool": "rustkyll-pypi",
-      "build_tool_sha256": null,
-      "build_tool_version": "0.5.0",
-      "deterministic_overrides": [],
+      "build_tool_binary_sha256": "c8c2e6c732ecc224c28c170782114980b4707514835e7f587293f78bd38f2fba",
+      "build_tool_sha256": "348c622cac08cdd2361c4300161b7da34b7f7162bf0ad3d9fd9a0cd053f54a8e",
+      "build_tool_url": "https://files.pythonhosted.org/packages/32/f4/9cae847680982c09346f8db66568a9ecb11d2e8de411c9829c7c8e2c4415/rustkyll-0.5.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "build_tool_version": "0.5.3",
+      "deterministic_overrides": [
+        "source-date-epoch=1785736104"
+      ],
       "output_directory": "_site",
       "output_file_count": 310,
-      "output_tree_sha256": "4e5bbedca55e577d187800f8952f4e1cfc8acb5dd46cf42e529d606e8f72f791",
+      "output_tree_sha256": "96452428496b11143766c85f35bc4959fe6ea5e80241e94435693af87eaacae1",
       "path_prefix": "/podwiki",
       "public_base_url": "https://datatalks.club/podwiki",
       "repository": "https://github.com/DataTalksClub/podwiki.git",
