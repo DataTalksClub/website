@@ -1,6 +1,7 @@
 import json
 import os
 import secrets
+import shutil
 import subprocess
 import sys
 from unittest.mock import patch
@@ -297,10 +298,11 @@ class CollectstaticSettingsTests(SimpleTestCase):
             environment["DTC_ENVIRONMENT"] = environment_name
             environment.update(SEALED_RUNTIME_IDENTITY)
         command = (
-            "import json; import website.settings.collectstatic as s; "
+            "import json; import sys; import website.settings.collectstatic as s; "
             "print(json.dumps({"
             "'backend': s.STORAGES['staticfiles']['BACKEND'], "
-            "'database': s.DATABASES['default']['ENGINE']"
+            "'database': s.DATABASES['default']['ENGINE'], "
+            "'test_runtime_loaded': 'test_support.runtime' in sys.modules"
             "}))"
         )
         return subprocess.run(
@@ -323,7 +325,61 @@ class CollectstaticSettingsTests(SimpleTestCase):
             {
                 "backend": "whitenoise.storage.CompressedManifestStaticFilesStorage",
                 "database": "django.db.backends.sqlite3",
+                "test_runtime_loaded": False,
             },
+        )
+
+    def test_collectstatic_runs_without_git_or_test_runtime(self) -> None:
+        scratch = BASE_DIR / ".tmp" / "collectstatic-regression" / secrets.token_hex(8)
+        empty_path = scratch / "empty-path"
+        static_root = scratch / "staticfiles"
+        empty_path.mkdir(parents=True)
+        environment = clean_identity_environment()
+        for name in tuple(environment):
+            if name.startswith("DTC_TEST_"):
+                environment.pop(name)
+        for name in (
+            "DATABASE_URL",
+            "DJANGO_ALLOWED_HOSTS",
+            "DJANGO_CSRF_TRUSTED_ORIGINS",
+            "DJANGO_SECRET_KEY",
+            "DTC_ENVIRONMENT",
+        ):
+            environment.pop(name, None)
+        environment.update(
+            {
+                "DJANGO_SETTINGS_MODULE": "website.settings.collectstatic",
+                "PATH": str(empty_path),
+            }
+        )
+        command = (
+            "import json, sys; from pathlib import Path; "
+            "import website.settings.collectstatic as build_settings; "
+            "build_settings.STATIC_ROOT = Path(sys.argv[1]); "
+            "import django; django.setup(); "
+            "from django.core.management import call_command; "
+            "call_command('collectstatic', interactive=False, verbosity=0); "
+            "print(json.dumps({"
+            "'manifest': (build_settings.STATIC_ROOT / 'staticfiles.json').is_file(), "
+            "'test_runtime_loaded': 'test_support.runtime' in sys.modules"
+            "}))"
+        )
+        try:
+            result = subprocess.run(
+                [sys.executable, "-c", command, str(static_root)],
+                cwd=BASE_DIR,
+                env=environment,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        finally:
+            shutil.rmtree(scratch)
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            json.loads(result.stdout),
+            {"manifest": True, "test_runtime_loaded": False},
         )
 
     def test_collectstatic_settings_reject_deployed_environments(self) -> None:

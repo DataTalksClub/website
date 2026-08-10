@@ -180,6 +180,12 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     container = runs(jobs["container"])
     assert "docker buildx build" in container
     assert "scripts.verify_static_manifest" in container
+    assert "--incompatible-storage-fixture" in container
+    assert "website.settings.test" not in container
+    assert (
+        "Static manifest verification failed: staticfiles storage does not use the runtime "
+        "manifest backend" in container
+    )
     assert "/health/live" in container
     assert "APP_VERSION" not in container
     assert '"source_sha": null, "image_digest": null' in container

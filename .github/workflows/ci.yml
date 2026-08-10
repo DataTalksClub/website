@@ -593,8 +593,21 @@ jobs:
             echo "Static verification accepted a manifest without courses.css." >&2
             exit 1
           fi
-          if verify_manifest website.settings.test; then
-            echo "Static verification accepted an incompatible storage backend." >&2
+          set +e
+          incompatible_output="$(
+            docker run --rm \
+              --entrypoint sh \
+              --env "DJANGO_SETTINGS_MODULE=website.settings.collectstatic" \
+              "$image" -c \
+              'uv run --no-sync python -m scripts.verify_static_manifest --incompatible-storage-fixture' \
+              2>&1
+          )"
+          incompatible_status=$?
+          set -e
+          if [ "$incompatible_status" -ne 1 ] || \
+            [ "$incompatible_output" != "Static manifest verification failed: staticfiles storage does not use the runtime manifest backend" ]; then
+            echo "Static verification did not return the exact incompatible-backend diagnostic." >&2
+            printf '%s\n' "$incompatible_output" >&2
             exit 1
           fi
       - name: Smoke-test liveness without publishing

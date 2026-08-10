@@ -1247,6 +1247,8 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
 
     def test_release_image_builds_and_verifies_the_runtime_static_manifest(self) -> None:
         dockerfile = (ROOT / "Dockerfile").read_text()
+        dockerignore = (ROOT / ".dockerignore").read_text().splitlines()
+        collectstatic_settings = (ROOT / "website/settings/collectstatic.py").read_text()
         workflow = (ROOT / ".github/workflows/ci.yml").read_text()
         manifest_gate = workflow.split(
             "- name: Verify the built runtime static manifest", maxsplit=1
@@ -1260,7 +1262,13 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         )
         self.assertIn("python -m scripts.verify_static_manifest", manifest_gate)
         self.assertIn("website.settings.collectstatic", manifest_gate)
-        self.assertIn("website.settings.test", manifest_gate)
+        self.assertNotIn("website.settings.test", manifest_gate)
+        self.assertIn("--incompatible-storage-fixture", manifest_gate)
+        self.assertIn(
+            "Static manifest verification failed: staticfiles storage does not use the runtime "
+            "manifest backend",
+            manifest_gate,
+        )
         self.assertIn("malformed.json", manifest_gate)
         self.assertIn("missing-entry.json", manifest_gate)
         self.assertIn("target=/app/staticfiles,readonly", manifest_gate)
@@ -1268,6 +1276,12 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             workflow.index("- name: Verify the built runtime static manifest"),
             workflow.index("- name: Preserve the one tested image"),
         )
+        self.assertIn("from .base import *", collectstatic_settings)
+        self.assertNotIn("from .test import *", collectstatic_settings)
+        self.assertNotIn("get_test_runtime", collectstatic_settings)
+        self.assertIn(".git", dockerignore)
+        self.assertNotIn("apt-get", dockerfile)
+        self.assertNotIn("apk add", dockerfile)
         self.assertIn(
             "curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/",
             workflow,

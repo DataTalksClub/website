@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -12,6 +13,7 @@ from django.conf import settings
 from django.contrib.staticfiles.storage import staticfiles_storage
 
 EXPECTED_BACKEND = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+INCOMPATIBLE_FIXTURE_BACKEND = "django.contrib.staticfiles.storage.StaticFilesStorage"
 REQUIRED_ASSET = "courses.css"
 
 
@@ -20,9 +22,21 @@ def _fail(message: str) -> int:
     return 1
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--incompatible-storage-fixture",
+        action="store_true",
+        help="select a Git-independent negative-test storage backend",
+    )
+    arguments = parser.parse_args(argv)
     try:
         django.setup()
+        if arguments.incompatible_storage_fixture:
+            settings.STORAGES = {
+                **settings.STORAGES,
+                "staticfiles": {"BACKEND": INCOMPATIBLE_FIXTURE_BACKEND},
+            }
         backend = settings.STORAGES["staticfiles"]["BACKEND"]
         if backend != EXPECTED_BACKEND:
             return _fail("staticfiles storage does not use the runtime manifest backend")
@@ -58,4 +72,4 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(sys.argv[1:]))
