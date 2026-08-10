@@ -4,7 +4,8 @@
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
-	database-portability-check review-data review-data-dry-run review-data-cleanup run-review-data
+	database-portability-check verify-dtc-content review-data review-data-dry-run \
+	review-data-cleanup run-review-data
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -65,6 +66,13 @@ terminology-check:
 
 database-portability-check:
 	uv run python scripts/check_database_portability.py
+
+verify-dtc-content:
+	@test -n "$(CONTENT_CHECKOUT)" || (echo "CONTENT_CHECKOUT is required" >&2; exit 2)
+	@test -n "$(CONTENT_COMMIT)" || (echo "CONTENT_COMMIT is required" >&2; exit 2)
+	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py verify_dtc_content \
+		--checkout "$(CONTENT_CHECKOUT)" \
+		--expected-commit "$(CONTENT_COMMIT)"
 
 terraform-seo-source-check:
 	@test -n "$(AWS_INFRA_REPOSITORY)" || (echo "AWS_INFRA_REPOSITORY is required" >&2; exit 2)

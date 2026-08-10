@@ -73,6 +73,17 @@ generated-file rows:
 | FAQ | 152 |
 | Podwiki | 310 |
 
+The main-site source remains the observation provenance for article, podcast, book, and adopted
+media contracts after editorial ownership moves to `DataTalksClub/content`. Prepared records retain
+these legacy contract IDs, source IDs, and revisions; they separately retain the new repository
+commit and source checksum. The source move must not rewrite this artifact or imply that legacy
+observations were generated from the new repository.
+
+The accepted #105 source includes ten adopted public paths that this artifact never observed: two
+podcast records and eight repaired media files. Their prepared database records intentionally have
+no legacy contract triple; the checked #105 projection and immutable repair evidence bind them.
+This absence is not permission to add arbitrary unobserved paths or synthesize contract IDs.
+
 ## Checked compatibility capture
 
 `legacy-manifest.jsonl` is the canonical checked manifest. Its 2,965 rows combine all 2,937 source

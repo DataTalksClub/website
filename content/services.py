@@ -36,6 +36,11 @@ from .models import (
     validate_exact_public_path,
     validate_storage_key_shape,
 )
+from .ownership import (
+    compatible_contract_source,
+    source_owns_asset_path,
+    source_owns_document_kind,
+)
 
 _SHA1 = re.compile(r"^[0-9a-f]{40}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -117,7 +122,7 @@ _CONTENT_CLEANER = Cleaner(
         }
     ),
     attributes=_allowed_render_attribute,
-    protocols=frozenset({"http", "https", "mailto"}),
+    protocols=frozenset({"http", "https", "mailto", "tel"}),
     strip=True,
     strip_comments=True,
 )
@@ -203,6 +208,7 @@ class PreparedDocument:
     seo_image_url: str = ""
     raw_frontmatter: Mapping[str, Any] | None = None
     raw_body: str = ""
+    raw_structured_data: str = ""
     rendered_html: str = ""
     normalized_text: str = ""
     adapter_metadata: Mapping[str, Any] | None = None
@@ -570,6 +576,11 @@ def prepare_document(
         release = _lock_preparing_release(
             command.release_id, command.expected_revision, using=using
         )
+        if not source_owns_document_kind(
+            release.source.stable_id,
+            command.document.content_kind,
+        ):
+            raise ContentReadinessError("content kind is not owned by the candidate source")
         _validate_contract_provenance(
             release,
             public_path=command.document.exact_public_path,
@@ -678,6 +689,11 @@ def prepare_asset(
         release = _lock_preparing_release(
             command.release_id, command.expected_revision, using=using
         )
+        if not source_owns_asset_path(
+            release.source.stable_id,
+            command.asset.stable_public_path,
+        ):
+            raise ContentReadinessError("asset namespace is not owned by the candidate source")
         _validate_contract_provenance(
             release,
             public_path=command.asset.stable_public_path,
@@ -752,7 +768,7 @@ def _validate_contract_provenance(
         contract.percent_encoded_public_reference != public_path
         or contract.source_id != source_id
         or contract.source_revision != source_revision
-        or release.source.stable_id != source_id
+        or not compatible_contract_source(release.source.stable_id, str(source_id))
         or (contract.contract_kind == "asset") != expect_asset
     ):
         raise ContentReadinessError("route contract provenance does not match the prepared record")
