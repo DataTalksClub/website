@@ -21,6 +21,7 @@ from deploy.contracts import (
     WebRuntimeBinding,
 )
 from deploy.legacy_development_compatibility import ECR_REPOSITORY_URI
+from test_support.safety import authorize_from_environment
 
 SOURCE_SHA = "a" * 40
 IMAGE_DIGEST = f"sha256:{'b' * 64}"
@@ -317,6 +318,9 @@ class WebRuntimeCoherenceTests(SimpleTestCase):
             "VERSION": VERSION,
             "IMAGE_DIGEST": IMAGE_DIGEST,
             "RELEASE_SHA": SOURCE_SHA,
+            "DTC_TEST_SAFETY_COMMAND": "remote_readonly",
+            "DTC_TEST_TARGET_CLASS": "isolated_development",
+            "DTC_TEST_REMOTE_NAMESPACE": "deploy-12345678-1",
         }
         with (
             patch.dict("os.environ", workflow_environment, clear=True),
@@ -336,6 +340,13 @@ class WebRuntimeCoherenceTests(SimpleTestCase):
         self.assertEqual(environment["DTC_EXPECTED_VERSION"], VERSION)
         self.assertEqual(environment["DTC_EXPECTED_SOURCE_SHA"], SOURCE_SHA)
         self.assertEqual(environment["DTC_EXPECTED_IMAGE_DIGEST"], IMAGE_DIGEST)
+        self.assertEqual(environment["DTC_TEST_SAFETY_COMMAND"], "remote_readonly")
+        self.assertEqual(environment["DTC_TEST_TARGET_CLASS"], "isolated_development")
+        self.assertEqual(environment["DTC_TEST_REMOTE_NAMESPACE"], "deploy-12345678-1")
+        self.assertEqual(environment["DTC_TEST_BASE_URL"], "https://web.dtcdev.click")
+        with patch.dict("os.environ", environment, clear=True):
+            authorization = authorize_from_environment("remote_readonly")
+        self.assertEqual(authorization.base_url, "https://web.dtcdev.click")
 
     def test_eventual_visibility_freezes_two_samples_around_public_health(self) -> None:
         events: list[str] = []

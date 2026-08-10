@@ -1303,6 +1303,9 @@ jobs:
           PROJECT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_PROJECT_TAG }}
           ENVIRONMENT_TAG: ${{ vars.DEVELOPMENT_RESOURCE_ENVIRONMENT_TAG }}
           FAILURE_INJECTION: ${{ github.event_name == 'push' && 'none' || inputs.failure_injection }}
+          DTC_TEST_SAFETY_COMMAND: remote_readonly
+          DTC_TEST_TARGET_CLASS: isolated_development
+          DTC_TEST_REMOTE_NAMESPACE: deploy-${{ github.run_id }}-${{ github.run_attempt }}
         run: |
           set -euo pipefail
           mkdir -p .tmp/deployment .tmp/deployed-smoke
