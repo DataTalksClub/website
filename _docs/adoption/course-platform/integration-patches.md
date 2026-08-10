@@ -28,7 +28,9 @@ overlays:
   remains authoritative; issue #100 adds the one shared account menu, capability-gated Studio
   access, same-host login, and a non-visual durable-account test hook, issue #105 preserves the
   approved clean public navigation, and issue #59 makes Studio the single capability-gated
-  management entry point. Issue #75 serves the preserved Tailwind Play CDN 3.4.17 and Font Awesome
+  management entry point. Issue #65 adds skip-target focus, current-location semantics, resilient
+  account-route lookup, local interaction helpers, and the shared accessibility stylesheet without
+  changing navigation destinations. Issue #75 serves the preserved Tailwind Play CDN 3.4.17 and Font Awesome
   5.15.1 assets from target-owned static paths, with exact source/target checksums and licenses in
   `_docs/provenance/course-platform-vendor-assets.json`; the Tailwind configuration remains before
   the runtime script and the browser no longer requires either production CDN. Issue #114 adds the
@@ -87,7 +89,24 @@ overlays:
   propagates validated path-only `next` values to provider login, and gives returning users
   readable recovery guidance without adding another login system; issue #105 shortens the
   visitor-facing sign-in labels and generic unavailable guidance without changing the adopted
-  provider or development-owner login behavior;
+  provider or development-owner login behavior; issue #65 adds linked help/error semantics,
+  a focusable error summary, and announced busy/status state without changing authentication;
+- `course_platform_templates/accounts/account_settings.html`,
+  `courses/templates/courses/enrollment.html`, and `courses/templates/courses/register.html`:
+  issue #65 adds shared label, help, required, error-summary, value-preservation, toggle, status,
+  and current-location semantics while retaining copied account, enrollment, and registration
+  behavior;
+- `courses/static/settings_toggles.js` and `courses/static/user_menu.js`: issue #65 retains copied
+  preference and account-menu behavior while exposing busy/completion status and restoring focus
+  after keyboard dismissal;
+- `cadmin/templates/cadmin/campaign_form.html` and
+  `cadmin/templates/cadmin/include/campaign_field.html`: issue #65 keeps the accepted Studio Courses
+  routes and campaign behavior while linking the actual error state to a focusable summary and to
+  each invalid field;
+- `course_management/datamailer_templates/definitions/common.py`: issue #65 keeps the current
+  submission-confirmation purpose and HTML while restoring its action destination to the current
+  plain-text alternative; the accessibility fixture renders and validates the registry definitions
+  directly and does not introduce a parallel message purpose;
 - `accounts/tests_account_settings.py`: issue #100 updates the copied shell characterization so
   Studio appears through the explicit course-operator capability policy rather than `is_staff`
   alone;

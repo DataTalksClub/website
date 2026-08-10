@@ -1,0 +1,254 @@
+:root {
+  --a11y-focus: #9b4d00;
+  --a11y-focus-contrast: #ffffff;
+}
+
+html {
+  scroll-padding-block: 1rem;
+}
+
+body {
+  overflow-wrap: anywhere;
+}
+
+.skip-link {
+  background: var(--text-heading, #0f172a);
+  border-radius: 0.375rem;
+  color: var(--surface-bg, #ffffff);
+  left: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  position: fixed;
+  top: 0.5rem;
+  transform: translateY(-160%);
+  z-index: 100;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+html body :is(a, button, input, select, textarea, summary, [tabindex]):focus {
+  outline: 3px solid var(--a11y-focus) !important;
+  outline-offset: 3px !important;
+  scroll-margin-block: 1rem;
+}
+
+#main-content:focus {
+  outline: 0 !important;
+}
+
+.site-navigation-links a,
+.user-menu-item,
+.site-footer-link,
+.breadcrumbs a,
+.pagination a,
+.pagination-target {
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+}
+
+.site-navigation-links a,
+.breadcrumbs a,
+.pagination a,
+.pagination-target,
+.panel > a,
+a[aria-label],
+header a {
+  align-items: center;
+  display: inline-flex;
+}
+
+.panel > a,
+a[aria-label],
+header a {
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+}
+
+.a11y-inline-target {
+  min-height: 1.5rem;
+}
+
+.dense-utility-links a,
+.cadmin-shell a.app-link {
+  align-items: center;
+  display: inline-flex;
+  min-height: 1.5rem;
+}
+
+.site-navigation-links a[aria-current="page"] {
+  text-decoration: underline;
+  text-decoration-thickness: 0.16em;
+  text-underline-offset: 0.3em;
+}
+
+.app-text .app-link,
+.app-muted .app-link,
+[class*="app-alert-"] .app-link {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.footer-version {
+  opacity: 1;
+}
+
+.site-navigation-toggle,
+.user-menu-toggle {
+  opacity: 1;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  min-height: 1.5rem;
+  min-width: 1.5rem;
+}
+
+.toggle-row input[type="checkbox"] {
+  min-height: 1.5rem;
+  min-width: 2.75rem;
+}
+
+.a11y-required {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+
+.a11y-help,
+.a11y-error {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.a11y-error {
+  color: var(--danger-text);
+  font-weight: 600;
+}
+
+.a11y-error-summary {
+  background: var(--danger-bg);
+  border: 2px solid var(--danger-text);
+  border-radius: 0.375rem;
+  color: var(--text-primary);
+  margin-block: 1rem;
+  max-width: 48rem;
+  padding: 1rem;
+}
+
+.a11y-error-summary h2 {
+  color: inherit;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.a11y-error-summary ul {
+  margin-block: 0.75rem 0;
+  padding-inline-start: 1.5rem;
+}
+
+.a11y-status[aria-busy="true"]::before {
+  content: "Loading: ";
+  font-weight: 700;
+}
+
+.a11y-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.a11y-table-scroll:focus-visible {
+  outline-offset: -3px;
+}
+
+.a11y-timezone {
+  white-space: nowrap;
+}
+
+body.login button[type="submit"] {
+  background-color: #5b21b6 !important;
+  color: #ffffff !important;
+}
+
+body.login button[type="submit"]:hover {
+  background-color: #4c1d95 !important;
+}
+
+.no-js .site-navigation-toggle {
+  display: none;
+}
+
+.no-js .site-navigation-links {
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  position: static;
+}
+
+@media (max-width: 40rem) {
+  #header-container > nav {
+    flex-wrap: wrap;
+  }
+
+  #header-container .site-navigation {
+    margin-inline-start: auto;
+  }
+
+  .no-js #header-container > nav {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .no-js .site-navigation {
+    align-items: flex-start;
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .no-js .site-navigation-links {
+    display: grid;
+    width: 100%;
+  }
+}
+
+@media (max-width: 22rem) {
+  #header-container > nav {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  #header-container .site-navigation {
+    gap: 0.25rem;
+    margin-inline-start: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0s !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-delay: 0s !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (forced-colors: active) {
+  html body :is(a, button, input, select, textarea, summary, [tabindex]):focus {
+    outline-color: Highlight !important;
+  }
+
+  .app-badge,
+  .a11y-error-summary,
+  .one-time-secret {
+    border: 1px solid CanvasText;
+  }
+
+  .app-badge::before {
+    content: "Status: ";
+  }
+}

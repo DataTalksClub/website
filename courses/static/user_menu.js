@@ -7,10 +7,14 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
 
-  function closeMenusExcept(currentMenu) {
+  function closeMenusExcept(currentMenu, restoreFocus) {
     menus.forEach(function(menu) {
       if (menu !== currentMenu) {
+        var containedFocus = menu.contains(document.activeElement);
         menu.removeAttribute('open');
+        if (restoreFocus && containedFocus) {
+          menu.querySelector('summary')?.focus();
+        }
       }
     });
   }
@@ -26,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
-      closeMenusExcept(null);
+      closeMenusExcept(null, true);
     }
   });
 });

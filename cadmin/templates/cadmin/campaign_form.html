@@ -1,12 +1,19 @@
 {% extends 'cadmin/base.html' %}
+{% load accessibility %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
+  <li>
+    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+  </li>
   {% if course %}
-    <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
+    <li>
+      <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
+    </li>
   {% endif %}
   {% if campaign %}
-    <li><a href="{% url 'studio_courses_campaign_edit' campaign.slug %}">{{ campaign.title }}</a></li>
+    <li>
+      <a href="{% url 'studio_courses_campaign_edit' campaign.slug %}">{{ campaign.title }}</a>
+    </li>
   {% else %}
     <li>Create registration landing page</li>
   {% endif %}
@@ -40,6 +47,7 @@
 
 <form method="post" class="mt-6 space-y-7">
   {% csrf_token %}
+  {% accessibility_error_summary form %}
 
   {% if form.non_field_errors %}
     <div class="rounded-md border app-alert-warning px-4 py-3 text-sm">
@@ -53,17 +61,24 @@
     {% include 'cadmin/include/campaign_field.html' with field=form.edition_label %}
     {% include 'cadmin/include/campaign_field.html' with field=form.current_course %}
     <div>
+      {% accessibility_help_id form.is_active as active_help_id %}
+      {% accessibility_error_id form.is_active as active_error_id %}
       <div class="checkbox-row">
-        {{ form.is_active }}
+        {% accessible_widget form.is_active %}
         <div>
           <label class="checkbox-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
           {% if form.is_active.help_text %}
-            <p class="checkbox-help">{{ form.is_active.help_text }}</p>
+            <p id="{{ active_help_id }}" class="checkbox-help">
+              {{ form.is_active.help_text }}
+            </p>
           {% endif %}
         </div>
       </div>
       {% if form.is_active.errors %}
-        <div class="mt-1 text-sm app-danger-text">{{ form.is_active.errors }}</div>
+        <p id="{{ active_error_id }}" class="a11y-error mt-1 text-sm app-danger-text">
+          <span class="sr-only">Error:</span>
+          {{ form.is_active.errors|join:" " }}
+        </p>
       {% endif %}
     </div>
   </section>

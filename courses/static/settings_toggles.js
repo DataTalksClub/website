@@ -13,10 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function setEmailPreferencesStatus(message) {
+  function setEmailPreferencesStatus(message, busy) {
     var status = document.querySelector('.js-email-preferences-status');
     if (status) {
       status.textContent = message;
+      status.setAttribute('aria-busy', busy ? 'true' : 'false');
     }
   }
 
@@ -51,12 +52,13 @@ document.addEventListener('DOMContentLoaded', function() {
             input.checked = Boolean(preferences[input.name]);
           }
         });
-        setEmailPreferencesStatus('Email subscriptions loaded.');
+        setEmailPreferencesStatus('Email subscriptions loaded.', false);
         setEmailPreferencesDisabled(false);
       })
       .catch(function(error) {
         setEmailPreferencesStatus(
-          'Email preferences are temporarily unavailable. Try again later.'
+          'Email preferences are temporarily unavailable. Try again later.',
+          false
         );
         setEmailPreferencesDisabled(true);
         console.error('Error loading email preferences:', error);
@@ -67,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var previousValue = !input.checked;
     var toggleUrl = row.getAttribute('data-toggle-url');
     input.disabled = true;
+    input.setAttribute('aria-busy', 'true');
 
     var formData = new FormData();
     formData.append('field', input.name);
@@ -96,13 +99,15 @@ document.addEventListener('DOMContentLoaded', function() {
         input.checked = previousValue;
         if (input.classList.contains('js-email-preference-toggle')) {
           setEmailPreferencesStatus(
-            'Email preferences are temporarily unavailable. Try again later.'
+            'Email preferences are temporarily unavailable. Try again later.',
+            false
           );
         }
         console.error('Error updating setting:', error);
       })
       .finally(function() {
         input.disabled = false;
+        input.removeAttribute('aria-busy');
       });
   }
 

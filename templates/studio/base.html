@@ -1,18 +1,35 @@
+{% extends "base.html" %}
 {% load static %}
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex,nofollow">
-    <title>{% block title %}Studio · DataTalks.Club{% endblock %}</title>
-    <link rel="stylesheet" href="{% static 'core/site.css' %}">
-  </head>
-  <body>
-    <header class="site-header">
-      <a class="brand" href="{% url 'studio:home' %}">DataTalks.Club Studio</a>
-    </header>
-    <main id="main-content">{% block content %}{% endblock %}</main>
-    <footer>DataTalks.Club · Private staff workspace · Version {{ VERSION }}</footer>
-  </body>
-</html>
+{# The shared base footer renders the readable Version {{ VERSION }} value. #}
+
+{% block title %}
+  Studio · DataTalks.Club
+{% endblock %}
+
+{% block meta_robots %}
+  <meta name="robots" content="noindex,nofollow">
+{% endblock %}
+
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'core/studio.css' %}">
+{% endblock %}
+
+{% block body_class %}
+  studio-page
+{% endblock %}
+
+{% block nav_links %}
+  <a href="{% url 'studio:home' %}"
+     class="app-heading app-link"
+     {% if request.resolver_match.view_name == "studio:home" %}
+       aria-current="page"
+     {% endif %}>
+    Studio home
+  </a>
+{% endblock %}
+
+{% block breadcrumbs_nav %}
+{% endblock %}
+
+{% block timezone_preference_script %}
+{% endblock %}

@@ -14,6 +14,25 @@ EXPLICIT_PUBLIC_CANONICALS = {
     "/courses": "https://datatalks.club/courses",
 }
 
+PRIMARY_NAVIGATION_PREFIXES = (
+    ("events", ("/events",)),
+    ("courses", ("/courses",)),
+    ("blog", ("/blog",)),
+    ("podcast", ("/podcast",)),
+    ("wiki", ("/wiki",)),
+    ("books", ("/books",)),
+    ("docs", ("/docs/",)),
+    ("faq", ("/faq/",)),
+    ("slack", ("/slack.html",)),
+)
+
+
+def _primary_navigation_current(path: str) -> str:
+    for key, prefixes in PRIMARY_NAVIGATION_PREFIXES:
+        if any(path == prefix or path.startswith(f"{prefix}/") for prefix in prefixes):
+            return key
+    return ""
+
 
 def site_context(request: HttpRequest) -> dict[str, Any]:
     announcement = None
@@ -30,6 +49,7 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         "brand_name": settings.SITE_NAME,
         "VERSION": settings.VERSION,
         "app_version": settings.APP_VERSION,
+        "primary_navigation_current": _primary_navigation_current(request.path),
         "site_announcement": announcement,
         # Every shared-view canonical is an explicit mapping, never host/path inference.
         "canonical_url": EXPLICIT_PUBLIC_CANONICALS.get(request.path),

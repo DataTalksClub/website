@@ -37,11 +37,13 @@ OFFLINE_ROUTE_FIXTURES: dict[str, tuple[str, str, str]] = {}
 EXPECTED_ABORTED_LOCAL_ASSETS = frozenset(
     {
         "/static/alerts.js",
+        "/static/core/accessibility.js",
         "/static/core/site.css",
         "/static/core/site_navigation.js",
         "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-brands-400.woff2",
         "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-regular-400.woff2",
         "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-solid-900.woff2",
+        "/static/core/vendor/tailwindcss-3.4.17/tailwindcss-3.4.17.js",
         "/static/dark_mode.js",
         "/static/local_date.js",
         "/static/time_left.js",
@@ -50,6 +52,27 @@ EXPECTED_ABORTED_LOCAL_ASSETS = frozenset(
     }
 )
 EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
+    "test_complete_accessibility_registry": (
+        (re.compile(r"^/_accessibility/identity-conflict/$"), 409),
+        (re.compile(r"^/__accessibility_missing__$"), 404),
+        (re.compile(r"^/people(?:/|\.html)?$"), 404),
+        (re.compile(r"^/studio/$"), 403),
+        (re.compile(r"^/studio/audit/$"), 403),
+        (re.compile(r"^/studio/access/api-credentials/$"), 403),
+        (re.compile(r"^/studio/events/historical-registration-totals/$"), 403),
+        (
+            re.compile(r"^/studio/events/historical-registration-totals/mappings/$"),
+            409,
+        ),
+        (
+            re.compile(r"^/studio/events/historical-registration-totals/[0-9a-f-]{36}/activate/$"),
+            409,
+        ),
+        (re.compile(r"^/register/synthetic-[a-z0-9-]+/$"), 404),
+    ),
+    "test_reflow_zoom_spacing_reduced_motion_and_forced_colors": (
+        (re.compile(r"^/_accessibility/identity-conflict/$"), 409),
+    ),
     "test_deployed_public_and_studio_html_are_exact_and_read_only": (
         (re.compile(r"^/__dtc_deployed_smoke_missing__$"), 404),
     ),
@@ -94,7 +117,7 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
 _STATUS_CONSOLE_RE = re.compile(r"server responded with a status of ([1-5][0-9]{2})")
 _EMAIL_PREFERENCES_CONSOLE_RE = re.compile(
     r"^Error loading email preferences: Error: Email preferences fetch failed\n"
-    r"\s+at http://127\.0\.0\.1:[0-9]+/static/settings_toggles\.js:43:17$"
+    r"\s+at http://127\.0\.0\.1:[0-9]+/static/settings_toggles\.js:44:17$"
 )
 _OFFLINE_ROUTE_BYTES: dict[str, tuple[bytes, str]] = {}
 

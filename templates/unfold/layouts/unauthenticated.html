@@ -1,0 +1,50 @@
+{% extends "unfold/layouts/skeleton.html" %}
+
+{% load i18n static unfold %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link href="{% static 'core/accessibility.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block bodyclass %}
+  {{ block.super }}bg-base-50 login dark:bg-base-900
+{% endblock %}
+
+{% block nav-global %}
+{% endblock %}
+
+{% block content_title %}
+{% endblock %}
+
+{% block title %}
+  {{ title }} | {{ site_title }}
+{% endblock %}
+
+{% block base %}
+  <a class="skip-link" href="#main-content">{% translate "Skip to content" %}</a>
+  <div id="page" class="bg-white flex min-h-screen dark:bg-base-900">
+    <div class="flex grow relative">
+      <header role="banner" aria-label="{% translate 'Administration utilities' %}">
+        {% include "unfold/helpers/unauthenticated_header.html" %}
+      </header>
+      <main id="main-content"
+            tabindex="-1"
+            class="flex grow items-center justify-center mx-auto px-4">
+        <div class="w-full sm:w-96">
+          {% block content %}
+          {% endblock %}
+        </div>
+      </main>
+    </div>
+
+    {% if login_image %}
+      <div class="bg-cover grow hidden max-w-3xl xl:max-w-4xl xl:block"
+           role="img"
+           aria-label="{% translate 'Administration sign-in artwork' %}"
+           style="background-image: url('{{ login_image }}')">
+      </div>
+    {% endif %}
+  </div>
+  <footer class="sr-only">{% translate "Django administration" %}</footer>
+{% endblock %}

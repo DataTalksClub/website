@@ -1,12 +1,20 @@
+{% load accessibility %}
+{% accessibility_help_id field as help_id %}
+{% accessibility_error_id field as error_id %}
 <div>
   <label for="{{ field.id_for_label }}" class="settings-label mb-2 block text-sm font-semibold">
     {{ field.label }}
   </label>
-  {{ field }}
+  {% accessible_widget field %}
   {% if field.help_text %}
-    <p class="settings-helper mt-1 text-xs leading-5">{{ field.help_text }}</p>
+    <p id="{{ help_id }}" class="settings-helper mt-1 text-xs leading-5">
+      {{ field.help_text }}
+    </p>
   {% endif %}
   {% if field.errors %}
-    <div class="mt-1 text-sm app-danger-text">{{ field.errors }}</div>
+    <p id="{{ error_id }}" class="a11y-error mt-1 text-sm app-danger-text">
+      <span class="sr-only">Error:</span>
+      {{ field.errors|join:" " }}
+    </p>
   {% endif %}
 </div>

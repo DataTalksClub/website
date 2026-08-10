@@ -23,7 +23,8 @@ SUBMISSION_HTML = (
 )
 SUBMISSION_TEXT = (
     "{{ intro_text }}\n\n"
-    "{{ update_text }}\n\n"
+    "{{ update_text }}\n"
+    "{{ update_link_text|default:'Update submission' }}: {{ update_url }}\n\n"
     "{% if submitted_answers_text %}"
     "Submitted answers:\n{{ submitted_answers_text }}\n\n"
     "{% endif %}"

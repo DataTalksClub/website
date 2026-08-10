@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load accessibility %}
 {% block title %}
   {{ seo_title }}
 {% endblock %}
@@ -40,7 +41,10 @@
     {% for record in records %}
       <article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
-          <p class="text-sm app-muted">{{ record.published|slice:":10" }}</p>
+          <p class="text-sm app-muted">
+            Published
+            <time datetime="{{ record.published }}">{{ record.published|human_date }}</time>
+          </p>
           <h2 class="mt-2 text-xl font-semibold">
             <a class="app-link" href="{{ record.public_path }}">{{ record.title }}</a>
           </h2>
