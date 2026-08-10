@@ -1,0 +1,1 @@
+"""Focused content adapter tests."""

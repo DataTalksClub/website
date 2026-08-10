@@ -1,0 +1,20 @@
+slug: analytics-engineer-skills-tools
+legacy_path: /podcast/analytics-engineer-skills-tools.html
+title: Fixture podcast with transcript
+short: Fixture podcast
+season: 3
+episode: 11
+guests:
+  - fixture-guest
+image: images/podcast/open-source-turned-into-career-and-startup-creation.jpg
+ids:
+  youtube: fixture
+links:
+  youtube: https://www.youtube.com/watch?v=fixture
+description: A safe podcast description.
+intro: The episode content remains meaningful without JavaScript.
+transcript: transcripts/analytics-engineer-skills-tools.yaml
+resources:
+  - title: Example
+    url: https://example.com/resource?utm_source=fixture
+unknown_episode_field: retained

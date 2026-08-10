@@ -44,15 +44,21 @@ Deliverables:
 - baseline manifest crawler and comparison reports;
 - common content-source/release/document/relation/asset models;
 - GitHub webhook verification, sync queue, reconciliation, candidate validation, preview, activation, and rollback;
-- main-site adapter for Person details and relationships, articles, podcasts, books, tools,
-  conferences, assets, and the approved non-People hub queries;
+- immutable `DataTalksClub/content@e29f56...` database-candidate adapter for articles, podcast
+  episodes, separate transcripts, books, and 815 adopted media, including strict description
+  overlay/numeric validation and four-layer migration/repair/editorial/parity evidence;
+- remaining main-site adapter for Person details and relationships, tools, conferences, other
+  unmigrated collections/assets, and the approved non-People hub queries;
 - exact main-site routes, including established `.html` editorial detail canonicals and direct
   clean/slash aliases, metadata, structured data, sitemap, and internal link validation;
 - Studio/API content source, run, preview, activation, and diagnostics capabilities.
 - durable content-release invalidation intents using the correct first-release `/*` fallback and
   bounded class TTL behavior when provider submission fails.
 
-Exit gate: every current main-site URL and link passes on development with the expected production canonical, and a broken candidate demonstrably leaves the active site unchanged.
+Exit gate: every current main-site URL and link passes on development with the expected production
+canonical, the 561-document database candidate is byte-deterministic and equivalent to the checked
+baked projection, and a broken candidate demonstrably leaves both prior database releases and the
+public baked reader unchanged. Public database-read cutover remains separately groomed.
 
 ## Milestone 3 - Docs, FAQ, and Wiki (legacy Podwiki)
 

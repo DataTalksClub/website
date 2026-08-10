@@ -6,9 +6,11 @@ Status: draft
 
 The following repositories remain editorial sources of truth:
 
-- `DataTalksClub/content`: articles, podcasts, podcast transcripts, and books;
-- `DataTalksClub/datatalksclub.github.io`: main pages, people, tools, conferences, events, and
-  legacy editorial data;
+- `DataTalksClub/content`: articles, podcast episode metadata, separate podcast transcripts,
+  books, and media below `images/posts/`, `images/podcast/`, and `images/books/`;
+- `DataTalksClub/datatalksclub.github.io`: main pages, people, tools, conferences, events, other
+  legacy editorial data, and migration/compatibility provenance for collections moved to
+  `DataTalksClub/content`;
 - `DataTalksClub/docs`: docs pages and navigation hierarchy;
 - `DataTalksClub/faq`: FAQ courses, sections, records, and JSON source;
 - `DataTalksClub/podwiki`: wiki pages, typed links/citations, graph, and search source.
@@ -16,6 +18,9 @@ The following repositories remain editorial sources of truth:
 Studio never creates a conflicting published database override. In the MVP it provides source status, candidate preview, validation diagnostics, activation/rollback, and edit-on-GitHub links.
 Public pages do not render repository names, revisions, checksums, source paths, or source/edit links;
 that provenance remains available only to the build, audit, and Studio workflows.
+The exact `DataTalksClub/content` folder, schema, and edit-link rules are defined in
+[`content-authoring.md`](../content-authoring.md). Edit links use its moving `main` branch;
+immutable release provenance uses the exact source commit.
 
 ## Core read models
 
@@ -43,7 +48,7 @@ States are `queued`, `fetching`, `validating`, `ready`, `active`, `superseded`, 
 
 - release, content kind, stable key, source path, checksum, and source timestamps;
 - exact public path, slug, title, summary, canonical URL, and SEO fields;
-- raw frontmatter JSON and raw Markdown/body;
+- raw frontmatter JSON, raw Markdown/YAML body, and complete canonical structured data;
 - sanitized rendered HTML and normalized search text;
 - adapter-specific metadata JSON for legacy fields not promoted to common columns;
 - publish/noindex state and edit-on-GitHub URL.
@@ -96,24 +101,59 @@ not create or join a `MemberProfile`, user, staff identity, or account.
 ## Podcast projection contract
 
 The accepted podcast snapshot consumes `DataTalksClub/content` at immutable commit
-`e29f56ce70bd997171a78a9f0facc9354797f421`. Its season and episode fields are required positive
-JSON integers: missing values, booleans, non-integers, zero, and negative values fail candidate
-preparation rather than being coerced. Projection generation remains deterministic and retains its
-source record order; public catalogue and homepage presentation share the validated numeric
-ordering defined in specification 02. Episode descriptions come from this source snapshot, with no
-website-authored fallback copy.
+`e29f56ce70bd997171a78a9f0facc9354797f421`, tree
+`c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa`. All 205 episode files contain a non-empty scalar
+string `description`; missing, blank, null, numeric, boolean, sequence, and mapping forms fail
+before parity or persistence, with no `intro`, `short`, transcript, or generated fallback. Both
+`season` and `episode` are required native positive integers: missing/null values, booleans,
+strings, floats, zero, and negatives fail rather than being coerced. Projection generation remains
+deterministic and retains source record order; public catalogue and homepage presentation share the
+validated numeric ordering defined in specification 02.
+
+The 19 descriptions added after the repaired baseline are bound by
+`editorial-overlays/2026-08-10-podcast-descriptions.yaml` at SHA-256
+`63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6`. The adapter validates its
+exact schema, ordered target set, field, baseline/migration binding, description digests, and whole
+target-file digests without running repository code.
+
+Article image sources are validated before HTML sanitization. Markdown and raw-HTML images must
+use one exact root-relative adopted `/images/posts/`, `/images/podcast/`, or `/images/books/` path;
+remote, protocol-relative, query/fragment, duplicate/missing source, remote theme source, `srcset`,
+event-handler, and CSS-loading forms fail with a bounded source-path diagnostic. Sanitization must
+never turn a rejected source into a broken `<img>` without `src`.
+
+The immutable `e29f56...` bootstrap contains five historical remote `<img>` tags across two
+articles that are already absent from the checked #105 article-block projection and have no entry
+in the 815 source-owned media set. For that commit only, the adapter binds the exact two article
+checksums and five complete tag literals, omits those tags before rendering, retains the untouched
+raw Markdown, and records the five URLs in management-only adapter evidence. Any byte drift or any
+other remote image fails; later commits do not inherit this bootstrap migration transform. Future
+editorial changes should replace such media with repository-owned local assets.
 
 ## Repository adapters
 
 Each source uses an explicit adapter with fixtures from real legacy files.
 
-### Main-site adapter
+### Structured editorial adapter
 
+- Uses registered source `dtc-content`, repository `DataTalksClub/content`, branch `main`, mount
+  `/`, and only the adopted article, podcast, transcript, book, provenance, and media paths.
+- Keeps articles as YAML-front-matter Markdown, podcast and book records as YAML mappings, and each
+  podcast transcript as a separate YAML mapping referenced by one episode.
+- Retains complete decoded metadata, exact source bytes/checksums, ordered discussion/transcript
+  structures, source paths, edit links, and immutable release links.
 - Preserves post date-prefix slug rules and collection-specific permalink rules.
-- Supports old and current podcast frontmatter variants.
-- Normalizes people, books, tools, conferences, and editorial metadata.
+- Preserves exact `/blog/*.html`, `/podcast/*.html`, `/books/*.html`, and adopted `/images/...`
+  contracts without inventing transcript routes.
 - Replaces recurring Liquid includes with code-owned render extensions.
 - Migrates charts, MathJax, YouTube, FAQ blocks, and structured-data declarations without allowing arbitrary executable script from content.
+
+### Remaining main-site adapter
+
+- Normalizes people, tools, conferences, other main pages, and their editorial metadata from
+  `DataTalksClub/datatalksclub.github.io` until their owning migrations land.
+- Must not emit article, podcast, podcast transcript, book, or adopted media records after the
+  structured editorial source is registered.
 - Treats legacy `_data/events.yaml` as migration input only; database events become authoritative after cutover.
 
 ### Docs adapter
@@ -173,6 +213,57 @@ seconds, redirects/stable assets according to their explicit longer class. Stale
 bounded by specification 02 and cannot apply to previews, search/query results, authenticated or
 private state. Activation status exposes aggregate invalidation counts/state/latency without raw
 sensitive paths.
+
+## Initial database-candidate provenance and release boundary
+
+The `dtc-content` adapter is network-free and accepts a caller-supplied checkout already verified
+as an immutable configured commit. The accepted bootstrap contains 55 articles, 205 podcast
+episodes, 203 separate transcripts, 98 books, and 815 source-owned media: 561 database documents in
+total. The complete checked public projection has 1,253 media because it additionally contains 438
+legacy-main Person portraits; those portraits are outside this adapter.
+
+Bounded YAML event scanning uses the safe LibYAML parser before construction, rejects aliases and
+depth/node overruns, and constructs only safe normalized mappings. Media preflight retains each
+validated article/podcast/book parse for the document pass rather than reparsing 358 files. Book
+fragments are validated before one final sanitizer pass, and transcript HTML is assembled only
+from code-owned elements plus escaped source values. CPU-bound validation of the accepted 815-file
+media set uses at most four process workers when at least two CPUs and the fork start method are
+available; workers inherit only the current invocation's already-bounded immutable byte mapping,
+return path-sorted results, never reread the checkout, and exit before adaptation returns. Small
+sets, single-CPU hosts, daemon workers, and platforms without fork validate sequentially. There is
+no cross-invocation cache or accepted-checksum validation bypass. An unexpected validator failure
+or pool construction, submission, result, or shutdown failure becomes the fixed content-free
+`media_validation_worker_failed` diagnostic at the deterministic sorted source path; arbitrary
+exception text never crosses the adapter or command boundary, and invocation-local worker state is
+cleared before a retry. A parent `KeyboardInterrupt` or `SystemExit` is not converted or swallowed,
+but payload, iterator/future, and executor references are unconditionally cleared before it
+propagates. This keeps repeated full-corpus validation reliably within the fixed 60-second readiness
+bound without raising that bound or weakening parsing, sanitization, or media validation.
+
+Each accepted release keeps four evidence layers distinct:
+
+1. Original migration: `DataTalksClub/content@373bef2912342ece1d2a2d2a9395aa3417243283`,
+   legacy main `ee43d3fa0929faf691178d79f19528e6f15a83e5`, and immutable `migration.yaml`
+   SHA-256 `dd78a343a5f387a74afa914fc6c7e19790e202aa5d6fa9aba08bfda5995c5f86`.
+2. Repaired baseline: commit `b9a40ba974fdef67ee3a2a70f114734f2581033c`, tree
+   `701fa3f7aa35973e65736a188161c480982f1cb3`, its source CI, repair-manifest digest, and
+   replacement-attestation digest. These artifacts attest that baseline, not the later source.
+3. Editorial source: commit `e29f56ce70bd997171a78a9f0facc9354797f421`, tree
+   `c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa`, source CI run `31365358459`, and the strict
+   description-overlay evidence above.
+4. Website parity: the validated checked projection manifest/tree/podcast identities and
+   deterministic adopted-source/comparison digests.
+
+The original migration source remains a deterministic `referenced_asset_missing` rejection, not a
+fallback or retained release. Checkout, overlay, parsing, relation, parity, or transactional
+preparation failure leaves every prior release and the baked public projection unchanged. An exact
+replay returns the same ready/active/superseded release without duplicate children or audit rows.
+
+Issue #38 owns GitHub authentication, webhooks, reconciliation, candidate operations, previews,
+activation/rollback orchestration, and future Studio/admin-API workflows. This adapter adds none of
+those routes or capabilities. Public requests continue reading #105's checked baked projection even
+if an isolated database release becomes active; switching readers is separately groomed cutover
+work. Adapter stable ordering also never replaces specification 02's podcast presentation ordering.
 
 ## Search and graph
 

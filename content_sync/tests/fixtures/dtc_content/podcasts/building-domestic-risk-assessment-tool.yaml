@@ -1,0 +1,15 @@
+slug: building-domestic-risk-assessment-tool
+legacy_path: /podcast/building-domestic-risk-assessment-tool.html
+title: Fixture podcast without transcript
+short: No transcript fixture
+season: 1
+episode: 1
+guests:
+  - fixture-guest-two
+image: images/podcast/open-source-turned-into-career-and-startup-creation.jpg
+ids:
+  youtube: fixture-two
+links:
+  youtube: https://www.youtube.com/watch?v=fixture-two
+description: This accepted episode intentionally has no transcript reference.
+resources: []

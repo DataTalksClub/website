@@ -1,0 +1,16 @@
+schema_version: 1
+migration_date: '2026-08-09'
+source:
+  repository: https://github.com/DataTalksClub/datatalksclub.github.io
+  revision: ee43d3fa0929faf691178d79f19528e6f15a83e5
+counts:
+  articles: 55
+  podcasts: 205
+  podcast_transcripts: 203
+  books: 98
+rules:
+  articles: copied byte-for-byte with YAML front matter and Markdown body
+  podcasts: converted to YAML; transcript arrays moved to separate YAML files
+  books: converted to YAML; Markdown body moved to the summary field
+  templates: legacy _template.md files excluded
+  images: copied byte-for-byte at legacy relative paths

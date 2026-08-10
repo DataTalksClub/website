@@ -501,6 +501,7 @@ class ContentDocument(FrozenReleaseChild):
     seo_image_url = models.URLField(max_length=2048, blank=True)
     raw_frontmatter = models.JSONField(default=dict, blank=True)
     raw_body = models.TextField(blank=True)
+    raw_structured_data = models.TextField(blank=True)
     rendered_html = models.TextField(blank=True)
     normalized_text = models.TextField(blank=True)
     adapter_metadata = models.JSONField(default=dict, blank=True)

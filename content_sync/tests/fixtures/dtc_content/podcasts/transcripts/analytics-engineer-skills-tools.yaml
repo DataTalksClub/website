@@ -1,0 +1,11 @@
+podcast: analytics-engineer-skills-tools
+segments:
+  - header: Introductions
+  - who: Host
+    time: '0:12'
+    sec: 12
+    line: Welcome to the fixture episode.
+  - who: Guest
+    time: '0:20'
+    sec: 20
+    line: Thank you for having me.
