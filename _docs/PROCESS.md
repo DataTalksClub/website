@@ -78,9 +78,12 @@ already owned by another role.
   capacity for independent implementation, grooming, bounded research, or preparation of the next
   unblocked issue. A downstream change that depends on the pending result may be inspected and
   planned, but it is not rebased, committed, or merged early.
-- Waiting is delegated to the role that owns the gate. The orchestrator must not shadow-poll CI,
-  deployments, or an agent that has already promised a checkpoint. It resumes coordination when
-  the owner reports a meaningful transition or misses an agreed checkpoint.
+- Waiting is completion-driven and delegated to the role that owns the gate. The orchestrator uses
+  the longest supported event wait and must not wake on a timer to poll CI, deployments, or an
+  agent. It resumes only when the owner reports completion, failure, or a concrete blocker; when
+  the user requests status or changes direction; or when the waiting mechanism itself reports an
+  actionable failure. A timeout with no state change is not an event and is not narrated or used
+  to start another status check.
 - User updates are event-driven: report a gate starting, passing, failing, deploying, becoming
   blocked, or reaching live acceptance. Do not spend turns or tokens narrating unchanged waiting
   state.

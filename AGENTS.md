@@ -5,8 +5,10 @@
 - Read `_docs/PROCESS.md` before repository work and follow its issue lifecycle.
 - Treat the specifications in `_docs/specs/` as the product and architecture authority.
 - Product changes start from a groomed GitHub issue. Engineers implement and test without committing; a separate tester verifies the work and captures screenshots; a product manager accepts it; only then is it committed and locally merged without a pull request.
-- Keep independent delivery lanes moving while another role owns a wait. Do not shadow-poll agents,
-  CI, or deployments; report meaningful state transitions and use free capacity on unblocked work.
+- Keep independent delivery lanes moving while another role owns a wait. Use completion-driven,
+  longest-supported event waits; do not wake on a timer or shadow-poll agents, CI, or deployments.
+  Resume on completion, failure, a concrete blocker, user direction, or an actionable wait failure,
+  and use free capacity on unblocked work.
 - Use `uv` or the `uv`-backed Make targets for all Python dependency, lint, type, migration, test, and run commands.
 - Do not commit or push unless the current lifecycle role explicitly owns that step.
 - Use the project-local `.tmp/` directory for screenshots, downloads, previews, and scratch data. Never put temporary artifacts elsewhere.
