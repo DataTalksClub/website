@@ -2,9 +2,8 @@
 
 from django.db import migrations, models
 
-from courses.models import Course
-
 def set_first_homework_scored_true_for_existing_records(apps, schema_editor):
+    Course = apps.get_model("courses", "Course")
     Course.objects.all().update(first_homework_scored=True)
 
 class Migration(migrations.Migration):

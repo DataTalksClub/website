@@ -29,7 +29,14 @@ NORMAL_REQUIRED_JOBS = (
     "playwright",
     "container",
 )
-SCHEDULE_COMPONENTS = ("quality", "django", "playwright", "container")
+SCHEDULE_COMPONENTS = (
+    "quality",
+    "factories",
+    "migrations",
+    "django",
+    "playwright",
+    "container",
+)
 
 
 def normal_gate(selection_path: str | Path, outcomes: Mapping[str, str]) -> dict[str, Any]:

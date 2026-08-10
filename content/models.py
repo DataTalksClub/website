@@ -11,8 +11,12 @@ from django.db import models
 from django.db.models import Q
 from django.db.models.functions import Lower
 
+from content.migration_validators import (
+    validate_exact_public_path,
+    validate_secret_reference,
+    validate_storage_key_shape,
+)
 from core.models import RevisionedModel
-from core.redaction import is_sensitive_text
 
 SHA1_PATTERN = r"^[0-9a-f]{40}$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
@@ -23,31 +27,6 @@ sha1_validator = RegexValidator(SHA1_PATTERN, "Enter a full lowercase Git SHA.")
 sha256_validator = RegexValidator(SHA256_PATTERN, "Enter a lowercase SHA-256 digest.")
 
 
-def validate_exact_public_path(value: str) -> None:
-    if (
-        not value.startswith("/")
-        or value.startswith("//")
-        or "?" in value
-        or "#" in value
-        or any(
-            character.isspace() or ord(character) < 0x20 or ord(character) == 0x7F
-            for character in value
-        )
-    ):
-        raise ValidationError("Public paths must preserve one exact queryless, fragmentless path.")
-
-
-def validate_storage_key_shape(value: str) -> None:
-    if (
-        not value
-        or value.startswith("/")
-        or "\\" in value
-        or any(part in {"", ".", ".."} for part in value.split("/"))
-        or any(ord(character) < 0x20 or ord(character) == 0x7F for character in value)
-    ):
-        raise ValidationError("Storage keys must be safe relative object keys.")
-
-
 def expected_storage_prefix(source_stable_id: str, release_id: uuid.UUID) -> str:
     return f"content/{source_stable_id}/{release_id}/"
 
@@ -56,14 +35,6 @@ def active_content_path_digest(exact_public_path: str) -> str:
     """Return the fixed-width identity used by active namespace claims."""
 
     return hashlib.sha256(exact_public_path.encode("utf-8")).hexdigest()
-
-
-def validate_secret_reference(value: str) -> None:
-    if value and (
-        re.fullmatch(r"[a-z][a-z0-9_-]{0,31}:[A-Za-z0-9][A-Za-z0-9._-]{0,190}", value) is None
-        or is_sensitive_text(value)
-    ):
-        raise ValidationError("Secret references must be bounded opaque identifiers.")
 
 
 class ContentSource(RevisionedModel):

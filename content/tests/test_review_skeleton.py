@@ -325,7 +325,6 @@ class PublicProjectionTests(TestCase):
                 response = self.client.get(record["public_path"])
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.headers["Content-Type"], record["content_type"])
-                response.close()
         self.assertEqual(self.client.get("/images/../../manage.py").status_code, 404)
 
     def test_public_projection_requests_do_not_mutate_the_database(self) -> None:

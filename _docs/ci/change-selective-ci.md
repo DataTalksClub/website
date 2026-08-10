@@ -12,6 +12,13 @@ configuration, dependencies, documentation, unknown paths, unsupported Git recor
 source ranges all select the existing full `make test` target. Manual non-probe releases are always
 full. The probe jobs remain outside this selector.
 
+Central `test_support/` factories and runtime code, root `conftest.py`/`sitecustomize.py`, test
+settings/runner code, migration files, marker registration, and Playwright fixtures/tests always
+select full coverage. An app-owned factory below an already mapped application root may use that
+root's reviewed closure; a missing or unmapped label never narrows the suite. A normal full profile
+runs factory and migration contracts before the complete Django suite. Focused profiles retain the
+existing exact sorted label runner.
+
 The classifier artifact is named `ci-selection-<run>-attempt-<attempt>`. It contains only bounded,
 schema-validated facts: source SHAs, profile, reason, changed-path count, mapped roots, and closed
 test labels. It intentionally contains no filenames. The `ci-gate` artifact records all required
@@ -40,6 +47,10 @@ run, coverage anchor, inspected depth, and component outcomes. `already_successf
 only intentional skip reason. The always-running scheduled gate accepts that exact skip shape or a
 successful selected full run; unexpected skips, cancellations, timeouts, and failures fail it.
 
+A selected scheduled run has independent quality, factory, migration, full Django, full local
+Playwright, and container components. The fixed `full-regression` marker and always-running gate
+require every component. Remote/live/provider tests remain excluded.
+
 ## Local verification
 
 Use uv-backed project targets for deterministic checks:
@@ -47,6 +58,10 @@ Use uv-backed project targets for deterministic checks:
 ```text
 make test-ci
 CI_SELECTION_PATH=.tmp/ci-selection/ci-selection.json make test-ci-focused
+make test-factories
+make test-migrations
+make test-playwright
+make test-all
 make lint
 make format-check
 make typecheck

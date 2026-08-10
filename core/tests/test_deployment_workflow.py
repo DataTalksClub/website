@@ -961,7 +961,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "core/tests/test_deployment_oidc_probe.py": (
                 "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
             ),
-            "pyproject.toml": ("892b36023b1f984616bf1424d8bdeeeef38984b58570ecf422689814d2504be9"),
+            "pyproject.toml": ("e590901caf4433bb18dca6fcf41ee160e6396c6f96200b75e2017236edc87c1e"),
             "uv.lock": "2f429a2e0edad55dc14b3a70c0697304ce11a832c93431558073fbdca514cb10",
         }
         for relative_path, expected_hash in unchanged_hashes.items():
@@ -1138,7 +1138,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "core/tests/test_deployment_oidc_probe.py": (
                 "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
             ),
-            "pyproject.toml": ("892b36023b1f984616bf1424d8bdeeeef38984b58570ecf422689814d2504be9"),
+            "pyproject.toml": ("e590901caf4433bb18dca6fcf41ee160e6396c6f96200b75e2017236edc87c1e"),
             "uv.lock": "2f429a2e0edad55dc14b3a70c0697304ce11a832c93431558073fbdca514cb10",
         }
         for relative_path, expected_hash in frozen_hashes.items():

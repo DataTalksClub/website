@@ -411,7 +411,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
-      DTC_SQLITE_PATH: .tmp/ci.sqlite3
     defaults:
       run:
         working-directory: .tmp/release-source
@@ -436,11 +435,6 @@ jobs:
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/release-source/.tmp/ci-selection
-      - name: Create a fresh ordinary-CI SQLite database
-        run: |
-          mkdir -p .tmp
-          rm -f .tmp/ci.sqlite3 .tmp/ci.sqlite3-shm .tmp/ci.sqlite3-wal
-      - run: uv run python manage.py migrate --noinput
       - name: Validate the code-owned test selection
         working-directory: .tmp/ci-controller
         run: >-
@@ -457,6 +451,8 @@ jobs:
               make test-ci-focused
               ;;
             full)
+              make test-factories
+              make test-migrations
               make test
               ;;
             *)

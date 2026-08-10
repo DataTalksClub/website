@@ -1,0 +1,11 @@
+{
+  "artifact_url": "https://raw.githubusercontent.com/DataTalksClub/website/5b6a8418f105f7cbdf7d3821d5a3c4f0a4f4c613/compatibility/tests/fixtures/crawler/index.html",
+  "artifact_version": "5b6a8418f105f7cbdf7d3821d5a3c4f0a4f4c613",
+  "byte_sha256": "8cb0fd924a9d3177ce9eba5210b383dbc220c6bfe2326e19caa201fb3b97fc97",
+  "commit": "5b6a8418f105f7cbdf7d3821d5a3c4f0a4f4c613",
+  "repository": "https://github.com/DataTalksClub/website.git",
+  "sanitization": [],
+  "schema_version": 1,
+  "source_kind": "repository_file",
+  "source_path": "compatibility/tests/fixtures/crawler/index.html"
+}

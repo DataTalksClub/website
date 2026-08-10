@@ -14,12 +14,12 @@ from courses.models import (
     Submission,
 )
 
-
 DATAMAILER_SETTINGS = {
     "DATAMAILER_URL": "https://datamailer.example.com",
     "DATAMAILER_API_KEY": "secret-token",
     "DATAMAILER_CLIENT": "dtc-courses",
     "DATAMAILER_AUDIENCE": "dtc-courses",
+    "DATAMAILER_SYNC_ON_USER_CREATE": True,
 }
 
 

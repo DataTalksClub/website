@@ -507,6 +507,10 @@ class ReviewImportWorkflowTests(TestCase):
         super().tearDownClass()
 
     def setUp(self) -> None:
+        # Finalize resources retained by earlier tests before this case starts its
+        # test-local warning window. Parallel worker assignment must not make a
+        # previous case's late ResourceWarning look like this workflow leaked it.
+        collect_garbage()
         self.warning_context = warnings.catch_warnings(record=True)
         self.caught_warnings = self.warning_context.__enter__()
         warnings.simplefilter("always", ResourceWarning)

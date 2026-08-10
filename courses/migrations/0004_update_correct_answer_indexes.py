@@ -4,8 +4,6 @@ from django.db import migrations
 
 import logging
 
-from courses.models import Question, QuestionTypes
-
 logger = logging.getLogger("courses.migrations")
 
 
@@ -40,15 +38,15 @@ def replace_answers_with_indexes(possible_answers, correct_answers, question_id=
 
 
 def update_correct_answers_to_indexes(apps, schema_editor):
+    Question = apps.get_model("courses", "Question")
     for question in Question.objects.all():
-        if question.question_type not in [
-            QuestionTypes.MULTIPLE_CHOICE.value,
-            QuestionTypes.CHECKBOXES.value,
-        ]:
+        if question.question_type not in ["MC", "CB"]:
             continue
 
         if question.possible_answers and question.correct_answer:
-            possible_answers = question.get_possible_answers()
+            possible_answers = [
+                answer.strip() for answer in question.possible_answers.split("\n")
+            ]
 
             correct_indexes = replace_answers_with_indexes(
                 possible_answers, question.correct_answer, question.id

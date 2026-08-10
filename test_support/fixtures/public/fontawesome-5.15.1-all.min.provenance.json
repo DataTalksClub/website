@@ -1,0 +1,13 @@
+{
+  "artifact_url": "https://raw.githubusercontent.com/FortAwesome/Font-Awesome/57005cea6da7d1c67f3466974aecd25485f60452/css/all.min.css",
+  "artifact_version": "57005cea6da7d1c67f3466974aecd25485f60452",
+  "byte_sha256": "af1e6edc875a382b338bb25bd7c5c3f474a7f1b36212002a5896dd06f2186325",
+  "commit": "57005cea6da7d1c67f3466974aecd25485f60452",
+  "repository": "https://github.com/FortAwesome/Font-Awesome.git",
+  "sanitization": [
+    "Unmodified cdnjs Font Awesome 5.15.1 release asset."
+  ],
+  "schema_version": 1,
+  "source_kind": "repository_file",
+  "source_path": "css/all.min.css"
+}

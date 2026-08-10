@@ -1,0 +1,26 @@
+{
+  "generator_version": "synthetic-provider-cases-v1",
+  "records": [
+    {
+      "attempt": 1,
+      "case": "synthetic-accepted",
+      "outcome": "accepted"
+    },
+    {
+      "attempt": 2,
+      "case": "synthetic-retry",
+      "outcome": "retry"
+    },
+    {
+      "attempt": 1,
+      "case": "synthetic-suppressed",
+      "outcome": "suppressed"
+    },
+    {
+      "attempt": 1,
+      "case": "synthetic-ambiguous",
+      "outcome": "ambiguous"
+    }
+  ],
+  "schema_family": "provider-neutral-simulator-v1"
+}
