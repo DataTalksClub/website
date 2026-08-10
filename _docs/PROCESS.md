@@ -67,6 +67,33 @@ Only check an acceptance checkbox when its implementation exists and the owning 
 - Do not start while a required dependency is open. Independent issues may proceed concurrently in isolated worktrees.
 - New Python packages require a concrete use in the current issue, compatibility with Python 3.13 and Django 6, a bounded constraint in `pyproject.toml`, and an updated `uv.lock`. Prefer the approved architecture baseline and standard-library or Django capabilities over speculative dependencies.
 
+## Parallel delivery and waiting
+
+The orchestrator keeps the delivery pipeline moving; it does not act as a second watcher for work
+already owned by another role.
+
+- Give each active issue or gate one named owner and one isolated worktree when files may change.
+  Do not assign two agents to make overlapping edits.
+- While an engineer, tester, PM, on-call engineer, or external workflow is running, use available
+  capacity for independent implementation, grooming, bounded research, or preparation of the next
+  unblocked issue. A downstream change that depends on the pending result may be inspected and
+  planned, but it is not rebased, committed, or merged early.
+- Waiting is delegated to the role that owns the gate. The orchestrator must not shadow-poll CI,
+  deployments, or an agent that has already promised a checkpoint. It resumes coordination when
+  the owner reports a meaningful transition or misses an agreed checkpoint.
+- User updates are event-driven: report a gate starting, passing, failing, deploying, becoming
+  blocked, or reaching live acceptance. Do not spend turns or tokens narrating unchanged waiting
+  state.
+- Reuse valid evidence when a follow-up cannot affect it. Retest the changed contract and its
+  security/regression boundary; do not rerun broad suites or browser matrices solely to occupy an
+  agent. Required independent tester and PM gates still apply.
+- If every remaining task truly depends on one external result, record that dependency once and
+  let the owning watcher wait. Do not create speculative work, duplicate runs, or repeated status
+  checks to simulate progress.
+
+Parallelism improves elapsed time, not scope. It never permits skipping acceptance criteria,
+working around a dependency, merging before the independent gates pass, or hiding a red pipeline.
+
 ## Engineering and verification gates
 
 - Read the issue and every linked specification before changing code.
@@ -113,4 +140,5 @@ Do not run `gh pr create` or `gh pr merge`. The independent tester and PM gates 
 
 On-call is the only role that waits for post-push CI. Green means all required jobs passed. A red pipeline is investigated, attributed to the introducing issue, and fixed; it is never dismissed as an acceptable pre-existing failure. A cancellation or missing verdict is reported as unresolved, not green.
 
-The orchestrator may continue grooming or coordinating other independent work while on-call observes CI.
+The orchestrator continues grooming, implementation coordination, or other independent work while
+on-call observes CI. It returns to the release only when on-call reports a meaningful transition.
