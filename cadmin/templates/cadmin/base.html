@@ -1,6 +1,29 @@
 {% extends 'base.html' %}
 
+{% block title %}Courses · Studio{% endblock %}
+
 {% block body_class %}cadmin-page{% endblock %}
+
+{% block breadcrumbs_nav %}
+  <nav class="breadcrumbs mb-6 text-sm app-muted md:mb-8"
+       aria-label="Breadcrumb">
+    <ul class="m-0 flex list-none flex-wrap items-center gap-y-2 p-0">
+      <li>
+        {% url 'studio:home' as studio_home_url %}
+        {% if studio_home_url %}
+          <a href="{{ studio_home_url }}">Studio</a>
+        {% else %}
+          <span>Studio</span>
+        {% endif %}
+      </li>
+      {% block breadcrumbs %}
+        <li>
+          <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+        </li>
+      {% endblock %}
+    </ul>
+  </nav>
+{% endblock %}
 
 {% block content %}
   {% if messages %}
@@ -19,7 +42,7 @@
     </div>
   {% endif %}
   <div class="cadmin-shell">
-    {% block cadmin_content %}
+    {% block studio_courses_content %}
     {% endblock %}
   </div>
 {% endblock %}

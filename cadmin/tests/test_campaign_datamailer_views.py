@@ -26,7 +26,7 @@ class CampaignDatamailerCadminViewTests(CampaignCadminViewBase):
             marketing_markdown="## Register now",
         )
         url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
         payload = {"datamailer_action": "sync"}
@@ -55,7 +55,7 @@ class CampaignDatamailerCadminViewTests(CampaignCadminViewBase):
         }
         campaign = self.create_llm_registration_campaign()
         url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
         payload = {"datamailer_action": "preview"}
@@ -83,7 +83,7 @@ class CampaignDatamailerCadminViewTests(CampaignCadminViewBase):
     ):
         campaign = self.create_llm_registration_campaign()
         url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
         payload = {
@@ -115,7 +115,7 @@ class CampaignDatamailerCadminViewTests(CampaignCadminViewBase):
         queue_campaign.return_value = {"recipient_count": 42}
         campaign = self.create_llm_registration_campaign()
         url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
         payload = {"datamailer_action": "queue"}
@@ -141,7 +141,7 @@ class CampaignDatamailerCadminViewTests(CampaignCadminViewBase):
     ):
         campaign = self.create_llm_registration_campaign()
         url = reverse(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             kwargs={"campaign_slug": campaign.slug},
         )
         payload = {"datamailer_action": "cancel"}

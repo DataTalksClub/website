@@ -27,6 +27,15 @@ def make_studio_user(*, username: str, roles: tuple[str, ...] = ()) -> Any:
     return user
 
 
+def grant_studio_role(user: Any, role: str) -> Any:
+    """Grant one synchronized Studio role to an existing test user."""
+    synchronize_studio_roles()
+    if role not in ROLE_PERMISSIONS:
+        raise ValueError("unknown Studio role")
+    user.groups.add(Group.objects.get(name=role))
+    return user
+
+
 def authenticated_studio_client(user: Any) -> Client:
     client = Client()
     client.force_login(user)

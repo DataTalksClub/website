@@ -26,7 +26,7 @@ from django.urls import URLPattern, URLResolver  # noqa: E402
 URL_SURFACES = (
     ("Accounts", "accounts.urls", "accounts/"),
     ("Compatibility API", "api.urls", "api/"),
-    ("Course administration", "cadmin.urls", "cadmin/"),
+    ("Studio Courses", "cadmin.urls", "studio/courses/"),
     ("Public courses", "courses.urls", ""),
 )
 SOURCE_APP_LABELS = ("accounts", "api", "cadmin", "courses", "data")
@@ -162,8 +162,8 @@ def render_inventory() -> str:
         [
             f"| **Total** |  | **{len(routes)}** |",
             "",
-            "The compatibility API and cadmin rows below are the complete adopted surfaces; no",
-            "replacement serializers, route redesign, or cadmin rewrite was introduced here.",
+            "The compatibility API and Studio Courses rows below retain the complete adopted",
+            "behavior; issue #115 changes the management adapter names and mount, not its logic.",
             "",
             "## Routes",
             "",

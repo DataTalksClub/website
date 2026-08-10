@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -7,10 +8,14 @@ import pytest
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.test import Client, override_settings
+from django.utils import timezone
 from playwright.sync_api import Page, expect
 
 from accounts.models import CustomUser
 from accounts.studio_roles import synchronize_studio_roles
+from courses.models import Course, Enrollment, RegistrationCampaign
+from courses.models.homework import Homework, HomeworkState
+from courses.models.project import Project, ProjectState
 
 pytestmark = [
     pytest.mark.core,
@@ -42,8 +47,13 @@ def _identity_browser_settings():
         yield
 
 
-def _screenshot_path(name: str, viewport: dict[str, int]) -> Path:
-    directory = Path(".tmp/screenshots/issue-100")
+def _screenshot_path(
+    name: str,
+    viewport: dict[str, int],
+    *,
+    issue: int = 100,
+) -> Path:
+    directory = Path(f".tmp/screenshots/issue-{issue}")
     directory.mkdir(parents=True, exist_ok=True)
     device = "desktop" if viewport["width"] > 600 else "mobile"
     return directory / f"{name}-{device}.png"
@@ -223,15 +233,46 @@ def test_staff_navigation_is_capability_filtered(
     viewport: dict[str, int],
 ) -> None:
     page.set_viewport_size(viewport)
+    suffix = str(viewport["width"])
+    now = timezone.now()
+    course = Course.objects.create(
+        slug=f"studio-course-{suffix}",
+        title=f"Data Engineering Studio {suffix}",
+        description="Populated course used for Studio browser regression coverage.",
+    )
+    Homework.objects.create(
+        course=course,
+        slug="orientation-homework",
+        title="Orientation homework",
+        due_date=now + timedelta(days=7),
+        state=HomeworkState.OPEN.value,
+    )
+    Project.objects.create(
+        course=course,
+        slug="capstone-project",
+        title="Capstone project",
+        submission_due_date=now + timedelta(days=14),
+        peer_review_due_date=now + timedelta(days=21),
+        state=ProjectState.COLLECTING_SUBMISSIONS.value,
+    )
+    RegistrationCampaign.objects.create(
+        current_course=course,
+        slug=f"studio-campaign-{suffix}",
+        title="2026 registration",
+        edition_label="2026 cohort",
+        marketing_markdown="Apply now",
+    )
+    learner = _active_user(suffix=f"studio-learner-{suffix}")
+    Enrollment.objects.create(student=learner, course=course)
+
     unassigned = _active_user(
-        suffix=f"unassigned-staff-{viewport['width']}",
+        suffix=f"unassigned-staff-{suffix}",
         is_staff=True,
     )
     _add_authenticated_cookie(page, live_server, unassigned)
     page.goto(live_server.url)
     page.locator('summary[aria-label="Account menu"]').click()
     expect(page.get_by_role("link", name="Studio", exact=True)).to_have_count(0)
-    expect(page.get_by_role("link", name="Course admin")).to_have_count(0)
     page.screenshot(
         path=_screenshot_path("staff-capability-denied", viewport),
         full_page=True,
@@ -239,7 +280,7 @@ def test_staff_navigation_is_capability_filtered(
 
     page.context.clear_cookies()
     operator = _active_user(
-        suffix=f"course-operator-{viewport['width']}",
+        suffix=f"course-operator-{suffix}",
         is_staff=True,
     )
     roles = {group.name: group for group in synchronize_studio_roles()}
@@ -248,9 +289,31 @@ def test_staff_navigation_is_capability_filtered(
     page.goto(live_server.url)
     page.locator('summary[aria-label="Account menu"]').click()
     expect(page.get_by_role("link", name="Studio", exact=True)).to_be_visible()
-    expect(page.get_by_role("link", name="Course admin")).to_be_visible()
+    page.get_by_role("link", name="Studio", exact=True).click()
+    expect(page.get_by_role("link", name="Courses", exact=True)).to_be_visible()
     page.screenshot(
         path=_screenshot_path("staff-capability-allowed", viewport),
+        full_page=True,
+    )
+    page.get_by_role("link", name="Courses", exact=True).click()
+    expect(page.get_by_role("heading", name="Courses", exact=True)).to_be_visible()
+    expect(page.get_by_role("link", name="Studio", exact=True)).to_be_visible()
+    page.get_by_role("link", name=course.title, exact=True).click()
+    course_heading = page.get_by_role("heading", name=course.title, exact=True)
+    expect(course_heading).to_be_visible()
+    expect(course_heading).to_have_text(course.title)
+    assert course_heading.evaluate("element => getComputedStyle(element).whiteSpace !== 'nowrap'")
+    expect(page.get_by_role("link", name="Orientation homework", exact=True)).to_be_visible()
+    expect(page.get_by_role("link", name="Capstone project", exact=True)).to_be_visible()
+    expect(page.get_by_text("2026 registration", exact=True)).to_be_visible()
+    expect(page.get_by_text("Enrollments", exact=True).first).to_be_visible()
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
+    page.screenshot(
+        path=_screenshot_path("studio-courses", viewport),
+        full_page=True,
+    )
+    page.screenshot(
+        path=_screenshot_path("studio-courses-populated", viewport, issue=115),
         full_page=True,
     )
 

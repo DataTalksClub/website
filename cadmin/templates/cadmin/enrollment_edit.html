@@ -3,12 +3,12 @@
   Edit Enrollment - {{ course.title }}
 {% endblock %}
 {% block breadcrumbs %}
-  <li><a href="{% url 'cadmin_course_list' %}">Course Admin</a></li>
-  <li><a href="{% url 'cadmin_course' course.slug %}">{{ course.title }}</a></li>
-  <li><a href="{% url 'cadmin_enrollments' course.slug %}">Enrollments</a></li>
+  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
+  <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
+  <li><a href="{% url 'studio_courses_enrollments' course.slug %}">Enrollments</a></li>
   <li>Edit Enrollment</li>
 {% endblock %}
-{% block cadmin_content %}
+{% block studio_courses_content %}
   <section class="border-b app-border pb-5 ">
     <div>
       <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
@@ -25,7 +25,7 @@
       </form>
       <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=enrollment.id %}" class="primer-button primer-button-secondary">View Score Breakdown</a>
       <a href="{% url 'leaderboard' course.slug %}" class="primer-button primer-button-secondary">View Leaderboard</a>
-      <a href="{% url 'cadmin_enrollments' course.slug %}" class="primer-button primer-button-secondary">Back to Enrollments</a>
+      <a href="{% url 'studio_courses_enrollments' course.slug %}" class="primer-button primer-button-secondary">Back to Enrollments</a>
     </div>
   </section>
   <section class="cadmin-meta-grid mt-6 grid grid-cols-2 gap-2 lg:grid-cols-4">
@@ -63,7 +63,7 @@
                 <span class="rounded-md app-surface-muted px-2 py-1 text-sm font-semibold ">{{ submission.total_score }}</span>
               </div>
               <div class="mt-2">
-                <a href="{% url 'cadmin_homework_submission_edit' course.slug submission.homework.slug submission.id %}" class="primer-button">
+                <a href="{% url 'studio_courses_homework_submission_edit' course.slug submission.homework.slug submission.id %}" class="primer-button">
                   <i class="fas fa-edit"></i> Edit </a>
               </div>
             </article>
@@ -86,7 +86,7 @@
                   <td class="px-3 py-2 app-text">{{ submission.submitted_at|date:"Y-m-d H:i" }}</td>
                   <td class="px-3 py-2 text-right font-semibold">{{ submission.total_score }}</td>
                   <td class="px-3 py-2 text-right">
-                    <a href="{% url 'cadmin_homework_submission_edit' course.slug submission.homework.slug submission.id %}" class="primer-button cadmin-compact-button" title="Edit homework submission">
+                    <a href="{% url 'studio_courses_homework_submission_edit' course.slug submission.homework.slug submission.id %}" class="primer-button cadmin-compact-button" title="Edit homework submission">
                       <i class="fas fa-edit"></i><span class="sr-only"> Edit</span>
                     </a>
                   </td>
@@ -115,7 +115,7 @@
                 <span class="rounded-md app-surface-muted px-2 py-1 text-sm font-semibold ">{{ submission.total_score }}</span>
               </div>
               <div class="mt-2">
-                <a href="{% url 'cadmin_project_submission_edit' course.slug submission.project.slug submission.id %}" class="primer-button">
+                <a href="{% url 'studio_courses_project_submission_edit' course.slug submission.project.slug submission.id %}" class="primer-button">
                   <i class="fas fa-edit"></i> Edit </a>
               </div>
             </article>
@@ -138,7 +138,7 @@
                   <td class="px-3 py-2 app-text">{{ submission.submitted_at|date:"Y-m-d H:i" }}</td>
                   <td class="px-3 py-2 text-right font-semibold">{{ submission.total_score }}</td>
                   <td class="px-3 py-2 text-right">
-                    <a href="{% url 'cadmin_project_submission_edit' course.slug submission.project.slug submission.id %}" class="primer-button cadmin-compact-button" title="Edit project submission">
+                    <a href="{% url 'studio_courses_project_submission_edit' course.slug submission.project.slug submission.id %}" class="primer-button cadmin-compact-button" title="Edit project submission">
                       <i class="fas fa-edit"></i><span class="sr-only"> Edit</span>
                     </a>
                   </td>

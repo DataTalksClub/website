@@ -207,12 +207,11 @@ def test_machine_contract_samples_cover_configured_queries_fragments_and_absence
     assert sum(row["contract_kind"] == "fragment" for row in samples) == 1
     course_samples = [row for row in samples if row["source_id"] == "dtc-course-platform"]
     assert len(course_samples) == 22
-    assert (
-        next(row for row in course_samples if row["public_contract"] == "/robots.txt")[
-            "course_route_contract_present"
-        ]
-        is False
-    )
+    assert {
+        row["public_contract"]
+        for row in course_samples
+        if row["course_route_contract_present"] is False
+    } == {"/robots.txt"}
     assert all(
         row["course_route_contract_present"]
         for row in course_samples
@@ -288,7 +287,7 @@ def test_course_route_inventory_matches_all_adopted_urlconfs() -> None:
     assert Counter(row["surface"] for row in rows) == {
         "Accounts": 9,
         "Compatibility API": 29,
-        "Course administration": 26,
+        "Studio Courses": 26,
         "Public courses": 25,
     }
     expected = {
@@ -314,6 +313,22 @@ def test_course_route_inventory_matches_all_adopted_urlconfs() -> None:
         for row in rows
     }
     assert actual == expected
+
+    studio_rows = [row for row in rows if row["surface"] == "Studio Courses"]
+    assert all(row["route_pattern"].startswith("/studio/courses/") for row in studio_rows)
+    assert all(row["example_path"].startswith("/studio/courses/") for row in studio_rows)
+    assert all(str(row["name"]).startswith("studio_courses_") for row in studio_rows)
+    assert {row["source_id"] for row in studio_rows} == {"dtc-course-platform"}
+    assert {row["source_revision"] for row in studio_rows} == {
+        pinned_source("dtc-course-platform").revision
+    }
+    for row in studio_rows:
+        suffix = row["route_pattern"].removeprefix("/studio/courses/")
+        assert row["source_route_pattern"] == f"/cadmin/{suffix}"
+        assert row["source_example_path"] == (
+            f"/cadmin/{row['example_path'].removeprefix('/studio/courses/')}"
+        )
+        assert row["source_name"] == (f"cadmin_{str(row['name']).removeprefix('studio_courses_')}")
     for row in rows:
         assert row["source_revision"] == pinned_source("dtc-course-platform").revision
         assert row["host"] == "courses.datatalks.club"

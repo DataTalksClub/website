@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from accounts.studio_test_support import grant_studio_role
 from courses.models import User
 from data.models import (
     DatamailerContactEvent,
@@ -35,21 +36,22 @@ class DatamailerCadminViewTestCase(TestCase):
     def setUp(self):
         self.client = Client()
         User.objects.create_user(**credentials)
-        User.objects.create_user(
+        admin_user = User.objects.create_user(
             username="admin@test.com",
             email="admin@test.com",
             password="admin123",
             is_staff=True,
         )
+        grant_studio_role(admin_user, "course_operator")
 
     def login_admin(self):
         self.client.login(username="admin@test.com", password="admin123")
 
     def datamailer_operations_url(self):
-        return reverse("cadmin_datamailer_operations")
+        return reverse("studio_courses_datamailer_operations")
 
     def datamailer_events_url(self):
-        return reverse("cadmin_datamailer_events")
+        return reverse("studio_courses_datamailer_events")
 
 
 def create_contact_event(data: ContactEventData):

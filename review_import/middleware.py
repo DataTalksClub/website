@@ -39,7 +39,7 @@ class LocalReviewNoNetworkMiddleware:
             return self.get_response(request)
 
         path = request.path
-        if path == "/cadmin/cloudwatch/":
+        if path == "/studio/courses/cloudwatch/":
             user = getattr(request, "user", None)
             if not user or not user.is_authenticated or not user.is_staff:
                 return self.get_response(request)

@@ -164,12 +164,12 @@ def build_openapi_paths():
 
 def openapi_info():
     description = (
-        "Generated OpenAPI specification for the course management, "
+        "Generated OpenAPI specification for DataTalks.Club course operations, "
         "course data export, and operational endpoints. Treat this "
         "document as the source of truth for agent API usage."
     )
     return {
-        "title": "Course Management Platform API",
+        "title": "DataTalks.Club Courses API",
         "version": settings.VERSION,
         "description": description,
     }

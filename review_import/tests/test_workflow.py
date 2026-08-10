@@ -654,6 +654,21 @@ class ReviewImportWorkflowTests(TestCase):
             ).fetchall()
             self.assertEqual(users, [("review-admin@example.invalid", 1, 1)])
             self.assertEqual(
+                connection.execute(
+                    """
+                    SELECT auth_group.name
+                    FROM auth_group
+                    JOIN accounts_customuser_groups
+                      ON accounts_customuser_groups.group_id = auth_group.id
+                    JOIN accounts_customuser
+                      ON accounts_customuser.id = accounts_customuser_groups.customuser_id
+                    WHERE accounts_customuser.email = ?
+                    """,
+                    ("review-admin@example.invalid",),
+                ).fetchall(),
+                [("course_operator",)],
+            )
+            self.assertEqual(
                 json.loads(
                     connection.execute(
                         "SELECT leaderboard FROM courses_wrappedstatistics"
@@ -871,6 +886,8 @@ for name, expected in LOCAL_REVIEW_PROVIDER_ENVIRONMENT.items():
 
 client = Client()
 user = get_user_model().objects.get(email='review-admin@example.invalid')
+if set(user.groups.values_list('name', flat=True)) != {'course_operator'}:
+    raise SystemExit(33)
 client.force_login(user)
 ordinary_paths = (
     '/courses/',
@@ -907,26 +924,39 @@ with (
         side_effect=AssertionError('raw socket attempted'),
     ) as socket_connect,
 ):
-    admin_index = client.get('/cadmin/')
+    admin_index = client.get('/studio/courses/')
     if admin_index.status_code != 200:
-        raise SystemExit(33)
-    if b'/cadmin/cloudwatch/' not in admin_index.content:
         raise SystemExit(34)
-    if b'/cadmin/datamailer/' not in admin_index.content:
+    if b'/studio/courses/cloudwatch/' not in admin_index.content:
         raise SystemExit(35)
-
-    cloudwatch = client.get('/cadmin/cloudwatch/')
-    if cloudwatch.status_code != 200 or b'disabled' not in cloudwatch.content.lower():
+    if b'/studio/courses/datamailer/' not in admin_index.content:
         raise SystemExit(36)
-    if client.get('/cadmin/datamailer/').status_code != 200:
+
+    cloudwatch = client.get('/studio/courses/cloudwatch/')
+    if cloudwatch.status_code != 200 or b'disabled' not in cloudwatch.content.lower():
         raise SystemExit(37)
-    if client.get('/accounts/github/login/').status_code != 403:
+    if client.get('/studio/courses/datamailer/').status_code != 200:
         raise SystemExit(38)
-    if client.post('/cadmin/datamailer/', {'action': 'requeue'}).status_code != 403:
+    if client.get('/accounts/github/login/').status_code != 403:
         raise SystemExit(39)
+    if client.post('/studio/courses/datamailer/', {'action': 'requeue'}).status_code != 403:
+        raise SystemExit(40)
+
+    legacy_checks = (
+        ('/cadmin/?source=review', '/studio/courses/?source=review'),
+        ('/cadmin/cloudwatch/?source=review', '/studio/courses/cloudwatch/?source=review'),
+        ('/cadmin/datamailer/?source=review', '/studio/courses/datamailer/?source=review'),
+    )
+    for legacy, canonical in legacy_checks:
+        response = client.get(legacy)
+        if response.status_code != 302 or response.headers.get('Location') != canonical:
+            raise SystemExit(41)
+    legacy_post = client.post('/cadmin/datamailer/?source=review', {'action': 'requeue'})
+    if legacy_post.status_code != 403 or legacy_post.headers.get('Location'):
+        raise SystemExit(42)
     for path in ordinary_paths:
         if client.get(path, follow=True).status_code != 200:
-            raise SystemExit(40)
+            raise SystemExit(43)
 
 if any(
     probe.called
@@ -939,7 +969,7 @@ if any(
         socket_connect,
     )
 ):
-    raise SystemExit(41)
+    raise SystemExit(44)
 """
         result = subprocess.run(
             [sys.executable, "-c", code],

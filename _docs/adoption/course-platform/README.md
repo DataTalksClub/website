@@ -71,14 +71,14 @@ uv run python scripts/verify_course_platform_adoption.py
 
 The verifier checks the source commit and clean status, recomputes the Git-tracked allowlist and
 manifest, detects omitted allowlisted files, and proves every unpatched copied destination remains
-byte-identical to the pinned source. Integration changes are deliberately confined to
-target-owned project/configuration files listed in `integration-patches.md`; copied business files
-are not patched.
+byte-identical to the pinned source. Every deliberate target integration change is listed in
+`integration-patches.md`; copied business behavior is retained and characterized rather than
+reimplemented.
 
-The one copied presentation file with target integration, `course_platform_templates/base.html`,
-keeps its source checksum in `copied-files.tsv` and its post-integration checksum and rationale in
-`integration-patched-files.tsv`. The verifier checks that explicit state instead of treating the
-exception as source-identical.
+Copied presentation and adapter files changed for target integration keep their source checksums
+in `copied-files.tsv` and their post-integration checksums and rationales in
+`integration-patched-files.tsv`. The verifier checks that explicit state instead of treating those
+files as source-identical.
 
 ## Evidence index
 

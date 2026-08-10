@@ -39,8 +39,8 @@
       </div>
     </div>
     <div class="mt-4 flex flex-wrap gap-2">
-      {% if request.user.is_staff %}
-        <a href="{% url 'cadmin_enrollment_edit' course_slug=enrollment.course.slug enrollment_id=enrollment.id %}"
+      {% if can_access_course_studio %}
+        <a href="{% url 'studio_courses_enrollment_edit' course_slug=enrollment.course.slug enrollment_id=enrollment.id %}"
            class="primer-button primer-button-secondary"
            title="Admin: Edit Enrollment">
           <i class="fas fa-cog"></i> Admin

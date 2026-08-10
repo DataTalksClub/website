@@ -12,12 +12,12 @@ identities, and verifies all copied destination checksums.
 | --- | --- | ---: |
 | Accounts | `accounts.urls` | 9 |
 | Compatibility API | `api.urls` | 29 |
-| Course administration | `cadmin.urls` | 26 |
+| Studio Courses | `cadmin.urls` | 26 |
 | Public courses | `courses.urls` | 25 |
 | **Total** |  | **89** |
 
-The compatibility API and cadmin rows below are the complete adopted surfaces; no
-replacement serializers, route redesign, or cadmin rewrite was introduced here.
+The compatibility API and Studio Courses rows below retain the complete adopted
+behavior; issue #115 changes the management adapter names and mount, not its logic.
 
 ## Routes
 
@@ -73,38 +73,38 @@ Mounted from `api.urls`.
 | `/api/courses/<slug:course_slug>/homeworks/<int:homework_id>/questions/` | `api_questions` | `api.views.questions.questions_view` |
 | `/api/courses/<slug:course_slug>/homeworks/<int:homework_id>/questions/<int:question_id>/` | `api_question_detail` | `api.views.questions.question_detail_view` |
 
-### Course administration
+### Studio Courses
 
 Mounted from `cadmin.urls`.
 
 | Route | Name | Callback |
 | --- | --- | --- |
-| `/cadmin/` | `cadmin_course_list` | `cadmin.views.course_admin.course_list` |
-| `/cadmin/campaigns/new/` | `cadmin_campaign_create` | `cadmin.views.campaigns.campaign_create` |
-| `/cadmin/campaigns/<slug:campaign_slug>/edit/` | `cadmin_campaign_edit` | `cadmin.views.campaigns.campaign_edit` |
-| `/cadmin/registrations/<slug:campaign_slug>/` | `cadmin_campaign_registrations` | `cadmin.views.campaigns.campaign_registrations` |
-| `/cadmin/datamailer/` | `cadmin_datamailer_operations` | `cadmin.views.datamailer.datamailer_operations` |
-| `/cadmin/datamailer/events/` | `cadmin_datamailer_events` | `cadmin.views.datamailer.datamailer_events` |
-| `/cadmin/cloudwatch/` | `cadmin_cloudwatch_dashboard` | `cadmin.views.observability.cloudwatch_dashboard` |
-| `/cadmin/<slug:course_slug>/` | `cadmin_course` | `cadmin.views.course_admin.course_admin` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/score` | `cadmin_homework_score` | `cadmin.views.homework.homework_score` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/rescore` | `cadmin_homework_rescore` | `cadmin.views.homework.homework_rescore` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/extend-deadline` | `cadmin_homework_extend_deadline` | `cadmin.views.homework.homework_extend_deadline` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/notify-scores` | `cadmin_homework_notify_scores` | `cadmin.views.homework.homework_notify_scores` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/save-answers` | `cadmin_homework_save_answers` | `cadmin.views.homework.homework_save_answers` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/set-correct-answers` | `cadmin_homework_set_correct_answers` | `cadmin.views.homework.homework_set_correct_answers` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/clear-correct-answers` | `cadmin_homework_clear_correct_answers` | `cadmin.views.homework.homework_clear_correct_answers` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/submissions` | `cadmin_homework_submissions` | `cadmin.views.homework.homework_submissions` |
-| `/cadmin/<slug:course_slug>/homework/<slug:homework_slug>/submissions/<int:submission_id>/edit` | `cadmin_homework_submission_edit` | `cadmin.views.homework.homework_submission_edit` |
-| `/cadmin/<slug:course_slug>/project/<slug:project_slug>/assign-reviews` | `cadmin_project_assign_reviews` | `cadmin.views.projects.project_assign_reviews` |
-| `/cadmin/<slug:course_slug>/project/<slug:project_slug>/extend-deadline` | `cadmin_project_extend_deadline` | `cadmin.views.projects.project_extend_deadline` |
-| `/cadmin/<slug:course_slug>/project/<slug:project_slug>/score` | `cadmin_project_score` | `cadmin.views.projects.project_score` |
-| `/cadmin/<slug:course_slug>/project/<slug:project_slug>/submissions` | `cadmin_project_submissions` | `cadmin.views.projects.project_submissions` |
-| `/cadmin/<slug:course_slug>/project/<slug:project_slug>/submissions/<int:submission_id>/edit` | `cadmin_project_submission_edit` | `cadmin.views.projects.project_submission_edit` |
-| `/cadmin/<slug:course_slug>/enrollments/` | `cadmin_enrollments` | `cadmin.views.enrollment.enrollments_list` |
-| `/cadmin/<slug:course_slug>/leaderboard-complaints/` | `cadmin_leaderboard_complaints` | `cadmin.views.enrollment.leaderboard_complaints` |
-| `/cadmin/<slug:course_slug>/leaderboard-complaints/<int:complaint_id>/resolve` | `cadmin_leaderboard_complaint_resolve` | `cadmin.views.enrollment.leaderboard_complaint_resolve` |
-| `/cadmin/<slug:course_slug>/enrollment/<int:enrollment_id>/edit` | `cadmin_enrollment_edit` | `cadmin.views.enrollment.enrollment_edit` |
+| `/studio/courses/` | `studio_courses_course_list` | `cadmin.views.course_admin.course_list` |
+| `/studio/courses/campaigns/new/` | `studio_courses_campaign_create` | `cadmin.views.campaigns.campaign_create` |
+| `/studio/courses/campaigns/<slug:campaign_slug>/edit/` | `studio_courses_campaign_edit` | `cadmin.views.campaigns.campaign_edit` |
+| `/studio/courses/registrations/<slug:campaign_slug>/` | `studio_courses_campaign_registrations` | `cadmin.views.campaigns.campaign_registrations` |
+| `/studio/courses/datamailer/` | `studio_courses_datamailer_operations` | `cadmin.views.datamailer.datamailer_operations` |
+| `/studio/courses/datamailer/events/` | `studio_courses_datamailer_events` | `cadmin.views.datamailer.datamailer_events` |
+| `/studio/courses/cloudwatch/` | `studio_courses_cloudwatch_dashboard` | `cadmin.views.observability.cloudwatch_dashboard` |
+| `/studio/courses/<slug:course_slug>/` | `studio_courses_course` | `cadmin.views.course_admin.course_admin` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/score` | `studio_courses_homework_score` | `cadmin.views.homework.homework_score` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/rescore` | `studio_courses_homework_rescore` | `cadmin.views.homework.homework_rescore` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/extend-deadline` | `studio_courses_homework_extend_deadline` | `cadmin.views.homework.homework_extend_deadline` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/notify-scores` | `studio_courses_homework_notify_scores` | `cadmin.views.homework.homework_notify_scores` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/save-answers` | `studio_courses_homework_save_answers` | `cadmin.views.homework.homework_save_answers` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/set-correct-answers` | `studio_courses_homework_set_correct_answers` | `cadmin.views.homework.homework_set_correct_answers` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/clear-correct-answers` | `studio_courses_homework_clear_correct_answers` | `cadmin.views.homework.homework_clear_correct_answers` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/submissions` | `studio_courses_homework_submissions` | `cadmin.views.homework.homework_submissions` |
+| `/studio/courses/<slug:course_slug>/homework/<slug:homework_slug>/submissions/<int:submission_id>/edit` | `studio_courses_homework_submission_edit` | `cadmin.views.homework.homework_submission_edit` |
+| `/studio/courses/<slug:course_slug>/project/<slug:project_slug>/assign-reviews` | `studio_courses_project_assign_reviews` | `cadmin.views.projects.project_assign_reviews` |
+| `/studio/courses/<slug:course_slug>/project/<slug:project_slug>/extend-deadline` | `studio_courses_project_extend_deadline` | `cadmin.views.projects.project_extend_deadline` |
+| `/studio/courses/<slug:course_slug>/project/<slug:project_slug>/score` | `studio_courses_project_score` | `cadmin.views.projects.project_score` |
+| `/studio/courses/<slug:course_slug>/project/<slug:project_slug>/submissions` | `studio_courses_project_submissions` | `cadmin.views.projects.project_submissions` |
+| `/studio/courses/<slug:course_slug>/project/<slug:project_slug>/submissions/<int:submission_id>/edit` | `studio_courses_project_submission_edit` | `cadmin.views.projects.project_submission_edit` |
+| `/studio/courses/<slug:course_slug>/enrollments/` | `studio_courses_enrollments` | `cadmin.views.enrollment.enrollments_list` |
+| `/studio/courses/<slug:course_slug>/leaderboard-complaints/` | `studio_courses_leaderboard_complaints` | `cadmin.views.enrollment.leaderboard_complaints` |
+| `/studio/courses/<slug:course_slug>/leaderboard-complaints/<int:complaint_id>/resolve` | `studio_courses_leaderboard_complaint_resolve` | `cadmin.views.enrollment.leaderboard_complaint_resolve` |
+| `/studio/courses/<slug:course_slug>/enrollment/<int:enrollment_id>/edit` | `studio_courses_enrollment_edit` | `cadmin.views.enrollment.enrollment_edit` |
 
 ### Public courses
 

@@ -98,7 +98,7 @@ def handle_campaign_datamailer_post(request, campaign):
     )
     if should_redirect:
         response = redirect(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             campaign_slug=campaign.slug,
         )
         return CampaignEditPostResult(
@@ -121,7 +121,7 @@ def handle_campaign_form_post(request, campaign):
         campaign = form.save()
         messages.success(request, "Registration landing page saved.")
         response = redirect(
-            "cadmin_campaign_edit",
+            "studio_courses_campaign_edit",
             campaign_slug=campaign.slug,
         )
         return CampaignEditPostResult(

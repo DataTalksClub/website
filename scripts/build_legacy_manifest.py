@@ -465,7 +465,10 @@ def _validated_course_routes(path: Path) -> dict[str, object]:
         "host",
         "name",
         "route_pattern",
+        "source_example_path",
         "source_id",
+        "source_name",
+        "source_route_pattern",
         "source_revision",
         "surface",
         "urlconf",
@@ -484,15 +487,33 @@ def _validated_course_routes(path: Path) -> dict[str, object]:
             or route["contract_kind"] not in {"api", "calendar", "html"}
         ):
             raise CliError("course route row policy is invalid")
-        for key in ("callback", "example_path", "route_pattern", "surface", "urlconf"):
+        for key in (
+            "callback",
+            "example_path",
+            "route_pattern",
+            "source_example_path",
+            "source_route_pattern",
+            "surface",
+            "urlconf",
+        ):
             if type(route[key]) is not str or not route[key]:
                 raise CliError("course route row value is invalid")
-        if not str(route["example_path"]).startswith("/") or not str(
-            route["route_pattern"]
-        ).startswith("/"):
+        if any(
+            not str(route[key]).startswith("/")
+            for key in (
+                "example_path",
+                "route_pattern",
+                "source_example_path",
+                "source_route_pattern",
+            )
+        ):
             raise CliError("course route row path is invalid")
         if route["name"] is not None and (type(route["name"]) is not str or not route["name"]):
             raise CliError("course route row name is invalid")
+        if route["source_name"] is not None and (
+            type(route["source_name"]) is not str or not route["source_name"]
+        ):
+            raise CliError("course source route name is invalid")
         identity = (
             route["urlconf"],
             route["route_pattern"],
@@ -505,10 +526,31 @@ def _validated_course_routes(path: Path) -> dict[str, object]:
     if Counter(route["surface"] for route in routes) != {
         "Accounts": 9,
         "Compatibility API": 29,
-        "Course administration": 26,
+        "Studio Courses": 26,
         "Public courses": 25,
     }:
         raise CliError("course route surface counts are invalid")
+    studio_routes = [route for route in routes if route["surface"] == "Studio Courses"]
+    if any(
+        not str(route["route_pattern"]).startswith("/studio/courses/")
+        or not str(route["example_path"]).startswith("/studio/courses/")
+        or not str(route["name"]).startswith("studio_courses_")
+        or route["source_route_pattern"]
+        != f"/cadmin/{str(route['route_pattern']).removeprefix('/studio/courses/')}"
+        or route["source_example_path"]
+        != f"/cadmin/{str(route['example_path']).removeprefix('/studio/courses/')}"
+        or route["source_name"] != f"cadmin_{str(route['name']).removeprefix('studio_courses_')}"
+        for route in studio_routes
+    ):
+        raise CliError("Studio Courses canonical route contract is invalid")
+    if any(
+        route["source_route_pattern"] != route["route_pattern"]
+        or route["source_example_path"] != route["example_path"]
+        or route["source_name"] != route["name"]
+        for route in routes
+        if route["surface"] != "Studio Courses"
+    ):
+        raise CliError("unchanged course route source identity is invalid")
     return value
 
 

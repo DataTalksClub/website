@@ -97,7 +97,7 @@ def handle_project_submission_edit_post(data):
         f"Project submission for {data.submission.student.username} updated successfully",
     )
     response = redirect(
-        "cadmin_project_submissions",
+        "studio_courses_project_submissions",
         course_slug=data.course.slug,
         project_slug=data.project.slug,
     )

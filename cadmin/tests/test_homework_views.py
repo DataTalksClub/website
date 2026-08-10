@@ -4,22 +4,20 @@ from unittest.mock import patch
 from django.urls import reverse
 from django.utils import timezone
 
+from cadmin.tests.homework_view_base import HomeworkCadminViewTestBase
 from courses.models import (
-    HomeworkState,
-    User,
     Enrollment,
+    HomeworkState,
     Question,
     QuestionTypes,
+    User,
 )
-from cadmin.tests.homework_view_base import HomeworkCadminViewTestBase
 
 
 class HomeworkCadminSubmissionViewTests(HomeworkCadminViewTestBase):
     def test_homework_submissions_redirect_from_courses(self):
-        """Test that homework submissions view redirects to cadmin"""
-        self.client.login(
-            username="admin@test.com", password="admin123"
-        )
+        """Homework submissions redirect to the Studio course workspace."""
+        self.client.login(username="admin@test.com", password="admin123")
         url = reverse(
             "homework_submissions",
             kwargs={
@@ -29,15 +27,13 @@ class HomeworkCadminSubmissionViewTests(HomeworkCadminViewTestBase):
         )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 302)
-        self.assertIn("cadmin", response.url)
+        self.assertIn("/studio/courses/", response.url)
 
-    def test_cadmin_homework_submissions_staff_allowed(self):
+    def test_studio_courses_homework_submissions_staff_allowed(self):
         """Test that staff users can view homework submissions in cadmin"""
-        self.client.login(
-            username="admin@test.com", password="admin123"
-        )
+        self.client.login(username="admin@test.com", password="admin123")
         url = reverse(
-            "cadmin_homework_submissions",
+            "studio_courses_homework_submissions",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -47,16 +43,14 @@ class HomeworkCadminSubmissionViewTests(HomeworkCadminViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.homework.title)
 
-    def test_cadmin_homework_submissions_hides_answer_previews(self):
+    def test_studio_courses_homework_submissions_hides_answer_previews(self):
         """Submission lists stay compact and link to the edit page."""
-        answer_text = (
-            "This long answer should only be visible after opening the submission."
-        )
+        answer_text = "This long answer should only be visible after opening the submission."
         submission = self.create_submission_with_answer_preview(answer_text)
 
         self.login_admin()
 
-        submissions_url = self.cadmin_homework_submissions_url()
+        submissions_url = self.studio_courses_homework_submissions_url()
         response = self.client.get(submissions_url)
 
         self.assertEqual(response.status_code, 200)
@@ -68,11 +62,11 @@ class HomeworkCadminSubmissionViewTests(HomeworkCadminViewTestBase):
             edit_url,
         )
 
-    def test_cadmin_homework_submissions_shows_course_actions(self):
+    def test_studio_courses_homework_submissions_shows_course_actions(self):
         """Homework submissions page exposes the same homework actions as course admin."""
         self.login_admin()
 
-        submissions_url = self.cadmin_homework_submissions_url()
+        submissions_url = self.studio_courses_homework_submissions_url()
         response = self.client.get(submissions_url)
 
         self.assertEqual(response.status_code, 200)
@@ -92,7 +86,7 @@ class HomeworkCadminSubmissionViewTests(HomeworkCadminViewTestBase):
 
         self.login_admin()
 
-        response = self.client.get(self.cadmin_homework_submissions_url())
+        response = self.client.get(self.studio_courses_homework_submissions_url())
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Multiple Choice")
@@ -105,51 +99,41 @@ class HomeworkCadminActionRedirectTests(HomeworkCadminViewTestBase):
         self,
     ):
         self.login_admin()
-        submissions_url = self.cadmin_homework_submissions_url()
+        submissions_url = self.studio_courses_homework_submissions_url()
 
-        response = self.post_homework_action_to_submissions(
-            "cadmin_homework_set_correct_answers"
-        )
+        response = self.post_homework_action_to_submissions("studio_courses_homework_set_correct_answers")
         self.assertRedirects(response, submissions_url)
 
-        response = self.post_homework_action_to_submissions(
-            "cadmin_homework_clear_correct_answers"
-        )
+        response = self.post_homework_action_to_submissions("studio_courses_homework_clear_correct_answers")
         self.assertRedirects(response, submissions_url)
 
     def test_homework_actions_ignore_unsafe_next_redirects(self):
-        self.client.login(
-            username="admin@test.com", password="admin123"
-        )
+        self.client.login(username="admin@test.com", password="admin123")
         action_url = reverse(
-            "cadmin_homework_set_correct_answers",
+            "studio_courses_homework_set_correct_answers",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
             },
         )
 
-        response = self.client.post(
-            action_url, {"next": "https://example.com/"}
-        )
+        response = self.client.post(action_url, {"next": "https://example.com/"})
 
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
 
 
 class HomeworkCadminExtendDeadlineTests(HomeworkCadminViewTestBase):
     def extend_deadline_url(self):
-        return self.homework_action_url("cadmin_homework_extend_deadline")
+        return self.homework_action_url("studio_courses_homework_extend_deadline")
 
     def test_extend_deadline_moves_due_date(self):
         self.login_admin()
         original_due_date = self.homework.due_date
 
-        response = self.client.post(
-            self.extend_deadline_url(), {"days": 3}, follow=True
-        )
+        response = self.client.post(self.extend_deadline_url(), {"days": 3}, follow=True)
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         self.homework.refresh_from_db()
         self.assertEqual(
             self.homework.due_date,
@@ -158,7 +142,7 @@ class HomeworkCadminExtendDeadlineTests(HomeworkCadminViewTestBase):
 
     def test_extend_deadline_can_redirect_back_to_submissions(self):
         self.login_admin()
-        submissions_url = self.cadmin_homework_submissions_url()
+        submissions_url = self.studio_courses_homework_submissions_url()
 
         response = self.client.post(
             self.extend_deadline_url(),
@@ -171,11 +155,9 @@ class HomeworkCadminExtendDeadlineTests(HomeworkCadminViewTestBase):
         self.login_admin()
         original_due_date = self.homework.due_date
 
-        response = self.client.post(
-            self.extend_deadline_url(), {"days": 5}
-        )
+        response = self.client.post(self.extend_deadline_url(), {"days": 5})
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         self.homework.refresh_from_db()
         self.assertEqual(self.homework.due_date, original_due_date)
 
@@ -185,11 +167,9 @@ class HomeworkCadminExtendDeadlineTests(HomeworkCadminViewTestBase):
         self.login_admin()
         original_due_date = self.homework.due_date
 
-        response = self.client.post(
-            self.extend_deadline_url(), {"days": 3}
-        )
+        response = self.client.post(self.extend_deadline_url(), {"days": 3})
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         self.homework.refresh_from_db()
         self.assertEqual(self.homework.due_date, original_due_date)
 
@@ -209,11 +189,9 @@ class HomeworkCadminSearchTests(HomeworkCadminViewTestBase):
                 display_name=f"Student {index:02d}",
             )
 
-        self.client.login(
-            username="admin@test.com", password="admin123"
-        )
+        self.client.login(username="admin@test.com", password="admin123")
         enrollments_url = reverse(
-            "cadmin_enrollments",
+            "studio_courses_enrollments",
             kwargs={"course_slug": self.course.slug},
         )
         response = self.client.get(
@@ -231,10 +209,8 @@ class HomeworkCadminSearchTests(HomeworkCadminViewTestBase):
         """Homework submission search is server-side across all submissions."""
         self.create_homework_search_submissions(30)
 
-        self.client.login(
-            username="admin@test.com", password="admin123"
-        )
-        submissions_url = self.cadmin_homework_submissions_url()
+        self.client.login(username="admin@test.com", password="admin123")
+        submissions_url = self.studio_courses_homework_submissions_url()
         response = self.client.get(
             submissions_url,
             {"q": "hw-student-29"},
@@ -247,9 +223,7 @@ class HomeworkCadminSearchTests(HomeworkCadminViewTestBase):
 
 class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
     @patch("cadmin.views.homework.send_homework_score_notification")
-    def test_homework_score_shows_message_without_notifying(
-        self, send_score_notification
-    ):
+    def test_homework_score_shows_message_without_notifying(self, send_score_notification):
         """Scoring shows a message but does not email students.
 
         Notifications are a separate action so a slow Datamailer send
@@ -257,11 +231,9 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
         """
         self.homework.due_date = timezone.now() - timedelta(hours=1)
         self.homework.save(update_fields=["due_date"])
-        self.client.login(
-            username="admin@test.com", password="admin123"
-        )
+        self.client.login(username="admin@test.com", password="admin123")
         url = reverse(
-            "cadmin_homework_score",
+            "studio_courses_homework_score",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -270,7 +242,7 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
         response = self.client.post(url, follow=True)
 
         # Should redirect to course admin page
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
 
         # Check that a message was added
@@ -280,15 +252,13 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
         send_score_notification.assert_not_called()
 
     @patch("cadmin.views.homework.send_homework_score_notification")
-    def test_homework_notify_scores_sends_notification(
-        self, send_score_notification
-    ):
+    def test_homework_notify_scores_sends_notification(self, send_score_notification):
         """The notify action emails students for a scored homework."""
         self.homework.state = HomeworkState.SCORED.value
         self.homework.save(update_fields=["state"])
         self.login_admin()
         url = reverse(
-            "cadmin_homework_notify_scores",
+            "studio_courses_homework_notify_scores",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -297,21 +267,19 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
 
         response = self.client.post(url, follow=True)
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         send_score_notification.assert_called_once_with(self.homework)
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
 
     @patch("cadmin.views.homework.send_homework_score_notification")
-    def test_homework_notify_scores_requires_scored_homework(
-        self, send_score_notification
-    ):
+    def test_homework_notify_scores_requires_scored_homework(self, send_score_notification):
         """Notifying an unscored homework warns and sends nothing."""
         self.homework.state = HomeworkState.OPEN.value
         self.homework.save(update_fields=["state"])
         self.login_admin()
         url = reverse(
-            "cadmin_homework_notify_scores",
+            "studio_courses_homework_notify_scores",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -320,7 +288,7 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
 
         response = self.client.post(url, follow=True)
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         send_score_notification.assert_not_called()
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
@@ -328,7 +296,7 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
     def test_course_admin_shows_most_frequent_answer_action(self):
         self.create_homework_submission()
 
-        response = self.cadmin_course_response()
+        response = self.studio_courses_course_response()
 
         self.assertEqual(response.status_code, 200)
         self.assert_homework_submission_actions(response)
@@ -344,15 +312,13 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
         self.create_homework_answer_frequency(question, ["2", "2", "1"])
 
         self.login_admin()
-        action_url = self.homework_action_url(
-            "cadmin_homework_set_correct_answers"
-        )
+        action_url = self.homework_action_url("studio_courses_homework_set_correct_answers")
         response = self.client.post(
             action_url,
             follow=True,
         )
 
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
         question.refresh_from_db()
         self.assertEqual(question.correct_answer, "2")
@@ -376,15 +342,13 @@ class HomeworkCadminScoringActionTests(HomeworkCadminViewTestBase):
         )
 
         self.login_admin()
-        action_url = self.homework_action_url(
-            "cadmin_homework_clear_correct_answers"
-        )
+        action_url = self.homework_action_url("studio_courses_homework_clear_correct_answers")
         response = self.client.post(
             action_url,
             follow=True,
         )
 
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
         first_question.refresh_from_db()
         second_question.refresh_from_db()
@@ -405,7 +369,7 @@ class HomeworkCadminRescoreTests(HomeworkCadminViewTestBase):
 
     def test_submissions_page_shows_rescore_for_scored_homework(self):
         self.login_admin()
-        submissions_url = self.cadmin_homework_submissions_url()
+        submissions_url = self.studio_courses_homework_submissions_url()
         response = self.client.get(submissions_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Rescore")
@@ -415,7 +379,7 @@ class HomeworkCadminRescoreTests(HomeworkCadminViewTestBase):
         self.homework.state = HomeworkState.OPEN.value
         self.homework.save(update_fields=["state"])
         self.login_admin()
-        submissions_url = self.cadmin_homework_submissions_url()
+        submissions_url = self.studio_courses_homework_submissions_url()
         response = self.client.get(submissions_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Score submissions")
@@ -424,7 +388,7 @@ class HomeworkCadminRescoreTests(HomeworkCadminViewTestBase):
     def test_submissions_page_shows_correct_answers_section(self):
         self.create_free_form_question()
         self.login_admin()
-        submissions_url = self.cadmin_homework_submissions_url()
+        submissions_url = self.studio_courses_homework_submissions_url()
         response = self.client.get(submissions_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Correct answers")
@@ -433,7 +397,7 @@ class HomeworkCadminRescoreTests(HomeworkCadminViewTestBase):
     def test_rescore_reruns_scoring(self):
         self.login_admin()
         url = reverse(
-            "cadmin_homework_rescore",
+            "studio_courses_homework_rescore",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -441,7 +405,7 @@ class HomeworkCadminRescoreTests(HomeworkCadminViewTestBase):
         )
         response = self.client.post(url, follow=True)
 
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
@@ -452,7 +416,7 @@ class HomeworkCadminRescoreTests(HomeworkCadminViewTestBase):
         self.homework.save()
         self.login_admin()
         url = reverse(
-            "cadmin_homework_rescore",
+            "studio_courses_homework_rescore",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -460,7 +424,7 @@ class HomeworkCadminRescoreTests(HomeworkCadminViewTestBase):
         )
         response = self.client.post(url, follow=True)
 
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
         messages = list(response.context["messages"])
         self.assertEqual(len(messages), 1)
@@ -475,7 +439,7 @@ class HomeworkCadminInlineAnswersTests(HomeworkCadminViewTestBase):
 
     def submissions_url(self):
         return reverse(
-            "cadmin_homework_submissions",
+            "studio_courses_homework_submissions",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -500,20 +464,24 @@ class HomeworkCadminInlineAnswersTests(HomeworkCadminViewTestBase):
     def test_save_answers_updates_questions(self):
         self.login_admin()
         save_url = reverse(
-            "cadmin_homework_save_answers",
+            "studio_courses_homework_save_answers",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
             },
         )
-        response = self.client.post(save_url, {
-            f"correct_answer_{self.question1.id}": "99",
-            f"answer_type_{self.question1.id}": "INT",
-            f"correct_answer_{self.question2.id}": "3",
-            f"answer_type_{self.question2.id}": "",
-        }, follow=True)
+        response = self.client.post(
+            save_url,
+            {
+                f"correct_answer_{self.question1.id}": "99",
+                f"answer_type_{self.question1.id}": "INT",
+                f"correct_answer_{self.question2.id}": "3",
+                f"answer_type_{self.question2.id}": "",
+            },
+            follow=True,
+        )
 
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
         self.question1.refresh_from_db()
         self.question2.refresh_from_db()
@@ -554,20 +522,24 @@ class HomeworkCadminInlineAnswersTests(HomeworkCadminViewTestBase):
         )
         self.login_admin()
         save_url = reverse(
-            "cadmin_homework_save_answers",
+            "studio_courses_homework_save_answers",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
             },
         )
-        response = self.client.post(save_url, {
-            f"correct_answer_{self.question1.id}": "4",
-            f"answer_type_{self.question1.id}": "INT",
-            f"correct_answer_{self.question2.id}": "2",
-            f"correct_answer_{cb_question.id}": ["1", "3"],
-        }, follow=True)
+        response = self.client.post(
+            save_url,
+            {
+                f"correct_answer_{self.question1.id}": "4",
+                f"answer_type_{self.question1.id}": "INT",
+                f"correct_answer_{self.question2.id}": "2",
+                f"correct_answer_{cb_question.id}": ["1", "3"],
+            },
+            follow=True,
+        )
 
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         self.assertRedirects(response, course_url)
         cb_question.refresh_from_db()
         self.assertEqual(cb_question.correct_answer, "1,3")

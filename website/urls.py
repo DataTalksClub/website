@@ -4,6 +4,7 @@ from django.urls import include, path
 
 from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
+from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from core import views as core_views
 from courses import urls as course_urls
@@ -44,6 +45,7 @@ urlpatterns = [
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
     path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),
+    path("studio/courses/", include("cadmin.urls")),
     path("studio/", include("studio.urls")),
     path("api/v1/admin/", include("website.admin_api_urls")),
     path("admin", core_views.management_slash_redirect, name="admin-slash-redirect"),
@@ -68,7 +70,12 @@ urlpatterns = [
         name="compatibility-account-identity",
     ),
     path("api/", include("api.urls")),
-    path("cadmin/", include("cadmin.urls")),
+    path(
+        "cadmin",
+        legacy_course_list_redirect,
+        name="legacy-studio-courses-root",
+    ),
+    path("cadmin/", include("cadmin.legacy_urls")),
     path(
         "courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
         review_views.course_cohort,

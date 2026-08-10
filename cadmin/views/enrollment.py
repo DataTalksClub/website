@@ -43,7 +43,7 @@ def leaderboard_complaints(request, course_slug):
 def leaderboard_complaint_resolve(request, course_slug, complaint_id):
     if request.method != "POST":
         response = redirect(
-            "cadmin_leaderboard_complaints", course_slug=course_slug
+            "studio_courses_leaderboard_complaints", course_slug=course_slug
         )
         return response
 

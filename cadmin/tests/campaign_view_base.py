@@ -1,5 +1,6 @@
 from django.test import Client, TestCase
 
+from accounts.studio_test_support import grant_studio_role
 from courses.models import Course, RegistrationCampaign, User
 
 
@@ -33,6 +34,7 @@ class CampaignCadminViewBase(TestCase):
             password="admin123",
             is_staff=True,
         )
+        grant_studio_role(self.admin_user, "course_operator")
         self.course = Course.objects.create(
             slug="test-course",
             title="Test Course",

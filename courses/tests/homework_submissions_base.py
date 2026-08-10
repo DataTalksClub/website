@@ -4,6 +4,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.studio_test_support import grant_studio_role
 from courses.models import (
     Answer,
     AnswerTypes,
@@ -33,13 +34,14 @@ class AnsweredFreeFormQuestionData:
 
 class HomeworkSubmissionsViewTestBase(TestCase):
     def create_admin_user(self):
-        return User.objects.create_user(
+        user = User.objects.create_user(
             username="admin@test.com",
             email="admin@test.com",
             password="admin123",
             is_staff=True,
             is_superuser=True,
         )
+        return grant_studio_role(user, "course_operator")
 
     def create_course(self):
         return Course.objects.create(
@@ -104,9 +106,9 @@ class HomeworkSubmissionsViewTestBase(TestCase):
             },
         )
 
-    def cadmin_submission_edit_url(self):
+    def studio_courses_submission_edit_url(self):
         return reverse(
-            "cadmin_homework_submission_edit",
+            "studio_courses_homework_submission_edit",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -114,9 +116,9 @@ class HomeworkSubmissionsViewTestBase(TestCase):
             },
         )
 
-    def cadmin_homework_submissions_url(self):
+    def studio_courses_homework_submissions_url(self):
         return reverse(
-            "cadmin_homework_submissions",
+            "studio_courses_homework_submissions",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -206,5 +208,5 @@ class HomeworkSubmissionsViewTestBase(TestCase):
         self.assertIn(self.user.email, content)
         self.assertIn("Score", content)
         self.assertIn("Open", content)
-        edit_url = self.cadmin_submission_edit_url()
+        edit_url = self.studio_courses_submission_edit_url()
         self.assertIn(edit_url, content)

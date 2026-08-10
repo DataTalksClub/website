@@ -1,19 +1,20 @@
-from django.test import TestCase, Client
-from django.urls import reverse
-from django.utils import timezone
 from datetime import timedelta
 
+from django.test import Client, TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from accounts.studio_test_support import grant_studio_role
 from courses.models import (
-    User,
     Course,
-    Project,
-    ProjectSubmission,
-    ProjectState,
     Enrollment,
     PeerReview,
     PeerReviewState,
+    Project,
+    ProjectState,
+    ProjectSubmission,
+    User,
 )
-
 
 credentials = dict(
     username="test@test.com",
@@ -24,12 +25,13 @@ credentials = dict(
 
 class ProjectSubmissionsViewTestBase(TestCase):
     def create_admin_user(self):
-        return User.objects.create_user(
+        user = User.objects.create_user(
             username="admin@test.com",
             email="admin@test.com",
             password="admin123",
             is_staff=True,
         )
+        return grant_studio_role(user, "course_operator")
 
     def create_course(self):
         return Course.objects.create(
@@ -90,9 +92,9 @@ class ProjectSubmissionsViewTestBase(TestCase):
             },
         )
 
-    def cadmin_project_submissions_url(self):
+    def studio_courses_project_submissions_url(self):
         return reverse(
-            "cadmin_project_submissions",
+            "studio_courses_project_submissions",
             kwargs={
                 "course_slug": self.course.slug,
                 "project_slug": self.project.slug,
@@ -110,9 +112,7 @@ class ProjectSubmissionsViewTestBase(TestCase):
             follow=True,
         )
 
-    def create_user_submission(
-        self, index, score=90, commit_id=None
-    ):
+    def create_user_submission(self, index, score=90, commit_id=None):
         user = User.objects.create_user(
             username=f"user{index}@test.com",
             email=f"user{index}@test.com",
@@ -250,11 +250,9 @@ class ProjectSubmissionsAdminLinkTests(ProjectSubmissionsViewTestBase):
         response = self.client.get(project_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(
-            response, "Manage project in cadmin"
-        )
-        cadmin_submissions_url = self.cadmin_project_submissions_url()
-        self.assertContains(response, cadmin_submissions_url)
+        self.assertContains(response, "Manage project in Studio")
+        studio_courses_submissions_url = self.studio_courses_project_submissions_url()
+        self.assertContains(response, studio_courses_submissions_url)
 
     def test_admin_link_not_visible_to_regular_users(self):
         """Test that the admin link is not visible to regular users"""
@@ -263,9 +261,7 @@ class ProjectSubmissionsAdminLinkTests(ProjectSubmissionsViewTestBase):
         response = self.client.get(project_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(
-            response, "Manage project in cadmin"
-        )
+        self.assertNotContains(response, "Manage project in Studio")
 
 
 class ProjectSubmissionsPeerReviewTests(ProjectSubmissionsViewTestBase):
@@ -287,7 +283,7 @@ class ProjectSubmissionsCopyEmailTests(ProjectSubmissionsViewTestBase):
         self.assertEqual(response.status_code, 200)
         # Check that the copy button is present
         self.assertContains(response, 'id="copyEmailsBtn"')
-        self.assertContains(response, 'Copy All Emails')
+        self.assertContains(response, "Copy All Emails")
         # Check that the feedback span is present
         self.assertContains(response, 'id="copyFeedback"')
 

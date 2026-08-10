@@ -148,8 +148,11 @@ make compatibility-artifacts-check
   `courses.datatalks.club/robots.txt`; five action endpoints are anonymous GET-denial probes, not
   mutation authorization. It explicitly marks configured contracts absent from a generated tree.
 - `course-route-contracts.json` contains all 89 adopted Django route patterns: 9 accounts, 29 API,
-  26 course-administration, and 25 public-course routes. Parameterized routes use illustrative
-  paths only; they are not evidence that production objects or authenticated responses exist.
+  26 canonical Studio Courses, and 25 public-course routes. The Studio rows retain the pinned CMP
+  source revision and callbacks while recording the target-owned `/studio/courses` mount and
+  `studio_courses_*` names. The configured `/cadmin` machine samples remain the separately checked
+  one-hop compatibility surface. Parameterized routes use illustrative paths only; they are not
+  evidence that production objects or authenticated responses exist.
 - `public-contracts.jsonl` is the canonical reconciliation of those inputs: 5,507 exact URL
   contracts with stable IDs, source provenance, expected status where known, and separate
   classification and parity-review state. Its per-row schema is

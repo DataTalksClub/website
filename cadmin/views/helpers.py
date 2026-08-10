@@ -4,6 +4,8 @@ from django.db.models import Count
 from django.shortcuts import redirect
 from django.utils.http import url_has_allowed_host_and_scheme
 
+from accounts.navigation import can_access_course_studio
+
 
 CADMIN_PAGE_SIZE = 25
 
@@ -46,14 +48,14 @@ def first_form_error(form):
     return "Invalid form data"
 
 
-def is_authenticated_staff(user):
-    return user.is_authenticated and user.is_staff
+def is_course_studio_operator(user):
+    return can_access_course_studio(user)
 
 
 def staff_required(function):
-    """Decorator to require staff/admin access"""
+    """Require one of the two roles authorized for Studio course operations."""
     actual_decorator = user_passes_test(
-        is_authenticated_staff,
+        is_course_studio_operator,
         login_url="/accounts/login/",
     )
     return actual_decorator(function)

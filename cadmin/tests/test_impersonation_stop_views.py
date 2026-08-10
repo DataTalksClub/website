@@ -34,7 +34,7 @@ class StopImpersonatingCadminViewTests(ImpersonationCadminViewTestBase):
         login_url = self.login_as_user_url()
         course_list_url = reverse("course_list")
         stop_url = reverse("stop_impersonating")
-        cadmin_course_list_url = reverse("cadmin_course_list")
+        studio_courses_course_list_url = reverse("studio_courses_course_list")
 
         self.client.login(**admin_credentials)
         self.client.post(login_url)
@@ -44,7 +44,7 @@ class StopImpersonatingCadminViewTests(ImpersonationCadminViewTestBase):
 
         response = self.client.post(stop_url)
 
-        self.assertRedirects(response, cadmin_course_list_url)
+        self.assertRedirects(response, studio_courses_course_list_url)
         response = self.client.get(course_list_url)
         self.assertEqual(response.wsgi_request.user, self.admin_user)
         self.assertNotContains(response, "impersonation-banner")
@@ -58,7 +58,7 @@ class StopImpersonatingCsrfCadminViewTests(ImpersonationCadminViewTestBase):
         login_url = self.login_as_user_url()
         course_list_url = reverse("course_list")
         stop_url = reverse("stop_impersonating")
-        cadmin_course_list_url = reverse("cadmin_course_list")
+        studio_courses_course_list_url = reverse("studio_courses_course_list")
 
         csrf_client.login(**admin_credentials)
         response = csrf_client.get(course_list_url)
@@ -75,6 +75,6 @@ class StopImpersonatingCsrfCadminViewTests(ImpersonationCadminViewTestBase):
 
         response = csrf_client.post(stop_url, csrf_payload)
 
-        self.assertRedirects(response, cadmin_course_list_url)
+        self.assertRedirects(response, studio_courses_course_list_url)
         response = csrf_client.get(course_list_url)
         self.assertEqual(response.wsgi_request.user, self.admin_user)

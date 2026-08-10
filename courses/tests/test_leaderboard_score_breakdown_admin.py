@@ -1,3 +1,4 @@
+from accounts.studio_test_support import grant_studio_role
 from courses.models import User
 from courses.tests.leaderboard_base import LeaderboardTestBase
 
@@ -6,6 +7,7 @@ class LeaderboardScoreBreakdownAdminTestCase(LeaderboardTestBase):
     def test_score_breakdown_admin_button_visible_for_staff(self):
         enrollment = self.create_student("student1")
         admin_user = User.objects.create_user(username="admin", is_staff=True)
+        grant_studio_role(admin_user, "course_operator")
 
         self.client.force_login(admin_user)
         url = self.score_breakdown_url(enrollment)

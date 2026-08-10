@@ -57,10 +57,10 @@
     {% endif %}
   </div>
 
-  {% if user.is_staff %}
+  {% if can_access_course_studio %}
     <div class="mt-6">
-      <a href="{% url 'cadmin_course' course.slug %}" class="inline-flex items-center text-sm font-medium app-link">
-        <i class="fas fa-cog mr-2"></i> Manage course in cadmin
+      <a href="{% url 'studio_courses_course' course.slug %}" class="inline-flex items-center text-sm font-medium app-link">
+        <i class="fas fa-cog mr-2"></i> Manage course in Studio
       </a>
     </div>
   {% endif %}

@@ -98,6 +98,6 @@ def resolve_leaderboard_complaint_response(request, course, complaint_id):
 
     messages.success(request, "Flag marked as resolved.")
     response = redirect(
-        "cadmin_leaderboard_complaints", course_slug=course.slug
+        "studio_courses_leaderboard_complaints", course_slug=course.slug
     )
     return response

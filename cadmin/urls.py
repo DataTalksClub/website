@@ -1,138 +1,140 @@
-from django.urls import path
+from collections.abc import Callable
 
-from .views import campaigns
-from .views import course_admin
-from .views import datamailer
-from .views import enrollment
-from .views import homework
-from .views import observability
-from .views import projects
+from django.http import HttpResponse
+from django.urls import URLPattern, path
 
-urlpatterns = [
-    path("", course_admin.course_list, name="cadmin_course_list"),
-    path(
-        "campaigns/new/",
-        campaigns.campaign_create,
-        name="cadmin_campaign_create",
-    ),
-    path(
+from .views import (
+    campaigns,
+    course_admin,
+    datamailer,
+    enrollment,
+    homework,
+    observability,
+    projects,
+)
+
+RouteDefinition = tuple[str, Callable[..., HttpResponse], str]
+
+ROUTE_DEFINITIONS: tuple[RouteDefinition, ...] = (
+    ("", course_admin.course_list, "course_list"),
+    ("campaigns/new/", campaigns.campaign_create, "campaign_create"),
+    (
         "campaigns/<slug:campaign_slug>/edit/",
         campaigns.campaign_edit,
-        name="cadmin_campaign_edit",
+        "campaign_edit",
     ),
-    path(
+    (
         "registrations/<slug:campaign_slug>/",
         campaigns.campaign_registrations,
-        name="cadmin_campaign_registrations",
+        "campaign_registrations",
     ),
-    path(
-        "datamailer/",
-        datamailer.datamailer_operations,
-        name="cadmin_datamailer_operations",
-    ),
-    path(
-        "datamailer/events/",
-        datamailer.datamailer_events,
-        name="cadmin_datamailer_events",
-    ),
-    path(
+    ("datamailer/", datamailer.datamailer_operations, "datamailer_operations"),
+    ("datamailer/events/", datamailer.datamailer_events, "datamailer_events"),
+    (
         "cloudwatch/",
         observability.cloudwatch_dashboard,
-        name="cadmin_cloudwatch_dashboard",
+        "cloudwatch_dashboard",
     ),
-    path(
-        "<slug:course_slug>/",
-        course_admin.course_admin,
-        name="cadmin_course",
-    ),
-    path(
+    ("<slug:course_slug>/", course_admin.course_admin, "course"),
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/score",
         homework.homework_score,
-        name="cadmin_homework_score",
+        "homework_score",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/rescore",
         homework.homework_rescore,
-        name="cadmin_homework_rescore",
+        "homework_rescore",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/extend-deadline",
         homework.homework_extend_deadline,
-        name="cadmin_homework_extend_deadline",
+        "homework_extend_deadline",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/notify-scores",
         homework.homework_notify_scores,
-        name="cadmin_homework_notify_scores",
+        "homework_notify_scores",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/save-answers",
         homework.homework_save_answers,
-        name="cadmin_homework_save_answers",
+        "homework_save_answers",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/set-correct-answers",
         homework.homework_set_correct_answers,
-        name="cadmin_homework_set_correct_answers",
+        "homework_set_correct_answers",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/clear-correct-answers",
         homework.homework_clear_correct_answers,
-        name="cadmin_homework_clear_correct_answers",
+        "homework_clear_correct_answers",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/submissions",
         homework.homework_submissions,
-        name="cadmin_homework_submissions",
+        "homework_submissions",
     ),
-    path(
+    (
         "<slug:course_slug>/homework/<slug:homework_slug>/submissions/<int:submission_id>/edit",
         homework.homework_submission_edit,
-        name="cadmin_homework_submission_edit",
+        "homework_submission_edit",
     ),
-    path(
+    (
         "<slug:course_slug>/project/<slug:project_slug>/assign-reviews",
         projects.project_assign_reviews,
-        name="cadmin_project_assign_reviews",
+        "project_assign_reviews",
     ),
-    path(
+    (
         "<slug:course_slug>/project/<slug:project_slug>/extend-deadline",
         projects.project_extend_deadline,
-        name="cadmin_project_extend_deadline",
+        "project_extend_deadline",
     ),
-    path(
+    (
         "<slug:course_slug>/project/<slug:project_slug>/score",
         projects.project_score,
-        name="cadmin_project_score",
+        "project_score",
     ),
-    path(
+    (
         "<slug:course_slug>/project/<slug:project_slug>/submissions",
         projects.project_submissions,
-        name="cadmin_project_submissions",
+        "project_submissions",
     ),
-    path(
+    (
         "<slug:course_slug>/project/<slug:project_slug>/submissions/<int:submission_id>/edit",
         projects.project_submission_edit,
-        name="cadmin_project_submission_edit",
+        "project_submission_edit",
     ),
-    path(
+    (
         "<slug:course_slug>/enrollments/",
         enrollment.enrollments_list,
-        name="cadmin_enrollments",
+        "enrollments",
     ),
-    path(
+    (
         "<slug:course_slug>/leaderboard-complaints/",
         enrollment.leaderboard_complaints,
-        name="cadmin_leaderboard_complaints",
+        "leaderboard_complaints",
     ),
-    path(
+    (
         "<slug:course_slug>/leaderboard-complaints/<int:complaint_id>/resolve",
         enrollment.leaderboard_complaint_resolve,
-        name="cadmin_leaderboard_complaint_resolve",
+        "leaderboard_complaint_resolve",
     ),
-    path(
+    (
         "<slug:course_slug>/enrollment/<int:enrollment_id>/edit",
         enrollment.enrollment_edit,
-        name="cadmin_enrollment_edit",
+        "enrollment_edit",
     ),
-]
+)
+
+
+def _patterns(name_prefix: str) -> list[URLPattern]:
+    return [
+        path(route, view, name=f"{name_prefix}{name}") for route, view, name in ROUTE_DEFINITIONS
+    ]
+
+
+# The copied operation inventory keeps its implementation in this package, while every
+# route name exposed by the unified platform uses the Studio Courses product language.
+urlpatterns = _patterns("studio_courses_")

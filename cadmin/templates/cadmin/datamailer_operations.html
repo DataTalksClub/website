@@ -3,11 +3,11 @@
 {% block title %}Datamailer operations{% endblock %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'cadmin_course_list' %}">Course Admin</a></li>
+  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
   <li>Datamailer operations</li>
 {% endblock %}
 
-{% block cadmin_content %}
+{% block studio_courses_content %}
 <section class="border-b app-border pb-5">
   <div class="min-w-0">
     <p class="text-xs font-semibold uppercase tracking-wide app-muted">Operations</p>
@@ -15,7 +15,7 @@
     <p class="mt-1 text-sm app-muted">Delivery health, API errors, and send audit counts.</p>
   </div>
   <div class="mt-3 flex flex-wrap gap-2">
-    <a href="{% url 'cadmin_datamailer_events' %}" class="primer-button primer-button-secondary">
+    <a href="{% url 'studio_courses_datamailer_events' %}" class="primer-button primer-button-secondary">
       <i class="fas fa-envelope-open-text" aria-hidden="true"></i> Callback log
     </a>
     <a href="/admin/data/datamaileroutboxevent/" class="primer-button primer-button-secondary">

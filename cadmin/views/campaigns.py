@@ -29,7 +29,7 @@ def campaign_create(request):
                 request, "Registration landing page created."
             )
             response = redirect(
-                "cadmin_campaign_edit", campaign_slug=campaign.slug
+                "studio_courses_campaign_edit", campaign_slug=campaign.slug
             )
             return response
     else:

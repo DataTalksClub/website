@@ -747,6 +747,17 @@ def _course_route_document(workspace: Path) -> dict[str, object]:
     rows: list[dict[str, object]] = []
     for route in route_entries():
         route_pattern = f"/{route.route}"
+        source_route_pattern = route_pattern
+        source_example_path = route.example_path()
+        source_name = route.name or None
+        if route.surface == "Studio Courses":
+            if not route_pattern.startswith("/studio/courses/") or not route.name.startswith(
+                "studio_courses_"
+            ):
+                raise BuildError("Studio Courses target route identity is invalid")
+            source_route_pattern = f"/cadmin/{route_pattern.removeprefix('/studio/courses/')}"
+            source_example_path = f"/cadmin/{source_example_path.removeprefix('/studio/courses/')}"
+            source_name = f"cadmin_{route.name.removeprefix('studio_courses_')}"
         contract_kind = (
             "api"
             if route.surface == "Compatibility API"
@@ -765,7 +776,10 @@ def _course_route_document(workspace: Path) -> dict[str, object]:
                 "host": "courses.datatalks.club",
                 "name": route.name or None,
                 "route_pattern": route_pattern,
+                "source_example_path": source_example_path,
                 "source_id": source.source_id,
+                "source_name": source_name,
+                "source_route_pattern": source_route_pattern,
                 "source_revision": source.revision,
                 "surface": route.surface,
                 "urlconf": route.module,
@@ -798,9 +812,9 @@ def _machine_contract_document(
     if not isinstance(course_rows, list):
         raise BuildError("course route inventory is malformed")
     course_paths = {
-        str(row["example_path"])
+        str(row["source_example_path"])
         for row in course_rows
-        if isinstance(row, dict) and isinstance(row.get("example_path"), str)
+        if isinstance(row, dict) and isinstance(row.get("source_example_path"), str)
     }
     samples: list[dict[str, object]] = []
     for source in PINNED_LEGACY_SOURCES:

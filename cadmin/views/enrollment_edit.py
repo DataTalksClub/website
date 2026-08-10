@@ -25,7 +25,7 @@ def toggle_learning_in_public_response(request, course, enrollment):
         )
 
     response = redirect(
-        "cadmin_enrollment_edit",
+        "studio_courses_enrollment_edit",
         course_slug=course.slug,
         enrollment_id=enrollment.id,
     )

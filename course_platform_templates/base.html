@@ -5,7 +5,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>
-            {% block title %}Course Management{% endblock %}
+            {% block title %}DataTalks.Club{% endblock %}
         </title>
         {% block meta_robots %}{% endblock %}
         {% canonical_link canonical_url %}
@@ -161,13 +161,6 @@
                                         <a href="{{ studio_home_url|default:'/studio/' }}" class="user-menu-item app-link">
                                             <i class="fas fa-sliders-h" aria-hidden="true"></i>
                                             Studio
-                                        </a>
-                                    {% endif %}
-                                    {% if can_access_course_admin %}
-                                        {% url 'cadmin_course_list' as course_admin_url %}
-                                        <a href="{{ course_admin_url|default:'/cadmin/' }}" class="user-menu-item app-link">
-                                            <i class="fas fa-tools" aria-hidden="true"></i>
-                                            Course admin
                                         </a>
                                     {% endif %}
                                     <button id="dark-mode-toggle"

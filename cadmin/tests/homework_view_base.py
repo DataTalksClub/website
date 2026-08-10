@@ -5,6 +5,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.studio_test_support import grant_studio_role
 from courses.models import (
     User,
     Course,
@@ -66,6 +67,7 @@ class HomeworkCadminViewTestBase(TestCase):
             password="admin123",
             is_staff=True,
         )
+        grant_studio_role(self.admin_user, "course_operator")
 
     def login_admin(self):
         self.client.login(username="admin@test.com", password="admin123")
@@ -202,7 +204,7 @@ class HomeworkCadminViewTestBase(TestCase):
 
     def homework_submission_edit_url(self, submission):
         return reverse(
-            "cadmin_homework_submission_edit",
+            "studio_courses_homework_submission_edit",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -308,7 +310,7 @@ class HomeworkCadminViewTestBase(TestCase):
         self.assertContains(response, ">3</dd>")
         self.assertContains(response, "Manage enrollment")
         enrollment_url = reverse(
-            "cadmin_enrollment_edit",
+            "studio_courses_enrollment_edit",
             kwargs={
                 "course_slug": self.course.slug,
                 "enrollment_id": fixture.enrollment.id,
@@ -341,9 +343,9 @@ class HomeworkCadminViewTestBase(TestCase):
             self.assertIn(expected_link, submission.learning_in_public_links)
 
 
-    def cadmin_homework_submissions_url(self):
+    def studio_courses_homework_submissions_url(self):
         return reverse(
-            "cadmin_homework_submissions",
+            "studio_courses_homework_submissions",
             kwargs={
                 "course_slug": self.course.slug,
                 "homework_slug": self.homework.slug,
@@ -360,20 +362,20 @@ class HomeworkCadminViewTestBase(TestCase):
         )
 
     def post_homework_action_to_submissions(self, action_name):
-        next_url = self.cadmin_homework_submissions_url()
+        next_url = self.studio_courses_homework_submissions_url()
         data = {"next": next_url}
         action_url = self.homework_action_url(action_name)
         return self.client.post(action_url, data)
 
-    def cadmin_course_url(self):
+    def studio_courses_course_url(self):
         return reverse(
-            "cadmin_course",
+            "studio_courses_course",
             kwargs={"course_slug": self.course.slug},
         )
 
-    def cadmin_course_response(self):
+    def studio_courses_course_response(self):
         self.login_admin()
-        course_url = self.cadmin_course_url()
+        course_url = self.studio_courses_course_url()
         return self.client.get(course_url)
 
     def assert_homework_submission_actions(self, response):
@@ -384,20 +386,20 @@ class HomeworkCadminViewTestBase(TestCase):
             f"/admin/courses/homework/{self.homework.id}/change/",
         )
         set_correct_answers_url = self.homework_action_url(
-            "cadmin_homework_set_correct_answers"
+            "studio_courses_homework_set_correct_answers"
         )
         self.assertContains(
             response,
             set_correct_answers_url,
         )
         clear_correct_answers_url = self.homework_action_url(
-            "cadmin_homework_clear_correct_answers"
+            "studio_courses_homework_clear_correct_answers"
         )
         self.assertContains(
             response,
             clear_correct_answers_url,
         )
-        score_url = self.homework_action_url("cadmin_homework_score")
+        score_url = self.homework_action_url("studio_courses_homework_score")
         self.assertContains(
             response,
             score_url,

@@ -2,14 +2,14 @@
 {% load custom_filters %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'cadmin_course_list' %}">Course Admin</a></li>
+  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
   {% if course %}
-    <li><a href="{% url 'cadmin_course' course.slug %}">{{ course.title }}</a></li>
+    <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
   {% endif %}
-  <li><a href="{% url 'cadmin_campaign_registrations' campaign.slug %}">{{ campaign.title }} registrations</a></li>
+  <li><a href="{% url 'studio_courses_campaign_registrations' campaign.slug %}">{{ campaign.title }} registrations</a></li>
 {% endblock %}
 
-{% block cadmin_content %}
+{% block studio_courses_content %}
 <section class="cadmin-page-header border-b app-border pb-5">
   <div class="min-w-0">
     <p class="text-xs font-semibold uppercase tracking-wide app-muted">Registration campaign</p>
@@ -19,7 +19,7 @@
     </p>
   </div>
   <div class="flex flex-wrap gap-2">
-    <a href="{% url 'cadmin_campaign_edit' campaign.slug %}" class="primer-button primer-button-secondary">
+    <a href="{% url 'studio_courses_campaign_edit' campaign.slug %}" class="primer-button primer-button-secondary">
       <i class="fas fa-edit" aria-hidden="true"></i> Edit landing page
     </a>
     <a href="/admin/courses/registrationcampaign/{{ campaign.id }}/change/" class="primer-button primer-button-secondary">
@@ -97,7 +97,7 @@
   {% if filters.role or filters.country or filters.region or search_query %}
     <p class="mb-4 text-sm app-muted">
       Filters are active.
-      <a href="{% url 'cadmin_campaign_registrations' campaign.slug %}" class="app-link">Clear filters</a>
+      <a href="{% url 'studio_courses_campaign_registrations' campaign.slug %}" class="app-link">Clear filters</a>
     </p>
   {% endif %}
 

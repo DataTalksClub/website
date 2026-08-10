@@ -1,18 +1,18 @@
 {% extends 'cadmin/base.html' %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'cadmin_course_list' %}">Course Admin</a></li>
+  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
   {% if course %}
-    <li><a href="{% url 'cadmin_course' course.slug %}">{{ course.title }}</a></li>
+    <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
   {% endif %}
   {% if campaign %}
-    <li><a href="{% url 'cadmin_campaign_edit' campaign.slug %}">{{ campaign.title }}</a></li>
+    <li><a href="{% url 'studio_courses_campaign_edit' campaign.slug %}">{{ campaign.title }}</a></li>
   {% else %}
     <li>Create registration landing page</li>
   {% endif %}
 {% endblock %}
 
-{% block cadmin_content %}
+{% block studio_courses_content %}
 <section class="cadmin-page-header border-b app-border pb-5">
   <div class="min-w-0">
     <p class="text-xs font-semibold uppercase tracking-wide app-muted">Registration campaign</p>
@@ -28,12 +28,12 @@
       <a href="{% url 'registration_campaign' campaign.slug %}" class="primer-button primer-button-secondary">
         <i class="fas fa-external-link-alt" aria-hidden="true"></i> Public
       </a>
-      <a href="{% url 'cadmin_campaign_registrations' campaign.slug %}" class="primer-button primer-button-secondary">
+      <a href="{% url 'studio_courses_campaign_registrations' campaign.slug %}" class="primer-button primer-button-secondary">
         <i class="fas fa-list" aria-hidden="true"></i> Registrations
       </a>
     {% endif %}
     {% if course %}
-      <a href="{% url 'cadmin_course' course.slug %}" class="primer-button primer-button-secondary">Back to course</a>
+      <a href="{% url 'studio_courses_course' course.slug %}" class="primer-button primer-button-secondary">Back to course</a>
     {% endif %}
   </div>
 </section>
@@ -81,9 +81,9 @@
   <div class="flex flex-wrap gap-2 border-t app-border pt-5">
     <button type="submit" class="primer-button cadmin-primary">{{ submit_label }}</button>
     {% if course %}
-      <a href="{% url 'cadmin_course' course.slug %}" class="primer-button primer-button-secondary">Cancel</a>
+      <a href="{% url 'studio_courses_course' course.slug %}" class="primer-button primer-button-secondary">Cancel</a>
     {% else %}
-      <a href="{% url 'cadmin_course_list' %}" class="primer-button primer-button-secondary">Cancel</a>
+      <a href="{% url 'studio_courses_course_list' %}" class="primer-button primer-button-secondary">Cancel</a>
     {% endif %}
   </div>
 </form>

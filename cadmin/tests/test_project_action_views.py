@@ -20,8 +20,8 @@ class ProjectActionViewTests(ProjectCadminViewTestBase):
             ProjectActionStatus.OK,
             "Project scored",
         )
-        url = self.cadmin_project_score_url()
-        course_admin_url = self.cadmin_course_url()
+        url = self.studio_courses_project_score_url()
+        course_admin_url = self.studio_courses_course_url()
 
         self.login_admin()
         response = self.client.post(url, follow=True)
@@ -43,8 +43,8 @@ class ProjectActionViewTests(ProjectCadminViewTestBase):
             ProjectActionStatus.OK,
             "Project scored",
         )
-        next_url = self.cadmin_project_submissions_url()
-        url = self.cadmin_project_score_url()
+        next_url = self.studio_courses_project_submissions_url()
+        url = self.studio_courses_project_score_url()
 
         self.login_admin()
         response = self.client.post(
@@ -59,8 +59,8 @@ class ProjectActionViewTests(ProjectCadminViewTestBase):
         self,
         send_score_notification,
     ):
-        url = self.cadmin_project_assign_reviews_url()
-        course_admin_url = self.cadmin_course_url()
+        url = self.studio_courses_project_assign_reviews_url()
+        course_admin_url = self.studio_courses_course_url()
 
         self.login_admin()
         response = self.client.post(url, follow=True)
@@ -78,8 +78,8 @@ class ProjectActionViewTests(ProjectCadminViewTestBase):
         self,
         send_assignment_notification,
     ):
-        next_url = self.cadmin_project_submissions_url()
-        url = self.cadmin_project_assign_reviews_url()
+        next_url = self.studio_courses_project_submissions_url()
+        url = self.studio_courses_project_assign_reviews_url()
 
         self.login_admin()
         response = self.client.post(
@@ -96,7 +96,7 @@ class ProjectExtendDeadlineViewTests(ProjectCadminViewTestBase):
             "course_slug": self.course.slug,
             "project_slug": self.project.slug,
         }
-        return reverse("cadmin_project_extend_deadline", kwargs=kwargs)
+        return reverse("studio_courses_project_extend_deadline", kwargs=kwargs)
 
     def test_extend_deadline_moves_both_dates(self):
         self.login_admin()
@@ -107,7 +107,7 @@ class ProjectExtendDeadlineViewTests(ProjectCadminViewTestBase):
             self.extend_deadline_url(), {"days": 7}, follow=True
         )
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         self.project.refresh_from_db()
         self.assertEqual(
             self.project.submission_due_date,
@@ -120,7 +120,7 @@ class ProjectExtendDeadlineViewTests(ProjectCadminViewTestBase):
 
     def test_extend_deadline_can_redirect_back_to_submissions(self):
         self.login_admin()
-        next_url = self.cadmin_project_submissions_url()
+        next_url = self.studio_courses_project_submissions_url()
 
         response = self.client.post(
             self.extend_deadline_url(),
@@ -138,7 +138,7 @@ class ProjectExtendDeadlineViewTests(ProjectCadminViewTestBase):
             self.extend_deadline_url(), {"days": 2}
         )
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         self.project.refresh_from_db()
         self.assertEqual(
             self.project.submission_due_date, original_submission
@@ -158,7 +158,7 @@ class ProjectExtendDeadlineViewTests(ProjectCadminViewTestBase):
             self.extend_deadline_url(), {"days": 3}, follow=True
         )
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         self.project.refresh_from_db()
         self.assertEqual(
             self.project.submission_due_date, original_submission
@@ -179,7 +179,7 @@ class ProjectExtendDeadlineViewTests(ProjectCadminViewTestBase):
             self.extend_deadline_url(), {"days": 3}
         )
 
-        self.assertRedirects(response, self.cadmin_course_url())
+        self.assertRedirects(response, self.studio_courses_course_url())
         self.project.refresh_from_db()
         self.assertEqual(
             self.project.submission_due_date, original_submission

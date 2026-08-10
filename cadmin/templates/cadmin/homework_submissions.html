@@ -2,16 +2,16 @@
 {% load custom_filters %}
 {% block breadcrumbs %}
     <li>
-        <a href="{% url 'cadmin_course_list' %}">Course Admin</a>
+        <a href="{% url 'studio_courses_course_list' %}">Courses</a>
     </li>
     <li>
-        <a href="{% url 'cadmin_course' course.slug %}">{{ course.title }}</a>
+        <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
     </li>
     <li>
-        <a href="{% url 'cadmin_homework_submissions' course.slug homework.slug %}">{{ homework.title }} Submissions</a>
+        <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">{{ homework.title }} Submissions</a>
     </li>
 {% endblock %}
-{% block cadmin_content %}
+{% block studio_courses_content %}
     <section class="border-b app-border pb-5 ">
         <div>
             <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
@@ -19,9 +19,9 @@
         </div>
         <div class="mt-4 flex flex-col gap-3">
             <div class="dense-utility-links flex flex-wrap gap-x-3 gap-y-1 text-xs">
-                <a href="{% url 'cadmin_course' course.slug %}"
+                <a href="{% url 'studio_courses_course' course.slug %}"
                    class="app-link">
-                    Back to Course Admin
+                    Back to Courses
                 </a>
                 <a href="{% url 'homework' course.slug homework.slug %}"
                    title="View public homework page"
@@ -36,50 +36,50 @@
             </div>
             <div class="flex flex-wrap gap-2">
                 <form method="post"
-                      action="{% url 'cadmin_homework_set_correct_answers' course.slug homework.slug %}"
+                      action="{% url 'studio_courses_homework_set_correct_answers' course.slug homework.slug %}"
                       onsubmit="return confirm('Set missing correct answers for {{ homework.title }} to the most frequent submitted answers?');">
                     {% csrf_token %}
                     <input type="hidden"
                            name="next"
-                           value="{% url 'cadmin_homework_submissions' course.slug homework.slug %}">
+                           value="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">
                     <button type="submit" class="primer-button primer-button-secondary">Select most frequent answer</button>
                 </form>
                 <form method="post"
-                      action="{% url 'cadmin_homework_clear_correct_answers' course.slug homework.slug %}"
+                      action="{% url 'studio_courses_homework_clear_correct_answers' course.slug homework.slug %}"
                       onsubmit="return confirm('Clear all correct answers for {{ homework.title }}? Scores will need to be recalculated after setting answers again.');">
                     {% csrf_token %}
                     <input type="hidden"
                            name="next"
-                           value="{% url 'cadmin_homework_submissions' course.slug homework.slug %}">
+                           value="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">
                     <button type="submit" class="primer-button primer-button-secondary">Clear correct answers</button>
                 </form>
                 {% if not homework.is_scored %}
                 <form method="post"
-                      action="{% url 'cadmin_homework_score' course.slug homework.slug %}"
+                      action="{% url 'studio_courses_homework_score' course.slug homework.slug %}"
                       onsubmit="return confirm('Score all submissions for {{ homework.title }}?');">
                     {% csrf_token %}
                     <input type="hidden"
                            name="next"
-                           value="{% url 'cadmin_homework_submissions' course.slug homework.slug %}">
+                           value="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">
                     <button type="submit" class="primer-button cadmin-primary">Score submissions</button>
                 </form>
                 {% else %}
                 <form method="post"
-                      action="{% url 'cadmin_homework_rescore' course.slug homework.slug %}"
+                      action="{% url 'studio_courses_homework_rescore' course.slug homework.slug %}"
                       onsubmit="return confirm('Rescore {{ homework.title }}? This will recalculate all scores with the current correct answers.');">
                     {% csrf_token %}
                     <input type="hidden"
                            name="next"
-                           value="{% url 'cadmin_homework_submissions' course.slug homework.slug %}">
+                           value="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">
                     <button type="submit" class="primer-button cadmin-primary">Rescore</button>
                 </form>
                 <form method="post"
-                      action="{% url 'cadmin_homework_notify_scores' course.slug homework.slug %}"
+                      action="{% url 'studio_courses_homework_notify_scores' course.slug homework.slug %}"
                       onsubmit="return confirm('Email score notifications to all students who submitted {{ homework.title }}?');">
                     {% csrf_token %}
                     <input type="hidden"
                            name="next"
-                           value="{% url 'cadmin_homework_submissions' course.slug homework.slug %}">
+                           value="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">
                     <button type="submit" class="primer-button primer-button-secondary">Notify students of scores</button>
                 </form>
                 {% endif %}
@@ -92,9 +92,9 @@
       <div class="border-b app-border app-surface-muted px-4 py-3">
         <h2 class="text-base font-semibold app-heading">Correct answers</h2>
       </div>
-      <form method="post" action="{% url 'cadmin_homework_save_answers' course.slug homework.slug %}">
+      <form method="post" action="{% url 'studio_courses_homework_save_answers' course.slug homework.slug %}">
         {% csrf_token %}
-        <input type="hidden" name="next" value="{% url 'cadmin_homework_submissions' course.slug homework.slug %}">
+        <input type="hidden" name="next" value="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">
         <div class="divide-y app-divide">
           {% for question in questions %}
             <div class="px-4 py-3">
@@ -169,7 +169,7 @@
                 <div class="flex flex-wrap gap-2">
                     <button type="submit" class="primer-button">Search</button>
                     {% if search_query %}
-                        <a href="{% url 'cadmin_homework_submissions' course.slug homework.slug %}" class="primer-button primer-button-secondary">Clear</a>
+                        <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}" class="primer-button primer-button-secondary">Clear</a>
                     {% endif %}
                 </div>
             </form>
@@ -209,7 +209,7 @@
                             </div>
                         </div>
                         <div class="mt-2">
-                            <a href="{% url 'cadmin_homework_submission_edit' course.slug homework.slug data.submission.id %}"
+                            <a href="{% url 'studio_courses_homework_submission_edit' course.slug homework.slug data.submission.id %}"
                                class="text-sm font-medium app-link">Open submission <span aria-hidden="true">&rarr;</span></a>
                         </div>
                     </article>
@@ -254,7 +254,7 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-3 py-2 text-right">
-                                    <a href="{% url 'cadmin_homework_submission_edit' course.slug homework.slug data.submission.id %}"
+                                    <a href="{% url 'studio_courses_homework_submission_edit' course.slug homework.slug data.submission.id %}"
                                        class="font-medium app-link">Open</a>
                                 </td>
                             </tr>
