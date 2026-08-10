@@ -27,6 +27,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "axe-playwright-python==0.1.8",
     "django-stubs>=5.2,<6",
     "mypy>=1.17,<2",
     "pandas>=2.3,<4",
@@ -90,6 +91,7 @@ DJANGO_SETTINGS_MODULE = "website.settings.test"
 python_files = ["test_*.py"]
 addopts = "--strict-markers -p no:cacheprovider"
 markers = [
+    "accessibility: deterministic WCAG A/AA route and state coverage",
     "core: bounded release-critical local Playwright coverage",
     "full: additional deterministic local Playwright coverage",
     "remote_readonly: explicit deployed read-only coverage",

@@ -2,6 +2,7 @@
 	test-core test test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
+	test-accessibility \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
@@ -169,6 +170,12 @@ test-playwright:
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
 		uv run --frozen pytest playwright_tests \
 		-m '(core or full) and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
+
+test-accessibility:
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+		uv run --frozen pytest playwright_tests/test_accessibility.py \
+		-m 'accessibility and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-browser: test-playwright
 

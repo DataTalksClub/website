@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load accessibility %}
 
 {% block title %}
     Sign in — DataTalks.Club
@@ -25,7 +26,10 @@
 
                 {% if login_error %}
                     <div class="mb-4 rounded-md border app-alert-warning px-4 py-3 text-sm"
-                         role="alert">
+                         id="login-error"
+                         role="alert"
+                         tabindex="-1"
+                         data-focus-error-summary>
                         {{ login_error }}
                     </div>
                 {% endif %}
@@ -38,7 +42,7 @@
                                class="mb-1 block text-sm font-semibold">
                             Email
                         </label>
-                        {{ development_owner_form.email }}
+                        {% accessible_widget development_owner_form.email %}
                     </div>
 
                     <div class="mb-4">
@@ -46,10 +50,12 @@
                                class="mb-1 block text-sm font-semibold">
                             Password
                         </label>
-                        {{ development_owner_form.password }}
+                        {% accessible_widget development_owner_form.password %}
                     </div>
 
-                    <button type="submit" class="primer-button primer-button-primary">
+                    <button type="submit"
+                            class="primer-button primer-button-primary"
+                            data-busy-label="Signing in…">
                         Sign in
                     </button>
                 </form>
@@ -76,7 +82,8 @@
                 </a>
             {% empty %}
                 {% if not development_owner_login_enabled %}
-                    <div class="rounded-md border app-alert-warning px-4 py-3 text-center text-sm">
+                    <div class="rounded-md border app-alert-warning px-4 py-3 text-center text-sm"
+                         role="status">
                         <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                         <strong>Sign-in is temporarily unavailable</strong>
                         <br>

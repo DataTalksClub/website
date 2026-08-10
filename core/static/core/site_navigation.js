@@ -8,6 +8,7 @@
   function setOpen(open) {
     toggle.setAttribute("aria-expanded", open ? "true" : "false");
     links.classList.toggle("is-open", open);
+    if (!open && links.contains(document.activeElement)) toggle.focus();
   }
 
   toggle.addEventListener("click", function () {
@@ -22,7 +23,9 @@
   });
 
   document.addEventListener("click", function (event) {
-    if (!event.target.closest(".site-navigation")) setOpen(false);
+    if (event.target instanceof Element && !event.target.closest(".site-navigation")) {
+      setOpen(false);
+    }
   });
 
   window.addEventListener("resize", function () {

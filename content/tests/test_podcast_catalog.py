@@ -204,7 +204,7 @@ class PodcastPaginationTests(TestCase):
 
         for response, current_page in ((first, 1), (middle, 4), (last, 8)):
             self.assertContains(response, 'aria-label="Podcast pagination"', count=1)
-            self.assertContains(response, 'aria-current="page"', count=1)
+            self.assertContains(response, 'aria-current="page"', count=2)
             self.assertContains(
                 response,
                 f'aria-label="Podcast page {current_page}, current page"',

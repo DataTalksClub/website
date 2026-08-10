@@ -1,0 +1,1423 @@
+from __future__ import annotations
+
+import hashlib
+import json
+import uuid
+from collections.abc import Callable
+from dataclasses import dataclass
+from pathlib import Path
+
+import pytest
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.test import Client, override_settings
+from django.urls import reverse
+from playwright.sync_api import Browser, Page, expect
+
+from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
+from accounts.studio_test_support import make_studio_user
+from content import public_data
+from content.public_data import public_projection
+from content.review_projection import review_projection
+from core.accessibility_registry import BEHAVIOR_SCENARIOS, CRITICAL_STATES
+from core.models import AuditEvent
+from course_management.datamailer_templates.accessibility import (
+    render_current_transactional_email,
+)
+from courses.models import Course, HomeworkState, ProjectState, RegistrationCampaign
+from events.models import (
+    HistoricalEventMapping,
+    HistoricalRegistrationAggregateRevision,
+    HistoricalRegistrationAggregateSlot,
+    HistoricalRegistrationPointerDisplacement,
+    HistoricalRegistrationSourceRun,
+    HistoricalRegistrationTotalState,
+)
+from management_auth.models import APIPrincipal
+from management_auth.services import create_principal
+from playwright_tests.accessibility_support import (
+    assert_accessible_page,
+    axe_issues,
+    chromium_blink_tree_issues,
+    control_state_issues,
+    focus_issues,
+    media_date_issues,
+    motion_issues,
+    preserved_value_issues,
+    skip_link_issues,
+    structure_issues,
+    target_size_issues,
+    text_spacing_issues,
+)
+from playwright_tests.test_historical_registration_totals import (
+    seed_total,
+    seed_validated_overlap,
+)
+from test_support.factories import FactoryContext, create_current_scenario
+from test_support.runtime import DEFAULT_FROZEN_AT, current_worker_id
+
+pytestmark = [
+    pytest.mark.django_db(transaction=True),
+    pytest.mark.usefixtures("_accessibility_settings"),
+]
+
+VIEWPORTS = (
+    ({"width": 1440, "height": 900}, "desktop"),
+    ({"width": 390, "height": 844}, "mobile"),
+)
+SCREENSHOTS = Path(".tmp/screenshots/issue-65")
+
+
+@pytest.fixture
+def _accessibility_settings(monkeypatch):
+    monkeypatch.setattr(
+        "core.views.event_groups",
+        lambda: public_data.event_groups(DEFAULT_FROZEN_AT),
+    )
+    with override_settings(
+        ROOT_URLCONF="playwright_tests.accessibility_fixture_urls",
+        DEVELOPMENT_OWNER_LOGIN_ENABLED=True,
+        NOINDEX=False,
+    ):
+        yield
+
+
+@dataclass(frozen=True, slots=True)
+class Surface:
+    path: str
+    actor: str = "anonymous"
+    expected_status: int = 200
+
+
+@dataclass(frozen=True, slots=True)
+class AccessibilityEnvironment:
+    surfaces: dict[str, Surface]
+    users: dict[str, object]
+    credential_target_id: str
+    objects: dict[str, object]
+
+
+def _restore_audit_event_id_default() -> None:
+    """Discard Django's cached callable after deterministic factories patch the field."""
+
+    audit_id_field = AuditEvent._meta.get_field("id")
+    audit_id_field.default = uuid.uuid4
+    audit_id_field.__dict__.pop("_get_default", None)
+
+
+def _cookie(page: Page, live_server, user: object | None) -> None:
+    page.context.clear_cookies()
+    if user is None:
+        return
+    client = Client()
+    client.force_login(user)
+    page.context.add_cookies(
+        [
+            {
+                "name": settings.SESSION_COOKIE_NAME,
+                "value": client.cookies[settings.SESSION_COOKIE_NAME].value,
+                "url": live_server.url,
+            }
+        ]
+    )
+
+
+@pytest.fixture
+def accessibility_environment() -> AccessibilityEnvironment:
+    namespace = f"accessibility-{current_worker_id()}"
+    scenario = create_current_scenario(
+        FactoryContext("issue-65-accessibility", namespace, DEFAULT_FROZEN_AT),
+        bundle="adopted_courses",
+        state="minimal_valid",
+    ).by_factory()
+    course = scenario["adopted_courses.course"].value
+    campaign = scenario["adopted_courses.registration_campaign"].value
+    learner = scenario["adopted_courses.enrollment"].value.student
+    homework = scenario["adopted_courses.homework"].value
+    project = scenario["adopted_courses.project"].value
+    enrollment = scenario["adopted_courses.enrollment"].value
+    review = scenario["adopted_courses.peer_review"].value
+    reviewer = review.reviewer.student
+    homework.state = HomeworkState.SCORED.value
+    homework.save(update_fields=("state",))
+    project.state = ProjectState.PEER_REVIEWING.value
+    project.save(update_fields=("state",))
+
+    empty_course = Course.objects.create(
+        slug=f"synthetic-empty-{namespace}",
+        title="Synthetic empty course",
+        description="A deterministic empty learner state.",
+    )
+    error_campaign = RegistrationCampaign.objects.create(
+        slug=f"synthetic-error-{namespace}",
+        title="Synthetic validation campaign",
+        edition_label="Synthetic edition",
+        current_course=empty_course,
+        is_active=True,
+    )
+
+    _restore_audit_event_id_default()
+
+    site_admin = make_studio_user(
+        username=f"accessibility-admin-{namespace}",
+        roles=("site_admin",),
+    )
+    credential_user = make_studio_user(
+        username=f"accessibility-credential-{namespace}",
+        roles=("site_admin",),
+    )
+    denied_user = get_user_model().objects.create_user(
+        username=f"accessibility-denied-{namespace}",
+        email=f"denied-{namespace}@example.invalid",
+    )
+    access = Permission.objects.get(content_type__app_label="core", codename="access_studio")
+    high_risk = Permission.objects.get(
+        content_type__app_label="core",
+        codename="execute_high_risk_fixture",
+    )
+    site_admin_permissions = tuple(
+        Permission.objects.filter(group__user=site_admin).distinct().order_by("pk")
+    )
+    create_principal(
+        kind=APIPrincipal.Kind.HUMAN,
+        name="Synthetic accessibility administrator",
+        identity_snapshot=f"human:site-admin:{namespace}",
+        user=site_admin,
+        permissions=site_admin_permissions,
+    )
+    credential_user.user_permissions.add(high_risk)
+    create_principal(
+        kind=APIPrincipal.Kind.HUMAN,
+        name="Synthetic accessibility human",
+        identity_snapshot=f"human:{namespace}",
+        user=credential_user,
+        permissions=(access, high_risk),
+    )
+    target = create_principal(
+        kind=APIPrincipal.Kind.SERVICE,
+        name="Synthetic accessibility service",
+        identity_snapshot=f"service:{namespace}",
+        permissions=(access,),
+    )
+    audit_id = uuid.uuid5(uuid.NAMESPACE_URL, f"https://web.dtcdev.click/{namespace}/audit")
+
+    public = public_projection()
+    review_public = review_projection()
+    event = public["events"][0]
+    person_path = event["speakers"][0]["public_path"]
+    article = public["articles"][0]
+    podcast = next(record for record in public["podcasts"] if record.get("transcript"))
+    book = public["books"][0]
+    public_course = public["courses"][0]
+    wiki = public["wiki"][0]
+    faq = review_public["faq"]
+
+    surfaces = {
+        "home": Surface("/"),
+        "blog": Surface("/blog"),
+        "podcast": Surface("/podcast"),
+        "books": Surface("/books"),
+        "events": Surface("/events"),
+        "courses": Surface("/courses"),
+        "wiki": Surface("/wiki"),
+        "docs": Surface("/docs/"),
+        "faq": Surface("/faq/"),
+        "slack": Surface("/slack.html"),
+        "article": Surface(article["public_path"]),
+        "podcast-detail": Surface(podcast["public_path"]),
+        "book": Surface(book["public_path"]),
+        "event": Surface(event["public_path"]),
+        "person": Surface(person_path),
+        "course": Surface(public_course["public_path"]),
+        "wiki-detail": Surface(wiki["public_path"]),
+        "docs-detail": Surface("/docs/courses/ai-dev-tools-zoomcamp/getting-started/"),
+        "faq-anchor": Surface(f"{faq['public_path']}#{faq['question_id']}"),
+        "wiki-results": Surface("/wiki?q=machine+learning"),
+        "wiki-zero": Surface("/wiki?q=no-such-public-topic"),
+        "wiki-graph": Surface("/wiki/graph"),
+        "wiki-special": Surface("/wiki/special-pages"),
+        "missing-media": Surface("/_accessibility/missing-media/"),
+        "missing": Surface("/__accessibility_missing__", expected_status=404),
+        "login": Surface("/accounts/login/"),
+        "login-error": Surface("/accounts/login/"),
+        "account-settings": Surface("/accounts/settings/", actor="learner"),
+        "identity-conflict": Surface(
+            "/_accessibility/identity-conflict/",
+            expected_status=409,
+        ),
+        "admin-login": Surface("/admin/login/?next=/admin/"),
+        "studio-home": Surface("/studio/", actor="site-admin"),
+        "credentials": Surface("/studio/access/api-credentials/", actor="site-admin"),
+        "credential-copy": Surface(
+            "/studio/_fixtures/credentials/",
+            actor="credential",
+        ),
+        "audit-list": Surface("/studio/audit/", actor="site-admin"),
+        "audit-detail": Surface(f"/studio/audit/{audit_id}/", actor="site-admin"),
+        "historical-list": Surface(
+            "/studio/events/historical-registration-totals/",
+            actor="site-admin",
+        ),
+        "historical-mappings": Surface(
+            "/studio/events/historical-registration-totals/mappings/",
+            actor="site-admin",
+        ),
+        "registration": Surface(
+            reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug})
+        ),
+        "registration-success": Surface(
+            reverse("registration_campaign", kwargs={"campaign_slug": campaign.slug}),
+            actor="learner",
+        ),
+        "registration-error": Surface(
+            reverse("registration_campaign", kwargs={"campaign_slug": error_campaign.slug})
+        ),
+        "dashboard": Surface(
+            reverse("dashboard", kwargs={"course_slug": course.slug}),
+            actor="learner",
+        ),
+        "enrollment": Surface(
+            reverse("enrollment", kwargs={"course_slug": course.slug}),
+            actor="learner",
+        ),
+        "homework": Surface(
+            reverse(
+                "homework",
+                kwargs={"course_slug": course.slug, "homework_slug": homework.slug},
+            ),
+            actor="learner",
+        ),
+        "project": Surface(
+            reverse(
+                "project",
+                kwargs={"course_slug": course.slug, "project_slug": project.slug},
+            ),
+            actor="learner",
+        ),
+        "peer-review": Surface(
+            reverse(
+                "projects_eval",
+                kwargs={"course_slug": course.slug, "project_slug": project.slug},
+            ),
+            actor="reviewer",
+        ),
+        "score": Surface(
+            reverse(
+                "leaderboard_score_breakdown",
+                kwargs={"course_slug": course.slug, "enrollment_id": enrollment.id},
+            ),
+            actor="learner",
+        ),
+        "leaderboard": Surface(
+            reverse("leaderboard", kwargs={"course_slug": course.slug}),
+            actor="learner",
+        ),
+        "complaint": Surface(
+            reverse(
+                "leaderboard_complaint",
+                kwargs={"course_slug": course.slug, "enrollment_id": enrollment.id},
+            ),
+            actor="reviewer",
+        ),
+        "course-empty": Surface(reverse("course", kwargs={"course_slug": empty_course.slug})),
+        "studio-courses": Surface(reverse("studio_courses_course_list"), actor="site-admin"),
+        "studio-course-form": Surface(
+            reverse("studio_courses_campaign_create"),
+            actor="site-admin",
+        ),
+        "studio-course-table": Surface(
+            reverse(
+                "studio_courses_homework_submissions",
+                kwargs={"course_slug": course.slug, "homework_slug": homework.slug},
+            ),
+            actor="site-admin",
+        ),
+    }
+    return AccessibilityEnvironment(
+        surfaces=surfaces,
+        users={
+            "learner": learner,
+            "reviewer": reviewer,
+            "site-admin": site_admin,
+            "credential": credential_user,
+            "denied": denied_user,
+        },
+        credential_target_id=str(target.id),
+        objects={
+            "audit_id": audit_id,
+            "campaign": campaign,
+            "course": course,
+            "empty_course": empty_course,
+            "enrollment": enrollment,
+            "event": event,
+            "homework": homework,
+            "project": project,
+            "registration": scenario["adopted_courses.course_registration"].value,
+        },
+    )
+
+
+def _visit_surface(
+    page: Page,
+    live_server,
+    environment: AccessibilityEnvironment,
+    name: str,
+) -> None:
+    surface = environment.surfaces[name]
+    _cookie(page, live_server, environment.users.get(surface.actor))
+    response = page.goto(f"{live_server.url}{surface.path}", wait_until="domcontentloaded")
+    assert response is not None and response.status == surface.expected_status, name
+    page.wait_for_load_state("load")
+
+    if name == "login-error":
+        page.get_by_label("Email").fill("invalid@example.invalid")
+        page.get_by_label("Password").fill("synthetic-invalid-password")
+        page.get_by_role("button", name="Sign in").click()
+        expect(page.get_by_role("alert")).to_be_visible()
+    elif name == "credential-copy":
+        page.context.grant_permissions(
+            ["clipboard-read", "clipboard-write"],
+            origin=live_server.url,
+        )
+        page.get_by_label("Service principal").select_option(environment.credential_target_id)
+        page.get_by_role("button", name="Create credential").click()
+        expect(page.get_by_role("heading", name="Copy this credential now")).to_be_visible()
+    elif name == "registration-error":
+        form = page.locator("[data-registration-form]")
+        form.locator('[name="email"]').fill("synthetic-valid@example.invalid")
+        form.evaluate("element => element.submit()")
+        expect(page.locator("[data-focus-error-summary]")).to_be_visible()
+
+
+def _capture_deterministic_screenshot(page: Page, path: Path) -> None:
+    """Capture only when two identical-source renders produce identical PNG bytes."""
+
+    page.evaluate(
+        """async () => {
+            await document.fonts.ready;
+            await Promise.all(
+                Array.from(document.images, image =>
+                    image.complete ? image.decode().catch(() => {}) : new Promise(resolve => {
+                        image.addEventListener('load', resolve, {once: true});
+                        image.addEventListener('error', resolve, {once: true});
+                    })
+                )
+            );
+        }"""
+    )
+    screenshot_options = {
+        "animations": "disabled",
+        "caret": "hide",
+        "full_page": True,
+    }
+    page.screenshot(**screenshot_options)
+    first = page.screenshot(path=path, **screenshot_options)
+    second = page.screenshot(**screenshot_options)
+    assert hashlib.sha256(first).digest() == hashlib.sha256(second).digest(), path.name
+
+
+@pytest.mark.accessibility
+@pytest.mark.core
+@pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+def test_accessibility_core_smoke(
+    page: Page,
+    live_server,
+    accessibility_environment: AccessibilityEnvironment,
+    viewport: dict[str, int],
+    suffix: str,
+) -> None:
+    page.set_viewport_size(viewport)
+    states = [state for state in CRITICAL_STATES if state.core_smoke and state.axe_surface]
+    checked: set[str] = set()
+    for state in states:
+        surface = state.axe_surface
+        assert surface is not None
+        if surface in checked:
+            continue
+        _visit_surface(page, live_server, accessibility_environment, surface)
+        assert_accessible_page(page, state.identifier)
+        checked.add(surface)
+
+    _visit_surface(page, live_server, accessibility_environment, "home")
+    SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    _capture_deterministic_screenshot(
+        page,
+        SCREENSHOTS / f"shared-shell-{suffix}.png",
+    )
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+@pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+def test_accessibility_visual_evidence(
+    page: Page,
+    live_server,
+    accessibility_environment: AccessibilityEnvironment,
+    viewport: dict[str, int],
+    suffix: str,
+) -> None:
+    page.set_viewport_size(viewport)
+    screenshot_surfaces = (
+        ("shared-shell-focus", "home"),
+        ("public-article", "article"),
+        ("public-collection", "blog"),
+        ("public-course", "course"),
+        ("public-podcast", "podcast"),
+        ("public-event", "event"),
+        ("login", "login"),
+        ("account-settings", "account-settings"),
+        ("enrollment", "enrollment"),
+        ("registration-error-focus", "registration-error"),
+        ("studio-credentials", "credentials"),
+        ("admin-login", "admin-login"),
+    )
+    SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    for name, surface in screenshot_surfaces:
+        _visit_surface(page, live_server, accessibility_environment, surface)
+        expect(page.locator("main h1")).to_be_visible()
+        if surface == "home":
+            explore = page.get_by_role("button", name="Explore")
+            if explore.is_visible():
+                explore.focus()
+            else:
+                page.locator("#site-navigation-links a").first.focus()
+        _capture_deterministic_screenshot(
+            page,
+            SCREENSHOTS / f"{name}-{suffix}.png",
+        )
+
+    credential_surface = accessibility_environment.surfaces["credential-copy"]
+    credential_user = accessibility_environment.users[credential_surface.actor]
+    _cookie(page, live_server, credential_user)
+    response = page.goto(
+        f"{live_server.url}{credential_surface.path}",
+        wait_until="domcontentloaded",
+    )
+    assert response is not None and response.status == 200
+    expect(page.get_by_role("heading", name="Credential lifecycle")).to_be_visible()
+    assert page.locator("[data-testid='one-time-token']").count() == 0
+    _capture_deterministic_screenshot(
+        page,
+        SCREENSHOTS / f"credential-fixture-empty-{suffix}.png",
+    )
+
+    rendered_email = render_current_transactional_email("registration-confirmation")
+    page.set_content(rendered_email.html, wait_until="domcontentloaded")
+    assert axe_issues(page, "transactional-email.registration-confirmation") == []
+    _capture_deterministic_screenshot(
+        page,
+        SCREENSHOTS / f"transactional-email-registration-html-images-disabled-{suffix}.png",
+    )
+    score_email = render_current_transactional_email("homework-score-notification")
+    page.set_content(score_email.html, wait_until="domcontentloaded")
+    assert axe_issues(page, "transactional-email.homework-score-notification") == []
+    _capture_deterministic_screenshot(
+        page,
+        SCREENSHOTS / f"transactional-email-score-html-images-disabled-{suffix}.png",
+    )
+    page.set_content(
+        "<!doctype html><html lang='en'><head><title>Registration confirmation plain email</title>"
+        "<style>body{font:16px/1.6 monospace;margin:24px}"
+        "pre{overflow-wrap:anywhere;white-space:pre-wrap}</style>"
+        "</head><body><pre id='message'></pre></body></html>",
+        wait_until="domcontentloaded",
+    )
+    page.locator("#message").evaluate(
+        "(node, message) => { node.textContent = message; }",
+        rendered_email.text,
+    )
+    _capture_deterministic_screenshot(
+        page,
+        SCREENSHOTS / f"transactional-email-registration-plain-{suffix}.png",
+    )
+
+
+class ScenarioRecorder:
+    def __init__(
+        self,
+        page: Page,
+        live_server,
+        environment: AccessibilityEnvironment,
+    ) -> None:
+        self.page = page
+        self.live_server = live_server
+        self.environment = environment
+        self.checked: set[str] = set()
+
+    def scan(
+        self,
+        state: str,
+        surface: str,
+        *,
+        text: str | None = None,
+    ) -> None:
+        _visit_surface(self.page, self.live_server, self.environment, surface)
+        if text is not None:
+            expect(
+                self.page.locator("main, [role='main']").get_by_text(text, exact=False).first
+            ).to_be_visible()
+        self.scan_current(state)
+
+    def scan_current(self, state: str) -> None:
+        assert state not in self.checked, f"state exercised twice: {state}"
+        assert_accessible_page(self.page, state, comprehensive=True)
+        self.checked.add(state)
+
+    def contract(self, state: str, path: str, status: int, *, location: str | None = None) -> None:
+        response = self.page.request.get(
+            f"{self.live_server.url}{path}",
+            max_redirects=0,
+        )
+        assert response.status == status, state
+        if location is not None:
+            assert response.headers["location"] == location, state
+        assert state not in self.checked, f"state exercised twice: {state}"
+        self.checked.add(state)
+
+
+def _public_scenario(recorder: ScenarioRecorder) -> set[str]:
+    event = recorder.environment.objects["event"]
+    assert isinstance(event, dict)
+    seed_total(event, count=3, complete=True)
+    simple_states = (
+        ("public.home", "home", "Upcoming events"),
+        ("public.blog-hub", "blog", "Latest Articles"),
+        ("public.podcast-hub", "podcast", "Podcast"),
+        ("public.books-hub", "books", "Book of the Week"),
+        ("public.events-hub", "events", "Events"),
+        ("public.courses-hub", "courses", "Learn data skills"),
+        ("public.wiki-hub", "wiki", "Podcast Wiki"),
+        ("public.docs-hub", "docs", "Documentation"),
+        ("public.faq-hub", "faq", "Frequently Asked Questions"),
+        ("public.slack", "slack", "Slack"),
+        ("public.article-detail", "article", None),
+        ("public.podcast-transcript-media", "podcast-detail", "Transcript"),
+        ("public.book-detail", "book", None),
+        ("public.event-aggregate-speaker", "event", "3 registered"),
+        ("public.person-detail", "person", None),
+        ("public.course-detail", "course", None),
+        ("public.wiki-detail", "wiki-detail", None),
+        ("public.docs-nested", "docs-detail", None),
+        ("public.faq-anchor", "faq-anchor", None),
+        ("public.wiki-results", "wiki-results", None),
+        ("public.wiki-zero-results", "wiki-zero", "0 results"),
+        ("public.wiki-graph", "wiki-graph", None),
+        ("public.wiki-special-pages", "wiki-special", None),
+        ("public.missing-media", "missing-media", "unavailable"),
+        ("public.empty-state", "wiki-zero", "0 results"),
+        ("public.application-404", "missing", "Page not found"),
+    )
+    for state, surface, marker in simple_states:
+        recorder.scan(state, surface, text=marker)
+
+    for state, path in (
+        ("public.people-removed", "/people"),
+        ("public.people-slash-removed", "/people/"),
+        ("public.people-html-removed", "/people.html"),
+    ):
+        recorder.contract(state, path, 404)
+        response = recorder.page.goto(f"{recorder.live_server.url}{path}")
+        assert response is not None and response.status == 404
+        expect(recorder.page.get_by_role("heading", name="Page not found")).to_be_visible()
+
+    redirect = recorder.page.request.get(
+        f"{recorder.live_server.url}/articles.html?source=accessibility",
+        max_redirects=0,
+    )
+    assert redirect.status == 301
+    assert redirect.headers["location"] == "/blog?source=accessibility"
+    destination = recorder.page.goto(
+        f"{recorder.live_server.url}/blog?source=accessibility",
+        wait_until="domcontentloaded",
+    )
+    assert destination is not None and destination.status == 200
+    expect(recorder.page.get_by_role("heading", name="Latest Articles")).to_be_visible()
+    recorder.scan_current("public.approved-redirect-destination")
+    return recorder.checked
+
+
+def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
+    recorder.scan("account.signed-out-login", "login", text="Sign In")
+    recorder.scan("account.invalid-login", "login-error", text="Sign-in was not successful")
+    with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=False):
+        recorder.scan(
+            "account.unavailable-login",
+            "login",
+            text="Sign-in is temporarily unavailable",
+        )
+
+    recorder.scan("account.settings", "account-settings", text="Account settings")
+    menu = recorder.page.locator('summary[aria-label="Account menu"]')
+    menu.click()
+    expect(
+        recorder.page.locator(".user-menu-panel").get_by_role("link", name="Courses", exact=True)
+    ).to_be_visible()
+    recorder.scan_current("account.authenticated-navigation")
+
+    recorder.scan(
+        "account.identity-conflict",
+        "identity-conflict",
+        text="could not safely link",
+    )
+
+    _cookie(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment.users["learner"],
+    )
+    recorder.page.goto(f"{recorder.live_server.url}/accounts/logout/")
+    recorder.page.get_by_role("button", name="Sign Out", exact=False).click()
+    recorder.page.goto(f"{recorder.live_server.url}/accounts/login/")
+    expect(recorder.page.get_by_role("heading", name="Sign In")).to_be_visible()
+    recorder.scan_current("account.logout-return")
+
+    staff_user = recorder.environment.users["site-admin"]
+    client = Client()
+    client.force_login(staff_user)
+    session_id = uuid.UUID(client.session[SESSION_REFERENCE_KEY])
+    recorder.page.context.clear_cookies()
+    recorder.page.context.add_cookies(
+        [
+            {
+                "name": settings.SESSION_COOKIE_NAME,
+                "value": client.cookies[settings.SESSION_COOKIE_NAME].value,
+                "url": recorder.live_server.url,
+            }
+        ]
+    )
+    loaded = recorder.page.goto(f"{recorder.live_server.url}/studio/")
+    assert loaded is not None and loaded.status == 200
+    revoke_staff_session(session_id, user=staff_user)
+    revoked = recorder.page.reload()
+    assert revoked is not None and revoked.status == 403
+    assert "Studio access denied" in recorder.page.content()
+    recorder.checked.add("account.revoked-session-return")
+
+    _cookie(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment.users["denied"],
+    )
+    denied = recorder.page.goto(f"{recorder.live_server.url}/studio/audit/")
+    assert denied is not None and denied.status == 403
+    assert "Studio access denied" in recorder.page.content()
+    recorder.checked.add("account.safe-denial")
+    return recorder.checked
+
+
+def _management_scenario(recorder: ScenarioRecorder) -> set[str]:
+    recorder.scan("studio.audit-empty", "audit-list", text="No audit events")
+    audit_id = recorder.environment.objects["audit_id"]
+    assert isinstance(audit_id, uuid.UUID)
+    AuditEvent.objects.create(
+        id=audit_id,
+        actor_ref="synthetic-accessibility-actor",
+        action="accessibility.fixture",
+        target_type="accessibility.fixture",
+        target_label="synthetic fixture",
+        outcome=AuditEvent.Outcome.SUCCEEDED,
+        changes={},
+        metadata={"summary": "Synthetic accessibility audit state"},
+    )
+    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "audit-list")
+    recorder.page.get_by_label("Action").fill("accessibility.fixture")
+    recorder.page.get_by_role("button", name="Apply filters").click()
+    expect(recorder.page.get_by_role("link", name="accessibility.fixture")).to_be_visible()
+    recorder.scan_current("studio.audit-filter")
+    recorder.scan("studio.audit-detail", "audit-detail", text="Audit event")
+
+    recorder.scan("management.admin-entry", "admin-login", text="Log in")
+    recorder.scan("management.studio-entry", "studio-home", text="Studio")
+    recorder.scan("studio.home", "studio-home", text="Studio")
+
+    recorder.scan("studio.credential-empty", "credentials", text="No service credentials")
+    _visit_surface(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment,
+        "credential-copy",
+    )
+    recorder.scan_current("studio.credential-copy")
+
+    _cookie(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment.users["credential"],
+    )
+    recorder.page.goto(f"{recorder.live_server.url}/studio/_fixtures/credentials/away/")
+    recorder.page.goto(f"{recorder.live_server.url}/studio/_fixtures/credentials/")
+    expect(recorder.page.get_by_text("Status active", exact=False)).to_be_visible()
+    expect(recorder.page.locator("[data-testid='one-time-token']")).to_have_count(0)
+    recorder.scan_current("studio.credential-list")
+    recorder.page.get_by_role("button", name="Rotate Browser fixture credential").click()
+    expect(recorder.page.get_by_role("heading", name="Copy this credential now")).to_be_visible()
+    recorder.scan_current("studio.credential-rotate")
+    recorder.page.goto(f"{recorder.live_server.url}/studio/_fixtures/credentials/")
+    successor = recorder.page.locator("article.audit-card").filter(has_text="active").first
+    successor.get_by_role("button", name="Revoke Browser fixture credential").click()
+    expect(recorder.page.get_by_text("Credential revoked", exact=False).first).to_be_visible()
+    recorder.scan_current("studio.credential-revoke")
+
+    for state, path in (
+        ("studio.credential-denied", "/studio/access/api-credentials/"),
+        ("studio.audit-denied", "/studio/audit/"),
+    ):
+        _cookie(
+            recorder.page,
+            recorder.live_server,
+            recorder.environment.users["denied"],
+        )
+        response = recorder.page.goto(f"{recorder.live_server.url}{path}")
+        assert response is not None and response.status == 403
+        assert "Studio access denied" in recorder.page.content()
+        recorder.checked.add(state)
+    return recorder.checked
+
+
+def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
+    HistoricalRegistrationPointerDisplacement.objects.all().delete()
+    HistoricalRegistrationAggregateSlot.objects.all().delete()
+    HistoricalRegistrationTotalState.objects.all().delete()
+    HistoricalRegistrationAggregateRevision.objects.all().delete()
+    HistoricalEventMapping.objects.all().delete()
+    HistoricalRegistrationSourceRun.objects.all().delete()
+    recorder.scan("historical.empty", "historical-list", text="No source runs")
+    event = recorder.environment.objects["event"]
+    assert isinstance(event, dict)
+    seed_total(event, count=3, complete=True)
+    namespace = f"issue-65-historical-{recorder.page.viewport_size['width']}"
+    historical = create_current_scenario(
+        FactoryContext("issue-65-historical", namespace, DEFAULT_FROZEN_AT),
+        bundle="historical_event_totals",
+        state="minimal_valid",
+    ).by_factory()
+    _restore_audit_event_id_default()
+    run = historical["historical_event_totals.historical_source_run"].value
+    recorder.environment.surfaces["historical-detail"] = Surface(
+        f"/studio/events/historical-registration-totals/{run.id}/",
+        actor="site-admin",
+    )
+    recorder.scan("historical.list", "historical-list", text="Source runs")
+    recorder.scan("historical.detail", "historical-detail", text="active")
+    recorder.scan("historical.mapping", "historical-mappings", text="luma · mapped")
+    recorder.scan(
+        "historical.source-missing",
+        "historical-mappings",
+        text="eventbrite · source_missing",
+    )
+
+    missing = historical["historical_event_totals.source_missing_quarantine"].value
+    _visit_surface(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment,
+        "historical-mappings",
+    )
+    expect(
+        recorder.page.get_by_role("heading", name="eventbrite · source_missing", exact=True)
+    ).to_be_visible()
+    stale_card = recorder.page.locator("article.audit-card").filter(
+        has_text=missing.external_event_identifier
+    )
+    HistoricalEventMapping.objects.filter(pk=missing.pk).update(revision=missing.revision + 1)
+    stale_card.get_by_label("Decision").select_option("excluded")
+    stale_card.get_by_label("Combination policy").select_option("exclude")
+    stale_card.get_by_label("Reason code").fill("reviewed_exclusion")
+    stale_card.get_by_role("button", name="Save reviewed decision").click()
+    expect(recorder.page.get_by_role("alert")).to_be_visible()
+    recorder.scan_current("historical.stale-revision")
+
+    recorder.page.reload()
+    excluded_card = recorder.page.locator("article.audit-card").filter(
+        has_text=missing.external_event_identifier
+    )
+    excluded_card.get_by_label("Decision").select_option("excluded")
+    excluded_card.get_by_label("Combination policy").select_option("exclude")
+    excluded_card.get_by_label("Reason code").fill("reviewed_exclusion")
+    excluded_card.get_by_role("button", name="Save reviewed decision").click()
+    expect(recorder.page.get_by_text("eventbrite · excluded", exact=True)).to_be_visible()
+    recorder.scan_current("historical.exclusion")
+
+    HistoricalRegistrationSourceRun.objects.filter(pk=run.pk).update(
+        state=HistoricalRegistrationSourceRun.State.VALIDATED,
+    )
+    HistoricalRegistrationAggregateRevision.objects.filter(source_run=run).update(
+        state=HistoricalRegistrationAggregateRevision.State.VALIDATED,
+    )
+    recorder.scan("historical.validation-success", "historical-detail", text="validated")
+    HistoricalRegistrationSourceRun.objects.filter(pk=run.pk).update(
+        state=HistoricalRegistrationSourceRun.State.QUARANTINED,
+        reason_codes=["unsupported_schema"],
+    )
+    HistoricalRegistrationAggregateRevision.objects.filter(source_run=run).update(
+        state=HistoricalRegistrationAggregateRevision.State.QUARANTINED,
+    )
+    recorder.scan(
+        "historical.unsupported-quarantined",
+        "historical-detail",
+        text="quarantined",
+    )
+
+    preview_path = f"/studio/events/{event['slug']}/registration-total/"
+    recorder.environment.surfaces["historical-preview"] = Surface(
+        preview_path,
+        actor="site-admin",
+    )
+    recorder.scan(
+        "historical.activation-preview",
+        "historical-preview",
+        text="Registration total preview",
+    )
+
+    overlap_run = seed_validated_overlap(event, suffix=namespace)
+    recorder.environment.surfaces["historical-overlap"] = Surface(
+        f"/studio/events/historical-registration-totals/{overlap_run.id}/",
+        actor="site-admin",
+    )
+    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "historical-overlap")
+    recorder.page.get_by_label("Confirm activate").check()
+    with recorder.page.expect_response(
+        lambda candidate: candidate.url.endswith(f"/{overlap_run.id}/activate/")
+    ) as overlap_response:
+        recorder.page.get_by_role("button", name="Activate").click()
+    assert overlap_response.value.status == 409
+    expect(recorder.page.get_by_role("alert")).to_be_visible()
+    recorder.scan_current("historical.overlap-conflict")
+
+    active_run = (
+        HistoricalRegistrationSourceRun.objects.filter(
+            aggregate_revisions__mapping__canonical_slug_snapshot=event["slug"],
+            state=HistoricalRegistrationSourceRun.State.ACTIVE,
+        )
+        .distinct()
+        .first()
+    )
+    assert active_run is not None
+    recorder.environment.surfaces["historical-active"] = Surface(
+        f"/studio/events/historical-registration-totals/{active_run.id}/",
+        actor="site-admin",
+    )
+    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "historical-active")
+    recorder.page.get_by_label("Confirm rollback").check()
+    recorder.page.get_by_role("button", name="Rollback").click()
+    expect(recorder.page.get_by_text("rolled_back", exact=True).first).to_be_visible()
+    recorder.scan_current("historical.rollback")
+
+    _cookie(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment.users["denied"],
+    )
+    denied = recorder.page.goto(
+        f"{recorder.live_server.url}/studio/events/historical-registration-totals/"
+    )
+    assert denied is not None and denied.status == 403
+    assert "Studio access denied" in recorder.page.content()
+    recorder.checked.add("historical.denied")
+    return recorder.checked
+
+
+def _learner_scenario(recorder: ScenarioRecorder) -> set[str]:
+    simple_states = (
+        ("learner.signed-out-registration", "registration", "Register"),
+        ("learner.dashboard", "dashboard", None),
+        ("learner.enrollment", "enrollment", "Edit Enrollment Details"),
+        ("learner.homework", "homework", None),
+        ("learner.project", "project", None),
+        ("learner.peer-review", "peer-review", None),
+        ("learner.score", "score", None),
+        ("learner.leaderboard", "leaderboard", None),
+        ("learner.complaint", "complaint", None),
+        ("learner.empty", "course-empty", None),
+        ("learner.success", "registration-success", "already registered"),
+        ("learner.invalid-form", "registration-error", "Check the highlighted fields"),
+    )
+    for state, surface, marker in simple_states:
+        recorder.scan(state, surface, text=marker)
+
+    enrollment = recorder.environment.objects["enrollment"]
+    enrollment.certificate_url = "https://example.invalid/synthetic-certificate.pdf"
+    enrollment.save(update_fields=("certificate_url",))
+    recorder.scan(
+        "learner.certificate-graduation",
+        "enrollment",
+        text="Download",
+    )
+
+    campaign = recorder.environment.objects["campaign"]
+    campaign.is_active = False
+    campaign.save(update_fields=("is_active",))
+    surface = recorder.environment.surfaces["registration"]
+    _cookie(recorder.page, recorder.live_server, None)
+    stale = recorder.page.goto(f"{recorder.live_server.url}{surface.path}")
+    assert stale is not None and stale.status == 404
+    expect(recorder.page.get_by_role("heading", name="Page not found")).to_be_visible()
+    recorder.scan_current("learner.stale-denied")
+
+    homework = recorder.environment.objects["homework"]
+    homework.description = " ".join(["Long synthetic homework guidance"] * 120)
+    homework.save(update_fields=("description",))
+    recorder.scan("learner.long-content", "homework", text="Long synthetic homework guidance")
+    return recorder.checked
+
+
+def _studio_courses_scenario(recorder: ScenarioRecorder) -> set[str]:
+    recorder.scan("studio-courses.list", "studio-courses", text="Courses")
+    recorder.scan(
+        "studio-courses.form",
+        "studio-course-form",
+        text="Create registration landing page",
+    )
+    recorder.scan("studio-courses.table", "studio-course-table", text="Submissions")
+
+    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "studio-course-form")
+    course = recorder.environment.objects["course"]
+    recorder.page.get_by_label("Title").fill("Accessible current campaign")
+    recorder.page.get_by_label("URL slug").fill("accessible-current-campaign")
+    recorder.page.get_by_label("Edition label").fill("2026 accessibility cohort")
+    recorder.page.get_by_label("Current course edition").select_option(str(course.pk))
+    recorder.page.get_by_role("button", name="Create landing page").click()
+    expect(recorder.page.get_by_text("Registration landing page created.")).to_be_visible()
+    recorder.scan_current("studio-courses.confirmation")
+
+    _visit_surface(recorder.page, recorder.live_server, recorder.environment, "studio-course-form")
+    recorder.page.locator("form").first.evaluate("form => form.submit()")
+    expect(recorder.page.get_by_text("This field is required.").first).to_be_visible()
+    recorder.scan_current("studio-courses.error")
+
+    _cookie(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment.users["denied"],
+    )
+    denied = recorder.page.request.get(
+        f"{recorder.live_server.url}/studio/courses",
+        max_redirects=0,
+    )
+    assert denied.status == 302
+    assert "/accounts/login/" in denied.headers["location"]
+    recorder.checked.add("studio-courses.denied")
+
+    _cookie(
+        recorder.page,
+        recorder.live_server,
+        recorder.environment.users["site-admin"],
+    )
+    legacy = recorder.page.request.get(
+        f"{recorder.live_server.url}/cadmin?source=accessibility",
+        max_redirects=0,
+    )
+    assert legacy.status == 302
+    assert legacy.headers["location"] == "/studio/courses?source=accessibility"
+    recorder.checked.add("studio-courses.legacy-redirect")
+    return recorder.checked
+
+
+ScenarioExecutor = Callable[[ScenarioRecorder], set[str]]
+STATE_SCENARIO_EXECUTORS: dict[str, ScenarioExecutor] = {
+    "management-current-states": _management_scenario,
+    "public-current-states": _public_scenario,
+    "account-current-states": _account_scenario,
+    "historical-current-states": _historical_scenario,
+    "learner-current-states": _learner_scenario,
+    "studio-courses-current-states": _studio_courses_scenario,
+}
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+@pytest.mark.parametrize(("viewport", "_suffix"), VIEWPORTS)
+def test_complete_accessibility_registry(
+    page: Page,
+    live_server,
+    accessibility_environment: AccessibilityEnvironment,
+    viewport: dict[str, int],
+    _suffix: str,
+) -> None:
+    page.set_viewport_size(viewport)
+    expected_scenarios = {state.behavior_test for state in CRITICAL_STATES}
+    assert expected_scenarios == BEHAVIOR_SCENARIOS
+    assert STATE_SCENARIO_EXECUTORS.keys() == BEHAVIOR_SCENARIOS
+    all_checked: set[str] = set()
+    for scenario_key, executor in STATE_SCENARIO_EXECUTORS.items():
+        recorder = ScenarioRecorder(page, live_server, accessibility_environment)
+        checked = executor(recorder)
+        expected = {
+            state.identifier for state in CRITICAL_STATES if state.behavior_test == scenario_key
+        }
+        assert checked == expected, (
+            scenario_key,
+            sorted(expected - checked),
+            sorted(checked - expected),
+        )
+        assert not all_checked.intersection(checked)
+        all_checked.update(checked)
+    assert all_checked == {state.identifier for state in CRITICAL_STATES}
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+def test_named_chromium_blink_accessibility_tree_contracts(
+    page: Page,
+    live_server,
+    accessibility_environment: AccessibilityEnvironment,
+) -> None:
+    """Record named browser-engine evidence while leaving the screen-reader gate pending."""
+
+    cases = (
+        (
+            "public.home",
+            "home",
+            ("banner", "navigation", "main", "contentinfo", "heading"),
+            ("Upcoming events",),
+        ),
+        (
+            "public.podcast-transcript-media",
+            "podcast-detail",
+            ("main", "heading", "link"),
+            ("Transcript",),
+        ),
+        (
+            "public.event-aggregate-speaker",
+            "event",
+            ("main", "heading", "link"),
+            ("CEST",),
+        ),
+        (
+            "learner.invalid-form",
+            "registration-error",
+            ("main", "heading", "alert", "textbox", "button"),
+            ("Check the highlighted fields",),
+        ),
+        (
+            "studio.credential-copy",
+            "credential-copy",
+            ("main", "heading", "button", "status"),
+            ("Copy this credential now", "Copy credential"),
+        ),
+        (
+            "studio-courses.table",
+            "studio-course-table",
+            ("main", "heading", "table"),
+            ("Submissions",),
+        ),
+    )
+    records: list[dict[str, object]] = []
+    for state, surface, roles, names in cases:
+        _visit_surface(page, live_server, accessibility_environment, surface)
+        evidence, issues = chromium_blink_tree_issues(
+            page,
+            state,
+            required_roles=roles,
+            required_name_fragments=names,
+        )
+        assert issues == []
+        records.append({"state": state, **evidence})
+
+    products = {str(record["browser"]) for record in records}
+    assert len(products) == 1
+    assert next(iter(products)).startswith(("Chrome/", "Chromium/", "HeadlessChrome/"))
+    SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    (SCREENSHOTS / "named-browser-engine-evidence.json").write_text(
+        json.dumps(
+            {
+                "fixture_clock": DEFAULT_FROZEN_AT.isoformat(),
+                "human_screen_reader": "pending independent manual test",
+                "records": records,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.accessibility
+@pytest.mark.core
+def test_keyboard_focus_status_and_form_error_contracts(
+    page: Page,
+    live_server,
+    accessibility_environment: AccessibilityEnvironment,
+) -> None:
+    page.set_viewport_size({"width": 390, "height": 844})
+    _visit_surface(page, live_server, accessibility_environment, "home")
+    page.keyboard.press("Tab")
+    expect(page.locator(".skip-link")).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page.locator("#main-content")).to_be_focused()
+
+    menu = page.get_by_role("button", name="Explore")
+    menu.focus()
+    page.keyboard.press("Enter")
+    expect(menu).to_have_attribute("aria-expanded", "true")
+    page.keyboard.press("Escape")
+    expect(menu).to_have_attribute("aria-expanded", "false")
+    expect(menu).to_be_focused()
+
+    _visit_surface(page, live_server, accessibility_environment, "credential-copy")
+    page.get_by_role("button", name="Copy credential").click()
+    expect(page.locator("#copy-status")).to_contain_text("Credential copied")
+
+    _visit_surface(page, live_server, accessibility_environment, "registration-error")
+    expected_email = "synthetic-valid@example.invalid"
+    assert (
+        preserved_value_issues(
+            page,
+            "learner.invalid-form",
+            {"email": expected_email},
+        )
+        == []
+    )
+    error_summary = page.locator("[data-focus-error-summary]")
+    expect(error_summary).to_be_focused()
+    assert error_summary.get_by_role("link").count() > 0
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+def test_reflow_zoom_spacing_reduced_motion_and_forced_colors(
+    page: Page,
+    live_server,
+    accessibility_environment: AccessibilityEnvironment,
+) -> None:
+    namespace = f"issue-65-reflow-{current_worker_id()}"
+    historical = create_current_scenario(
+        FactoryContext("issue-65-reflow", namespace, DEFAULT_FROZEN_AT),
+        bundle="historical_event_totals",
+        state="minimal_valid",
+    ).by_factory()
+    _restore_audit_event_id_default()
+    run = historical["historical_event_totals.historical_source_run"].value
+    accessibility_environment.surfaces["historical-detail"] = Surface(
+        f"/studio/events/historical-registration-totals/{run.id}/",
+        actor="site-admin",
+    )
+    cdp = page.context.new_cdp_session(page)
+    for surface in (
+        "article",
+        "wiki-zero",
+        "course-empty",
+        "registration-success",
+        "registration-error",
+        "identity-conflict",
+        "credential-copy",
+        "homework",
+        "historical-detail",
+        "studio-course-table",
+    ):
+        page.set_viewport_size({"width": 320, "height": 800})
+        _visit_surface(page, live_server, accessibility_environment, surface)
+        assert structure_issues(page, f"{surface}.320px") == []
+        cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 2})
+        expect(page.locator("main h1")).to_be_visible()
+        assert page.evaluate("visualViewport.scale") == 2
+        assert structure_issues(page, f"{surface}.200-percent") == []
+        cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
+        assert text_spacing_issues(page, surface) == []
+        assert motion_issues(page, surface) == []
+        page.emulate_media(forced_colors="active", reduced_motion="reduce")
+        assert focus_issues(page, f"{surface}.forced-colors") == []
+        page.emulate_media(forced_colors="none", reduced_motion="reduce")
+
+
+FAILURE_FIXTURES = (
+    ("missing-landmark-h1", "<button>Named</button>", "expected 1 mains"),
+    (
+        "broken-skip",
+        '<header></header><a class="skip-link" href="#missing">Skip</a>'
+        "<main><h1>Title</h1></main><footer></footer>",
+        "skip target",
+    ),
+    (
+        "stale-expanded",
+        '<header></header><main><h1>Title</h1><button aria-expanded="stale">'
+        "Menu</button></main><footer></footer>",
+        "stale or invalid",
+    ),
+    (
+        "unlinked-error",
+        '<header></header><main><h1>Title</h1><input id="field" '
+        'aria-invalid="true"></main><footer></footer>',
+        "no linked field error",
+    ),
+    (
+        "silent-status",
+        '<header></header><main><h1>Title</h1><div aria-live="off">'
+        "Saved</div></main><footer></footer>",
+        "no polite announcement",
+    ),
+    (
+        "undersized-target",
+        "<header></header><main><h1>Title</h1><button "
+        'style="width:10px;height:10px;padding:0">X</button><button '
+        'style="width:10px;height:10px;padding:0">Y</button></main><footer></footer>',
+        "undersized target",
+    ),
+    (
+        "overflow",
+        '<header></header><main><h1>Title</h1><div style="width:2000px">'
+        "Wide</div></main><footer></footer>",
+        "overflows horizontally",
+    ),
+    (
+        "motion",
+        "<style>button{transition:all 2s}</style><header></header>"
+        "<main><h1>Title</h1><button>Move</button></main><footer></footer>",
+        "non-essential motion",
+    ),
+    (
+        "missing-alt",
+        '<header></header><main><h1>Title</h1><img src="data:,fixture"></main><footer></footer>',
+        "missing an alt",
+    ),
+    (
+        "missing-transcript",
+        "<header></header><main><h1>Title</h1><audio controls></audio></main><footer></footer>",
+        "neither captions nor transcript",
+    ),
+    (
+        "missing-timezone",
+        "<header></header><main><h1>Title</h1><time "
+        'datetime="2026-08-10T12:00:00Z">August 10 at noon</time>'
+        "</main><footer></footer>",
+        "no explicit timezone",
+    ),
+)
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+@pytest.mark.parametrize(
+    ("state", "body", "rule"),
+    (
+        (
+            "axe-contrast",
+            '<p style="color:#aaa;background:#fff">Low contrast fixture</p>',
+            "color-contrast",
+        ),
+        ("axe-unnamed-control", "<button></button>", "button-name"),
+    ),
+)
+def test_axe_and_unnamed_control_failures_are_actionable(
+    page: Page,
+    state: str,
+    body: str,
+    rule: str,
+) -> None:
+    page.set_content(
+        "<!doctype html><html lang='en'><head><title>Fixture</title></head>"
+        f"<body><header></header><main><h1>Fixture</h1>{body}</main>"
+        "<footer></footer></body></html>"
+    )
+    issues = axe_issues(page, state)
+    assert any(f"axe {rule}" in issue for issue in issues), issues
+    assert len("; ".join(issues)) <= 2000
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+@pytest.mark.parametrize(
+    ("state", "body", "message"),
+    (
+        (
+            "keyboard-order",
+            '<button tabindex="2">Second</button><button tabindex="1">First</button>',
+            "positive tabindex",
+        ),
+        (
+            "keyboard-trap",
+            "<button onkeydown=\"if(event.key==='Tab')event.preventDefault()\">Trapped</button>"
+            "<button>Unreachable</button>",
+            "keyboard focus is trapped",
+        ),
+    ),
+)
+def test_keyboard_order_and_trap_failures_are_actionable(
+    page: Page,
+    state: str,
+    body: str,
+    message: str,
+) -> None:
+    page.set_content(
+        "<!doctype html><html lang='en'><head><title>Fixture</title></head>"
+        f"<body><header></header><main><h1>Fixture</h1>{body}</main>"
+        "<footer></footer></body></html>"
+    )
+    issues = focus_issues(page, state)
+    assert any(message in issue for issue in issues), issues
+    assert len("; ".join(issues)) <= 2000
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+@pytest.mark.parametrize(("state", "body", "message"), FAILURE_FIXTURES)
+def test_explicit_harness_failures_are_actionable(
+    page: Page,
+    state: str,
+    body: str,
+    message: str,
+) -> None:
+    page.set_content(
+        "<!doctype html><html lang='en'><head><title>Fixture</title></head>"
+        f"<body>{body}</body></html>"
+    )
+    checks = {
+        "missing-landmark-h1": structure_issues,
+        "broken-skip": skip_link_issues,
+        "stale-expanded": control_state_issues,
+        "unlinked-error": control_state_issues,
+        "silent-status": control_state_issues,
+        "undersized-target": target_size_issues,
+        "overflow": structure_issues,
+        "motion": motion_issues,
+        "missing-alt": media_date_issues,
+        "missing-transcript": media_date_issues,
+        "missing-timezone": media_date_issues,
+    }
+    issues = checks[state](page, state)
+    assert any(message in issue for issue in issues), issues
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+def test_lost_value_and_invisible_obscured_focus_failures_are_actionable(page: Page) -> None:
+    page.set_content(
+        """
+        <!doctype html><html lang="en"><head><title>Fixture</title>
+        <style>button:focus { outline: 0; box-shadow: none; }</style></head><body>
+        <header></header><main><h1>Fixture</h1>
+        <form><input name="valid" value="lost"><button>Save</button></form>
+        <div style="position:fixed;inset:0;z-index:10;background:white">Obstruction</div>
+        </main><footer></footer></body></html>
+        """
+    )
+    assert "was not preserved" in " ".join(
+        preserved_value_issues(page, "lost-value", {"valid": "preserved"})
+    )
+    focus_failures = " ".join(focus_issues(page, "invisible-focus"))
+    assert "focus is not visible" in focus_failures
+    assert "focus target is obscured" in focus_failures
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+def test_javascript_off_public_reads_remain_semantic(
+    browser: Browser,
+    live_server,
+) -> None:
+    context = browser.new_context(
+        java_script_enabled=False,
+        viewport={"width": 390, "height": 844},
+        reduced_motion="reduce",
+    )
+    page = context.new_page()
+    try:
+        for path in ("/", "/blog", "/podcast", "/events", "/courses", "/wiki", "/docs/", "/faq/"):
+            response = page.goto(f"{live_server.url}{path}")
+            assert response is not None and response.status == 200
+            expect(page.locator("main h1")).to_have_count(1)
+            expect(page.locator(".site-navigation-links")).to_be_visible()
+    finally:
+        context.close()

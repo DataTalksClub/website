@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ subject }}</title>
+    <style>
+      body { background: #f5f7fb; color: #17223b; font: 16px/1.6 Arial, sans-serif; margin: 0; }
+      .preheader { display: none; max-height: 0; overflow: hidden; }
+      .card { background: #ffffff; border: 1px solid #dce2ee; border-radius: 8px; margin: 24px auto; max-width: 600px; padding: 24px; }
+      h1 { font-size: 28px; line-height: 1.25; margin: 0 0 20px; }
+      a { color: #064fc4; }
+      .action { border: 2px solid #064fc4; border-radius: 6px; display: inline-block; font-weight: bold; padding: 12px 18px; }
+      img { height: auto; max-width: 100%; }
+      @media (max-width: 640px) { .card { border-radius: 0; margin: 0; padding: 20px; } }
+    </style>
+  </head>
+  <body>
+    <div class="preheader">{{ trigger }}</div>
+    <main class="card" aria-labelledby="email-heading">
+      <h1 id="email-heading">{{ template_name }}</h1>
+      <div class="transactional-message">
+        {{ html_body|safe }}
+      </div>
+    </main>
+    <footer class="card">
+      DataTalks.Club transactional message. Replies are not monitored.
+    </footer>
+  </body>
+</html>

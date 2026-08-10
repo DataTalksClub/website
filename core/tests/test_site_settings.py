@@ -435,7 +435,10 @@ class PublicAnnouncementTests(TestCase):
         self.assertEqual(html.count('aria-label="Site announcement"'), 1)
         self.assertIn("Hours &amp; &quot;news&quot;", html)
         self.assertLess(html.index("</header>"), html.index("site-announcement"))
-        self.assertLess(html.index("site-announcement"), html.index('<main id="content">'))
+        self.assertLess(
+            html.index("site-announcement"),
+            html.index('<main id="main-content"'),
+        )
         self.assertNotIn('role="alert"', html)
 
     def test_public_database_failure_keeps_page_available_without_banner(self) -> None:

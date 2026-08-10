@@ -1,11 +1,19 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load accessibility static %}
 
-{% block title %}{{ campaign.title }} Registration - DataTalks.Club{% endblock %}
+{% block title %}
+  {{ campaign.title }} Registration - DataTalks.Club
+{% endblock %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'course_list' %}">Courses</a></li>
-  <li><a href="{% url 'registration_campaign' campaign.slug %}">{{ campaign.title }} registration</a></li>
+  <li>
+    <a href="{% url 'course_list' %}">Courses</a>
+  </li>
+  <li aria-current="page">
+    <a href="{% url 'registration_campaign' campaign.slug %}">
+      {{ campaign.title }} registration
+    </a>
+  </li>
 {% endblock %}
 
 {% block content %}
@@ -18,7 +26,11 @@
     {% endif %}
 
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">
-      {% if campaign.edition_label %}{{ campaign.edition_label }}{% else %}Next edition{% endif %}
+      {% if campaign.edition_label %}
+        {{ campaign.edition_label }}
+      {% else %}
+        Next edition
+      {% endif %}
     </p>
     <h1 class="mt-2 text-3xl font-semibold leading-tight tracking-normal md:text-5xl">
       {{ campaign.title }}
@@ -27,7 +39,10 @@
     {% if signup_count %}
       <p class="mt-3 inline-flex items-center gap-2 text-sm font-medium app-muted">
         <i class="fas fa-users" aria-hidden="true"></i>
-        {{ signup_count }} already registered{% if campaign.edition_label %} for {{ campaign.edition_label }}{% endif %}
+        {{ signup_count }} already registered
+        {% if campaign.edition_label %}
+          for {{ campaign.edition_label }}
+        {% endif %}
       </p>
     {% endif %}
 
@@ -77,7 +92,11 @@
     {% if registration %}
       <div class="rounded-md border app-alert-success px-4 py-3">
         <h2 class="text-lg font-semibold app-heading">
-          {% if form.is_bound %}You are registered{% else %}You are already registered{% endif %}
+          {% if form.is_bound %}
+            You are registered
+          {% else %}
+            You are already registered
+          {% endif %}
         </h2>
         <p class="mt-2 text-sm app-text">
           We will send course updates to {{ registration.email_normalized }}.
@@ -87,7 +106,7 @@
       <div class="mb-4">
         <h2 class="text-xl font-semibold app-heading">Register</h2>
         {% if not user.is_authenticated %}
-          <a href="{% url 'login' %}?next={{ request.path }}" class="mt-3 inline-flex items-center text-sm font-medium app-link">
+          <a href="{% url 'login' %}?next={{ request.path }}" class="a11y-inline-target mt-3 inline-flex items-center text-sm font-medium app-link">
             <i class="fas fa-sign-in-alt mr-2" aria-hidden="true"></i> Log in to use your account email
           </a>
         {% endif %}
@@ -95,31 +114,49 @@
 
       <form method="post" class="registration-form space-y-4" data-registration-form>
         {% csrf_token %}
-
-        {% if form.non_field_errors %}
-          <div class="rounded-md border app-alert-warning px-3 py-2 text-sm">
-            {{ form.non_field_errors }}
-          </div>
-        {% endif %}
+        <p class="text-sm app-muted">
+          Fields marked <span class="a11y-required" aria-hidden="true">*</span>
+          are required.
+        </p>
+        {% accessibility_error_summary form %}
 
         {% for field in form %}
+          {% accessibility_help_id field as help_id %}
+          {% accessibility_error_id field as error_id %}
           {% if field.field.widget.input_type == 'checkbox' %}
             <div class="checkbox-row">
-              {{ field }}
+              {% accessible_widget field %}
               <label for="{{ field.id_for_label }}" class="checkbox-label">
                 {{ field.label }}
+                {% if field.field.required %}
+                  <span class="a11y-required" aria-hidden="true">*</span>
+                  <span class="sr-only">(required)</span>
+                {% endif %}
               </label>
             </div>
+            {% if field.help_text %}
+              <p id="{{ help_id }}" class="checkbox-help">{{ field.help_text }}</p>
+            {% endif %}
             {% if field.errors %}
-              <div class="mt-1 text-sm app-danger-text">{{ field.errors }}</div>
+              <p id="{{ error_id }}" class="a11y-error">
+                <span class="sr-only">Error:</span>
+                {{ field.errors|join:" " }}
+              </p>
             {% endif %}
           {% else %}
-            <div{% if field.name == 'country' %} class="country-combobox-field"{% endif %}>
+            <div
+              {% if field.name == 'country' %}
+                class="country-combobox-field"
+              {% endif %}>
               <label for="{{ field.id_for_label }}" class="registration-field-label">
                 {{ field.label }}
+                {% if field.field.required %}
+                  <span class="a11y-required" aria-hidden="true">*</span>
+                  <span class="sr-only">(required)</span>
+                {% endif %}
               </label>
               <div class="mt-1">
-                {{ field }}
+                {% accessible_widget field %}
                 {% if field.name == 'country' %}
                   {{ country_options|json_script:"country-options-json" }}
                   <div class="country-combobox-panel"
@@ -128,7 +165,7 @@
                 {% endif %}
               </div>
               {% if field.help_text %}
-                <p class="mt-1 text-xs app-muted">{{ field.help_text }}</p>
+                <p id="{{ help_id }}" class="a11y-help text-xs app-muted">{{ field.help_text }}</p>
               {% endif %}
               {% if field.name == 'email' and user.is_authenticated %}
                 <p class="mt-1 text-xs app-muted">
@@ -136,7 +173,10 @@
                 </p>
               {% endif %}
               {% if field.errors %}
-                <div class="mt-1 text-sm app-danger-text">{{ field.errors }}</div>
+                <p id="{{ error_id }}" class="a11y-error">
+                  <span class="sr-only">Error:</span>
+                  {{ field.errors|join:" " }}
+                </p>
               {% endif %}
             </div>
           {% endif %}
@@ -145,6 +185,7 @@
         <div class="flex flex-wrap gap-2 border-t app-border pt-5">
           <button type="submit"
                   class="primer-button registration-submit-button"
+                  data-busy-label="Registering…"
                   data-registration-submit>
             <i class="fas fa-user-plus" aria-hidden="true"></i> Register
           </button>

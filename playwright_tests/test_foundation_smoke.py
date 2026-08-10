@@ -171,8 +171,11 @@ def test_podcast_first_middle_and_last_pages(
         expect(page.get_by_role("heading", name="Podcast", exact=True)).to_be_visible()
         for season in seasons:
             expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
-        expect(page.locator('[aria-current="page"]')).to_have_text(str(page_number))
-        expect(page.locator('[aria-current="page"]')).to_have_attribute(
+        current_page = page.get_by_role("navigation", name="Podcast pagination").locator(
+            '[aria-current="page"]'
+        )
+        expect(current_page).to_have_text(str(page_number))
+        expect(current_page).to_have_attribute(
             "aria-label",
             f"Podcast page {page_number}, current page",
         )
@@ -264,7 +267,24 @@ def test_public_pages_remain_meaningful_without_javascript(
             response = page.goto(f"{live_server.url}{path}")
             assert response is not None and response.status == 200
             expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
-            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+            overflow = page.evaluate(
+                """() => ({
+                  innerWidth: window.innerWidth,
+                  scrollWidth: document.documentElement.scrollWidth,
+                  sources: [...document.querySelectorAll('body *')]
+                    .filter((node) => {
+                      const rect = node.getBoundingClientRect();
+                      return rect.left < 0 || rect.right > window.innerWidth;
+                    })
+                    .slice(0, 5)
+                    .map((node) => {
+                      const rect = node.getBoundingClientRect();
+                      return `${node.tagName.toLowerCase()}#${node.id}.${node.className}`
+                        + ` [${Math.round(rect.left)},${Math.round(rect.right)}]`;
+                    }),
+                })"""
+            )
+            assert overflow["scrollWidth"] <= overflow["innerWidth"], overflow
     finally:
         context.close()
 

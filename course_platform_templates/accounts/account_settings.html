@@ -1,9 +1,12 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load accessibility static %}
 
-{% block title %}Account settings · DataTalks.Club{% endblock %}
+{% block title %}
+    Account settings · DataTalks.Club
+{% endblock %}
 
-{% block breadcrumbs %}{% endblock %}
+{% block breadcrumbs %}
+{% endblock %}
 
 {% block content %}
     <section class="settings-section border-b pb-5">
@@ -18,6 +21,7 @@
 
     <form method="post" class="settings-form mt-6 space-y-8">
         {% csrf_token %}
+        {% accessibility_error_summary form %}
         <section class="settings-section space-y-4">
             <div>
                 <h2 class="settings-section-title text-lg font-semibold">Profile</h2>
@@ -35,11 +39,16 @@
                            class="settings-label mb-2 block text-sm font-semibold">
                         {{ form.certificate_name.label }}
                     </label>
-                    {{ form.certificate_name }}
-                    <p class="settings-helper mt-1 text-xs leading-5">{{ form.certificate_name.help_text }}</p>
+                    {% accessible_widget form.certificate_name %}
+                    <p id="{{ form.certificate_name.id_for_label }}-help"
+                       class="settings-helper mt-1 text-xs leading-5">
+                        {{ form.certificate_name.help_text }}
+                    </p>
                     {% if form.certificate_name.errors %}
-                        <div class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <div id="{{ form.certificate_name.id_for_label }}-error"
+                             class="mt-2 text-sm font-medium app-danger-text">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                            <span class="sr-only">Error:</span>
                             {{ form.certificate_name.errors|join:" " }}
                         </div>
                     {% endif %}
@@ -49,10 +58,12 @@
                            class="settings-label mb-2 block text-sm font-semibold">
                         GitHub URL <span class="settings-helper app-muted font-normal">(optional)</span>
                     </label>
-                    {{ form.github_url }}
+                    {% accessible_widget form.github_url %}
                     {% if form.github_url.errors %}
-                        <div class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <div id="{{ form.github_url.id_for_label }}-error"
+                             class="mt-2 text-sm font-medium app-danger-text">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                            <span class="sr-only">Error:</span>
                             {{ form.github_url.errors|join:" " }}
                         </div>
                     {% endif %}
@@ -62,10 +73,12 @@
                            class="settings-label mb-2 block text-sm font-semibold">
                         LinkedIn URL <span class="settings-helper app-muted font-normal">(optional)</span>
                     </label>
-                    {{ form.linkedin_url }}
+                    {% accessible_widget form.linkedin_url %}
                     {% if form.linkedin_url.errors %}
-                        <div class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <div id="{{ form.linkedin_url.id_for_label }}-error"
+                             class="mt-2 text-sm font-medium app-danger-text">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                            <span class="sr-only">Error:</span>
                             {{ form.linkedin_url.errors|join:" " }}
                         </div>
                     {% endif %}
@@ -75,10 +88,12 @@
                            class="settings-label mb-2 block text-sm font-semibold">
                         Website URL <span class="settings-helper app-muted font-normal">(optional)</span>
                     </label>
-                    {{ form.personal_website_url }}
+                    {% accessible_widget form.personal_website_url %}
                     {% if form.personal_website_url.errors %}
-                        <div class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <div id="{{ form.personal_website_url.id_for_label }}-error"
+                             class="mt-2 text-sm font-medium app-danger-text">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                            <span class="sr-only">Error:</span>
                             {{ form.personal_website_url.errors|join:" " }}
                         </div>
                     {% endif %}
@@ -88,10 +103,12 @@
                            class="settings-label mb-2 block text-sm font-semibold">
                         About me <span class="settings-helper app-muted font-normal">(optional)</span>
                     </label>
-                    {{ form.about_me }}
+                    {% accessible_widget form.about_me %}
                     {% if form.about_me.errors %}
-                        <div class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <div id="{{ form.about_me.id_for_label }}-error"
+                             class="mt-2 text-sm font-medium app-danger-text">
+                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                            <span class="sr-only">Error:</span>
                             {{ form.about_me.errors|join:" " }}
                         </div>
                     {% endif %}
@@ -114,9 +131,11 @@
                        class="settings-label mb-2 block text-sm font-semibold">
                     {{ form.preferred_timezone.label }}
                 </label>
-                {{ form.preferred_timezone }}
+                {% accessible_widget form.preferred_timezone %}
                 <p id="timezone-preference-status"
-                   class="settings-helper mt-1 text-xs leading-5">
+                   class="settings-helper mt-1 text-xs leading-5"
+                   role="status"
+                   aria-live="polite">
                     {% if preferred_timezone_label %}
                         Current timezone: {{ preferred_timezone_label }}
                     {% elif browser_timezone_label %}
@@ -125,28 +144,37 @@
                         Using UTC until your browser timezone is detected.
                     {% endif %}
                 </p>
-                <p class="settings-helper mt-1 text-xs leading-5">
+                <p id="{{ form.preferred_timezone.id_for_label }}-help"
+                   class="settings-helper mt-1 text-xs leading-5">
                     {{ form.preferred_timezone.help_text }}
                 </p>
                 {% if form.preferred_timezone.errors %}
-                    <div class="mt-2 text-sm font-medium app-danger-text">
-                        <i class="fas fa-exclamation-triangle"></i>
+                    <div id="{{ form.preferred_timezone.id_for_label }}-error"
+                         class="mt-2 text-sm font-medium app-danger-text">
+                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                        <span class="sr-only">Error:</span>
                         {{ form.preferred_timezone.errors|join:" " }}
                     </div>
                 {% endif %}
             </div>
             <div class="toggle-row js-immediate-toggle-row"
                  data-toggle-url="{% url 'update_account_toggle' %}">
-                {{ form.dark_mode }}
+                {% accessible_widget form.dark_mode %}
                 <span class="toggle-copy">
-                    <span class="toggle-label">{{ form.dark_mode.label }}</span>
+                    <label for="{{ form.dark_mode.id_for_label }}" class="toggle-label">
+                        {{ form.dark_mode.label }}
+                    </label>
                     <span class="toggle-help">Choose the default theme for your account.</span>
                 </span>
             </div>
         </section>
 
         <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-            <button type="submit" class="primer-button">Save changes</button>
+            <button type="submit"
+                    class="primer-button"
+                    data-busy-label="Saving…">
+                Save changes
+            </button>
         </div>
     </form>
 
@@ -158,8 +186,10 @@
                 Choose which course workflow emails you want to receive.
             </p>
         </div>
-        <p class="settings-helper js-email-preferences-status text-xs leading-5"
-           role="status">
+        <p class="settings-helper js-email-preferences-status a11y-status text-xs leading-5"
+           role="status"
+           aria-live="polite"
+           aria-busy="true">
             Loading email subscriptions...
         </p>
         <div class="space-y-4">
