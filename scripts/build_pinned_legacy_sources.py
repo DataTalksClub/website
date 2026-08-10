@@ -15,10 +15,12 @@ import os
 import re
 import secrets
 import shutil
+import stat
 import subprocess
 import sys
 import urllib.request
-from pathlib import Path
+import zipfile
+from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import quote, urlsplit
 
@@ -32,7 +34,6 @@ from compatibility.source_config import (  # noqa: E402
     FAQ_FROZEN_GENERATION_TIME,
     FAQ_WEBSITE_UV_LOCK_SHA256,
     PINNED_LEGACY_SOURCES,
-    RUSTKYLL_0_4_6_LINUX_AMD64_SHA256,
     PinnedLegacySource,
     SourceKind,
     generated_contract_kind,
@@ -42,12 +43,13 @@ from compatibility.source_config import (  # noqa: E402
 
 SCRATCH_ROOT = (REPOSITORY_ROOT / ".tmp").resolve()
 DEFAULT_WORKSPACE = SCRATCH_ROOT / "legacy-compatibility-sources"
-RUSTKYLL_0_4_6_URL = (
-    "https://github.com/alexeygrigorev/rustkyll/releases/download/v0.4.6/rustkyll-linux-amd64"
-)
 MAX_BUILD_TOOL_BYTES = 32 * 1024 * 1024
+MAX_EMBEDDED_BUILD_TOOL_BYTES = 64 * 1024 * 1024
 MAX_SOURCE_TREE_FILES = 20_000
 MAX_SOURCE_TREE_BYTES = 512 * 1024 * 1024
+# Python exposes nanosecond mtimes as signed 64-bit values on the supported
+# deployment filesystems. Reject later epochs before multiplication or I/O.
+MAX_SOURCE_DATE_EPOCH = (2**63 - 1) // 1_000_000_000
 CONTRACT_ROOT = REPOSITORY_ROOT / "_docs/compatibility"
 BASELINE_DATE = "2026-08-08"
 ARTIFACT_NAMES = (
@@ -59,6 +61,7 @@ ARTIFACT_NAMES = (
     "source-build-provenance.json",
 )
 FAQ_ID = re.compile(r"^[0-9A-Za-z]{10}$")
+COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 BUILD_RUNTIME_ROOT = DEFAULT_WORKSPACE / "runtime"
 FAQ_RUNNER = """
 import importlib.util
@@ -161,12 +164,25 @@ def prepare_checkout(workspace: Path, source: PinnedLegacySource) -> Path:
     return checkout
 
 
-def _download_rustkyll(workspace: Path) -> Path:
-    target = workspace / "tools" / "rustkyll-v0.4.6-linux-amd64"
+def _download_pinned_build_tool(
+    workspace: Path,
+    source: PinnedLegacySource,
+    *,
+    executable: bool,
+) -> Path:
+    if source.build_tool_url is None or source.build_tool_sha256 is None:
+        raise BuildError("pinned build-tool artifact is missing")
+    filename = PurePosixPath(urlsplit(source.build_tool_url).path).name
+    if not filename or filename in {".", ".."}:
+        raise BuildError("pinned build-tool filename is invalid")
+    target_name = f"rustkyll-{source.build_tool_version}-linux-amd64" if executable else filename
+    target = workspace / "tools" / target_name
+    if target.is_symlink():
+        raise BuildError("cached build tool is a symbolic link")
     if not target.exists():
         target.parent.mkdir(parents=True, exist_ok=True)
         request = urllib.request.Request(
-            RUSTKYLL_0_4_6_URL,
+            source.build_tool_url,
             headers={"User-Agent": "dtc-compatibility-source-builder/1"},
         )
         with urllib.request.urlopen(request, timeout=60) as response:  # noqa: S310
@@ -175,25 +191,62 @@ def _download_rustkyll(workspace: Path) -> Path:
                 try:
                     declared_length = int(raw_length)
                 except ValueError as error:
-                    raise BuildError("downloaded Rustkyll has invalid content length") from error
+                    raise BuildError("downloaded build tool has invalid content length") from error
                 if not 1 <= declared_length <= MAX_BUILD_TOOL_BYTES:
-                    raise BuildError("downloaded Rustkyll exceeds the size limit")
+                    raise BuildError("downloaded build tool exceeds the size limit")
             payload = response.read(MAX_BUILD_TOOL_BYTES + 1)
         if not payload or len(payload) > MAX_BUILD_TOOL_BYTES:
-            raise BuildError("downloaded Rustkyll exceeds the size limit")
-        if hashlib.sha256(payload).hexdigest() != RUSTKYLL_0_4_6_LINUX_AMD64_SHA256:
-            raise BuildError("downloaded Rustkyll digest mismatch")
+            raise BuildError("downloaded build tool exceeds the size limit")
+        if hashlib.sha256(payload).hexdigest() != source.build_tool_sha256:
+            raise BuildError("downloaded build tool digest mismatch")
         target.write_bytes(payload)
-        target.chmod(0o755)
+        if executable:
+            target.chmod(0o755)
     if not 1 <= target.stat().st_size <= MAX_BUILD_TOOL_BYTES:
-        raise BuildError("cached Rustkyll exceeds the size limit")
+        raise BuildError("cached build tool exceeds the size limit")
     digest = hashlib.sha256(target.read_bytes()).hexdigest()
-    if digest != RUSTKYLL_0_4_6_LINUX_AMD64_SHA256:
-        raise BuildError("cached Rustkyll digest mismatch")
+    if digest != source.build_tool_sha256:
+        raise BuildError("cached build tool digest mismatch")
+    if executable and not os.access(target, os.X_OK):
+        target.chmod(0o755)
     return target
 
 
-def _build_environment(runtime_root: Path = BUILD_RUNTIME_ROOT) -> dict[str, str]:
+def _download_rustkyll(workspace: Path, source: PinnedLegacySource) -> Path:
+    if source.source_kind is not SourceKind.RUSTKYLL_RELEASE:
+        raise BuildError("Rustkyll release artifact requested for the wrong source kind")
+    tool = _download_pinned_build_tool(workspace, source, executable=True)
+    if hashlib.sha256(tool.read_bytes()).hexdigest() != source.build_tool_binary_sha256:
+        raise BuildError("cached Rustkyll binary digest mismatch")
+    return tool
+
+
+def _download_rustkyll_wheel(workspace: Path, source: PinnedLegacySource) -> Path:
+    if source.source_kind is not SourceKind.RUSTKYLL_PYPI:
+        raise BuildError("Rustkyll wheel requested for the wrong source kind")
+    wheel = _download_pinned_build_tool(workspace, source, executable=False)
+    try:
+        with zipfile.ZipFile(wheel) as archive:
+            member = archive.getinfo("rustkyll/bin/rustkyll")
+            if not 1 <= member.file_size <= MAX_EMBEDDED_BUILD_TOOL_BYTES:
+                raise BuildError("Rustkyll wheel binary exceeds the size limit")
+            with archive.open(member) as binary:
+                payload = binary.read(MAX_EMBEDDED_BUILD_TOOL_BYTES + 1)
+    except (KeyError, OSError, zipfile.BadZipFile) as error:
+        raise BuildError("Rustkyll wheel is malformed") from error
+    if (
+        len(payload) != member.file_size
+        or hashlib.sha256(payload).hexdigest() != source.build_tool_binary_sha256
+    ):
+        raise BuildError("Rustkyll wheel binary digest mismatch")
+    return wheel
+
+
+def _build_environment(
+    runtime_root: Path = BUILD_RUNTIME_ROOT,
+    *,
+    source_date_epoch: int | None = None,
+) -> dict[str, str]:
     """Return the complete, credential-free environment for child processes.
 
     Pinned source repositories are public and their builds do not need caller credentials.  In
@@ -211,7 +264,7 @@ def _build_environment(runtime_root: Path = BUILD_RUNTIME_ROOT) -> dict[str, str
     for directory in (home, cache, temporary):
         directory.mkdir(parents=True, exist_ok=True)
 
-    return {
+    environment = {
         "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_TERMINAL_PROMPT": "0",
         "HOME": str(home),
@@ -227,6 +280,137 @@ def _build_environment(runtime_root: Path = BUILD_RUNTIME_ROOT) -> dict[str, str
         "UV_NO_CONFIG": "1",
         "XDG_CACHE_HOME": str(cache / "xdg"),
     }
+    if source_date_epoch is not None:
+        if (
+            type(source_date_epoch) is not int
+            or not 0 <= source_date_epoch <= MAX_SOURCE_DATE_EPOCH
+        ):
+            raise BuildError("source date epoch is out of range")
+        environment["SOURCE_DATE_EPOCH"] = str(source_date_epoch)
+    return environment
+
+
+def _source_date_epoch(checkout: Path, source: PinnedLegacySource) -> int:
+    """Return the pinned commit's strict, revision-bound committer timestamp."""
+
+    if COMMIT_SHA.fullmatch(source.revision) is None:
+        raise BuildError("pinned source revision is invalid")
+    result = _run(
+        [
+            "git",
+            "show",
+            "-s",
+            "--format=%H%n%ct",
+            "--no-patch",
+            source.revision,
+        ],
+        cwd=checkout,
+    )
+    lines = result.splitlines()
+    if len(lines) != 2:
+        raise BuildError("pinned source timestamp metadata is malformed")
+    revision, raw_epoch = lines
+    if revision != source.revision:
+        raise BuildError("pinned source timestamp revision mismatch")
+    if not raw_epoch or not raw_epoch.isascii() or not raw_epoch.isdecimal():
+        raise BuildError("pinned source timestamp metadata is malformed")
+    try:
+        epoch = int(raw_epoch)
+    except ValueError as error:  # pragma: no cover - guarded by isdecimal.
+        raise BuildError("pinned source timestamp metadata is malformed") from error
+    if not 0 <= epoch <= MAX_SOURCE_DATE_EPOCH:
+        raise BuildError("pinned source timestamp is out of range")
+    return epoch
+
+
+def _tracked_source_files(checkout: Path) -> tuple[Path, ...]:
+    """Resolve a bounded, NUL-delimited list of tracked regular files."""
+
+    raw_paths = _run(
+        ["git", "ls-files", "-z", "--cached", "--"],
+        cwd=checkout,
+    )
+    if not raw_paths.endswith("\0"):
+        raise BuildError("tracked source inventory is malformed")
+    relative_paths = raw_paths[:-1].split("\0")
+    if not relative_paths or len(relative_paths) > MAX_SOURCE_TREE_FILES:
+        raise BuildError("tracked source inventory exceeds its bounds")
+
+    resolved_checkout = checkout.resolve()
+    files: list[Path] = []
+    total_bytes = 0
+    for raw_path in relative_paths:
+        relative = Path(raw_path)
+        if (
+            not raw_path
+            or relative.is_absolute()
+            or any(part in {"", ".", ".."} for part in relative.parts)
+        ):
+            raise BuildError("tracked source inventory contains an invalid path")
+        path = checkout / relative
+        try:
+            metadata = path.lstat()
+            resolved = path.resolve(strict=True)
+        except OSError as error:
+            raise BuildError("tracked source file is missing") from error
+        if resolved_checkout not in resolved.parents:
+            raise BuildError("tracked source file escapes its checkout")
+        if not stat.S_ISREG(metadata.st_mode):
+            raise BuildError("tracked source entry is not a regular file")
+        total_bytes += metadata.st_size
+        if metadata.st_size > MAX_BUILD_TOOL_BYTES or total_bytes > MAX_SOURCE_TREE_BYTES:
+            raise BuildError("tracked source inventory exceeds its bounds")
+        files.append(path)
+    return tuple(files)
+
+
+def _normalize_tracked_source_mtimes(checkout: Path, source_date_epoch: int) -> None:
+    """Set and verify every tracked file's mtime using the pinned commit epoch."""
+
+    if type(source_date_epoch) is not int or not 0 <= source_date_epoch <= MAX_SOURCE_DATE_EPOCH:
+        raise BuildError("source date epoch is out of range")
+    expected_mtime_ns = source_date_epoch * 1_000_000_000
+    for path in _tracked_source_files(checkout):
+        try:
+            before = path.lstat()
+            os.utime(
+                path,
+                ns=(before.st_atime_ns, expected_mtime_ns),
+                follow_symlinks=False,
+            )
+            after = path.lstat()
+        except OSError as error:
+            raise BuildError("tracked source mtime could not be normalized") from error
+        if (
+            not stat.S_ISREG(after.st_mode)
+            or (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino)
+            or after.st_mtime_ns != expected_mtime_ns
+        ):
+            raise BuildError("tracked source mtime could not be normalized")
+
+
+def _uses_rustkyll(source: PinnedLegacySource) -> bool:
+    return source.source_kind in {
+        SourceKind.RUSTKYLL_RELEASE,
+        SourceKind.RUSTKYLL_PYPI,
+    }
+
+
+def _deterministic_overrides(
+    source: PinnedLegacySource,
+    source_date_epoch: int | None,
+) -> list[str]:
+    overrides = list(source.deterministic_overrides)
+    if _uses_rustkyll(source):
+        if (
+            type(source_date_epoch) is not int
+            or not 0 <= source_date_epoch <= MAX_SOURCE_DATE_EPOCH
+        ):
+            raise BuildError("source date epoch is required for Rustkyll provenance")
+        overrides.append(f"source-date-epoch={source_date_epoch}")
+    elif source_date_epoch is not None:
+        raise BuildError("source date epoch does not apply to this source")
+    return overrides
 
 
 def _reset_generated_output(checkout: Path, source: PinnedLegacySource) -> None:
@@ -247,14 +431,29 @@ def _reset_generated_output(checkout: Path, source: PinnedLegacySource) -> None:
         shutil.rmtree(output)
 
 
-def build_source(workspace: Path, source: PinnedLegacySource, checkout: Path) -> Path | None:
+def build_source(
+    workspace: Path,
+    source: PinnedLegacySource,
+    checkout: Path,
+    *,
+    source_date_epoch: int | None = None,
+) -> Path | None:
     if source.source_kind is SourceKind.DJANGO_ROUTE_CONTRACTS:
         return None
     verify_checkout(checkout, source)
     _reset_generated_output(checkout, source)
-    environment = _build_environment(workspace / "runtime")
+    if _uses_rustkyll(source):
+        if source_date_epoch is None:
+            source_date_epoch = _source_date_epoch(checkout, source)
+        _normalize_tracked_source_mtimes(checkout, source_date_epoch)
+    elif source_date_epoch is not None:
+        raise BuildError("source date epoch does not apply to this source")
+    environment = _build_environment(
+        workspace / "runtime",
+        source_date_epoch=source_date_epoch,
+    )
     if source.source_kind is SourceKind.RUSTKYLL_RELEASE:
-        tool = _download_rustkyll(workspace)
+        tool = _download_rustkyll(workspace, source)
         arguments = [str(tool), "build"]
         if source.path_prefix != "/":
             arguments.extend(("--baseurl", source.path_prefix))
@@ -286,12 +485,13 @@ def build_source(workspace: Path, source: PinnedLegacySource, checkout: Path) ->
         uv = shutil.which("uv")
         if uvx is None or uv is None:
             raise BuildError("uv and uvx are required to build the Podwiki source")
+        wheel = _download_rustkyll_wheel(workspace, source)
         _run(
             [
                 uvx,
                 "--no-config",
                 "--from",
-                f"rustkyll=={source.build_tool_version}",
+                str(wheel),
                 "rustkyll",
                 "build",
                 "--baseurl",
@@ -636,17 +836,31 @@ def _machine_contract_document(
     }
 
 
-def _checked_provenance(outputs: dict[str, Path], source_path_rows: int) -> dict[str, object]:
+def _checked_provenance(
+    workspace: Path,
+    outputs: dict[str, Path],
+    source_path_rows: int,
+) -> dict[str, object]:
     records: list[dict[str, object]] = []
     for source in PINNED_LEGACY_SOURCES:
         output = outputs.get(source.source_id)
         file_count, tree_sha256 = (0, None) if output is None else _tree_digest(output)
+        source_date_epoch = (
+            _source_date_epoch(_checkout_path(workspace, source), source)
+            if _uses_rustkyll(source)
+            else None
+        )
         records.append(
             {
                 "build_tool": source.build_tool,
+                "build_tool_binary_sha256": source.build_tool_binary_sha256,
                 "build_tool_sha256": source.build_tool_sha256,
+                "build_tool_url": source.build_tool_url,
                 "build_tool_version": source.build_tool_version,
-                "deterministic_overrides": list(source.deterministic_overrides),
+                "deterministic_overrides": _deterministic_overrides(
+                    source,
+                    source_date_epoch,
+                ),
                 "output_directory": source.output_directory,
                 "output_file_count": file_count,
                 "output_tree_sha256": tree_sha256,
@@ -677,7 +891,7 @@ def build_artifact_payloads(workspace: Path) -> dict[str, bytes]:
     podwiki_rows = _podwiki_fragment_rows(workspace)
     course_document = _course_route_document(workspace)
     machine_document = _machine_contract_document(generated_rows, course_document)
-    provenance = _checked_provenance(outputs, len(generated_rows))
+    provenance = _checked_provenance(workspace, outputs, len(generated_rows))
     return {
         "generated-path-baseline.jsonl": _jsonl_bytes(generated_rows),
         "faq-fragment-contracts.jsonl": _jsonl_bytes(faq_rows),
@@ -780,7 +994,21 @@ def main(argv: list[str] | None = None) -> int:
     records: list[dict[str, object]] = []
     for source in selected:
         checkout = prepare_checkout(workspace, source)
-        output = None if arguments.prepare_only else build_source(workspace, source, checkout)
+        source_date_epoch = (
+            _source_date_epoch(checkout, source)
+            if not arguments.prepare_only and _uses_rustkyll(source)
+            else None
+        )
+        output = (
+            None
+            if arguments.prepare_only
+            else build_source(
+                workspace,
+                source,
+                checkout,
+                source_date_epoch=source_date_epoch,
+            )
+        )
         file_count, tree_sha256 = (0, "") if output is None else _tree_digest(output)
         records.append(
             {
@@ -790,9 +1018,15 @@ def main(argv: list[str] | None = None) -> int:
                 "public_base_url": source.public_base_url,
                 "path_prefix": source.path_prefix,
                 "build_tool": source.build_tool,
+                "build_tool_binary_sha256": source.build_tool_binary_sha256,
                 "build_tool_version": source.build_tool_version,
                 "build_tool_sha256": source.build_tool_sha256,
-                "deterministic_overrides": list(source.deterministic_overrides),
+                "build_tool_url": source.build_tool_url,
+                "deterministic_overrides": (
+                    list(source.deterministic_overrides)
+                    if arguments.prepare_only
+                    else _deterministic_overrides(source, source_date_epoch)
+                ),
                 "output_directory": source.output_directory,
                 "output_file_count": file_count,
                 "output_tree_sha256": tree_sha256,

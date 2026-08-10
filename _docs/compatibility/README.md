@@ -43,11 +43,24 @@ It never reads an adjacent developer checkout. An existing checkout is accepted 
 origin and exact revision match, HEAD is detached, and both tracked and untracked status are
 clean. All downloads and generated output stay below the project-local `.tmp/` directory.
 
-Main and docs use the deployed Rustkyll v0.4.6 binary with its pinned SHA-256 digest. Podwiki uses
-the pinned `rustkyll==0.5.0` package through `uvx`. FAQ uses the source repository's verified
-`website/uv.lock` through `uv run --frozen`. The FAQ generator's only known wall-clock input,
+Main and docs use the published Rustkyll v0.4.10 Linux AMD64 binary with its exact release URL and
+SHA-256 digest. Podwiki uses the published Rustkyll 0.5.3 Linux AMD64 PyPI wheel with its exact
+`files.pythonhosted.org` URL and SHA-256 digest; the wrapper downloads and verifies that wheel, then
+verifies the packaged executable against the separately published v0.5.3 Linux binary digest and
+passes its local canonical platform-tagged filename to `uvx`. It never resolves an unpinned
+`rustkyll==version` requirement. FAQ uses the source repository's verified `website/uv.lock`
+through `uv run --frozen`. The FAQ generator's only known wall-clock input,
 its rendered `generation_time`, is frozen at `2000-01-01 00:00:00`; this deliberate difference
 from production is retained in `source-production-differences.json`.
+
+| Lane | Pinned public artifact | Artifact SHA-256 | Executed binary SHA-256 |
+| --- | --- | --- | --- |
+| Main and docs | [Rustkyll v0.4.10 Linux AMD64](https://github.com/alexeygrigorev/rustkyll/releases/download/v0.4.10/rustkyll-linux-amd64) | `ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e` | same as artifact |
+| Podwiki | [Rustkyll 0.5.3 Linux AMD64 wheel](https://files.pythonhosted.org/packages/32/f4/9cae847680982c09346f8db66568a9ecb11d2e8de411c9829c7c8e2c4415/rustkyll-0.5.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl) | `348c622cac08cdd2361c4300161b7da34b7f7162bf0ad3d9fd9a0cd053f54a8e` | `c8c2e6c732ecc224c28c170782114980b4707514835e7f587293f78bd38f2fba` |
+
+Before each Rustkyll build, the wrapper derives `SOURCE_DATE_EPOCH` from the exact pinned commit and
+normalizes every tracked regular source file to that value: main `1785872368`, docs `1786017922`,
+and Podwiki `1785736104`. The same values are recorded as deterministic provenance overrides.
 
 `source-build-provenance.json` records every repository revision, tool version, deterministic
 override, output count, and generated-tree digest. The checked-in source build contains 2,937
@@ -220,7 +233,8 @@ response status is successful (`200` through `299`).
 
 `source-production-differences.json` is the review ledger. It records:
 
-- the docs Makefile's v0.4.7 default versus the deployed workflow and README's v0.4.6 binary;
+- the docs Makefile's historical v0.4.7 default, deployed workflow's v0.4.6 binary, and the
+  compatibility rebuild's reproducibility-fix v0.4.10 binary;
 - the FAQ deployment-time footer versus the frozen source-build time;
 - the known browser-parity exception for the unescaped quoted meta description in
   `_site/blog/ml-deployment-lambda.html`; the deterministic extractor intentionally excludes the

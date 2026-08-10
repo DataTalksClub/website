@@ -14,8 +14,22 @@ from pathlib import PurePosixPath
 from urllib.parse import urlsplit
 
 SOURCE_CONFIG_SCHEMA_VERSION = 1
-RUSTKYLL_0_4_6_LINUX_AMD64_SHA256 = (
-    "8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5"
+RUSTKYLL_0_4_10_LINUX_AMD64_URL = (
+    "https://github.com/alexeygrigorev/rustkyll/releases/download/v0.4.10/rustkyll-linux-amd64"
+)
+RUSTKYLL_0_4_10_LINUX_AMD64_SHA256 = (
+    "ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e"
+)
+RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_URL = (
+    "https://files.pythonhosted.org/packages/32/f4/"
+    "9cae847680982c09346f8db66568a9ecb11d2e8de411c9829c7c8e2c4415/"
+    "rustkyll-0.5.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+)
+RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_SHA256 = (
+    "348c622cac08cdd2361c4300161b7da34b7f7162bf0ad3d9fd9a0cd053f54a8e"
+)
+RUSTKYLL_0_5_3_LINUX_AMD64_BINARY_SHA256 = (
+    "c8c2e6c732ecc224c28c170782114980b4707514835e7f587293f78bd38f2fba"
 )
 FAQ_WEBSITE_UV_LOCK_SHA256 = "f8070e0954a5bca6e7bd58c76854fd51b906b47a5d5f93b7423541ef436dc8f8"
 FAQ_FROZEN_GENERATION_TIME = "2000-01-01 00:00:00"
@@ -43,6 +57,8 @@ class PinnedLegacySource:
     build_tool: str
     build_tool_version: str
     build_tool_sha256: str | None = None
+    build_tool_url: str | None = None
+    build_tool_binary_sha256: str | None = None
     deterministic_overrides: tuple[str, ...] = ()
     machine_contracts: tuple[str, ...] = ()
 
@@ -89,11 +105,30 @@ class PinnedLegacySource:
             raise ValueError(
                 f"route-only source cannot declare generated output for {self.source_id}"
             )
-        if (
-            self.build_tool_sha256 is not None
-            and re.fullmatch(r"[0-9a-f]{64}", self.build_tool_sha256) is None
-        ):
-            raise ValueError(f"invalid build-tool digest for {self.source_id}")
+        for digest in (self.build_tool_sha256, self.build_tool_binary_sha256):
+            if digest is not None and re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+                raise ValueError(f"invalid build-tool digest for {self.source_id}")
+        if self.source_kind in {SourceKind.RUSTKYLL_RELEASE, SourceKind.RUSTKYLL_PYPI}:
+            if (
+                self.build_tool_sha256 is None
+                or self.build_tool_url is None
+                or self.build_tool_binary_sha256 is None
+            ):
+                raise ValueError(f"missing pinned build-tool artifact for {self.source_id}")
+        elif self.build_tool_url is not None or self.build_tool_binary_sha256 is not None:
+            raise ValueError(f"unexpected build-tool artifact for {self.source_id}")
+        if self.build_tool_url is not None:
+            build_tool_url = urlsplit(self.build_tool_url)
+            if (
+                build_tool_url.scheme != "https"
+                or build_tool_url.hostname not in {"github.com", "files.pythonhosted.org"}
+                or build_tool_url.username is not None
+                or build_tool_url.password is not None
+                or build_tool_url.query
+                or build_tool_url.fragment
+                or not PurePosixPath(build_tool_url.path).name
+            ):
+                raise ValueError(f"invalid build-tool URL for {self.source_id}")
         for contract in self.machine_contracts:
             if not contract.startswith("/"):
                 raise ValueError(f"invalid machine contract for {self.source_id}")
@@ -109,8 +144,10 @@ PINNED_LEGACY_SOURCES = (
         source_kind=SourceKind.RUSTKYLL_RELEASE,
         output_directory="_site",
         build_tool="rustkyll-linux-amd64",
-        build_tool_version="v0.4.6",
-        build_tool_sha256=RUSTKYLL_0_4_6_LINUX_AMD64_SHA256,
+        build_tool_version="v0.4.10",
+        build_tool_sha256=RUSTKYLL_0_4_10_LINUX_AMD64_SHA256,
+        build_tool_url=RUSTKYLL_0_4_10_LINUX_AMD64_URL,
+        build_tool_binary_sha256=RUSTKYLL_0_4_10_LINUX_AMD64_SHA256,
         machine_contracts=(
             "/robots.txt",
             "/sitemap.xml",
@@ -132,11 +169,14 @@ PINNED_LEGACY_SOURCES = (
         source_kind=SourceKind.RUSTKYLL_RELEASE,
         output_directory="_site",
         build_tool="rustkyll-linux-amd64",
-        # The pinned deploy workflow and README use v0.4.6.  The source Makefile says v0.4.7;
-        # that source-vs-deploy difference is intentionally recorded in the provenance report.
-        build_tool_version="v0.4.6",
-        build_tool_sha256=RUSTKYLL_0_4_6_LINUX_AMD64_SHA256,
-        deterministic_overrides=("deploy-workflow-version-over-makefile-v0.4.7",),
+        # Compatibility regeneration deliberately uses the reproducibility-fix release instead
+        # of the source Makefile's historical v0.4.7 pin. The override remains explicit in the
+        # provenance report while generated compatibility behavior stays byte-stable.
+        build_tool_version="v0.4.10",
+        build_tool_sha256=RUSTKYLL_0_4_10_LINUX_AMD64_SHA256,
+        build_tool_url=RUSTKYLL_0_4_10_LINUX_AMD64_URL,
+        build_tool_binary_sha256=RUSTKYLL_0_4_10_LINUX_AMD64_SHA256,
+        deterministic_overrides=("compatibility-release-over-makefile-v0.4.7",),
         machine_contracts=(
             "/docs/robots.txt",
             "/docs/sitemap.xml",
@@ -174,7 +214,10 @@ PINNED_LEGACY_SOURCES = (
         source_kind=SourceKind.RUSTKYLL_PYPI,
         output_directory="_site",
         build_tool="rustkyll-pypi",
-        build_tool_version="0.5.0",
+        build_tool_version="0.5.3",
+        build_tool_sha256=RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_SHA256,
+        build_tool_url=RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_URL,
+        build_tool_binary_sha256=RUSTKYLL_0_5_3_LINUX_AMD64_BINARY_SHA256,
         machine_contracts=(
             "/podwiki/robots.txt",
             "/podwiki/sitemap.xml",

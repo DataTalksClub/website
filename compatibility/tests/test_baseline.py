@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
 import re
+import shutil
 import uuid
+import zipfile
 from collections import Counter
 from pathlib import Path
 from types import SimpleNamespace
@@ -17,7 +21,11 @@ from compatibility.source_config import (
     FAQ_FROZEN_GENERATION_TIME,
     FAQ_WEBSITE_UV_LOCK_SHA256,
     PINNED_LEGACY_SOURCES,
-    RUSTKYLL_0_4_6_LINUX_AMD64_SHA256,
+    RUSTKYLL_0_4_10_LINUX_AMD64_SHA256,
+    RUSTKYLL_0_4_10_LINUX_AMD64_URL,
+    RUSTKYLL_0_5_3_LINUX_AMD64_BINARY_SHA256,
+    RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_SHA256,
+    RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_URL,
     PinnedLegacySource,
     generated_contract_kind,
     generated_public_path,
@@ -74,8 +82,22 @@ def test_source_configuration_pins_tools_mounts_and_machine_contracts() -> None:
     sources = source_map()
 
     assert len(sources) == 5
-    assert RUSTKYLL_0_4_6_LINUX_AMD64_SHA256 == (
-        "8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5"
+    assert RUSTKYLL_0_4_10_LINUX_AMD64_URL == (
+        "https://github.com/alexeygrigorev/rustkyll/releases/download/v0.4.10/rustkyll-linux-amd64"
+    )
+    assert RUSTKYLL_0_4_10_LINUX_AMD64_SHA256 == (
+        "ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e"
+    )
+    assert RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_URL == (
+        "https://files.pythonhosted.org/packages/32/f4/"
+        "9cae847680982c09346f8db66568a9ecb11d2e8de411c9829c7c8e2c4415/"
+        "rustkyll-0.5.3-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl"
+    )
+    assert RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_SHA256 == (
+        "348c622cac08cdd2361c4300161b7da34b7f7162bf0ad3d9fd9a0cd053f54a8e"
+    )
+    assert RUSTKYLL_0_5_3_LINUX_AMD64_BINARY_SHA256 == (
+        "c8c2e6c732ecc224c28c170782114980b4707514835e7f587293f78bd38f2fba"
     )
     assert FAQ_WEBSITE_UV_LOCK_SHA256 == (
         "f8070e0954a5bca6e7bd58c76854fd51b906b47a5d5f93b7423541ef436dc8f8"
@@ -88,6 +110,16 @@ def test_source_configuration_pins_tools_mounts_and_machine_contracts() -> None:
         in sources["dtc-podwiki"].machine_contracts
     )
     assert "/podwiki/graph/#topic%3Allms" in sources["dtc-podwiki"].machine_contracts
+    assert sources["dtc-main-site"].build_tool_version == "v0.4.10"
+    assert sources["dtc-docs"].build_tool_version == "v0.4.10"
+    assert sources["dtc-podwiki"].build_tool_version == "0.5.3"
+    assert sources["dtc-main-site"].build_tool_url == RUSTKYLL_0_4_10_LINUX_AMD64_URL
+    assert sources["dtc-docs"].build_tool_url == RUSTKYLL_0_4_10_LINUX_AMD64_URL
+    assert sources["dtc-podwiki"].build_tool_url == RUSTKYLL_0_5_3_PYPI_LINUX_AMD64_URL
+    assert sources["dtc-main-site"].build_tool_binary_sha256 == (RUSTKYLL_0_4_10_LINUX_AMD64_SHA256)
+    assert sources["dtc-podwiki"].build_tool_binary_sha256 == (
+        RUSTKYLL_0_5_3_LINUX_AMD64_BINARY_SHA256
+    )
 
 
 def test_generated_path_baseline_is_complete_and_provenance_backed() -> None:
@@ -131,7 +163,16 @@ def test_generated_path_baseline_is_complete_and_provenance_backed() -> None:
         assert record["build_tool"] == source.build_tool
         assert record["build_tool_version"] == source.build_tool_version
         assert record["build_tool_sha256"] == source.build_tool_sha256
-        assert record["deterministic_overrides"] == list(source.deterministic_overrides)
+        assert record["build_tool_binary_sha256"] == source.build_tool_binary_sha256
+        assert record["build_tool_url"] == source.build_tool_url
+        expected_overrides = list(source.deterministic_overrides)
+        if source.source_id == "dtc-main-site":
+            expected_overrides.append("source-date-epoch=1785872368")
+        elif source.source_id == "dtc-docs":
+            expected_overrides.append("source-date-epoch=1786017922")
+        elif source.source_id == "dtc-podwiki":
+            expected_overrides.append("source-date-epoch=1785736104")
+        assert record["deterministic_overrides"] == expected_overrides
         if source.output_directory is None:
             assert record["output_file_count"] == 0
             assert record["output_tree_sha256"] is None
@@ -429,6 +470,360 @@ def test_source_builder_child_environment_is_minimal_and_credential_free(
         "UV_NO_CONFIG",
         "XDG_CACHE_HOME",
     }
+
+
+def test_source_builder_derives_epoch_from_the_exact_pinned_revision(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = pinned_source("dtc-main-site")
+    observed: list[tuple[list[str], Path]] = []
+
+    def fake_run(
+        arguments: list[str],
+        *,
+        cwd: Path,
+        environment: dict[str, str] | None = None,
+    ) -> str:
+        del environment
+        observed.append((arguments, cwd))
+        return f"{source.revision}\n1723158000\n"
+
+    monkeypatch.setattr(build_pinned_legacy_sources, "_run", fake_run)
+
+    epoch = build_pinned_legacy_sources._source_date_epoch(ROOT, source)
+
+    assert epoch == 1_723_158_000
+    assert observed == [
+        (
+            [
+                "git",
+                "show",
+                "-s",
+                "--format=%H%n%ct",
+                "--no-patch",
+                source.revision,
+            ],
+            ROOT,
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    ("revision", "query_result"),
+    [
+        ("not-a-revision", None),
+        ("a" * 40, ""),
+        ("a" * 40, f"{'a' * 40}\n"),
+        ("a" * 40, f"{'b' * 40}\n1723158000\n"),
+        ("a" * 40, f"{'a' * 40}\nnot-an-epoch\n"),
+        ("a" * 40, f"{'a' * 40}\n1723158000\nextra\n"),
+        (
+            "a" * 40,
+            f"{'a' * 40}\n{build_pinned_legacy_sources.MAX_SOURCE_DATE_EPOCH + 1}\n",
+        ),
+    ],
+)
+def test_source_builder_rejects_invalid_revision_epoch_metadata_without_echo(
+    monkeypatch: pytest.MonkeyPatch,
+    revision: str,
+    query_result: str | None,
+) -> None:
+    source = PinnedLegacySource(
+        source_id="test-source",
+        repository="https://github.com/DataTalksClub/example.git",
+        revision=revision,
+        public_base_url="https://datatalks.club/",
+        path_prefix="/",
+        source_kind=build_pinned_legacy_sources.SourceKind.RUSTKYLL_RELEASE,
+        output_directory="_site",
+        build_tool="rustkyll",
+        build_tool_version="test",
+    )
+
+    def fake_run(*_args: object, **_kwargs: object) -> str:
+        if query_result is None:
+            raise AssertionError("malformed revisions must fail before git is called")
+        return query_result
+
+    monkeypatch.setattr(build_pinned_legacy_sources, "_run", fake_run)
+
+    with pytest.raises(build_pinned_legacy_sources.BuildError) as raised:
+        build_pinned_legacy_sources._source_date_epoch(ROOT, source)
+
+    diagnostic = str(raised.value)
+    assert len(diagnostic) <= 96
+    assert "not-an-epoch" not in diagnostic
+    assert str(build_pinned_legacy_sources.MAX_SOURCE_DATE_EPOCH + 1) not in diagnostic
+
+
+def test_source_builder_adds_only_valid_source_date_epoch_to_child_environment() -> None:
+    runtime_root = ROOT / ".tmp/test-source-date-epoch-environment"
+    environment = build_pinned_legacy_sources._build_environment(
+        runtime_root,
+        source_date_epoch=1_723_158_000,
+    )
+
+    assert environment["SOURCE_DATE_EPOCH"] == "1723158000"
+    assert len(environment) == 15
+    for value in (-1, True, build_pinned_legacy_sources.MAX_SOURCE_DATE_EPOCH + 1):
+        with pytest.raises(build_pinned_legacy_sources.BuildError):
+            build_pinned_legacy_sources._build_environment(
+                runtime_root,
+                source_date_epoch=value,
+            )
+
+
+def test_source_builder_normalizes_every_tracked_regular_file_mtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkout = ROOT / ".tmp/tests" / f"source-mtime-{uuid.uuid4().hex}"
+    first = checkout / "alpha.txt"
+    second = checkout / "nested/beta.txt"
+    second.parent.mkdir(parents=True)
+    first.write_text("alpha", encoding="utf-8")
+    second.write_text("beta", encoding="utf-8")
+
+    def fake_run(
+        arguments: list[str],
+        *,
+        cwd: Path,
+        environment: dict[str, str] | None = None,
+    ) -> str:
+        del environment
+        assert arguments == ["git", "ls-files", "-z", "--cached", "--"]
+        assert cwd == checkout
+        return "alpha.txt\0nested/beta.txt\0"
+
+    monkeypatch.setattr(build_pinned_legacy_sources, "_run", fake_run)
+    try:
+        build_pinned_legacy_sources._normalize_tracked_source_mtimes(
+            checkout,
+            1_723_158_000,
+        )
+        expected = 1_723_158_000_000_000_000
+        assert first.stat().st_mtime_ns == expected
+        assert second.stat().st_mtime_ns == expected
+    finally:
+        shutil.rmtree(checkout)
+
+
+def test_source_builder_rejects_unverifiable_or_unsafe_tracked_mtimes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    checkout = ROOT / ".tmp/tests" / f"source-mtime-reject-{uuid.uuid4().hex}"
+    checkout.mkdir(parents=True)
+    tracked = checkout / "tracked.txt"
+    monkeypatch.setattr(
+        build_pinned_legacy_sources,
+        "_run",
+        lambda *_args, **_kwargs: "tracked.txt\0",
+    )
+    try:
+        with pytest.raises(
+            build_pinned_legacy_sources.BuildError,
+            match="tracked source file is missing",
+        ):
+            build_pinned_legacy_sources._normalize_tracked_source_mtimes(checkout, 1_723_158_000)
+
+        tracked.write_text("tracked", encoding="utf-8")
+        monkeypatch.setattr(os, "utime", lambda *_args, **_kwargs: None)
+        with pytest.raises(
+            build_pinned_legacy_sources.BuildError,
+            match="tracked source mtime could not be normalized",
+        ):
+            build_pinned_legacy_sources._normalize_tracked_source_mtimes(checkout, 1_723_158_000)
+        with pytest.raises(
+            build_pinned_legacy_sources.BuildError,
+            match="source date epoch is out of range",
+        ):
+            build_pinned_legacy_sources._normalize_tracked_source_mtimes(
+                checkout,
+                build_pinned_legacy_sources.MAX_SOURCE_DATE_EPOCH + 1,
+            )
+    finally:
+        shutil.rmtree(checkout)
+
+
+def test_source_builder_records_epoch_provenance_only_for_rustkyll_sources() -> None:
+    main_site = pinned_source("dtc-main-site")
+    faq = pinned_source("dtc-faq")
+
+    assert build_pinned_legacy_sources._deterministic_overrides(
+        main_site,
+        1_723_158_000,
+    ) == ["source-date-epoch=1723158000"]
+    assert build_pinned_legacy_sources._deterministic_overrides(faq, None) == list(
+        faq.deterministic_overrides
+    )
+
+
+def test_rustkyll_build_normalizes_sources_and_receives_the_epoch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = pinned_source("dtc-main-site")
+    workspace = ROOT / ".tmp/tests" / f"source-build-epoch-{uuid.uuid4().hex}"
+    checkout = workspace / "sources" / source.source_id
+    checkout.mkdir(parents=True)
+    tool = workspace / "tools/rustkyll"
+    observed_epochs: list[int] = []
+    observed_environments: list[dict[str, str]] = []
+
+    monkeypatch.setattr(build_pinned_legacy_sources, "verify_checkout", lambda *_args: None)
+    monkeypatch.setattr(
+        build_pinned_legacy_sources,
+        "_reset_generated_output",
+        lambda *_args: None,
+    )
+    monkeypatch.setattr(build_pinned_legacy_sources, "_download_rustkyll", lambda *_args: tool)
+    monkeypatch.setattr(
+        build_pinned_legacy_sources,
+        "_normalize_tracked_source_mtimes",
+        lambda _checkout, epoch: observed_epochs.append(epoch),
+    )
+
+    def fake_run(
+        arguments: list[str],
+        *,
+        cwd: Path,
+        environment: dict[str, str] | None = None,
+    ) -> str:
+        assert arguments == [str(tool), "build"]
+        assert cwd == checkout
+        assert environment is not None
+        observed_environments.append(environment)
+        output = checkout / str(source.output_directory)
+        output.mkdir(parents=True)
+        (output / "index.html").write_text("built", encoding="utf-8")
+        return ""
+
+    monkeypatch.setattr(build_pinned_legacy_sources, "_run", fake_run)
+    try:
+        output = build_pinned_legacy_sources.build_source(
+            workspace,
+            source,
+            checkout,
+            source_date_epoch=1_723_158_000,
+        )
+
+        assert output == checkout / "_site"
+        assert observed_epochs == [1_723_158_000]
+        assert [environment["SOURCE_DATE_EPOCH"] for environment in observed_environments] == [
+            "1723158000"
+        ]
+    finally:
+        shutil.rmtree(workspace)
+
+
+def test_podwiki_build_uses_only_the_digest_verified_pypi_wheel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = pinned_source("dtc-podwiki")
+    workspace = ROOT / ".tmp/tests" / f"source-build-wheel-{uuid.uuid4().hex}"
+    checkout = workspace / "sources" / source.source_id
+    checkout.mkdir(parents=True)
+    wheel = workspace / "tools" / Path(str(source.build_tool_url)).name
+    observed: list[tuple[list[str], Path, dict[str, str]]] = []
+
+    monkeypatch.setattr(build_pinned_legacy_sources, "verify_checkout", lambda *_args: None)
+    monkeypatch.setattr(
+        build_pinned_legacy_sources,
+        "_reset_generated_output",
+        lambda *_args: None,
+    )
+    monkeypatch.setattr(
+        build_pinned_legacy_sources,
+        "_download_rustkyll_wheel",
+        lambda *_args: wheel,
+    )
+    monkeypatch.setattr(
+        build_pinned_legacy_sources,
+        "_normalize_tracked_source_mtimes",
+        lambda *_args: None,
+    )
+    monkeypatch.setattr(shutil, "which", lambda executable: f"/usr/bin/{executable}")
+
+    def fake_run(
+        arguments: list[str],
+        *,
+        cwd: Path,
+        environment: dict[str, str] | None = None,
+    ) -> str:
+        assert environment is not None
+        observed.append((arguments, cwd, environment))
+        output = checkout / str(source.output_directory)
+        output.mkdir(parents=True, exist_ok=True)
+        (output / "index.html").write_text("built", encoding="utf-8")
+        return ""
+
+    monkeypatch.setattr(build_pinned_legacy_sources, "_run", fake_run)
+    try:
+        output = build_pinned_legacy_sources.build_source(
+            workspace,
+            source,
+            checkout,
+            source_date_epoch=1_785_736_104,
+        )
+
+        assert output == checkout / "_site"
+        rustkyll_arguments = observed[0][0]
+        assert rustkyll_arguments == [
+            "/usr/bin/uvx",
+            "--no-config",
+            "--from",
+            str(wheel),
+            "rustkyll",
+            "build",
+            "--baseurl",
+            "/podwiki",
+        ]
+        assert "rustkyll==" not in " ".join(rustkyll_arguments)
+        assert all(
+            environment["SOURCE_DATE_EPOCH"] == "1785736104" for _, _, environment in observed
+        )
+    finally:
+        shutil.rmtree(workspace)
+
+
+def test_pypi_wheel_must_contain_the_separately_pinned_binary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workspace = ROOT / ".tmp/tests" / f"source-wheel-digest-{uuid.uuid4().hex}"
+    wheel = workspace / "rustkyll-9.9.9-py3-none-manylinux_2_17_x86_64.whl"
+    binary = b"published rustkyll binary"
+    source = PinnedLegacySource(
+        source_id="test-source",
+        repository="https://github.com/DataTalksClub/example.git",
+        revision="a" * 40,
+        public_base_url="https://datatalks.club/",
+        path_prefix="/",
+        source_kind=build_pinned_legacy_sources.SourceKind.RUSTKYLL_PYPI,
+        output_directory="_site",
+        build_tool="rustkyll-pypi",
+        build_tool_version="9.9.9",
+        build_tool_sha256="b" * 64,
+        build_tool_url="https://files.pythonhosted.org/packages/test/rustkyll.whl",
+        build_tool_binary_sha256=hashlib.sha256(binary).hexdigest(),
+    )
+    workspace.mkdir(parents=True)
+    monkeypatch.setattr(
+        build_pinned_legacy_sources,
+        "_download_pinned_build_tool",
+        lambda *_args, **_kwargs: wheel,
+    )
+    try:
+        with zipfile.ZipFile(wheel, "w") as archive:
+            archive.writestr("rustkyll/bin/rustkyll", binary)
+        assert build_pinned_legacy_sources._download_rustkyll_wheel(workspace, source) == wheel
+
+        with zipfile.ZipFile(wheel, "w") as archive:
+            archive.writestr("rustkyll/bin/rustkyll", b"different binary")
+        with pytest.raises(
+            build_pinned_legacy_sources.BuildError,
+            match="Rustkyll wheel binary digest mismatch",
+        ):
+            build_pinned_legacy_sources._download_rustkyll_wheel(workspace, source)
+    finally:
+        shutil.rmtree(workspace)
 
 
 def test_source_builder_run_does_not_propagate_process_secrets(

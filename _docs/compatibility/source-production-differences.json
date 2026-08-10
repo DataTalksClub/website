@@ -17,7 +17,8 @@
   "known_source_build_differences": [
     {
       "difference_id": "dtc-docs-build-tool-version",
-      "disposition": "source baseline uses the deployed workflow version; difference remains explicit",
+      "compatibility_build_value": "reproducibility-fix release v0.4.10, SHA-256 ab96b800eb8427591841232ed2d0619f011b639200df6b4514ac9680caa6130e",
+      "disposition": "compatibility rebuild uses the verified reproducibility-fix release; the historical source and deployed versions remain explicit",
       "production_build_value": "deploy workflow and README v0.4.6, SHA-256 8a8d05b5056cb34bd59a76f7952be48e7d6cb93782821c4a688f13a7908185f5",
       "source_id": "dtc-docs",
       "source_value": "Makefile default v0.4.7"
