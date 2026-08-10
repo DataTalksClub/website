@@ -2,15 +2,16 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import resolve, reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from cadmin.urls import ROUTE_DEFINITIONS
 from courses.models import Course, RegistrationCampaign
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
+CANONICAL_ROOT = "/studio/courses"
+SLASH_ROOT = "/studio/courses/"
 
 
 class _VisibleTextParser(HTMLParser):
@@ -49,7 +50,95 @@ class StudioCourseRouteTests(TestCase):
             canonical = reverse(f"studio_courses_{name}", kwargs=kwargs)
 
             with self.subTest(name=name):
-                self.assertTrue(canonical.startswith("/studio/courses/"))
+                if name == "course_list":
+                    self.assertEqual(canonical, CANONICAL_ROOT)
+                else:
+                    self.assertTrue(canonical.startswith(f"{CANONICAL_ROOT}/"))
+
+    def test_literal_canonical_root_uses_safe_auth_boundary_without_404(self) -> None:
+        for method in ("get", "head", "post"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)(CANONICAL_ROOT, {"probe": "body"})
+                self.assertEqual(response.status_code, 302)
+                self.assertNotEqual(response.status_code, 404)
+                self.assertIn("/accounts/login/", response.headers["Location"])
+                self.assertIn("next=/studio/courses", response.headers["Location"])
+
+    def test_literal_canonical_root_renders_the_populated_operator_surface(self) -> None:
+        course = Course.objects.create(
+            slug="literal-root-course",
+            title="Literal Root Course",
+            description="Course proving the live canonical root contract",
+        )
+        self.client.force_login(self.operator)
+
+        response = self.client.get(CANONICAL_ROOT)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, course.title)
+        self.assertContains(response, "Studio")
+        self.assertContains(response, "Courses")
+        self.assertContains(response, 'href="/studio/courses"')
+        self.assertEqual(self.client.head(CANONICAL_ROOT).status_code, 200)
+        self.assertEqual(
+            self.client.post(CANONICAL_ROOT, {"probe": "body"}).status_code,
+            200,
+        )
+
+    def test_slash_root_redirects_authorized_requests_one_hop_with_exact_semantics(
+        self,
+    ) -> None:
+        self.client.force_login(self.operator)
+        query = "source=bookmark&value=a%2Fb+plus"
+        destination = f"{CANONICAL_ROOT}?{query}"
+
+        for method in ("get", "head"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)(f"{SLASH_ROOT}?{query}")
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], destination)
+
+        followed_get = self.client.get(f"{SLASH_ROOT}?{query}", follow=True)
+        self.assertEqual(followed_get.redirect_chain, [(destination, 301)])
+        self.assertEqual(followed_get.status_code, 200)
+        self.assertEqual(followed_get.wsgi_request.path, CANONICAL_ROOT)
+
+        post_response = self.client.post(
+            f"{SLASH_ROOT}?{query}",
+            {"probe": "preserved-body"},
+        )
+        self.assertEqual(post_response.status_code, 308)
+        self.assertEqual(post_response.headers["Location"], destination)
+
+        followed_post = self.client.post(
+            f"{SLASH_ROOT}?{query}",
+            {"probe": "preserved-body"},
+            follow=True,
+        )
+        self.assertEqual(followed_post.redirect_chain, [(destination, 308)])
+        self.assertEqual(followed_post.status_code, 200)
+        self.assertEqual(followed_post.wsgi_request.method, "POST")
+        self.assertEqual(followed_post.wsgi_request.POST["probe"], "preserved-body")
+
+    def test_slash_root_keeps_anonymous_requests_at_the_safe_auth_boundary(self) -> None:
+        for method in ("get", "head", "post"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)(SLASH_ROOT, {"probe": "body"})
+                self.assertEqual(response.status_code, 302)
+                self.assertIn("/accounts/login/", response.headers["Location"])
+                self.assertNotEqual(response.headers["Location"], CANONICAL_ROOT)
+
+    def test_literal_root_contract_is_independent_of_append_slash(self) -> None:
+        self.client.force_login(self.operator)
+
+        for append_slash in (False, True):
+            with (
+                self.subTest(append_slash=append_slash),
+                override_settings(APPEND_SLASH=append_slash),
+            ):
+                self.assertEqual(self.client.get(CANONICAL_ROOT).status_code, 200)
+                slash_response = self.client.get(SLASH_ROOT)
+                self.assertEqual(slash_response.status_code, 301)
+                self.assertEqual(slash_response.headers["Location"], CANONICAL_ROOT)
 
     def test_every_legacy_get_route_redirects_directly_and_preserves_query(self) -> None:
         self.client.force_login(self.operator)
@@ -61,9 +150,7 @@ class StudioCourseRouteTests(TestCase):
 
             with self.subTest(name=name):
                 for method in ("get", "head"):
-                    response = getattr(self.client, method)(
-                        f"{legacy}?source=bookmark"
-                    )
+                    response = getattr(self.client, method)(f"{legacy}?source=bookmark")
                     self.assertEqual(response.status_code, 302)
                     self.assertEqual(
                         response.headers["Location"],
@@ -125,14 +212,28 @@ class StudioCourseRouteTests(TestCase):
 
     def test_legacy_root_without_a_slash_redirects_directly(self) -> None:
         self.client.force_login(self.operator)
+        destination = f"{CANONICAL_ROOT}?source=bookmark"
 
-        response = self.client.get("/cadmin?source=bookmark")
+        for legacy_root in ("/cadmin", "/cadmin/"):
+            for method in ("get", "head"):
+                with self.subTest(legacy_root=legacy_root, method=method):
+                    response = getattr(self.client, method)(f"{legacy_root}?source=bookmark")
+                    self.assertEqual(response.status_code, 302)
+                    self.assertEqual(response.headers["Location"], destination)
 
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            response.headers["Location"],
-            f"{reverse('studio_courses_course_list')}?source=bookmark",
-        )
+            post_response = self.client.post(
+                f"{legacy_root}?source=bookmark",
+                {"probe": "legacy-body"},
+            )
+            self.assertEqual(post_response.status_code, 307)
+            self.assertEqual(post_response.headers["Location"], destination)
+
+            followed = self.client.get(
+                f"{legacy_root}?source=bookmark",
+                follow=True,
+            )
+            self.assertEqual(followed.redirect_chain, [(destination, 302)])
+            self.assertEqual(followed.status_code, 200)
 
     def test_legacy_routes_do_not_expose_canonical_destinations_to_non_staff(self) -> None:
         legacy = reverse("legacy_studio_courses_course_list")
@@ -240,11 +341,7 @@ class StudioCourseRouteTests(TestCase):
             }
             with self.subTest(role=role, access="denied"):
                 for method in ("get", "head", "post", "put", "patch", "delete"):
-                    payload = (
-                        valid_mutation_payload
-                        if method == "post"
-                        else {"probe": role}
-                    )
+                    payload = valid_mutation_payload if method == "post" else {"probe": role}
                     canonical_response = getattr(client, method)(
                         canonical_mutation,
                         payload,
@@ -334,9 +431,10 @@ class StudioCourseRouteTests(TestCase):
         studio_response = client.get(reverse("studio:home"))
 
         self.assertEqual(studio_response.status_code, 200)
+        self.assertEqual(reverse("studio_courses_course_list"), CANONICAL_ROOT)
         self.assertContains(
             studio_response,
-            f'href="{reverse("studio_courses_course_list")}"',
+            'href="/studio/courses"',
         )
         self.assertContains(studio_response, "Courses")
 

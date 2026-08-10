@@ -751,12 +751,19 @@ def _course_route_document(workspace: Path) -> dict[str, object]:
         source_example_path = route.example_path()
         source_name = route.name or None
         if route.surface == "Studio Courses":
-            if not route_pattern.startswith("/studio/courses/") or not route.name.startswith(
-                "studio_courses_"
-            ):
+            canonical_prefix = "/studio/courses"
+            if route_pattern == canonical_prefix:
+                suffix = ""
+                example_suffix = ""
+            elif route_pattern.startswith(f"{canonical_prefix}/"):
+                suffix = route_pattern.removeprefix(f"{canonical_prefix}/")
+                example_suffix = source_example_path.removeprefix(f"{canonical_prefix}/")
+            else:
                 raise BuildError("Studio Courses target route identity is invalid")
-            source_route_pattern = f"/cadmin/{route_pattern.removeprefix('/studio/courses/')}"
-            source_example_path = f"/cadmin/{source_example_path.removeprefix('/studio/courses/')}"
+            if not route.name.startswith("studio_courses_"):
+                raise BuildError("Studio Courses target route identity is invalid")
+            source_route_pattern = f"/cadmin/{suffix}"
+            source_example_path = f"/cadmin/{example_suffix}"
             source_name = f"cadmin_{route.name.removeprefix('studio_courses_')}"
         contract_kind = (
             "api"

@@ -290,12 +290,15 @@ def test_staff_navigation_is_capability_filtered(
     page.locator('summary[aria-label="Account menu"]').click()
     expect(page.get_by_role("link", name="Studio", exact=True)).to_be_visible()
     page.get_by_role("link", name="Studio", exact=True).click()
-    expect(page.get_by_role("link", name="Courses", exact=True)).to_be_visible()
+    studio_courses_link = page.get_by_role("link", name="Courses", exact=True)
+    expect(studio_courses_link).to_be_visible()
+    expect(studio_courses_link).to_have_attribute("href", "/studio/courses")
     page.screenshot(
         path=_screenshot_path("staff-capability-allowed", viewport),
         full_page=True,
     )
-    page.get_by_role("link", name="Courses", exact=True).click()
+    studio_courses_link.click()
+    expect(page).to_have_url(f"{live_server.url}/studio/courses")
     expect(page.get_by_role("heading", name="Courses", exact=True)).to_be_visible()
     expect(page.get_by_role("link", name="Studio", exact=True)).to_be_visible()
     page.get_by_role("link", name=course.title, exact=True).click()

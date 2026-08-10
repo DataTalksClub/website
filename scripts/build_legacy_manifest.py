@@ -532,13 +532,27 @@ def _validated_course_routes(path: Path) -> dict[str, object]:
         raise CliError("course route surface counts are invalid")
     studio_routes = [route for route in routes if route["surface"] == "Studio Courses"]
     if any(
-        not str(route["route_pattern"]).startswith("/studio/courses/")
-        or not str(route["example_path"]).startswith("/studio/courses/")
+        not (
+            str(route["route_pattern"]) == "/studio/courses"
+            or str(route["route_pattern"]).startswith("/studio/courses/")
+        )
+        or not (
+            str(route["example_path"]) == "/studio/courses"
+            or str(route["example_path"]).startswith("/studio/courses/")
+        )
         or not str(route["name"]).startswith("studio_courses_")
         or route["source_route_pattern"]
-        != f"/cadmin/{str(route['route_pattern']).removeprefix('/studio/courses/')}"
+        != (
+            "/cadmin/"
+            if route["route_pattern"] == "/studio/courses"
+            else f"/cadmin/{str(route['route_pattern']).removeprefix('/studio/courses/')}"
+        )
         or route["source_example_path"]
-        != f"/cadmin/{str(route['example_path']).removeprefix('/studio/courses/')}"
+        != (
+            "/cadmin/"
+            if route["example_path"] == "/studio/courses"
+            else f"/cadmin/{str(route['example_path']).removeprefix('/studio/courses/')}"
+        )
         or route["source_name"] != f"cadmin_{str(route['name']).removeprefix('studio_courses_')}"
         for route in studio_routes
     ):

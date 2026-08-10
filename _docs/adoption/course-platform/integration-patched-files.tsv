@@ -43,7 +43,7 @@ cadmin/tests/test_impersonation_stop_views.py	3134	29526fa970934c6398f08169deeac
 cadmin/tests/test_leaderboard_views.py	6166	6312591b95cb5c3e3b7f691e8cf9edf39ca5ada624d94b0d45ec57969235b965	Use canonical Studio Courses route names and its explicit course_operator role in copied leaderboard complaint characterization.
 cadmin/tests/test_project_action_views.py	6610	5a98baf78b016334be396a02b057100276809b66cc1694f519a892dbfdfc9655	Use canonical Studio Courses route names in copied project action characterization.
 cadmin/tests/test_project_views.py	4741	465cfa522cf389761d83f4e728713d2884bd98d350b0105b8cd912c6ddef4cfc	Characterize copied project behavior with canonical Studio Courses route names.
-cadmin/urls.py	4338	706ab6f4e76c1c57ee2c3036113877f41fc7f7af21276a36ee22c2c9d91f40cc	Declare the full copied operation inventory once with logical canonical Studio Courses names.
+cadmin/urls.py	5269	f041eeb64fcc7d6ea93b416e253eb7d2f1fd6578ba41ae0d771c0ecbfdcbf7c7	Declare the full copied operation inventory once with a slashless canonical Studio Courses root, well-formed child routes, and a safe permanent trailing-slash redirect.
 cadmin/views/campaign_forms.py	3960	3f88750d16c9a4a521c24cfe3c30b89ec557b14e6888af1461618a196cde2ba6	Use canonical Studio Courses redirect names without changing campaign form behavior.
 cadmin/views/campaigns.py	3057	5747389a23e55afb03f2deffef9ac9dd9f2131dceb52dc3362461ac1d1a258fb	Use canonical Studio Courses redirect names without changing campaign mutations or queries.
 cadmin/views/datamailer_operations.py	3090	dbcbceb84ab43997773a871e7f04d6bcd7829f5e2032785fe7cba261e8a65368	Use the canonical Studio Courses route after copied Datamailer operations without changing side effects.

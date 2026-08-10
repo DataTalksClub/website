@@ -380,12 +380,28 @@ def load_public_contract_inventory(
             target_example = _string(row, "example_path")
             target_pattern = _string(row, "route_pattern")
             target_name = _string(row, "name")
+            expected_reference = (
+                "/cadmin/"
+                if target_example == "/studio/courses"
+                else f"/cadmin/{target_example.removeprefix('/studio/courses/')}"
+            )
+            expected_pattern = (
+                "/cadmin/"
+                if target_pattern == "/studio/courses"
+                else f"/cadmin/{target_pattern.removeprefix('/studio/courses/')}"
+            )
             if (
-                not target_example.startswith("/studio/courses/")
-                or not target_pattern.startswith("/studio/courses/")
+                not (
+                    target_example == "/studio/courses"
+                    or target_example.startswith("/studio/courses/")
+                )
+                or not (
+                    target_pattern == "/studio/courses"
+                    or target_pattern.startswith("/studio/courses/")
+                )
                 or not target_name.startswith("studio_courses_")
-                or reference != f"/cadmin/{target_example.removeprefix('/studio/courses/')}"
-                or route_pattern != f"/cadmin/{target_pattern.removeprefix('/studio/courses/')}"
+                or reference != expected_reference
+                or route_pattern != expected_pattern
                 or _string(row, "source_name")
                 != f"cadmin_{target_name.removeprefix('studio_courses_')}"
             ):

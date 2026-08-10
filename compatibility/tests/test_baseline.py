@@ -315,19 +315,36 @@ def test_course_route_inventory_matches_all_adopted_urlconfs() -> None:
     assert actual == expected
 
     studio_rows = [row for row in rows if row["surface"] == "Studio Courses"]
-    assert all(row["route_pattern"].startswith("/studio/courses/") for row in studio_rows)
-    assert all(row["example_path"].startswith("/studio/courses/") for row in studio_rows)
+    assert sum(row["route_pattern"] == "/studio/courses" for row in studio_rows) == 1
+    assert sum(row["example_path"] == "/studio/courses" for row in studio_rows) == 1
+    assert all(
+        row["route_pattern"] == "/studio/courses"
+        or row["route_pattern"].startswith("/studio/courses/")
+        for row in studio_rows
+    )
+    assert all(
+        row["example_path"] == "/studio/courses"
+        or row["example_path"].startswith("/studio/courses/")
+        for row in studio_rows
+    )
     assert all(str(row["name"]).startswith("studio_courses_") for row in studio_rows)
     assert {row["source_id"] for row in studio_rows} == {"dtc-course-platform"}
     assert {row["source_revision"] for row in studio_rows} == {
         pinned_source("dtc-course-platform").revision
     }
     for row in studio_rows:
-        suffix = row["route_pattern"].removeprefix("/studio/courses/")
-        assert row["source_route_pattern"] == f"/cadmin/{suffix}"
-        assert row["source_example_path"] == (
-            f"/cadmin/{row['example_path'].removeprefix('/studio/courses/')}"
+        suffix = (
+            ""
+            if row["route_pattern"] == "/studio/courses"
+            else row["route_pattern"].removeprefix("/studio/courses/")
         )
+        example_suffix = (
+            ""
+            if row["example_path"] == "/studio/courses"
+            else row["example_path"].removeprefix("/studio/courses/")
+        )
+        assert row["source_route_pattern"] == f"/cadmin/{suffix}"
+        assert row["source_example_path"] == f"/cadmin/{example_suffix}"
         assert row["source_name"] == (f"cadmin_{str(row['name']).removeprefix('studio_courses_')}")
     for row in rows:
         assert row["source_revision"] == pinned_source("dtc-course-platform").revision
