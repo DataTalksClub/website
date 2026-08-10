@@ -80,6 +80,7 @@ class PublicTemplateSourceTests(SimpleTestCase):
         paths = (
             REPOSITORY_ROOT / "templates/core/home.html",
             REPOSITORY_ROOT / "templates/public/collection_hub.html",
+            REPOSITORY_ROOT / "templates/public/podcast_hub.html",
             REPOSITORY_ROOT / "templates/public/course_hub.html",
             REPOSITORY_ROOT / "templates/public/events.html",
             REPOSITORY_ROOT / "templates/public/wiki_hub.html",

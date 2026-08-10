@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the checked, request-network-free public projection for issue #105.
+"""Build the checked, request-network-free public projection.
 
 The deterministic default is the exact accepted preferred content revision and its pinned green
 CI evidence. ``--mode fallback`` exists only for rebuilding the reviewed legacy selection if that
@@ -31,12 +31,15 @@ EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
 
-PREFERRED_CONTENT_REVISION = "b9a40ba974fdef67ee3a2a70f114734f2581033c"
-PREFERRED_CONTENT_TREE = "701fa3f7aa35973e65736a188161c480982f1cb3"
+PREFERRED_CONTENT_REVISION = "e29f56ce70bd997171a78a9f0facc9354797f421"
+PREFERRED_CONTENT_TREE = "c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa"
 PREFERRED_REPAIR_MANIFEST_SHA256 = (
     "80d3014c47bf57de792473fc1da8f7569daeb55107688c3485153f773948d3aa"
 )
-PREFERRED_CI_RUN = "https://github.com/DataTalksClub/content/actions/runs/31307270515"
+PREFERRED_EDITORIAL_OVERLAY_SHA256 = (
+    "63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6"
+)
+PREFERRED_CI_RUN = "https://github.com/DataTalksClub/content/actions/runs/31365358459"
 FALLBACK_SELECTION_REVISION = "373bef2912342ece1d2a2d2a9395aa3417243283"
 LEGACY_MAIN_REVISION = "ee43d3fa0929faf691178d79f19528e6f15a83e5"
 WIKI_REVISION = "988b79d0d655bf4755945c3118544cb9e0dbead6"
@@ -225,6 +228,12 @@ def _string(value: Any, *, field: str, maximum: int = 20_000, optional: bool = F
     value = value.strip()
     if (not value and not optional) or len(value) > maximum or "\x00" in value:
         raise ProjectionBuildError(f"invalid public field: {field}")
+    return value
+
+
+def _positive_integer(value: Any, *, field: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ProjectionBuildError(f"invalid positive integer: {field}")
     return value
 
 
@@ -549,8 +558,8 @@ def _main_records(
                     maximum=20_000,
                     optional=True,
                 ),
-                "season": int(raw.get("season") or 0),
-                "episode": int(raw.get("episode") or 0),
+                "season": _positive_integer(raw.get("season"), field="podcast season"),
+                "episode": _positive_integer(raw.get("episode"), field="podcast episode"),
                 "published": _string(
                     raw.get("dateadded"), field="podcast date", maximum=50, optional=True
                 ),
@@ -1669,6 +1678,11 @@ def build(args: argparse.Namespace) -> None:
         repair_manifest = content_root / "repairs" / "2026-08-09-missing-media.yaml"
         if _sha256_file(repair_manifest) != PREFERRED_REPAIR_MANIFEST_SHA256:
             raise ProjectionBuildError("preferred content repair manifest mismatch")
+        editorial_overlay = (
+            content_root / "editorial-overlays" / "2026-08-10-podcast-descriptions.yaml"
+        )
+        if _sha256_file(editorial_overlay) != PREFERRED_EDITORIAL_OVERLAY_SHA256:
+            raise ProjectionBuildError("preferred content editorial overlay mismatch")
     else:
         _verify_checkout(
             content_root,
@@ -1824,6 +1838,7 @@ def build(args: argparse.Namespace) -> None:
                 "revision": PREFERRED_CONTENT_REVISION,
                 "tree": PREFERRED_CONTENT_TREE,
                 "repair_manifest_sha256": PREFERRED_REPAIR_MANIFEST_SHA256,
+                "editorial_overlay_sha256": PREFERRED_EDITORIAL_OVERLAY_SHA256,
                 "ci_run": PREFERRED_CI_RUN,
                 "accepted": True,
             },

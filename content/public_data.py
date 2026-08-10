@@ -38,7 +38,7 @@ EDITORIAL_ROUTE_COLLECTIONS = {
 EXPECTED_EDITORIAL_FINALS = sum(EXPECTED_COUNTS[name] for name in EDITORIAL_ROUTE_COLLECTIONS)
 EXPECTED_EDITORIAL_ALIASES = 2 * EXPECTED_EDITORIAL_FINALS
 EXPECTED_REVISIONS = {
-    "preferred_content": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+    "preferred_content": "e29f56ce70bd997171a78a9f0facc9354797f421",
     "fallback_selection": "373bef2912342ece1d2a2d2a9395aa3417243283",
     "legacy_main": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
     "wiki": "988b79d0d655bf4755945c3118544cb9e0dbead6",
@@ -79,6 +79,57 @@ EXPECTED_RECORD_SOURCES = {
 class EventGroups:
     upcoming: tuple[dict[str, Any], ...]
     recent: tuple[dict[str, Any], ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PodcastSeason:
+    number: int
+    episodes: tuple[dict[str, Any], ...]
+
+
+def _podcast_number(record: dict[str, Any], field: str) -> int:
+    value = record.get(field)
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ImproperlyConfigured(f"Public podcast {field} must be a positive integer.")
+    return value
+
+
+def ordered_podcasts(
+    records: tuple[dict[str, Any], ...] | None = None,
+) -> tuple[dict[str, Any], ...]:
+    """Return the catalogue order without mutating the accepted projection order."""
+
+    selected = list(public_projection()["podcasts"] if records is None else records)
+    for record in selected:
+        _podcast_number(record, "season")
+        _podcast_number(record, "episode")
+        if not isinstance(record.get("published"), str) or not isinstance(record.get("slug"), str):
+            raise ImproperlyConfigured("Public podcast ordering metadata is invalid.")
+
+    # Stable sorts make the mixed direction contract explicit: season and episode
+    # descending, then published descending, then slug ascending.
+    selected.sort(key=lambda record: record["slug"])
+    selected.sort(key=lambda record: record["published"], reverse=True)
+    selected.sort(key=lambda record: record["episode"], reverse=True)
+    selected.sort(key=lambda record: record["season"], reverse=True)
+    return tuple(selected)
+
+
+def podcast_seasons(
+    records: tuple[dict[str, Any], ...] | None = None,
+) -> tuple[PodcastSeason, ...]:
+    seasons: list[PodcastSeason] = []
+    for episode in ordered_podcasts(records):
+        season_number = episode["season"]
+        if not seasons or seasons[-1].number != season_number:
+            seasons.append(PodcastSeason(number=season_number, episodes=(episode,)))
+            continue
+        previous = seasons[-1]
+        seasons[-1] = PodcastSeason(
+            number=previous.number,
+            episodes=(*previous.episodes, episode),
+        )
+    return tuple(seasons)
 
 
 def _read_json(path: Path) -> Any:
@@ -287,6 +338,7 @@ def public_projection() -> dict[str, Any]:
     transcript_count = sum(bool(item.get("transcript")) for item in projection["podcasts"])
     if transcript_count != EXPECTED_COUNTS["transcripts"]:
         raise ImproperlyConfigured("Public projection transcript count mismatch.")
+    ordered_podcasts(projection["podcasts"])
 
     for name in ("wiki_graph", "wiki_search"):
         filename = f"{name}.json"

@@ -570,10 +570,10 @@
     "provenance": {
       "checksum": "13a24719cf8a21caa2026f7fa15e35bc57679491adbb37539e404e484da1d16c",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "sponsor-datatalks-club",
       "source_path": "articles/2026-07-28-sponsor-datatalks-club.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2026-07-28-sponsor-datatalks-club.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2026-07-28-sponsor-datatalks-club.md"
     },
     "public_path": "/blog/sponsor-datatalks-club.html",
     "published": "2026-07-28",
@@ -1148,10 +1148,10 @@
     "provenance": {
       "checksum": "afbb979e31ede1922f093a6d14472dd08cf0fe83f48132adb778dbaf21e31e7a",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "ai-dev-tools-zoomcamp",
       "source_path": "articles/2025-09-23-ai-dev-tools-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-09-23-ai-dev-tools-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-09-23-ai-dev-tools-zoomcamp.md"
     },
     "public_path": "/blog/ai-dev-tools-zoomcamp.html",
     "published": "2026-07-28",
@@ -1552,10 +1552,10 @@
     "provenance": {
       "checksum": "7cbd7b4e5d99bc92dd11dde48f4b68cf7b49c2873c6535406ce4dacf576bdd45",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "mlops-zoomcamp",
       "source_path": "articles/2024-03-07-mlops-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-03-07-mlops-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2024-03-07-mlops-zoomcamp.md"
     },
     "public_path": "/blog/mlops-zoomcamp.html",
     "published": "2026-05-11",
@@ -2170,10 +2170,10 @@
     "provenance": {
       "checksum": "dff47f21ffc57424f9f9c3fe7bc6af46f3351c23edde8336026e55d4239e68c2",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "machine-learning-zoomcamp",
       "source_path": "articles/2023-08-17-machine-learning-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-08-17-machine-learning-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2023-08-17-machine-learning-zoomcamp.md"
     },
     "public_path": "/blog/machine-learning-zoomcamp.html",
     "published": "2026-05-11",
@@ -2558,10 +2558,10 @@
     "provenance": {
       "checksum": "cbd70fd5cdb34c942c23b40216f78c777a849e723a930ff1ffcfc8aec17296a8",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "llm-zoomcamp",
       "source_path": "articles/2024-11-11-llm-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-11-11-llm-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2024-11-11-llm-zoomcamp.md"
     },
     "public_path": "/blog/llm-zoomcamp.html",
     "published": "2026-05-11",
@@ -3026,10 +3026,10 @@
     "provenance": {
       "checksum": "3a12f0a6a0cd67d162b319d1bce4981f7f1655bc99869d34f78e13303f6f5684",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "guide-to-free-online-courses-at-datatalks-club",
       "source_path": "articles/2024-04-11-guide-to-free-online-courses-at-datatalks-club.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-04-11-guide-to-free-online-courses-at-datatalks-club.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2024-04-11-guide-to-free-online-courses-at-datatalks-club.md"
     },
     "public_path": "/blog/guide-to-free-online-courses-at-datatalks-club.html",
     "published": "2026-05-11",
@@ -3588,10 +3588,10 @@
     "provenance": {
       "checksum": "60f49491acb9f3eb26f54595f2ceee71c642278509019211b098316feacfd36a",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "data-engineering-zoomcamp",
       "source_path": "articles/2023-11-18-data-engineering-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-11-18-data-engineering-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2023-11-18-data-engineering-zoomcamp.md"
     },
     "public_path": "/blog/data-engineering-zoomcamp.html",
     "published": "2026-05-11",
@@ -3914,10 +3914,10 @@
     "provenance": {
       "checksum": "30fc2743c99ad898375fe4bb809b387d78ead465a84a27e932570a57cba3c796",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "benefits-of-learning-in-public",
       "source_path": "articles/2026-01-25-benefits-of-learning-in-public.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2026-01-25-benefits-of-learning-in-public.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2026-01-25-benefits-of-learning-in-public.md"
     },
     "public_path": "/blog/benefits-of-learning-in-public.html",
     "published": "2026-01-25",
@@ -4488,10 +4488,10 @@
     "provenance": {
       "checksum": "11603339a20a515f867c5c588e55918a1632b35efda4fcc10de8362f31fa3bfa",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "open-source-free-ai-agent-evaluation-tools",
       "source_path": "articles/2025-12-25-open-source-free-ai-agent-evaluation-tools.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-12-25-open-source-free-ai-agent-evaluation-tools.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-12-25-open-source-free-ai-agent-evaluation-tools.md"
     },
     "public_path": "/blog/open-source-free-ai-agent-evaluation-tools.html",
     "published": "2025-12-25",
@@ -4912,10 +4912,10 @@
     "provenance": {
       "checksum": "bba607b746764885dd5f717e49b8ed1bee2d01bbfad4375442e6d4239f831b4a",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "free-data-engineering-courses",
       "source_path": "articles/2025-12-10-free-data-engineering-courses.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-12-10-free-data-engineering-courses.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-12-10-free-data-engineering-courses.md"
     },
     "public_path": "/blog/free-data-engineering-courses.html",
     "published": "2025-12-10",
@@ -5404,10 +5404,10 @@
     "provenance": {
       "checksum": "4a2accf412a0f0b53d43cbef3a41e10655b4dbfc774fd8cc137ff820e3731301",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "free-machine-learning-courses",
       "source_path": "articles/2025-08-16-free-machine-learning-courses.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-16-free-machine-learning-courses.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-08-16-free-machine-learning-courses.md"
     },
     "public_path": "/blog/free-machine-learning-courses.html",
     "published": "2025-10-21",
@@ -5904,10 +5904,10 @@
     "provenance": {
       "checksum": "da28b0e9b65005342aedf79fca6a7616a98ab38acd9e92e0d08c4c28982f3c7f",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "slack-communities",
       "source_path": "articles/2020-12-23-slack-communities.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-23-slack-communities.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2020-12-23-slack-communities.md"
     },
     "public_path": "/blog/slack-communities.html",
     "published": "2025-10-19",
@@ -6382,10 +6382,10 @@
     "provenance": {
       "checksum": "bf2903e0c96c932811cfa58031c5ae1ce1c3a8128216e1267723afa1d6078ad1",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp",
       "source_path": "articles/2025-08-11-how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-11-how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-08-11-how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp.md"
     },
     "public_path": "/blog/how-to-build-blood-cell-classifier-for-cancer-prediction-case-study-from-ml-zoomcamp.html",
     "published": "2025-08-11",
@@ -6572,10 +6572,10 @@
     "provenance": {
       "checksum": "5f3080b0504ed2b8656021822558483ceb9eacf226310901b669855c79e85387",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "building-discipline-in-machine-learning-with-ml-zoomcamp",
       "source_path": "articles/2025-08-11-building-discipline-in-machine-learning-with-ml-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-11-building-discipline-in-machine-learning-with-ml-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-08-11-building-discipline-in-machine-learning-with-ml-zoomcamp.md"
     },
     "public_path": "/blog/building-discipline-in-machine-learning-with-ml-zoomcamp.html",
     "published": "2025-08-11",
@@ -6902,10 +6902,10 @@
     "provenance": {
       "checksum": "d0d2b6e7f83e9dc891a0640238532f4e95bf5352eccaf5f36e2154b8ffa35431",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "building-data-science-team",
       "source_path": "articles/2022-07-12-building-data-science-team.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-12-building-data-science-team.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-07-12-building-data-science-team.md"
     },
     "public_path": "/blog/building-data-science-team.html",
     "published": "2025-08-10",
@@ -7100,10 +7100,10 @@
     "provenance": {
       "checksum": "b674d82eb57a1346d05356d0d35bb9c560cd112b30dc7938f5ac43d969b5b2eb",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "key-lessons-from-ml-zoomcamp-serena-haidar",
       "source_path": "articles/2025-08-05-key-lessons-from-ml-zoomcamp-serena-haidar.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-05-key-lessons-from-ml-zoomcamp-serena-haidar.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-08-05-key-lessons-from-ml-zoomcamp-serena-haidar.md"
     },
     "public_path": "/blog/key-lessons-from-ml-zoomcamp-serena-haidar.html",
     "published": "2025-08-05",
@@ -7560,10 +7560,10 @@
     "provenance": {
       "checksum": "646047280080730363a581b94de77f596f671e1879b7e628278a57779b229f9b",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "how-to-build-waste-classifier-case-study-from-ml-zoomcamp",
       "source_path": "articles/2025-08-05-how-to-build-waste-classifier-case-study-from-ml-zoomcamp.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-08-05-how-to-build-waste-classifier-case-study-from-ml-zoomcamp.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-08-05-how-to-build-waste-classifier-case-study-from-ml-zoomcamp.md"
     },
     "public_path": "/blog/how-to-build-waste-classifier-case-study-from-ml-zoomcamp.html",
     "published": "2025-08-05",
@@ -8112,10 +8112,10 @@
     "provenance": {
       "checksum": "dd9f60bbadabc6315b7f830d2a9bf691c07e4052fa3c9d1256e013e33cc9f68b",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "data-roles",
       "source_path": "articles/2020-12-14-data-roles.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-14-data-roles.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2020-12-14-data-roles.md"
     },
     "public_path": "/blog/data-roles.html",
     "published": "2025-08-05",
@@ -8462,10 +8462,10 @@
     "provenance": {
       "checksum": "cc2b8f14402381e154e7236169fb061d478de32515ee4496e7275b44d07d8dd6",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "data-science-manager-vs-data-science-expert",
       "source_path": "articles/2022-07-16-data-science-manager-vs-data-science-expert.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-16-data-science-manager-vs-data-science-expert.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-07-16-data-science-manager-vs-data-science-expert.md"
     },
     "public_path": "/blog/data-science-manager-vs-data-science-expert.html",
     "published": "2025-08-03",
@@ -8822,10 +8822,10 @@
     "provenance": {
       "checksum": "8385d3a54ca45f8202cde062e2405924d794271c774e7884fa8a4599433c4d84",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "datatalks-club-community-demographics",
       "source_path": "articles/2025-05-16-datatalks-club-community-demographics.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-05-16-datatalks-club-community-demographics.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-05-16-datatalks-club-community-demographics.md"
     },
     "public_path": "/blog/datatalks-club-community-demographics.html",
     "published": "2025-05-16",
@@ -9194,10 +9194,10 @@
     "provenance": {
       "checksum": "9d3a5cabe774a300b1b828cd74fdc861d2b1fc698448b2e8c26fb5f5cde9e2f1",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "how-do-data-professionals-use-ml-and-mlops-tools-and-practices",
       "source_path": "articles/2025-04-28-how-do-data-professionals-use-ml-and-mlops-tools-and-practices.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-28-how-do-data-professionals-use-ml-and-mlops-tools-and-practices.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-04-28-how-do-data-professionals-use-ml-and-mlops-tools-and-practices.md"
     },
     "public_path": "/blog/how-do-data-professionals-use-ml-and-mlops-tools-and-practices.html",
     "published": "2025-04-28",
@@ -9704,10 +9704,10 @@
     "provenance": {
       "checksum": "64508ac0ab825f08acbe15d11646cb73d0489a07b2f8cc3d9382b1f4dd1fde1f",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "how-do-data-professionals-use-data-engineering-tools-and-practices",
       "source_path": "articles/2025-04-15-how-do-data-professionals-use-data-engineering-tools-and-practices.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-15-how-do-data-professionals-use-data-engineering-tools-and-practices.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-04-15-how-do-data-professionals-use-data-engineering-tools-and-practices.md"
     },
     "public_path": "/blog/how-do-data-professionals-use-data-engineering-tools-and-practices.html",
     "published": "2025-04-15",
@@ -10144,10 +10144,10 @@
     "provenance": {
       "checksum": "fbc68f9d7550e30cd06b66d393ee960171e96dd8536c317143a4ed2ef2a4728f",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "how-do-professionals-use-llm-tools-and-frameworks",
       "source_path": "articles/2025-04-11-how-do-professionals-use-llm-tools-and-frameworks.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-11-how-do-professionals-use-llm-tools-and-frameworks.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-04-11-how-do-professionals-use-llm-tools-and-frameworks.md"
     },
     "public_path": "/blog/how-do-professionals-use-llm-tools-and-frameworks.html",
     "published": "2025-04-11",
@@ -10422,10 +10422,10 @@
     "provenance": {
       "checksum": "2af3b54e79a36fe1a32a8a12a84eed8f89ca9fb862787ff6c06bcda45f3a4c2b",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "ai-tools-for-personal-productivity",
       "source_path": "articles/2025-04-10-ai-tools-for-personal-productivity.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-04-10-ai-tools-for-personal-productivity.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-04-10-ai-tools-for-personal-productivity.md"
     },
     "public_path": "/blog/ai-tools-for-personal-productivity.html",
     "published": "2025-04-10",
@@ -10632,10 +10632,10 @@
     "provenance": {
       "checksum": "f7064f7353a88de23568b253af098382f898cbf2f2103d67fec5e1944c07079e",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "building-ai-agent-that-thrives-in-real-world",
       "source_path": "articles/2025-02-26-building-ai-agent-that-thrives-in-real-world.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2025-02-26-building-ai-agent-that-thrives-in-real-world.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2025-02-26-building-ai-agent-that-thrives-in-real-world.md"
     },
     "public_path": "/blog/building-ai-agent-that-thrives-in-real-world.html",
     "published": "2025-02-26",
@@ -10904,10 +10904,10 @@
     "provenance": {
       "checksum": "9aef9ee8066e34f5e27b8299126bbb212351391181ec0a1ad7a9e3d2732ca50b",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "winning-solutions-from-llm-zoomcamp-2024-competition",
       "source_path": "articles/2024-10-21-winning-solutions-from-llm-zoomcamp-2024-competition.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2024-10-21-winning-solutions-from-llm-zoomcamp-2024-competition.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2024-10-21-winning-solutions-from-llm-zoomcamp-2024-competition.md"
     },
     "public_path": "/blog/winning-solutions-from-llm-zoomcamp-2024-competition.html",
     "published": "2024-10-21",
@@ -11164,10 +11164,10 @@
     "provenance": {
       "checksum": "dbf8ae70fd6354466cfb0c4518ce778f40789e479608fefb0ae4dc2b6d50242c",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "8-newsletters-for-data-science-ai-and-ml-enthusiasts",
       "source_path": "articles/2023-12-11-8-newsletters-for-data-science-ai-and-ml-enthusiasts.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-12-11-8-newsletters-for-data-science-ai-and-ml-enthusiasts.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2023-12-11-8-newsletters-for-data-science-ai-and-ml-enthusiasts.md"
     },
     "public_path": "/blog/8-newsletters-for-data-science-ai-and-ml-enthusiasts.html",
     "published": "2023-12-11",
@@ -11402,10 +11402,10 @@
     "provenance": {
       "checksum": "8fc7713086cc0fb0afb5e7d58d4268f51c2efa95d6470efb63cdc1c45a2fb3a5",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "prepare-for-better-structured-data-extraction",
       "source_path": "articles/2023-11-18-prepare-for-better-structured-data-extraction.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-11-18-prepare-for-better-structured-data-extraction.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2023-11-18-prepare-for-better-structured-data-extraction.md"
     },
     "public_path": "/blog/prepare-for-better-structured-data-extraction.html",
     "published": "2023-11-18",
@@ -11886,10 +11886,10 @@
     "provenance": {
       "checksum": "99916626b36a351c52601eadb5fc7e8150a726e26c71346e0204031ca03062ac",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "how-to-run-postgresql-and-pgadmin-with-docker",
       "source_path": "articles/2023-03-07-how-to-run-postgresql-and-pgadmin-with-docker.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-03-07-how-to-run-postgresql-and-pgadmin-with-docker.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2023-03-07-how-to-run-postgresql-and-pgadmin-with-docker.md"
     },
     "public_path": "/blog/how-to-run-postgresql-and-pgadmin-with-docker.html",
     "published": "2023-03-07",
@@ -12226,10 +12226,10 @@
     "provenance": {
       "checksum": "b9e3ed02e7405a4ca5f9ccb6bac08a632e8af455871aa1450569c4cb7c59611d",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "summary-of-kitchenware-competition",
       "source_path": "articles/2023-02-21-summary-of-kitchenware-competition.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-02-21-summary-of-kitchenware-competition.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2023-02-21-summary-of-kitchenware-competition.md"
     },
     "public_path": "/blog/summary-of-kitchenware-competition.html",
     "published": "2023-02-21",
@@ -12544,10 +12544,10 @@
     "provenance": {
       "checksum": "f8df1dad3c9f071273c7c1e51b5afa31c3611e79632c31a5e23567e0a32279cd",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "guidelines-to-get-data-engineer-job-against-odds",
       "source_path": "articles/2023-01-04-guidelines-to-get-data-engineer-job-against-odds.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2023-01-04-guidelines-to-get-data-engineer-job-against-odds.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2023-01-04-guidelines-to-get-data-engineer-job-against-odds.md"
     },
     "public_path": "/blog/guidelines-to-get-data-engineer-job-against-odds.html",
     "published": "2023-01-04",
@@ -12738,10 +12738,10 @@
     "provenance": {
       "checksum": "46660f85318ac54a6919a2526c77a3e1c707035679f925220e4c33900165900b",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "dataops-similarities-and-differences-with-data-engineering-and-data-science",
       "source_path": "articles/2022-12-23-dataops-similarities-and-differences-with-data-engineering-and-data-science.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-12-23-dataops-similarities-and-differences-with-data-engineering-and-data-science.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-12-23-dataops-similarities-and-differences-with-data-engineering-and-data-science.md"
     },
     "public_path": "/blog/dataops-similarities-and-differences-with-data-engineering-and-data-science.html",
     "published": "2022-12-23",
@@ -13024,10 +13024,10 @@
     "provenance": {
       "checksum": "97a4e831ef4f6ec2b157d2818ddf909583ebdfb1f9f3b6a740a427189a72c0be",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "important-sql-fact-that-everyone-should-know",
       "source_path": "articles/2022-10-21-important-sql-fact-that-everyone-should-know.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-10-21-important-sql-fact-that-everyone-should-know.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-10-21-important-sql-fact-that-everyone-should-know.md"
     },
     "public_path": "/blog/important-sql-fact-that-everyone-should-know.html",
     "published": "2022-10-21",
@@ -13282,10 +13282,10 @@
     "provenance": {
       "checksum": "c1c13c06e9ccf825bdcb0bf77d0dd32c5da234e19d0238ac1dc24848008c9e17",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "naming-variables-in-machine-learning",
       "source_path": "articles/2022-10-02-naming-variables-in-machine-learning.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-10-02-naming-variables-in-machine-learning.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-10-02-naming-variables-in-machine-learning.md"
     },
     "public_path": "/blog/naming-variables-in-machine-learning.html",
     "published": "2022-10-02",
@@ -13532,10 +13532,10 @@
     "provenance": {
       "checksum": "dfaa251926c7a04ad9c940fbfb074cfa0710ea8c4104edd78056fc3b85f52831",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "interview-with-valerii-chetvertakov",
       "source_path": "articles/2022-09-29-interview-with-valerii-chetvertakov.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-29-interview-with-valerii-chetvertakov.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-09-29-interview-with-valerii-chetvertakov.md"
     },
     "public_path": "/blog/interview-with-valerii-chetvertakov.html",
     "published": "2022-09-29",
@@ -13842,10 +13842,10 @@
     "provenance": {
       "checksum": "96aafae7b59f258e54f9bfa3b79c65d7642b1b9bac88b28c891513c08f009fd5",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "do-you-know-golden-rules-while-working-with-data",
       "source_path": "articles/2022-09-29-do-you-know-golden-rules-while-working-with-data.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-29-do-you-know-golden-rules-while-working-with-data.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-09-29-do-you-know-golden-rules-while-working-with-data.md"
     },
     "public_path": "/blog/do-you-know-golden-rules-while-working-with-data.html",
     "published": "2022-09-29",
@@ -14124,10 +14124,10 @@
     "provenance": {
       "checksum": "2c3fb4fc329a156a404ade668d64c6ad07755e03315e699e09ef046d9f2bd6d6",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "regularization-in-regression",
       "source_path": "articles/2022-09-22-regularization-in-regression.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-22-regularization-in-regression.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-09-22-regularization-in-regression.md"
     },
     "public_path": "/blog/regularization-in-regression.html",
     "published": "2022-09-22",
@@ -14518,10 +14518,10 @@
     "provenance": {
       "checksum": "e9ea430e30a9fe412a6b5510b27923991d95273c68c7a94e447e203391305e7b",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "how-to-setup-lightweight-local-version-for-airflow",
       "source_path": "articles/2022-09-17-how-to-setup-lightweight-local-version-for-airflow.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-17-how-to-setup-lightweight-local-version-for-airflow.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-09-17-how-to-setup-lightweight-local-version-for-airflow.md"
     },
     "public_path": "/blog/how-to-setup-lightweight-local-version-for-airflow.html",
     "published": "2022-09-17",
@@ -14756,10 +14756,10 @@
     "provenance": {
       "checksum": "90f011f35428f2c19eb06393e594c5c91c71996b3da8becc0ec20a2649315ec6",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "data-engineers-arent-plumbers",
       "source_path": "articles/2022-09-02-data-engineers-arent-plumbers.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-02-data-engineers-arent-plumbers.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-09-02-data-engineers-arent-plumbers.md"
     },
     "public_path": "/blog/data-engineers-arent-plumbers.html",
     "published": "2022-09-02",
@@ -15082,10 +15082,10 @@
     "provenance": {
       "checksum": "e46b48f8f0b7086e8cad1d3c33ab2937eed175c43f323eff7b2b5495cffcf10a",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "hiring-process-for-data-professionals",
       "source_path": "articles/2022-09-01-hiring-process-for-data-professionals.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-09-01-hiring-process-for-data-professionals.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-09-01-hiring-process-for-data-professionals.md"
     },
     "public_path": "/blog/hiring-process-for-data-professionals.html",
     "published": "2022-09-01",
@@ -15224,10 +15224,10 @@
     "provenance": {
       "checksum": "da8579e0c4eb68584abc3a1a23f4c3cb4e0a8d95648b4f669c7eaefdb0d0cb02",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "interview-with-ken-wu",
       "source_path": "articles/2022-08-22-interview-with-ken-wu.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-08-22-interview-with-ken-wu.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-08-22-interview-with-ken-wu.md"
     },
     "public_path": "/blog/interview-with-ken-wu.html",
     "published": "2022-08-22",
@@ -15576,10 +15576,10 @@
     "provenance": {
       "checksum": "006cec5026ee6e6414eac7667241dbfff5d350c77f45553c55ca396bf99c7107",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "essentials-of-public-speaking-for-career-in-data-science",
       "source_path": "articles/2022-07-31-essentials-of-public-speaking-for-career-in-data-science.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-31-essentials-of-public-speaking-for-career-in-data-science.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-07-31-essentials-of-public-speaking-for-career-in-data-science.md"
     },
     "public_path": "/blog/essentials-of-public-speaking-for-career-in-data-science.html",
     "published": "2022-07-31",
@@ -15880,10 +15880,10 @@
     "provenance": {
       "checksum": "0174bb496b648441af3b00c82179fe9124441100693ed6c578187372c6075c1a",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "starting-career-as-data-scientist",
       "source_path": "articles/2022-07-23-starting-career-as-data-scientist.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-23-starting-career-as-data-scientist.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-07-23-starting-career-as-data-scientist.md"
     },
     "public_path": "/blog/starting-career-as-data-scientist.html",
     "published": "2022-07-23",
@@ -16132,10 +16132,10 @@
     "provenance": {
       "checksum": "35e6bc36dd98b7361917518916f3eb27d95256c69875605f4cfac75d8a9b3002",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "what-open-source-can-do-for-your-data-career",
       "source_path": "articles/2022-07-15-what-open-source-can-do-for-your-data-career.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-07-15-what-open-source-can-do-for-your-data-career.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-07-15-what-open-source-can-do-for-your-data-career.md"
     },
     "public_path": "/blog/what-open-source-can-do-for-your-data-career.html",
     "published": "2022-07-15",
@@ -16424,10 +16424,10 @@
     "provenance": {
       "checksum": "7d15a1cebe39f7525fbf8dcfa1f636de1b11f3b4619c0797ac29289501414809",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "what-dataops-exactly",
       "source_path": "articles/2022-06-11-what-dataops-exactly.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-06-11-what-dataops-exactly.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-06-11-what-dataops-exactly.md"
     },
     "public_path": "/blog/what-dataops-exactly.html",
     "published": "2022-06-11",
@@ -16712,10 +16712,10 @@
     "provenance": {
       "checksum": "59c4bd5b977754ff6abf2eec1ea2a0550fb3eb21268e8d903b0a1c8670550273",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "starting-career-in-data-science-at-45",
       "source_path": "articles/2022-05-20-starting-career-in-data-science-at-45.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-05-20-starting-career-in-data-science-at-45.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-05-20-starting-career-in-data-science-at-45.md"
     },
     "public_path": "/blog/starting-career-in-data-science-at-45.html",
     "published": "2022-05-20",
@@ -17032,10 +17032,10 @@
     "provenance": {
       "checksum": "b642d40bea18b27a6eb9a83e74a755a6af539274b16bb3ab816b10b5321974c5",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "devops-and-mlops-same-thing",
       "source_path": "articles/2022-05-15-devops-and-mlops-same-thing.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-05-15-devops-and-mlops-same-thing.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-05-15-devops-and-mlops-same-thing.md"
     },
     "public_path": "/blog/devops-and-mlops-same-thing.html",
     "published": "2022-05-15",
@@ -17480,10 +17480,10 @@
     "provenance": {
       "checksum": "5ee94ed47832b5a73f9c6a1273ed1608a4e0599395725f793085807a47dc58de",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "mlops-10-minutes",
       "source_path": "articles/2022-05-02-mlops-10-minutes.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2022-05-02-mlops-10-minutes.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2022-05-02-mlops-10-minutes.md"
     },
     "public_path": "/blog/mlops-10-minutes.html",
     "published": "2022-05-02",
@@ -17682,10 +17682,10 @@
     "provenance": {
       "checksum": "189aaa23b3c8cbde53ad6daa1b378f3a8ef3a68929eaca47ce7c6e8787a3b7a3",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "landing-product-analyst-job",
       "source_path": "articles/2021-02-01-landing-product-analyst-job.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2021-02-01-landing-product-analyst-job.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2021-02-01-landing-product-analyst-job.md"
     },
     "public_path": "/blog/landing-product-analyst-job.html",
     "published": "2021-02-01",
@@ -18474,10 +18474,10 @@
     "provenance": {
       "checksum": "05852455578be7b6e2d82d4861578497c23402564c22b5aa797796034865804e",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "ml-deployment-lambda",
       "source_path": "articles/2021-01-01-ml-deployment-lambda.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2021-01-01-ml-deployment-lambda.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2021-01-01-ml-deployment-lambda.md"
     },
     "public_path": "/blog/ml-deployment-lambda.html",
     "published": "2021-01-01",
@@ -18668,10 +18668,10 @@
     "provenance": {
       "checksum": "a66f79c11d0c5774d219fbf10a2693ff807d4726075b5477fe2cf2dc6a096cbf",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "data-narrative",
       "source_path": "articles/2020-12-25-data-narrative.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-25-data-narrative.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2020-12-25-data-narrative.md"
     },
     "public_path": "/blog/data-narrative.html",
     "published": "2020-12-25",
@@ -18840,10 +18840,10 @@
     "provenance": {
       "checksum": "7a794f7a0883e8878518d237952f6a26137d5eeb6dbea0a87b3c1c604e177386",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "simplifying-concepts",
       "source_path": "articles/2020-12-17-simplifying-concepts.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-17-simplifying-concepts.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2020-12-17-simplifying-concepts.md"
     },
     "public_path": "/blog/simplifying-concepts.html",
     "published": "2020-12-17",
@@ -19630,10 +19630,10 @@
     "provenance": {
       "checksum": "1861a56f41ff84dad092296cef8c76b12e9c69b1dc2ace19e52da9d08af14853",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "ner-reformers",
       "source_path": "articles/2020-12-17-ner-reformers.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-17-ner-reformers.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2020-12-17-ner-reformers.md"
     },
     "public_path": "/blog/ner-reformers.html",
     "published": "2020-12-17",
@@ -20436,10 +20436,10 @@
     "provenance": {
       "checksum": "cbb77e4c9b0bc6ce153b80899a11b590d51687872065e99583f8ca1f9ab60e5e",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "practical-guide-better-code",
       "source_path": "articles/2020-12-07-practical-guide-better-code.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-12-07-practical-guide-better-code.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2020-12-07-practical-guide-better-code.md"
     },
     "public_path": "/blog/practical-guide-better-code.html",
     "published": "2020-12-07",
@@ -20744,10 +20744,10 @@
     "provenance": {
       "checksum": "00944d23e8f5f6d4973cc839cd269541e11cc8ad42abe3e62a54c650485dc05d",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
       "source_key": "segmentation",
       "source_path": "articles/2020-11-29-segmentation.md",
-      "source_url": "https://github.com/DataTalksClub/content/blob/b9a40ba974fdef67ee3a2a70f114734f2581033c/articles/2020-11-29-segmentation.md"
+      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/articles/2020-11-29-segmentation.md"
     },
     "public_path": "/blog/segmentation.html",
     "published": "2020-11-29",

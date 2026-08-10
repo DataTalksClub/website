@@ -107,7 +107,7 @@
       Latest podcast episodes
     </h2>
     <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{% url 'podcast' %}">
+      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{{ podcast.public_path }}">
         <strong class="text-lg">{{ podcast.title }}</strong>
         <span class="app-text">Listen to the latest episode</span>
       </a>

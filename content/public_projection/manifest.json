@@ -1,13 +1,13 @@
 {
   "artifacts": {
-    "articles.json": "e54d717428d502ae6f3581291e077ba1756ccb02f838dca5b2f0925d79272a08",
-    "books.json": "87b98c5841a58c899929dea54987c577ec075346bf524ce6c123f5274990025f",
+    "articles.json": "3eb3127a3615e3ff21817e4cf43fb3798303fe3f7098632c6d659c7b9538309d",
+    "books.json": "44d9498ba6852038de61534cdd6fd8d02cbf9e0c16fcf33b2dd5e5b3e10def80",
     "courses.json": "318d7cb156cdcf74f346695d3db2b526e81c3321426c33365e91d3f471211c4d",
-    "editorial_route_migration.json": "9687c9edf1e30c1a49f79c4a445d21079f46f6554ef74f51fe0d2b9e8c66e39f",
+    "editorial_route_migration.json": "369606b948d20a7d438efaacfe1e2d9ed7610f96d0edfcd48abd65134772a255",
     "events.json": "64cdab5893afb3558fdf5a3d81fe23c9ed9481016897d823f41dcdbe5bebf580",
-    "media.json": "028de6372f3253d25b294aeca7ef4eefc95b1b9924927ad0c262110712bdddf2",
+    "media.json": "6b6670d01407c72649f89a7671e240d7c75d9653b9bb25b30f362e14b0325aea",
     "people.json": "5c0e2ab52e710f28f6e4e9d676b772582437fdd3f9d60e032bbacf2e1535ef2d",
-    "podcasts.json": "52a3338ee02b3641ccff02fe12b26f01391bc8057707f259432451f09338641c",
+    "podcasts.json": "33409b09c184a02ff6b685d805d9ad05d74bb15d5b34ea86f34c5a10b4cb0c8d",
     "wiki.json": "5f64f4d4a7a7436830d5a5c039e081d82fbf47ac01b7fb891fa6c5816650ce68",
     "wiki_graph.json": "07f433eab8c818abf4a2d270c1f9a582bc450c16b7ffbbee344b8998eeb4ebb8",
     "wiki_search.json": "e8f82b7471ce9152f994f2dfc3ef370b8d2a98384834051985dd45c5269f7307"
@@ -65,18 +65,19 @@
     },
     "preferred_content": {
       "accepted": true,
-      "ci_run": "https://github.com/DataTalksClub/content/actions/runs/31307270515",
+      "ci_run": "https://github.com/DataTalksClub/content/actions/runs/31365358459",
+      "editorial_overlay_sha256": "63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6",
       "repair_manifest_sha256": "80d3014c47bf57de792473fc1da8f7569daeb55107688c3485153f773948d3aa",
       "repository": "DataTalksClub/content",
-      "revision": "b9a40ba974fdef67ee3a2a70f114734f2581033c",
-      "tree": "701fa3f7aa35973e65736a188161c480982f1cb3"
+      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "tree": "c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa"
     },
     "wiki": {
       "repository": "DataTalksClub/podwiki",
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "41363a1cae75e2066f9614b8723713213c9bcdafd14ac57aabcf429d584023d8",
+  "tree_sha256": "3b69c3a566788c2cf9254f3f1677aa4c8ee25589e253a81d4bae75cda38dbaeb",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

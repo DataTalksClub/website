@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
@@ -10,6 +11,7 @@ from django.http import (
     Http404,
     HttpRequest,
     HttpResponse,
+    HttpResponseBadRequest,
     HttpResponsePermanentRedirect,
     JsonResponse,
 )
@@ -21,7 +23,7 @@ from courses.views.course import course_view
 from courses.views.course_list import course_list_context
 from events.services import public_registration_total
 
-from .public_data import PROJECTION_ROOT, event_groups, public_projection
+from .public_data import PROJECTION_ROOT, event_groups, podcast_seasons, public_projection
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
 WIKI_SPECIAL_CATEGORIES = {
@@ -31,6 +33,8 @@ WIKI_SPECIAL_CATEGORIES = {
     "transitions": "transition",
     "how-tos": "how-to",
 }
+PODCAST_SEASONS_PER_PAGE = 3
+PODCAST_PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,8})\Z", re.ASCII)
 
 
 def _canonical(path: str) -> str:
@@ -112,6 +116,21 @@ def _render(
         template,
         page_context,
     )
+
+
+def _no_store(response: HttpResponse) -> HttpResponse:
+    response["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+def _podcast_page_number(request: HttpRequest) -> int | None:
+    raw_query = request.META.get("QUERY_STRING", "")
+    if not raw_query:
+        return 1
+    if not isinstance(raw_query, str) or len(raw_query) > 32:
+        return None
+    match = PODCAST_PAGE_QUERY.fullmatch(raw_query)
+    return int(match.group(1)) if match else None
 
 
 @require_safe
@@ -216,6 +235,54 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
         title=f"{title} — DataTalks.Club",
         description=description,
         context={"heading": title, "records": projection[collection], "collection": collection},
+    )
+
+
+@require_safe
+def podcast_hub(request: HttpRequest) -> HttpResponse:
+    page_number = _podcast_page_number(request)
+    if page_number is None:
+        return _no_store(HttpResponseBadRequest("Bad request."))
+
+    seasons = podcast_seasons()
+    total_pages = (len(seasons) + PODCAST_SEASONS_PER_PAGE - 1) // PODCAST_SEASONS_PER_PAGE
+    if page_number > total_pages:
+        return _no_store(HttpResponse("Page not found.", status=404))
+
+    start = (page_number - 1) * PODCAST_SEASONS_PER_PAGE
+    page_seasons = seasons[start : start + PODCAST_SEASONS_PER_PAGE]
+
+    def page_path(number: int) -> str:
+        return "/podcast" if number == 1 else f"/podcast?page={number}"
+
+    canonical_path = page_path(page_number)
+    title = "DataTalks.Club Podcast"
+    if page_number > 1:
+        title = f"{title} — Page {page_number}"
+    return _render(
+        request,
+        "public/podcast_hub.html",
+        path=canonical_path,
+        title=f"{title} — DataTalks.Club",
+        description=(
+            "DataTalks.Club weekly podcast episodes with data science experts, ML "
+            "engineers, and AI researchers. Listen on Apple Podcasts, Spotify, YouTube."
+        ),
+        context={
+            "seasons": page_seasons,
+            "page_number": page_number,
+            "page_links": tuple(
+                {"number": number, "path": page_path(number)}
+                for number in range(1, total_pages + 1)
+            ),
+            "total_pages": total_pages,
+            "previous_url": _canonical(page_path(page_number - 1)) if page_number > 1 else "",
+            "previous_path": page_path(page_number - 1) if page_number > 1 else "",
+            "next_url": (
+                _canonical(page_path(page_number + 1)) if page_number < total_pages else ""
+            ),
+            "next_path": page_path(page_number + 1) if page_number < total_pages else "",
+        },
     )
 
 

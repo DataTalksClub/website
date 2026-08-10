@@ -42,7 +42,11 @@ class PublicProjectionTests(TestCase):
         self.assertFalse(self.projection["manifest"]["sources"]["fallback_selection"]["accepted"])
         self.assertEqual(
             self.projection["manifest"]["sources"]["preferred_content"]["revision"],
-            "b9a40ba974fdef67ee3a2a70f114734f2581033c",
+            "e29f56ce70bd997171a78a9f0facc9354797f421",
+        )
+        self.assertEqual(
+            self.projection["manifest"]["sources"]["preferred_content"]["editorial_overlay_sha256"],
+            "63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6",
         )
         self.assertEqual(
             self.projection["manifest"]["wiki_assets"],
@@ -112,7 +116,6 @@ class PublicProjectionTests(TestCase):
     def test_hubs_render_every_checked_record(self) -> None:
         for path, collection in (
             ("/blog", "articles"),
-            ("/podcast", "podcasts"),
             ("/books", "books"),
             ("/courses", "courses"),
             ("/wiki", "wiki"),
