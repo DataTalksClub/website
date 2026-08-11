@@ -320,29 +320,8 @@
                 </div>
             </main>
         </div>
-        <footer class="site-footer mt-10 border-t app-border app-surface app-muted">
-            <div class="app-content-shell mx-auto flex flex-col gap-3 px-4 py-6 md:items-center md:px-8 md:py-8">
-                <div class="site-footer-brand">
-                    <span class="font-semibold app-heading">DataTalks.Club</span>
-                    <span class="site-footer-tagline">Free courses to learn data.</span>
-                </div>
-                <div class="site-footer-meta flex min-w-0 flex-nowrap items-center gap-2 md:justify-center">
-                    <a href="https://github.com/DataTalksClub/website"
-                       target="_blank"
-                       rel="noreferrer"
-                       class="site-footer-link app-link"
-                       title="Website source on GitHub (opens in a new tab)"
-                       aria-label="Website source on GitHub (opens in a new tab)">
-                        <i class="fab fa-github" aria-hidden="true"></i>
-                        <span class="sr-only">Website source on GitHub</span>
-                    </a>
-                    <span class="footer-version app-muted">
-                        <span class="footer-version-label">Version</span>
-                        <span class="footer-version-value">{{ VERSION }}</span>
-                    </span>
-                </div>
-            </div>
-        </footer>
+        {# The single-source footer renders the readable Version {{ VERSION }} value. #}
+        {% include "core/_site_footer.html" %}
         <script src="{% static 'local_date.js' %}"></script>
         <script src="{% static 'time_left.js' %}"></script>
         {% block timezone_preference_script %}
@@ -353,6 +332,7 @@
         <script src="{% static 'alerts.js' %}"></script>
         <script src="{% static 'core/site_navigation.js' %}"></script>
         <script src="{% static 'core/accessibility.js' %}"></script>
+        <script src="{% static 'core/analytics_preferences.js' %}"></script>
         {% block extra_js %}
         {% endblock %}
     </body>

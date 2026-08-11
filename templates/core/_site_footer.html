@@ -1,0 +1,96 @@
+<footer class="site-footer mt-10 border-t app-border app-surface app-muted">
+  <div class="site-footer-inner app-content-shell mx-auto px-4 py-5 md:px-8 md:py-6">
+    <div class="site-footer-identity site-footer-meta">
+      <span class="font-semibold app-heading">DataTalks.Club</span>
+      <span class="site-footer-tagline">Free courses to learn data.</span>
+      <a
+        href="https://github.com/DataTalksClub/website"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="site-footer-link site-footer-github app-link"
+        title="Website source on GitHub (opens in a new tab)"
+        aria-label="Website source on GitHub (opens in a new tab)"
+      >
+        <i class="fab fa-github" aria-hidden="true"></i>
+      </a>
+      <span class="footer-version app-muted">
+        <span class="footer-version-label">Version</span>
+        <span class="footer-version-value">{{ VERSION }}</span>
+      </span>
+    </div>
+
+    <nav class="site-footer-legal" aria-label="Legal">
+      <a class="site-footer-legal-control app-link" href="/terms">
+        Terms of Service
+      </a>
+      <span class="site-footer-separator" aria-hidden="true">·</span>
+      <a class="site-footer-legal-control app-link" href="/privacy">
+        Privacy Policy
+      </a>
+      <span class="site-footer-separator" aria-hidden="true">·</span>
+      <button
+        type="button"
+        class="site-footer-legal-control site-footer-preferences app-link"
+        data-analytics-preferences-open
+        aria-haspopup="dialog"
+        aria-controls="analytics-preferences-dialog"
+      >
+        Analytics preferences
+      </button>
+      <span class="site-footer-separator" aria-hidden="true">·</span>
+      <a class="site-footer-legal-control app-link" href="/impressum">
+        Impressum
+      </a>
+    </nav>
+  </div>
+</footer>
+
+<dialog
+  id="analytics-preferences-dialog"
+  class="analytics-preferences app-surface app-text"
+  aria-labelledby="analytics-preferences-title"
+  aria-describedby="analytics-preferences-description analytics-preferences-status"
+  data-testid="analytics-preferences-dialog"
+>
+  <div class="analytics-preferences-content">
+    <div>
+      <p class="analytics-preferences-eyebrow app-muted">Privacy choice</p>
+      <h2 id="analytics-preferences-title">Optional analytics</h2>
+    </div>
+    <p id="analytics-preferences-description">
+      Optional analytics are off unless you allow them. Your choice does not affect access to
+      DataTalks.Club, Slack, events, or courses.
+    </p>
+    <p id="analytics-preferences-status" class="analytics-preferences-status" role="status">
+      Current choice: not chosen.
+    </p>
+    <div class="analytics-preferences-actions">
+      <button
+        type="button"
+        class="analytics-preferences-choice analytics-preferences-allow"
+        data-analytics-consent="allow"
+      >
+        Allow analytics
+      </button>
+      <button
+        type="button"
+        class="analytics-preferences-choice analytics-preferences-deny"
+        data-analytics-consent="deny"
+      >
+        Keep analytics off
+      </button>
+      <button
+        type="button"
+        class="analytics-preferences-close app-link"
+        data-analytics-preferences-close
+      >
+        Close without changing
+      </button>
+    </div>
+    <p class="analytics-preferences-detail app-muted">
+      This site currently ships with analytics disabled. Read the
+      <a class="app-link" href="/privacy">Privacy Policy</a>
+      for the complete data boundary.
+    </p>
+  </div>
+</dialog>

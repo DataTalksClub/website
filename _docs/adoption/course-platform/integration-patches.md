@@ -35,7 +35,10 @@ overlays:
   `_docs/provenance/course-platform-vendor-assets.json`; the Tailwind configuration remains before
   the runtime script and the browser no longer requires either production CDN. Issue #114 adds the
   escaped public-safe announcement after the shared header and before main content without changing
-  copied account, navigation, preference, or session behavior;
+  copied account, navigation, preference, or session behavior. Issue #125 replaces only the copied
+  footer markup with the target-owned shared legal-footer partial used by both target shells and
+  loads its provider-free analytics-preferences behavior; course, account, navigation, preference,
+  and session behavior remains unchanged;
 - `courses/templates/projects/project.html`: issue #75 replaces the external commit-ID screenshot
   with concise accessible text explaining where to copy the first seven commit characters. Project
   submission fields, validation, persistence, and operator controls remain unchanged;

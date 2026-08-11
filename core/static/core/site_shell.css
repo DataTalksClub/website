@@ -22,6 +22,288 @@
   max-width: 80rem;
 }
 
+.site-footer,
+.site-footer *,
+.analytics-preferences,
+.analytics-preferences * {
+  box-sizing: border-box;
+}
+
+.site-footer {
+  margin-top: 2.5rem;
+}
+
+.site-footer-inner {
+  display: grid;
+  gap: 0.25rem;
+  justify-items: center;
+  margin-inline: auto;
+  max-width: 56rem;
+  padding: 1.25rem 1rem;
+  width: 100%;
+}
+
+.site-footer-identity {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+  justify-content: center;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.site-footer-legal {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 0.8125rem;
+  justify-content: center;
+  max-width: 100%;
+}
+
+.site-footer-legal-control {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 0.25rem;
+  color: var(--link-color);
+  display: inline-flex;
+  font: inherit;
+  justify-content: center;
+  line-height: 1.3;
+  margin: 0;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.site-footer-preferences {
+  cursor: pointer;
+}
+
+.site-footer-legal-control:hover {
+  color: var(--link-hover);
+}
+
+.site-footer-separator {
+  color: var(--text-muted);
+  line-height: 1;
+}
+
+.site-footer-github {
+  align-items: center;
+  border-radius: 0.25rem;
+  display: inline-flex;
+  height: 2.75rem;
+  justify-content: center;
+  line-height: 1;
+  min-height: 2.75rem;
+  min-width: 2.75rem;
+  width: 2.75rem;
+}
+
+.site-footer .site-footer-github,
+.site-footer .site-footer-github:link,
+.site-footer .site-footer-github:visited,
+.site-footer .site-footer-github:hover,
+.site-footer .site-footer-github:focus,
+.site-footer .site-footer-github:active {
+  text-decoration: none !important;
+}
+
+.site-footer .site-footer-github:focus-visible {
+  outline-color: var(--link-color, #315f8f);
+}
+
+.analytics-preferences {
+  background: var(--surface-bg);
+  border: 1px solid var(--border-muted);
+  border-radius: 0.625rem;
+  box-shadow: 0 1rem 2.5rem rgba(15, 23, 42, 0.2);
+  color: var(--text-primary);
+  inset: auto 1rem 1rem auto;
+  margin: 0;
+  max-height: calc(100vh - 2rem);
+  max-width: min(30rem, calc(100vw - 2rem));
+  overflow: auto;
+  padding: 0;
+  width: 100%;
+  z-index: 90;
+}
+
+.analytics-preferences:modal {
+  inset: 0;
+  margin: auto;
+}
+
+.analytics-preferences::backdrop {
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.analytics-preferences-content {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.25rem;
+}
+
+.analytics-preferences-content h2,
+.analytics-preferences-content p {
+  margin: 0;
+}
+
+.analytics-preferences-content h2 {
+  color: var(--text-heading);
+  font-size: 1.35rem;
+  line-height: 1.25;
+}
+
+.analytics-preferences-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.analytics-preferences-status {
+  font-weight: 600;
+}
+
+.analytics-preferences-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.analytics-preferences-choice,
+.analytics-preferences-close {
+  align-items: center;
+  border-radius: 0.375rem;
+  display: inline-flex;
+  font: inherit;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.85rem;
+}
+
+.analytics-preferences-choice {
+  border: 1px solid var(--link-color);
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.analytics-preferences-allow {
+  background: var(--link-color);
+  color: var(--surface-bg);
+}
+
+.analytics-preferences-deny {
+  background: var(--surface-bg);
+  color: var(--link-color);
+}
+
+.analytics-preferences-close {
+  background: transparent;
+  border: 0;
+  color: var(--link-color);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.analytics-preferences-detail {
+  font-size: 0.8125rem;
+}
+
+.legal-document {
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-inline: auto;
+  max-width: 50rem;
+}
+
+.legal-document-header {
+  border-bottom: 1px solid var(--border-muted);
+  margin-bottom: 2rem;
+  padding-bottom: 1.75rem;
+}
+
+.legal-document-header h1 {
+  color: var(--text-heading);
+  font-size: clamp(2.25rem, 7vw, 4rem);
+  line-height: 1.05;
+  margin: 0.25rem 0 0;
+}
+
+.legal-document-kicker {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.legal-document-updated {
+  font-size: 0.875rem;
+  margin: 0.75rem 0 0;
+}
+
+.legal-document-lede {
+  font-size: 1.125rem;
+  margin: 1.25rem 0 0;
+  max-width: 44rem;
+}
+
+.legal-document section {
+  margin-top: 2rem;
+}
+
+.legal-document h2,
+.legal-document h3 {
+  color: var(--text-heading);
+  line-height: 1.3;
+}
+
+.legal-document h2 {
+  font-size: 1.5rem;
+  margin: 0 0 0.75rem;
+}
+
+.legal-document h3 {
+  font-size: 1.125rem;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.legal-document p,
+.legal-document ul {
+  margin-block: 0.75rem;
+}
+
+.legal-document li + li {
+  margin-top: 0.45rem;
+}
+
+.legal-document .app-link {
+  text-decoration: underline;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.legal-review-notice {
+  background: var(--warning-bg);
+  border: 1px solid var(--warning-border);
+  border-radius: 0.5rem;
+  color: var(--text-primary);
+  padding: 1rem 1.125rem;
+}
+
+.legal-review-notice h2 {
+  color: var(--warning-text);
+}
+
 .site-navigation-toggle {
   display: inline-flex;
   align-items: center;
@@ -65,19 +347,12 @@
 }
 
 @media (max-width: 26.25rem) {
-  .site-footer-brand {
-    justify-content: center;
-    flex-wrap: wrap;
-    white-space: normal;
-  }
-
   .site-footer-tagline {
     overflow: visible;
     white-space: normal;
   }
 
-  .site-footer-meta {
-    flex-wrap: nowrap;
+  .site-footer-identity {
     justify-content: center;
     max-width: 100%;
     width: 100%;
@@ -98,6 +373,26 @@
     text-align: center;
     text-overflow: clip;
     white-space: normal;
+  }
+
+  .site-footer-legal {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .site-footer-legal-control {
+    width: 100%;
+  }
+
+  .site-footer-separator {
+    display: none;
+  }
+
+  .analytics-preferences {
+    inset: auto 0.5rem 0.5rem;
+    max-height: calc(100vh - 1rem);
+    max-width: calc(100vw - 1rem);
   }
 }
 
