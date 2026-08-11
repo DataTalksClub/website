@@ -2,7 +2,11 @@
 
 Status: draft
 
-The existing course-management platform is adopted, not reimplemented. Its Django applications, migrations, business logic, views/forms, API compatibility code, communication behavior, and tests are copied into this repository at a recorded source commit and evolved in place.
+The existing course-management platform is adopted, not reimplemented. Its Django applications,
+migrations, business logic, views/forms, API compatibility code, communication behavior, and tests
+are copied into this repository at a recorded source commit and evolved in place. Copied
+Datamailer behavior is preserved for characterization and read-only migration/history only; every
+dispatch, requeue, immediate-send, and callback path is disabled for new work.
 
 The current `Course` model is a dated delivery. The minimal structural change is to introduce a reusable parent `Course` and rename/evolve the existing edition record into `Cohort`. Homework, projects, rubrics, submissions, grading, and related operational behavior remain cohort-owned, matching today's semantics.
 
@@ -28,7 +32,8 @@ Reuse and refactor in place:
 - projects, criteria, peer assignment/review, voting, scoring, results, and statistics;
 - leaderboards, score breakdown, complaints, graduates, certificates, calendars, dashboards, and historical Wrapped data;
 - registration campaigns and communication context;
-- durable Datamailer outbox/audit logic as migration input to the unified email subsystem;
+- Datamailer outbox/audit data and behavior as send-disabled, read-only
+  migration/history/reconciliation input to the Relay-backed email boundary;
 - current public/data API serializers and paths as compatibility adapters;
 - `cadmin` workflows as the complete operational requirement set;
 - existing migrations and fixtures.
@@ -38,7 +43,8 @@ Change deliberately:
 - `Course`-as-edition becomes `Cohort` belonging to reusable `Course`;
 - global `is_staff` becomes explicit site/course/cohort capabilities;
 - plaintext unscoped API tokens become hashed/scoped/expiring principals;
-- `cadmin` operations move behind shared services exposed by Studio and admin API;
+- `cadmin` operations move behind shared services exposed by Studio and admin API; copied
+  Datamailer surfaces remain read-only migration/history adapters and cannot dispatch or requeue;
 - long scoring, exports, communications, and repairs become durable operations/jobs where needed;
 - synchronous arbitrary URL validation is removed from request paths;
 - ordinary destructive deletion becomes archive/cancel/protect;
@@ -122,6 +128,11 @@ Reusable/versioned curriculum may be introduced later after consolidation, based
   cohort plus normalized email.
 - Repointing a campaign cannot change historical registrations or prevent the same person registering for a later cohort.
 - Interest collected before a cohort exists is `CourseInterest`, not a nullable/ambiguous cohort registration.
+- A successful approved registration atomically commits its business state, one logical website
+  `EmailDelivery` intent, and one durable job. Only a leased job calls Relay after commit. Relay
+  owns the immutable template version, rendering, sender resolution, and transport lifecycle. The
+  currently approved development path uses Relay sender ID `courses`; every purpose or sender not
+  approved in #22 fails closed.
 
 At successful registration, write one immutable, deliberately minimized shared-profile snapshot
 containing only:
@@ -196,7 +207,8 @@ Existing `cadmin` and relevant Django-admin actions are ported into Studio rathe
 - leaderboard recomputation and complaint resolution;
 - certificate bulk issue/update/revoke/reissue;
 - historical Wrapped view/recalculation if retained;
-- communication template/audience/send/outbox/audit operations mapped to the unified email system;
+- Relay-proxied template/audience/test/publish operations and website logical-intent/redacted-status
+  diagnostics, with no local renderer, direct provider send, or writable Datamailer fallback;
 - health/job/CloudWatch diagnostics;
 - support view-as workflow with tight scope and audit.
 
@@ -256,7 +268,9 @@ limits even when CloudFront/WAF limits broad traffic.
 - Reconcile historical duplicate-email/social-account users explicitly.
 - Preflight current missing database invariants before adding uniqueness constraints.
 - Preserve legacy numeric IDs and calendar UIDs/aliases used by routes, exports, and subscribers.
-- Drain/freeze old communication outboxes and map Datamailer list/template/idempotency keys.
+- Import Datamailer history with sending disabled; freeze new intake, drain/classify old work, map
+  list/template/idempotency keys, and prove one active sender per approved purpose before Relay
+  enablement. Rollback holds and reconciles Relay-backed intents rather than dual-sending.
 - Recompute redundant scores/statistics and report unexplained differences without silently replacing them.
 - Preserve historical Wrapped JSON interpretation.
 - Replace synchronous external URL fetches with safe asynchronous validation.
@@ -273,6 +287,9 @@ limits even when CloudFront/WAF limits broad traffic.
 - Existing incomplete accounts keep prior enrollments/history and are gated only for a new
   registration; migrated values require member confirmation and historical consent evidence remains
   intact.
+- A new approved course registration creates one website intent and durable job atomically, invokes
+  Relay only after commit, and cannot send directly through Amazon SES or Datamailer; unapproved #22
+  purposes and senders fail closed.
 - Public course cache hits remain anonymous-stable while every learner/registration/private path is
   zero-TTL/no-store.
 - Existing homework/project/peer-review/leaderboard/certificate behavior remains covered by ported tests.

@@ -7,7 +7,7 @@ Status: draft
 - Development URL: `https://web.dtcdev.click`.
 - AWS development account: `817685572750`.
 - Primary runtime region: `eu-west-1`.
-- Transactional SES region: `us-east-1`.
+- Transactional email boundary: the separately deployed and version-pinned Relay service.
 - Terraform source: `DataTalksClub/aws-infra` under a new independent `sandbox/website` root.
 - Application source: `DataTalksClub/website`.
 
@@ -44,7 +44,7 @@ modules/
     compute.tf
     database.tf
     storage.tf
-    email.tf
+    relay.tf
     observability.tf
     deploy-iam.tf
     variables.tf
@@ -200,23 +200,36 @@ Direct task ports are never internet-accessible even when a task has a public IP
 - RDS PostgreSQL, encrypted storage, non-public endpoint, automated backups, and final-snapshot policy.
 - Small single-AZ development sizing with storage autoscaling; production inputs enable Multi-AZ, stronger deletion protection, longer backup retention, and larger instances.
 - Secrets Manager entries for Django secret key, database credentials/URL, OIDC, GitHub, webhook,
-  Slack join URL, and other integration secrets. Terraform creates containers/policies; secret
-  values are written through an approved out-of-band process.
+  Slack join URL, scoped website Relay client credentials, and the separate Relay callback signing
+  secret. Terraform may declare workload-owned secret references/least-privilege access only;
+  values are written through an approved out-of-band process and this specification authorizes no
+  credential creation or mutation.
 - S3 bucket for immutable release assets, exports, and controlled operational artifacts with encryption, versioning where appropriate, public-access block, lifecycle policies, and least-privilege access.
 - CloudFront/application resolution keeps public asset paths unchanged.
 
-### Email
+### Relay email client
 
-- Reference the existing verified `dtcdev.click` SES identity in `us-east-1`; do not take ownership of unrelated shared DNS/identity resources.
-- Create workload-owned configuration set/event destinations/SNS handling only where ownership boundaries are clear.
-- Task role has only required SES actions and configured sender/region controls.
-- SES event ingress verifies provider signatures and deduplicates event IDs.
-- Development recipient allowlist/dry-run safeguards prevent accidental broad sends.
+- Website tasks receive only the approved Relay base URL/version, tenant identifier, scoped
+  expiring client-credential reference, and separate callback-secret reference. Runtime and
+  template-management credentials are distinct and deny undeclared scopes/cross-tenant access.
+- The website task role has no Amazon SES send action, provider credential/identity access, sender
+  configuration permission, or SES/SNS provider-event ingress. Relay/provider infrastructure,
+  identities, DNS, queues/workers, event destinations, suppression, and provider alarms are outside
+  the website Terraform stack.
+- The website exposes only the reviewed HMAC Relay callback route, records redacted projection and
+  reconciliation freshness, and alarms on durable-job age, Relay availability, callback lag,
+  ambiguity, and credential expiry without logging secret or payload values.
+- Development defaults to send-disabled fakes/dry-run and allowlisted/simulated recipients. Only the
+  Relay sender ID `courses` may be enabled after the downstream contract/secret/canary gates; every
+  unresolved #22 purpose/sender, broad-recipient path, and production configuration fails closed.
+- No infrastructure plan/apply, secret provisioning/readback, sender/provider/DNS mutation, or
+  controlled canary is authorized by this documentation reconciliation.
 
 ### Observability and cost
 
 - CloudWatch log groups with explicit retention and encryption.
-- Metrics/alarms for ALB/ECS/RDS, worker heartbeat, outbox age, sync freshness/failure, SES outcomes, and budget.
+- Metrics/alarms for ALB/ECS/RDS, worker heartbeat, durable email-job age, Relay submission and
+  callback/reconciliation projection health, sync freshness/failure, and budget.
 - Dashboard and notification targets with named owners.
 - AWS Budgets/cost anomaly alert for the workload.
 - Tags include project, environment, owner, managed-by, service, and data classification where useful.
@@ -271,7 +284,7 @@ Production differences are explicit inputs:
 - private application networking and egress;
 - RDS Multi-AZ, backup retention, deletion protection, sizing, and alarms;
 - task count/autoscaling and edge/WAF policy;
-- sender domain/SES identity and notification targets;
+- Relay endpoint/tenant/credential references, approved sender IDs, and notification targets;
 - secret values and OIDC trust;
 - production retention, budgets, RPO/RTO, and log destinations.
 
@@ -305,5 +318,8 @@ The redirect stack must import/reference the existing course-host DNS safely and
   cheapest-sufficient plan/logging/allowance configuration is reproducible with named alarms and a
   tested TTL-zero/emergency-rule rollback.
 - GitHub Actions uses OIDC and deploys an immutable digest with migration/readiness gates.
-- Backups, alarms, recipient safeguards, and a rollback deploy are tested.
+- Backups, Relay client/callback alarms, send-disabled/recipient safeguards, and a rollback deploy
+  that holds/reconciles rather than dual-sends are tested.
+- The website stack grants no direct Amazon SES/provider send or provider-event-ingress authority;
+  Relay/provider infrastructure remains separately owned and unmodified.
 - The same infrastructure definition can plan in the production account with environment-specific inputs and no development resource/state dependency.

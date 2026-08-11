@@ -108,7 +108,8 @@ Deliverables:
 - homework definitions/questions, cohort homework, submissions, answer checks, scoring, and statistics;
 - project definitions/criteria, cohort projects, submissions, peer assignment/review, scoring, voting, and statistics;
 - leaderboards, privacy preferences, complaints, completion, certificates, and wrapped/reporting compatibility where retained;
-- deadline schedules and unified email outbox migration;
+- deadline schedules, atomic website `EmailDelivery` intent/durable-job wiring for approved
+  purposes, and send-disabled read-only Datamailer history/reconciliation migration;
 - complete Studio/admin API course management parity;
 - current public/data API compatibility and new versioned learner/admin APIs;
 - full rehearsal import and score/certificate reconciliation;
@@ -123,14 +124,23 @@ Deliverables:
 - event lifecycle, person relationships, public detail/list, database event import, and calendars;
 - accountless event verification, confirmation, management/cancellation, attendance, and privacy
   flow;
-- versioned Studio/API email templates and preview/test/publish/rollback;
-- durable email delivery/attempt/event/suppression model and SES adapter;
+- Studio/admin API proxy workflows for Relay's draft and immutable published template versions,
+  safe preview/test/publish/republish, with no website renderer or canonical template store;
+- atomic website logical delivery intent plus durable job, after-commit Relay client, redacted
+  transport projection, HMAC callbacks, scheduled/manual reconciliation, and explicit
+  provider-accepted-versus-delivered/ambiguity behavior;
 - profile completion, Slack-access grant, secret-at-send/reveal transactional purpose, rotation, and
   audited operator resend after the target EmailDelivery lifecycle is available;
-- event and course message purposes, bulk operation resources, delivery diagnostics, and alerts;
-- SES sandbox safeguards and one controlled real delivery smoke test.
+- approved event/course message purposes, bulk operation resources, redacted delivery diagnostics,
+  and alerts; unapproved #22 purposes remain present structurally but fail closed for live send;
+- exact deployed Relay commit/OpenAPI consumer gate, scoped expiring credentials/callback secret,
+  development recipient allowlist/simulation, and one controlled `courses` sender canary after all
+  downstream safeguards pass.
 
-Exit gate: registration, course communication, event changes, retries, provider events, ambiguity, suppression, and role/PII controls pass fault-injection and browser tests.
+Exit gate: registration, the approved development course communication, event changes, safe replay,
+Relay callbacks/reconciliation, accepted-versus-delivered, ambiguity without automatic resend,
+suppression projection, and role/PII controls pass fault-injection and browser tests. New website
+code has no direct Amazon SES or Datamailer send path; non-course enablement still requires #22.
 
 ## Milestone 7 - Full rehearsal and performance
 
@@ -150,14 +160,18 @@ Exit gate: all release criteria pass on `web.dtcdev.click`, open exceptions have
 
 ## Milestone 8 - Production cutover
 
-1. Keep old static sites and course platform serving while the final content sync and database delta import run with outbound email disabled.
+1. Keep old static sites and course platform serving while the final content sync and database delta
+   import run with every website, Relay, and Datamailer outbound path disabled.
 2. Reconcile data counts, checksums, scores, certificates, links, routes, and active content commits.
 3. Enable the new production stack behind its edge endpoint and run internal smoke tests.
 4. Make the new web revision ready, submit its idempotent application-SHA invalidation, and require
    provider completion before release finalization. Keep cache disabled/TTL zero unless the full
    route/viewer matrix, WAF, logging, plan eligibility, and alarms have passed their gates.
 5. Switch canonical DNS/edge routing while retaining legacy course-host compatibility; deploy the redirect Lambda only after its browser/API consumer gate passes.
-6. Enable workers and outbound transactional email exactly once after outbox reconciliation.
+6. After a separately approved production sender/purpose catalog and exact Relay deployment gate,
+   freeze new Datamailer intake, classify/drain its outstanding work, reconcile website intents and
+   Relay state, prove one active sender per purpose, and enable each Relay-backed purpose exactly
+   once. Import itself never sends.
 7. Submit the unchanged production sitemap and monitor robots/canonicals, errors, crawlers,
    registrations, enrollments, profile/Slack delivery, invalidation, cache, WAF, allowance, queue
    state, email, and top landing pages.
@@ -179,11 +193,14 @@ Rollback must account for registrations/enrollments written after cutover:
 - never point the entire site back to static hosting if that removes dynamic endpoints;
 - keep registration, account, course, Studio, API, and webhook paths routed to a compatible Django revision;
 - pause/reconcile workers before changing revisions;
-- preserve idempotency/outbox state so two revisions cannot send the same message;
+- preserve website intent/job idempotency and redacted Relay projection so two revisions cannot
+  submit different work under one key or send the same logical delivery twice;
 - invalidate under the rollback release identity so old/new templates and routes cannot remain
   mixed; on cache/classifier uncertainty set public TTLs to zero through reviewed Terraform input;
 - use only the reviewed emergency WAF toggle, never a console-only rule, origin exposure, or broader
   caching action;
+- hold new website email jobs and reconcile Relay before resuming. Rollback never silently restores
+  Datamailer, calls Amazon SES directly, mutates a stable Relay request, or runs dual senders;
 - do not reverse successful content/data migrations destructively;
 - use retained content releases and legacy static artifacts for read-only fallback.
 
@@ -195,7 +212,9 @@ Quantitative rollback triggers include unexplained URL failure, elevated `5xx`, 
 - Each import reports source/target counts, stable ID mapping, duplicates, missing relations, field transformations, checksum/totals, and rejected rows.
 - Existing primary keys are retained in a mapping table even when target UUIDs differ.
 - Consent is imported only with evidence; absence is not consent.
-- Outbound email is disabled during rehearsal and import.
+- Every website/Relay/Datamailer outbound path is disabled during rehearsal and import. Datamailer
+  records are read-only migration/history/reconciliation input; replaying an import never queues,
+  dispatches, or re-enables them.
 - Derived scores/statistics are recalculated and compared, not trusted blindly or silently replaced.
 - Sampled human validation covers active and archived cohorts, complex projects/reviews, certificates, unusual legacy podcast/content, and high-traffic pages.
 - Cutover has an explicit write freeze and final delta plan for each old system.

@@ -267,14 +267,6 @@
       "reason": "The accepted roadmap retains its historical milestone title while current implementation uses development terminology.",
       "follow_up": "#94",
       "expected_count": 1
-    },
-    {
-      "path": "_docs/specs/09-migration-rollout-roadmap.md",
-      "pattern": "SES sandbox safeguards",
-      "class": "compatibility_note",
-      "reason": "This is the current AWS SES account-state term, not the former deployment-environment name.",
-      "follow_up": "none; provider terminology remains current",
-      "expected_count": 1
     }
   ]
 }

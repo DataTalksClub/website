@@ -12,7 +12,8 @@ Verification maps every requirement to an automated or explicitly manual gate. T
 - member-profile required/optional fields and stable choices, completion versions/revisions, country
   derivation/suggestion, safe URL validation, Slack eligibility/invite versions, immutable minimized
   shared-profile-snapshot selection, and separate registration-owned-field/evidence selection;
-- email normalization, token hashing/versioning, idempotency keys, scoring, deadlines, timezone/DST, slug/path, and redirect behavior;
+- email normalization, token hashing/versioning, Relay request hashes/idempotency keys, guarded
+  redacted projection transitions, scoring, deadlines, timezone/DST, slug/path, and redirect behavior;
 - source adapters and Markdown extensions with real legacy fixtures;
 - permissions, serializers, writable-field allowlists, error envelopes, and redaction;
 - rendering/accessibility helpers, search documents, graph edges, SEO metadata, and structured data.
@@ -25,10 +26,13 @@ Verification maps every requirement to an automated or explicitly manual gate. T
   retry, and last-known-good retention;
 - course/cohort ownership and historical cohort isolation;
 - enrollment, submission, peer assignment, scoring, leaderboard, complaint, certificate, and reminder workflows;
-- registration plus outbox atomicity;
+- business mutation plus one logical `EmailDelivery` intent plus one durable-job atomicity, with no
+  Relay network call before commit;
 - profile completion plus Slack grant/delivery atomicity, compatibility projections, and portable
   migration reconciliation exercised on SQLite;
-- SES/provider event deduplication, reordering, suppression, and ambiguity;
+- Relay HMAC callback authentication, tenant/replay-window/event deduplication, guarded reordering,
+  scheduled/manual reconciliation, redacted suppression projection, and ambiguity without
+  automatic resend;
 - audit events and privacy retention/deletion propagation.
 
 All maintained application constraints, transactions, optimistic concurrency, migrations, service
@@ -47,7 +51,8 @@ boundary below.
 - management capability registry parity with Studio routes/API operations/permissions/audit;
 - member self HTML/API validation parity, exact profile/Slack management routes and OpenAPI,
   generated route-cache registry parity across Django/Terraform/smoke, and cache-policy fixtures;
-- GitHub and SES webhook signature fixtures.
+- GitHub webhook signature fixtures plus the pinned Relay OpenAPI consumer contract and redacted
+  timestamped-HMAC callback fixtures.
 
 ### Browser tests
 
@@ -82,8 +87,11 @@ Tests that create real data are clearly tagged and cannot target a shared enviro
 - exact digest-pinned task environments for web/worker/migration and rejection of inherited,
   duplicate, overridden, mixed-schema, malformed, or local-fallback identity;
 - readiness/liveness, footer, API/OpenAPI/event, and exact deployed VERSION/SHA/digest verification;
-- backup verification, restore drill, image rollback, and worker/outbox reconciliation;
-- TLS, DNS, edge/origin restrictions, noindex, cache policy, and controlled SES delivery;
+- backup verification, restore drill, image rollback, and website intent/job/Relay reconciliation
+  with no Datamailer or dual-sender fallback;
+- TLS, DNS, edge/origin restrictions, noindex, cache policy, exact deployed Relay commit/OpenAPI,
+  scoped credential/callback-secret safeguards, and one controlled allowlisted development
+  `courses` canary through the normal after-commit job path;
 - per-route anonymous MISS -> HIT/Age and credential/private bypass; query/header/cookie poisoning;
   country-only zero-TTL forwarding; content/deploy/rollback invalidation; WAF count/block-before-
   origin; current plan eligibility/cost scenarios; allowance alarms; and TTL-zero rollback.
@@ -167,10 +175,11 @@ Tests that create real data are clearly tagged and cannot target a shared enviro
   multiple-registration, reconciled-duplicate, and incomplete accounts. Dry-run/apply twice preserve
   adopted records, report conflicts safely, establish compatibility projections, and require member
   confirmation.
-- First completion, transaction rollback, worker down, duplicate intent, lease expiry,
-  transient/permanent/suppressed/ambiguous provider outcomes, authorized resend, invite rotation,
-  secret unavailable, quarantine/disable/delete, and restart create one logical grant/delivery per
-  key and never retain/expose the join URL.
+- First completion, transaction rollback, worker down, duplicate intent, website-job lease expiry,
+  Relay timeout/replay/conflict, callback loss/reordering, transient/permanent/suppressed/ambiguous
+  transport projections, authorized resend, invite rotation, secret unavailable,
+  quarantine/disable/delete, and restart create one logical grant/delivery/job per key and never
+  retain/expose the join URL. Live Slack delivery fails closed until #22 approves the purpose.
 - Owner versus another account, support masked/full PII, allowed/denied correction/resend,
   stale/replay/idempotency, export/deletion/retention, and audit/artifact canaries pass. Every signup,
   profile, Slack, registration, migration, correction, export, and deletion scenario asserts zero
@@ -178,12 +187,23 @@ Tests that create real data are clearly tagged and cannot target a shared enviro
 
 ### Event and email
 
-- Replayed registration/browser/network requests create one logical registration and one message per purpose/version.
+- Replayed registration/browser/network requests create one logical registration, one website
+  `EmailDelivery` intent, and one durable job per approved purpose/version.
 - Verification/cancellation links enforce expiry, version, scope, revocation, redaction, and link-scanner-safe POST.
 - Event cancellation/reschedule operations are resumable/idempotent and create correct ICS sequences.
-- Worker crash before send, after provider acceptance, and before local acknowledgement produces the documented state and operator path.
-- Provider events are authentic, unique, reorder-tolerant, correctly correlated, and do not mislabel accepted as delivered.
-- Bounce/complaint suppression and explicit resend behavior pass.
+- Website rollback creates no intent/job and no network effect; after commit, only a leased/fenced
+  job invokes Relay with the immutable template version and stable request hash.
+- Crash/timeout before Relay commit, response loss after Relay commit, provider acceptance, callback
+  loss, and reconciliation converge to the original message without changed-work replay or blind
+  resend. Uncertainty is `ambiguous` and requires reconciliation or audited operator action.
+- Relay callbacks are HMAC-authenticated, tenant-scoped, redacted, unique, reorder-tolerant, and
+  correctly correlated; accepted is never displayed as delivered.
+- Relay-authoritative bounce/complaint suppression and explicit linked manual-resend behavior pass.
+- Tests prove the website owns no canonical renderer/template bodies, provider attempt/event stack,
+  direct Amazon SES sender, or new Datamailer send path. Datamailer import is repeatable,
+  send-disabled, and history/reconciliation-only; rollback holds/reconciles rather than dual-sends.
+- Only the approved development `courses` sender/purpose can progress; every unresolved #22 purpose,
+  unknown sender, broad recipient, and production configuration fails closed.
 
 ### Authorization and management API
 
@@ -206,8 +226,10 @@ Tests that create real data are clearly tagged and cannot target a shared enviro
 
 ### Operations
 
-- GitHub, search, worker, SES, OIDC, database, and edge fault injection produces documented degradation and alerts.
-- Restore meets RPO/RTO, retains correct active content, reapplies deletions, and does not send historical outbox rows.
+- GitHub, search, worker, Relay submission/callback/reconciliation, OIDC, database, and edge fault
+  injection produces documented degradation and alerts without a direct provider fallback.
+- Restore meets RPO/RTO, retains correct active content, reapplies deletions, and holds historical
+  email jobs until Relay reconciliation proves them safe; it never re-enables Datamailer.
 - Rollback does not lose post-cutover registrations/enrollments or duplicate email.
 
 ### Browser and deployed human gates
@@ -279,7 +301,10 @@ from that PostgreSQL-free application regression.
 - Member, staff, and cache-boundary fixtures use synthetic identities/values. Screenshots and
   deployed evidence never capture an email, profile free text/link, country value, token, origin
   guard, or Slack join secret.
-- Development email tests use dry-run/allowlist/simulator behavior except one explicitly controlled smoke recipient.
+- Development email tests use a contract-faithful Relay fake, Relay zero-write dry-run, and
+  allowlisted/simulated recipients. The sole live exception is one explicitly approved controlled
+  recipient using sender ID `courses` after exact-deployment, credential, callback, reconciliation,
+  alarm, and empty/classified Datamailer-in-flight gates pass.
 - Tokens, emails, and provider payloads are redacted from artifacts.
 
 ## Acceptance report

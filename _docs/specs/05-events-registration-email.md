@@ -54,10 +54,13 @@ There is one row per `(event, normalized_email)`. Cancellation transitions the r
 `pending_verification -> confirmed -> cancelled`, with `expired`, `attended`, and `no_show` where applicable.
 
 1. An anonymous visitor submits the registration form.
-2. The service validates the event window, normalizes email, applies rate limits, and creates/reactivates a pending registration plus a verification-email outbox row in one transaction.
+2. The service validates the event window, normalizes email, applies rate limits, and atomically
+   creates/reactivates a pending registration, one logical verification `EmailDelivery` intent, and
+   its durable job.
 3. The response is deliberately uniform whether the address was new, pending, confirmed, or rate-limited in a non-user-actionable way.
 4. A high-entropy, hashed, registration/version-scoped link verifies ownership and confirms the registration.
-5. Confirmation creates its email outbox row and calendar invitation idempotently.
+5. Confirmation atomically creates its logical confirmation delivery intent, durable job, and
+   calendar invitation idempotently.
 6. A separate high-entropy management link opens a GET confirmation screen; cancellation itself requires POST and rotates the registration version.
 
 Verification and management tokens are never stored in plaintext, written to logs, placed in analytics, or exposed through Studio/API responses.
@@ -72,7 +75,7 @@ Verification and management tokens are never stored in plaintext, written to log
 
 ## Course/cohort communication
 
-The same email infrastructure supports:
+The target Relay-backed purpose catalog includes:
 
 - course/cohort registration confirmation for an already verified durable member account, not an
   anonymous pending-course-registration verification flow;
@@ -86,7 +89,13 @@ The same email infrastructure supports:
 
 Course/cohort message idempotency keys include cohort and relevant enrollment/assignment/submission versions so repeated jobs cannot send the same logical message twice.
 
-Existing Datamailer audits and external identifiers are migrated for history. New transactional delivery uses the unified outbox and SES provider adapter. Datamailer may remain a temporary compatibility adapter during migration, but it is not the new domain model or source of truth.
+The development `courses` sender/purpose is the only currently approved live path. Every other
+purpose above fails closed until #22 approves its owner, audience, Relay sender/reply-to,
+template/context, idempotency/version inputs, and retention class.
+
+Existing Datamailer audits and external identifiers are imported only as send-disabled, read-only
+migration/history/reconciliation evidence. Datamailer receives no new website send, and its
+compatibility surfaces cannot dispatch, requeue, or become a rollback sender.
 
 Marketing campaigns and newsletters are out of MVP scope. Marketing consent remains separate even if an external mailing service consumes it later.
 
@@ -98,16 +107,18 @@ runtime secret channel. It is never stored in `MemberProfile`, `SlackAccessGrant
 context or retained rendered bodies, audits, logs, metrics, URLs, OpenAPI examples, screenshots, or
 issue evidence. Domain rows carry only a non-secret `invite_version`.
 
-The first valid member-profile completion atomically creates or confirms one access grant and one
-unique delivery intent keyed by account, completion schema version, and invite version. After commit,
-the worker resolves the current secret at send time, renders a fixed code-owned transactional
-template without retaining a secret-bearing body, and submits it only to the verified account email.
-The ordinary lease, retry, suppression, ambiguous-provider, and manual-resend rules below apply.
-Worker/provider/secret failure leaves profile completion and eligibility committed.
+The first valid member-profile completion atomically creates or confirms one access grant, one
+unique delivery intent keyed by account, completion schema version, and invite version, and its
+durable job. After commit, the leased job resolves the current secret at send time and submits only
+the permitted scalar context to Relay for the verified account email. Relay validates and renders
+the immutable template version without returning or requiring the website to retain a
+secret-bearing body. Worker/Relay/secret failure leaves profile completion and eligibility
+committed. Live submission for this purpose remains disabled until #22 approves it.
 
-A safe code-owned bootstrap template is sufficient until operator-managed templates own this
-purpose. Migrating template ownership must preserve the logical delivery key and the secret-at-send,
-no-secret-retention contract.
+A safe Relay-owned bootstrap template may seed this purpose. Relay remains the canonical template
+and rendering owner throughout; the website stores only the immutable template key/version and
+safe scalar context needed to preserve the logical-delivery and secret-at-send/no-secret-retention
+contract.
 
 An eligible member can reveal the current link at the authenticated private Slack surface. If the
 secret is missing, it shows a delayed/support state rather than rolling back completion. Duplicate
@@ -121,61 +132,82 @@ MVP has no member-facing email-resend action because the reveal page remains ava
 authorized staff resend is a separate audited logical delivery with confirmation, reason,
 idempotency key, and rate limits. It never discloses the raw join URL through Studio/admin API.
 
-## Email templates
+## Relay-owned email templates
 
-Email templates are fully managed through Studio and the admin API:
+Relay is the canonical template catalog, validator, renderer, and sender-policy owner. It owns one
+editable draft, immutable published versions, subject/plain/HTML content, required typed context,
+safe escaping/sanitization, accessible plain/HTML parity, sender resolution, and the rendered
+snapshot queued for transport. Tracking pixels are disabled in MVP.
 
-- stable template key and purpose;
-- draft/published version lifecycle;
-- subject, plain-text body, HTML/Markdown source, sender name/address, reply-to, and required context schema;
-- preview contexts, validation, test-send, publication, and rollback;
-- immutable template version attached to every queued delivery.
-
-Code provides safe bootstrap templates and required-key/context definitions. Operators edit versioned content, not Python files. Rendering escapes variables by default and sanitizes allowed rich content.
-
-Every transactional email has meaningful plain-text and accessible HTML alternatives. Tracking pixels are disabled in MVP.
+Studio and the admin API proxy the same website application services to Relay for catalog, draft,
+preview, publish/republish, and controlled test-send operations. Every real or test delivery names
+an immutable Relay template key/version. The website stores no second mutable template body,
+renderer, resolved sender, or retained rendered message. Relay unavailability fails safely with no
+local rendering or direct-send fallback.
 
 ## Durable delivery model
 
 ### EmailDelivery
 
 - UUID and unique logical `idempotency_key`;
-- classification, purpose, template key/version, and related account/profile/grant/event/cohort/registration/enrollment IDs;
-- immutable recipient, subject, sender, and reply-to snapshots;
-- minimal render context or immutable rendered bodies according to the retention decision;
-- state, attempts, lease owner/expiry, next attempt, provider message ID, safe error summary, and timestamps.
+- classification, purpose, immutable Relay template key/version, and related
+  account/profile/grant/event/cohort/registration/enrollment scalar IDs;
+- only recipient/reference data allowed by retention policy, minimal scalar context or its canonical
+  hash, the Relay sender ID, and safe correlation/idempotency values;
+- durable-job reference plus the redacted Relay message ID, projected state, callback/reconciliation
+  freshness, safe reason code, and timestamps.
 
-States: `pending`, `leased`, `provider_accepted`, `delivered`, `retryable`, `ambiguous`, `suppressed`, `dead`, `hard_bounced`, and `complained`.
+Projected states: `pending`, `queued`, `leased`, `provider_accepted`, `delivered`, `retryable`,
+`ambiguous`, `suppressed`, `dead`, `hard_bounced`, and `complained`. Relay is authoritative for
+transport state; the website projection exists only for product behavior and operations.
 
-The Slack-link purpose is the explicit secret-bearing exception to ordinary rendered-body
-retention: its durable row stores only the fixed purpose/template identifiers and safe scalar
-context needed to resolve the current invite version. The secret and rendered secret-bearing body
-are never retained.
+The Slack-link purpose follows the strict secret-at-send contract: its durable website row stores
+only the fixed purpose/template identifiers and safe scalar context needed to resolve the current
+invite version. The website never retains any rendered body or raw provider payload; Relay's queued
+snapshot remains under its own reviewed retention contract. The Slack secret and rendered
+secret-bearing body are never returned to or retained by the website.
 
-### EmailAttempt and provider events
+### Relay callbacks and reconciliation
 
-- Each attempt records start/end, outcome, provider request correlation, and redacted error data.
-- SES/SNS event delivery is signature-verified and deduplicated by provider event ID.
-- Provider accepted is not displayed as delivered.
-- Hard bounce and complaint create suppression state independent of optional marketing preferences.
-- Unmatched but valid provider events are retained briefly for reconciliation.
+- Relay owns provider attempts/events, leases/backoff, suppression, and authoritative transition
+  history. The website does not create a second provider-attempt or provider-event store.
+- Relay callbacks use a tenant-scoped, timestamped HMAC over the raw body. The website deduplicates
+  stable Relay event IDs, enforces the replay window, and applies reordered events through guarded
+  monotonic projection transitions.
+- Callback payloads and the website projection contain safe Relay/correlation/template identifiers,
+  timestamps, state, and bounded reason codes only—not bodies, credentials, full recipient data, or
+  raw provider payloads.
+- Scheduled bounded reconciliation recovers missed callbacks and rechecks recent terminal messages;
+  one-delivery manual reconciliation uses the same service.
+- Provider acceptance is not displayed as delivered. Hard bounce, complaint, and suppression
+  remain Relay-authoritative and independent of optional marketing preferences.
 
 ### Worker semantics
 
-- Business state and `EmailDelivery` are committed in the same transaction.
-- Workers atomically lease pending/retryable rows and recover expired leases.
-- Transient failures use bounded exponential backoff; permanent failures go to operator-visible dead state.
-- An uncertain connection loss after provider submission becomes `ambiguous`; it is not blindly retried.
+- Business state, one logical `EmailDelivery`, and one durable website job are committed in the same
+  transaction; rollback creates none.
+- A website worker leases/fences the durable job and calls Relay only after commit. Domain services,
+  request transactions, model hooks, and callbacks never perform the Relay network request.
+- Exact Relay submission replay uses the same idempotency key and request hash. A changed request
+  conflicts rather than sending different work under the same key.
+- Relay owns provider leases, attempts, bounded backoff, claim-time suppression, and terminal state.
+- An uncertain Relay/provider acknowledgement becomes `ambiguous`; neither the website job nor
+  Relay automatically resends it. Reconciliation or an audited operator action resolves it.
 - Manual resend creates a new audited logical delivery related to the original; it is distinct from an automatic retry.
-- The chosen bias is at-least-once critical communication: a rare duplicate is preferable to a missed confirmation/update, while idempotency and ambiguous-state reconciliation minimize both.
+- Datamailer and direct Amazon SES are never fallback senders, including during rollback.
 
-## Amazon SES
+## Relay sender and provider boundary
 
-- Development sends from a verified `dtcdev.click` identity in `us-east-1`, where AWS account `817685572750` already has SES production access.
-- Application runtime can remain in `eu-west-1`; the SES adapter uses its configured provider region explicitly.
-- SPF, DKIM, DMARC, configuration sets, event destinations, quotas, and suppression behavior are Terraform-managed or referenced without taking ownership of unrelated shared identities.
-- Development defaults to an allowlist/test recipients for rehearsals. Automated tests use console/in-memory delivery or SES simulator addresses.
-- Sender, reply-to, and production domain require owner approval before production rollout.
+- The website calls Relay only through scoped, expiring tenant credentials and identifies senders by
+  approved Relay sender ID. It has no provider credential, direct Amazon SES permission, sender
+  resolution logic, or provider-event ingress.
+- Relay owns provider credentials/identities, SPF/DKIM/DMARC/provider configuration, submission,
+  queues/workers, attempts/events, suppression, quotas, and provider diagnostics.
+- The only approved development sender ID is `courses`, mapped by Relay to
+  `DataTalks.Club Courses <courses@dtcdev.click>`. It remains recipient-allowlisted/simulated except
+  for one separately approved controlled canary.
+- Unknown purposes/senders, non-course purposes still open in #22, broad recipients, and all
+  production sender/domain configuration fail closed.
 
 ## Abuse and privacy
 
@@ -206,9 +238,11 @@ Both interfaces can:
 - export authorized registrations;
 - mark attendance individually or through bounded import;
 - initiate/resume event update, cancellation, reminder, or follow-up operations;
-- manage email template versions, preview, test, publish, and roll back;
-- inspect delivery/attempt/provider state and retry or resolve safe failures;
-- inspect suppression and provider-health diagnostics.
+- proxy Relay template catalog/draft/version preview, test, publish, and republish operations;
+- inspect the website intent plus redacted Relay status projection and invoke guarded
+  reconcile/safe-retry/ambiguity-resolution/manual-resend commands;
+- inspect redacted Relay suppression/provider-health summaries without storing provider events or
+  exposing raw payloads.
 
 ## Acceptance criteria
 
@@ -216,12 +250,17 @@ Both interfaces can:
 - Verification/cancellation tokens are hashed, scoped, expiring, revocable, redacted, and link-scanner safe.
 - Event reschedule/cancellation produces correct calendar sequence and idempotent messages.
 - Worker and provider failures produce the specified durable states without losing business data.
+- Business state, one logical delivery intent, and one durable job commit atomically; only a leased
+  after-commit job calls Relay, and uncertainty is never automatically resent.
 - Course reminders and event messages share one auditable delivery model.
 - Slack profile completion commits one durable secret-free logical delivery; reveal, send, retry,
   rotation, resend, suppression, outage, quarantine, and deletion never leak or retain the join URL.
 - Public event catalog/detail caching cannot store a registration, management, provider, profile,
   Slack, or credentialed response.
 - Every event/email management action has Studio/admin API parity and negative authorization tests.
+- New website code has no direct Amazon SES or Datamailer send path, no canonical mutable template
+  store, and no provider-attempt/event stack; only approved development `courses` delivery may
+  progress while #22 purposes fail closed.
 
 ## Aggregate-only historical registration overlay
 
