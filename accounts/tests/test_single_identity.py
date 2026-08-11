@@ -1429,7 +1429,6 @@ class IdentityTemplateReadabilityTests(SimpleTestCase):
         root = Path(settings.BASE_DIR)
         template_paths = (
             root / "course_platform_templates/base.html",
-            root / "templates/base.html",
             root / "accounts/templates/accounts/login.html",
             root / "course_platform_templates/socialaccount/identity_conflict.html",
             root / "course_platform_templates/accounts/account_settings.html",

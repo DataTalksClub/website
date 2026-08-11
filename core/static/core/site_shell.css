@@ -64,6 +64,20 @@
   background: var(--surface-muted);
 }
 
+@media (max-width: 40rem) {
+  body.home-events-cmp-surface main .primer-button {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  body.home-events-cmp-surface #dark-mode-toggle.user-menu-toggle {
+    height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    width: 2.75rem;
+  }
+}
+
 @media (max-width: 26.25rem) {
   .site-footer-brand {
     justify-content: center;

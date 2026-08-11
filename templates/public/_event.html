@@ -1,5 +1,5 @@
-<article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-  <div class="min-w-0">
+<article class="grid gap-3 py-5">
+  <div>
     {% include "public/_event_meta.html" %}
     <h3 class="mt-2 text-xl font-semibold">
       <a class="app-link" href="{{ event.public_path }}">{{ event.title }}</a>
@@ -16,7 +16,7 @@
       </p>
     {% endif %}
   </div>
-  <a class="shrink-0 self-start app-link sm:self-auto" href="{{ event.public_path }}">
+  <a class="w-fit text-sm font-medium app-link" href="{{ event.public_path }}">
     Event details
   </a>
 </article>

@@ -111,7 +111,7 @@ class DevelopmentResponsePolicyTests(TestCase):
     def test_whitenoise_static_short_circuit_receives_outer_policy(self) -> None:
         for headers in ({}, {"cookie": "sessionid=opaque-session"}):
             with self.subTest(headers=headers):
-                response = Client().get("/static/core/site.css", headers=headers)
+                response = Client().get("/static/core/site_shell.css", headers=headers)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.headers["X-Robots-Tag"], ROBOTS_VALUE)
                 self.assertIn("Content-Length", response.headers)
