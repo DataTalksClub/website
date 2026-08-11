@@ -66,6 +66,17 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
     assert result["scrollWidth"] <= result["width"] + 1, result
 
 
+def _assert_footer_runtime_alignment(page: Page) -> None:
+    runtime = page.locator(".site-footer-runtime")
+    github_box = runtime.locator(".site-footer-github").bounding_box()
+    version_box = runtime.locator(".footer-version").bounding_box()
+    assert github_box is not None
+    assert version_box is not None
+    github_center = github_box["y"] + github_box["height"] / 2
+    version_center = version_box["y"] + version_box["height"] / 2
+    assert abs(github_center - version_center) <= 1
+
+
 @pytest.mark.parametrize(("viewport_name", "viewport"), VIEWPORTS)
 @pytest.mark.parametrize("theme", THEMES)
 @pytest.mark.parametrize(("path", "heading", "name"), LEGAL_PAGES)
@@ -126,9 +137,19 @@ def test_consent_keyboard_allow_reopen_escape_withdraw_and_cookie_cleanup(
     page.goto(f"{live_server.url}/terms", wait_until="networkidle")
     dialog = page.get_by_test_id("analytics-preferences-dialog")
     expect(dialog).to_be_visible()
+    assert not dialog.evaluate("element => element.matches(':modal')")
+    assert page.evaluate("document.activeElement === document.body")
+    page.keyboard.press("Tab")
+    expect(page.locator(".skip-link")).to_be_focused()
+    explore = page.get_by_role("button", name="Explore")
+    explore.click()
+    expect(explore).to_have_attribute("aria-expanded", "true")
+    explore.click()
+    expect(explore).to_have_attribute("aria-expanded", "false")
     assert "dtc_analytics_consent" not in _cookie_map(page)
     assert not (_cookie_map(page).keys() & OPTIONAL_COOKIE_NAMES)
     assert outbound_requests == []
+    dialog.scroll_into_view_if_needed()
     for control in dialog.get_by_role("button").all():
         box = control.bounding_box()
         assert box is not None
@@ -141,10 +162,16 @@ def test_consent_keyboard_allow_reopen_escape_withdraw_and_cookie_cleanup(
         full_page=False,
     )
 
+    opener = page.get_by_role("button", name="Analytics preferences")
+    opener.scroll_into_view_if_needed()
+    opener.click()
+    assert dialog.evaluate("element => element.matches(':modal')")
+    expect(page.get_by_role("button", name="Keep analytics off")).to_be_focused()
     allow = page.get_by_role("button", name="Allow analytics")
     allow.focus()
     page.keyboard.press("Enter")
     expect(dialog).to_be_hidden()
+    expect(opener).to_be_focused()
     assert _cookie_map(page)["dtc_analytics_consent"] == "v1.allow"
     assert outbound_requests == []
 
@@ -153,14 +180,15 @@ def test_consent_keyboard_allow_reopen_escape_withdraw_and_cookie_cleanup(
     assert _cookie_map(page)["dtc_analytics_consent"] == "v1.allow"
     assert outbound_requests == []
 
-    opener = page.get_by_role("button", name="Analytics preferences")
     opener.scroll_into_view_if_needed()
     opener.focus()
     page.keyboard.press("Enter")
     expect(dialog).to_be_visible()
     expect(dialog).to_have_attribute("open", "")
     expect(page.get_by_role("button", name="Allow analytics")).to_be_focused()
-    expect(dialog.get_by_role("status")).to_have_text("Current choice: analytics allowed.")
+    expect(dialog.locator("#analytics-preferences-status")).to_have_text(
+        "Current choice: analytics allowed."
+    )
     assert structure_issues(page, "issue125.analytics.reopened") == []
     assert axe_issues(page, "issue125.analytics.reopened") == []
     for _step in range(6):
@@ -250,6 +278,7 @@ def test_legal_footer_reflows_at_320px_and_200_percent(page: Page, live_server) 
     assert page.evaluate("visualViewport.scale") == 2
     _assert_no_horizontal_overflow(page)
     expect(page.get_by_role("navigation", name="Legal")).to_be_visible()
+    _assert_footer_runtime_alignment(page)
     assert structure_issues(page, "issue125.legal.200-percent") == []
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
     SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)

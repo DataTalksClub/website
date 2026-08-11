@@ -113,12 +113,13 @@
     }
 
     function openPreferences(opener) {
-      lastOpener = opener;
-      restoreFocus = true;
       updateStatus();
       if (dialog.open) {
+        restoreFocus = false;
         dialog.close();
       }
+      lastOpener = opener;
+      restoreFocus = true;
       dialog.showModal();
       var currentChoice = dialog.querySelector(
         readChoice() === ALLOWED_VALUE
@@ -194,7 +195,7 @@
 
     updateStatus();
     if (!readChoice()) {
-      dialog.show();
+      dialog.setAttribute("open", "");
     }
   }
 

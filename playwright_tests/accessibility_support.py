@@ -299,6 +299,7 @@ def focus_issues(page: Page, state: str) -> list[str]:
         page.evaluate(settle_focus)
     if not seen:
         issues.append(f"{state}: no keyboard-focusable controls were reached")
+    page.evaluate("window.scrollTo({left: 0, top: 0, behavior: 'instant'})")
     return issues
 
 
