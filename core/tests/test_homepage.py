@@ -3,16 +3,19 @@ from datetime import timedelta
 from pathlib import Path
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
 
-from content import public_views, review_views
 from core import views as core_views
 from courses.models.course import Course
+from courses.views.course import course_view
+from courses.views.course_aliases import legacy_course_redirect
+from courses.views.course_list import course_list
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
+ADOPTED_COURSE_DETAIL_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course.html").resolve()
 
 
 class MainHomepageRoutingTests(TestCase):
@@ -122,16 +125,16 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertNotContains(response, "Course admin")
 
-    def test_course_discovery_without_database_courses_uses_the_public_catalog(self) -> None:
+    def test_course_discovery_without_database_courses_uses_copied_cmp_empty_state(self) -> None:
         self.assertEqual(reverse("course_list"), "/courses")
-        self.assertIs(resolve("/courses").func, public_views.course_hub)
+        self.assertIs(resolve("/courses").func, course_list)
         self.assertFalse(Course.objects.exists())
 
         response = self.client.get(reverse("course_list"))
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "public/course_hub.html")
-        self.assertNotIn(
+        self.assertTemplateUsed(response, "courses/course_list.html")
+        self.assertIn(
             ADOPTED_COURSE_LIST_TEMPLATE,
             {
                 Path(template.origin.name).resolve()
@@ -139,16 +142,13 @@ class MainHomepageRoutingTests(TestCase):
                 if template.origin is not None
             },
         )
-        self.assertContains(response, "<title>Courses — DataTalks.Club</title>", html=True)
         self.assertContains(response, "Learn data skills. For free. Together.")
-        self.assertContains(response, "Data Engineering Zoomcamp 2026")
-        self.assertEqual(response.content.decode().count("data-course-row"), 12)
+        self.assertContains(response, "No active courses right now.")
+        self.assertNotContains(response, "Data Engineering Zoomcamp 2026")
         self.assertContains(response, 'class="home-hero py-6 md:py-10"')
         self.assertContains(response, 'id="courses"')
         self.assertContains(response, "Start now")
-        self.assertContains(response, 'role="link"', count=1)
-        self.assertContains(response, 'tabindex="0"', count=1)
-        self.assertContains(response, 'href="/courses/de-zoomcamp-2026"')
+        self.assertNotContains(response, "data-course-row")
         self.assertNotContains(response, "md:grid-cols-2")
         self.assertNotContains(response, 'id="course-families-heading"')
         self.assertNotContains(response, "No active cohort coursework right now.")
@@ -227,23 +227,6 @@ class MainHomepageRoutingTests(TestCase):
         self.assertNotContains(response, "No active cohort coursework right now.")
         self.assertNotContains(response, "Synthetic hidden course")
 
-    def test_ai_dev_tools_course_family_uses_the_same_cohort_row_hierarchy(self) -> None:
-        path = reverse("course-family-ai-dev-tools")
-        self.assertEqual(path, "/courses/ai-dev-tools-zoomcamp")
-        self.assertIs(resolve(path).func, review_views.course_family)
-
-        response = self.client.get(path)
-
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "AI Dev Tools Zoomcamp")
-        self.assertContains(response, "2026 cohort")
-        self.assertContains(response, "Starts August 31, 2026")
-        self.assertContains(response, "View cohort →")
-        self.assertEqual(
-            len(re.findall(r"\sdata-featured-course(?=[\s>])", response.content.decode())),
-            1,
-        )
-
     @override_settings(ROOT_URLCONF="course_management.urls")
     def test_course_discovery_template_remains_compatible_with_copied_urlconf(self) -> None:
         response = self.client.get(reverse("course_list"))
@@ -260,18 +243,47 @@ class MainHomepageRoutingTests(TestCase):
             visible=True,
         )
 
-        forward_path = reverse("courses:course", kwargs={"course_slug": course.slug})
-        legacy_path = reverse("course", kwargs={"course_slug": course.slug})
+        slash_alias = reverse("courses:course", kwargs={"course_slug": course.slug})
+        canonical_path = reverse("course", kwargs={"course_slug": course.slug})
+        legacy_path = reverse("legacy-course", kwargs={"course_slug": course.slug})
 
-        self.assertEqual(forward_path, "/courses/compatibility-course/")
+        self.assertEqual(slash_alias, "/courses/compatibility-course/")
+        self.assertEqual(canonical_path, "/courses/compatibility-course")
         self.assertEqual(legacy_path, "/compatibility-course/")
-        self.assertEqual(self.client.get(forward_path).status_code, 200)
-        self.assertEqual(self.client.get(legacy_path).status_code, 200)
+        self.assertIs(resolve(canonical_path).func, course_view)
+        self.assertIs(resolve(slash_alias).func, legacy_course_redirect)
+        for alias in (slash_alias, legacy_path):
+            response = self.client.get(f"{alias}?x=%2F&x=")
+            self.assertEqual(response.status_code, 301)
+            self.assertEqual(
+                response.headers["Location"],
+                f"{canonical_path}?x=%2F&x=",
+            )
+        canonical = self.client.get(canonical_path)
+        self.assertEqual(canonical.status_code, 200)
+        self.assertTemplateUsed(canonical, "courses/course.html")
+        self.assertIn(
+            ADOPTED_COURSE_DETAIL_TEMPLATE,
+            {
+                Path(template.origin.name).resolve()
+                for template in canonical.templates
+                if template.origin is not None
+            },
+        )
+        self.assertContains(
+            canonical,
+            '<link rel="canonical" href="https://datatalks.club/courses/compatibility-course">',
+            count=1,
+        )
+        csrf_client = Client(enforce_csrf_checks=True)
+        self.assertEqual(csrf_client.post(slash_alias).status_code, 403)
+        self.assertEqual(csrf_client.post(legacy_path).status_code, 403)
 
     def test_unknown_legacy_shaped_path_is_a_real_404(self) -> None:
-        response = self.client.get("/not-a-course/")
-
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-        self.assertNotContains(response, "Traceback", status_code=404)
-        self.assertNotContains(response, 'rel="canonical"', status_code=404)
+        for path in ("/not-a-course/", "/courses/not-a-course"):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 404)
+                self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
+                self.assertNotContains(response, "Traceback", status_code=404)
+                self.assertNotContains(response, 'rel="canonical"', status_code=404)

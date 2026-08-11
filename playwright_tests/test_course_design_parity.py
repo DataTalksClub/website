@@ -16,7 +16,7 @@ CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 CMP_COURSE_LIST_SHA256 = "26e391ffdd2c90b89a668c41118f4a8e43efd2b5dde015097f893aee707984ef"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COURSE_LIST_TEMPLATE = REPO_ROOT / "courses/templates/courses/course_list.html"
-SCREENSHOTS = Path(".tmp/screenshots/issue-128")
+SCREENSHOTS = Path(".tmp/screenshots/issue-128-owner-remediation")
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
     ({"width": 390, "height": 844}, "mobile"),
@@ -198,7 +198,7 @@ def test_database_course_catalog_matches_pinned_cmp_composition(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_no_database_course_catalog_uses_cmp_composition_with_real_projection(
+def test_no_database_course_catalog_uses_copied_cmp_empty_state(
     page: Page,
     live_server,
     viewport: dict[str, int],
@@ -214,30 +214,22 @@ def test_no_database_course_catalog_uses_cmp_composition_with_real_projection(
     expect(page.locator("main #courses")).to_have_count(1)
     expect(page.get_by_text("Start now", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Active courses", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Course archive", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Course archive", exact=True)).to_have_count(0)
     expect(page.get_by_role("heading", name="Open registration", exact=True)).to_have_count(0)
-    expect(page.locator("[data-course-row]")).to_have_count(12)
-    active_course = page.get_by_role(
-        "link",
-        name="Data Engineering Zoomcamp 2026",
-        exact=True,
-    )
-    expect(active_course).to_have_attribute("href", "/courses/de-zoomcamp-2026")
-    expect(active_course.locator("xpath=ancestor::article[@role='link']")).to_have_count(1)
-    destinations = page.locator("[data-course-row]").evaluate_all(
-        "nodes => nodes.map(node => node.href || node.querySelector('a').href)"
-    )
-    assert len(set(destinations)) == 12
-    assert all(
-        destination.startswith(f"{live_server.url}/courses/") for destination in destinations
-    )
+    expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
+    expect(page.get_by_text("Data Engineering Zoomcamp 2026", exact=True)).to_have_count(0)
     expect(page.locator("#course-families-heading")).to_have_count(0)
     expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
     _assert_local_page_assets(page, live_server.url)
     _assert_no_horizontal_overflow(page)
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-    page.screenshot(path=SCREENSHOTS / f"course-catalog-public-{suffix}.png", full_page=True)
-    _capture_dark_mode(page, SCREENSHOTS / f"course-catalog-public-dark-{suffix}.png")
+    page.screenshot(path=SCREENSHOTS / f"course-catalog-empty-{suffix}.png", full_page=True)
+    _capture_dark_mode(page, SCREENSHOTS / f"course-catalog-empty-dark-{suffix}.png")
+
+    missing_detail = page.goto(f"{live_server.url}/courses/de-zoomcamp-2026")
+    assert missing_detail is not None and missing_detail.status == 404
+    expect(page.get_by_role("heading", name="Page not found")).to_be_visible()
+    expect(page.locator('link[rel="canonical"]')).to_have_count(0)
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
@@ -267,5 +259,5 @@ def test_database_backed_empty_catalog_keeps_cmp_empty_composition(
     _assert_local_page_assets(page, live_server.url)
     _assert_no_horizontal_overflow(page)
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
-    page.screenshot(path=SCREENSHOTS / f"course-catalog-empty-{suffix}.png", full_page=True)
-    _capture_dark_mode(page, SCREENSHOTS / f"course-catalog-empty-dark-{suffix}.png")
+    page.screenshot(path=SCREENSHOTS / f"course-catalog-hidden-{suffix}.png", full_page=True)
+    _capture_dark_mode(page, SCREENSHOTS / f"course-catalog-hidden-dark-{suffix}.png")

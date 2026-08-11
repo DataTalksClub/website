@@ -33,6 +33,7 @@ EXPECTED_COMMANDS = {
     "datamailer_outbox_status": "data",
     "datamailer_send_status": "data",
     "datamailer_status": "courses",
+    "import_development_course_content": "courses",
     "monitoring_datamailer_health": "data",
     "preview_peer_review_email": "courses",
     "process_datamailer_outbox": "data",
@@ -41,6 +42,7 @@ EXPECTED_COMMANDS = {
     "sync_datamailer_contacts": "courses",
     "sync_datamailer_recipient_lists": "courses",
     "upsert_datamailer_templates": "courses",
+    "verify_development_course_content": "courses",
 }
 EXPECTED_APP_MODULES = {
     "accounts": "accounts",
@@ -56,9 +58,7 @@ EXPECTED_MIGRATION_COUNTS = {
     "courses": 40,
     "data": 5,
 }
-EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES = {
-    ("Public courses", "course_list"): "content.public_views.course_hub",
-}
+EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
 ORIGINAL_ACCOUNTS_MIGRATIONS = (
     "0001_initial",
     "0002_token",
@@ -254,11 +254,14 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "courses/static/user_menu.js",
                 "courses/tests/homework_submissions_base.py",
                 "courses/tests/leaderboard_base.py",
+                "courses/tests/test_datamailer_certificates.py",
+                "courses/tests/test_datamailer_registration.py",
                 "courses/tests/test_datamailer_signals.py",
                 "courses/tests/test_datamailer_transactional.py",
                 "courses/tests/test_homework_submissions.py",
                 "courses/tests/test_homework_submissions_admin_link.py",
                 "courses/tests/test_leaderboard_score_breakdown_admin.py",
+                "courses/tests/test_noindex.py",
                 "courses/tests/test_project_submissions_view.py",
                 "courses/views/homework_submissions.py",
                 "courses/views/course_calendar_events.py",
@@ -313,6 +316,11 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 example_path = route.example_path()
                 if route.surface == "Public courses" and route.name == "course_list":
                     example_path = reverse("course_list")
+                if route.surface == "Public courses" and route.name == "course":
+                    example_path = reverse(
+                        "course",
+                        kwargs={"course_slug": "example-course"},
+                    )
                 match = resolve(example_path)
                 self.assertEqual(match.url_name, route.name or None)
                 callback_name = f"{match.func.__module__}.{match.func.__name__}"

@@ -329,7 +329,7 @@ class RealUrlAndCourseCanonicalTests(TestCase):
         with self.assertRaises(Resolver404):
             resolve("/private/preview/")
 
-    def test_course_discovery_has_explicit_canonical_but_learner_routes_do_not(
+    def test_course_discovery_and_detail_have_canonicals_but_learner_routes_do_not(
         self,
     ) -> None:
         hidden = Course.objects.create(
@@ -345,14 +345,18 @@ class RealUrlAndCourseCanonicalTests(TestCase):
             count=1,
         )
 
-        for path in (
-            reverse("course", args=[hidden.slug]),
-            reverse("enrollment", args=[hidden.slug]),
-        ):
-            with self.subTest(path=path):
-                response = self.client.get(path)
-                self.assertIn(response.status_code, (200, 302))
-                self.assertNotIn(b'rel="canonical"', response.content)
+        detail_path = reverse("course", args=[hidden.slug])
+        detail = self.client.get(detail_path)
+        self.assertEqual(detail.status_code, 200)
+        self.assertContains(
+            detail,
+            f'<link rel="canonical" href="https://datatalks.club{detail_path}">',
+            count=1,
+        )
+
+        enrollment = self.client.get(reverse("enrollment", args=[hidden.slug]))
+        self.assertEqual(enrollment.status_code, 302)
+        self.assertNotIn(b'rel="canonical"', enrollment.content)
 
     def test_current_private_surfaces_and_learner_denial_are_private(self) -> None:
         course = Course.objects.create(

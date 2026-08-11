@@ -79,7 +79,7 @@ def test_public_home_and_hubs(
         expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
         if label == "Courses":
-            expect(page.locator("[data-course-row]")).to_have_count(12)
+            expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
             _shot(page, f"{label.casefold()}-hub-{suffix}.png", full_page=True)
         else:
             _shot(page, f"{label.casefold()}-hub-{suffix}.png")
@@ -89,20 +89,6 @@ def test_public_home_and_hubs(
                 "flex-direction",
                 "column",
             )
-
-    response = page.goto(f"{origin}/courses/ai-dev-tools-zoomcamp")
-    assert response is not None and response.status == 200
-    expect(page.get_by_role("heading", name="AI Dev Tools Zoomcamp", exact=True)).to_be_visible()
-    course_cohort = page.locator("[data-featured-course]")
-    expect(course_cohort).to_have_count(1)
-    expect(course_cohort.get_by_text("2026 cohort", exact=True)).to_be_visible()
-    expect(course_cohort.get_by_text("Starts August 31, 2026", exact=True)).to_be_visible()
-    expect(course_cohort.get_by_role("link", name="View cohort")).to_have_attribute(
-        "href",
-        "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
-    )
-    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    _shot(page, f"ai-dev-tools-course-{suffix}.png", full_page=True)
 
 
 @pytest.mark.core
@@ -297,7 +283,6 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
         "/podcast/practical-llm-engineering-and-rag.html",
         "/books/20251006-software-development-at-rocket-speed.html",
         "/wiki/a-a-testing",
-        "/courses/de-zoomcamp-2026",
     ):
         response = page.goto(f"{origin}{path}")
         assert response is not None and response.status == 200
@@ -311,8 +296,6 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
             _shot(page, "article-detail-desktop.png")
         if path.startswith("/wiki/"):
             _shot(page, "wiki-detail-desktop.png")
-        if path.startswith("/courses/"):
-            _shot(page, "course-detail-desktop.png")
 
 
 @pytest.mark.core

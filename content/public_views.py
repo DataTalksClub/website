@@ -19,9 +19,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
-from courses.models.course import Course
-from courses.views.course import course_view
-from courses.views.course_list import course_list_context
+from courses.models import Course
 from events.services import public_registration_total
 
 from .public_data import PROJECTION_ROOT, event_groups, podcast_seasons, public_projection
@@ -438,72 +436,6 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @require_safe
-def course_hub(request: HttpRequest) -> HttpResponse:
-    if Course.objects.exists():
-        return render(
-            request,
-            "courses/course_list.html",
-            {
-                **course_list_context(request.user),
-                "canonical_url": _canonical("/courses"),
-            },
-        )
-    courses = public_projection()["courses"]
-    return _render(
-        request,
-        "public/course_hub.html",
-        path="/courses",
-        title="Courses — DataTalks.Club",
-        description=(
-            "Community-created courses with practical homework, projects, public "
-            "leaderboards, and peer review."
-        ),
-        context={
-            "active_records": tuple(record for record in courses if not record["finished"]),
-            "archive_records": tuple(record for record in courses if record["finished"]),
-        },
-    )
-
-
-@require_safe
-def course_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    course = public_projection()["courses_by_slug"].get(slug)
-    if course is None:
-        if Course.objects.filter(slug=slug).exists():
-            return course_view(request, course_slug=slug)
-        raise Http404
-    if Course.objects.filter(slug=slug).exists():
-        return course_view(request, course_slug=slug)
-    return _render(
-        request,
-        "public/course_detail.html",
-        path=course["public_path"],
-        title=f"{course['title']} — DataTalks.Club",
-        description="Practical lessons, homework, projects, and peer review.",
-        context={
-            "record": course,
-            "structured_data": _json_ld(
-                {
-                    "@type": "Course",
-                    "url": _canonical(course["public_path"]),
-                    "name": course["title"],
-                    "description": (
-                        f"{course['homework_count']} homework assignments and "
-                        f"{course['project_count']} projects."
-                    ),
-                    "provider": {
-                        "@type": "Organization",
-                        "name": "DataTalks.Club",
-                        "url": "https://datatalks.club/",
-                    },
-                },
-                (("Home", "/"), ("Courses", "/courses"), (course["title"], course["public_path"])),
-            ),
-        },
-    )
-
-
-@require_safe
 def wiki_hub(request: HttpRequest) -> HttpResponse:
     if "q" in request.GET:
         return wiki_search(request)
@@ -723,8 +655,12 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     if section == "courses":
         return (
             ("/courses", ""),
-            *((record["public_path"], "") for record in projection["courses"]),
-            ("/courses/ai-dev-tools-zoomcamp", ""),
+            *(
+                (f"/courses/{slug}", "")
+                for slug in Course.objects.filter(visible=True)
+                .order_by("slug")
+                .values_list("slug", flat=True)
+            ),
             ("/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026", ""),
         )
     if section == "wiki":

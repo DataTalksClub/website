@@ -147,6 +147,43 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     assert all(url.startswith(f"{origin}/static/") for url in stylesheet_urls)
     page.screenshot(path=screenshot_directory / f"courses-{dimensions}.png", full_page=True)
 
+    canonical_course_path = "/courses/de-zoomcamp-2026"
+    query = "x=%2F&x="
+    for alias in (
+        "/courses/de-zoomcamp-2026/",
+        "/de-zoomcamp-2026/",
+    ):
+        redirected = page.request.get(f"{origin}{alias}?{query}", max_redirects=0)
+        assert redirected.status == 301
+        assert redirected.headers["location"] == f"{canonical_course_path}?{query}"
+
+    course = page.goto(f"{origin}{canonical_course_path}", wait_until="networkidle")
+    assert course is not None
+    assert course.status == 200
+    assert course.url == f"{origin}{canonical_course_path}"
+    assert course.headers["x-robots-tag"] == ROBOTS_VALUE
+    expect(
+        page.get_by_role("heading", name="Data Engineering Zoomcamp 2026", exact=True)
+    ).to_be_visible()
+    expect(page.get_by_role("heading", name="Homework", exact=True)).to_be_visible()
+    expect(page.locator('link[rel="canonical"]')).to_have_count(1)
+    expect(page.locator('link[rel="canonical"]')).to_have_attribute(
+        "href", f"https://datatalks.club{canonical_course_path}"
+    )
+    expect(page.locator("body")).not_to_contain_text("Traceback")
+    expect(page.locator("body")).not_to_contain_text("Page not found")
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    page.screenshot(path=screenshot_directory / f"course-detail-{dimensions}.png", full_page=True)
+
+    missing_course = page.goto(
+        f"{origin}/courses/__dtc_deployed_smoke_missing_course__",
+        wait_until="networkidle",
+    )
+    assert missing_course is not None
+    assert missing_course.status == 404
+    expect(page.locator('link[rel="canonical"]')).to_have_count(0)
+    expect(page.locator("body")).not_to_contain_text("Traceback")
+
     initial = page.request.get(f"{origin}/studio/", max_redirects=0)
     assert initial.status in {301, 302, 303, 307, 308}
     assert initial.headers["x-robots-tag"] == ROBOTS_VALUE

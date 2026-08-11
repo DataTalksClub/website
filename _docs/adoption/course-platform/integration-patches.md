@@ -125,9 +125,9 @@ overlays:
   retries, credential-file loading, and direct-SQL operator guidance while preserving catalog
   generation and project-scoring behavior through the copied ORM services;
 - target scaffold Django and Playwright tests/configuration where the adopted `accounts.CustomUser`,
-  course homepage, and source sign-in surface supersede placeholder scaffold contracts; issue #105
-  fronts `/courses/` with the read-only public projection while delegating to the adopted course
-  list whenever the unified database contains course rows;
+  course homepage, and source sign-in surface supersede placeholder scaffold contracts; issue #128
+  makes the copied course list and detail views the only `/courses` implementation and removes the
+  temporary content-projection course templates and runtime branch;
 - `core/tests/test_course_platform_adoption.py`,
   `scripts/render_course_platform_inventory.py`,
   `scripts/verify_course_platform_adoption.py`, and `_docs/adoption/course-platform/`:
@@ -150,13 +150,12 @@ The logical template names derived from the pinned `courses/templates/**` rows i
 copied destinations. The adoption contract fails closed on either a project collision or a loader
 origin that does not resolve to the destination recorded in the pinned ledger.
 
-The target-owned `public/course_hub.html` remains a separate read-only projection for deployments
-with no adopted `Course` rows. Because that is a legitimate runtime state, it uses the same pinned
-CMP hero, section order, card hierarchy, spacing, and controls while retaining the projection's
-real catalog records and canonical `/courses/<slug>` destinations. It does not shadow a copied
-logical template or create database rows. Focused Django and browser contracts exercise the
-no-row projection, the database-backed visible catalog, and the database-backed empty-visible
-state independently so deployment parity cannot depend on seeded data.
+There is no target-owned public course template or content-projection fallback. The copied
+`courses/course_list.html` renders its own empty state when no adopted `Course` rows exist, and the
+copied `courses/course.html` returns its own `404` when a slug is absent. Development receives the
+audited, sanitized public CMP content through the dedicated one-off bootstrap described in
+`_docs/runbooks/development-course-content-bootstrap.md`; migrations, web startup, and workers never
+seed or fabricate course rows.
 
 If a future integration requirement must change a copied course template, change the adopted file
 in place and keep the overlay readable. Record its pinned source hash, current target hash, narrow

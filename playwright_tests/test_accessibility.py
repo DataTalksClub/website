@@ -210,6 +210,14 @@ def accessibility_environment() -> AccessibilityEnvironment:
     podcast = next(record for record in public["podcasts"] if record.get("transcript"))
     book = public["books"][0]
     public_course = public["courses"][0]
+    Course.objects.get_or_create(
+        slug=public_course["slug"],
+        defaults={
+            "title": public_course["title"],
+            "description": "A deterministic database-backed public course.",
+            "visible": True,
+        },
+    )
     wiki = public["wiki"][0]
     faq = review_public["faq"]
 

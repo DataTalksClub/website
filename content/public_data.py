@@ -423,12 +423,11 @@ def public_paths() -> tuple[str, ...]:
         "/faq/",
         "/faq/ai-dev-tools-zoomcamp.html",
         "/slack.html",
-        "/courses/ai-dev-tools-zoomcamp",
         "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
     }
     paths.update(
         record["public_path"]
-        for name in ("articles", "podcasts", "books", "people", "events", "wiki", "courses")
+        for name in ("articles", "podcasts", "books", "people", "events", "wiki")
         for record in projection[name]
     )
     paths.update(

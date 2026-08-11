@@ -70,6 +70,17 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertNotIn("/people", canonical_inventory)
         self.assertTrue(set(public_projection()["people_by_path"]).issubset(canonical_inventory))
 
+    def test_projected_courses_do_not_claim_database_backed_course_routes(self) -> None:
+        projected_paths = {record["public_path"] for record in public_projection()["courses"]}
+        self.assertTrue(projected_paths)
+        self.assertTrue(projected_paths.isdisjoint(public_paths()))
+        for path in projected_paths:
+            with self.subTest(path=path):
+                response = self.client.get(path, follow=False)
+                self.assertEqual(response.status_code, 404)
+                self.assertNotIn("Location", response.headers)
+                self.assertNotContains(response, 'rel="canonical"', status_code=404)
+
     def test_editorial_detail_aliases_redirect_directly_to_html_canonicals(self) -> None:
         projection = public_projection()
         migration = projection["editorial_route_migration"]
@@ -231,7 +242,6 @@ class PublicRouteAndSeoTests(TestCase):
             (public_projection()["books"][0]["public_path"], "Book"),
             (public_projection()["people"][0]["public_path"], "Person"),
             (public_projection()["events"][0]["public_path"], "Event"),
-            (public_projection()["courses"][0]["public_path"], "Course"),
             (public_projection()["wiki"][0]["public_path"], "Article"),
         )
         for path, expected_type in paths_and_types:
@@ -272,7 +282,6 @@ class PublicRouteAndSeoTests(TestCase):
             "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
             "/faq/ai-dev-tools-zoomcamp.html",
             "/slack.html",
-            "/courses/ai-dev-tools-zoomcamp",
             "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
         ):
             with self.subTest(path=path):

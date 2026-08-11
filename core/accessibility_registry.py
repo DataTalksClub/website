@@ -191,7 +191,6 @@ ACCESSIBILITY_AUTHORED_TEMPLATES = (
     "templates/public/_event_meta.html",
     "templates/public/article_detail.html",
     "templates/public/collection_hub.html",
-    "templates/public/course_detail.html",
     "templates/public/podcast_hub.html",
     "templates/studio/base.html",
     "templates/studio/credentials.html",

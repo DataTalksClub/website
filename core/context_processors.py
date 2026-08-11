@@ -7,6 +7,7 @@ from django.http import HttpRequest
 
 from core.configuration import InvalidOperationalSetting
 from core.site_settings import public_announcement
+from courses.models import Course
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +46,16 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
                 "Public site announcement is unavailable (%s).",
                 type(error).__name__,
             )
+    canonical_url = EXPLICIT_PUBLIC_CANONICALS.get(request.path)
+    if (
+        canonical_url is None
+        and resolver_match is not None
+        and not resolver_match.namespace
+        and resolver_match.url_name == "course"
+    ):
+        course_slug = resolver_match.kwargs.get("course_slug")
+        if course_slug and Course.objects.filter(slug=course_slug).exists():
+            canonical_url = f"https://datatalks.club/courses/{course_slug}"
     return {
         "brand_name": settings.SITE_NAME,
         "VERSION": settings.VERSION,
@@ -52,5 +63,5 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         "primary_navigation_current": _primary_navigation_current(request.path),
         "site_announcement": announcement,
         # Every shared-view canonical is an explicit mapping, never host/path inference.
-        "canonical_url": EXPLICIT_PUBLIC_CANONICALS.get(request.path),
+        "canonical_url": canonical_url,
     }
