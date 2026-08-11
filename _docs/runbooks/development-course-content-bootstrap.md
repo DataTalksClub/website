@@ -33,6 +33,13 @@ key. Do not put it in Git, the container image, CI artifacts, issue attachments,
 logs. Disable worker/scheduler execution and all outbound message/provider behavior on the one-off
 task.
 
+The released non-root container stages the version-pinned download beneath the fixed writable
+ephemeral root `/tmp`, never beneath the read-only application tree and never from a caller-supplied
+path or `TMPDIR`. The command creates one atomically named mode-`0700` directory and one
+no-follow/exclusive mode-`0600` regular file, verifies their ownership and permissions, and removes
+both on success and on every fail-closed path. The task needs no root user, broad storage mount, or
+additional filesystem permission.
+
 Run:
 
 ```text
