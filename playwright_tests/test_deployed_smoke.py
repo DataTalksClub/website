@@ -10,8 +10,13 @@ from playwright.sync_api import Page, expect
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
 from deploy.contracts import validate_image_digest, validate_source_sha, validate_version
 from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
+from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
 
 pytestmark = [pytest.mark.core, pytest.mark.remote_readonly]
+
+REPRESENTATIVE_COURSE_PATH = "/courses/de-zoomcamp-2026"
+REPRESENTATIVE_COURSE_TITLE = "Data Engineering Zoomcamp 2026"
+REPRESENTATIVE_COURSE_ARCHIVE_YEAR = "2026"
 
 
 @pytest.fixture
@@ -128,14 +133,23 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/courses"
     )
+    expect(page.get_by_role("heading", name="Course archive", exact=True)).to_be_visible()
+    representative_course_link = assert_copied_course_catalog_link(
+        page,
+        path=REPRESENTATIVE_COURSE_PATH,
+        title=REPRESENTATIVE_COURSE_TITLE,
+    )
+    representative_archive_group = representative_course_link.locator("xpath=ancestor::section[1]")
     expect(
-        page.get_by_role("link", name="Data Engineering Zoomcamp 2026", exact=True)
+        representative_archive_group.get_by_role(
+            "heading",
+            name=REPRESENTATIVE_COURSE_ARCHIVE_YEAR,
+            exact=True,
+        )
     ).to_be_visible()
     expect(
-        page.get_by_role("link", name="Data Engineering Zoomcamp 2026", exact=True).locator(
-            "xpath=ancestor::article[@role='link']"
-        )
-    ).to_have_count(1)
+        representative_course_link.locator("xpath=ancestor::article[@role='link']")
+    ).to_have_count(0)
     expect(page.get_by_text(f"Version {version}", exact=False)).to_be_visible()
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Page not found")
@@ -147,7 +161,6 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     assert all(url.startswith(f"{origin}/static/") for url in stylesheet_urls)
     page.screenshot(path=screenshot_directory / f"courses-{dimensions}.png", full_page=True)
 
-    canonical_course_path = "/courses/de-zoomcamp-2026"
     query = "x=%2F&x="
     for alias in (
         "/courses/de-zoomcamp-2026/",
@@ -155,20 +168,20 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     ):
         redirected = page.request.get(f"{origin}{alias}?{query}", max_redirects=0)
         assert redirected.status == 301
-        assert redirected.headers["location"] == f"{canonical_course_path}?{query}"
+        assert redirected.headers["location"] == f"{REPRESENTATIVE_COURSE_PATH}?{query}"
 
-    course = page.goto(f"{origin}{canonical_course_path}", wait_until="networkidle")
+    course = page.goto(f"{origin}{REPRESENTATIVE_COURSE_PATH}", wait_until="networkidle")
     assert course is not None
     assert course.status == 200
-    assert course.url == f"{origin}{canonical_course_path}"
+    assert course.url == f"{origin}{REPRESENTATIVE_COURSE_PATH}"
     assert course.headers["x-robots-tag"] == ROBOTS_VALUE
     expect(
-        page.get_by_role("heading", name="Data Engineering Zoomcamp 2026", exact=True)
+        page.get_by_role("heading", name=REPRESENTATIVE_COURSE_TITLE, exact=True)
     ).to_be_visible()
     expect(page.get_by_role("heading", name="Homework", exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_count(1)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
-        "href", f"https://datatalks.club{canonical_course_path}"
+        "href", f"https://datatalks.club{REPRESENTATIVE_COURSE_PATH}"
     )
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Page not found")

@@ -8,7 +8,9 @@ import pytest
 from django.urls import reverse
 from playwright.sync_api import Page, expect
 
-from courses.models import Course
+from courses.models import Course, CourseRegistration, RegistrationCampaign
+from playwright_tests.accessibility_support import target_size_issues
+from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -44,6 +46,13 @@ ARCHIVED_COURSE = {
     "finished": True,
 }
 
+REGISTRATION_CAMPAIGN = {
+    "slug": "synthetic-cmp-registration",
+    "title": "Machine Learning Zoomcamp",
+    "edition_label": "2026 cohort",
+    "marketing_markdown": "Learn machine learning engineering in a free online course.",
+}
+
 
 @pytest.fixture
 def cmp_course_catalog() -> dict[str, Course]:
@@ -52,6 +61,25 @@ def cmp_course_catalog() -> dict[str, Course]:
         "registration": Course.objects.create(**REGISTRATION_COURSE),
         "archived": Course.objects.create(**ARCHIVED_COURSE),
     }
+
+
+@pytest.fixture
+def cmp_registration_campaign() -> RegistrationCampaign:
+    course = Course.objects.create(
+        title="Machine Learning Zoomcamp 2026",
+        slug="synthetic-cmp-registration-course-2026",
+        description="A deterministic registration layout fixture.",
+    )
+    campaign = RegistrationCampaign.objects.create(
+        current_course=course,
+        **REGISTRATION_CAMPAIGN,
+    )
+    CourseRegistration.objects.create(
+        campaign=campaign,
+        course=course,
+        email="synthetic-registration@example.invalid",
+    )
+    return campaign
 
 
 def _assert_no_horizontal_overflow(page: Page) -> None:
@@ -73,6 +101,35 @@ def _assert_local_page_assets(page: Page, origin: str) -> None:
     )
     assert assets
     assert all(asset.startswith(f"{origin}/static/") for asset in assets), assets
+
+
+def _assert_cmp_breadcrumb_geometry(page: Page) -> None:
+    geometry = page.locator(".breadcrumbs li").evaluate_all(
+        """nodes => nodes.map(node => {
+          const link = node.querySelector('a');
+          const itemRect = node.getBoundingClientRect();
+          const linkRect = link.getBoundingClientRect();
+          const style = getComputedStyle(link);
+          return {
+            itemTop: itemRect.top,
+            itemHeight: itemRect.height,
+            linkTop: linkRect.top,
+            linkHeight: linkRect.height,
+            display: style.display,
+            minHeight: style.minHeight,
+            minWidth: style.minWidth,
+          };
+        })"""
+    )
+    assert len(geometry) == 2, geometry
+    assert abs(geometry[0]["itemTop"] - geometry[1]["itemTop"]) <= 0.5, geometry
+    for item in geometry:
+        assert item["display"] != "inline-flex", geometry
+        assert item["minHeight"] == "auto", geometry
+        assert item["minWidth"] == "auto", geometry
+        assert item["itemHeight"] <= 24, geometry
+        assert abs(item["itemTop"] - item["linkTop"]) <= 0.5, geometry
+        assert abs(item["itemHeight"] - item["linkHeight"]) <= 0.5, geometry
 
 
 def _write_attribution_evidence() -> None:
@@ -133,9 +190,22 @@ def test_database_course_catalog_matches_pinned_cmp_composition(
     expect(page.get_by_role("heading", name="Course archive", exact=True)).to_be_visible()
     expect(page.locator("#course-families-heading")).to_have_count(0)
     expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
-    expect(page.get_by_text(ACTIVE_COURSE["title"], exact=True)).to_be_visible()
-    expect(page.get_by_text(REGISTRATION_COURSE["title"], exact=True)).to_be_visible()
-    expect(page.get_by_text(ARCHIVED_COURSE["title"], exact=True)).to_be_visible()
+    course_links = {
+        role: assert_copied_course_catalog_link(
+            page,
+            path=reverse("course", kwargs={"course_slug": course.slug}),
+            title=course.title,
+        )
+        for role, course in cmp_course_catalog.items()
+    }
+    archived_link = course_links["archived"]
+    expect(page.get_by_role("link", name=ARCHIVED_COURSE["title"], exact=True)).to_have_count(0)
+    expect(archived_link.locator("xpath=ancestor::article[@role='link']")).to_have_count(0)
+    expect(
+        archived_link.locator("xpath=ancestor::section[1]").get_by_role(
+            "heading", name="2024", exact=True
+        )
+    ).to_be_visible()
     expect(page.get_by_text("Registration open", exact=True)).to_be_visible()
     assert page.locator("#courses article[role='link'][tabindex='0']").count() == 2
     section_order = page.locator("#courses h2").all_text_contents()
@@ -195,6 +265,68 @@ def test_database_course_catalog_matches_pinned_cmp_composition(
     _assert_no_horizontal_overflow(page)
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
     assert bad_responses == []
+
+
+@pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
+def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
+    page: Page,
+    live_server,
+    cmp_registration_campaign: RegistrationCampaign,
+    viewport: dict[str, int],
+    suffix: str,
+) -> None:
+    page.set_viewport_size(viewport)
+    bad_responses: list[str] = []
+    page.on(
+        "response",
+        lambda response: (
+            bad_responses.append(f"{response.status} {response.url}")
+            if response.status >= 400
+            else None
+        ),
+    )
+    registration_path = reverse(
+        "registration_campaign",
+        kwargs={"campaign_slug": cmp_registration_campaign.slug},
+    )
+
+    response = page.goto(f"{live_server.url}{registration_path}", wait_until="networkidle")
+
+    assert response is not None and response.status == 200
+    expect(page.get_by_role("heading", name=cmp_registration_campaign.title)).to_be_visible()
+    breadcrumb = page.get_by_role("navigation", name="Breadcrumb")
+    expect(breadcrumb.get_by_role("link", name="Courses", exact=True)).to_be_visible()
+    expect(
+        breadcrumb.get_by_role(
+            "link",
+            name=f"{cmp_registration_campaign.title} registration",
+            exact=True,
+        )
+    ).to_be_visible()
+    expect(page.locator(".breadcrumbs li[aria-current='page']")).to_have_count(1)
+    expect(page.get_by_text("1 already registered for 2026 cohort", exact=True)).to_be_visible()
+    _assert_cmp_breadcrumb_geometry(page)
+    assert target_size_issues(page, f"registration-{suffix}") == []
+    _assert_local_page_assets(page, live_server.url)
+    _assert_no_horizontal_overflow(page)
+    assert bad_responses == []
+    SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=SCREENSHOTS / f"registration-cmp-{suffix}.png", full_page=True)
+
+    _capture_dark_mode(page, SCREENSHOTS / f"registration-cmp-dark-{suffix}.png")
+    page.get_by_role("button", name="Toggle dark mode").click()
+    expect(page.locator("body.dark-mode")).to_have_count(0)
+
+    cdp = page.context.new_cdp_session(page)
+    cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 2})
+    assert page.evaluate("visualViewport.scale") == 2
+    _assert_cmp_breadcrumb_geometry(page)
+    _assert_no_horizontal_overflow(page)
+    page.screenshot(
+        path=SCREENSHOTS / f"registration-cmp-zoom-{suffix}.png",
+        full_page=True,
+    )
+    cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
