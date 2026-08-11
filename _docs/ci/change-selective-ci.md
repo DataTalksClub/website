@@ -49,7 +49,8 @@ successful selected full run; unexpected skips, cancellations, timeouts, and fai
 
 A selected scheduled run has independent quality, factory, migration, full Django, full local
 Playwright, and container components. The fixed `full-regression` marker and always-running gate
-require every component. Remote/live/provider tests remain excluded.
+require every component. All application-test components use fresh SQLite and neither provision nor
+connect to PostgreSQL. Remote/live/provider tests remain excluded.
 
 ## Local verification
 
