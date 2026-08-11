@@ -16,15 +16,18 @@ PATCH_MANIFEST = Path("_docs/adoption/course-platform/integration-patched-files.
 TARGET_INTEGRATION_MANIFEST = Path(
     "_docs/adoption/course-platform/target-owned-compatibility-shims.tsv"
 )
+CADMIN_REFERENCE_MANIFEST = Path("_docs/adoption/course-platform/cadmin-reference-allowlist.tsv")
 TARGET_COMPATIBILITY_CLASSIFICATION = "target-owned compatibility shim"
 REQUIRED_TARGET_COMPATIBILITY_SHIMS = {
+    "cadmin/__init__.py",
+    "cadmin/legacy_urls.py",
     "website/admin_api_urls.py",
     "website/admin_api_views.py",
 }
 ALLOWLIST = {
     "accounts": "accounts",
     "api": "api",
-    "cadmin": "cadmin",
+    "cadmin": "studio_courses",
     "course_management": "course_management",
     "courses": "courses",
     "data": "data",
@@ -54,6 +57,17 @@ class TargetIntegrationEntry:
     rationale: str
 
 
+@dataclass(frozen=True)
+class IntegrationPatchEntry:
+    destination: str
+    size: int
+    sha256: str
+    rationale: str
+
+    def line(self) -> str:
+        return f"{self.destination}\t{self.size}\t{self.sha256}\t{self.rationale}"
+
+
 def run_git(source: Path, *args: str) -> str:
     result = subprocess.run(
         ["git", "-C", str(source), *args],
@@ -73,6 +87,10 @@ def digest(path: Path) -> str:
 
 
 def destination_for(source_path: str) -> str:
+    legacy_template_prefix = "cadmin/templates/cadmin/"
+    if source_path.startswith(legacy_template_prefix):
+        suffix = source_path.removeprefix(legacy_template_prefix)
+        return f"studio_courses/templates/studio_courses/{suffix}"
     root, separator, suffix = source_path.partition("/")
     destination_root = ALLOWLIST[root]
     return destination_root if not separator else f"{destination_root}/{suffix}"
@@ -111,7 +129,7 @@ def render_manifest(entries: list[Entry]) -> str:
     return "\n".join([header, *(entry.line() for entry in entries)]) + "\n"
 
 
-def read_patch_manifest(path: Path) -> dict[str, tuple[int, str]]:
+def read_patch_manifest(path: Path) -> dict[str, IntegrationPatchEntry]:
     lines = path.read_text(encoding="utf-8").splitlines()
     expected_header = "destination_path\tsize_bytes\tsha256\trationale"
     if not lines or lines[0] != expected_header:
@@ -119,8 +137,48 @@ def read_patch_manifest(path: Path) -> dict[str, tuple[int, str]]:
     patches = {}
     for line in lines[1:]:
         destination, raw_size, sha256, _rationale = line.split("\t", 3)
-        patches[destination] = (int(raw_size), sha256)
+        patches[destination] = IntegrationPatchEntry(
+            destination=destination,
+            size=int(raw_size),
+            sha256=sha256,
+            rationale=_rationale,
+        )
     return patches
+
+
+def render_patch_manifest(entries: list[IntegrationPatchEntry]) -> str:
+    header = "destination_path\tsize_bytes\tsha256\trationale"
+    return "\n".join([header, *(entry.line() for entry in entries)]) + "\n"
+
+
+def current_patch_entries(
+    repo: Path,
+    copied_entries: list[Entry],
+    recorded_patches: dict[str, IntegrationPatchEntry],
+) -> list[IntegrationPatchEntry]:
+    entries: list[IntegrationPatchEntry] = []
+    default_rationale = (
+        "Mechanically rename the copied course-operations package or its active references to "
+        "Studio Courses without changing business behavior."
+    )
+    for copied in copied_entries:
+        destination = repo / copied.destination
+        if not destination.is_file():
+            continue
+        actual_size = destination.stat().st_size
+        actual_sha256 = digest(destination)
+        if actual_size == copied.size and actual_sha256 == copied.sha256:
+            continue
+        previous = recorded_patches.get(copied.destination)
+        entries.append(
+            IntegrationPatchEntry(
+                destination=copied.destination,
+                size=actual_size,
+                sha256=actual_sha256,
+                rationale=previous.rationale if previous else default_rationale,
+            )
+        )
+    return entries
 
 
 def read_target_integration_manifest(path: Path) -> list[TargetIntegrationEntry]:
@@ -151,7 +209,7 @@ def verify_source(source: Path) -> None:
 
 
 def verify_destinations(
-    repo: Path, entries: list[Entry], patches: dict[str, tuple[int, str]]
+    repo: Path, entries: list[Entry], patches: dict[str, IntegrationPatchEntry]
 ) -> None:
     errors: list[str] = []
     manifest_destinations = {entry.destination for entry in entries}
@@ -166,7 +224,9 @@ def verify_destinations(
             continue
         actual_size = destination.stat().st_size
         actual_sha256 = digest(destination)
-        expected_size, expected_sha256 = patches.get(entry.destination, (entry.size, entry.sha256))
+        patch = patches.get(entry.destination)
+        expected_size = patch.size if patch else entry.size
+        expected_sha256 = patch.sha256 if patch else entry.sha256
         if actual_size != expected_size or actual_sha256 != expected_sha256:
             errors.append(
                 "destination differs from recorded copy/integration state: "
@@ -204,10 +264,55 @@ def verify_target_integrations(repo: Path, entries: list[TargetIntegrationEntry]
         raise SystemExit("\n".join(errors))
 
 
+def verify_cadmin_reference_allowlist(repo: Path) -> None:
+    manifest_path = repo / CADMIN_REFERENCE_MANIFEST
+    lines = manifest_path.read_text(encoding="utf-8").splitlines()
+    expected_header = "path\tclassification\towner\tremoval_gate"
+    if not lines or lines[0] != expected_header:
+        raise SystemExit(f"invalid cadmin reference allowlist header: {manifest_path}")
+
+    allowlisted: set[str] = set()
+    errors: list[str] = []
+    for line in lines[1:]:
+        path, classification, owner, removal_gate = line.split("\t", 3)
+        if path in allowlisted:
+            errors.append(f"duplicate cadmin reference allowlist path: {path}")
+        allowlisted.add(path)
+        if not classification.strip() or not owner.strip() or not removal_gate.strip():
+            errors.append(f"incomplete cadmin reference allowlist entry: {path}")
+        if not (repo / path).is_file():
+            errors.append(f"missing cadmin reference allowlist path: {path}")
+
+    result = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+    actual: set[str] = set()
+    for raw_path in result.stdout.split(b"\0"):
+        if not raw_path:
+            continue
+        path = raw_path.decode("utf-8")
+        candidate = repo / path
+        if not candidate.is_file():
+            continue
+        if "cadmin" in path.casefold() or b"cadmin" in candidate.read_bytes().lower():
+            actual.add(path)
+
+    errors.extend(f"unreviewed cadmin reference: {path}" for path in sorted(actual - allowlisted))
+    errors.extend(
+        f"stale cadmin reference allowlist entry: {path}" for path in sorted(allowlisted - actual)
+    )
+    if errors:
+        raise SystemExit("\n".join(errors))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source", type=Path, default=SOURCE_CHECKOUT)
     parser.add_argument("--write-manifest", action="store_true")
+    parser.add_argument("--write-patch-manifest", action="store_true")
     args = parser.parse_args()
 
     repo = Path(__file__).resolve().parents[1]
@@ -223,10 +328,19 @@ def main() -> int:
     recorded = read_manifest(manifest_path)
     if recorded != expected:
         raise SystemExit("manifest does not match the pinned source allowlist")
-    patches = read_patch_manifest(repo / PATCH_MANIFEST)
+    patch_manifest_path = repo / PATCH_MANIFEST
+    patches = read_patch_manifest(patch_manifest_path)
+    if args.write_patch_manifest:
+        current_patches = current_patch_entries(repo, recorded, patches)
+        patch_manifest_path.write_text(
+            render_patch_manifest(current_patches),
+            encoding="utf-8",
+        )
+        patches = {entry.destination: entry for entry in current_patches}
     verify_destinations(repo, recorded, patches)
     target_integrations = read_target_integration_manifest(repo / TARGET_INTEGRATION_MANIFEST)
     verify_target_integrations(repo, target_integrations)
+    verify_cadmin_reference_allowlist(repo)
     print(
         f"verified {len(recorded)} copied files from {SOURCE_COMMIT} and "
         f"{len(target_integrations)} target-owned compatibility shims"

@@ -133,7 +133,7 @@ HOMEWORK_SCORE_RESPONSES = {
 }
 HOMEWORK_SCORE_DESCRIPTION = (
     "Scores homework submissions with the same safeguards as "
-    "cadmin: due date must be in the past, state must be OP, "
+    "Studio Courses: due date must be in the past, state must be OP, "
     "and already scored homeworks are rejected."
 )
 HOMEWORK_SCORE_DATA = OperationData(

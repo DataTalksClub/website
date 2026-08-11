@@ -11,10 +11,10 @@ SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
 APPLICATION_TEST_LABELS: dict[str, tuple[str, ...]] = {
     "api": ("api",),
-    "cadmin": ("cadmin",),
+    "studio_courses": ("studio_courses",),
     "content": ("accounts", "content.tests", "core"),
-    "courses": ("accounts", "api", "cadmin", "content.tests", "core", "courses", "data"),
-    "data": ("api", "cadmin", "courses", "data"),
+    "courses": ("accounts", "api", "content.tests", "core", "courses", "data", "studio_courses"),
+    "data": ("api", "courses", "data", "studio_courses"),
     "jobs": ("jobs",),
     "management_api": ("api", "management_api"),
     "management_auth": ("api", "core", "management_api", "management_auth"),

@@ -39,7 +39,7 @@ ORDINARY_JOBS = ("quality", "django", "playwright", "container")
 APPLICATION_ROOTS = (
     "accounts",
     "api",
-    "cadmin",
+    "studio_courses",
     "content",
     "content_sync",
     "core",

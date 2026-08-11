@@ -219,7 +219,7 @@ class ProjectSubmissionsDisplayTests(ProjectSubmissionsViewTestBase):
         response = self.admin_submissions_response()
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "cadmin/project_submissions.html")
+        self.assertTemplateUsed(response, "studio_courses/project_submissions.html")
 
         context = response.context
         self.assertEqual(context["course"], self.course)

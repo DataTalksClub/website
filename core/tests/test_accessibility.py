@@ -43,7 +43,7 @@ class AccessibilityRegistryTests(SimpleTestCase):
             "templates",
             "accounts/templates",
             "courses/templates",
-            "cadmin/templates",
+            "studio_courses/templates",
         ):
             candidates.update((root / location).rglob("*.html"))
         candidates.difference_update((root / "templates" / "management_api").rglob("*.html"))

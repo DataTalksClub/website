@@ -31,7 +31,7 @@ class HomeworkSubmissionsAccessTest(HomeworkSubmissionsViewTestBase):
         response = self.client.get(url, follow=True)
 
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "cadmin/homework_submissions.html")
+        self.assertTemplateUsed(response, "studio_courses/homework_submissions.html")
 
         context = response.context
         self.assertEqual(context["course"], self.course)

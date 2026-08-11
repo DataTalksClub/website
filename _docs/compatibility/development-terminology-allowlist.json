@@ -196,7 +196,7 @@
     },
     {
       "path": "core/tests/test_deployment_workflow.py",
-      "sha256": "b17c2239eb4fc606af1ff8bd8de5c9f25132ca8065d35829892a919555716d2c",
+      "sha256": "e78ba2c8752b6d86cb38b151685cbd5fc2dbebcd4ad6bc8428a2ec86b520e2b2",
       "class": "legacy_contract_test",
       "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, and exact physical values.",
       "follow_up": "#94",

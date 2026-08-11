@@ -747,6 +747,8 @@ def _course_route_document(workspace: Path) -> dict[str, object]:
     rows: list[dict[str, object]] = []
     for route in route_entries():
         route_pattern = f"/{route.route}"
+        source_callback = route.callback
+        source_urlconf = route.module
         source_route_pattern = route_pattern
         source_example_path = route.example_path()
         source_name = route.name or None
@@ -762,9 +764,13 @@ def _course_route_document(workspace: Path) -> dict[str, object]:
                 raise BuildError("Studio Courses target route identity is invalid")
             if not route.name.startswith("studio_courses_"):
                 raise BuildError("Studio Courses target route identity is invalid")
+            if not route.callback.startswith("studio_courses."):
+                raise BuildError("Studio Courses target callback identity is invalid")
             source_route_pattern = f"/cadmin/{suffix}"
             source_example_path = f"/cadmin/{example_suffix}"
             source_name = f"cadmin_{route.name.removeprefix('studio_courses_')}"
+            source_callback = route.callback.replace("studio_courses.", "cadmin.", 1)
+            source_urlconf = "cadmin.urls"
         contract_kind = (
             "api"
             if route.surface == "Compatibility API"
@@ -775,7 +781,7 @@ def _course_route_document(workspace: Path) -> dict[str, object]:
         rows.append(
             {
                 "authenticated_production_probe": "not_performed",
-                "callback": route.callback,
+                "callback": source_callback,
                 "classification": "preserve",
                 "contract_kind": contract_kind,
                 "example_path": route.example_path(),
@@ -789,7 +795,7 @@ def _course_route_document(workspace: Path) -> dict[str, object]:
                 "source_route_pattern": source_route_pattern,
                 "source_revision": source.revision,
                 "surface": route.surface,
-                "urlconf": route.module,
+                "urlconf": source_urlconf,
             }
         )
     return {

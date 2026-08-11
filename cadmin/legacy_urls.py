@@ -4,8 +4,8 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import resolve_url
 from django.urls import URLPattern, path
 
-from .urls import ROUTE_DEFINITIONS
-from .views.helpers import staff_required
+from studio_courses.urls import ROUTE_DEFINITIONS
+from studio_courses.views.helpers import staff_required
 
 
 def _legacy_redirect(destination_name: str) -> Callable[..., HttpResponse]:

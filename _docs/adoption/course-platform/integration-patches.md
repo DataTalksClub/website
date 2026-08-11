@@ -39,14 +39,17 @@ overlays:
 - `courses/templates/projects/project.html`: issue #75 replaces the external commit-ID screenshot
   with concise accessible text explaining where to copy the first seven commit characters. Project
   submission fields, validation, persistence, and operator controls remain unchanged;
-- `cadmin/`, copied staff links under `courses/`, and `accounts/views/impersonation.py`: issue #59
+- `studio_courses/`, copied staff links under `courses/`, and `accounts/views/impersonation.py`:
+  issues #59 and #116
   mounts the complete copied operations surface canonically at `/studio/courses`, gives its route
   names and visitor-facing labels the logical Studio Courses name, and returns copied internal
   redirects to those canonical names. The authorized trailing-slash root redirects permanently
   and directly to the slashless canonical while preserving query strings and unsafe methods;
   unauthorized requests remain at the safe login boundary. The Python package and all copied
   query, form, mutation, scoring, repair, communication, and observability behavior remain in
-  place. Staff-only `/cadmin...` compatibility redirects are target-owned and preserve query
+  place. Issue #116 performs the package, import, test, template, and CSS namespace move
+  mechanically; no course operation is rewritten. Staff-only `/cadmin...` compatibility redirects
+  now live only in the target-owned `cadmin/legacy_urls.py` adapter and preserve query
   strings and non-GET methods without a redirect chain. Both canonical operations and compatibility
   redirects require an explicit `site_admin` or `course_operator` role; generic Django staff and
   every unrelated Studio role fail closed before resource lookup or mutation;
@@ -99,8 +102,8 @@ overlays:
 - `courses/static/settings_toggles.js` and `courses/static/user_menu.js`: issue #65 retains copied
   preference and account-menu behavior while exposing busy/completion status and restoring focus
   after keyboard dismissal;
-- `cadmin/templates/cadmin/campaign_form.html` and
-  `cadmin/templates/cadmin/include/campaign_field.html`: issue #65 keeps the accepted Studio Courses
+- `studio_courses/templates/studio_courses/campaign_form.html` and
+  `studio_courses/templates/studio_courses/include/campaign_field.html`: issue #65 keeps the accepted Studio Courses
   routes and campaign behavior while linking the actual error state to a focusable summary and to
   each invalid field;
 - `course_management/datamailer_templates/definitions/common.py`: issue #65 keeps the current
@@ -130,9 +133,9 @@ overlays:
   `scripts/verify_course_platform_adoption.py`, and `_docs/adoption/course-platform/`:
   reproducibility, inventory, and structural smoke evidence.
 
-The two target-owned admin API compatibility shims are recorded with classification, rationale,
-size, and SHA-256 in `target-owned-compatibility-shims.tsv`. The provenance verifier requires both
-exact paths and validates their recorded bytes.
+The two target-owned admin API shims and two-file legacy `/cadmin` route adapter are recorded with
+classification, rationale, size, and SHA-256 in `target-owned-compatibility-shims.tsv`. The
+provenance verifier requires all four exact paths and validates their recorded bytes.
 
 No scoring, submission, peer-review, leaderboard, certificate, communication, API serializer, or
 other CMP business behavior is modified by this integration. The copied management presentation
