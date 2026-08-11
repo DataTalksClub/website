@@ -70,6 +70,9 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/deliberate-missing$"), 404),
     ),
     "test_wiki_search_graph_and_removed_mount": ((re.compile(r"^/podwiki$"), 404),),
+    "test_no_database_course_catalog_uses_copied_cmp_empty_state": (
+        (re.compile(r"^/courses/de-zoomcamp-2026$"), 404),
+    ),
     "test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial": (
         (
             re.compile(r"^/studio/events/historical-registration-totals/mappings/$"),

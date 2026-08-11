@@ -3,7 +3,7 @@
   {{ cohort.title }} — DataTalks.Club
 {% endblock %}
 {% block content %}
-  {% url 'course-family-ai-dev-tools' as hub_url %}
+  {% url 'course_list' as hub_url %}
   {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label=course.title current_label=cohort.title %}
   <article class="max-w-4xl">
     <span class="app-badge app-badge-info app-badge-upper">2026 cohort</span>

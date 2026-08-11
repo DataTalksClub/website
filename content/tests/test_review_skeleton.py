@@ -117,7 +117,6 @@ class PublicProjectionTests(TestCase):
         for path, collection in (
             ("/blog", "articles"),
             ("/books", "books"),
-            ("/courses", "courses"),
             ("/wiki", "wiki"),
         ):
             with self.subTest(path=path):
@@ -132,7 +131,7 @@ class PublicProjectionTests(TestCase):
             self.assertIn(f'href="{event["public_path"]}"', events)
 
     def test_every_selected_detail_is_safe_and_canonical(self) -> None:
-        for collection in ("articles", "podcasts", "books", "people", "events", "wiki", "courses"):
+        for collection in ("articles", "podcasts", "books", "people", "events", "wiki"):
             for record in self.projection[collection]:
                 with self.subTest(collection=collection, slug=record["slug"]):
                     response = self.client.get(record["public_path"])

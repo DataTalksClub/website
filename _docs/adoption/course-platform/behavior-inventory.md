@@ -151,6 +151,7 @@ Mounted from `courses.urls`.
 | `datamailer_outbox_status` | `data` | Show Datamailer outbox health and recent dispatcher state. |
 | `datamailer_send_status` | `data` | Show Datamailer send audit counts recorded by CMP. |
 | `datamailer_status` | `courses` | Look up Datamailer contact sendability and recent send history. |
+| `import_development_course_content` | `courses` | Import the one approved sanitized CMP public-content artifact into development |
 | `monitoring_datamailer_health` | `data` | Emit compact Datamailer health observability events. |
 | `preview_peer_review_email` | `courses` | Preview the peer-review-assignment email for a project. |
 | `process_datamailer_outbox` | `data` | Dispatch pending/retrying Datamailer outbox events. |
@@ -159,6 +160,7 @@ Mounted from `courses.urls`.
 | `sync_datamailer_contacts` | `courses` | Backfill Datamailer contacts from CMP users. |
 | `sync_datamailer_recipient_lists` | `courses` | Backfill Datamailer recipient lists from CMP registrations, enrollments, and submissions. |
 | `upsert_datamailer_templates` | `courses` | Create or update CMP's transactional templates in Datamailer. |
+| `verify_development_course_content` | `courses` | Verify the development course content, route callbacks, and template origins |
 
 ## Preserved app and migration identities
 

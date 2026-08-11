@@ -151,7 +151,7 @@ class NoIndexMetaTagTestCase(TestCase):
 
     def test_course_page_does_not_have_noindex(self):
         """Test that main course page does NOT have noindex meta tag."""
-        url = f"/{self.course.slug}/"
+        url = f"/courses/{self.course.slug}"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, '<meta name="robots" content="noindex">')

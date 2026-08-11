@@ -8,11 +8,22 @@ from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from core import views as core_views
 from courses import urls as course_urls
+from courses.views import course, course_aliases, course_list
 from studio_courses import urls as studio_course_urls
 
 legacy_course_patterns = [
-    pattern for pattern in course_urls.urlpatterns if pattern.name != "course_list"
+    pattern for pattern in course_urls.urlpatterns if pattern.name not in {"course", "course_list"}
 ]
+namespaced_course_patterns = [
+    pattern for pattern in course_urls.urlpatterns if pattern.name not in {"course", "course_list"}
+]
+namespaced_course_patterns.append(
+    path(
+        "<slug:course_slug>/",
+        course_aliases.legacy_course_redirect,
+        name="course",
+    )
+)
 
 urlpatterns = [
     path("robots.txt", core_views.robots, name="development-robots"),
@@ -23,11 +34,6 @@ urlpatterns = [
         name="section-sitemap",
     ),
     path("", core_views.home, name="home"),
-    path(
-        "courses/ai-dev-tools-zoomcamp",
-        review_views.course_family,
-        name="course-family-ai-dev-tools",
-    ),
     path("", include("content.public_urls")),
     path("unified/", core_views.home, name="unified-home"),
     path("docs/", review_views.docs_home, name="docs-home"),
@@ -89,9 +95,26 @@ urlpatterns = [
         review_views.registration_preview,
         name="course-registration-preview-ai-dev-tools-2026",
     ),
+    path("courses", course_list.course_list, name="course_list"),
     path(
         "courses/",
-        include((course_urls.urlpatterns, "courses"), namespace="courses"),
+        public_views.permanent_public_redirect,
+        {"target": "/courses"},
+        name="course-list-slash-redirect",
+    ),
+    path(
+        "courses/<slug:course_slug>",
+        course.course_view,
+        name="course",
+    ),
+    path(
+        "courses/",
+        include((namespaced_course_patterns, "courses"), namespace="courses"),
     ),
     path("", include(legacy_course_patterns)),
+    path(
+        "<slug:course_slug>/",
+        course_aliases.legacy_course_redirect,
+        name="legacy-course",
+    ),
 ]
