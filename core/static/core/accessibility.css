@@ -32,10 +32,14 @@ html body :is(a, button, input, select, textarea, summary, [tabindex]):focus-vis
   outline: 0 !important;
 }
 
+/*
+ * Breadcrumb links keep the adopted inline geometry. Their surrounding spacing
+ * satisfies the target-spacing exception; stretching only the links drops the
+ * generated separator below the link text on narrow registration pages.
+ */
 .site-navigation-links a,
 .user-menu-item,
 .site-footer-link,
-.breadcrumbs a,
 .pagination a,
 .pagination-target {
   min-height: 2.75rem;
@@ -43,7 +47,6 @@ html body :is(a, button, input, select, textarea, summary, [tabindex]):focus-vis
 }
 
 .site-navigation-links a,
-.breadcrumbs a,
 .pagination a,
 .pagination-target,
 .panel > a,
