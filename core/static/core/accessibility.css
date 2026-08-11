@@ -1,8 +1,3 @@
-:root {
-  --a11y-focus: #9b4d00;
-  --a11y-focus-contrast: #ffffff;
-}
-
 html {
   scroll-padding-block: 1rem;
 }
@@ -27,8 +22,8 @@ body {
   transform: translateY(0);
 }
 
-html body :is(a, button, input, select, textarea, summary, [tabindex]):focus {
-  outline: 3px solid var(--a11y-focus) !important;
+html body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--link-color, #315f8f) !important;
   outline-offset: 3px !important;
   scroll-margin-block: 1rem;
 }
@@ -238,7 +233,7 @@ body.login button[type="submit"]:hover {
 }
 
 @media (forced-colors: active) {
-  html body :is(a, button, input, select, textarea, summary, [tabindex]):focus {
+  html body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
     outline-color: Highlight !important;
   }
 
