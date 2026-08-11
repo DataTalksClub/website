@@ -54,9 +54,24 @@
   margin-top: 1.5rem;
 }
 
+.studio-page .panel fieldset {
+  display: grid;
+  gap: 0.75rem;
+  margin-inline: 0;
+  max-width: 100%;
+  padding: 1rem;
+  width: 100%;
+}
+
 .studio-page .panel label,
 .studio-page .panel legend {
   font-weight: 650;
+}
+
+.studio-page .panel fieldset > label:not(.check-field) {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .studio-page .panel input,
@@ -220,4 +235,27 @@
 
 body.dark-mode.studio-page .panel button {
   background: #4d7fa8;
+}
+
+@media (max-width: 36rem) {
+  .studio-page > .app-content-shell {
+    padding-inline: 4vw;
+  }
+
+  .studio-page .panel {
+    padding: 6vw;
+  }
+
+  .studio-page .panel fieldset {
+    padding: 4vw;
+  }
+
+  .studio-page .check-field {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .studio-page .check-field span {
+    flex: 1 0 min(12rem, 100%);
+  }
 }
