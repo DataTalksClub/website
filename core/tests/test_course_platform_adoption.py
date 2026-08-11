@@ -1,9 +1,11 @@
 import csv
 import hashlib
 from pathlib import Path
+from typing import Protocol, cast
 
 from django.apps import apps
 from django.core.management import get_commands, load_command_class
+from django.template.loader import get_template
 from django.test import SimpleTestCase
 from django.urls import resolve, reverse
 
@@ -69,6 +71,17 @@ ORIGINAL_ACCOUNTS_MIGRATIONS = (
     "0009_customuser_preferred_timezone",
     "0010_remove_customuser_email_course_updates_and_more",
 )
+PROTECTED_COURSE_TEMPLATE_PREFIX = "courses/templates/"
+EXPECTED_PROTECTED_COURSE_TEMPLATE_COUNT = 25
+EXPECTED_COURSE_LIST_SHA256 = "26e391ffdd2c90b89a668c41118f4a8e43efd2b5dde015097f893aee707984ef"
+
+
+class TemplateOrigin(Protocol):
+    name: str
+
+
+class ResolvedTemplate(Protocol):
+    origin: TemplateOrigin | None
 
 
 def _digest(path: Path) -> str:
@@ -84,7 +97,53 @@ def _read_tsv(path: Path) -> list[dict[str, str]]:
         return list(csv.DictReader(input_file, delimiter="\t"))
 
 
+def _protected_course_template_rows() -> list[dict[str, str]]:
+    return [
+        row
+        for row in _read_tsv(MANIFEST_PATH)
+        if row["source_path"].startswith(PROTECTED_COURSE_TEMPLATE_PREFIX)
+    ]
+
+
 class CoursePlatformAdoptionContractTests(SimpleTestCase):
+    def test_pinned_course_templates_have_no_shadow_and_resolve_to_adopted_files(self):
+        rows = _protected_course_template_rows()
+        logical_names = [
+            row["source_path"].removeprefix(PROTECTED_COURSE_TEMPLATE_PREFIX) for row in rows
+        ]
+
+        self.assertEqual(len(rows), EXPECTED_PROTECTED_COURSE_TEMPLATE_COUNT)
+        self.assertEqual(len(logical_names), len(set(logical_names)))
+        self.assertEqual(
+            [
+                logical_name
+                for logical_name in logical_names
+                if (REPO_ROOT / "templates" / logical_name).exists()
+            ],
+            [],
+        )
+
+        for row, logical_name in zip(rows, logical_names, strict=True):
+            adopted_destination = (REPO_ROOT / row["destination_path"]).resolve()
+            with self.subTest(template=logical_name):
+                self.assertTrue(adopted_destination.is_file())
+                resolved = cast(ResolvedTemplate, get_template(logical_name))
+                origin = resolved.origin
+                if origin is None:
+                    self.fail(f"template has no loader origin: {logical_name}")
+                self.assertEqual(Path(origin.name).resolve(), adopted_destination)
+
+    def test_course_list_template_remains_the_exact_pinned_cmp_source(self):
+        rows = {
+            row["source_path"].removeprefix(PROTECTED_COURSE_TEMPLATE_PREFIX): row
+            for row in _protected_course_template_rows()
+        }
+        row = rows["courses/course_list.html"]
+        destination = REPO_ROOT / row["destination_path"]
+
+        self.assertEqual(row["sha256"], EXPECTED_COURSE_LIST_SHA256)
+        self.assertEqual(_digest(destination), EXPECTED_COURSE_LIST_SHA256)
+
     def test_all_recorded_copies_exist_with_recorded_integration_state(self):
         copied_rows = _read_tsv(MANIFEST_PATH)
         patch_rows = _read_tsv(PATCH_MANIFEST_PATH)

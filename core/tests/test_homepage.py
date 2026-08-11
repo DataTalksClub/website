@@ -1,12 +1,18 @@
 import re
+from datetime import timedelta
+from pathlib import Path
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import resolve, reverse
+from django.utils import timezone
 
 from content import public_views, review_views
 from core import views as core_views
 from courses.models.course import Course
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
 
 
 class MainHomepageRoutingTests(TestCase):
@@ -116,13 +122,23 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertNotContains(response, "Course admin")
 
-    def test_course_discovery_uses_the_public_catalog(self) -> None:
+    def test_course_discovery_without_database_courses_uses_the_public_catalog(self) -> None:
         self.assertEqual(reverse("course_list"), "/courses")
         self.assertIs(resolve("/courses").func, public_views.course_hub)
+        self.assertFalse(Course.objects.exists())
 
         response = self.client.get(reverse("course_list"))
 
         self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "public/course_hub.html")
+        self.assertNotIn(
+            ADOPTED_COURSE_LIST_TEMPLATE,
+            {
+                Path(template.origin.name).resolve()
+                for template in response.templates
+                if template.origin is not None
+            },
+        )
         self.assertContains(response, "<title>Courses — DataTalks.Club</title>", html=True)
         self.assertContains(response, "Learn data skills. For free. Together.")
         self.assertContains(response, "Data Engineering Zoomcamp 2026")
@@ -132,6 +148,76 @@ class MainHomepageRoutingTests(TestCase):
             response,
             '<link rel="canonical" href="https://datatalks.club/courses">',
         )
+
+    def test_course_discovery_with_database_courses_uses_copied_cmp_composition(self) -> None:
+        today = timezone.localdate()
+        active = Course.objects.create(
+            title="Synthetic active course",
+            slug="synthetic-active-course",
+            description="A deterministic active course.",
+            start_date=today - timedelta(days=7),
+            end_date=today + timedelta(days=28),
+            visible=True,
+        )
+        registration = Course.objects.create(
+            title="Synthetic registration course",
+            slug="synthetic-registration-course",
+            description="A deterministic registration course.",
+            start_date=today + timedelta(days=14),
+            end_date=today + timedelta(days=70),
+            registration_url="https://example.invalid/register",
+            visible=True,
+        )
+        archived = Course.objects.create(
+            title="Synthetic archived course 2024",
+            slug="synthetic-archived-course-2024",
+            description="A deterministic archived course.",
+            finished=True,
+            visible=True,
+        )
+
+        response = self.client.get(reverse("course_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "courses/course_list.html")
+        self.assertIn(
+            ADOPTED_COURSE_LIST_TEMPLATE,
+            {
+                Path(template.origin.name).resolve()
+                for template in response.templates
+                if template.origin is not None
+            },
+        )
+        content = response.content.decode()
+        self.assertLess(content.index("Active courses"), content.index(active.title))
+        self.assertLess(content.index(active.title), content.index("Open registration"))
+        self.assertLess(content.index("Open registration"), content.index(registration.title))
+        self.assertLess(content.index(registration.title), content.index("Course archive"))
+        self.assertLess(content.index("Course archive"), content.index(archived.title))
+        self.assertContains(response, "Start now")
+        self.assertContains(response, "Registration open")
+        self.assertNotContains(response, 'id="course-families-heading"')
+        self.assertNotContains(response, "No active cohort coursework right now.")
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="https://datatalks.club/courses">',
+        )
+
+    def test_database_backed_empty_visible_catalog_uses_cmp_empty_state(self) -> None:
+        Course.objects.create(
+            title="Synthetic hidden course",
+            slug="synthetic-hidden-course",
+            description="A deterministic hidden course.",
+            visible=False,
+        )
+
+        response = self.client.get(reverse("course_list"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "courses/course_list.html")
+        self.assertContains(response, "No active courses right now.")
+        self.assertNotContains(response, "No active cohort coursework right now.")
+        self.assertNotContains(response, "Synthetic hidden course")
 
     def test_ai_dev_tools_course_family_uses_the_same_cohort_row_hierarchy(self) -> None:
         path = reverse("course-family-ai-dev-tools")

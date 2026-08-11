@@ -142,6 +142,20 @@ other CMP business behavior is modified by this integration. The copied manageme
 and route names change under issue #59; its operational logic remains characterized by the copied
 suite.
 
+## Protected copied course templates
+
+The logical template names derived from the pinned `courses/templates/**` rows in
+`copied-files.tsv` are the visual source of truth for learner and course presentation. Project-level
+`templates/<logical-name>` files and templates from earlier installed apps must not shadow those
+copied destinations. The adoption contract fails closed on either a project collision or a loader
+origin that does not resolve to the destination recorded in the pinned ledger.
+
+If a future integration requirement must change a copied course template, change the adopted file
+in place and keep the overlay readable. Record its pinned source hash, current target hash, narrow
+rationale, and focused behavior/browser tests in the integration ledger. A parallel
+higher-precedence template is not an integration mechanism and must not be used to redesign the CMP
+section, card, control, or content hierarchy.
+
 The unified setting keeps the CSRF cookie readable by same-origin JavaScript because the copied loginas and submission browser flows obtain it and send the standard `X-CSRFToken` header. Session cookies remain HttpOnly.
 
 Playwright is bounded to the source suite's `1.58` compatibility line rather than silently moving the copied live-browser harness to a newer minor release during adoption.
