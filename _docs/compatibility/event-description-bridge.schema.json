@@ -1,0 +1,324 @@
+{
+  "$id": "https://datatalks.club/schemas/event-description-bridge-v1.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "content_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "described_events": {
+          "const": 159
+        },
+        "gaps": {
+          "const": 9
+        },
+        "matches": {
+          "const": 159
+        },
+        "source_pairs": {
+          "const": 168
+        },
+        "title_and_instant_different": {
+          "const": 8
+        },
+        "title_and_instant_equal": {
+          "const": 36
+        },
+        "title_different_instant_equal": {
+          "const": 2
+        },
+        "title_equal_instant_different": {
+          "const": 113
+        },
+        "undescribed_events": {
+          "const": 262
+        }
+      },
+      "required": [
+        "source_pairs",
+        "matches",
+        "gaps",
+        "described_events",
+        "undescribed_events",
+        "title_and_instant_equal",
+        "title_equal_instant_different",
+        "title_different_instant_equal",
+        "title_and_instant_different"
+      ],
+      "type": "object"
+    },
+    "gaps": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "const": "no_exact_projection_luma_path"
+          },
+          "source_identity_sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        },
+        "required": [
+          "source_identity_sha256",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "maxItems": 9,
+      "minItems": 9,
+      "type": "array"
+    },
+    "link_review": {
+      "additionalProperties": false,
+      "properties": {
+        "decision_counts": {
+          "additionalProperties": false,
+          "properties": {
+            "external_resource_kept": {
+              "const": 148
+            },
+            "internal_rewritten": {
+              "const": 154
+            },
+            "internal_target_missing": {
+              "const": 1
+            },
+            "provider_action_removed": {
+              "const": 49
+            },
+            "registration_action_removed": {
+              "const": 185
+            },
+            "remote_image_removed": {
+              "const": 1
+            },
+            "unreviewed_shortlink_removed": {
+              "const": 2
+            }
+          },
+          "required": [
+            "external_resource_kept",
+            "internal_rewritten",
+            "internal_target_missing",
+            "provider_action_removed",
+            "registration_action_removed",
+            "remote_image_removed",
+            "unreviewed_shortlink_removed"
+          ],
+          "type": "object"
+        },
+        "decision_inventory_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "distinct_url_literals": {
+          "const": 118
+        },
+        "remote_images_omitted": {
+          "const": 1
+        },
+        "url_occurrences": {
+          "const": 540
+        }
+      },
+      "required": [
+        "url_occurrences",
+        "distinct_url_literals",
+        "decision_counts",
+        "decision_inventory_sha256",
+        "remote_images_omitted"
+      ],
+      "type": "object"
+    },
+    "matches": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "description_html": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "description_text": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "entry_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "match_basis": {
+            "const": "exact_normalized_provider_path"
+          },
+          "source_description_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "source_identity_sha256": {
+            "$ref": "#/$defs/sha256"
+          },
+          "target": {
+            "$ref": "#/$defs/target"
+          }
+        },
+        "required": [
+          "target",
+          "source_identity_sha256",
+          "source_description_sha256",
+          "match_basis",
+          "description_html",
+          "description_text",
+          "entry_sha256"
+        ],
+        "type": "object"
+      },
+      "maxItems": 159,
+      "minItems": 159,
+      "type": "array"
+    },
+    "policies": {
+      "additionalProperties": false,
+      "properties": {
+        "links": {
+          "const": "event-description-links-v1"
+        },
+        "markdown": {
+          "const": "event-description-markdown-v2"
+        },
+        "matching": {
+          "const": "exact-provider-path-v1"
+        }
+      },
+      "required": [
+        "matching",
+        "markdown",
+        "links"
+      ],
+      "type": "object"
+    },
+    "projection": {
+      "additionalProperties": false,
+      "properties": {
+        "event_count": {
+          "const": 421
+        },
+        "events_sha256": {
+          "const": "64cdab5893afb3558fdf5a3d81fe23c9ed9481016897d823f41dcdbe5bebf580"
+        },
+        "repository": {
+          "const": "DataTalksClub/datatalksclub.github.io"
+        },
+        "revision": {
+          "const": "ee43d3fa0929faf691178d79f19528e6f15a83e5"
+        },
+        "source_checksum": {
+          "const": "7eac8bcc9bfb3ec5f0b35434343a58eb766f8cc8451dca8a4a82ac4674aa213d"
+        },
+        "source_path": {
+          "const": "_data/events.yaml"
+        }
+      },
+      "required": [
+        "events_sha256",
+        "event_count",
+        "repository",
+        "revision",
+        "source_path",
+        "source_checksum"
+      ],
+      "type": "object"
+    },
+    "schema": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "const": "_docs/compatibility/event-description-bridge.schema.json"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "description_manifest_sha256": {
+          "const": "6ffd000db03b71c7308d83328a5d744ccec298b1cca458aa04831689431b030a"
+        },
+        "exporter_revision": {
+          "const": "a0ede3c1451d34c5bc99acf58459ef1c65ae51df"
+        },
+        "public_event_allowlist_sha256": {
+          "const": "b2859a7be33fb29821d53e25265ce91c37f376f1de7467780a351d707294fbc5"
+        },
+        "safe_source_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      },
+      "required": [
+        "exporter_revision",
+        "public_event_allowlist_sha256",
+        "description_manifest_sha256",
+        "safe_source_sha256"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "schema",
+    "source",
+    "projection",
+    "policies",
+    "counts",
+    "matches",
+    "gaps",
+    "link_review",
+    "content_sha256"
+  ],
+  "title": "DataTalks.Club event description bridge",
+  "type": "object",
+  "$defs": {
+    "sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "target": {
+      "additionalProperties": false,
+      "properties": {
+        "checksum": {
+          "const": "7eac8bcc9bfb3ec5f0b35434343a58eb766f8cc8451dca8a4a82ac4674aa213d"
+        },
+        "repository": {
+          "const": "DataTalksClub/datatalksclub.github.io"
+        },
+        "revision": {
+          "const": "ee43d3fa0929faf691178d79f19528e6f15a83e5"
+        },
+        "source_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "type": "string"
+        },
+        "source_path": {
+          "const": "_data/events.yaml"
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "source_path",
+        "source_key",
+        "checksum"
+      ],
+      "type": "object"
+    }
+  }
+}

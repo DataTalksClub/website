@@ -12,6 +12,18 @@ from zoneinfo import ZoneInfo
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
+from .event_description_bridge import (
+    EVENT_RECORD_SCHEMA_VERSION,
+    EXPECTED_EVENTS_WITH_LINKS,
+    EXPECTED_EVENTS_WITHOUT_LINKS,
+    EXPECTED_MATCH_COUNT,
+    EXPECTED_NON_LUMA_LINKS,
+    EventDescriptionBridgeError,
+    bridge_manifest_binding,
+    load_event_description_bridge,
+    validate_projected_event,
+)
+
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
@@ -322,6 +334,21 @@ def public_projection() -> dict[str, Any]:
         raise ImproperlyConfigured("Preferred projection source is not marked accepted.")
     if sources["fallback_selection"].get("accepted") is not False:
         raise ImproperlyConfigured("Fallback selection must remain explicitly unaccepted.")
+    try:
+        event_description_bridge = load_event_description_bridge()
+        expected_bridge_binding = bridge_manifest_binding(event_description_bridge)
+    except EventDescriptionBridgeError as exc:
+        raise ImproperlyConfigured("Public event description bridge is invalid.") from exc
+    projection_rules = manifest.get("projection_rules", {})
+    if projection_rules.get("event_record_schema_version") != EVENT_RECORD_SCHEMA_VERSION:
+        raise ImproperlyConfigured("Public event record schema version mismatch.")
+    if projection_rules.get("event_description_bridge") != expected_bridge_binding:
+        raise ImproperlyConfigured("Public event description bridge binding mismatch.")
+    if (
+        manifest.get("runtime_contract", {}).get("event_description_source")
+        != "committed_safe_bridge_only"
+    ):
+        raise ImproperlyConfigured("Public event description runtime contract mismatch.")
 
     projection: dict[str, Any] = {"manifest": manifest}
     artifacts = manifest.get("artifacts", {})
@@ -339,6 +366,23 @@ def public_projection() -> dict[str, Any]:
     if transcript_count != EXPECTED_COUNTS["transcripts"]:
         raise ImproperlyConfigured("Public projection transcript count mismatch.")
     ordered_podcasts(projection["podcasts"])
+    try:
+        for event in projection["events"]:
+            validate_projected_event(event, event_description_bridge)
+    except EventDescriptionBridgeError as exc:
+        raise ImproperlyConfigured("Public event description record is invalid.") from exc
+    described_event_count = sum(bool(event["description_html"]) for event in projection["events"])
+    remaining_event_links = sum(len(event["links"]) for event in projection["events"])
+    linked_event_count = sum(bool(event["links"]) for event in projection["events"])
+    if described_event_count != EXPECTED_MATCH_COUNT:
+        raise ImproperlyConfigured("Public event description coverage mismatch.")
+    if remaining_event_links != EXPECTED_NON_LUMA_LINKS:
+        raise ImproperlyConfigured("Public event link count mismatch.")
+    if (
+        linked_event_count != EXPECTED_EVENTS_WITH_LINKS
+        or len(projection["events"]) - linked_event_count != EXPECTED_EVENTS_WITHOUT_LINKS
+    ):
+        raise ImproperlyConfigured("Public event link coverage mismatch.")
 
     for name in ("wiki_graph", "wiki_search"):
         filename = f"{name}.json"

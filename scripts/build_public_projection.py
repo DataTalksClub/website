@@ -16,6 +16,7 @@ import json
 import re
 import shutil
 import subprocess
+import sys
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -25,6 +26,15 @@ from zoneinfo import ZoneInfo
 import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from content.event_description_bridge import (  # noqa: E402
+    EVENT_RECORD_SCHEMA_VERSION,
+    EventDescriptionBridgeError,
+    apply_bridge_to_events,
+    bridge_manifest_binding,
+)
+
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
@@ -842,6 +852,10 @@ def _events(
     if conference_links_omitted != 6:
         raise ProjectionBuildError("event conference-link omission count mismatch")
     events.sort(key=lambda item: (item["starts_at"], item["slug"]), reverse=True)
+    try:
+        apply_bridge_to_events(events)
+    except EventDescriptionBridgeError as exc:
+        raise ProjectionBuildError("event description bridge validation failed") from exc
     return events
 
 
@@ -1870,6 +1884,8 @@ def build(args: argparse.Namespace) -> None:
         },
         "projection_rules": {
             "event_source_timezone": str(EVENT_SOURCE_TIMEZONE),
+            "event_record_schema_version": EVENT_RECORD_SCHEMA_VERSION,
+            "event_description_bridge": bridge_manifest_binding(),
             "conference_links_outside_slice": "omitted",
             "people_source": "438 public _people profiles; underscore-prefixed source excluded",
             "unresolved_podcast_guest_keys": unresolved_podcast_guests,
@@ -1879,6 +1895,7 @@ def build(args: argparse.Namespace) -> None:
             "network": "none",
             "database_writes": "none",
             "source_execution": "none",
+            "event_description_source": "committed_safe_bridge_only",
             "wiki_mount": "/wiki/",
             "podwiki_mount": "absent",
         },

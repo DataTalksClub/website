@@ -1,4 +1,3 @@
-import re
 from pathlib import Path
 
 import pytest
@@ -6,6 +5,7 @@ from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-105")
 PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-119")
+EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
 FEATURED_EVENT_PATH = "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch"
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
@@ -20,6 +20,11 @@ def _shot(page: Page, name: str, *, full_page: bool = False) -> None:
 def _podcast_shot(page: Page, name: str) -> None:
     PODCAST_SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=PODCAST_SCREENSHOTS / name, full_page=True)
+
+
+def _event_description_shot(page: Page, name: str) -> None:
+    EVENT_DESCRIPTION_SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    page.screenshot(path=EVENT_DESCRIPTION_SCREENSHOTS / name, full_page=True)
 
 
 @pytest.mark.core
@@ -111,12 +116,15 @@ def test_internal_event_to_person_flow(
         "href",
         f"https://datatalks.club{FEATURED_EVENT_PATH}",
     )
-    external = page.get_by_role("link", name=re.compile("Register on Luma"))
-    expect(external).to_have_attribute("target", "_blank")
-    expect(external).to_have_attribute("rel", "noopener noreferrer")
-    expect(external).to_have_attribute("href", re.compile(r"^https://(?:luma\.com|lu\.ma)/"))
+    expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
+    expect(
+        page.get_by_text("The new cohort of AI Dev Tools Zoomcamp 2026 starts", exact=False)
+    ).to_be_visible()
+    expect(page.get_by_role("heading", name="Event links", exact=True)).to_have_count(0)
+    expect(page.locator('a[href*="luma.com"], a[href*="lu.ma"]')).to_have_count(0)
+    expect(page.locator(f'a[href="{FEATURED_EVENT_PATH}/register"]')).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    _shot(page, f"event-detail-{suffix}.png", full_page=True)
+    _event_description_shot(page, f"described-no-external-links-{suffix}.png")
 
     page.get_by_role("link", name=FEATURED_SPEAKER_NAME, exact=True).click()
     expect(page).to_have_url(f"{origin}{FEATURED_SPEAKER_PATH}")
