@@ -18,7 +18,32 @@ only by exact-image migration, database-aware readiness, and deployed smoke.
 `make database-portability-check` prevents PostgreSQL services or configuration from returning to
 ordinary quality, Django, Playwright, or container CI jobs. It also rejects vendor branches,
 backend-feature skips, PostgreSQL-only test modules, raw migration SQL, triggers, advisory locks,
-and row-lock calls in maintained Django code.
+and row-lock calls in maintained Django code. The same gate scans the authoritative specifications
+and fails closed on any PostgreSQL reference not classified as deployed configuration/storage,
+runtime-driver connectivity, an explicit prohibition or SQLite contrast, bounded historical/adoption
+follow-up, or clearly marked hypothetical/reported-invalid documentation. It also rejects links to
+the former AWS-specification path; maintained links use
+`_docs/specs/08-aws-development-terraform.md`.
+
+Mandate classification is clause-scoped rather than phrase-specific. It recognizes active and
+passive provider predicates, negative permission, past-use markers, conditional/counterexample and
+reported-invalid scopes, and explicit SQLite responsibility. Contrast and temporal boundaries end
+an exemption before a current mandate, while an explicit SQLite selection resets later database
+anaphora; any later explicit PostgreSQL mandate still fails.
+
+The normative scan uses a code-owned exact catalog for the specification index, specifications 01
+through 10, and open decisions, with the former AWS filename retained only as a known non-normative
+compatibility shim. Missing, renamed, case-variant, or extra Markdown candidates fail the gate, as
+do symbolic links, directories, special files, unreadable files, or paths escaping the catalog
+root. Before classification, prose and fenced configuration are normalized for Unicode NFKC,
+dash variants, default-ignorable characters, bounded fixed-point HTML decoding, apostrophes, case,
+and whitespace. Classification retains each reference's full statement context and evaluates
+application, search, indexing, transaction, concurrency, and isolation mandates before considering
+deployment, historical, or prohibition wording. AWS link checks use bounded fixed-point HTML and
+percent decoding across inline/reference Markdown (including multiline labels), raw HTML,
+autolinks, encoded targets, plain relative targets, and bare URLs. The obsolete filename is rejected
+anywhere in a link target, while historical prose that merely names a former file is not treated as
+a link; decoding that cannot stabilize within the bound fails closed.
 
 ## Portable active-content namespace
 

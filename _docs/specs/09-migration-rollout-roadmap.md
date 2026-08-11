@@ -23,12 +23,17 @@ Exit gate: no public route, source content kind, current course workflow, or man
 
 Deliverables:
 
-- `uv`-managed Django project, custom user model, PostgreSQL, Make targets, lint/type/test setup, and Docker image;
+- `uv`-managed Django project, custom user model, project-local SQLite for local development and
+  ordinary CI, Make targets, lint/type/test setup, and Docker image;
+- backend-portable Django models, migrations, services, constraints, and tests, with no maintained
+  application behavior or test branch tied to one database engine;
 - core apps, shared service/command conventions, audit/request IDs, health endpoints, and configuration checks;
 - Studio shell, admin API shell, OIDC integration, permissions, capability registry, token model, and OpenAPI generation;
 - web/worker processes and durable job helpers;
 - Terraform `sandbox/website` stack and GitHub OIDC delivery pipeline;
-- `web.dtcdev.click` deployment with TLS, noindex, logs, alarms, backups, and rollback image.
+- `web.dtcdev.click` deployment with TLS, noindex, logs, alarms, backups, and rollback image;
+- RDS PostgreSQL only as deployed durable storage, validated at the bounded exact-image migration,
+  database-aware readiness, and deployed-smoke boundary;
 - generated route-cache registry with every route initially private/disabled unless explicitly
   classified, plus source/policy tests for the anonymous classifier and zero-TTL rollback;
 - one-shot readable schema-2 application VERSION propagated through immutable image publication,
@@ -70,7 +75,8 @@ Deliverables:
   editorial details, query search on `/wiki?q=`, typed chips/citations,
   catalogs, graph JSON/deep links, search filters, entity canonicals, and SEO dates; the
   owner-approved preservation exception leaves `/podwiki/` absent with no redirect;
-- unified PostgreSQL search projection with current-contract adapters;
+- unified backend-portable search projection with current-contract adapters; ranking and indexing
+  remain owned by the content/search issue;
 - cross-repository person/link/reference validation and complete asset routing.
 
 Exit gate: the combined `/`, `/docs/`, `/faq/`, and sole canonical `/wiki` compatibility report

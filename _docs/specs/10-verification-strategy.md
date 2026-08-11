@@ -26,11 +26,16 @@ Verification maps every requirement to an automated or explicitly manual gate. T
 - course/cohort ownership and historical cohort isolation;
 - enrollment, submission, peer assignment, scoring, leaderboard, complaint, certificate, and reminder workflows;
 - registration plus outbox atomicity;
-- profile completion plus Slack grant/delivery atomicity, compatibility projections, and migration
-  reconciliation on SQLite, with PostgreSQL constraints/concurrency exercised where engine behavior
-  is material;
+- profile completion plus Slack grant/delivery atomicity, compatibility projections, and portable
+  migration reconciliation exercised on SQLite;
 - SES/provider event deduplication, reordering, suppression, and ambiguity;
 - audit events and privacy retention/deletion propagation.
+
+All maintained application constraints, transactions, optimistic concurrency, migrations, service
+invariants, and application tests in these layers use backend-portable Django contracts exercised on
+SQLite. No PostgreSQL-only application suite or engine branch is maintained. RDS PostgreSQL is
+validated only at the exact-image deployment migration, database-aware readiness, and deployed-smoke
+boundary below.
 
 ### Contract tests
 
@@ -250,10 +255,20 @@ Recommended Make targets:
 - `make test-all`.
 
 CI runs independent jobs where safe, publishes actionable artifacts, and blocks deployment on any
-release-critical failure. Ordinary quality, Django, core Playwright, and container jobs start no
-PostgreSQL service. The deployment path separately runs the exact tested image's migrations against
-RDS, then requires database-aware readiness and deployed smoke. Scheduled jobs run slower full
-crawls, accessibility, dependency/security, restore, and deployed-environment smoke suites.
+release-critical failure. Accepted [change-selective CI](../ci/change-selective-ci.md) from issue 104
+supersedes an unconditional full-suite invocation for every main push: the reviewed selector
+may use a focused SQLite test closure only when the complete change is safely owned by one mapped
+application. Shared, cross-application, migration, configuration, workflow, template/static,
+unknown, and otherwise unsafe changes use the full SQLite suite. Ordinary quality, Django, core
+Playwright, and container jobs start no PostgreSQL service and make no PostgreSQL application-test
+connection.
+
+The separate full-regression workflow runs every four hours and supplies complete SQLite coverage
+when the scheduled main SHA lacks an accepted coverage anchor. It neither provisions nor connects
+to PostgreSQL. The deployment path separately runs only the exact tested image's migrations against
+RDS, then requires database-aware readiness and deployed smoke. Other slower scheduled crawls,
+accessibility, dependency/security, restore, and deployed-environment smoke suites remain distinct
+from that PostgreSQL-free application regression.
 
 ## Test data and production safety
 
