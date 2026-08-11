@@ -158,6 +158,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             )
 
 
+@pytest.hookimpl(tryfirst=True)
 def pytest_runtest_setup(item: pytest.Item) -> None:
     safety = sorted({marker.name for marker in item.iter_markers()} & SAFETY_MARKERS)
     if safety:

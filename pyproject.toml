@@ -89,7 +89,8 @@ django_settings_module = "website.settings.test"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "website.settings.test"
 python_files = ["test_*.py"]
-addopts = "--strict-markers -p no:cacheprovider"
+pythonpath = ["."]
+addopts = "--strict-markers -p no:cacheprovider -p test_support.root_pytest_guard"
 markers = [
     "accessibility: deterministic WCAG A/AA route and state coverage",
     "core: bounded release-critical local Playwright coverage",
@@ -98,4 +99,12 @@ markers = [
     "remote_mutation: explicit isolated-development synthetic mutation",
     "live_email: explicit controlled-recipient live email smoke",
     "live_provider: explicit provider/webhook integration smoke",
+    "smoke: core availability/auth smoke checks (run first, fail fast)",
+    "provisioning: API course/content provisioning",
+    "enrollment: enrollment and identity",
+    "homework: homework submission + scoring + leaderboard flow",
+    "project: project submission + peer review + scoring flow",
+    "dashboards: dashboards and statistics pages",
+    "teardown: cleanup and clean-state assertions",
+    "email: Datamailer email verification via CMP's own send audit (dry-run render; xfails if Datamailer is not configured / dry-run is off on the deployment)",
 ]
