@@ -23,6 +23,36 @@ from course_management.datamailer_templates.accessibility import (
 from course_management.datamailer_templates.definitions.registry import TEMPLATES
 
 
+class FocusStyleContractTests(SimpleTestCase):
+    def test_pointer_focus_is_unstyled_while_keyboard_focus_uses_design_token(self) -> None:
+        stylesheet = (Path(settings.BASE_DIR) / "core/static/core/accessibility.css").read_text(
+            encoding="utf-8"
+        )
+
+        interactive_selector = (
+            "html body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible"
+        )
+        self.assertEqual(stylesheet.count(f"{interactive_selector} {{"), 2)
+        self.assertIn(
+            "outline: 3px solid var(--link-color, #315f8f) !important;",
+            stylesheet,
+        )
+        self.assertNotIn(
+            "html body :is(a, button, input, select, textarea, summary, [tabindex]):focus {",
+            stylesheet,
+        )
+        self.assertNotIn("--a11y-focus", stylesheet)
+
+    def test_skip_link_and_programmatic_main_focus_exceptions_remain_scoped(self) -> None:
+        stylesheet = (Path(settings.BASE_DIR) / "core/static/core/accessibility.css").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn(".skip-link:focus {", stylesheet)
+        self.assertIn("#main-content:focus {", stylesheet)
+        self.assertIn("outline: 0 !important;", stylesheet)
+
+
 class AccessibilityRegistryTests(SimpleTestCase):
     def test_registry_identifiers_and_rendered_surfaces_are_fail_closed(self) -> None:
         identifiers = [state.identifier for state in CRITICAL_STATES]
