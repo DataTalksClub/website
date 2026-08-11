@@ -119,7 +119,8 @@ test-compatibility:
 test-factories:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		uv run --frozen pytest test_support/tests/test_factories.py \
-		test_support/tests/test_runtime.py test_support/tests/test_safety.py -q
+		test_support/tests/test_runtime.py test_support/tests/test_safety.py \
+		test_support/tests/test_marker_registry.py -q
 
 test-migrations:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \

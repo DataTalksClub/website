@@ -508,8 +508,31 @@ def _safe_environment(marker: str) -> dict[str, str]:
 
 
 @pytest.mark.parametrize(
+    "marker",
+    ("remote_readonly", "remote_mutation", "live_email", "live_provider"),
+)
+def test_every_safety_class_requires_its_own_exact_command_before_connection(
+    marker: str,
+) -> None:
+    environment = _safe_environment("not_selected")
+    with (
+        patch.object(socket, "getaddrinfo") as resolve,
+        patch.object(socket, "create_connection") as connect,
+        patch.dict(os.environ, environment, clear=True),
+        pytest.raises(TestSafetyError, match="exact opt-in command"),
+    ):
+        authorize_from_environment(marker)
+    resolve.assert_not_called()
+    connect.assert_not_called()
+
+
+@pytest.mark.parametrize(
     ("name", "value"),
     [
+        ("DTC_TEST_SAFETY_COMMAND", None),
+        ("DTC_TEST_TARGET_CLASS", None),
+        ("DTC_TEST_REMOTE_NAMESPACE", None),
+        ("DTC_TEST_BASE_URL", None),
         ("DTC_TEST_SAFETY_COMMAND", "remote_mutation"),
         ("DTC_TEST_TARGET_CLASS", "production"),
         ("DTC_TEST_REMOTE_NAMESPACE", "bad"),
@@ -520,12 +543,22 @@ def _safe_environment(marker: str) -> dict[str, str]:
 )
 def test_remote_readonly_fails_before_connection_for_every_wrong_authority(
     name: str,
-    value: str,
+    value: str | None,
 ) -> None:
-    environment = {**_safe_environment("remote_readonly"), name: value}
-    with patch.dict(os.environ, environment, clear=True):
-        with pytest.raises(TestSafetyError):
-            authorize_from_environment("remote_readonly")
+    environment = _safe_environment("remote_readonly")
+    if value is None:
+        environment.pop(name)
+    else:
+        environment[name] = value
+    with (
+        patch.object(socket, "getaddrinfo") as resolve,
+        patch.object(socket, "create_connection") as connect,
+        patch.dict(os.environ, environment, clear=True),
+        pytest.raises(TestSafetyError),
+    ):
+        authorize_from_environment("remote_readonly")
+    resolve.assert_not_called()
+    connect.assert_not_called()
 
 
 def test_remote_readonly_allows_only_safe_methods_on_exact_origin() -> None:
@@ -548,6 +581,36 @@ def test_live_email_requires_secret_recipient_reference_without_printing_it() ->
         authorization = authorize_from_environment("live_email")
     assert authorization.recipient_reference == "DTC_SMOKE_RECIPIENT_75"
     assert "controlled-smoke" not in repr(authorization)
+
+
+@pytest.mark.parametrize(
+    ("reference", "recipient"),
+    [
+        (None, None),
+        ("bad", None),
+        ("DTC_SMOKE_RECIPIENT_75", None),
+        ("DTC_SMOKE_RECIPIENT_75", "synthetic@example.invalid"),
+        ("DTC_SMOKE_RECIPIENT_75", "malformed-recipient"),
+    ],
+)
+def test_live_email_missing_or_malformed_authority_fails_before_connection(
+    reference: str | None,
+    recipient: str | None,
+) -> None:
+    environment = _safe_environment("live_email")
+    if reference is not None:
+        environment["DTC_TEST_SMOKE_RECIPIENT_REFERENCE"] = reference
+    if reference is not None and recipient is not None:
+        environment[reference] = recipient
+    with (
+        patch.object(socket, "getaddrinfo") as resolve,
+        patch.object(socket, "create_connection") as connect,
+        patch.dict(os.environ, environment, clear=True),
+        pytest.raises(TestSafetyError),
+    ):
+        authorize_from_environment("live_email")
+    resolve.assert_not_called()
+    connect.assert_not_called()
 
 
 def test_django_service_safety_decorator_declares_and_enforces_exact_marker() -> None:
