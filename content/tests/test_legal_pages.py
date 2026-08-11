@@ -224,7 +224,13 @@ class SharedLegalFooterTests(TestCase):
         self.assertIn('var COOKIE_VERSION = "v1";', script)
         self.assertIn("60 * 60 * 24 * 180", script)
         self.assertIn('return window.location.protocol === "https:" ? "; Secure" : "";', script)
-        self.assertEqual(script.count("dialog.show();"), 1)
+        self.assertNotIn("dialog.show();", script)
+        self.assertEqual(script.count('dialog.setAttribute("open", "");'), 1)
         self.assertEqual(script.count("dialog.showModal();"), 1)
         self.assertIn('"dtc_attribution_"', script)
         self.assertIn("Domain=datatalks.club", script)
+
+    def test_initial_consent_prompt_has_no_competing_status_role(self) -> None:
+        footer = (ROOT / "templates/core/_site_footer.html").read_text(encoding="utf-8")
+        self.assertNotIn('role="status"', footer)
+        self.assertIn('aria-live="polite"', footer)

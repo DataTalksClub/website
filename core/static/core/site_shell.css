@@ -53,6 +53,16 @@
   min-width: 0;
 }
 
+.site-footer-runtime {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 1 auto;
+  gap: 0.5rem;
+  justify-content: center;
+  max-width: 100%;
+  min-width: 0;
+}
+
 .site-footer-legal {
   align-items: center;
   display: flex;
@@ -138,6 +148,14 @@
 .analytics-preferences:modal {
   inset: 0;
   margin: auto;
+}
+
+.analytics-preferences[open]:not(:modal) {
+  inset: auto;
+  margin: 1rem auto 0;
+  max-height: none;
+  position: static;
+  width: calc(100% - 2rem);
 }
 
 .analytics-preferences::backdrop {
@@ -372,6 +390,16 @@
     width: 100%;
   }
 
+  .site-footer-brand {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .site-footer-runtime {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
   .footer-version {
     flex: 0 1 auto;
     flex-wrap: wrap;
@@ -406,6 +434,13 @@
   .analytics-preferences {
     inset: auto 0.5rem 0.5rem;
     max-height: calc(100vh - 1rem);
+    max-width: calc(100vw - 1rem);
+  }
+
+  .analytics-preferences[open]:not(:modal) {
+    inset: auto;
+    margin-top: 0.5rem;
+    max-height: none;
     max-width: calc(100vw - 1rem);
   }
 }

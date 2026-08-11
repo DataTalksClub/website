@@ -1411,6 +1411,40 @@ def test_lost_value_and_invisible_obscured_focus_failures_are_actionable(page: P
 
 @pytest.mark.accessibility
 @pytest.mark.full
+def test_focus_scan_restores_scroll_before_geometry_checks(page: Page) -> None:
+    controls = "".join(f"<button>Footer control {index}</button>" for index in range(42))
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.set_content(
+        """
+        <!doctype html><html lang="en"><head><title>Fixture</title>
+        <style>
+          :focus { outline: 3px solid blue; }
+          .skip-link { position: fixed; top: .5rem; transform: translateY(-160%); }
+          .skip-link:focus { transform: translateY(0); }
+          .learner-link { display: block; line-height: 19.25px; width: 120px; }
+          .footer-controls { display: grid; gap: 4px; margin-top: 900px; }
+          button { min-height: 24px; }
+        </style></head><body>
+        <a class="skip-link" href="#main-content">Skip to content</a>
+        <main id="main-content" tabindex="-1">
+          <h1>Fixture</h1>
+          <a class="learner-link" href="#learner">Synthetic learner</a>
+          <div class="footer-controls">
+        """
+        + controls
+        + """
+          </div>
+        </main></body></html>
+        """
+    )
+
+    assert focus_issues(page, "focus-scroll-reset") == []
+    assert page.evaluate("window.scrollY") == 0
+    assert target_size_issues(page, "focus-scroll-reset") == []
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
 def test_javascript_off_public_reads_remain_semantic(
     browser: Browser,
     live_server,
