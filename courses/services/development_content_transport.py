@@ -3,17 +3,21 @@
 from __future__ import annotations
 
 import os
+import stat
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from django.conf import settings
-
 from courses.services.development_content_import import (
     APPROVED_SOURCE_SIZE,
     DevelopmentContentImportError,
 )
+
+
+_EPHEMERAL_STAGING_ROOT = Path("/tmp")
+_STAGING_DIRECTORY_PREFIX = "dtc-course-content-"
+_STAGING_FILENAME = "artifact.sqlite3"
 
 
 def _assert_transport_metadata(response: dict, expected_kms_key_arn: str) -> None:
@@ -35,6 +39,99 @@ def _close_response_body(response: dict | None) -> None:
         body.close()
     except Exception:
         pass
+
+
+def _validated_ephemeral_staging_root() -> Path:
+    root = _EPHEMERAL_STAGING_ROOT
+    try:
+        metadata = root.lstat()
+    except OSError:
+        raise DevelopmentContentImportError("transport-local-storage-failed") from None
+    permissions = stat.S_IMODE(metadata.st_mode)
+    shared_writes = permissions & (stat.S_IWGRP | stat.S_IWOTH)
+    if (
+        not root.is_absolute()
+        or stat.S_ISLNK(metadata.st_mode)
+        or not stat.S_ISDIR(metadata.st_mode)
+        or (shared_writes and not permissions & stat.S_ISVTX)
+    ):
+        raise DevelopmentContentImportError("transport-local-storage-failed")
+    try:
+        writable = os.access(root, os.W_OK | os.X_OK, effective_ids=True)
+    except (NotImplementedError, OSError):
+        raise DevelopmentContentImportError("transport-local-storage-failed") from None
+    if not writable:
+        raise DevelopmentContentImportError("transport-local-storage-failed")
+    return root
+
+
+def _remove_private_staging(directory: Path | None, path: Path | None) -> bool:
+    cleaned = True
+    if path is not None:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            cleaned = False
+    if directory is not None:
+        try:
+            directory.rmdir()
+        except OSError:
+            cleaned = False
+    return cleaned
+
+
+def _create_private_staging_file() -> tuple[Path, Path, int]:
+    root = _validated_ephemeral_staging_root()
+    directory: Path | None = None
+    path: Path | None = None
+    descriptor = -1
+    owned_directory = False
+    try:
+        directory = Path(tempfile.mkdtemp(prefix=_STAGING_DIRECTORY_PREFIX, dir=root))
+        if directory.parent != root or not directory.name.startswith(_STAGING_DIRECTORY_PREFIX):
+            raise OSError("unexpected staging directory")
+        directory_metadata = directory.lstat()
+        if (
+            stat.S_ISLNK(directory_metadata.st_mode)
+            or not stat.S_ISDIR(directory_metadata.st_mode)
+            or directory_metadata.st_uid != os.geteuid()
+        ):
+            raise OSError("unsafe staging directory")
+        owned_directory = True
+        os.chmod(directory, 0o700, follow_symlinks=False)
+        directory_metadata = directory.lstat()
+        if stat.S_IMODE(directory_metadata.st_mode) != 0o700:
+            raise OSError("staging directory is not private")
+
+        path = directory / _STAGING_FILENAME
+        nofollow = getattr(os, "O_NOFOLLOW", None)
+        if nofollow is None:
+            raise OSError("no-follow file creation is unavailable")
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | nofollow
+        flags |= getattr(os, "O_CLOEXEC", 0)
+        descriptor = os.open(path, flags, 0o600)
+        os.fchmod(descriptor, 0o600)
+        descriptor_metadata = os.fstat(descriptor)
+        path_metadata = path.lstat()
+        if (
+            not stat.S_ISREG(descriptor_metadata.st_mode)
+            or descriptor_metadata.st_uid != os.geteuid()
+            or stat.S_IMODE(descriptor_metadata.st_mode) != 0o600
+            or stat.S_ISLNK(path_metadata.st_mode)
+            or path_metadata.st_dev != descriptor_metadata.st_dev
+            or path_metadata.st_ino != descriptor_metadata.st_ino
+        ):
+            raise OSError("unsafe staging file")
+        return directory, path, descriptor
+    except Exception:
+        if descriptor >= 0:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+        if owned_directory:
+            _remove_private_staging(directory, path)
+        raise DevelopmentContentImportError("transport-local-storage-failed") from None
 
 
 @contextmanager
@@ -75,20 +172,13 @@ def downloaded_s3_artifact(
         _close_response_body(response)
         raise DevelopmentContentImportError("transport-download-failed") from None
 
-    scratch = Path(settings.BASE_DIR) / ".tmp"
+    staging_directory = None
     path = None
     descriptor = -1
     total = 0
     try:
         try:
-            scratch.mkdir(mode=0o700, parents=True, exist_ok=True)
-            descriptor, raw_path = tempfile.mkstemp(
-                prefix="course-content-",
-                suffix=".sqlite3",
-                dir=scratch,
-            )
-            path = Path(raw_path)
-            os.chmod(path, 0o600)
+            staging_directory, path, descriptor = _create_private_staging_file()
             destination = os.fdopen(descriptor, "wb")
             descriptor = -1
             with destination:
@@ -99,15 +189,21 @@ def downloaded_s3_artifact(
                         total += len(chunk)
                         if total > APPROVED_SOURCE_SIZE:
                             raise DevelopmentContentImportError("transport-size-mismatch")
-                        destination.write(chunk)
+                        try:
+                            destination.write(chunk)
+                        except OSError:
+                            raise DevelopmentContentImportError(
+                                "transport-local-storage-failed"
+                            ) from None
                 except DevelopmentContentImportError:
                     raise
                 except Exception:
-                    raise DevelopmentContentImportError(
-                        "transport-download-failed"
-                    ) from None
-                destination.flush()
-                os.fsync(destination.fileno())
+                    raise DevelopmentContentImportError("transport-download-failed") from None
+                try:
+                    destination.flush()
+                    os.fsync(destination.fileno())
+                except OSError:
+                    raise DevelopmentContentImportError("transport-local-storage-failed") from None
         except DevelopmentContentImportError:
             raise
         except Exception:
@@ -118,11 +214,17 @@ def downloaded_s3_artifact(
             raise DevelopmentContentImportError("transport-local-storage-failed")
         yield path
     finally:
+        cleaned = True
         if descriptor >= 0:
-            os.close(descriptor)
+            try:
+                os.close(descriptor)
+            except OSError:
+                cleaned = False
         _close_response_body(response)
-        if path is not None:
-            path.unlink(missing_ok=True)
+        if not _remove_private_staging(staging_directory, path):
+            cleaned = False
+        if not cleaned:
+            raise DevelopmentContentImportError("transport-local-cleanup-failed")
 
 
 def delete_s3_artifact_version(

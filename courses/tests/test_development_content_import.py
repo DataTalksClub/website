@@ -1,8 +1,15 @@
+import io
+import json
+import os
 import stat
+import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.test import TestCase, override_settings
 
 from core.bootstrap import RuntimeEnvironment
@@ -186,6 +193,28 @@ class DevelopmentContentImportTests(TestCase):
 
 
 class DevelopmentContentTransportTests(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(mode=0o700, parents=True, exist_ok=True)
+        temporary = tempfile.TemporaryDirectory(
+            prefix="issue-128-transport-",
+            dir=scratch,
+        )
+        self.addCleanup(temporary.cleanup)
+        self.temporary_root = Path(temporary.name)
+        self.staging_root = self.temporary_root / "runtime-tmp"
+        self.staging_root.mkdir(mode=0o700)
+        staging_patch = patch(
+            "courses.services.development_content_transport._EPHEMERAL_STAGING_ROOT",
+            self.staging_root,
+        )
+        staging_patch.start()
+        self.addCleanup(staging_patch.stop)
+
+    def _assert_staging_root_empty(self) -> None:
+        self.assertEqual(list(self.staging_root.iterdir()), [])
+
     def _client(self, body: Mock, *, encryption: str = "aws:kms") -> Mock:
         metadata = {
             "ContentLength": 3,
@@ -217,9 +246,14 @@ class DevelopmentContentTransportTests(TestCase):
         ) as artifact:
             self.assertEqual(artifact.read_bytes(), b"abc")
             self.assertEqual(stat.S_IMODE(artifact.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(artifact.parent.stat().st_mode), 0o700)
+            self.assertEqual(artifact.parent.parent, self.staging_root)
             downloaded_path = artifact
+            staging_directory = artifact.parent
 
         self.assertFalse(downloaded_path.exists())
+        self.assertFalse(staging_directory.exists())
+        self._assert_staging_root_empty()
         body.close.assert_called_once_with()
         expected_request = {
             "Bucket": "private-bucket",
@@ -229,6 +263,279 @@ class DevelopmentContentTransportTests(TestCase):
         }
         client.head_object.assert_called_once_with(**expected_request)
         client.get_object.assert_called_once_with(**expected_request)
+
+    @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
+    @patch("boto3.client")
+    def test_readonly_application_tree_does_not_control_private_staging(
+        self,
+        boto3_client: Mock,
+    ) -> None:
+        if os.geteuid() == 0:
+            self.skipTest("non-root filesystem semantics require a non-root test process")
+        application_tree = self.temporary_root / "readonly-app"
+        application_tree.mkdir(mode=0o500)
+        injected_root = self.temporary_root / "injected-tmpdir"
+        injected_root.mkdir(mode=0o700)
+        body = Mock()
+        body.iter_chunks.return_value = [b"abc"]
+        boto3_client.return_value = self._client(body)
+        captured: dict[str, Path] = {}
+
+        def import_staged_artifact(path: Path) -> SimpleNamespace:
+            captured["path"] = path
+            captured["directory"] = path.parent
+            self.assertEqual(path.read_bytes(), b"abc")
+            self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
+            self.assertEqual(stat.S_IMODE(path.parent.stat().st_mode), 0o700)
+            self.assertEqual(path.parent.parent, self.staging_root)
+            return SimpleNamespace(
+                counts={},
+                imported=True,
+                logical_checksum="logical",
+                relationships={},
+                replayed=False,
+                sensitive_tables_preserved=True,
+                source_sha256="source",
+            )
+
+        output = io.StringIO()
+        with (
+            override_settings(BASE_DIR=application_tree),
+            patch.dict(os.environ, {"TMPDIR": str(injected_root)}),
+            patch(
+                "courses.management.commands.import_development_course_content."
+                "import_development_course_content",
+                side_effect=import_staged_artifact,
+            ),
+            patch(
+                "courses.management.commands.import_development_course_content."
+                "delete_s3_artifact_version"
+            ) as delete_version,
+        ):
+            call_command(
+                "import_development_course_content",
+                "--s3-bucket",
+                "private-bucket",
+                "--s3-key",
+                "private-key",
+                "--s3-version-id",
+                "immutable-version",
+                "--expected-bucket-owner",
+                "123456789012",
+                "--expected-kms-key-arn",
+                "approved-key",
+                stdout=output,
+            )
+
+        self.assertTrue(json.loads(output.getvalue())["transport_deleted"])
+        delete_version.assert_called_once_with(
+            bucket="private-bucket",
+            key="private-key",
+            version_id="immutable-version",
+            expected_bucket_owner="123456789012",
+        )
+        self.assertFalse(captured["path"].exists())
+        self.assertFalse(captured["directory"].exists())
+        self.assertEqual(list(injected_root.iterdir()), [])
+        self._assert_staging_root_empty()
+        body.close.assert_called_once_with()
+
+    @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
+    @patch("boto3.client")
+    def test_symlink_staging_root_is_rejected_without_following(
+        self,
+        boto3_client: Mock,
+    ) -> None:
+        target = self.temporary_root / "symlink-target"
+        target.mkdir(mode=0o700)
+        symlink = self.temporary_root / "runtime-tmp-symlink"
+        symlink.symlink_to(target, target_is_directory=True)
+        body = Mock()
+        body.iter_chunks.return_value = [b"abc"]
+        boto3_client.return_value = self._client(body)
+
+        with (
+            patch(
+                "courses.services.development_content_transport._EPHEMERAL_STAGING_ROOT",
+                symlink,
+            ),
+            self.assertRaisesRegex(
+                DevelopmentContentImportError,
+                "transport-local-storage-failed",
+            ),
+        ):
+            with downloaded_s3_artifact(
+                bucket="private-bucket",
+                key="private-key",
+                version_id="immutable-version",
+                expected_bucket_owner="123456789012",
+                expected_kms_key_arn="approved-key",
+            ):
+                self.fail("a symlink staging root must not be followed")
+
+        self.assertEqual(list(target.iterdir()), [])
+        body.close.assert_called_once_with()
+        self._assert_staging_root_empty()
+
+    @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
+    @patch("boto3.client")
+    def test_shared_root_without_sticky_bit_is_rejected(
+        self,
+        boto3_client: Mock,
+    ) -> None:
+        shared_root = self.temporary_root / "shared-runtime-tmp"
+        shared_root.mkdir(mode=0o777)
+        shared_root.chmod(0o777)
+        body = Mock()
+        body.iter_chunks.return_value = [b"abc"]
+        boto3_client.return_value = self._client(body)
+
+        with (
+            patch(
+                "courses.services.development_content_transport._EPHEMERAL_STAGING_ROOT",
+                shared_root,
+            ),
+            self.assertRaisesRegex(
+                DevelopmentContentImportError,
+                "transport-local-storage-failed",
+            ),
+        ):
+            with downloaded_s3_artifact(
+                bucket="private-bucket",
+                key="private-key",
+                version_id="immutable-version",
+                expected_bucket_owner="123456789012",
+                expected_kms_key_arn="approved-key",
+            ):
+                self.fail("an untrusted shared root must not be used")
+
+        self.assertEqual(list(shared_root.iterdir()), [])
+        body.close.assert_called_once_with()
+        self._assert_staging_root_empty()
+
+    @patch("courses.services.development_content_transport.os.chmod")
+    @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
+    @patch("boto3.client")
+    def test_setup_failure_removes_created_private_directory(
+        self,
+        boto3_client: Mock,
+        chmod: Mock,
+    ) -> None:
+        chmod.side_effect = NotImplementedError("local detail")
+        body = Mock()
+        body.iter_chunks.return_value = [b"abc"]
+        boto3_client.return_value = self._client(body)
+
+        with self.assertRaisesRegex(
+            DevelopmentContentImportError,
+            "transport-local-storage-failed",
+        ):
+            with downloaded_s3_artifact(
+                bucket="private-bucket",
+                key="private-key",
+                version_id="immutable-version",
+                expected_bucket_owner="123456789012",
+                expected_kms_key_arn="approved-key",
+            ):
+                self.fail("failed private setup must not yield an artifact")
+
+        self._assert_staging_root_empty()
+        body.close.assert_called_once_with()
+
+    @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
+    @patch("boto3.client")
+    def test_preexisting_staged_file_symlink_is_not_followed_and_is_cleaned(
+        self,
+        boto3_client: Mock,
+    ) -> None:
+        sentinel = self.temporary_root / "sentinel"
+        sentinel.write_bytes(b"unchanged")
+        forced_directory = self.staging_root / "dtc-course-content-forced"
+        forced_directory.mkdir(mode=0o700)
+        (forced_directory / "artifact.sqlite3").symlink_to(sentinel)
+        body = Mock()
+        body.iter_chunks.return_value = [b"abc"]
+        boto3_client.return_value = self._client(body)
+
+        with (
+            patch(
+                "courses.services.development_content_transport.tempfile.mkdtemp",
+                return_value=str(forced_directory),
+            ),
+            self.assertRaisesRegex(
+                DevelopmentContentImportError,
+                "transport-local-storage-failed",
+            ),
+        ):
+            with downloaded_s3_artifact(
+                bucket="private-bucket",
+                key="private-key",
+                version_id="immutable-version",
+                expected_bucket_owner="123456789012",
+                expected_kms_key_arn="approved-key",
+            ):
+                self.fail("a preexisting staged symlink must not be followed")
+
+        self.assertEqual(sentinel.read_bytes(), b"unchanged")
+        self.assertFalse(forced_directory.exists())
+        self._assert_staging_root_empty()
+        body.close.assert_called_once_with()
+
+    @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
+    @patch("boto3.client")
+    def test_consumer_failure_still_removes_private_staging(
+        self,
+        boto3_client: Mock,
+    ) -> None:
+        body = Mock()
+        body.iter_chunks.return_value = [b"abc"]
+        boto3_client.return_value = self._client(body)
+
+        with self.assertRaisesRegex(RuntimeError, "import failed"):
+            with downloaded_s3_artifact(
+                bucket="private-bucket",
+                key="private-key",
+                version_id="immutable-version",
+                expected_bucket_owner="123456789012",
+                expected_kms_key_arn="approved-key",
+            ) as artifact:
+                staged_path = artifact
+                staging_directory = artifact.parent
+                raise RuntimeError("import failed")
+
+        self.assertFalse(staged_path.exists())
+        self.assertFalse(staging_directory.exists())
+        self._assert_staging_root_empty()
+        body.close.assert_called_once_with()
+
+    @patch("courses.services.development_content_transport.os.fsync")
+    @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
+    @patch("boto3.client")
+    def test_local_write_failure_is_sanitized_and_cleans_private_staging(
+        self,
+        boto3_client: Mock,
+        fsync: Mock,
+    ) -> None:
+        fsync.side_effect = OSError("local detail")
+        body = Mock()
+        body.iter_chunks.return_value = [b"abc"]
+        boto3_client.return_value = self._client(body)
+
+        with self.assertRaisesRegex(
+            DevelopmentContentImportError,
+            "transport-local-storage-failed",
+        ):
+            with downloaded_s3_artifact(
+                bucket="private-bucket",
+                key="private-key",
+                version_id="immutable-version",
+                expected_bucket_owner="123456789012",
+                expected_kms_key_arn="approved-key",
+            ):
+                self.fail("a failed fsync must not yield an artifact")
+
+        self._assert_staging_root_empty()
+        body.close.assert_called_once_with()
 
     @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
     @patch("boto3.client")
@@ -255,6 +562,7 @@ class DevelopmentContentTransportTests(TestCase):
                 self.fail("invalid transport metadata must not yield an artifact")
 
         body.close.assert_called_once_with()
+        self._assert_staging_root_empty()
 
     @patch("courses.services.development_content_transport.APPROVED_SOURCE_SIZE", 3)
     @patch("boto3.client")
@@ -280,3 +588,4 @@ class DevelopmentContentTransportTests(TestCase):
                 self.fail("failed transport must not yield an artifact")
 
         body.close.assert_called_once_with()
+        self._assert_staging_root_empty()
