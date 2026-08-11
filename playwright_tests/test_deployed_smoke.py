@@ -118,6 +118,12 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(
         page.get_by_role("heading", name="Learn data skills. For free. Together.", exact=True)
     ).to_be_visible()
+    expect(page.locator("main .home-hero")).to_have_count(1)
+    expect(page.locator("main #courses")).to_have_count(1)
+    expect(page.get_by_text("Start now", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Active courses", exact=True)).to_be_visible()
+    expect(page.locator("#course-families-heading")).to_have_count(0)
+    expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
     expect(page.get_by_text("The place to talk about data")).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/courses"
@@ -125,7 +131,20 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(
         page.get_by_role("link", name="Data Engineering Zoomcamp 2026", exact=True)
     ).to_be_visible()
+    expect(
+        page.get_by_role("link", name="Data Engineering Zoomcamp 2026", exact=True).locator(
+            "xpath=ancestor::article[@role='link']"
+        )
+    ).to_have_count(1)
     expect(page.get_by_text(f"Version {version}", exact=False)).to_be_visible()
+    expect(page.locator("body")).not_to_contain_text("Traceback")
+    expect(page.locator("body")).not_to_contain_text("Page not found")
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    stylesheet_urls = page.locator('link[rel="stylesheet"]').evaluate_all(
+        "nodes => nodes.map(node => node.href)"
+    )
+    assert stylesheet_urls
+    assert all(url.startswith(f"{origin}/static/") for url in stylesheet_urls)
     page.screenshot(path=screenshot_directory / f"courses-{dimensions}.png", full_page=True)
 
     initial = page.request.get(f"{origin}/studio/", max_redirects=0)
