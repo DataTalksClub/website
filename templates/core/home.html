@@ -2,19 +2,28 @@
 {% block title %}
   Welcome to DataTalks.Club
 {% endblock %}
+{% block body_class %}
+  home-events-cmp-surface
+{% endblock %}
 {% block content %}
-  <section class="py-6 md:py-10">
-    <div class="max-w-4xl">
-      <h1 class="text-4xl font-semibold leading-tight sm:text-5xl md:text-6xl">
+  <section class="home-hero py-6 md:py-10">
+    <div class="max-w-3xl">
+      <h1 class="text-3xl font-semibold leading-tight tracking-normal sm:text-4xl md:text-5xl">
         The place to talk about data
       </h1>
-      <p class="mt-5 max-w-3xl text-lg leading-8 app-text md:text-xl">
+      <p class="mt-4 max-w-2xl text-base leading-7 app-text md:text-lg md:leading-8">
         Global online community of data science professionals, ML engineers, and AI practitioners
       </p>
-      <div class="mt-7 flex flex-wrap gap-3">
-        <a class="primer-button primer-button-primary" href="{% url 'events' %}">Explore upcoming events</a>
-        <a class="primer-button primer-button-secondary" href="{% url 'course_list' %}">Explore free courses</a>
-        <a class="primer-button primer-button-secondary" href="{% url 'slack' %}">Join our community</a>
+      <div class="home-hero-actions mt-7 flex flex-wrap gap-3">
+        <a class="primer-button primer-button-primary" href="{% url 'events' %}">
+          Explore upcoming events
+        </a>
+        <a class="primer-button primer-button-secondary" href="{% url 'course_list' %}">
+          Explore free courses
+        </a>
+        <a class="primer-button primer-button-secondary" href="{% url 'slack' %}">
+          Join our community
+        </a>
       </div>
     </div>
     <ul class="mt-10 divide-y app-divide border-y app-border text-lg font-semibold">
@@ -73,11 +82,8 @@
       review.
     </p>
     <div class="mt-6 divide-y app-divide border-y app-border" data-featured-courses>
-      <article
-        class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between"
-        data-featured-course
-      >
-        <div class="min-w-0">
+      <article class="grid gap-3 py-5" data-featured-course>
+        <div>
           <p class="text-sm font-semibold uppercase tracking-wide app-muted">2026 cohort</p>
           <h3 class="mt-2 text-xl font-semibold md:text-2xl">
             {{ featured_course.title }}
@@ -90,7 +96,7 @@
           </p>
         </div>
         <a
-          class="primer-button primer-button-secondary shrink-0 self-start sm:self-auto"
+          class="primer-button primer-button-secondary w-fit"
           href="{% url 'course-cohort-ai-dev-tools-2026' %}"
         >
           View cohort →
@@ -107,7 +113,7 @@
       Latest podcast episodes
     </h2>
     <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
-      <a class="flex flex-col gap-1 py-4 app-link sm:flex-row sm:items-center sm:justify-between" href="{{ podcast.public_path }}">
+      <a class="grid gap-1 py-4 app-link" href="{{ podcast.public_path }}">
         <strong class="text-lg">{{ podcast.title }}</strong>
         <span class="app-text">Listen to the latest episode</span>
       </a>

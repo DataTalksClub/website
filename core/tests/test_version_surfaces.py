@@ -20,7 +20,6 @@ class VersionSurfaceTests(TestCase):
 
     def test_all_shell_sources_use_only_the_readable_version(self) -> None:
         for relative_path in (
-            "templates/base.html",
             "templates/studio/base.html",
             "course_platform_templates/base.html",
         ):

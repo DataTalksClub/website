@@ -2,24 +2,38 @@
 {% block title %}
   {{ seo_title }}
 {% endblock %}
-{% block breadcrumbs %}
-  <li>
-    <a class="app-link" href="{% url 'events' %}">Events</a>
-  </li>
-  <li class="ml-2">/ {{ event.title }}</li>
+{% block body_class %}
+  home-events-cmp-surface
+{% endblock %}
+{% block breadcrumbs_nav %}
+  <nav class="breadcrumbs mb-6 text-sm app-muted md:mb-8" aria-label="Breadcrumb">
+    <ul class="m-0 flex list-none flex-wrap items-center gap-y-2 p-0">
+      <li>
+        <a class="app-link" href="{% url 'events' %}">Events</a>
+      </li>
+      <li class="ml-2" aria-current="page">/ {{ event.title }}</li>
+    </ul>
+  </nav>
 {% endblock %}
 {% block content %}
-  <article class="mx-auto max-w-3xl">
-    {% include "public/_event_meta.html" %}
-    <h1 class="mt-3 text-4xl font-semibold leading-tight">{{ event.title }}</h1>
-    {% if registration_total is not None %}
-      <p class="mt-4 text-lg" data-registration-total-revision="{{ registration_total.revision }}">
-        {{ registration_total.count }} registered
-      </p>
-    {% endif %}
+  <article class="max-w-3xl">
+    <header class="border-b app-border pb-6">
+      {% include "public/_event_meta.html" %}
+      <h1 class="mt-3 text-3xl font-semibold leading-tight tracking-normal md:text-4xl">
+        {{ event.title }}
+      </h1>
+      {% if registration_total is not None %}
+        <p
+          class="mt-4 text-base font-medium app-heading"
+          data-registration-total-revision="{{ registration_total.revision }}"
+        >
+          {{ registration_total.count }} registered
+        </p>
+      {% endif %}
+    </header>
     {% include "public/_event_description.html" %}
     {% if event.speakers %}
-      <section class="mt-8" aria-labelledby="event-speakers-heading">
+      <section class="mt-7" aria-labelledby="event-speakers-heading">
         <h2 id="event-speakers-heading" class="text-xl font-semibold">Speakers</h2>
         <ul class="mt-3 divide-y app-divide border-y app-border">
           {% for speaker in event.speakers %}
@@ -31,7 +45,7 @@
       </section>
     {% endif %}
     {% if event.links %}
-      <section class="mt-8" aria-labelledby="event-links-heading">
+      <section class="mt-7" aria-labelledby="event-links-heading">
         <h2 id="event-links-heading" class="text-xl font-semibold">Event links</h2>
         <div class="mt-4 flex flex-wrap gap-3">
           {% for link in event.links %}

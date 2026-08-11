@@ -188,12 +188,16 @@ class SharedLegalFooterTests(TestCase):
                 self.assertNotIn('href="/privacy/"', body)
                 self.assertNotIn('href="/impressum/"', body)
 
-    def test_both_base_shells_delegate_footer_markup_to_the_same_partial(self) -> None:
-        for relative in ("templates/base.html", "course_platform_templates/base.html"):
-            source = (ROOT / relative).read_text(encoding="utf-8")
-            self.assertEqual(source.count('{% include "core/_site_footer.html" %}'), 1)
-            self.assertNotIn("site-footer-github", source)
-            self.assertNotIn("Analytics preferences</button>", source)
+    def test_one_base_shell_owns_the_shared_footer_partial(self) -> None:
+        copied_base = (ROOT / "course_platform_templates/base.html").read_text(encoding="utf-8")
+        public_base = (ROOT / "templates/core/base.html").read_text(encoding="utf-8")
+
+        self.assertFalse((ROOT / "templates/base.html").exists())
+        self.assertEqual(copied_base.count('{% include "core/_site_footer.html" %}'), 1)
+        self.assertNotIn("site-footer-github", copied_base)
+        self.assertNotIn("Analytics preferences</button>", copied_base)
+        self.assertIn('{% extends "base.html" %}', public_base)
+        self.assertNotIn('{% include "core/_site_footer.html" %}', public_base)
 
     def test_github_icon_and_ordinary_legal_link_styles_are_separate(self) -> None:
         footer = (ROOT / "templates/core/_site_footer.html").read_text(encoding="utf-8")

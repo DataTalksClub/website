@@ -224,7 +224,6 @@ def template_readability_issues(source: str) -> list[str]:
 
 AUTHORED_TEMPLATE_ROOTS = {
     "course_platform_templates": "account-learner-shared",
-    "templates/base.html": "foundation-fallback",
     "templates/404.html": "public",
     "templates/core": "public",
     "templates/public": "public",

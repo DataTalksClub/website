@@ -73,6 +73,9 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     "test_no_database_course_catalog_uses_copied_cmp_empty_state": (
         (re.compile(r"^/courses/de-zoomcamp-2026$"), 404),
     ),
+    "test_empty_optional_and_error_states_are_responsive": (
+        (re.compile(r"^/events/not-a-real-event$"), 404),
+    ),
     "test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial": (
         (
             re.compile(r"^/studio/events/historical-registration-totals/mappings/$"),
