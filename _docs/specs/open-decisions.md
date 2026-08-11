@@ -59,18 +59,33 @@ Recommendation: OIDC provider with enforced MFA, Django groups/permissions, and 
 
 Owner input needed: use the existing shared Cognito setup or configure a different organizational OIDC provider.
 
-## 10. Email provider and semantics
+## 10. Email provider and semantics (resolved by #21)
 
-Recommendation: unified durable outbox with direct Amazon SES transactional delivery from the verified `dtcdev.click` identity in `us-east-1` for development. Retain Datamailer only as a temporary migration adapter. Prefer a rare duplicate over a missed critical message at the unacknowledged-provider boundary.
+Resolved: Relay is the sole canonical template-rendering and transactional-email delivery service.
+The website atomically commits the business mutation, one logical `EmailDelivery` intent, and one
+durable job; only a leased job contacts Relay after commit. Relay owns immutable published template
+versions, safe validation/rendering, sender resolution, provider submission/lifecycle, suppression,
+callbacks, reconciliation, and authoritative transport status. The website keeps the business
+intent and a redacted status projection only. New website code calls neither Amazon SES nor
+Datamailer directly.
 
-Owner input needed: development/production from and reply-to addresses, and whether Datamailer should remain the long-term delivery provider.
+Provider acceptance is not delivery. An uncertain acknowledgement becomes `ambiguous` and is never
+automatically resent; reconciliation or an audited operator action resolves it. Datamailer is
+read-only migration/history/reconciliation input, receives no new sends, and is never a rollback
+sender.
 
-## 11. Email scope
+The development Relay sender ID `courses`, mapped by Relay to
+`DataTalks.Club Courses <courses@dtcdev.click>`, is approved by #21. Production configuration and
+broad recipients remain out of scope.
 
-Recommendation: accountless event-registration verification and confirmation; verified-account
-course/cohort registration confirmation; cancellation, event cancellation/reschedule, enrollment
-changes, deadlines, peer review, scores, certificates, account verification, and password recovery.
-Marketing/newsletters are deferred.
+## 11. Email purpose catalog
+
+Decision still required in #22: approve the owner, audience, Relay sender/reply-to, template/context,
+idempotency/version inputs, and retention class for every non-course purpose. The accountless event,
+Slack access, account, and other course/event lifecycle purposes described in these specs are target
+capabilities, not authorization to send. Until #22 resolves each entry, only the approved
+development `courses` sender/purpose may progress and every other purpose or sender fails closed.
+Marketing/newsletters remain deferred.
 
 ## 12. Privacy retention
 

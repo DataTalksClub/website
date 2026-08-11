@@ -22,7 +22,9 @@ Status: draft
   boundary is validated by exact-image migration, database-aware readiness, and deployed smoke.
 - Django templates for public pages and Studio, with progressive enhancement rather than a separate single-page application.
 - Django-Q2 with its ORM broker for asynchronous and scheduled work, avoiding a Redis dependency in the MVP.
-- Amazon SES through a provider adapter; Django's console or in-memory backend in local development and tests.
+- Relay's versioned tenant API for canonical templates, safe rendering, sender resolution, and
+  transactional transport. Local development and tests use a contract-faithful fake and perform no
+  provider send.
 - Versioned assets in S3, resolved through stable public paths and cached at the edge.
 - A backend-portable search projection that preserves the current FAQ and Podwiki public
   contracts. Ranking and indexing implementation remains owned by the content/search issue.
@@ -38,7 +40,10 @@ Exact dependency versions are selected when implementation starts and are locked
 - `content_sync`: GitHub clients, signed webhooks, repository adapters, validation, rendering, release activation, and reconciliation jobs.
 - `courses`: adopted existing course-platform app, evolved to reusable courses with cohorts while preserving enrollment, assignments, submissions, peer review, scoring, leaderboards, certificates, and learner dashboards.
 - `events`: event lifecycle, speakers/hosts, registration workflow, cancellation, attendance, and exports.
-- `email_app`: templates, transactional outbox, delivery attempts, SES events, suppression, preview, and test sends.
+- `email_app`: logical `EmailDelivery` intents, Relay correlation/idempotency metadata, redacted
+  transport projections, callback/reconciliation commands, and the application service boundary
+  shared by domains, jobs, Studio, and the admin API. It owns no canonical template renderer,
+  provider adapter, provider attempt/event store, or sender worker.
 - `studio`: staff HTML workflows. It contains presentation logic only and calls domain services.
 - `api`: versioned admin-only JSON API and OpenAPI documentation. It calls the same domain services as Studio.
 - `jobs`: job wrappers, retry policy, scheduling, heartbeat, and operator diagnostics.
@@ -63,7 +68,8 @@ Database-owned and editable through Studio/API:
 - courses, cohorts, teaching teams, course registrations, enrollments, assignments, submissions, peer review, scores, certificates, and learner preferences;
 - events and event-person relationships;
 - registrations and attendance;
-- email outbox, attempts, provider events, and suppression state;
+- logical email intents, durable-job references, Relay correlation IDs, redacted transport status,
+  callback/reconciliation freshness, and safe reason codes;
 - navigation overrides, announcements, sponsors, and site settings selected for Studio ownership;
 - redirect manifest and exceptional URL rules;
 - content-source configuration and release activation state;
@@ -171,10 +177,11 @@ remain visible.
    `GET`/`PATCH /api/v1/me/profile`. PATCH is CSRF-protected, allowlisted, revision/`If-Match`
    guarded, and uses the accounts service. GET reports required/missing fields, completion version,
    completion time, and revision.
-4. On the first valid completion, atomically create or confirm one `SlackAccessGrant` and one unique
-   `EmailDelivery` intent keyed by account, profile completion version, and non-secret invite
-   version. Provider work happens after commit, so an outage never rolls back the saved profile or
-   eligibility.
+4. On the first valid completion, atomically create or confirm one `SlackAccessGrant`, one unique
+   `EmailDelivery` intent, and one durable job keyed by account, profile completion version, and
+   non-secret invite version. Only the leased job may call Relay after commit, so an outage never
+   rolls back the saved profile or eligibility. Live submission remains disabled until #22 approves
+   this purpose.
 5. Reveal Slack status/link only at `/accounts/community/slack/` to an eligible authenticated
    member through a private, no-store, noindex, referrer-safe response. The link is absent from the
    profile, grant, delivery context/body retention, logs, metrics, URLs, API examples, and evidence.
@@ -197,19 +204,27 @@ registration, grant, or delivery rows.
 ### Registration and email
 
 1. Validate and rate-limit a public registration command.
-2. In one database transaction, create or transition the registration and create a unique outbox message.
+2. In one database transaction, create or transition the registration, create one unique logical
+   `EmailDelivery` intent, and create its durable job. Transaction rollback creates none of them.
 3. Return a uniform success response after commit.
-4. A worker claims and sends the message, recording attempts and provider identifiers.
-5. Signed SES events update delivery state idempotently.
+4. A worker leases the durable website job and calls Relay only after commit with the stable
+   idempotency key, immutable template key/version, and allowed scalar data. Relay validates,
+   renders, resolves the sender, and owns provider submission and lifecycle.
+5. Signed Relay callbacks and scheduled/manual reconciliation update only the website's redacted
+   status projection. Provider acceptance is distinct from delivery; lost or uncertain
+   acknowledgement becomes `ambiguous` and is never automatically resent.
 
 Accountless event registration retains this flow. Account-owned course registration instead uses
 the verified member flow above and specification 04's exact separation between the minimized
-shared-profile snapshot and registration-owned fields/evidence.
+shared-profile snapshot and registration-owned fields/evidence. These structural purposes fail
+closed for live delivery until approved in #22; only the development Relay `courses` sender/purpose
+approved in #21 may be enabled.
 
 ## Configuration
 
 - Environment variables contain platform bootstrap settings only: environment, database URL, secret-key reference, allowed hosts, trusted origins, AWS region, and settings needed before the database is available.
-- Secret values, including the Slack join URL, live in AWS Secrets Manager or another approved
+- Secret values, including the Slack join URL, scoped Relay credentials, and the separate Relay
+  callback signing secret, live in AWS Secrets Manager or another approved
   runtime secret channel and are never committed, stored in domain rows, or shown in Studio/API
   output or exports.
 - Safe operational settings may live in database-backed configuration with typed validation, audit history, and explicit defaults.
@@ -220,9 +235,10 @@ shared-profile snapshot and registration-owned fields/evidence.
 - `/health/live` checks only that the process can answer.
 - `/health/ready` checks database connectivity, migrations, and required configuration without calling optional external providers.
 - Content pages continue from the active release during GitHub failure.
-- Registration remains committed when workers or SES are unavailable and reports that email may be delayed.
-- Member profile completion and Slack eligibility remain committed when the Slack secret or email
-  provider is unavailable; the private reveal page shows a safe delayed/support state.
+- Registration, its logical delivery intent, and its durable job remain committed when workers or
+  Relay are unavailable and report that email may be delayed.
+- Member profile completion and Slack eligibility remain committed when the Slack secret or Relay
+  is unavailable; the private reveal page shows a safe delayed/support state.
 - Search failure does not make content pages unavailable.
 - Studio/API failure must not prevent public content reads.
 
@@ -253,6 +269,8 @@ Deployed settings fail closed on that fallback or an incomplete/mismatched tripl
 - A test proves no public content request performs GitHub I/O or Markdown rendering.
 - A failed candidate sync leaves the active release and route index unchanged.
 - A worker outage does not lose a committed registration or its pending email.
+- No website request, service, or job calls Amazon SES or Datamailer directly, owns canonical
+  mutable email content, or automatically retries an ambiguous Relay acknowledgement.
 - Profile, Slack, course, Studio, and self-API writes share the accounts validation service; no flow
   creates or infers an editorial Person.
 - The generated route registry, Django policy, Terraform assertions, and deployed smoke agree, and

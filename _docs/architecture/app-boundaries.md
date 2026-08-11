@@ -15,6 +15,7 @@ public views   studio   api   jobs
                  core
 
 content_sync -> content + core
+domains -> email_app intent service -> jobs -> Relay (leased call after commit only)
 email_app/jobs may receive identifiers from domains, but domains do not import worker tasks
 ```
 
@@ -25,10 +26,14 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
 - `content_sync`: GitHub adapters and candidate-release orchestration; depends on `content`, never the reverse.
 - `courses`: database-owned courses, cohorts, and learner workflows.
 - `events`: database-owned events, registrations, attendance, and exports.
-- `email_app`: transactional outbox, delivery attempts, provider events, and suppression.
+- `email_app`: logical `EmailDelivery` intents, Relay idempotency/correlation metadata, redacted
+  transport projections, and callback/reconciliation commands. It owns no canonical template body,
+  renderer, provider adapter, provider attempt/event stack, suppression engine, or sender worker.
 - `studio`: staff HTML presentation only; mutations call owning application services.
 - `api`: versioned admin JSON presentation only; mutations call the same services as Studio.
-- `jobs`: queue wrappers, scheduling, leases, heartbeat, and operator diagnostics.
+- `jobs`: queue wrappers, scheduling, leases/fences, heartbeat, and operator diagnostics. A leased
+  durable job is the only website boundary that calls Relay, and it does so only after the business
+  transaction commits.
 
 Apps may depend on `accounts` for actor or ownership references and on `core` for generic primitives. Cross-domain behavior is coordinated by an application service at the owning boundary, using scalar identifiers for queued work. Circular imports are not an acceptable coordination mechanism.
 
@@ -43,6 +48,9 @@ confirmed values and writes a deliberately minimized immutable shared-profile sn
 `courses`; it does not take ownership of the profile. Outside that snapshot, the registration owns
 its normalized verified-email snapshot, target campaign/cohort snapshot, course-specific comment,
 privacy-notice evidence, and optional marketing-consent evidence. Profile completion coordinates a
-`SlackAccessGrant` and an `email_app.EmailDelivery` intent in the same database transaction. Workers
-receive only scalar identifiers and resolve the current Slack secret after commit, so `accounts`
-never imports a worker task or stores a secret-bearing rendered message.
+`SlackAccessGrant`, one `email_app.EmailDelivery` intent, and its durable job in the same database
+transaction. Workers receive only scalar identifiers, resolve the current Slack secret after
+commit, and submit allowed context to Relay; Relay owns validation/rendering and transport. Thus
+`accounts` never imports a worker task or stores a secret-bearing rendered message. Provider
+acceptance is distinct from delivery, and an ambiguous acknowledgement is never automatically
+resent. Datamailer remains read-only migration/history/reconciliation input, never a sender.

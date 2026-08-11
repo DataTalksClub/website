@@ -24,7 +24,8 @@ instantiation in a separate production account. Live physical names are catalogu
 - Production `robots.txt`, sitemap output, canonicals, structured data, and all existing
   SEO-bearing editorial paths and content remain governed by the compatibility manifest. Positive
   edge caching changes freshness and cost only; it does not change indexing or content contracts.
-- Events, registrations, email delivery records, Studio configuration, redirects, and audit records are database-owned.
+- Events, registrations, website logical email intents/redacted Relay projections, Studio
+  configuration, redirects, and audit records are database-owned.
 - The existing course platform is copied into this repository and evolved in place. Courses, cohorts, enrollments, assignments, submissions, peer review, scores, leaderboards, and certificates are database-owned and managed through Studio and the admin API.
 - Studio and the admin API call the same application services and enforce the same permissions, validation, idempotency, and audit rules.
 - Every management capability has both a Studio route and an admin API route; CI verifies this parity.
@@ -50,11 +51,21 @@ These defaults keep the first release useful without reproducing unrelated AI Sh
   secret-stored shared join URL, and reuses confirmed values for course registration. The MVP has no
   Slack API, directory, inferred editorial Person, or manual review queue.
 - Capacity, waitlists, recurring events, marketing campaigns, recommendations, payments, CRM, and personalization are deferred.
-- Transactional email uses Amazon SES in `us-east-1` and a durable database outbox processed by Django-Q2 workers.
+- Transactional email uses one durable website `EmailDelivery` intent and one durable Django-Q2
+  job committed atomically with the owning business mutation. A leased job calls Relay only after
+  commit. Relay owns canonical versioned templates, safe rendering, sender resolution, provider
+  submission/lifecycle, suppression, callbacks, reconciliation, and authoritative transport state;
+  the website keeps only its business intent and a redacted status projection.
 - Search preserves the current FAQ and Podwiki public contracts through a backend-portable
   projection; its ranking and indexing implementation belongs to the content/search issue.
 - Staff sign-in uses an OIDC provider that enforces MFA. Authorization uses Django groups and permissions.
-- The application prefers a rare duplicate transactional email over a missed critical email when a provider accepts a message but its acknowledgement is lost. Local deduplication minimizes this window.
+- Provider acceptance is distinct from delivery. A lost or uncertain Relay acknowledgement becomes
+  `ambiguous` and is never automatically resent; idempotent replay, reconciliation, or an audited
+  operator action resolves it.
+- New website code calls neither Amazon SES nor Datamailer directly. Datamailer is read-only
+  migration/history/reconciliation input and receives no new sends. Until #22 approves the
+  non-course purpose catalog, only the development Relay sender ID `courses` may be enabled and
+  every other purpose or sender fails closed.
 - CloudFront/WAF uses the cheapest currently eligible plan that supports the complete reviewed
   cache, logging, WAF, automation, and allowance contract. Advanced bot/fraud products are deferred;
   plan limits never justify weaker cache isolation, security, or evidence.
@@ -71,7 +82,8 @@ flowchart LR
     Web --> Assets[(Versioned content assets in S3)]
     Worker[Django-Q2 worker] --> DB
     Worker --> Assets
-    Worker --> SES[Amazon SES]
+    Worker --> Relay[Relay templates and transport]
+    Relay --> Provider[Email provider]
     GitHub[Allowlisted GitHub repositories] --> Hook[Signed webhook]
     Hook --> Web
     Worker --> GitHub

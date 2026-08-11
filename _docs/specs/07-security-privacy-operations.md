@@ -12,7 +12,8 @@ Protected assets include:
 - learner, registrant, submission, peer-review, attendance, and certificate data;
 - privacy and optional marketing-consent evidence;
 - account verification/password reset/registration management tokens;
-- staff sessions, API credentials, GitHub/SES/OIDC secrets;
+- staff sessions, API credentials, GitHub/Relay/OIDC credentials, and the separate Relay callback
+  signing secret; provider credentials remain outside the website boundary;
 - grading, leaderboard, capacity, content publication, redirect, and email integrity;
 - sender reputation, audit evidence, backups, and SEO equity.
 
@@ -149,9 +150,11 @@ Recommended initial retention, pending owner/privacy review:
 - unverified public registrations and their abuse metadata: 14 days;
 - event registration PII: 90 days after the event unless operational/legal need is documented;
 - learner enrollment, submissions, grading, certificates, and consent evidence: retained while the educational record is active, then anonymized/deleted according to a published schedule;
-- email rendered bodies/raw provider payloads: 30 days where diagnosis requires them;
-- email delivery metadata: 180 days;
-- hard-bounce/complaint suppression: retained as long as necessary to prevent harmful resends;
+- website email rendered bodies/raw provider payloads: never stored; Relay owns its provider-data
+  retention under its separately reviewed policy;
+- website logical delivery intent and redacted Relay projection metadata: 180 days;
+- hard-bounce/complaint suppression: Relay-owned and retained as long as necessary to prevent
+  harmful resends; the website keeps only the required redacted projection;
 - security/audit events: one year, with PII minimized;
 - application logs: 30 days in development and a reviewed production period.
 
@@ -185,8 +188,10 @@ Metrics and alerts cover:
 - public/learner/Studio/API availability, latency, and error rate;
 - registration/enrollment success, verification, throttling, and invariant failures;
 - content freshness, failed/quarantined releases, active commit, and link/search build failures;
-- worker heartbeat, scheduled-job lateness, oldest outbox row, retries, dead/ambiguous email, and queue depth;
-- SES acceptance latency, bounce, complaint, rejection, suppression, quota, and cost;
+- worker heartbeat, scheduled-job lateness, oldest durable email job, submission replays/conflicts,
+  dead/ambiguous Relay projections, callback/reconciliation freshness, and queue depth;
+- Relay submission latency/availability plus redacted provider-accepted, delivered, bounce,
+  complaint, rejection, suppression, quota, and cost summaries supplied by Relay;
 - course scoring/peer-assignment failures and deadline-job lateness;
 - API authentication/authorization failures, rate limiting, high-risk operations, and export volume;
 - database/storage health, backups, restore verification, and edge/origin failures;
@@ -241,7 +246,8 @@ Recommended initial production targets, subject to approval:
 
 - 99.9% monthly availability for public reads and registration/enrollment submission;
 - 95th percentile cached public response below 500 ms and uncached HTML below 1 second at the edge region under normal load;
-- 99% of transactional emails submitted to SES within 5 minutes, excluding provider outage/suppression;
+- 99% of approved transactional intents accepted by Relay within 5 minutes, excluding Relay outage
+  or suppression; provider acceptance and delivery remain separate later states;
 - GitHub content freshness below 15 minutes after an accepted main-branch commit;
 - production database RPO at most 15 minutes and service RTO at most 4 hours;
 - development RPO 24 hours and RTO one business day.
@@ -254,22 +260,28 @@ Recommended initial production targets, subject to approval:
 - Git repositories are content provenance, not backups for database-owned data.
 - Secrets have independent recovery/rotation procedures and are not assumed recoverable from database backups.
 - Quarterly production restore drills and routine automated backup verification.
-- Restore suppresses historical outbox work until reconciliation proves it is safe, reapplies privacy tombstones, and validates active content-release pointers.
+- Restore holds historical email jobs until Relay reconciliation proves each intent safe, reapplies
+  privacy tombstones, and validates active content-release pointers. It never enables Datamailer or
+  a second sender.
 
 ## Failure behavior
 
 - GitHub failure: serve last known good content and alert on freshness.
 - Invalid content commit: quarantine with diagnostics; do not partially publish.
 - Database transaction failure: no ghost registration/enrollment or email.
-- Worker/SES failure: keep durable pending/retry state and expose lag to operators.
+- Worker/Relay failure: keep the logical intent and durable job, expose lag, and retry only safe
+  pre-ambiguity work. Uncertain acknowledgement becomes `ambiguous` and is never automatically
+  resent.
 - Search/graph failure: retain prior projection or degrade search without losing source pages.
 - Concurrent course/event edits: reject stale revision.
 - Concurrent scoring/registration/enrollment: database invariants win and tasks remain idempotent.
-- Deployment regression: roll back immutable app image without sending old outbox messages twice.
+- Deployment regression: hold email jobs, roll back the immutable app image, and reconcile Relay
+  without sending an old logical intent twice or re-enabling Datamailer.
 - Deployment identity mismatch: fail before mutation or success recording; rollback/recovery uses
   the exact recorded VERSION, source SHA, digest, task definitions, and service counts without a
   clock or fabricated timestamp.
-- Secret/provider expiry: alert before expiry and follow a tested rotation runbook.
+- Relay client/callback-secret expiry and provider-health degradation: alert before expiry or
+  failure and follow tested rotation/reconciliation runbooks; the website owns no provider secret.
 
 ## Acceptance criteria
 
@@ -282,6 +294,9 @@ Recommended initial production targets, subject to approval:
   logs, metrics, audits, or evidence.
 - Cache classification, poisoning, country trust, WAF count/block, cheapest-sufficient plan evidence,
   allowance alarms, and TTL-zero/emergency rollback pass local/policy/deployed gates.
+- Scoped Relay credentials/callback verification, redacted projections, callback reconciliation,
+  accepted-versus-delivered handling, and ambiguity-without-automatic-resend pass without a website
+  provider credential, direct Amazon SES/Datamailer path, rendered body, or raw provider event.
 - WCAG automated and manual acceptance passes for critical flows.
 - Alerts and runbooks exist for every release-critical failure mode.
 - A restore drill meets the approved RPO/RTO and does not resend historical email or resurrect deleted data.

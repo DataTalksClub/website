@@ -35,7 +35,8 @@ Recommended groups:
 - `content_operator`: source configuration view, sync, preview, activate, rollback, link diagnostics, navigation/announcement/sponsor management;
 - `course_operator`: courses, cohorts, cohort-owned curriculum, teaching teams, registrations, enrollments, assignments, submissions, scoring, peer review, complaints, leaderboards, and certificates;
 - `event_operator`: events, people assignment, registrations, attendance, exports, and event notifications;
-- `email_operator`: template versions, test sends, delivery diagnosis, retry/resolution, suppression view;
+- `email_operator`: Relay-proxied template versions/test sends and website-intent/redacted-status
+  diagnosis, reconciliation, safe retry/resolution, and Relay suppression summaries;
 - `support_operator`: limited user/registration/enrollment lookup and approved corrective actions, with masked PII by default;
 - `auditor`: read-only operational and audit access.
 
@@ -43,7 +44,9 @@ Permissions are capability-based rather than a single `is_staff` check. One user
 
 ## Studio sections
 
-- Dashboard: service health, content freshness, worker heartbeat, queue age, failed/ambiguous email, upcoming events/cohorts, and recent high-risk actions.
+- Dashboard: service health, content freshness, worker heartbeat, durable-job age, failed/ambiguous
+  Relay projections, callback/reconciliation freshness, upcoming events/cohorts, and recent
+  high-risk actions.
 - Content: sources, sync runs, candidate previews, releases, routes, links, search/graph, and GitHub edit links.
 - People: searchable public profiles and derived author/guest/speaker/host/instructor relationships; profile edits go to GitHub.
 - Members: private account-owned profile completion, Slack grant/delivery state, allowlisted
@@ -51,7 +54,10 @@ Permissions are capability-based rather than a single `is_staff` check. One user
   grants authority to a GitHub editorial Person.
 - Courses: courses, cohorts, homework/questions, projects/criteria, schedules, teaching teams, registrations, enrollments, submissions, peer review, scoring, complaints, leaderboards, certificates, and communication status.
 - Events: lifecycle, people, registrations, attendance, exports, calendar changes, and notifications.
-- Email: templates, previews, test sends, deliveries, attempts, SES events, suppression, and worker diagnostics.
+- Email: Relay-proxied template catalog/drafts/immutable versions, previews, controlled test sends,
+  website logical delivery intents, redacted Relay status/callback/reconciliation projections,
+  suppression/provider-health summaries, and durable-job diagnostics. Studio owns no renderer,
+  provider attempt/event store, or direct-send fallback.
 - Site: navigation, announcements, sponsors, redirects, SEO exceptions, and safe settings.
 - Access: staff users, groups, service principals, API tokens, active sessions, and revocation.
 - Audit: filterable append-only events and export with restricted access.
@@ -81,7 +87,9 @@ Management resources include:
 - people lookups and relationship validation;
 - courses, cohorts, cohort-owned homework/questions/projects/criteria, teaching teams, schedules, registrations, enrollments, assignments, submissions, reviews, scores, complaints, leaderboards, statistics, certificates, imports, and exports;
 - events, speakers/hosts, registrations, attendance, calendar changes, and notification operations;
-- email templates/versions, previews/test sends, deliveries, attempts, provider events, suppression, retry/resolution operations;
+- Relay template catalog/drafts/immutable versions and proxied preview/test/publish/republish;
+  website logical delivery intents, redacted Relay projections, reconciliation, safe
+  retry/ambiguity-resolution/manual-resend, and suppression/provider-health summaries;
 - navigation, announcements, sponsors, redirects, site settings, health/operational reports;
 - staff, roles, service principals, credentials, sessions, and audit events;
 - member profiles and Slack access/delivery summaries through:
@@ -185,6 +193,8 @@ Authorization headers, plaintext credentials, management links, email bodies, an
 - CSV/worksheet exports neutralize formula injection.
 - Support preview/view-as functionality is capability-scoped, prominently labeled, read-only by default, and audited. Unrestricted impersonation is not copied from the reference systems.
 - Built-in Django admin is disabled in production or reserved as a separately protected superuser-only break-glass surface; it is not the normal management interface.
+- Relay unavailability, timeout, scope denial, or revision/idempotency conflict returns a safe
+  actionable result. Studio/admin API never fall back to local rendering, Amazon SES, or Datamailer.
 
 CloudFront assigns explicit zero-TTL behaviors to `/studio/`, `/api/v1/admin/`, `/accounts/`,
 `/admin/`, and `/cadmin/`. On mixed public paths, any Authorization, session/auth/CSRF or unknown
@@ -202,6 +212,9 @@ served to a staff member, learner, or API principal.
 - Member self/management adapters have identical allowlisted validation, revision conflict,
   masking, permission, audit-redaction, and resend/idempotency behavior, with no Person side effect
   or raw Slack-link serialization.
+- Email adapters proxy Relay through shared services, expose only website intent plus redacted
+  transport projection, and preserve provider-accepted-versus-delivered and non-retryable ambiguity
+  without a local canonical template or provider-event store.
 - Stale edits, duplicate commands, bulk partial failures, denied operations, and audit redaction behave consistently.
 
 ## Historical registration-total management
