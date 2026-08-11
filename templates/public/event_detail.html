@@ -17,6 +17,7 @@
         {{ registration_total.count }} registered
       </p>
     {% endif %}
+    {% include "public/_event_description.html" %}
     {% if event.speakers %}
       <section class="mt-8" aria-labelledby="event-speakers-heading">
         <h2 id="event-speakers-heading" class="text-xl font-semibold">Speakers</h2>

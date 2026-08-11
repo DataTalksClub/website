@@ -4,7 +4,7 @@
     "books.json": "44d9498ba6852038de61534cdd6fd8d02cbf9e0c16fcf33b2dd5e5b3e10def80",
     "courses.json": "318d7cb156cdcf74f346695d3db2b526e81c3321426c33365e91d3f471211c4d",
     "editorial_route_migration.json": "369606b948d20a7d438efaacfe1e2d9ed7610f96d0edfcd48abd65134772a255",
-    "events.json": "64cdab5893afb3558fdf5a3d81fe23c9ed9481016897d823f41dcdbe5bebf580",
+    "events.json": "7e20cc0140d2b39e4bc2f84f1d947da68f13d93678846c829ff4ecc9f26006f1",
     "media.json": "6b6670d01407c72649f89a7671e240d7c75d9653b9bb25b30f362e14b0325aea",
     "people.json": "5c0e2ab52e710f28f6e4e9d676b772582437fdd3f9d60e032bbacf2e1535ef2d",
     "podcasts.json": "33409b09c184a02ff6b685d805d9ad05d74bb15d5b34ea86f34c5a10b4cb0c8d",
@@ -25,6 +25,48 @@
   },
   "projection_rules": {
     "conference_links_outside_slice": "omitted",
+    "event_description_bridge": {
+      "content_sha256": "64c54ffa59b4cb57538ec3bba1c1a0577481523323db9f76edd55cf0ca2340e3",
+      "counts": {
+        "described_events": 159,
+        "gaps": 9,
+        "matches": 159,
+        "source_pairs": 168,
+        "title_and_instant_different": 8,
+        "title_and_instant_equal": 36,
+        "title_different_instant_equal": 2,
+        "title_equal_instant_different": 113,
+        "undescribed_events": 262
+      },
+      "event_record_schema_version": 2,
+      "exporter_revision": "a0ede3c1451d34c5bc99acf58459ef1c65ae51df",
+      "link_policy_version": "event-description-links-v1",
+      "link_review": {
+        "decision_counts": {
+          "external_resource_kept": 148,
+          "internal_rewritten": 154,
+          "internal_target_missing": 1,
+          "provider_action_removed": 49,
+          "registration_action_removed": 185,
+          "remote_image_removed": 1,
+          "unreviewed_shortlink_removed": 2
+        },
+        "decision_inventory_sha256": "7e03446eeb7b119af17ee4996add65cfbad4917aff81b8e7e1a0dcb0885b62ce",
+        "distinct_url_literals": 118,
+        "remote_images_omitted": 1,
+        "url_occurrences": 540
+      },
+      "markdown_policy_version": "event-description-markdown-v2",
+      "matching_policy_version": "exact-provider-path-v1",
+      "path": "content/event_description_bridge.json",
+      "safe_source_sha256": "ddcd0eae7b60e886a1b30f644bd09f5d6f0433f0f27d95fa40d6171570dceaf1",
+      "schema": {
+        "path": "_docs/compatibility/event-description-bridge.schema.json",
+        "sha256": "3aafcb4b22c7cf6165b1fd1135aa2a9f5b76300e5bcfe43572da0f87b5eb4fbb"
+      },
+      "schema_version": 1
+    },
+    "event_record_schema_version": 2,
     "event_source_timezone": "Europe/Berlin",
     "media": "signature-checked local allowlist with per-asset provenance",
     "people_source": "438 public _people profiles; underscore-prefixed source excluded",
@@ -34,6 +76,7 @@
   },
   "runtime_contract": {
     "database_writes": "none",
+    "event_description_source": "committed_safe_bridge_only",
     "network": "none",
     "podwiki_mount": "absent",
     "source_execution": "none",
@@ -77,7 +120,7 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "3b69c3a566788c2cf9254f3f1677aa4c8ee25589e253a81d4bae75cda38dbaeb",
+  "tree_sha256": "a87e04feb4055bca2bd4cb851b887e1a5d240d0f2b8a5f039a577aefc3ec22e9",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

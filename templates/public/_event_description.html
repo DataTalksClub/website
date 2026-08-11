@@ -1,0 +1,5 @@
+{% if event.description_html %}
+  <section class="mt-8 app-text" aria-label="Event description">
+    {{ event.description_html|safe }}
+  </section>
+{% endif %}

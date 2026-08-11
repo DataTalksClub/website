@@ -50,7 +50,6 @@
       "type": "Podcast",
       "speaker": "aleksandrkim",
       "speaker_name": "Aleksandr Kim",
-      "provider_url": "https://luma.com/6c089dac",
       "recording_url": "https://www.youtube.com/watch?v=PosCx_4fwt0",
       "episode_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html"
     },
@@ -62,8 +61,7 @@
       "title": "Test, Containerize, and Deploy an AI-Assisted App",
       "type": "Workshop",
       "speaker": "alexeygrigorev",
-      "speaker_name": "Alexey Grigorev",
-      "provider_url": "https://luma.com/v5tjy562"
+      "speaker_name": "Alexey Grigorev"
     },
     {
       "source": "main",
@@ -73,8 +71,7 @@
       "title": "Coding Agent Capabilities: MCP, Skills, Plugins, and Custom Agents",
       "type": "Workshop",
       "speaker": "alexeygrigorev",
-      "speaker_name": "Alexey Grigorev",
-      "provider_url": "https://luma.com/ap4l3qlj"
+      "speaker_name": "Alexey Grigorev"
     },
     {
       "source": "main",
@@ -84,8 +81,7 @@
       "title": "DevOps and Observability for AI-Built Apps",
       "type": "Workshop",
       "speaker": "alexeygrigorev",
-      "speaker_name": "Alexey Grigorev",
-      "provider_url": "https://luma.com/ycsfxigi"
+      "speaker_name": "Alexey Grigorev"
     },
     {
       "source": "main",
@@ -95,8 +91,7 @@
       "title": "Running Durable Agents in Production",
       "type": "Workshop",
       "speaker": "nicholaslotz",
-      "speaker_name": "Nicholas Lotz",
-      "provider_url": "https://luma.com/wz20rm8n"
+      "speaker_name": "Nicholas Lotz"
     },
     {
       "source": "main",
@@ -106,8 +101,7 @@
       "title": "AI Dev Tools Zoomcamp 2026 Pre-Course Live Q&A",
       "type": "Webinar",
       "speaker": "alexeygrigorev",
-      "speaker_name": "Alexey Grigorev",
-      "provider_url": "https://luma.com/a8qa5s2s"
+      "speaker_name": "Alexey Grigorev"
     },
     {
       "source": "main",
@@ -117,8 +111,7 @@
       "title": "AI Dev Tools Zoomcamp 2026 Course Launch",
       "type": "Webinar",
       "speaker": "alexeygrigorev",
-      "speaker_name": "Alexey Grigorev",
-      "provider_url": "https://luma.com/tsiusx8s"
+      "speaker_name": "Alexey Grigorev"
     }
   ],
   "people": {
