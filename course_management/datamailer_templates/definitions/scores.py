@@ -2,7 +2,7 @@ SCORE_TEMPLATES = {
     "homework-score-notification": {
         "name": "Homework Score Notification",
         "description": (
-            "Triggered when staff score the homework (cadmin -> Score "
+            "Triggered when staff score the homework (Studio Courses -> Score "
             "homework). Sent to every homework submitter."
         ),
         "subject": "Scores available: {{ homework_title }}",
@@ -78,7 +78,7 @@ SCORE_TEMPLATES = {
     "project-score-notification": {
         "name": "Project Score Notification",
         "description": (
-            "Triggered when staff score the project (cadmin -> Score "
+            "Triggered when staff score the project (Studio Courses -> Score "
             "project). Sent to every project submitter."
         ),
         "subject": "Scores available: {{ project_title }}",

@@ -49,6 +49,10 @@ from deploy.task_definitions import (
 ROOT = Path(__file__).resolve().parents[2]
 HISTORICAL_WORKFLOW_COMMIT = "91490f0d3f172327a400c9edf5b441265890f897"
 HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334caf42f9b2524850d"
+# Issue #116 mechanically moves the copied legacy package and therefore retargets only
+# the Ruff and mypy exclusions to studio_courses. Keep both workflow-isolation seals
+# pinned to the exact reviewed pyproject rather than weakening either check.
+STUDIO_COURSES_PYPROJECT_SHA256 = "2ad65f683ff2cdcd2d0e1bf02268947ba98c017162d15e9da5a4c0fd5c0f02da"
 DATABASE_SECRET_ARN = (
     "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-Ab12Cd"
 )
@@ -961,7 +965,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "core/tests/test_deployment_oidc_probe.py": (
                 "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
             ),
-            "pyproject.toml": ("af3177f75dc026c8b6fd55a1995fa891a971f5bb1732772c14a4adf3042b4c49"),
+            "pyproject.toml": STUDIO_COURSES_PYPROJECT_SHA256,
             "uv.lock": "070c1169e5902df2c7b202106da308a6b48060970b30804c08f13fed5ec66d9f",
         }
         for relative_path, expected_hash in unchanged_hashes.items():
@@ -1138,7 +1142,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             "core/tests/test_deployment_oidc_probe.py": (
                 "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
             ),
-            "pyproject.toml": ("af3177f75dc026c8b6fd55a1995fa891a971f5bb1732772c14a4adf3042b4c49"),
+            "pyproject.toml": STUDIO_COURSES_PYPROJECT_SHA256,
             "uv.lock": "070c1169e5902df2c7b202106da308a6b48060970b30804c08f13fed5ec66d9f",
         }
         for relative_path, expected_hash in frozen_hashes.items():

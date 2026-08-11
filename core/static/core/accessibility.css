@@ -70,7 +70,7 @@ header a {
 }
 
 .dense-utility-links a,
-.cadmin-shell a.app-link {
+.studio-courses-shell a.app-link {
   align-items: center;
   display: inline-flex;
   min-height: 1.5rem;

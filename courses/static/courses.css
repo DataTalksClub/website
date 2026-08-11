@@ -1257,72 +1257,72 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   white-space: nowrap;
 }
 
-.cadmin-shell .rounded-md,
-.cadmin-shell section,
-.cadmin-shell article,
-.cadmin-shell form,
-.cadmin-shell label,
-.cadmin-shell input,
-.cadmin-shell textarea,
-.cadmin-shell button,
-.cadmin-shell a {
+.studio-courses-shell .rounded-md,
+.studio-courses-shell section,
+.studio-courses-shell article,
+.studio-courses-shell form,
+.studio-courses-shell label,
+.studio-courses-shell input,
+.studio-courses-shell textarea,
+.studio-courses-shell button,
+.studio-courses-shell a {
   min-width: 0;
 }
 
-.cadmin-shell {
+.studio-courses-shell {
   font-size: 14px;
 }
 
-.cadmin-page > div.mx-auto {
+.studio-courses-page > div.mx-auto {
   padding-top: 1rem;
   padding-bottom: 1.5rem;
 }
 
-.cadmin-page .breadcrumbs {
+.studio-courses-page .breadcrumbs {
   margin-bottom: 1rem !important;
 }
 
-.cadmin-shell h1 {
+.studio-courses-shell h1 {
   font-size: 1.5rem;
   line-height: 1.2;
 }
 
-.cadmin-shell h2 {
+.studio-courses-shell h2 {
   font-size: 0.95rem;
   line-height: 1.35;
 }
 
-.cadmin-section-heading {
+.studio-courses-section-heading {
   align-items: flex-start;
   display: flex;
   gap: 0.75rem;
   justify-content: space-between;
 }
 
-.cadmin-page-header {
+.studio-courses-page-header {
   align-items: flex-start;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.cadmin-page-header > :first-child {
+.studio-courses-page-header > :first-child {
   max-width: 100%;
   width: 100%;
 }
 
-.cadmin-support-strip {
+.studio-courses-support-strip {
   border-bottom: 1px solid var(--border-muted);
   padding-bottom: 1rem;
 }
 
-.cadmin-metrics-grid {
+.studio-courses-metrics-grid {
   display: grid;
   gap: 0.5rem;
   grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
 }
 
-.cadmin-metric {
+.studio-courses-metric {
   background: var(--surface-muted);
   border: 1px solid var(--border-muted);
   border-radius: 6px;
@@ -1361,7 +1361,7 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   justify-content: center;
 }
 
-.cadmin-count-badge {
+.studio-courses-count-badge {
   align-items: center;
   background: var(--surface-muted);
   border: 1px solid var(--border-muted);
@@ -1375,7 +1375,7 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   padding: 0.15rem 0.55rem;
 }
 
-.cadmin-list-row {
+.studio-courses-list-row {
   border-radius: 6px;
   margin-left: -0.5rem;
   margin-right: -0.5rem;
@@ -1383,24 +1383,24 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   padding-right: 0.5rem;
 }
 
-.cadmin-list-row:hover {
+.studio-courses-list-row:hover {
   background: var(--surface-muted);
 }
 
-.cadmin-shell article {
+.studio-courses-shell article {
   padding-top: 0.75rem !important;
   padding-bottom: 0.75rem !important;
 }
 
-.cadmin-shell .mt-6 {
+.studio-courses-shell .mt-6 {
   margin-top: 1rem !important;
 }
 
-.cadmin-shell .space-y-6 > :not([hidden]) ~ :not([hidden]) {
+.studio-courses-shell .space-y-6 > :not([hidden]) ~ :not([hidden]) {
   margin-top: 1rem !important;
 }
 
-.cadmin-shell .primer-button {
+.studio-courses-shell .primer-button {
   background: #f6f8fa;
   border-color: #d0d7de;
   color: #24292f;
@@ -1409,41 +1409,41 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   padding: 4px 10px;
 }
 
-.cadmin-shell .primer-button:hover {
+.studio-courses-shell .primer-button:hover {
   background: #eef1f4;
   border-color: #d0d7de;
   color: #24292f;
 }
 
-.cadmin-shell .primer-button.cadmin-primary {
+.studio-courses-shell .primer-button.studio-courses-primary {
   background: #315f8f;
   border-color: #315f8f;
   color: #ffffff;
 }
 
-.cadmin-shell .primer-button.cadmin-primary:hover {
+.studio-courses-shell .primer-button.studio-courses-primary:hover {
   background: #244d78;
   border-color: #244d78;
   color: #ffffff;
 }
 
-.cadmin-row-actions form {
+.studio-courses-row-actions form {
   display: inline-flex;
 }
 
-.cadmin-row-actions .primer-button {
+.studio-courses-row-actions .primer-button {
   width: auto;
 }
 
-.cadmin-actions-menu {
+.studio-courses-actions-menu {
   position: relative;
 }
 
-.cadmin-actions-menu[open] {
+.studio-courses-actions-menu[open] {
   z-index: 20;
 }
 
-.cadmin-actions-toggle {
+.studio-courses-actions-toggle {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
@@ -1459,18 +1459,18 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   width: 26px;
 }
 
-.cadmin-actions-toggle::-webkit-details-marker {
+.studio-courses-actions-toggle::-webkit-details-marker {
   display: none;
 }
 
-.cadmin-actions-toggle:hover,
-.cadmin-actions-menu[open] .cadmin-actions-toggle {
+.studio-courses-actions-toggle:hover,
+.studio-courses-actions-menu[open] .studio-courses-actions-toggle {
   background: color-mix(in srgb, var(--surface-muted) 70%, transparent);
   border-color: transparent;
   opacity: 1;
 }
 
-.cadmin-actions-panel {
+.studio-courses-actions-panel {
   background: var(--surface-bg);
   background: color-mix(in srgb, var(--surface-bg) 94%, transparent);
   backdrop-filter: blur(8px);
@@ -1486,12 +1486,12 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   top: calc(100% + 0.25rem);
 }
 
-.cadmin-actions-panel form {
+.studio-courses-actions-panel form {
   display: block;
   margin: 0;
 }
 
-.cadmin-action-item {
+.studio-courses-action-item {
   align-items: center;
   background: transparent;
   border: 0;
@@ -1507,45 +1507,45 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   width: 100%;
 }
 
-.cadmin-action-item:hover {
+.studio-courses-action-item:hover {
   background: color-mix(in srgb, var(--surface-muted) 78%, transparent);
   color: var(--text-primary);
   text-decoration: none;
 }
 
-.cadmin-action-item i {
+.studio-courses-action-item i {
   color: var(--text-muted);
   flex: 0 0 1rem;
   text-align: center;
 }
 
-.cadmin-submenu {
+.studio-courses-submenu {
   width: 100%;
 }
 
-.cadmin-submenu-toggle {
+.studio-courses-submenu-toggle {
   list-style: none;
 }
 
-.cadmin-submenu-toggle::-webkit-details-marker {
+.studio-courses-submenu-toggle::-webkit-details-marker {
   display: none;
 }
 
-.cadmin-submenu-caret {
+.studio-courses-submenu-caret {
   margin-left: auto;
   font-size: 0.7rem;
   transition: transform 120ms ease;
 }
 
-.cadmin-submenu[open] .cadmin-submenu-caret {
+.studio-courses-submenu[open] .studio-courses-submenu-caret {
   transform: rotate(180deg);
 }
 
-.cadmin-submenu-panel {
+.studio-courses-submenu-panel {
   padding-left: 1rem;
 }
 
-.cadmin-active-filter {
+.studio-courses-active-filter {
   border-color: var(--link-color);
   box-shadow: inset 0 0 0 1px var(--link-color);
 }
@@ -1597,28 +1597,28 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.cadmin-meta-grid > * {
+.studio-courses-meta-grid > * {
   padding: 0.75rem !important;
 }
 
-.cadmin-meta-grid p:first-child,
-.cadmin-shell dt {
+.studio-courses-meta-grid p:first-child,
+.studio-courses-shell dt {
   letter-spacing: 0;
 }
 
-.cadmin-score-input {
+.studio-courses-score-input {
   max-width: 5rem;
 }
 
-.cadmin-criteria-row {
+.studio-courses-criteria-row {
   grid-template-columns: minmax(0, 1fr) 5rem;
 }
 
-.cadmin-shell summary {
+.studio-courses-shell summary {
   list-style-position: inside;
 }
 
-.cadmin-shell table tbody tr:hover {
+.studio-courses-shell table tbody tr:hover {
   background: #f6f8fa;
 }
 
@@ -1755,7 +1755,7 @@ body.dark-mode [class*="text-red-700"] {
   justify-content: center;
 }
 
-.cadmin-compact-button {
+.studio-courses-compact-button {
   min-height: 28px;
   min-width: 30px;
   padding: 4px 8px;
@@ -1783,37 +1783,37 @@ body.dark-mode [class*="text-red-700"] {
     white-space: normal;
   }
 
-  .cadmin-shell article {
+  .studio-courses-shell article {
     padding-top: 0.5rem !important;
     padding-bottom: 0.5rem !important;
   }
 
-  .cadmin-shell .primer-button {
+  .studio-courses-shell .primer-button {
     font-size: 12px;
     min-height: 30px;
     padding: 4px 8px;
     white-space: nowrap;
   }
 
-  .cadmin-section-heading {
+  .studio-courses-section-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .cadmin-metrics-grid {
+  .studio-courses-metrics-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .cadmin-shell section > div[class~="px-4"][class~="py-3"] {
+  .studio-courses-shell section > div[class~="px-4"][class~="py-3"] {
     padding: 0.625rem 0.75rem !important;
   }
 
-  .cadmin-shell section > div[class~="p-4"],
-  .cadmin-shell .p-4 {
+  .studio-courses-shell section > div[class~="p-4"],
+  .studio-courses-shell .p-4 {
     padding: 0.75rem !important;
   }
 
-  .cadmin-compact-button {
+  .studio-courses-compact-button {
     min-height: 36px;
     min-width: 36px;
   }
@@ -2204,25 +2204,25 @@ body.dark-mode .primer-button-warning:hover {
   border-color: #bb8009;
 }
 
-body.dark-mode .cadmin-shell .primer-button {
+body.dark-mode .studio-courses-shell .primer-button {
   background: #21262d;
   border-color: #30363d;
   color: #c9d1d9;
 }
 
-body.dark-mode .cadmin-shell .primer-button:hover {
+body.dark-mode .studio-courses-shell .primer-button:hover {
   background: #30363d;
   border-color: #8b949e;
   color: #ffffff;
 }
 
-body.dark-mode .cadmin-shell .primer-button.cadmin-primary {
+body.dark-mode .studio-courses-shell .primer-button.studio-courses-primary {
   background: #4d7fa8;
   border-color: #4d7fa8;
   color: #ffffff;
 }
 
-body.dark-mode .cadmin-shell .primer-button.cadmin-primary:hover {
+body.dark-mode .studio-courses-shell .primer-button.studio-courses-primary:hover {
   background: #6d99c2;
   border-color: #6d99c2;
   color: #ffffff;
@@ -2232,7 +2232,7 @@ body.dark-mode .cloudwatch-chart {
   color: #8bb7df;
 }
 
-body.dark-mode .cadmin-shell table tbody tr:hover {
+body.dark-mode .studio-courses-shell table tbody tr:hover {
   background: #0d1117;
 }
 

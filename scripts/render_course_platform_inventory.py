@@ -26,11 +26,11 @@ from django.urls import URLPattern, URLResolver  # noqa: E402
 URL_SURFACES = (
     ("Accounts", "accounts.urls", "accounts/"),
     ("Compatibility API", "api.urls", "api/"),
-    ("Studio Courses", "cadmin.urls", "studio/courses"),
+    ("Studio Courses", "studio_courses.urls", "studio/courses"),
     ("Public courses", "courses.urls", ""),
 )
-SOURCE_APP_LABELS = ("accounts", "api", "cadmin", "courses", "data")
-SOURCE_COMMAND_APPS = {"accounts", "api", "cadmin", "courses", "data"}
+SOURCE_APP_LABELS = ("accounts", "api", "studio_courses", "courses", "data")
+SOURCE_COMMAND_APPS = {"accounts", "api", "studio_courses", "courses", "data"}
 CONVERTER_TOKEN = re.compile(r"<(?:(?P<converter>[^:>]+):)?(?P<name>[^>]+)>")
 
 
@@ -165,7 +165,8 @@ def render_inventory() -> str:
             f"| **Total** |  | **{len(routes)}** |",
             "",
             "The compatibility API and Studio Courses rows below retain the complete adopted",
-            "behavior; issue #115 changes the management adapter names and mount, not its logic.",
+            "behavior. Issues #115 and #116 change the management mount, names, and package",
+            "mechanically without changing its logic.",
             "",
             "## Routes",
             "",

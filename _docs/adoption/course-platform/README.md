@@ -44,6 +44,12 @@ cp -R .tmp/cmp-source-98a2352/templates/. course_platform_templates/
 cp -R .tmp/cmp-source-98a2352/scripts/. scripts/
 ```
 
+Issue #116 mechanically moves the copied `cadmin/` destination to `studio_courses/`, including
+its Python, test, template, and static namespaces. The source paths above remain the literal-copy
+provenance. `copied-files.tsv` now records each pinned `cadmin/*` source against its exact
+`studio_courses/*` destination, while the two-file target-owned `cadmin/` package contains only
+the accepted legacy URL adapter.
+
 The source root templates use a distinct destination so their byte identity is retained without replacing the unified website's root template shell. The manifest records this mapping.
 
 Allowlisted tracked roots are `accounts/`, `api/`, `cadmin/`, `course_management/`, `courses/`, `data/`, `e2e/`, `templates/`, and `scripts/`. This includes all original app migrations, tests, templates/static assets, management commands, compatibility API, cadmin, and source operational scripts referenced by characterization tests.
@@ -82,11 +88,13 @@ files as source-identical.
 
 ## Evidence index
 
-- `behavior-inventory.md`: generated inventory of all 89 adopted HTML/account/API/cadmin routes,
-  all 13 adopted management commands, and the original app/migration identities;
+- `behavior-inventory.md`: generated inventory of all 89 adopted HTML/account/API/Studio Courses
+  routes, all 13 adopted management commands, and the active app/preserved migration identities;
 - `verification.md`: characterization counts, migration evidence, environment dispositions, and
   remaining parity gate;
 - `integration-patches.md`: target-owned compatibility changes;
+- `cadmin-reference-allowlist.tsv`: every remaining source-provenance or legacy-adapter reference,
+  with its owner and removal gate;
 - `target-owned-compatibility-shims.tsv`: checksums and per-file rationale for the two retained
-  scaffold admin API shims;
+  scaffold admin API shims and the two-file legacy `/cadmin` route adapter;
 - `migration-squash-gate.md`: evidence required before any original migration can be replaced.

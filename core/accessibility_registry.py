@@ -179,8 +179,8 @@ AXE_EXCEPTIONS: tuple[AxeException, ...] = ()
 
 ACCESSIBILITY_AUTHORED_TEMPLATES = (
     "accounts/templates/accounts/login.html",
-    "cadmin/templates/cadmin/campaign_form.html",
-    "cadmin/templates/cadmin/include/campaign_field.html",
+    "studio_courses/templates/studio_courses/campaign_form.html",
+    "studio_courses/templates/studio_courses/include/campaign_field.html",
     "core/templates/accessibility/email.html",
     "core/templates/accessibility/error_summary.html",
     "course_platform_templates/accounts/account_settings.html",
@@ -232,7 +232,7 @@ AUTHORED_TEMPLATE_ROOTS = {
     "templates/unfold": "django-admin",
     "accounts/templates": "account",
     "courses/templates": "learner",
-    "cadmin/templates": "studio-courses",
+    "studio_courses/templates": "studio-courses",
 }
 
 

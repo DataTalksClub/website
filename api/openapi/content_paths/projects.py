@@ -137,7 +137,7 @@ PROJECT_ASSIGN_REVIEWS_RESPONSES = {
     "404": COURSE_OR_PROJECT_NOT_FOUND_RESPONSE,
 }
 PROJECT_ASSIGN_REVIEWS_DESCRIPTION = (
-    "Assigns peer reviews with the same safeguards as cadmin: "
+    "Assigns peer reviews with the same safeguards as Studio Courses: "
     "project state must be CS, submission due date must be in "
     "the past, and enough submissions must exist."
 )
@@ -158,7 +158,7 @@ PROJECT_SCORE_RESPONSES = {
 }
 PROJECT_SCORE_DESCRIPTION = (
     "Scores project submissions with the same safeguards as "
-    "cadmin: project state must be PR, peer review due date "
+    "Studio Courses: project state must be PR, peer review due date "
     "must be in the past, and peer reviews must exist."
 )
 PROJECT_SCORE_DATA = OperationData(

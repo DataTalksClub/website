@@ -14,7 +14,7 @@ overlays in `integration-patched-files.tsv`.
 | Unified Django suite | 787 passed, 0 skipped, 0 failed | Includes 6 target adoption-contract tests |
 | Copied E2E suite | 48 collected: 45 passed, 1 skipped, 2 xfailed, 0 failed | Playwright 1.58, fresh local database, ephemeral local dependency configuration |
 | Target foundation Playwright | 3 passed, 0 skipped, 0 failed | Desktop/mobile homepage and anonymous staff sign-in surface |
-| Adoption contract | 6 passed | 768 pinned-source checksums, copied-destination overlay checksums, 2 target shim checksums, 89 routes, 13 commands, app/migration identity, generated inventory |
+| Adoption contract | 6 passed | 768 pinned-source checksums, copied-destination overlay checksums, 4 target shim checksums, 89 routes, 13 commands, app/migration identity, generated inventory |
 
 The copied E2E suite was first run without a Datamailer preference service. Two account-settings
 checks reached the correct page with HTTP 200 but timed out waiting for browser `networkidle`
@@ -26,12 +26,13 @@ The two declared xfails are the copied homework/project confirmation-email check
 worker and transactional provider were run to create send-audit rows. The single skip is the
 copied teardown fallback after admin deletion was unavailable; it parked the generated course
 hidden. All provisioning, enrollment/impersonation, homework, project, API, dashboard,
-leaderboard, cadmin, helper, and fallback-cleanup checks passed.
+leaderboard, Studio Courses, helper, and fallback-cleanup checks passed.
 
 ## Migration evidence
 
 - Original numbered migrations remain intact: 10 `accounts`, 40 `courses`, and 5 `data` migrations;
-  `api` and `cadmin` retain their original no-numbered-migration state.
+  `api` and the mechanically renamed `studio_courses` app retain their original
+  no-numbered-migration state.
 - Two independent fresh SQLite databases applied the complete original graph successfully.
 - `makemigrations --check --dry-run` reports no model drift.
 - The final graph is the verified original graph, so a fresh final install does not introduce a
@@ -42,11 +43,19 @@ leaderboard, cadmin, helper, and fallback-cleanup checks passed.
 
 ## Inventory and repository checks
 
+- The 71 pinned `cadmin/*` source files map to `studio_courses/*` destinations. The active app,
+  26 callbacks, imports, tests, and template namespace all resolve through `studio_courses`; no
+  copied destination remains below `cadmin/`.
+- The target-owned `cadmin/` package contains exactly `__init__.py` and `legacy_urls.py`. The
+  reviewed reference allowlist classifies every other occurrence as legacy compatibility,
+  immutable source provenance, or historical specification and records an owner and removal gate.
+
 - `uv run python scripts/verify_course_platform_adoption.py`: the 768-row source ledger verified
   against the clean pinned checkout; every copied destination verified against either that source
-  checksum or its explicit integration-patch checksum; and both required target-owned admin API
-  compatibility shims verified against their per-file checksums and rationales.
-- `behavior-inventory.md`: 89 routes (9 accounts, 29 compatibility API, 26 cadmin, 25 public
+  checksum or its explicit integration-patch checksum; and all four required target-owned
+  compatibility shims verified against their per-file checksums and rationales. The same verifier
+  requires every remaining `cadmin` path or text reference to have an exact owner and removal gate.
+- `behavior-inventory.md`: 89 routes (9 accounts, 29 compatibility API, 26 Studio Courses, 25 public
   course) and 13 management commands generated from Django's registries and smoke-resolved by the
   adoption-contract test.
 - Ruff lint, Ruff format check, targeted mypy, Django system check, deployment check, and the full

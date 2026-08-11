@@ -50,7 +50,7 @@ exclude = [
     "*/migrations/*",
     "accounts/**",
     "api/**",
-    "cadmin/**",
+    "studio_courses/**",
     "course_management/**",
     "courses/**",
     "data/**",
@@ -75,7 +75,7 @@ exclude = ["migrations/"]
 module = [
     "accounts.*",
     "api.*",
-    "cadmin.*",
+    "studio_courses.*",
     "course_management.*",
     "courses.*",
     "data.*",

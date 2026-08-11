@@ -290,29 +290,45 @@ def test_course_route_inventory_matches_all_adopted_urlconfs() -> None:
         "Studio Courses": 26,
         "Public courses": 25,
     }
-    expected = {
-        (
+
+    def target_identity(row: Any) -> tuple[object, ...]:
+        if isinstance(row, dict):
+            return (
+                row["surface"],
+                row["route_pattern"],
+                row["example_path"],
+                row["name"],
+            )
+        return (
             row.surface,
-            row.module,
             f"/{row.route}",
             row.example_path(),
             row.name or None,
-            row.callback,
         )
-        for row in current_routes
-    }
-    actual = {
-        (
-            row["surface"],
-            row["urlconf"],
-            row["route_pattern"],
-            row["example_path"],
-            row["name"],
-            row["callback"],
-        )
-        for row in rows
-    }
-    assert actual == expected
+
+    current_by_target = {target_identity(row): row for row in current_routes}
+    source_by_target = {target_identity(row): row for row in rows}
+    assert len(current_by_target) == len(current_routes)
+    assert len(source_by_target) == len(rows)
+    assert set(source_by_target) == set(current_by_target)
+
+    for identity, current in current_by_target.items():
+        source_row = source_by_target[identity]
+        if current.surface != "Studio Courses":
+            assert source_row["urlconf"] == current.module
+            assert source_row["callback"] == current.callback
+            assert source_row["source_route_pattern"] == f"/{current.route}"
+            assert source_row["source_example_path"] == current.example_path()
+            assert source_row["source_name"] == (current.name or None)
+            continue
+
+        # The target half is active Django state. The source half remains the exact
+        # mechanically mapped identity from the pinned CMP cadmin URLconf; it must not
+        # be rewritten merely to make the active and source namespaces look identical.
+        assert current.module == "studio_courses.urls"
+        assert current.callback.startswith("studio_courses.")
+        assert source_row["urlconf"] == "cadmin.urls"
+        assert source_row["callback"] == current.callback.replace("studio_courses.", "cadmin.", 1)
 
     studio_rows = [row for row in rows if row["surface"] == "Studio Courses"]
     assert sum(row["route_pattern"] == "/studio/courses" for row in studio_rows) == 1

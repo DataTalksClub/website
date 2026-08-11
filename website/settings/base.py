@@ -119,7 +119,7 @@ INSTALLED_APPS = [
     "api.apps.ApiConfig",
     "jobs.apps.JobsConfig",
     "data.apps.DataConfig",
-    "cadmin.apps.CadminConfig",
+    "studio_courses.apps.StudioCoursesConfig",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",

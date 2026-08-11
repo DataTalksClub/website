@@ -4,11 +4,11 @@ from django.urls import include, path
 
 from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
-from cadmin import urls as studio_course_urls
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from core import views as core_views
 from courses import urls as course_urls
+from studio_courses import urls as studio_course_urls
 
 legacy_course_patterns = [
     pattern for pattern in course_urls.urlpatterns if pattern.name != "course_list"

@@ -41,7 +41,7 @@ PEER_REVIEW_TEMPLATES = {
         "name": "Peer Review Assignment",
         "description": (
             "Triggered when staff assign peer reviews / close project "
-            "submissions (cadmin -> Assign peer reviews). Sent to every "
+            "submissions (Studio Courses -> Assign peer reviews). Sent to every "
             "project submitter with their assigned projects and the deadline."
         ),
         "subject": "Peer review is open: {{ project_title }}",
