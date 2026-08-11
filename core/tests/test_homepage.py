@@ -143,7 +143,15 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Learn data skills. For free. Together.")
         self.assertContains(response, "Data Engineering Zoomcamp 2026")
         self.assertEqual(response.content.decode().count("data-course-row"), 12)
+        self.assertContains(response, 'class="home-hero py-6 md:py-10"')
+        self.assertContains(response, 'id="courses"')
+        self.assertContains(response, "Start now")
+        self.assertContains(response, 'role="link"', count=1)
+        self.assertContains(response, 'tabindex="0"', count=1)
+        self.assertContains(response, 'href="/courses/de-zoomcamp-2026"')
         self.assertNotContains(response, "md:grid-cols-2")
+        self.assertNotContains(response, 'id="course-families-heading"')
+        self.assertNotContains(response, "No active cohort coursework right now.")
         self.assertContains(
             response,
             '<link rel="canonical" href="https://datatalks.club/courses">',

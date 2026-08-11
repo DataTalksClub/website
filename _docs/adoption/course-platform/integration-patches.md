@@ -150,6 +150,14 @@ The logical template names derived from the pinned `courses/templates/**` rows i
 copied destinations. The adoption contract fails closed on either a project collision or a loader
 origin that does not resolve to the destination recorded in the pinned ledger.
 
+The target-owned `public/course_hub.html` remains a separate read-only projection for deployments
+with no adopted `Course` rows. Because that is a legitimate runtime state, it uses the same pinned
+CMP hero, section order, card hierarchy, spacing, and controls while retaining the projection's
+real catalog records and canonical `/courses/<slug>` destinations. It does not shadow a copied
+logical template or create database rows. Focused Django and browser contracts exercise the
+no-row projection, the database-backed visible catalog, and the database-backed empty-visible
+state independently so deployment parity cannot depend on seeded data.
+
 If a future integration requirement must change a copied course template, change the adopted file
 in place and keep the overlay readable. Record its pinned source hash, current target hash, narrow
 rationale, and focused behavior/browser tests in the integration ledger. A parallel
