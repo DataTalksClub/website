@@ -3,7 +3,9 @@ from __future__ import annotations
 import hashlib
 import re
 from collections.abc import Generator
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 from urllib.parse import urlsplit
 
 import pytest
@@ -34,23 +36,6 @@ from test_support.safety import (
 
 PUBLIC_FIXTURE_ROOT = Path(__file__).resolve().parent / "test_support" / "fixtures" / "public"
 OFFLINE_ROUTE_FIXTURES: dict[str, tuple[str, str, str]] = {}
-EXPECTED_ABORTED_LOCAL_ASSETS = frozenset(
-    {
-        "/static/alerts.js",
-        "/static/core/accessibility.js",
-        "/static/core/site.css",
-        "/static/core/site_navigation.js",
-        "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-brands-400.woff2",
-        "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-regular-400.woff2",
-        "/static/core/vendor/fontawesome-free-5.15.1/webfonts/fa-solid-900.woff2",
-        "/static/core/vendor/tailwindcss-3.4.17/tailwindcss-3.4.17.js",
-        "/static/dark_mode.js",
-        "/static/local_date.js",
-        "/static/time_left.js",
-        "/static/timezone_preference.js",
-        "/static/user_menu.js",
-    }
-)
 EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
     "test_complete_accessibility_registry": (
         (re.compile(r"^/_accessibility/identity-conflict/$"), 409),
@@ -120,6 +105,269 @@ _EMAIL_PREFERENCES_CONSOLE_RE = re.compile(
     r"\s+at http://127\.0\.0\.1:[0-9]+/static/settings_toggles\.js:44:17$"
 )
 _OFFLINE_ROUTE_BYTES: dict[str, tuple[bytes, str]] = {}
+
+
+class _PageLifecycle(Protocol):
+    @property
+    def main_frame(self) -> object: ...
+
+
+class _RequestLifecycle(Protocol):
+    url: str
+
+    @property
+    def frame(self) -> object: ...
+
+    def is_navigation_request(self) -> bool: ...
+
+
+@dataclass
+class _PendingAbortBatch:
+    generation: int
+    commit_generation: int | None
+    last_event: int
+    failures: list[tuple[str, str]]
+
+
+@dataclass
+class _NavigationAttempt:
+    generation: int
+    main_request: object | None = None
+
+
+@dataclass(frozen=True)
+class _TrackedRequest:
+    page: _PageLifecycle
+    generation: int
+    same_origin: bool
+    attempt_generation: int | None
+    main_navigation: bool
+
+
+class NavigationCancellationTracker:
+    """Classify same-origin aborts using browser navigation/close lifecycle."""
+
+    def __init__(self, allowed_origin: str | None) -> None:
+        self._allowed_origin = allowed_origin
+        self._context_closing = False
+        self._page_generations: dict[_PageLifecycle, int] = {}
+        self._page_events: dict[_PageLifecycle, int] = {}
+        self._committed_generations: dict[_PageLifecycle, int] = {}
+        self._active_attempts: dict[_PageLifecycle, _NavigationAttempt] = {}
+        self._closing_pages: set[_PageLifecycle] = set()
+        self._requests: dict[object, _TrackedRequest] = {}
+        self._pending_aborts: dict[_PageLifecycle, _PendingAbortBatch] = {}
+        self._unexplained_aborts: list[tuple[str, str]] = []
+
+    def request_started(
+        self,
+        page: _PageLifecycle,
+        request: _RequestLifecycle,
+    ) -> None:
+        event = self._next_event(page)
+        generation = self._page_generations.setdefault(page, 0)
+        same_origin = self._is_same_origin(request.url)
+        main_navigation = (
+            same_origin and request.is_navigation_request() and request.frame == page.main_frame
+        )
+        attempt_generation: int | None = None
+        if main_navigation:
+            attempt = self._active_attempts.get(page)
+            if attempt is not None and attempt.main_request is None:
+                self._seal_inactive_pending(page)
+                attempt.main_request = request
+            else:
+                self._resolve_renderer_navigation_batch(page, generation, event)
+                attempt = self._start_navigation(page, main_request=request)
+            generation = attempt.generation
+            attempt_generation = attempt.generation
+        else:
+            self._seal_inactive_pending(page)
+            attempt = self._active_attempts.get(page)
+            if same_origin and attempt is not None:
+                attempt_generation = attempt.generation
+        self._requests[request] = _TrackedRequest(
+            page=page,
+            generation=generation,
+            same_origin=same_origin,
+            attempt_generation=attempt_generation,
+            main_navigation=main_navigation,
+        )
+
+    def request_finished(self, request: object) -> None:
+        state = self._requests.pop(request, None)
+        if state is None:
+            return
+        page = state.page
+        self._next_event(page)
+        if state.main_navigation:
+            self._end_attempt(page, state.attempt_generation)
+            self._finalize_pending(page)
+        else:
+            self._seal_inactive_pending(page)
+
+    def begin_page_close(self, page: _PageLifecycle) -> None:
+        self._next_event(page)
+        self._finalize_pending(page)
+        self._active_attempts.pop(page, None)
+        self._closing_pages.add(page)
+
+    def begin_navigation(self, page: _PageLifecycle) -> int:
+        self._next_event(page)
+        self._finalize_pending(page)
+        return self._start_navigation(page).generation
+
+    def _start_navigation(
+        self,
+        page: _PageLifecycle,
+        *,
+        main_request: object | None = None,
+    ) -> _NavigationAttempt:
+        generation = self._page_generations.setdefault(page, 0) + 1
+        self._page_generations[page] = generation
+        attempt = _NavigationAttempt(generation, main_request)
+        self._active_attempts[page] = attempt
+        return attempt
+
+    def navigation_committed(self, page: _PageLifecycle) -> None:
+        self._next_event(page)
+        generation = self._page_generations.setdefault(page, 0)
+        if self._committed_generations.get(page) == generation:
+            self._finalize_pending(page)
+        else:
+            self._resolve_commit_batch(page, generation)
+            self._committed_generations[page] = generation
+        self._active_attempts.pop(page, None)
+
+    def navigation_failed(self, page: _PageLifecycle) -> None:
+        self._next_event(page)
+        self._finalize_pending(page)
+        self._active_attempts.pop(page, None)
+
+    def begin_context_close(self) -> None:
+        for page in tuple(self._pending_aborts):
+            self._finalize_pending(page)
+        self._active_attempts.clear()
+        self._context_closing = True
+
+    def track_abort(
+        self,
+        page: _PageLifecycle,
+        request: _RequestLifecycle,
+        failure: str | None,
+    ) -> bool:
+        state = self._requests.pop(request, None)
+        event = self._next_event(page)
+        if failure != "net::ERR_ABORTED" or not self._is_same_origin(request.url):
+            self._finalize_pending(page)
+            if state is not None and state.main_navigation:
+                self._end_attempt(state.page, state.attempt_generation)
+            return False
+        if self._context_closing or page in self._closing_pages:
+            self._finalize_pending(page)
+            if state is not None and state.main_navigation:
+                self._end_attempt(state.page, state.attempt_generation)
+            return True
+        if state is None:
+            self._finalize_pending(page)
+            return False
+        if state.page is not page or not state.same_origin:
+            self._finalize_pending(page)
+            if state.main_navigation:
+                self._end_attempt(state.page, state.attempt_generation)
+            return False
+        superseded = state.generation < self._page_generations.get(page, 0)
+        if superseded:
+            self._seal_inactive_pending(page)
+            return True
+        if state.main_navigation:
+            self._end_attempt(page, state.attempt_generation)
+
+        pending = self._pending_aborts.get(page)
+        if (
+            pending is None
+            or pending.generation != state.generation
+            or pending.commit_generation != state.attempt_generation
+            or (pending.last_event != event - 1 and pending.commit_generation is None)
+        ):
+            self._finalize_pending(page)
+            pending = _PendingAbortBatch(
+                state.generation,
+                state.attempt_generation,
+                event,
+                [],
+            )
+            self._pending_aborts[page] = pending
+        pending.last_event = event
+        pending.failures.append((request.url, failure))
+        return True
+
+    def take_unexplained_aborts(self) -> list[tuple[str, str]]:
+        for page in tuple(self._pending_aborts):
+            self._finalize_pending(page)
+        unexplained = self._unexplained_aborts
+        self._unexplained_aborts = []
+        return unexplained
+
+    def _finalize_pending(self, page: _PageLifecycle) -> None:
+        pending = self._pending_aborts.pop(page, None)
+        if pending is not None:
+            self._unexplained_aborts.extend(pending.failures)
+
+    def _seal_inactive_pending(self, page: _PageLifecycle) -> None:
+        pending = self._pending_aborts.get(page)
+        attempt = self._active_attempts.get(page)
+        if pending is not None and (
+            pending.commit_generation is None
+            or attempt is None
+            or pending.commit_generation != attempt.generation
+        ):
+            self._finalize_pending(page)
+
+    def _next_event(self, page: _PageLifecycle) -> int:
+        event = self._page_events.setdefault(page, 0) + 1
+        self._page_events[page] = event
+        return event
+
+    def _resolve_renderer_navigation_batch(
+        self,
+        page: _PageLifecycle,
+        generation: int,
+        event: int,
+    ) -> None:
+        pending = self._pending_aborts.get(page)
+        if (
+            pending is not None
+            and pending.generation == generation
+            and pending.last_event == event - 1
+        ):
+            self._pending_aborts.pop(page)
+            return
+        self._finalize_pending(page)
+
+    def _resolve_commit_batch(
+        self,
+        page: _PageLifecycle,
+        generation: int,
+    ) -> None:
+        pending = self._pending_aborts.get(page)
+        if pending is not None and pending.commit_generation == generation:
+            self._pending_aborts.pop(page)
+            return
+        self._finalize_pending(page)
+
+    def _end_attempt(
+        self,
+        page: _PageLifecycle,
+        generation: int | None,
+    ) -> None:
+        attempt = self._active_attempts.get(page)
+        if attempt is not None and attempt.generation == generation:
+            self._active_attempts.pop(page)
+
+    def _is_same_origin(self, url: str) -> bool:
+        parsed = urlsplit(url)
+        return self._allowed_origin == f"{parsed.scheme}://{parsed.netloc}"
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -239,6 +487,7 @@ def context(
     )
     denied_urls: set[str] = set()
     failures: list[str] = []
+    cancellation_tracker = NavigationCancellationTracker(allowed_origin)
     context.add_init_script(_frozen_clock_script())
 
     def route_request(route: Route) -> None:
@@ -274,6 +523,7 @@ def context(
 
     def configure_page(page) -> None:
         original_screenshot = page.screenshot
+        original_close = page.close
 
         def screenshot_without_private_values(*args, **kwargs):
             page.evaluate(_SCREENSHOT_REDACTION_SCRIPT)
@@ -286,6 +536,40 @@ def context(
                 )
 
         page.screenshot = screenshot_without_private_values
+
+        def navigation_with_lifecycle(original_navigation):
+            def navigate(*args, **kwargs):
+                cancellation_tracker.begin_navigation(page)
+                try:
+                    result = original_navigation(*args, **kwargs)
+                except BaseException:
+                    cancellation_tracker.navigation_failed(page)
+                    raise
+                else:
+                    cancellation_tracker.navigation_committed(page)
+                    return result
+
+            return navigate
+
+        for navigation_method in (
+            "goto",
+            "reload",
+            "go_back",
+            "go_forward",
+            "set_content",
+        ):
+            original_navigation = getattr(page, navigation_method)
+            setattr(
+                page,
+                navigation_method,
+                navigation_with_lifecycle(original_navigation),
+            )
+
+        def close_with_lifecycle(*args, **kwargs):
+            cancellation_tracker.begin_page_close(page)
+            return original_close(*args, **kwargs)
+
+        page.close = close_with_lifecycle
 
         def record_response(response) -> None:
             parsed = urlsplit(response.url)
@@ -316,13 +600,18 @@ def context(
             dialog.dismiss()
 
         def record_failed_request(failed) -> None:
+            tracked_navigation_abort = cancellation_tracker.track_abort(
+                page,
+                failed,
+                failed.failure,
+            )
             if failed.url in denied_urls:
                 return
             if _expected_offline_asset_abort(failed.url, failed.failure):
                 return
             if _expected_local_request_failure(request.node.name, failed.url):
                 return
-            if _expected_local_asset_abort(failed.url, failed.failure):
+            if tracked_navigation_abort:
                 return
             failures.append(
                 f"request failed: {urlsplit(failed.url).path} ({failed.failure or 'unknown'})"
@@ -330,8 +619,22 @@ def context(
 
         page.on("pageerror", lambda error: failures.append(f"page error: {error}"))
         page.on("console", record_console)
+        page.on(
+            "request",
+            lambda started: cancellation_tracker.request_started(page, started),
+        )
         page.on("response", record_response)
+        page.on("requestfinished", cancellation_tracker.request_finished)
         page.on("requestfailed", record_failed_request)
+        page.on(
+            "framenavigated",
+            lambda frame: (
+                cancellation_tracker.navigation_committed(page)
+                if frame == page.main_frame
+                else None
+            ),
+        )
+        page.on("close", lambda _closed_page: cancellation_tracker.begin_page_close(page))
         page.on("dialog", reject_dialog)
         page.on("download", lambda download: failures.append("unexpected download"))
 
@@ -339,6 +642,9 @@ def context(
     try:
         yield context
     finally:
+        for failed_url, failure in cancellation_tracker.take_unexplained_aborts():
+            failures.append(f"request failed: {urlsplit(failed_url).path} ({failure})")
+        cancellation_tracker.begin_context_close()
         report = getattr(request.node, "rep_call", None)
         if report is not None and report.failed:
             pages = context.pages
@@ -453,11 +759,6 @@ def _expected_local_request_failure(node_name: str, url: str) -> bool:
         pattern.fullmatch(path)
         for pattern, _expected_status in EXPECTED_LOCAL_RESPONSES.get(test_name, ())
     )
-
-
-def _expected_local_asset_abort(url: str, failure: str | None) -> bool:
-    parsed = urlsplit(url)
-    return failure == "net::ERR_ABORTED" and parsed.path in EXPECTED_ABORTED_LOCAL_ASSETS
 
 
 def _expected_offline_asset_abort(url: str, failure: str | None) -> bool:
