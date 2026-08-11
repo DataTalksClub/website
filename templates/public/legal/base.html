@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+
+{% block title %}
+  {{ seo_title }}
+{% endblock %}
+
+{% block meta_robots %}
+  <meta name="robots" content="{{ legal_robots }}">
+{% endblock %}
+
+{% block content %}
+  <article class="legal-document">
+    {% block legal_content %}
+    {% endblock %}
+  </article>
+{% endblock %}

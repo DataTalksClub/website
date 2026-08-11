@@ -1,8 +1,18 @@
 from django.urls import path
 
-from . import public_views
+from . import legal_views, public_views
 
 urlpatterns = [
+    path("terms", legal_views.terms, name="terms"),
+    path("terms/", public_views.permanent_public_redirect, {"target": "/terms"}),
+    path("privacy", legal_views.privacy, name="privacy"),
+    path("privacy/", public_views.permanent_public_redirect, {"target": "/privacy"}),
+    path("impressum", legal_views.impressum, name="impressum"),
+    path(
+        "impressum/",
+        public_views.permanent_public_redirect,
+        {"target": "/impressum"},
+    ),
     path("blog", public_views.collection_hub, {"collection": "articles"}, name="articles"),
     path("articles.html", public_views.permanent_public_redirect, {"target": "/blog"}),
     path("blog/", public_views.permanent_public_redirect, {"target": "/blog"}),

@@ -625,7 +625,13 @@ def media(request: HttpRequest, media_path: str) -> FileResponse:
 def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     projection = public_projection()
     static_sections = {
-        "main": (("/", ""), ("/slack.html", "")),
+        "main": (
+            ("/", ""),
+            ("/terms", ""),
+            ("/privacy", ""),
+            ("/impressum", ""),
+            ("/slack.html", ""),
+        ),
         "docs": (
             ("/docs/", ""),
             ("/docs/courses/ai-dev-tools-zoomcamp/getting-started/", ""),

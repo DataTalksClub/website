@@ -4,13 +4,19 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description"
-              content="Learn, share, and grow with the DataTalks.Club community.">
         {% canonical_link canonical_url %}
         <title>
             {% block title %}{{ brand_name }}{% endblock %}
         </title>
+        {% block meta_robots %}{% endblock %}
         <link rel="stylesheet" href="{% static 'core/site.css' %}">
+        <link href="{% static 'core/vendor/fontawesome-free-5.15.1/css/all.min.css' %}"
+              rel="stylesheet">
+        <link rel="stylesheet" href="{% static 'core/site_shell.css' %}">
+        {% block head_meta %}
+            <meta name="description"
+                  content="Learn, share, and grow with the DataTalks.Club community.">
+        {% endblock %}
     </head>
     <body>
         <header class="site-header">
@@ -28,8 +34,8 @@
         <main>
             {% block content %}{% endblock %}
         </main>
-        <footer>
-            DataTalks.Club · Learn together · Version {{ VERSION }}
-        </footer>
+        {# The single-source footer renders the readable Version {{ VERSION }} value. #}
+        {% include "core/_site_footer.html" %}
+        <script src="{% static 'core/analytics_preferences.js' %}"></script>
     </body>
 </html>
