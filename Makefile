@@ -102,7 +102,7 @@ terraform-seo-source-check:
 
 test-core:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test \
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput \
 		accounts core studio api management_auth management_api --parallel
 
 check-openapi:
@@ -117,7 +117,7 @@ test-content:
 
 test: test-compatibility
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel --noinput
 
 test-ci:
 	uv run --frozen pytest ci/tests tests_ci -q
@@ -200,7 +200,7 @@ test-factories:
 
 test-migrations:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test \
+		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --noinput \
 		test_support.tests.test_migrations accounts.tests.test_identity_migrations \
 		content.tests.test_editorial_route_migration_contract content.tests.test_migrations
 

@@ -1,6 +1,7 @@
 from functools import partial
 
 from django.db import transaction
+from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
@@ -57,10 +58,11 @@ def _existing_user_registration(
     email = request.user.email or ""
     email_stripped = email.strip()
     email_normalized = email_stripped.lower()
-    return CourseRegistration.objects.filter(
-        campaign=campaign,
-        email_normalized=email_normalized,
-    ).first()
+    return (
+        CourseRegistration.objects.filter(campaign=campaign)
+        .filter(Q(user=request.user) | Q(email_normalized=email_normalized))
+        .first()
+    )
 
 
 def _registration_form(

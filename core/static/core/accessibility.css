@@ -6,6 +6,12 @@ body {
   overflow-wrap: anywhere;
 }
 
+.faq-answer :is(code, pre) {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .skip-link {
   background: var(--text-heading, #0f172a);
   border-radius: 0.375rem;

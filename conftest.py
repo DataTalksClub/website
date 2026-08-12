@@ -410,7 +410,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
         safety = markers & SAFETY_MARKERS
         if (
             "/playwright_tests/" in f"/{path}"
-            and "core" in markers
+            and local
             and ("live_server" in getattr(item, "fixturenames", ()) or "django_db" in markers)
         ):
             item.add_marker(

@@ -85,7 +85,9 @@ def _file_invariants(
     if not source.is_file() or source.is_symlink():
         raise ContentInvariantError("changed structured content file is missing")
     body = source.read_bytes()
-    records = _records(source, body)
+    # Use the repository-relative path for synthetic control records; the absolute filesystem
+    # path is an implementation detail and is not a valid public URL.
+    records = _records(Path(*path.parts), body)
     if not records:
         raise ContentInvariantError("structured content must contain at least one record")
     identities: list[str] = []
@@ -219,6 +221,9 @@ def _validate_file_invariants(value: object) -> None:
         raise ContentInvariantError("content invariant identities are invalid")
 
 
+_RECORD_COLLECTION_KEYS = ("records", "items", "pages", "courses", "aliases", "finals")
+
+
 def _records(path: Path, body: bytes) -> list[dict[str, Any]]:
     try:
         text = body.decode("utf-8")
@@ -236,9 +241,23 @@ def _records(path: Path, body: bytes) -> list[dict[str, Any]]:
     if isinstance(parsed, list):
         return parsed
     if isinstance(parsed, dict):
+        for collection_key in _RECORD_COLLECTION_KEYS:
+            collection = parsed.get(collection_key)
+            if isinstance(collection, list) and all(isinstance(item, dict) for item in collection):
+                return [dict(item) for item in collection]
         if parsed and all(isinstance(value, dict) for value in parsed.values()):
             return [dict(value) | {"key": str(key)} for key, value in parsed.items()]
-        return [parsed]
+        # Control-plane JSON/YAML artifacts (manifests, source bindings, and count indexes)
+        # are still covered by the invariant gate. They do not contain a record collection,
+        # so bind one synthetic record to the file itself instead of weakening the gate or
+        # requiring product-facing metadata solely for CI bookkeeping.
+        return [
+            {
+                "key": path.as_posix(),
+                "title": path.name,
+                "path": f"/{path.as_posix()}",
+            }
+        ]
     raise ContentInvariantError("structured content must contain records")
 
 

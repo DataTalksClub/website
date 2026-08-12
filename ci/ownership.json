@@ -101,11 +101,11 @@
     {"id":"django.studio","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["studio"],"risk_flags":[],"render_flags":[]}
   ],
   "large_content": {
-    "identity_fields": ["id", "key", "path", "slug"],
-    "metadata_fields": ["description", "name", "title"],
+    "identity_fields": ["id", "key", "path", "slug", "source_path", "record_key"],
+    "metadata_fields": ["description", "name", "title", "record_key"],
     "patterns": ["content/**", "courses/**", "data/**", "_docs/compatibility/**"],
     "structured_extensions": [".csv", ".json", ".jsonl", ".yaml", ".yml"],
-    "url_fields": ["href", "path", "url"]
+    "url_fields": ["href", "path", "url", "public_path", "final_path"]
   },
   "policy_version": 4,
   "render_rules": {

@@ -1,9 +1,13 @@
 {% load seo static %}
 <!DOCTYPE html>
-<html>
+<html lang="en" class="no-js">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            document.documentElement.classList.remove("no-js");
+            document.documentElement.classList.add("js");
+        </script>
         <title>
             {% block title %}
                 Studio Courses
@@ -43,7 +47,22 @@
         </script>
         <script src="{% static 'core/vendor/tailwindcss-3.4.17/tailwindcss-3.4.17.js' %}"></script>
         <link rel="stylesheet" href="{% static 'courses.css' %}">
+        <link rel="stylesheet" href="{% static 'core/site_shell.css' %}">
+        <link rel="stylesheet" href="{% static 'core/accessibility.css' %}">
+        {% block extra_css %}
+        {% endblock %}
     </head>
+    {% url 'home' as site_home_url %}
+    {% url 'events' as events_url %}
+    {% url 'course_list' as courses_url %}
+    {% url 'articles' as articles_url %}
+    {% url 'podcast' as podcast_url %}
+    {% url 'wiki-home' as wiki_url %}
+    {% url 'books' as books_url %}
+    {% url 'docs-home' as docs_url %}
+    {% url 'faq-home' as faq_url %}
+    {% url 'slack' as slack_url %}
+    {% url 'login' as account_login_url %}
     <body class="flex min-h-screen flex-col app-surface font-sans antialiased
           {% block body_class %}
           {% endblock %}
@@ -68,6 +87,7 @@
               data-timezone-update-url="{% url 'update_timezone_preference' %}"
           {% endif %}
           data-toggle-url="{% url 'toggle_dark_mode' %}">
+        <a class="skip-link" href="#main-content">Skip to content</a>
         <script>
             (function() {
                 try {
@@ -102,14 +122,51 @@
             </div>
         {% endif %}
         <header id="header-container" class="border-b app-border app-surface">
-            <nav class="app-content-shell mx-auto flex items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-5">
-                <a href="{% url 'course_list' %}"
+            <nav class="app-content-shell mx-auto flex items-center justify-between gap-3 px-4 py-3 md:px-8 md:py-5"
+                 aria-label="Primary navigation">
+                <a href="{{ site_home_url|default:'/' }}"
                    class="shrink-0 text-xl font-semibold tracking-normal app-heading md:text-2xl">
                     DataTalks.Club
                 </a>
-                <div class="flex min-w-0 items-center gap-3 text-sm md:gap-7 md:text-base">
-                    {% block nav_links %}
-                    {% endblock %}
+                <div class="site-navigation flex min-w-0 items-center gap-3 text-sm md:gap-7 md:text-base">
+                    <button class="site-navigation-toggle user-menu-toggle app-heading app-link"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="site-navigation-links">
+                        <span>Explore</span>
+                        <i class="fas fa-bars" aria-hidden="true"></i>
+                    </button>
+                    <div id="site-navigation-links" class="site-navigation-links">
+                        {% block nav_links %}
+                            <a href="{{ events_url|default:'/events' }}" class="app-heading app-link">
+                                Events
+                            </a>
+                            <a href="{{ courses_url|default:'/courses' }}" class="app-heading app-link">
+                                Courses
+                            </a>
+                            <a href="{{ articles_url|default:'/blog' }}" class="app-heading app-link">
+                                Blog
+                            </a>
+                            <a href="{{ podcast_url|default:'/podcast' }}" class="app-heading app-link">
+                                Podcast
+                            </a>
+                            <a href="{{ wiki_url|default:'/wiki' }}" class="app-heading app-link">
+                                Wiki
+                            </a>
+                            <a href="{{ books_url|default:'/books' }}" class="app-heading app-link">
+                                Books
+                            </a>
+                            <a href="{{ docs_url|default:'/docs' }}" class="app-heading app-link">
+                                Docs
+                            </a>
+                            <a href="{{ faq_url|default:'/faq' }}" class="app-heading app-link">
+                                FAQ
+                            </a>
+                            <a href="{{ slack_url|default:'/slack' }}" class="app-heading app-link">
+                                Slack
+                            </a>
+                        {% endblock %}
+                    </div>
                     {% if user.is_authenticated %}
                         <details class="user-menu relative shrink-0">
                             <summary class="user-menu-toggle inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md app-heading app-hover-muted app-link"
@@ -126,6 +183,11 @@
                                     </p>
                                 </div>
                                 <div class="user-menu-actions">
+                                    <a href="{{ courses_url|default:'/courses' }}"
+                                       class="user-menu-item app-link">
+                                        <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+                                        Courses
+                                    </a>
                                     <a href="{% url 'account_settings' %}" class="user-menu-item app-link">
                                         <i class="fas fa-user-cog" aria-hidden="true"></i>
                                         Account settings
@@ -142,11 +204,7 @@
                                     {% endif %}
                                     <button id="dark-mode-toggle"
                                             class="user-menu-item user-menu-button app-link"
-                                            aria-pressed="{% if DARK_MODE %}
-                                                true
-                                            {% else %}
-                                                false
-                                            {% endif %}"
+                                            aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
                                             type="button">
                                         <span class="dark-mode-icon-stack" aria-hidden="true">
                                             <i class="fas fa-moon dark-mode-icon-light"></i>
@@ -172,18 +230,14 @@
                                 class="user-menu-toggle inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md app-heading app-hover-muted app-link"
                                 title="Toggle dark mode"
                                 aria-label="Toggle dark mode"
-                                aria-pressed="{% if DARK_MODE %}
-                                    true
-                                {% else %}
-                                    false
-                                {% endif %}"
+                                aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
                                 type="button">
                             <span class="dark-mode-icon-stack" aria-hidden="true">
                                 <i class="fas fa-moon dark-mode-icon-light"></i>
                                 <i class="fas fa-sun dark-mode-icon-dark"></i>
                             </span>
                         </button>
-                        <a href="{% url 'login' %}"
+                        <a href="{{ account_login_url }}"
                            class="shrink-0 app-heading app-link"
                            title="Login"
                            aria-label="Login">
@@ -205,8 +259,8 @@
                     </ul>
                 </nav>
             {% endblock %}
-            <main id="content">
-                <div class="form-container app-surface" id="main-content">
+            <main id="main-content" tabindex="-1">
+                <div class="form-container app-surface" id="content">
                     {% block content %}
                     {% endblock %}
                 </div>
@@ -220,6 +274,9 @@
         <script src="{% static 'user_menu.js' %}"></script>
         <script src="{% static 'dark_mode.js' %}"></script>
         <script src="{% static 'alerts.js' %}"></script>
+        <script src="{% static 'core/site_navigation.js' %}"></script>
+        <script src="{% static 'core/accessibility.js' %}"></script>
+        <script src="{% static 'core/analytics_preferences.js' %}"></script>
         {% block extra_js %}
         {% endblock %}
     </body>

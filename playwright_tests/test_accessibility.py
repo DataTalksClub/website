@@ -26,7 +26,9 @@ from course_management.datamailer_templates.accessibility import (
     render_current_transactional_email,
 )
 from courses.models import Course, HomeworkState, ProjectState, RegistrationCampaign
+from events.identity import canonical_detail_path
 from events.models import (
+    Event,
     HistoricalEventMapping,
     HistoricalRegistrationAggregateRevision,
     HistoricalRegistrationAggregateSlot,
@@ -205,6 +207,9 @@ def accessibility_environment() -> AccessibilityEnvironment:
     public = public_projection()
     review_public = review_projection()
     event = public["events"][0]
+    database_event = Event.objects.filter(pk=event["identity_id"]).first()
+    if database_event is not None:
+        event = {**event, "public_path": canonical_detail_path(database_event.id)}
     person_path = event["speakers"][0]["public_path"]
     article = public["articles"][0]
     podcast = next(record for record in public["podcasts"] if record.get("transcript"))
@@ -229,9 +234,9 @@ def accessibility_environment() -> AccessibilityEnvironment:
         "events": Surface("/events"),
         "courses": Surface("/courses"),
         "wiki": Surface("/wiki"),
-        "docs": Surface("/docs/"),
-        "faq": Surface("/faq/"),
-        "slack": Surface("/slack.html"),
+        "docs": Surface("/docs"),
+        "faq": Surface("/faq"),
+        "slack": Surface("/slack"),
         "article": Surface(article["public_path"]),
         "podcast-detail": Surface(podcast["public_path"]),
         "book": Surface(book["public_path"]),
