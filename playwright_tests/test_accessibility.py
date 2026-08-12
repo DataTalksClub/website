@@ -908,7 +908,7 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
         text="quarantined",
     )
 
-    preview_path = f"/studio/events/{event['slug']}/registration-total/"
+    preview_path = f"/studio/events/{event['identity_id']}/registration-total/"
     recorder.environment.surfaces["historical-preview"] = Surface(
         preview_path,
         actor="site-admin",
@@ -936,7 +936,7 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
 
     active_run = (
         HistoricalRegistrationSourceRun.objects.filter(
-            aggregate_revisions__mapping__canonical_slug_snapshot=event["slug"],
+            aggregate_revisions__mapping__event_id=event["identity_id"],
             state=HistoricalRegistrationSourceRun.State.ACTIVE,
         )
         .distinct()

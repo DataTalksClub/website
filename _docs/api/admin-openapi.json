@@ -342,6 +342,125 @@
         ],
         "type": "object"
       },
+      "EventIdentity": {
+        "additionalProperties": false,
+        "properties": {
+          "aliases": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "kind": {
+                  "type": "string"
+                },
+                "path": {
+                  "pattern": "^/events/",
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "kind",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "canonical_path": {
+            "pattern": "^/events/[0-9a-f-]+/",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "provenance": {
+            "additionalProperties": false,
+            "properties": {
+              "repository": {
+                "type": "string"
+              },
+              "revision": {
+                "type": "string"
+              },
+              "source_checksum": {
+                "pattern": "^[0-9a-f]{64}$",
+                "type": "string"
+              },
+              "source_key": {
+                "type": "string"
+              },
+              "source_path": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "repository",
+              "revision",
+              "source_key",
+              "source_path",
+              "source_checksum"
+            ],
+            "type": "object"
+          },
+          "registration_path": {
+            "pattern": "^/events/[0-9a-f-]+/.+/register$",
+            "type": "string"
+          },
+          "slug": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "slug",
+          "canonical_path",
+          "registration_path",
+          "aliases",
+          "provenance"
+        ],
+        "type": "object"
+      },
+      "EventIdentityList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EventIdentity"
+            },
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "page_size": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "total_count": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total_count"
+        ],
+        "type": "object"
+      },
       "HistoricalEventMapping": {
         "additionalProperties": false,
         "properties": {
@@ -351,6 +470,13 @@
           "created_at": {
             "format": "date-time",
             "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "external_event_identifier": {
             "type": "string"
@@ -404,9 +530,6 @@
       "HistoricalEventMappingCreateRequest": {
         "additionalProperties": false,
         "properties": {
-          "canonical_slug": {
-            "type": "string"
-          },
           "combination_policy": {
             "enum": [
               "additive_disjoint",
@@ -416,6 +539,10 @@
             "type": "string"
           },
           "coverage_boundary": {
+            "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
             "type": "string"
           },
           "external_event_identifier": {
@@ -452,7 +579,6 @@
           "provider",
           "external_event_identifier",
           "state",
-          "canonical_slug",
           "mapping_set_revision",
           "reason_code",
           "reason",
@@ -495,9 +621,6 @@
       "HistoricalEventMappingUpdateRequest": {
         "additionalProperties": false,
         "properties": {
-          "canonical_slug": {
-            "type": "string"
-          },
           "combination_policy": {
             "enum": [
               "additive_disjoint",
@@ -508,6 +631,13 @@
           },
           "coverage_boundary": {
             "type": "string"
+          },
+          "event_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "mapping_set_revision": {
             "minimum": 1,
@@ -530,7 +660,6 @@
         },
         "required": [
           "state",
-          "canonical_slug",
           "mapping_set_revision",
           "reason_code",
           "reason",
@@ -723,6 +852,10 @@
               "null"
             ]
           },
+          "event_id": {
+            "format": "uuid",
+            "type": "string"
+          },
           "total_revision": {
             "minimum": 1,
             "type": [
@@ -732,6 +865,7 @@
           }
         },
         "required": [
+          "event_id",
           "canonical_slug",
           "complete",
           "count",
@@ -1852,7 +1986,291 @@
         "x-rate-cost": 5
       }
     },
-    "/events/{canonical_key}/registration-total": {
+    "/events/identities": {
+      "get": {
+        "operationId": "events.identity.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventIdentityList"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "events.identity.read"
+            ]
+          }
+        ],
+        "summary": "Inspect reviewed Event UUID identities and aliases",
+        "x-audit-action": "events.identity.viewed",
+        "x-capability-key": "events.identity.read",
+        "x-concurrency": "none",
+        "x-django-permission": "events.historical_registration_mapping_manage",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      }
+    },
+    "/events/identities/{event_id}": {
+      "get": {
+        "operationId": "events.identity.detail",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventIdentity"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "events.identity.detail"
+            ]
+          }
+        ],
+        "summary": "Inspect one reviewed Event UUID identity and aliases",
+        "x-audit-action": "events.identity.viewed",
+        "x-capability-key": "events.identity.detail",
+        "x-concurrency": "none",
+        "x-django-permission": "events.historical_registration_mapping_manage",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      }
+    },
+    "/events/{event_id}/registration-total": {
       "get": {
         "operationId": "events.historical_registration_total.read",
         "responses": {

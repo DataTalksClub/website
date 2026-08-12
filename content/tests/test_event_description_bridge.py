@@ -21,6 +21,7 @@ from content.event_description_bridge import (
     validate_projected_event,
 )
 from content.public_data import public_projection
+from events.slugs import event_title_slug
 from scripts import build_event_description_bridge as bridge_builder
 
 
@@ -509,8 +510,6 @@ class PublicEventDescriptionTests(TestCase):
                 self.assertEqual(rollback_event["links"], baseline_non_luma)
                 self.assertEqual(current_event["links"], baseline_non_luma)
                 for field in (
-                    "slug",
-                    "public_path",
                     "title",
                     "starts_at",
                     "ends_at",
@@ -522,6 +521,11 @@ class PublicEventDescriptionTests(TestCase):
                 ):
                     self.assertEqual(rollback_event[field], baseline_event[field])
                     self.assertEqual(current_event[field], baseline_event[field])
+                self.assertEqual(current_event["slug"], event_title_slug(current_event["title"]))
+                self.assertRegex(
+                    current_event["public_path"],
+                    rf"^/events/{current_event['identity_id']}/{current_event['slug']}$",
+                )
                 self.assertEqual(rollback_event["record_schema_version"], 2)
                 self.assertEqual(rollback_event["description_html"], "")
                 self.assertEqual(rollback_event["description_text"], "")

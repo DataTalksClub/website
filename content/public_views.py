@@ -21,6 +21,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from courses.models import Course
+from events.identity import (
+    EventIdentityNotFound,
+    canonical_detail_path,
+    event_projection_record,
+    redirect_for_supplied_slug,
+    resolve_legacy_path,
+    resolve_uuid,
+)
 from events.services import public_registration_total
 
 from .public_data import PROJECTION_ROOT, event_groups, podcast_seasons, public_projection
@@ -37,7 +45,7 @@ PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
 
 
 def _canonical(path: str) -> str:
-    return f"https://datatalks.club{path}"
+    return f"{settings.CANONICAL_ORIGIN.rstrip('/')}{path}"
 
 
 def _json_ld(entity: dict, breadcrumbs: tuple[tuple[str, str], ...] = ()) -> str:
@@ -154,14 +162,30 @@ def events(request: HttpRequest) -> HttpResponse:
 
 
 @require_safe
-def event_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    if slug not in public_projection()["events_by_slug"]:
-        raise Http404
+def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
+    try:
+        identity = resolve_uuid(event_id)
+        redirect_path = redirect_for_supplied_slug(identity.id, slug)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    if redirect_path is not None:
+        return permanent_public_redirect(request, target=redirect_path)
+    try:
+        projected = event_projection_record(identity)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
     grouped = event_groups()
-    event = next(item for item in (*grouped.upcoming, *grouped.recent) if item["slug"] == slug)
+    event = next(
+        (
+            item
+            for item in (*grouped.upcoming, *grouped.recent)
+            if item.get("identity_id") == str(identity.id)
+        ),
+        {**projected, "identity_id": str(identity.id)},
+    )
     entity = {
         "@type": "Event",
-        "url": _canonical(event["public_path"]),
+        "url": _canonical(canonical_detail_path(identity.id)),
         "name": event["title"],
         "startDate": event["starts_at"],
         "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode",
@@ -197,6 +221,25 @@ def event_detail(request: HttpRequest, slug: str) -> HttpResponse:
         response["Cache-Control"] = "no-store, max-age=0, s-maxage=0"
         response["X-Event-Registration-Total-Revision"] = str(registration_total.revision)
     return response
+
+
+@require_safe
+def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpResponse:
+    try:
+        target = canonical_detail_path(resolve_uuid(event_id).id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    return permanent_public_redirect(request, target=target)
+
+
+@require_safe
+def event_legacy_redirect(request: HttpRequest, legacy_path: str) -> HttpResponse:
+    try:
+        event = resolve_legacy_path(f"/events/{legacy_path}")
+        target = canonical_detail_path(event.id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    return permanent_public_redirect(request, target=target)
 
 
 @require_safe

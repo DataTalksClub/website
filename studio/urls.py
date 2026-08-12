@@ -20,6 +20,12 @@ urlpatterns = [
     ),
     path("audit/", views.audit_list, name="audit-list"),
     path("audit/<uuid:event_id>/", views.audit_detail, name="audit-detail"),
+    path("events/identities/", views.event_identity_list, name="event-identity-list"),
+    path(
+        "events/identities/<uuid:event_id>/",
+        views.event_identity_detail,
+        name="event-identity-detail",
+    ),
     path(
         "events/historical-registration-totals/",
         views.historical_registration_list,
@@ -41,7 +47,7 @@ urlpatterns = [
         name="historical-registration-action",
     ),
     path(
-        "events/<slug:canonical_key>/registration-total/",
+        "events/<uuid:event_id>/registration-total/",
         views.historical_registration_total,
         name="historical-registration-total",
     ),

@@ -408,6 +408,15 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
         markers = {marker.name for marker in item.iter_markers()}
         local = markers & LOCAL_MARKERS
         safety = markers & SAFETY_MARKERS
+        if (
+            "/playwright_tests/" in f"/{path}"
+            and "core" in markers
+            and ("live_server" in getattr(item, "fixturenames", ()) or "django_db" in markers)
+        ):
+            item.add_marker(
+                pytest.mark.django_db(transaction=True, serialized_rollback=True),
+                append=False,
+            )
         if "/playwright_tests/" in f"/{path}" and len(local) != 1:
             raise pytest.UsageError(
                 f"{item.nodeid}: every Playwright test requires exactly one core/full marker"

@@ -55,6 +55,15 @@ historical_mapping_collection.management_capability_views = {  # type: ignore[at
 }
 
 
+event_identity_collection = csrf_exempt(views.event_identity_list)
+event_identity_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "events.identity.read",
+)
+event_identity_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.event_identity_list,
+}
+
+
 @csrf_exempt
 def site_settings_collection(request, *args, **kwargs):
     if request.method in {"GET", "HEAD"}:
@@ -121,9 +130,19 @@ urlpatterns = [
         name="historical-event-mapping-detail",
     ),
     path(
-        "events/<slug:canonical_key>/registration-total",
+        "events/<uuid:event_id>/registration-total",
         views.historical_registration_total,
         name="historical-registration-total",
+    ),
+    path(
+        "events/identities",
+        event_identity_collection,
+        name="event-identity-list",
+    ),
+    path(
+        "events/identities/<uuid:event_id>",
+        views.event_identity_detail,
+        name="event-identity-detail",
     ),
     path(
         "credentials/<uuid:credential_id>/rotate",

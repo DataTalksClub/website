@@ -541,6 +541,7 @@ def generate_document() -> dict[str, Any]:
                         "id": {"type": "string", "format": "uuid"},
                         "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
                         "external_event_identifier": {"type": "string"},
+                        "event_id": {"type": ["string", "null"], "format": "uuid"},
                         "canonical_slug": {"type": "string"},
                         "state": {
                             "type": "string",
@@ -574,7 +575,6 @@ def generate_document() -> dict[str, Any]:
                         "provider",
                         "external_event_identifier",
                         "state",
-                        "canonical_slug",
                         "mapping_set_revision",
                         "reason_code",
                         "reason",
@@ -585,7 +585,7 @@ def generate_document() -> dict[str, Any]:
                         "provider": {"type": "string", "enum": ["luma", "eventbrite"]},
                         "external_event_identifier": {"type": "string", "maxLength": 512},
                         "state": {"type": "string", "enum": ["mapped", "excluded"]},
-                        "canonical_slug": {"type": "string"},
+                        "event_id": {"type": "string", "format": "uuid"},
                         "mapping_set_revision": {"type": "integer", "minimum": 1},
                         "reason_code": {"type": "string"},
                         "reason": {"type": "string", "maxLength": 2000},
@@ -601,7 +601,6 @@ def generate_document() -> dict[str, Any]:
                     "additionalProperties": False,
                     "required": [
                         "state",
-                        "canonical_slug",
                         "mapping_set_revision",
                         "reason_code",
                         "reason",
@@ -610,7 +609,7 @@ def generate_document() -> dict[str, Any]:
                     ],
                     "properties": {
                         "state": {"type": "string", "enum": ["mapped", "excluded"]},
-                        "canonical_slug": {"type": "string"},
+                        "event_id": {"type": ["string", "null"], "format": "uuid"},
                         "mapping_set_revision": {"type": "integer", "minimum": 1},
                         "reason_code": {"type": "string"},
                         "reason": {"type": "string", "maxLength": 2000},
@@ -625,6 +624,7 @@ def generate_document() -> dict[str, Any]:
                     "type": "object",
                     "additionalProperties": False,
                     "required": [
+                        "event_id",
                         "canonical_slug",
                         "complete",
                         "count",
@@ -632,6 +632,7 @@ def generate_document() -> dict[str, Any]:
                         "contributions",
                     ],
                     "properties": {
+                        "event_id": {"type": "string", "format": "uuid"},
                         "canonical_slug": {"type": "string"},
                         "complete": {"type": "boolean"},
                         "count": {"type": ["integer", "null"], "minimum": 0},
@@ -640,6 +641,77 @@ def generate_document() -> dict[str, Any]:
                             "type": "array",
                             "items": {"type": "object", "additionalProperties": True},
                         },
+                    },
+                },
+                "EventIdentity": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "id",
+                        "title",
+                        "slug",
+                        "canonical_path",
+                        "registration_path",
+                        "aliases",
+                        "provenance",
+                    ],
+                    "properties": {
+                        "id": {"type": "string", "format": "uuid"},
+                        "title": {"type": "string", "minLength": 1},
+                        "slug": {"type": "string", "minLength": 1},
+                        "canonical_path": {"type": "string", "pattern": "^/events/[0-9a-f-]+/"},
+                        "registration_path": {
+                            "type": "string",
+                            "pattern": "^/events/[0-9a-f-]+/.+/register$",
+                        },
+                        "aliases": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "required": ["path", "kind", "reason"],
+                                "properties": {
+                                    "path": {"type": "string", "pattern": "^/events/"},
+                                    "kind": {"type": "string"},
+                                    "reason": {"type": "string"},
+                                },
+                            },
+                        },
+                        "provenance": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "required": [
+                                "repository",
+                                "revision",
+                                "source_key",
+                                "source_path",
+                                "source_checksum",
+                            ],
+                            "properties": {
+                                "repository": {"type": "string"},
+                                "revision": {"type": "string"},
+                                "source_key": {"type": "string"},
+                                "source_path": {"type": "string"},
+                                "source_checksum": {
+                                    "type": "string",
+                                    "pattern": "^[0-9a-f]{64}$",
+                                },
+                            },
+                        },
+                    },
+                },
+                "EventIdentityList": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["items", "page", "page_size", "total_count"],
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/EventIdentity"},
+                        },
+                        "page": {"type": "integer", "minimum": 1},
+                        "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
+                        "total_count": {"type": "integer", "minimum": 0},
                     },
                 },
                 "APIError": _error_schema(),

@@ -17,6 +17,7 @@ import re
 import shutil
 import subprocess
 import sys
+import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -34,12 +35,14 @@ from content.event_description_bridge import (  # noqa: E402
     apply_bridge_to_events,
     bridge_manifest_binding,
 )
+from events.slugs import event_title_slug  # noqa: E402
 
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
 )
+EVENT_IDENTITY_MANIFEST = REPOSITORY_ROOT / "events" / "event_identity_manifest.json"
 
 PREFERRED_CONTENT_REVISION = "e29f56ce70bd997171a78a9f0facc9354797f421"
 PREFERRED_CONTENT_TREE = "c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa"
@@ -856,7 +859,88 @@ def _events(
         apply_bridge_to_events(events)
     except EventDescriptionBridgeError as exc:
         raise ProjectionBuildError("event description bridge validation failed") from exc
+    _apply_event_identity_manifest(events)
     return events
+
+
+def _apply_event_identity_manifest(events: list[dict[str, Any]]) -> None:
+    """Apply reviewed UUIDs without deriving identity from mutable source fields."""
+
+    try:
+        payload = json.loads(EVENT_IDENTITY_MANIFEST.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProjectionBuildError("event identity manifest cannot be read") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise ProjectionBuildError("event identity manifest schema mismatch")
+    entries = payload.get("events")
+    if not isinstance(entries, list) or len(entries) != len(events):
+        raise ProjectionBuildError("event identity manifest event count mismatch")
+    by_source: dict[tuple[str, str, str], dict[str, Any]] = {}
+    seen_ids: set[str] = set()
+    for entry in entries:
+        if not isinstance(entry, dict):
+            raise ProjectionBuildError("event identity manifest entry shape mismatch")
+        source = entry.get("source")
+        if not isinstance(source, dict):
+            raise ProjectionBuildError("event identity manifest source shape mismatch")
+        key = tuple(source.get(name, "") for name in ("repository", "revision", "source_key"))
+        if not all(isinstance(value, str) and value for value in key):
+            raise ProjectionBuildError("event identity manifest source identity mismatch")
+        if key in by_source:
+            raise ProjectionBuildError("event identity manifest duplicate source identity")
+        try:
+            parsed_uuid = uuid.UUID(entry.get("id", ""))
+        except (ValueError, AttributeError) as exc:
+            raise ProjectionBuildError("event identity manifest UUID mismatch") from exc
+        if str(parsed_uuid) != entry.get("id") or parsed_uuid.variant != uuid.RFC_4122:
+            raise ProjectionBuildError("event identity manifest UUID mismatch")
+        if entry["id"] in seen_ids:
+            raise ProjectionBuildError("event identity manifest duplicate UUID")
+        seen_ids.add(entry["id"])
+        by_source[key] = entry
+    seen: set[tuple[str, str, str]] = set()
+    for event in events:
+        provenance = event["provenance"]
+        key = (provenance["repository"], provenance["revision"], provenance["source_key"])
+        entry = by_source.get(key)
+        if entry is None:
+            raise ProjectionBuildError("event identity manifest is missing a source identity")
+        slug = entry.get("slug")
+        if (
+            entry.get("title") != event["title"]
+            or not isinstance(slug, str)
+            or not slug
+            or slug != event_title_slug(event["title"])
+        ):
+            raise ProjectionBuildError("event identity manifest title snapshot mismatch")
+        expected = f"/events/{entry['id']}/{slug}"
+        if entry.get("path") != expected:
+            raise ProjectionBuildError("event identity manifest canonical path mismatch")
+        event["identity_id"] = entry["id"]
+        event["slug"] = slug
+        event["public_path"] = expected
+        seen.add(key)
+    if len(seen) != len(events):
+        raise ProjectionBuildError("event identity manifest contains an unknown source identity")
+
+
+def _event_identity_manifest_binding() -> dict[str, Any]:
+    try:
+        payload = json.loads(EVENT_IDENTITY_MANIFEST.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProjectionBuildError("event identity manifest cannot be read") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+        raise ProjectionBuildError("event identity manifest schema mismatch")
+    counts = payload.get("counts")
+    entries = payload.get("events")
+    if not isinstance(counts, dict) or not isinstance(entries, list):
+        raise ProjectionBuildError("event identity manifest counts are invalid")
+    return {
+        "path": "events/event_identity_manifest.json",
+        "sha256": _sha256_file(EVENT_IDENTITY_MANIFEST),
+        "schema_version": payload["schema_version"],
+        "counts": dict(counts),
+    }
 
 
 def _recording_identities(url: str) -> frozenset[tuple[str, str]]:
@@ -902,7 +986,14 @@ def _podcast_event_lineage(
         if len(matches) > 1:
             raise ProjectionBuildError("ambiguous podcast event recording lineage")
         if matches:
-            lineage[event["slug"]] = matches.pop()
+            podcast_slug = matches.pop()
+            # Source-key lookup is used by the identity-aware build path.  Keep the
+            # cosmetic slug key as a compatibility seam for callers/tests that provide
+            # pre-identity records.
+            source_key = event.get("provenance", {}).get("source_key")
+            if isinstance(source_key, str) and source_key:
+                lineage[source_key] = podcast_slug
+            lineage[event["slug"]] = podcast_slug
     return lineage
 
 
@@ -1256,7 +1347,7 @@ def _validate_collection(name: str, records: list[dict[str, Any]]) -> None:
         raise ProjectionBuildError(f"{name}: checked count mismatch")
     keys = [record["slug"] for record in records]
     paths = [record["public_path"] for record in records]
-    if len(keys) != len(set(keys)) or len(paths) != len(set(paths)):
+    if (name != "events" and len(keys) != len(set(keys))) or len(paths) != len(set(paths)):
         raise ProjectionBuildError(f"{name}: duplicate stable key or path")
     for record in records:
         provenance = record.get("provenance") or {}
@@ -1783,7 +1874,9 @@ def build(args: argparse.Namespace) -> None:
     podcast_by_slug = {podcast["slug"]: podcast for podcast in podcasts}
     podcast_event_lineage = _podcast_event_lineage(podcasts, events)
     for event in events:
-        canonical_podcast = podcast_by_slug.get(podcast_event_lineage.get(event["slug"], ""))
+        canonical_podcast = podcast_by_slug.get(
+            podcast_event_lineage.get(event["provenance"]["source_key"], "")
+        )
         for speaker in event["speakers"]:
             if canonical_podcast is not None and speaker["key"] in canonical_podcast["guests"]:
                 continue
@@ -1885,6 +1978,7 @@ def build(args: argparse.Namespace) -> None:
         "projection_rules": {
             "event_source_timezone": str(EVENT_SOURCE_TIMEZONE),
             "event_record_schema_version": EVENT_RECORD_SCHEMA_VERSION,
+            "event_identity_manifest": _event_identity_manifest_binding(),
             "event_description_bridge": bridge_manifest_binding(),
             "conference_links_outside_slice": "omitted",
             "people_source": "438 public _people profiles; underscore-prefixed source excluded",

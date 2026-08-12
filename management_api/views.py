@@ -6,10 +6,12 @@ from datetime import datetime, timedelta
 from django.http import HttpRequest, JsonResponse
 from django.utils import timezone
 
+from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress, execute_idempotent
-from core.models import RevisionConflict
+from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
 from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionConflict
+from events.identity import EventIdentityNotFound
 from events.importers import ProtectedSourceError
 from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
 from events.services import (
@@ -130,6 +132,31 @@ def _historical_error(error: Exception) -> APIError:
     ):
         return APIError(404, "not_found", "The historical aggregate resource was not found.")
     return APIError(500, "internal_error", "The historical aggregate request failed safely.")
+
+
+def _identity_error(error: Exception) -> APIError:
+    if isinstance(error, EventIdentityNotFound):
+        return APIError(404, "not_found", "The Event identity was not found.")
+    if isinstance(error, (TypeError, ValueError)):
+        return APIError(400, "invalid_request", "The Event identity request is invalid.")
+    return APIError(500, "internal_error", "The Event identity request failed safely.")
+
+
+def _audit_identity_access(request: HttpRequest, *, event_id: uuid.UUID | None = None) -> None:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    record_audit_event(
+        action="events.identity.viewed",
+        target_type="events.event",
+        target_id=event_id,
+        target_label="event-identity",
+        outcome=AuditEvent.Outcome.SUCCEEDED,
+        context=AuditWriteContext(
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            actor_ref=f"api_principal:{identity.principal.id}",
+        ),
+        metadata={"surface": "admin_api"},
+    )
 
 
 def _site_settings_error(error: Exception) -> APIError:
@@ -474,7 +501,6 @@ def _mapping_command_payload(request: HttpRequest, *, updating: bool) -> dict:
     payload = parse_json_object(request)
     required = {
         "state",
-        "canonical_slug",
         "mapping_set_revision",
         "reason_code",
         "reason",
@@ -483,7 +509,9 @@ def _mapping_command_payload(request: HttpRequest, *, updating: bool) -> dict:
     }
     if not updating:
         required.update({"provider", "external_event_identifier"})
-    _enforce_fields(request, payload, required=frozenset(required))
+    _enforce_fields(
+        request, payload, required=frozenset(required), optional=frozenset({"event_id"})
+    )
     return payload
 
 
@@ -501,7 +529,6 @@ def _revise_mapping_api(
         provider=payload.get("provider"),
         external_event_identifier=payload.get("external_event_identifier"),
         state=payload["state"],
-        canonical_slug=payload["canonical_slug"],
         mapping_set_revision=payload["mapping_set_revision"],
         expected_revision=expected_revision,
         reason_code=payload["reason_code"],
@@ -510,6 +537,7 @@ def _revise_mapping_api(
         combination_policy=payload["combination_policy"],
         reviewer=identity.principal.user,
         context=_historical_context(request),
+        event_id=payload.get("event_id"),
     )
     return serialize_mapping(mapping, reveal_identifier=True)
 
@@ -554,12 +582,36 @@ def historical_mapping_update(request: HttpRequest, mapping_id: str) -> JsonResp
 
 
 @admin_capability("events.historical_registration_total.read")
-def historical_registration_total(request: HttpRequest, canonical_key: str) -> JsonResponse:
+def historical_registration_total(request: HttpRequest, event_id: str) -> JsonResponse:
     capability = request.management_capability  # type: ignore[attr-defined]
     try:
-        return JsonResponse(capability.service(canonical_key))
+        return JsonResponse(capability.service(uuid.UUID(str(event_id))))
     except Exception as error:
         raise _historical_error(error) from error
+
+
+@admin_capability("events.identity.read")
+def event_identity_list(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        query = parse_page_query(request.GET, filter_fields=(), sort_fields=())
+        result = capability.service(page=query.page, page_size=query.page_size)
+        _audit_identity_access(request)
+        return JsonResponse(result)
+    except Exception as error:
+        raise _identity_error(error) from error
+
+
+@admin_capability("events.identity.detail")
+def event_identity_detail(request: HttpRequest, event_id: str) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        parsed_id = uuid.UUID(str(event_id))
+        result = capability.service(parsed_id)
+        _audit_identity_access(request, event_id=parsed_id)
+        return JsonResponse(result)
+    except Exception as error:
+        raise _identity_error(error) from error
 
 
 def admin_not_found(request: HttpRequest, path: str = "") -> JsonResponse:

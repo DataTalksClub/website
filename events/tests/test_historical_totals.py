@@ -25,8 +25,10 @@ from events.models import (
 )
 from events.services import (
     HistoricalRegistrationConflict,
+    HistoricalRegistrationInvalid,
     activate_source,
     public_registration_total,
+    registration_total_preview,
     replace_aggregate_with_row_projection,
     restore_aggregate_from_row_projection,
     revise_mapping,
@@ -71,6 +73,13 @@ class HistoricalRegistrationTotalTests(TestCase):
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
+
+    def test_registration_total_selection_requires_exact_uuid_identity(self) -> None:
+        with self.assertRaisesMessage(
+            HistoricalRegistrationInvalid,
+            "canonical_event_unavailable",
+        ):
+            registration_total_preview(self.event["slug"])
 
     def _write_source(self, statuses: tuple[str, ...]) -> dict:
         event_id = "synthetic-provider-event"
@@ -140,7 +149,7 @@ class HistoricalRegistrationTotalTests(TestCase):
             provider=None,
             external_event_identifier=None,
             state=HistoricalEventMapping.State.MAPPED,
-            canonical_slug=self.event["slug"],
+            event_id=self.event["identity_id"],
             mapping_set_revision=1,
             expected_revision=mapping.revision,
             reason_code="exact_review",
@@ -201,6 +210,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         mapping = HistoricalEventMapping.objects.create(
             provider=provider,
             external_event_identifier=f"synthetic-{suffix}",
+            event_id=self.event["identity_id"],
             canonical_repository=provenance["repository"],
             canonical_revision=provenance["revision"],
             canonical_source_key=provenance["source_key"],
@@ -355,7 +365,6 @@ class HistoricalRegistrationTotalTests(TestCase):
                 provider=None,
                 external_event_identifier=None,
                 state=HistoricalEventMapping.State.EXCLUDED,
-                canonical_slug="",
                 mapping_set_revision=2,
                 expected_revision=mapping.revision,
                 reason_code="reviewed_exclusion",
@@ -540,6 +549,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         second_mapping = HistoricalEventMapping.objects.create(
             provider="luma",
             external_event_identifier="synthetic-same-run-second-replacement",
+            event_id=self.event["identity_id"],
             canonical_repository=provenance["repository"],
             canonical_revision=provenance["revision"],
             canonical_source_key=provenance["source_key"],
@@ -683,7 +693,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         row_revision = uuid.uuid4()
         with patch("django_q.tasks.async_task"):
             replace_aggregate_with_row_projection(
-                canonical_slug=self.event["slug"],
+                event_id=self.event["identity_id"],
                 provider="luma",
                 coverage_boundary="historical",
                 replacement_revision_id=row_revision,
@@ -766,7 +776,7 @@ class HistoricalRegistrationTotalTests(TestCase):
         replacement_id = uuid.uuid4()
         with patch("django_q.tasks.async_task"):
             replaced = replace_aggregate_with_row_projection(
-                canonical_slug=self.event["slug"],
+                event_id=self.event["identity_id"],
                 provider="luma",
                 coverage_boundary="historical",
                 replacement_revision_id=replacement_id,
@@ -790,7 +800,7 @@ class HistoricalRegistrationTotalTests(TestCase):
 
         with patch("django_q.tasks.async_task"):
             restored = restore_aggregate_from_row_projection(
-                canonical_slug=self.event["slug"],
+                event_id=self.event["identity_id"],
                 provider="luma",
                 coverage_boundary="historical",
                 expected_slot_revision=replaced.revision,

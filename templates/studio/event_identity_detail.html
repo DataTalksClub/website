@@ -1,0 +1,34 @@
+{% extends "studio/base.html" %}
+
+{% block title %}{{ identity.title }} identity · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="event-identity-heading">
+    <p class="eyebrow">Studio · Event identity</p>
+    <h1 id="event-identity-heading">{{ identity.title }}</h1>
+    <dl class="credential-metadata">
+      <div><dt>UUID</dt><dd><code>{{ identity.id }}</code></dd></div>
+      <div><dt>Current slug</dt><dd><code>{{ identity.slug }}</code></dd></div>
+      <div><dt>Canonical detail</dt><dd><code>{{ identity.canonical_path }}</code></dd></div>
+      <div><dt>Canonical registration</dt><dd><code>{{ identity.registration_path }}</code></dd></div>
+    </dl>
+
+    <h2>Source provenance</h2>
+    <dl class="credential-metadata">
+      <div><dt>Repository</dt><dd><code>{{ identity.provenance.repository }}</code></dd></div>
+      <div><dt>Revision</dt><dd><code>{{ identity.provenance.revision }}</code></dd></div>
+      <div><dt>Source key</dt><dd><code>{{ identity.provenance.source_key }}</code></dd></div>
+      <div><dt>Source path</dt><dd><code>{{ identity.provenance.source_path }}</code></dd></div>
+      <div><dt>Checksum</dt><dd><code>{{ identity.provenance.source_checksum }}</code></dd></div>
+    </dl>
+
+    <h2>Retained aliases</h2>
+    <ul>
+      {% for alias in identity.aliases %}
+        <li><code>{{ alias.path }}</code> · {{ alias.kind }} · {{ alias.reason }}</li>
+      {% empty %}
+        <li>No aliases are retained.</li>
+      {% endfor %}
+    </ul>
+  </section>
+{% endblock %}
