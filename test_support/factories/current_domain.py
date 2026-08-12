@@ -838,6 +838,7 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
 
 def _events(context: FactoryContext, state: str) -> dict[str, object]:
     SourceRun = _model("events.HistoricalRegistrationSourceRun")
+    Event = _model("events.Event")
     Mapping = _model("events.HistoricalEventMapping")
     Aggregate = _model("events.HistoricalRegistrationAggregateRevision")
     Slot = _model("events.HistoricalRegistrationAggregateSlot")
@@ -870,14 +871,24 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     mapping_factory = f"{prefix}.historical_event_mapping"
     mapping_key = _key(context, mapping_factory, state)
+    canonical_event = Event.objects.create(
+        id=_uuid(context, f"{prefix}.event", state),
+        title=f"Synthetic Historical Event {mapping_key}",
+        source_repository="DataTalksClub/synthetic",
+        source_revision="a" * 40,
+        source_key=f"synthetic/{mapping_key}.md",
+        source_path=f"synthetic/{mapping_key}.md",
+        source_checksum=canonical_sha256({"event": mapping_key}),
+    )
     mapping = Mapping.objects.create(
         id=_uuid(context, f"{prefix}.historical_event_mapping", state),
         provider="luma",
         external_event_identifier=f"synthetic-{mapping_key}",
-        canonical_repository="DataTalksClub/synthetic",
-        canonical_revision="a" * 40,
-        canonical_source_key=f"synthetic/{mapping_key}.md",
-        canonical_slug_snapshot=f"synthetic-{mapping_key[:12]}",
+        event=canonical_event,
+        canonical_repository=canonical_event.source_repository,
+        canonical_revision=canonical_event.source_revision,
+        canonical_source_key=canonical_event.source_key,
+        canonical_slug_snapshot=canonical_event.slug,
         state="mapped",
         mapping_set_revision=1,
         reviewer_ref="synthetic-reviewer",
@@ -952,21 +963,17 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     from core.services import ServiceContext
     from events.services import replace_aggregate_with_row_projection
 
-    canonical_event = {
-        "slug": mapping.canonical_slug_snapshot,
-        "provenance": {
-            "repository": mapping.canonical_repository,
-            "revision": mapping.canonical_revision,
-            "source_key": mapping.canonical_source_key,
-        },
-    }
     with (
         patch(
-            "events.services.public_projection",
+            "events.services.event_projection_record",
             return_value={
-                "events_by_slug": {
-                    mapping.canonical_slug_snapshot: canonical_event,
-                }
+                "identity_id": str(canonical_event.id),
+                "slug": canonical_event.slug,
+                "provenance": {
+                    "repository": canonical_event.source_repository,
+                    "revision": canonical_event.source_revision,
+                    "source_key": canonical_event.source_key,
+                },
             },
         ),
         patch.object(
@@ -981,7 +988,7 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
         ),
     ):
         boundary = replace_aggregate_with_row_projection(
-            canonical_slug=mapping.canonical_slug_snapshot,
+            event_id=canonical_event.id,
             provider="luma",
             coverage_boundary="synthetic-native",
             replacement_revision_id=_uuid(

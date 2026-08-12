@@ -12,6 +12,7 @@ from core.capabilities import (
     ServiceKind,
 )
 
+from .identity import get_event_identity, list_event_identities
 from .services import (
     IMPORT_PERMISSION,
     MAPPING_PERMISSION,
@@ -229,7 +230,7 @@ MAPPING_LIST = _capability(
 )
 
 _MAPPING_FIELDS = (
-    "canonical_slug",
+    "event_id",
     "combination_policy",
     "coverage_boundary",
     "external_event_identifier",
@@ -288,12 +289,48 @@ TOTAL_PREVIEW = _capability(
     studio_route="studio:historical-registration-total",
     studio_method="GET",
     api=_adapter(
-        route="/api/v1/admin/events/{canonical_key}/registration-total",
+        route="/api/v1/admin/events/{event_id}/registration-total",
         method="GET",
         operation_id="events.historical_registration_total.read",
         schema="HistoricalRegistrationTotal",
     ),
     audit_action="events.historical_registration_total.viewed",
+)
+
+IDENTITY_LIST = _capability(
+    key="events.identity.read",
+    description="Inspect reviewed Event UUID identities and aliases",
+    service=list_event_identities,
+    permission=MAPPING_PERMISSION,
+    studio_route="studio:event-identity-list",
+    studio_method="GET",
+    api=_adapter(
+        route="/api/v1/admin/events/identities",
+        method="GET",
+        operation_id="events.identity.read",
+        schema="EventIdentityList",
+        fields=(),
+        success_status=200,
+    ),
+    audit_action="events.identity.viewed",
+)
+
+IDENTITY_DETAIL = _capability(
+    key="events.identity.detail",
+    description="Inspect one reviewed Event UUID identity and aliases",
+    service=get_event_identity,
+    permission=MAPPING_PERMISSION,
+    studio_route="studio:event-identity-detail",
+    studio_method="GET",
+    api=_adapter(
+        route="/api/v1/admin/events/identities/{event_id}",
+        method="GET",
+        operation_id="events.identity.detail",
+        schema="EventIdentity",
+        fields=(),
+        success_status=200,
+    ),
+    audit_action="events.identity.viewed",
 )
 
 EVENT_CAPABILITIES = (
@@ -309,4 +346,6 @@ EVENT_CAPABILITIES = (
     MAPPING_CREATE,
     MAPPING_UPDATE,
     TOTAL_PREVIEW,
+    IDENTITY_LIST,
+    IDENTITY_DETAIL,
 )

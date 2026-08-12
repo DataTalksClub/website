@@ -202,7 +202,7 @@
     "relationships": [
       {
         "label": "Combining Quantum and AI for Accelerating CFD Simulations - Part 1",
-        "public_path": "/events/2025-11-18-combining-quantum-and-ai-for-accelerating-cfd-simulations-part-1",
+        "public_path": "/events/dc810c8a-284e-4dc4-9c14-47350aa0ad5b/combining-quantum-and-ai-for-accelerating-cfd-simulations-part-1",
         "role": "speaker"
       }
     ],
@@ -257,7 +257,7 @@
       },
       {
         "label": "DataTalks.Club Conference: Career in Data",
-        "public_path": "/events/2021-02-19-datatalks-club-conference-career-in-data",
+        "public_path": "/events/91b53bf3-d9b5-44ba-8d0b-57c20e875801/datatalks-club-conference-career-in-data",
         "role": "speaker"
       }
     ],
@@ -323,7 +323,7 @@
       },
       {
         "label": "Data Ingestion From APIs to Warehouses",
-        "public_path": "/events/2024-02-05-data-ingestion-from-apis-to-warehouses",
+        "public_path": "/events/207e8e91-6527-451b-99bf-ba3680fce39b/data-ingestion-from-apis-to-warehouses",
         "role": "speaker"
       }
     ],
@@ -416,7 +416,7 @@
     "relationships": [
       {
         "label": "Setting up an A/B Testing Framework",
-        "public_path": "/events/2021-05-04-setting-up-an-a-b-testing-framework",
+        "public_path": "/events/92236f10-3882-48c3-85d7-cc488713dcea/setting-up-an-a-b-testing-framework",
         "role": "speaker"
       }
     ],
@@ -462,7 +462,7 @@
     "relationships": [
       {
         "label": "Data Science for Social Good",
-        "public_path": "/events/2021-03-30-data-science-for-social-good",
+        "public_path": "/events/1b9d26c4-2ed8-4e5c-bbd4-868c5df67b72/data-science-for-social-good",
         "role": "speaker"
       }
     ],
@@ -504,7 +504,7 @@
     "relationships": [
       {
         "label": "From Data to Deployment",
-        "public_path": "/events/2023-05-09-from-data-to-deployment",
+        "public_path": "/events/7a6b7361-3301-4335-a69b-8fe55a35a14e/from-data-to-deployment",
         "role": "speaker"
       }
     ],
@@ -592,7 +592,7 @@
     "relationships": [
       {
         "label": "Open source data ingestion for RAGs with dlt",
-        "public_path": "/events/2024-07-08-open-source-data-ingestion-for-rags-with-dlt",
+        "public_path": "/events/858a23ce-58d4-44da-92d7-64c586f208ee/open-source-data-ingestion-for-rags-with-dlt",
         "role": "speaker"
       }
     ],
@@ -772,7 +772,7 @@
     "relationships": [
       {
         "label": "Vibe Coding: Build a Game with AI",
-        "public_path": "/events/2026-03-03-vibe-coding-build-a-game-with-ai",
+        "public_path": "/events/aa40f678-4da6-479f-aa82-0ac8ac058ea2/vibe-coding-build-a-game-with-ai",
         "role": "speaker"
       }
     ],
@@ -810,7 +810,7 @@
     "relationships": [
       {
         "label": "Ingesting Agent Traces with dlthub",
-        "public_path": "/events/2026-07-06-ingesting-agent-traces-with-dlthub",
+        "public_path": "/events/35a5e640-79de-4102-8140-631641941ebf/ingesting-agent-traces-with-dlthub",
         "role": "speaker"
       }
     ],
@@ -848,7 +848,7 @@
     "relationships": [
       {
         "label": "Orchestrating Enterprise ML Workload Jobs Across Clouds",
-        "public_path": "/events/2021-08-10-orchestrating-enterprise-ml-workload-jobs-across-clouds",
+        "public_path": "/events/d69b3b64-527f-44b1-ba13-4dfaa24c0fb7/orchestrating-enterprise-ml-workload-jobs-across-clouds",
         "role": "speaker"
       }
     ],
@@ -902,7 +902,7 @@
     "relationships": [
       {
         "label": "Bodywork: GitOps for Machine Learning",
-        "public_path": "/events/2021-03-16-bodywork-gitops-for-machine-learning",
+        "public_path": "/events/ceea649e-67c1-48b3-8090-b679586d4a8f/bodywork-gitops-for-machine-learning",
         "role": "speaker"
       }
     ],
@@ -952,7 +952,7 @@
     "relationships": [
       {
         "label": "Best MLOps Practices for Building End-to-End ML Projects",
-        "public_path": "/events/2022-06-21-best-mlops-practices-for-building-end-to-end-ml-projects",
+        "public_path": "/events/80f53097-7de2-460e-8753-e5548b5ea90b/best-mlops-practices-for-building-end-to-end-ml-projects",
         "role": "speaker"
       }
     ],
@@ -990,7 +990,7 @@
     "relationships": [
       {
         "label": "How to Build an LLM-powered QA bot",
-        "public_path": "/events/2024-02-19-how-to-build-an-llm-powered-qa-bot",
+        "public_path": "/events/f40ab56c-44c4-4440-904b-39139fb1156c/how-to-build-an-llm-powered-qa-bot",
         "role": "speaker"
       }
     ],
@@ -1138,7 +1138,7 @@
       },
       {
         "label": "MLOps Zoomcamp Competition - Bot or Not?",
-        "public_path": "/events/2025-06-10-mlops-zoomcamp-competition-bot-or-not",
+        "public_path": "/events/d0f6154d-c61f-44bb-a26c-ff6e92d5b73c/mlops-zoomcamp-competition-bot-or-not",
         "role": "speaker"
       }
     ],
@@ -1308,252 +1308,252 @@
       },
       {
         "label": "AI Dev Tools Zoomcamp 2026 Course Launch",
-        "public_path": "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch",
+        "public_path": "/events/72ff7302-8567-4ba4-ab37-fa880807f073/ai-dev-tools-zoomcamp-2026-course-launch",
         "role": "speaker"
       },
       {
         "label": "AI Dev Tools Zoomcamp 2026 Pre-Course Live Q&A",
-        "public_path": "/events/2026-08-24-ai-dev-tools-zoomcamp-2026-pre-course-live-q-a",
+        "public_path": "/events/2e8fa62c-e67d-4708-996a-05052a5d47c4/ai-dev-tools-zoomcamp-2026-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "DevOps and Observability for AI-Built Apps",
-        "public_path": "/events/2026-08-18-devops-and-observability-for-ai-built-apps",
+        "public_path": "/events/8ca6d6cc-7642-4259-a5b2-e90b5d349d03/devops-and-observability-for-ai-built-apps",
         "role": "speaker"
       },
       {
         "label": "Coding Agent Capabilities: MCP, Skills, Plugins, and Custom Agents",
-        "public_path": "/events/2026-08-17-coding-agent-capabilities-mcp-skills-plugins-and-custom-agents",
+        "public_path": "/events/c8fb6509-d0c9-4657-9690-0c2f24d4c087/coding-agent-capabilities-mcp-skills-plugins-and-custom-agents",
         "role": "speaker"
       },
       {
         "label": "Test, Containerize, and Deploy an AI-Assisted App",
-        "public_path": "/events/2026-08-10-test-containerize-and-deploy-an-ai-assisted-app",
+        "public_path": "/events/56aa0681-aeda-4843-904e-86b8db41a7f2/test-containerize-and-deploy-an-ai-assisted-app",
         "role": "speaker"
       },
       {
         "label": "FAQ Assistant in Practice: End-To-End Flow",
-        "public_path": "/events/2026-08-03-faq-assistant-in-practice-end-to-end-flow",
+        "public_path": "/events/c29ee12b-7423-4f1d-bd80-6138d67534a5/faq-assistant-in-practice-end-to-end-flow",
         "role": "speaker"
       },
       {
         "label": "Build and Ship an AI-Assisted Full-Stack App",
-        "public_path": "/events/2026-08-03-build-and-ship-an-ai-assisted-full-stack-app",
+        "public_path": "/events/9bbdb164-3a71-49a6-9f2d-9ba02dd84096/build-and-ship-an-ai-assisted-full-stack-app",
         "role": "speaker"
       },
       {
         "label": "How to Work with AI Coding Agents: Spec-Driven Development, Context and Loop Engineering, Workflows",
-        "public_path": "/events/2026-07-22-how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows",
+        "public_path": "/events/01411816-6a32-44e8-976f-f54d9ec5a44b/how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows",
         "role": "speaker"
       },
       {
         "label": "LLM Zoomcamp 2026 Course Launch",
-        "public_path": "/events/2026-06-08-llm-zoomcamp-2026-course-launch",
+        "public_path": "/events/ae2d76af-6812-41ff-8111-8bf7cfb2419f/llm-zoomcamp-2026-course-launch",
         "role": "speaker"
       },
       {
         "label": "Monitoring LLM Applications: Traces, Feedback, and Production Quality",
-        "public_path": "/events/2026-06-03-monitoring-llm-applications-traces-feedback-and-production-quality",
+        "public_path": "/events/12ace87f-0944-4916-86bc-d5bca3ef4ac7/monitoring-llm-applications-traces-feedback-and-production-quality",
         "role": "speaker"
       },
       {
         "label": "LLM Zoomcamp 2026 Pre-Course Live Q&A",
-        "public_path": "/events/2026-06-02-llm-zoomcamp-2026-pre-course-live-q-a",
+        "public_path": "/events/d5fdb8e3-6aea-4581-8af4-7c563990403b/llm-zoomcamp-2026-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "RAG and Agents Evaluation: Measuring Retrieval and LLM Answer Quality",
-        "public_path": "/events/2026-05-26-rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality",
+        "public_path": "/events/6a0e36b5-2ab1-4762-9369-51ea629fa559/rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality",
         "role": "speaker"
       },
       {
         "label": "From RAG to AI Agents: Function Calling and Tool Use",
-        "public_path": "/events/2026-05-21-from-rag-to-ai-agents-function-calling-and-tool-use",
+        "public_path": "/events/837b570a-006d-4b17-a4e6-1d9f11ba3847/from-rag-to-ai-agents-function-calling-and-tool-use",
         "role": "speaker"
       },
       {
         "label": "Vector Databases: Embeddings, Semantic Search, and Hybrid Retrieval",
-        "public_path": "/events/2026-05-18-vector-databases-embeddings-semantic-search-and-hybrid-retrieval",
+        "public_path": "/events/02f56c20-03fd-4a19-85a0-43c41472226c/vector-databases-embeddings-semantic-search-and-hybrid-retrieval",
         "role": "speaker"
       },
       {
         "label": "Build Your First RAG Application with LLMs",
-        "public_path": "/events/2026-05-11-build-your-first-rag-application-with-llms",
+        "public_path": "/events/88ef85e9-5057-4ac4-abd8-678835ad4383/build-your-first-rag-application-with-llms",
         "role": "speaker"
       },
       {
         "label": "Stream Processing with PyFlink",
-        "public_path": "/events/2026-03-04-stream-processing-with-pyflink",
+        "public_path": "/events/41119afd-43a1-4a8f-a7ac-3f41e90b93ce/stream-processing-with-pyflink",
         "role": "speaker"
       },
       {
         "label": "Data Engineering Zoomcamp 2026 Course Launch",
-        "public_path": "/events/2026-01-12-data-engineering-zoomcamp-2026-course-launch",
+        "public_path": "/events/ab53f5eb-947f-49d0-a672-27de68b262c1/data-engineering-zoomcamp-2026-course-launch",
         "role": "speaker"
       },
       {
         "label": "Durable Agentic Workflows with Temporal.io",
-        "public_path": "/events/2025-12-16-durable-agentic-workflows-with-temporal-io",
+        "public_path": "/events/7486e611-1780-4d96-98a6-bbe4cffda858/durable-agentic-workflows-with-temporal-io",
         "role": "speaker"
       },
       {
         "label": "Data Engineering Zoomcamp 2026 Pre-Course Live Q&A",
-        "public_path": "/events/2025-12-15-data-engineering-zoomcamp-2026-pre-course-live-q-a",
+        "public_path": "/events/2c496e6c-0645-443c-aca8-f5501161c7e1/data-engineering-zoomcamp-2026-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Docker for Data Engineering: Postgres, Docker Compose, and Real-World Workflows",
-        "public_path": "/events/2025-12-09-docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows",
+        "public_path": "/events/bfcecb7a-55b5-466d-902d-1cea5fa705f9/docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows",
         "role": "speaker"
       },
       {
         "label": "AI Dev Tools Zoomcamp 2025 Course Launch",
-        "public_path": "/events/2025-11-18-ai-dev-tools-zoomcamp-2025-course-launch",
+        "public_path": "/events/95f8b803-c797-4e8c-b365-2fa7e8c18fc9/ai-dev-tools-zoomcamp-2025-course-launch",
         "role": "speaker"
       },
       {
         "label": "AI Dev Tools Zoomcamp 2025 Pre-Course Live Q&A",
-        "public_path": "/events/2025-11-04-ai-dev-tools-zoomcamp-2025-pre-course-live-q-a",
+        "public_path": "/events/d552a5e0-9a8c-4290-a7a8-67d2c78dfb19/ai-dev-tools-zoomcamp-2025-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Deep Learning with PyTorch",
-        "public_path": "/events/2025-10-28-deep-learning-with-pytorch",
+        "public_path": "/events/5251cf3a-041c-4aae-bb92-3f560d3b0e0c/deep-learning-with-pytorch",
         "role": "speaker"
       },
       {
         "label": "Deploying ML Models with Kubernetes",
-        "public_path": "/events/2025-10-07-deploying-ml-models-with-kubernetes",
+        "public_path": "/events/caada84b-9e4c-450f-9051-729667774a37/deploying-ml-models-with-kubernetes",
         "role": "speaker"
       },
       {
         "label": "ML Zoomcamp 2025 Course Launch",
-        "public_path": "/events/2025-09-15-ml-zoomcamp-2025-course-launch",
+        "public_path": "/events/5aaeb674-1c5c-4107-bc6c-51924fff34bc/ml-zoomcamp-2025-course-launch",
         "role": "speaker"
       },
       {
         "label": "ML Zoomcamp 2025 Pre-Course Live Q&A",
-        "public_path": "/events/2025-08-19-ml-zoomcamp-2025-pre-course-live-q-a",
+        "public_path": "/events/fbc6a848-660c-423d-ba10-32e204449242/ml-zoomcamp-2025-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Deploying ML Models with AWS Lambda (Serverless)",
-        "public_path": "/events/2025-08-18-deploying-ml-models-with-aws-lambda-serverless",
+        "public_path": "/events/0f676484-e3a8-4ae1-9ff6-4d718b7c1ad1/deploying-ml-models-with-aws-lambda-serverless",
         "role": "speaker"
       },
       {
         "label": "Build an AI Coding Agent",
-        "public_path": "/events/2025-08-12-build-an-ai-coding-agent",
+        "public_path": "/events/51d58b66-2a5b-49a7-8b5f-1112a45b9682/build-an-ai-coding-agent",
         "role": "speaker"
       },
       {
         "label": "Deploying ML Models with FastAPI and uv",
-        "public_path": "/events/2025-08-11-deploying-ml-models-with-fastapi-and-uv",
+        "public_path": "/events/0087f889-218f-44e4-857f-6334f71797f6/deploying-ml-models-with-fastapi-and-uv",
         "role": "speaker"
       },
       {
         "label": "Build Agentic Assistants with OpenAI Function Calling: Part 2",
-        "public_path": "/events/2025-07-30-build-agentic-assistants-with-openai-function-calling-part-2",
+        "public_path": "/events/b23021a5-d081-4ed5-bdcb-d4e59126ca85/build-agentic-assistants-with-openai-function-calling-part-2",
         "role": "speaker"
       },
       {
         "label": "Introduction to Vibe Coding: Build a Game with AI",
-        "public_path": "/events/2025-07-21-introduction-to-vibe-coding-build-a-game-with-ai",
+        "public_path": "/events/f0e947a6-0b70-4f85-b3dc-05b805aab106/introduction-to-vibe-coding-build-a-game-with-ai",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Summer 2025 AI Hackathon Launch",
-        "public_path": "/events/2025-07-14-datatalks-club-summer-2025-ai-hackathon-launch",
+        "public_path": "/events/ff394f45-1bf4-41cd-88fb-4b86cf490110/datatalks-club-summer-2025-ai-hackathon-launch",
         "role": "speaker"
       },
       {
         "label": "From RAG to Agents: Making Smart AI Assistants (LLM Zoomcamp bonus module)",
-        "public_path": "/events/2025-07-01-from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module",
+        "public_path": "/events/ef329733-a849-4dbf-a492-3cdc6f242be2/from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module",
         "role": "speaker"
       },
       {
         "label": "Open-Source LLM Zoomcamp 2025 Pre-Course Live Q&A",
-        "public_path": "/events/2025-06-16-open-source-llm-zoomcamp-2025-pre-course-live-q-a",
+        "public_path": "/events/321c674d-21e9-4a9c-83c8-fb3bac3a9025/open-source-llm-zoomcamp-2025-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "MLOps Zoomcamp Competition - Bot or Not?",
-        "public_path": "/events/2025-06-10-mlops-zoomcamp-competition-bot-or-not",
+        "public_path": "/events/d0f6154d-c61f-44bb-a26c-ff6e92d5b73c/mlops-zoomcamp-competition-bot-or-not",
         "role": "speaker"
       },
       {
         "label": "LLM Zoomcamp Course Launch",
-        "public_path": "/events/2025-05-27-llm-zoomcamp-course-launch",
+        "public_path": "/events/9b899d5d-1ceb-473d-a911-7c5bb285d8bb/llm-zoomcamp-course-launch",
         "role": "speaker"
       },
       {
         "label": "LLM Zoomcamp 2025 Pre-Course Live Q&A",
-        "public_path": "/events/2025-05-19-llm-zoomcamp-2025-pre-course-live-q-a",
+        "public_path": "/events/4ed9013a-2d4a-4e1c-8d6c-3d60fddf9e8f/llm-zoomcamp-2025-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "MLOps Zoomcamp 2025 Pre-Course Live Q&A",
-        "public_path": "/events/2025-04-15-mlops-zoomcamp-2025-pre-course-live-q-a",
+        "public_path": "/events/13f20555-6e80-422d-97c9-3e51e65a027a/mlops-zoomcamp-2025-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Stock Market Analytics Zoomcamp 2025 - Pre-Course Live Q&A",
-        "public_path": "/events/2025-04-14-stock-market-analytics-zoomcamp-2025-pre-course-live-q-a",
+        "public_path": "/events/6604e0b7-1bb8-4caa-998a-e441f7513578/stock-market-analytics-zoomcamp-2025-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Using GenAI to Create Horror Stories",
-        "public_path": "/events/2025-04-08-using-genai-to-create-horror-stories",
+        "public_path": "/events/a92a4a05-f822-4c15-a5c8-03bc664d7ace/using-genai-to-create-horror-stories",
         "role": "speaker"
       },
       {
         "label": "ML Zoomcamp 2024 Pre-Course Live Q&A",
-        "public_path": "/events/2024-09-02-ml-zoomcamp-2024-pre-course-live-q-a",
+        "public_path": "/events/5273f850-064a-4c83-94e2-072f9655a4f5/ml-zoomcamp-2024-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "LLM Zoomcamp 2024 Pre-Course Live Q&A",
-        "public_path": "/events/2024-06-03-llm-zoomcamp-2024-pre-course-live-q-a",
+        "public_path": "/events/7cc44958-3e67-4739-b11b-b5f94f0e3e08/llm-zoomcamp-2024-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Implement a Search Engine",
-        "public_path": "/events/2024-05-27-implement-a-search-engine",
+        "public_path": "/events/0dcd502e-d07b-4779-a068-43ccd134c43d/implement-a-search-engine",
         "role": "speaker"
       },
       {
         "label": "MLOps Zoomcamp 2024 Pre-Course Live Q&A",
-        "public_path": "/events/2024-05-07-mlops-zoomcamp-2024-pre-course-live-q-a",
+        "public_path": "/events/e353e50d-f0e7-4dc0-b71c-15a9275f0234/mlops-zoomcamp-2024-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Chat with Your Own Data: Introduction to the LLM Zoomcamp",
-        "public_path": "/events/2024-05-06-chat-with-your-own-data-introduction-to-the-llm-zoomcamp",
+        "public_path": "/events/85071eeb-5d22-4892-8a7b-5dd82282c1ff/chat-with-your-own-data-introduction-to-the-llm-zoomcamp",
         "role": "speaker"
       },
       {
         "label": "Stock Market Analytics Zoomcamp Pre-Launch Q&A",
-        "public_path": "/events/2024-03-25-stock-market-analytics-zoomcamp-pre-launch-q-a",
+        "public_path": "/events/fe8b65bd-e8e9-42a3-bb7b-80b78d7c2d91/stock-market-analytics-zoomcamp-pre-launch-q-a",
         "role": "speaker"
       },
       {
         "label": "Introduction to Data Engineering Zoomcamp",
-        "public_path": "/events/2023-12-18-introduction-to-data-engineering-zoomcamp",
+        "public_path": "/events/216f8e2d-fb58-41a1-8449-e029c14ab23a/introduction-to-data-engineering-zoomcamp",
         "role": "speaker"
       },
       {
         "label": "Introduction to ML Engineering and ML Zoomcamp",
-        "public_path": "/events/2023-08-28-introduction-to-ml-engineering-and-ml-zoomcamp",
+        "public_path": "/events/d15d1c3d-9724-442b-b49f-b9ddf408289d/introduction-to-ml-engineering-and-ml-zoomcamp",
         "role": "speaker"
       },
       {
         "label": "Introduction to MLOps and MLOps Zoomcamp",
-        "public_path": "/events/2023-05-02-introduction-to-mlops-and-mlops-zoomcamp",
+        "public_path": "/events/af91f877-8d2b-4253-8863-162739f7167b/introduction-to-mlops-and-mlops-zoomcamp",
         "role": "speaker"
       },
       {
         "label": "Bring Your Own Data",
-        "public_path": "/events/2022-12-15-bring-your-own-data",
+        "public_path": "/events/ff836dd1-29ac-4fda-bbc1-2472214d27b0/bring-your-own-data",
         "role": "speaker"
       }
     ],
@@ -1740,7 +1740,7 @@
       },
       {
         "label": "Keeping Your Model In Production",
-        "public_path": "/events/2022-12-06-keeping-your-model-in-production",
+        "public_path": "/events/e0ed5452-c0d8-4163-8456-79620e3d0578/keeping-your-model-in-production",
         "role": "speaker"
       }
     ],
@@ -1905,7 +1905,7 @@
     "relationships": [
       {
         "label": "Hypothesis Testing: Bayesian or Frequentist? Two ways of looking at the same coin",
-        "public_path": "/events/2021-12-01-hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin",
+        "public_path": "/events/ef3915a7-345e-4f67-b555-ec12fa71fb4b/hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin",
         "role": "speaker"
       }
     ],
@@ -1960,7 +1960,7 @@
       },
       {
         "label": "DataTalks.Club Summer Marathon: Career in Data",
-        "public_path": "/events/2021-06-14-datatalks-club-summer-marathon-career-in-data",
+        "public_path": "/events/55507aeb-9153-42db-b0de-7fd4f66e23fc/datatalks-club-summer-marathon-career-in-data",
         "role": "speaker"
       }
     ],
@@ -1999,7 +1999,7 @@
     "relationships": [
       {
         "label": "Inventory Optimization in E-commerce",
-        "public_path": "/events/2024-07-02-inventory-optimization-in-e-commerce",
+        "public_path": "/events/9ce20977-4709-4c6e-82df-5fb87ba4521f/inventory-optimization-in-e-commerce",
         "role": "speaker"
       }
     ],
@@ -2037,7 +2037,7 @@
     "relationships": [
       {
         "label": "Open Source MLOps on Public Cloud",
-        "public_path": "/events/2023-05-02-open-source-mlops-on-public-cloud",
+        "public_path": "/events/25f53796-0fac-492a-a3cb-369eddf1a1b0/open-source-mlops-on-public-cloud",
         "role": "speaker"
       }
     ],
@@ -2075,7 +2075,7 @@
     "relationships": [
       {
         "label": "Terraform: Reshaping the Data Engineering Experience",
-        "public_path": "/events/2023-12-04-terraform-reshaping-the-data-engineering-experience",
+        "public_path": "/events/356477e4-cfe5-4336-81a9-e316d6c3fa18/terraform-reshaping-the-data-engineering-experience",
         "role": "speaker"
       }
     ],
@@ -2338,7 +2338,7 @@
       },
       {
         "label": "Hands-on AI Observability",
-        "public_path": "/events/2021-05-11-hands-on-ai-observability",
+        "public_path": "/events/ebad6857-4f77-4feb-93a7-24b93e3b5825/hands-on-ai-observability",
         "role": "speaker"
       }
     ],
@@ -2494,7 +2494,7 @@
       },
       {
         "label": "Data Storytelling in Python Altair",
-        "public_path": "/events/2024-05-21-data-storytelling-in-python-altair",
+        "public_path": "/events/16362906-84c2-4949-98f5-1d762bbc162a/data-storytelling-in-python-altair",
         "role": "speaker"
       }
     ],
@@ -2542,7 +2542,7 @@
     "relationships": [
       {
         "label": "Large Language Models Agents",
-        "public_path": "/events/2023-11-21-large-language-models-agents",
+        "public_path": "/events/7ea5a779-099b-4ec6-b668-b8670121aca6/large-language-models-agents",
         "role": "speaker"
       }
     ],
@@ -2876,7 +2876,7 @@
     "relationships": [
       {
         "label": "Machine Learning Observability",
-        "public_path": "/events/2021-09-07-machine-learning-observability",
+        "public_path": "/events/5fb64fbd-00fe-4b98-9d85-dbf337289ab7/machine-learning-observability",
         "role": "speaker"
       }
     ],
@@ -2918,7 +2918,7 @@
     "relationships": [
       {
         "label": "Elevating RAG Systems",
-        "public_path": "/events/2024-12-09-elevating-rag-systems",
+        "public_path": "/events/5cd1b4ad-e1b0-48ce-bbe1-d607227ac402/elevating-rag-systems",
         "role": "speaker"
       }
     ],
@@ -2956,7 +2956,7 @@
     "relationships": [
       {
         "label": "The Trade-off Between Simplicity And Optimality In Problem-solving",
-        "public_path": "/events/2023-10-31-the-trade-off-between-simplicity-and-optimality-in-problem-solving",
+        "public_path": "/events/dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f/the-trade-off-between-simplicity-and-optimality-in-problem-solving",
         "role": "speaker"
       }
     ],
@@ -3053,7 +3053,7 @@
       },
       {
         "label": "Software Testing for Machine Learning Pipelines",
-        "public_path": "/events/2022-01-19-software-testing-for-machine-learning-pipelines",
+        "public_path": "/events/6e1c8008-d60e-41e8-8ad7-a6a1949589b3/software-testing-for-machine-learning-pipelines",
         "role": "speaker"
       }
     ],
@@ -3087,7 +3087,7 @@
     "relationships": [
       {
         "label": "Fighting Fraud with Triplet Loss",
-        "public_path": "/events/2020-11-24-fighting-fraud-with-triplet-loss",
+        "public_path": "/events/831a2a0e-977e-4e5f-85e5-dc0ab5ddb377/fighting-fraud-with-triplet-loss",
         "role": "speaker"
       }
     ],
@@ -3221,7 +3221,7 @@
     "relationships": [
       {
         "label": "Building a Domestic Risk Assessment Tool",
-        "public_path": "/events/2024-06-17-building-a-domestic-risk-assessment-tool",
+        "public_path": "/events/335e46eb-051b-4506-98f9-a6baf97a0289/building-a-domestic-risk-assessment-tool",
         "role": "speaker"
       }
     ],
@@ -3447,7 +3447,7 @@
     "relationships": [
       {
         "label": "Data Incident Management with Soda and dbt",
-        "public_path": "/events/2022-09-06-data-incident-management-with-soda-and-dbt",
+        "public_path": "/events/6b8dd502-626c-4d9e-851a-7b4584d3b3af/data-incident-management-with-soda-and-dbt",
         "role": "speaker"
       }
     ],
@@ -3579,7 +3579,7 @@
       },
       {
         "label": "DataTalks.Club Summer Marathon: Machine Learning in Production",
-        "public_path": "/events/2021-06-21-datatalks-club-summer-marathon-machine-learning-in-production",
+        "public_path": "/events/b16d79fa-d62c-4e86-a736-8efd97c793dc/datatalks-club-summer-marathon-machine-learning-in-production",
         "role": "speaker"
       }
     ],
@@ -3619,7 +3619,7 @@
     "relationships": [
       {
         "label": "Building with MCP: Tools, Workflows, and Real Examples",
-        "public_path": "/events/2025-11-04-building-with-mcp-tools-workflows-and-real-examples",
+        "public_path": "/events/177cba6d-e8e0-40a1-8f79-18d37eb8cc97/building-with-mcp-tools-workflows-and-real-examples",
         "role": "speaker"
       }
     ],
@@ -4261,7 +4261,7 @@
     "relationships": [
       {
         "label": "Deep Learning Recommender Systems",
-        "public_path": "/events/2021-03-23-deep-learning-recommender-systems",
+        "public_path": "/events/75f8c938-f171-4663-b9ab-1a8e5acd74a7/deep-learning-recommender-systems",
         "role": "speaker"
       }
     ],
@@ -4311,7 +4311,7 @@
     "relationships": [
       {
         "label": "DataTalks.Club Summer Marathon: Career in Data",
-        "public_path": "/events/2021-06-14-datatalks-club-summer-marathon-career-in-data",
+        "public_path": "/events/55507aeb-9153-42db-b0de-7fd4f66e23fc/datatalks-club-summer-marathon-career-in-data",
         "role": "speaker"
       }
     ],
@@ -4370,7 +4370,7 @@
       },
       {
         "label": "DataTalks.Club Conference: Product and Process",
-        "public_path": "/events/2021-02-12-datatalks-club-conference-product-and-process",
+        "public_path": "/events/ed9032f4-68c6-4de9-9089-c98880a50300/datatalks-club-conference-product-and-process",
         "role": "speaker"
       }
     ],
@@ -4514,7 +4514,7 @@
       },
       {
         "label": "Hands-On Data Monitoring with whylogs",
-        "public_path": "/events/2022-03-29-hands-on-data-monitoring-with-whylogs",
+        "public_path": "/events/3efcb07c-0073-4a7a-ad9b-fa1bbc0393e3/hands-on-data-monitoring-with-whylogs",
         "role": "speaker"
       }
     ],
@@ -4566,7 +4566,7 @@
       },
       {
         "label": "DataTalks.Club Conference: Career in Data",
-        "public_path": "/events/2021-02-19-datatalks-club-conference-career-in-data",
+        "public_path": "/events/91b53bf3-d9b5-44ba-8d0b-57c20e875801/datatalks-club-conference-career-in-data",
         "role": "speaker"
       }
     ],
@@ -4751,7 +4751,7 @@
     "relationships": [
       {
         "label": "Maximizing Confidence in Your Data Model Changes with dbt and PipeRider",
-        "public_path": "/events/2023-02-22-maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider",
+        "public_path": "/events/8901894e-8a92-4e54-98a1-b72ec0126478/maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider",
         "role": "speaker"
       }
     ],
@@ -4895,7 +4895,7 @@
       },
       {
         "label": "Essential Communication Skills for Data Professionals",
-        "public_path": "/events/2020-12-01-essential-communication-skills-for-data-professionals",
+        "public_path": "/events/99f5e7b2-772e-489f-a8da-0aa47c6cf92b/essential-communication-skills-for-data-professionals",
         "role": "speaker"
       }
     ],
@@ -5138,7 +5138,7 @@
     "relationships": [
       {
         "label": "Analytics Use Cases Across Non-Automated Operations",
-        "public_path": "/events/2022-04-05-analytics-use-cases-across-non-automated-operations",
+        "public_path": "/events/d853922a-630c-42b1-907c-f953a7c2e2ba/analytics-use-cases-across-non-automated-operations",
         "role": "speaker"
       }
     ],
@@ -5381,12 +5381,12 @@
     "relationships": [
       {
         "label": "AWS Glue DataBrew",
-        "public_path": "/events/2020-12-15-aws-glue-databrew",
+        "public_path": "/events/51fa9d80-ed9e-4108-ba6a-6009abc5cece/aws-glue-databrew",
         "role": "speaker"
       },
       {
         "label": "Deploying models with AWS Sagemaker",
-        "public_path": "/events/2020-11-10-deploying-models-with-aws-sagemaker",
+        "public_path": "/events/87b2a721-5882-4c8f-a4e1-739872c0e340/deploying-models-with-aws-sagemaker",
         "role": "speaker"
       }
     ],
@@ -5488,12 +5488,12 @@
       },
       {
         "label": "Why Your Search Relevance Project Will Fail",
-        "public_path": "/events/2021-06-24-why-your-search-relevance-project-will-fail",
+        "public_path": "/events/87a01c5e-c9ea-482e-abcb-7a5913e12294/why-your-search-relevance-project-will-fail",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Summer Marathon: Machine Learning in Production",
-        "public_path": "/events/2021-06-21-datatalks-club-summer-marathon-machine-learning-in-production",
+        "public_path": "/events/b16d79fa-d62c-4e86-a736-8efd97c793dc/datatalks-club-summer-marathon-machine-learning-in-production",
         "role": "speaker"
       }
     ],
@@ -5725,22 +5725,22 @@
       },
       {
         "label": "A Gentle Introduction to LLM Evaluations",
-        "public_path": "/events/2024-09-10-a-gentle-introduction-to-llm-evaluations",
+        "public_path": "/events/c71b2208-d8e0-4cf3-97c4-9c17a78291f1/a-gentle-introduction-to-llm-evaluations",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Summer Marathon: Career in Data",
-        "public_path": "/events/2021-06-14-datatalks-club-summer-marathon-career-in-data",
+        "public_path": "/events/55507aeb-9153-42db-b0de-7fd4f66e23fc/datatalks-club-summer-marathon-career-in-data",
         "role": "speaker"
       },
       {
         "label": "How Your Machine Learning Project Will Fail",
-        "public_path": "/events/2021-02-12-how-your-machine-learning-project-will-fail",
+        "public_path": "/events/c9b262b3-1510-42ad-ba68-9ad0fefe066c/how-your-machine-learning-project-will-fail",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: Product and Process",
-        "public_path": "/events/2021-02-12-datatalks-club-conference-product-and-process",
+        "public_path": "/events/ed9032f4-68c6-4de9-9089-c98880a50300/datatalks-club-conference-product-and-process",
         "role": "speaker"
       }
     ],
@@ -5875,12 +5875,12 @@
     "relationships": [
       {
         "label": "Building Data-Intensive Teams",
-        "public_path": "/events/2021-02-12-building-data-intensive-teams",
+        "public_path": "/events/8b962779-35e1-4c8c-8e54-18ca2fa26b77/building-data-intensive-teams",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: Product and Process",
-        "public_path": "/events/2021-02-12-datatalks-club-conference-product-and-process",
+        "public_path": "/events/ed9032f4-68c6-4de9-9089-c98880a50300/datatalks-club-conference-product-and-process",
         "role": "speaker"
       }
     ],
@@ -5918,7 +5918,7 @@
     "relationships": [
       {
         "label": "Developing Your Career in ML by Studying",
-        "public_path": "/events/2024-10-15-developing-your-career-in-ml-by-studying",
+        "public_path": "/events/9bbef761-da68-468d-a76e-7f04b3f0f8b4/developing-your-career-in-ml-by-studying",
         "role": "speaker"
       }
     ],
@@ -5973,12 +5973,12 @@
       },
       {
         "label": "Continuous Integration for Machine Learning",
-        "public_path": "/events/2021-02-26-continuous-integration-for-machine-learning",
+        "public_path": "/events/018bc733-98cc-404e-9af6-8c98e0312020/continuous-integration-for-machine-learning",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML in Production",
-        "public_path": "/events/2021-02-26-datatalks-club-conference-ml-in-production",
+        "public_path": "/events/675b403f-7e57-40c7-9022-95a648841c87/datatalks-club-conference-ml-in-production",
         "role": "speaker"
       }
     ],
@@ -6083,7 +6083,7 @@
     "relationships": [
       {
         "label": "Machine Learning Performance Monitoring",
-        "public_path": "/events/2021-01-19-machine-learning-performance-monitoring",
+        "public_path": "/events/a0b4a57c-9ed4-4f53-b9f1-c0e1c2626a09/machine-learning-performance-monitoring",
         "role": "speaker"
       }
     ],
@@ -6133,7 +6133,7 @@
     "relationships": [
       {
         "label": "PyTorch Contributor's Guide: How and Why?",
-        "public_path": "/events/2021-10-12-pytorch-contributor-s-guide-how-and-why",
+        "public_path": "/events/4d3ba732-021e-4eae-b0b4-7c961e978cb9/pytorch-contributor-s-guide-how-and-why",
         "role": "speaker"
       }
     ],
@@ -6226,7 +6226,7 @@
       },
       {
         "label": "Load Testing ML Microservices for Robustness and Scalability",
-        "public_path": "/events/2022-02-08-load-testing-ml-microservices-for-robustness-and-scalability",
+        "public_path": "/events/5654714a-9fb6-42d0-a815-7b57c3635559/load-testing-ml-microservices-for-robustness-and-scalability",
         "role": "speaker"
       }
     ],
@@ -6327,7 +6327,7 @@
     "relationships": [
       {
         "label": "Getting Started with Network Analytics in Python",
-        "public_path": "/events/2021-08-31-getting-started-with-network-analytics-in-python",
+        "public_path": "/events/5ddd2c63-4f17-4019-91a6-219d0654fab9/getting-started-with-network-analytics-in-python",
         "role": "speaker"
       }
     ],
@@ -6365,7 +6365,7 @@
     "relationships": [
       {
         "label": "Evaluating AI Coding Agents with TeamCity and SWE-bench",
-        "public_path": "/events/2026-04-28-evaluating-ai-coding-agents-with-teamcity-and-swe-bench",
+        "public_path": "/events/259b8b21-1b67-41de-8fe4-4842893d87ad/evaluating-ai-coding-agents-with-teamcity-and-swe-bench",
         "role": "speaker"
       }
     ],
@@ -6411,7 +6411,7 @@
     "relationships": [
       {
         "label": "From Human-in-the-Loop to Agent-in-the-Loop: A Practical Transition Guide",
-        "public_path": "/events/2025-12-16-from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide",
+        "public_path": "/events/badc48d1-9a91-4cc7-8bdf-6c1a46718bbb/from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide",
         "role": "speaker"
       }
     ],
@@ -6513,12 +6513,12 @@
       },
       {
         "label": "Building an ML System for Southeast Asia’s Largest Hospital Group",
-        "public_path": "/events/2021-02-05-building-an-ml-system-for-southeast-asia-s-largest-hospital-group",
+        "public_path": "/events/6f7dad4e-f987-4a95-b9be-f02736022b9d/building-an-ml-system-for-southeast-asia-s-largest-hospital-group",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML Use Cases",
-        "public_path": "/events/2021-02-05-datatalks-club-conference-ml-use-cases",
+        "public_path": "/events/5b1e8a0f-6130-42e2-8501-6dd8bb2862e5/datatalks-club-conference-ml-use-cases",
         "role": "speaker"
       }
     ],
@@ -6603,12 +6603,12 @@
     "relationships": [
       {
         "label": "The Importance of Data Quality",
-        "public_path": "/events/2021-06-25-the-importance-of-data-quality",
+        "public_path": "/events/114ab78e-7790-4146-93e4-fce05737f31f/the-importance-of-data-quality",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Summer Marathon: Machine Learning in Production",
-        "public_path": "/events/2021-06-21-datatalks-club-summer-marathon-machine-learning-in-production",
+        "public_path": "/events/b16d79fa-d62c-4e86-a736-8efd97c793dc/datatalks-club-summer-marathon-machine-learning-in-production",
         "role": "speaker"
       }
     ],
@@ -6766,7 +6766,7 @@
     "relationships": [
       {
         "label": "Data Science for Social Good",
-        "public_path": "/events/2021-03-30-data-science-for-social-good",
+        "public_path": "/events/1b9d26c4-2ed8-4e5c-bbd4-868c5df67b72/data-science-for-social-good",
         "role": "speaker"
       }
     ],
@@ -6808,7 +6808,7 @@
     "relationships": [
       {
         "label": "How to build an Agentic Search Flow",
-        "public_path": "/events/2025-04-01-how-to-build-an-agentic-search-flow",
+        "public_path": "/events/5e975ab9-2200-474f-a918-d05a75b11471/how-to-build-an-agentic-search-flow",
         "role": "speaker"
       }
     ],
@@ -6905,7 +6905,7 @@
       },
       {
         "label": "Machine Learning in Digital Identity",
-        "public_path": "/events/2023-05-02-machine-learning-in-digital-identity",
+        "public_path": "/events/146d28bc-20df-4ae0-a144-b626271e040b/machine-learning-in-digital-identity",
         "role": "speaker"
       }
     ],
@@ -7048,7 +7048,7 @@
     "relationships": [
       {
         "label": "How to Land Your First Data Engineer Job",
-        "public_path": "/events/2024-05-07-how-to-land-your-first-data-engineer-job",
+        "public_path": "/events/c93a136e-96c4-42f2-bfb4-1a3d7f1ac97e/how-to-land-your-first-data-engineer-job",
         "role": "speaker"
       }
     ],
@@ -7128,7 +7128,7 @@
     "relationships": [
       {
         "label": "Algorithmic Fairness",
-        "public_path": "/events/2021-11-02-algorithmic-fairness",
+        "public_path": "/events/609436df-fd81-4a3b-a779-43e940b6c011/algorithmic-fairness",
         "role": "speaker"
       }
     ],
@@ -7174,7 +7174,7 @@
     "relationships": [
       {
         "label": "Working as a Core Developer in the Scikit Learn Universe",
-        "public_path": "/events/2024-06-27-working-as-a-core-developer-in-the-scikit-learn-universe",
+        "public_path": "/events/1ea7d6de-3f30-4bbf-94d2-2eaf8827718e/working-as-a-core-developer-in-the-scikit-learn-universe",
         "role": "speaker"
       }
     ],
@@ -7216,7 +7216,7 @@
     "relationships": [
       {
         "label": "Building a Career in AI: From Real Estate to AI Engineering",
-        "public_path": "/events/2026-06-29-building-a-career-in-ai-from-real-estate-to-ai-engineering",
+        "public_path": "/events/0ff1c183-0b4a-425d-8327-67043a67c660/building-a-career-in-ai-from-real-estate-to-ai-engineering",
         "role": "speaker"
       }
     ],
@@ -7300,12 +7300,12 @@
     "relationships": [
       {
         "label": "Inventory Optimization in E-commerce",
-        "public_path": "/events/2024-07-02-inventory-optimization-in-e-commerce",
+        "public_path": "/events/9ce20977-4709-4c6e-82df-5fb87ba4521f/inventory-optimization-in-e-commerce",
         "role": "speaker"
       },
       {
         "label": "Probabilistic Demand Forecasting at Scale",
-        "public_path": "/events/2022-08-30-probabilistic-demand-forecasting-at-scale",
+        "public_path": "/events/a9282b40-0a32-4f4f-94c6-5980e7364f14/probabilistic-demand-forecasting-at-scale",
         "role": "speaker"
       }
     ],
@@ -7473,7 +7473,7 @@
     "relationships": [
       {
         "label": "From REST to reasoning: ingest, index, and query with dlt and Cognee",
-        "public_path": "/events/2025-06-30-from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee",
+        "public_path": "/events/0b316918-dc06-4143-8d57-522c3777d138/from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee",
         "role": "speaker"
       }
     ],
@@ -7519,12 +7519,12 @@
     "relationships": [
       {
         "label": "How to use AI in Consumer Food Product Innovation",
-        "public_path": "/events/2021-02-05-how-to-use-ai-in-consumer-food-product-innovation",
+        "public_path": "/events/634148a2-3f80-40f1-b51f-34a448e5495c/how-to-use-ai-in-consumer-food-product-innovation",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML Use Cases",
-        "public_path": "/events/2021-02-05-datatalks-club-conference-ml-use-cases",
+        "public_path": "/events/5b1e8a0f-6130-42e2-8501-6dd8bb2862e5/datatalks-club-conference-ml-use-cases",
         "role": "speaker"
       }
     ],
@@ -7705,7 +7705,7 @@
     "relationships": [
       {
         "label": "Active and Self-Supervised Learning for Data Selection",
-        "public_path": "/events/2021-03-09-active-and-self-supervised-learning-for-data-selection",
+        "public_path": "/events/f2323016-9342-45a2-b3eb-748a3556d6c5/active-and-self-supervised-learning-for-data-selection",
         "role": "speaker"
       }
     ],
@@ -7738,7 +7738,7 @@
     "relationships": [
       {
         "label": "Deep Learning Recommender Systems",
-        "public_path": "/events/2021-03-23-deep-learning-recommender-systems",
+        "public_path": "/events/75f8c938-f171-4663-b9ab-1a8e5acd74a7/deep-learning-recommender-systems",
         "role": "speaker"
       }
     ],
@@ -7784,7 +7784,7 @@
     "relationships": [
       {
         "label": "Ingestion and Historization in the Data Lake",
-        "public_path": "/events/2021-06-08-ingestion-and-historization-in-the-data-lake",
+        "public_path": "/events/d04f0d9d-0068-46c2-938b-ba1ce78cec2f/ingestion-and-historization-in-the-data-lake",
         "role": "speaker"
       }
     ],
@@ -7826,7 +7826,7 @@
     "relationships": [
       {
         "label": "AI Math Olympiad: A Technical Debrief of the Competition",
-        "public_path": "/events/2025-05-20-ai-math-olympiad-a-technical-debrief-of-the-competition",
+        "public_path": "/events/85618bfa-f3f5-4385-9797-6780d510707a/ai-math-olympiad-a-technical-debrief-of-the-competition",
         "role": "speaker"
       }
     ],
@@ -7919,7 +7919,7 @@
       },
       {
         "label": "Applied Causal Inference",
-        "public_path": "/events/2024-01-28-applied-causal-inference",
+        "public_path": "/events/8b064074-41b0-4ff4-9e59-35a3353840ed/applied-causal-inference",
         "role": "speaker"
       }
     ],
@@ -7996,7 +7996,7 @@
     "relationships": [
       {
         "label": "Data Versioning Explained",
-        "public_path": "/events/2021-01-12-data-versioning-explained",
+        "public_path": "/events/61b98412-c792-4d09-9b1e-4332d7d0047f/data-versioning-explained",
         "role": "speaker"
       }
     ],
@@ -8056,7 +8056,7 @@
       },
       {
         "label": "Introduction to NLP for Industry Use",
-        "public_path": "/events/2021-11-09-introduction-to-nlp-for-industry-use",
+        "public_path": "/events/07776cb5-cf16-4cab-885f-e556290876cf/introduction-to-nlp-for-industry-use",
         "role": "speaker"
       }
     ],
@@ -8108,27 +8108,27 @@
       },
       {
         "label": "Building an AI Stock Research Agent",
-        "public_path": "/events/2026-06-15-building-an-ai-stock-research-agent",
+        "public_path": "/events/ba7ed77b-8fe4-448a-9fbf-2e0cf5423095/building-an-ai-stock-research-agent",
         "role": "speaker"
       },
       {
         "label": "Stock Market Analytics Zoomcamp 2025 - Pre-Course Live Q&A",
-        "public_path": "/events/2025-04-14-stock-market-analytics-zoomcamp-2025-pre-course-live-q-a",
+        "public_path": "/events/6604e0b7-1bb8-4caa-998a-e441f7513578/stock-market-analytics-zoomcamp-2025-pre-course-live-q-a",
         "role": "speaker"
       },
       {
         "label": "Predicting Financial Time-Series",
-        "public_path": "/events/2025-02-24-predicting-financial-time-series",
+        "public_path": "/events/7757cc19-ee58-4598-a5c8-fe472a28d376/predicting-financial-time-series",
         "role": "speaker"
       },
       {
         "label": "Economics and Automation Workshop: Building a Data Pipeline for Economic Insights",
-        "public_path": "/events/2024-12-02-economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights",
+        "public_path": "/events/e4534a7d-3882-48e6-8e15-c5f72248e1cf/economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights",
         "role": "speaker"
       },
       {
         "label": "Stock Market Analytics Zoomcamp Pre-Launch Q&A",
-        "public_path": "/events/2024-03-25-stock-market-analytics-zoomcamp-pre-launch-q-a",
+        "public_path": "/events/fe8b65bd-e8e9-42a3-bb7b-80b78d7c2d91/stock-market-analytics-zoomcamp-pre-launch-q-a",
         "role": "speaker"
       }
     ],
@@ -8175,12 +8175,12 @@
     "relationships": [
       {
         "label": "Context Engineering for Agentic Hybrid Applications",
-        "public_path": "/events/2026-03-10-context-engineering-for-agentic-hybrid-applications",
+        "public_path": "/events/6611c7da-6f69-4644-b720-1e8b2084634c/context-engineering-for-agentic-hybrid-applications",
         "role": "speaker"
       },
       {
         "label": "Practical guide: Fine-tuning Qwen3 with LoRA",
-        "public_path": "/events/2025-10-30-practical-guide-fine-tuning-qwen3-with-lora",
+        "public_path": "/events/3111ca87-1e39-45e5-83a3-5a36b0ba4c83/practical-guide-fine-tuning-qwen3-with-lora",
         "role": "speaker"
       }
     ],
@@ -8284,7 +8284,7 @@
     "relationships": [
       {
         "label": "A Framework for Feature Engineering and Machine Learning Pipelines",
-        "public_path": "/events/2021-05-18-a-framework-for-feature-engineering-and-machine-learning-pipelines",
+        "public_path": "/events/3b9d5a07-4573-44c4-b79f-f2bfdb728c02/a-framework-for-feature-engineering-and-machine-learning-pipelines",
         "role": "speaker"
       }
     ],
@@ -8368,7 +8368,7 @@
     "relationships": [
       {
         "label": "Tracking and personalizing AI agents with Snowplow and the Vercel AI SDK",
-        "public_path": "/events/2026-07-21-tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
+        "public_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
         "role": "speaker"
       }
     ],
@@ -8448,7 +8448,7 @@
     "relationships": [
       {
         "label": "Speeding up Python Code 500x",
-        "public_path": "/events/2022-06-28-speeding-up-python-code-500x",
+        "public_path": "/events/a8ace01e-ca8c-44a5-a6b6-2473365bb6e1/speeding-up-python-code-500x",
         "role": "speaker"
       }
     ],
@@ -8490,7 +8490,7 @@
     "relationships": [
       {
         "label": "Federated Learning to the Rescue",
-        "public_path": "/events/2022-04-12-federated-learning-to-the-rescue",
+        "public_path": "/events/7f91819d-d4b6-44ec-aeaa-8422daa86174/federated-learning-to-the-rescue",
         "role": "speaker"
       }
     ],
@@ -8536,12 +8536,12 @@
     "relationships": [
       {
         "label": "Setting Up AI Projects for Success",
-        "public_path": "/events/2021-06-21-setting-up-ai-projects-for-success",
+        "public_path": "/events/a43bf276-665f-4529-8558-847de6bba9fd/setting-up-ai-projects-for-success",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Summer Marathon: Machine Learning in Production",
-        "public_path": "/events/2021-06-21-datatalks-club-summer-marathon-machine-learning-in-production",
+        "public_path": "/events/b16d79fa-d62c-4e86-a736-8efd97c793dc/datatalks-club-summer-marathon-machine-learning-in-production",
         "role": "speaker"
       }
     ],
@@ -8629,7 +8629,7 @@
     "relationships": [
       {
         "label": "Productionizing a Feature Store for Fraud Detection at Ubisoft",
-        "public_path": "/events/2022-03-15-productionizing-a-feature-store-for-fraud-detection-at-ubisoft",
+        "public_path": "/events/5fb21333-1a5d-470e-b190-80be26e3cc25/productionizing-a-feature-store-for-fraud-detection-at-ubisoft",
         "role": "speaker"
       }
     ],
@@ -8693,7 +8693,7 @@
       },
       {
         "label": "Getting a Data Engineering Job",
-        "public_path": "/events/2022-05-24-getting-a-data-engineering-job",
+        "public_path": "/events/02ce30df-847d-4e46-aa3b-0169ac8be471/getting-a-data-engineering-job",
         "role": "speaker"
       }
     ],
@@ -8931,7 +8931,7 @@
       },
       {
         "label": "Observing Python Applications Using Prometheus",
-        "public_path": "/events/2022-12-13-observing-python-applications-using-prometheus",
+        "public_path": "/events/022be3f7-ccbd-45d4-9f8f-dd5369ac9d4b/observing-python-applications-using-prometheus",
         "role": "speaker"
       }
     ],
@@ -8974,7 +8974,7 @@
     "relationships": [
       {
         "label": "Modeling the Human Brain",
-        "public_path": "/events/2021-06-29-modeling-the-human-brain",
+        "public_path": "/events/244edfd8-4dd4-4619-9625-33179eee8689/modeling-the-human-brain",
         "role": "speaker"
       }
     ],
@@ -9297,7 +9297,7 @@
     "relationships": [
       {
         "label": "Tracking and personalizing AI agents with Snowplow and the Vercel AI SDK",
-        "public_path": "/events/2026-07-21-tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
+        "public_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
         "role": "speaker"
       }
     ],
@@ -9389,7 +9389,7 @@
     "relationships": [
       {
         "label": "How to Evaluate MCP-powered AI Agents Beyond Accuracy using Agent GPA",
-        "public_path": "/events/2026-03-24-how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa",
+        "public_path": "/events/48b46145-c10e-49ff-8eb0-796e4a6287bd/how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa",
         "role": "speaker"
       }
     ],
@@ -9443,7 +9443,7 @@
     "relationships": [
       {
         "label": "Evaluation Store: a New Category of ML Engineering Tools",
-        "public_path": "/events/2021-04-20-evaluation-store-a-new-category-of-ml-engineering-tools",
+        "public_path": "/events/2b29868b-1afc-4011-8f90-f11f6cda29b2/evaluation-store-a-new-category-of-ml-engineering-tools",
         "role": "speaker"
       }
     ],
@@ -9578,7 +9578,7 @@
       },
       {
         "label": "Analytics Engineering with dbt Workshop",
-        "public_path": "/events/2026-01-27-analytics-engineering-with-dbt-workshop",
+        "public_path": "/events/2bd1fbf2-4f3a-45bb-ad21-5a42d3bc00e4/analytics-engineering-with-dbt-workshop",
         "role": "speaker"
       }
     ],
@@ -9831,7 +9831,7 @@
     "relationships": [
       {
         "label": "Fraud Detection in Financial Industry",
-        "public_path": "/events/2022-01-11-fraud-detection-in-financial-industry",
+        "public_path": "/events/14cf1dcd-5230-41b8-a41f-3b34c3929c47/fraud-detection-in-financial-industry",
         "role": "speaker"
       }
     ],
@@ -10161,7 +10161,7 @@
     "relationships": [
       {
         "label": "Feature Engineering for Time Series Forecasting",
-        "public_path": "/events/2022-08-02-feature-engineering-for-time-series-forecasting",
+        "public_path": "/events/0c51a285-100f-4cad-acce-8e67b63ee30a/feature-engineering-for-time-series-forecasting",
         "role": "speaker"
       }
     ],
@@ -10287,7 +10287,7 @@
     "relationships": [
       {
         "label": "Prompt Engineering 101",
-        "public_path": "/events/2023-11-27-prompt-engineering-101",
+        "public_path": "/events/3d0c2350-1b8f-4fda-8e41-f85a1f625fca/prompt-engineering-101",
         "role": "speaker"
       }
     ],
@@ -10338,7 +10338,7 @@
       },
       {
         "label": "Machine Learning Workflows in Production",
-        "public_path": "/events/2022-10-18-machine-learning-workflows-in-production",
+        "public_path": "/events/cef7a3f6-7bf5-4a16-9451-7d7cac016c0b/machine-learning-workflows-in-production",
         "role": "speaker"
       }
     ],
@@ -10433,7 +10433,7 @@
     "relationships": [
       {
         "label": "Modern Data Stack for Analytics Engineering",
-        "public_path": "/events/2021-09-14-modern-data-stack-for-analytics-engineering",
+        "public_path": "/events/ca406f99-7278-4556-96d7-1b86d368b3f7/modern-data-stack-for-analytics-engineering",
         "role": "speaker"
       }
     ],
@@ -10571,22 +10571,22 @@
     "relationships": [
       {
         "label": "Effective Domain-Driven Design for Machine Learning Products",
-        "public_path": "/events/2023-04-19-effective-domain-driven-design-for-machine-learning-products",
+        "public_path": "/events/2314f20b-f260-4e26-9019-5eed25ad6e6f/effective-domain-driven-design-for-machine-learning-products",
         "role": "speaker"
       },
       {
         "label": "Back-of-the-Envelope Calculation For Machine Learning Projects",
-        "public_path": "/events/2021-11-10-back-of-the-envelope-calculation-for-machine-learning-projects",
+        "public_path": "/events/1e336dbd-f0ad-42d6-959b-263439e2c1bd/back-of-the-envelope-calculation-for-machine-learning-projects",
         "role": "speaker"
       },
       {
         "label": "10 Foundational Practices of Machine Learning Engineering",
-        "public_path": "/events/2021-02-26-10-foundational-practices-of-machine-learning-engineering",
+        "public_path": "/events/c41d03bc-9904-44a9-962a-618a225c701b/10-foundational-practices-of-machine-learning-engineering",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML in Production",
-        "public_path": "/events/2021-02-26-datatalks-club-conference-ml-in-production",
+        "public_path": "/events/675b403f-7e57-40c7-9022-95a648841c87/datatalks-club-conference-ml-in-production",
         "role": "speaker"
       }
     ],
@@ -10820,7 +10820,7 @@
     "relationships": [
       {
         "label": "RAG in Action: Next-Level Retrieval Augmented Generation",
-        "public_path": "/events/2024-02-27-rag-in-action-next-level-retrieval-augmented-generation",
+        "public_path": "/events/7df97c72-41a4-4112-be3e-ece26d880da9/rag-in-action-next-level-retrieval-augmented-generation",
         "role": "speaker"
       }
     ],
@@ -10916,7 +10916,7 @@
     "relationships": [
       {
         "label": "From Marketing to Product Owner in Search",
-        "public_path": "/events/2023-10-16-from-marketing-to-product-owner-in-search",
+        "public_path": "/events/dd916918-ea4e-4212-98ca-83c752da07b5/from-marketing-to-product-owner-in-search",
         "role": "speaker"
       }
     ],
@@ -11059,7 +11059,7 @@
       },
       {
         "label": "DataTalks.Club Summer Marathon: Machine Learning in Production",
-        "public_path": "/events/2021-06-21-datatalks-club-summer-marathon-machine-learning-in-production",
+        "public_path": "/events/b16d79fa-d62c-4e86-a736-8efd97c793dc/datatalks-club-summer-marathon-machine-learning-in-production",
         "role": "speaker"
       }
     ],
@@ -11300,7 +11300,7 @@
       },
       {
         "label": "Building a Group Wide Data Lakehouse for Data Science & BI",
-        "public_path": "/events/2023-07-10-building-a-group-wide-data-lakehouse-for-data-science-bi",
+        "public_path": "/events/ccd9354e-7b0c-4aac-bc08-9b4c29535ec8/building-a-group-wide-data-lakehouse-for-data-science-bi",
         "role": "speaker"
       }
     ],
@@ -11562,7 +11562,7 @@
     "relationships": [
       {
         "label": "Unlocking the Door to Your Kick-Start Data Engineering Career",
-        "public_path": "/events/2024-03-13-unlocking-the-door-to-your-kick-start-data-engineering-career",
+        "public_path": "/events/1f111050-38a9-43dc-93b1-c48e38663da0/unlocking-the-door-to-your-kick-start-data-engineering-career",
         "role": "speaker"
       }
     ],
@@ -11608,7 +11608,7 @@
     "relationships": [
       {
         "label": "Monitoring Model Performance with Crowdsourcing",
-        "public_path": "/events/2022-02-16-monitoring-model-performance-with-crowdsourcing",
+        "public_path": "/events/617705ea-1955-43b1-a22e-6179ba9199bf/monitoring-model-performance-with-crowdsourcing",
         "role": "speaker"
       }
     ],
@@ -11650,7 +11650,7 @@
     "relationships": [
       {
         "label": "Building and Scaling a Machine Learning Platform",
-        "public_path": "/events/2023-05-23-building-and-scaling-a-machine-learning-platform",
+        "public_path": "/events/90ef883d-21e1-4e8a-a451-718380230581/building-and-scaling-a-machine-learning-platform",
         "role": "speaker"
       }
     ],
@@ -11688,12 +11688,12 @@
     "relationships": [
       {
         "label": "Build Your AI Machine Vision System by Yourself",
-        "public_path": "/events/2021-02-05-build-your-ai-machine-vision-system-by-yourself",
+        "public_path": "/events/c351a373-aca3-4016-ab47-e4db4e5db7bc/build-your-ai-machine-vision-system-by-yourself",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML Use Cases",
-        "public_path": "/events/2021-02-05-datatalks-club-conference-ml-use-cases",
+        "public_path": "/events/5b1e8a0f-6130-42e2-8501-6dd8bb2862e5/datatalks-club-conference-ml-use-cases",
         "role": "speaker"
       }
     ],
@@ -12141,7 +12141,7 @@
       },
       {
         "label": "Doing Good with Data",
-        "public_path": "/events/2021-09-21-doing-good-with-data",
+        "public_path": "/events/66c4517b-61c9-469e-84a2-61943f5c1fe9/doing-good-with-data",
         "role": "speaker"
       }
     ],
@@ -12402,7 +12402,7 @@
     "relationships": [
       {
         "label": "Building the End to end Roadmap for your Data",
-        "public_path": "/events/2022-06-14-building-the-end-to-end-roadmap-for-your-data",
+        "public_path": "/events/52d8eaef-914e-4ce4-a382-480db4fae464/building-the-end-to-end-roadmap-for-your-data",
         "role": "speaker"
       }
     ],
@@ -12444,7 +12444,7 @@
     "relationships": [
       {
         "label": "Thriving in the AI Era with Human Skills",
-        "public_path": "/events/2026-06-29-thriving-in-the-ai-era-with-human-skills",
+        "public_path": "/events/a3dd5c8b-8580-46e3-a0b4-93a24ad52bd4/thriving-in-the-ai-era-with-human-skills",
         "role": "speaker"
       }
     ],
@@ -12587,7 +12587,7 @@
       },
       {
         "label": "Make Data Magical with Mage",
-        "public_path": "/events/2023-09-19-make-data-magical-with-mage",
+        "public_path": "/events/dbdf8e96-faee-478e-a9a3-93a731f80964/make-data-magical-with-mage",
         "role": "speaker"
       }
     ],
@@ -12672,7 +12672,7 @@
     "relationships": [
       {
         "label": "Data Mesh in Practice",
-        "public_path": "/events/2021-04-13-data-mesh-in-practice",
+        "public_path": "/events/768dd8b2-8e2d-4ba6-9f49-5af7d39ed7c4/data-mesh-in-practice",
         "role": "speaker"
       }
     ],
@@ -12710,7 +12710,7 @@
     "relationships": [
       {
         "label": "Building Streaming Analytics: The Journey and Learnings",
-        "public_path": "/events/2021-08-17-building-streaming-analytics-the-journey-and-learnings",
+        "public_path": "/events/1a825343-aacc-41db-951b-4b28fe3dbac9/building-streaming-analytics-the-journey-and-learnings",
         "role": "speaker"
       }
     ],
@@ -12922,7 +12922,7 @@
     "relationships": [
       {
         "label": "Building Machine Learning Pipelines with Kedro",
-        "public_path": "/events/2022-04-19-building-machine-learning-pipelines-with-kedro",
+        "public_path": "/events/ab617994-4f98-40d2-a2bf-308da62768f8/building-machine-learning-pipelines-with-kedro",
         "role": "speaker"
       }
     ],
@@ -12977,7 +12977,7 @@
       },
       {
         "label": "Conversational AI",
-        "public_path": "/events/2021-06-01-conversational-ai",
+        "public_path": "/events/06852f6d-adad-4176-927b-e4d30f2e90f9/conversational-ai",
         "role": "speaker"
       }
     ],
@@ -13326,7 +13326,7 @@
     "relationships": [
       {
         "label": "Automated Prompt Optimization with Evidently AI",
-        "public_path": "/events/2025-12-15-automated-prompt-optimization-with-evidently-ai",
+        "public_path": "/events/e7ef41e0-3151-4c7f-8c0a-6e170c18ffed/automated-prompt-optimization-with-evidently-ai",
         "role": "speaker"
       }
     ],
@@ -13381,12 +13381,12 @@
       },
       {
         "label": "Putting Data Science in Production",
-        "public_path": "/events/2021-02-26-putting-data-science-in-production",
+        "public_path": "/events/b939b48a-7c84-40c3-bd4d-ab1bd104b749/putting-data-science-in-production",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML in Production",
-        "public_path": "/events/2021-02-26-datatalks-club-conference-ml-in-production",
+        "public_path": "/events/675b403f-7e57-40c7-9022-95a648841c87/datatalks-club-conference-ml-in-production",
         "role": "speaker"
       }
     ],
@@ -13425,7 +13425,7 @@
     "relationships": [
       {
         "label": "n8n: From Fundamentals to Building Intelligent Automation Pipeline",
-        "public_path": "/events/2025-11-26-n8n-from-fundamentals-to-building-intelligent-automation-pipeline",
+        "public_path": "/events/53b2efe4-e10a-4c7f-a994-3c96722f9e12/n8n-from-fundamentals-to-building-intelligent-automation-pipeline",
         "role": "speaker"
       }
     ],
@@ -13625,7 +13625,7 @@
     "relationships": [
       {
         "label": "The War of Gradient Boosted Trees",
-        "public_path": "/events/2021-10-26-the-war-of-gradient-boosted-trees",
+        "public_path": "/events/4467e0ed-96d0-4f8c-82c9-82ef91a4a948/the-war-of-gradient-boosted-trees",
         "role": "speaker"
       }
     ],
@@ -13717,7 +13717,7 @@
     "relationships": [
       {
         "label": "Productionizing ML Systems without Fear nor Heroism",
-        "public_path": "/events/2021-05-25-productionizing-ml-systems-without-fear-nor-heroism",
+        "public_path": "/events/29bd513a-cad9-44c1-97a0-a869a1abb09e/productionizing-ml-systems-without-fear-nor-heroism",
         "role": "speaker"
       }
     ],
@@ -13797,7 +13797,7 @@
     "relationships": [
       {
         "label": "Recommender Systems for Digital Advertising",
-        "public_path": "/events/2022-05-10-recommender-systems-for-digital-advertising",
+        "public_path": "/events/c9f95cf1-972f-45df-a613-ea3a9cbe34b1/recommender-systems-for-digital-advertising",
         "role": "speaker"
       }
     ],
@@ -13843,7 +13843,7 @@
     "relationships": [
       {
         "label": "Identity Resolution Essentials from a Data Scientist",
-        "public_path": "/events/2023-06-13-identity-resolution-essentials-from-a-data-scientist",
+        "public_path": "/events/b021ddaa-306f-4824-a356-46297dc7339e/identity-resolution-essentials-from-a-data-scientist",
         "role": "speaker"
       }
     ],
@@ -13893,7 +13893,7 @@
     "relationships": [
       {
         "label": "Machine Learning for Customer Service",
-        "public_path": "/events/2021-01-26-machine-learning-for-customer-service",
+        "public_path": "/events/f50a2d3c-f2dc-47e4-8429-81d620592809/machine-learning-for-customer-service",
         "role": "speaker"
       }
     ],
@@ -14016,7 +14016,7 @@
     "relationships": [
       {
         "label": "Running Durable Agents in Production",
-        "public_path": "/events/2026-08-18-running-durable-agents-in-production",
+        "public_path": "/events/75722536-79be-44b0-bde9-17e90dd3a967/running-durable-agents-in-production",
         "role": "speaker"
       }
     ],
@@ -14054,7 +14054,7 @@
     "relationships": [
       {
         "label": "Notebooks in Production - Fun or not Fun?",
-        "public_path": "/events/2021-11-16-notebooks-in-production-fun-or-not-fun",
+        "public_path": "/events/9e173022-b8f1-42d1-aa00-9340f5185ab4/notebooks-in-production-fun-or-not-fun",
         "role": "speaker"
       }
     ],
@@ -14258,7 +14258,7 @@
     "relationships": [
       {
         "label": "The Agentic Shift in Data Engineering: From Pipeline Builders to Architects of Controlled Chaos",
-        "public_path": "/events/2026-06-16-the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos",
+        "public_path": "/events/9f488454-7d58-4191-a5db-8bbda819ee76/the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos",
         "role": "speaker"
       }
     ],
@@ -14296,7 +14296,7 @@
     "relationships": [
       {
         "label": "Fraud Detection with Graph Features and GNN",
-        "public_path": "/events/2023-03-29-fraud-detection-with-graph-features-and-gnn",
+        "public_path": "/events/d6ff0b37-477b-470a-9d19-f96a8a44f6e8/fraud-detection-with-graph-features-and-gnn",
         "role": "speaker"
       }
     ],
@@ -14343,7 +14343,7 @@
       },
       {
         "label": "Five Techniques for Improving RAG Chatbots",
-        "public_path": "/events/2024-02-13-five-techniques-for-improving-rag-chatbots",
+        "public_path": "/events/3ed0debf-c7c1-4d05-aef8-6ca2529a8083/five-techniques-for-improving-rag-chatbots",
         "role": "speaker"
       }
     ],
@@ -14526,7 +14526,7 @@
       },
       {
         "label": "Customer Segmentation 2.0",
-        "public_path": "/events/2020-11-17-customer-segmentation-2-0",
+        "public_path": "/events/4fb4c946-f0e0-4bdb-b0a1-5d18534956b4/customer-segmentation-2-0",
         "role": "speaker"
       }
     ],
@@ -14625,7 +14625,7 @@
     "relationships": [
       {
         "label": "Stream Processing",
-        "public_path": "/events/2024-03-04-stream-processing",
+        "public_path": "/events/34659962-c1ba-4946-ad0c-85a63298cf90/stream-processing",
         "role": "speaker"
       }
     ],
@@ -14667,7 +14667,7 @@
     "relationships": [
       {
         "label": "AI in Fashion - Size & Fit",
-        "public_path": "/events/2021-12-14-ai-in-fashion-size-fit",
+        "public_path": "/events/d0f3089a-236b-45d0-acfc-fdce9b64b823/ai-in-fashion-size-fit",
         "role": "speaker"
       }
     ],
@@ -14851,7 +14851,7 @@
     "relationships": [
       {
         "label": "Introduction to Transformers for NLP",
-        "public_path": "/events/2021-09-28-introduction-to-transformers-for-nlp",
+        "public_path": "/events/2fe98b9f-3674-4e39-924b-9da6797198d3/introduction-to-transformers-for-nlp",
         "role": "speaker"
       }
     ],
@@ -15035,7 +15035,7 @@
     "relationships": [
       {
         "label": "Federated Learning to the Rescue",
-        "public_path": "/events/2022-04-12-federated-learning-to-the-rescue",
+        "public_path": "/events/7f91819d-d4b6-44ec-aeaa-8422daa86174/federated-learning-to-the-rescue",
         "role": "speaker"
       }
     ],
@@ -15068,7 +15068,7 @@
     "relationships": [
       {
         "label": "Helping People Get Jobs with Data",
-        "public_path": "/events/2022-02-28-helping-people-get-jobs-with-data",
+        "public_path": "/events/76cd21c7-453c-4b2a-9dc4-b23c027bc004/helping-people-get-jobs-with-data",
         "role": "speaker"
       }
     ],
@@ -15118,12 +15118,12 @@
     "relationships": [
       {
         "label": "Career Transitioning into Data Science",
-        "public_path": "/events/2021-02-19-career-transitioning-into-data-science",
+        "public_path": "/events/497e6350-1d7d-4645-95b4-cf6dab0f0496/career-transitioning-into-data-science",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: Career in Data",
-        "public_path": "/events/2021-02-19-datatalks-club-conference-career-in-data",
+        "public_path": "/events/91b53bf3-d9b5-44ba-8d0b-57c20e875801/datatalks-club-conference-career-in-data",
         "role": "speaker"
       }
     ],
@@ -15265,7 +15265,7 @@
     "relationships": [
       {
         "label": "Effective Machine Learning Inside Your Database",
-        "public_path": "/events/2022-09-21-effective-machine-learning-inside-your-database",
+        "public_path": "/events/d7f7ec7e-9f51-454d-9962-77ddee2a552e/effective-machine-learning-inside-your-database",
         "role": "speaker"
       }
     ],
@@ -15325,7 +15325,7 @@
       },
       {
         "label": "Engineering Your Own AI Assistant",
-        "public_path": "/events/2026-07-21-engineering-your-own-ai-assistant",
+        "public_path": "/events/018ac4d8-358f-43b9-b9f5-77b874da95e9/engineering-your-own-ai-assistant",
         "role": "speaker"
       }
     ],
@@ -15507,12 +15507,12 @@
       },
       {
         "label": "Industrial Applications of Reinforcement Learning",
-        "public_path": "/events/2021-02-05-industrial-applications-of-reinforcement-learning",
+        "public_path": "/events/288d0ab2-061e-499f-bf81-3199aa18343f/industrial-applications-of-reinforcement-learning",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML Use Cases",
-        "public_path": "/events/2021-02-05-datatalks-club-conference-ml-use-cases",
+        "public_path": "/events/5b1e8a0f-6130-42e2-8501-6dd8bb2862e5/datatalks-club-conference-ml-use-cases",
         "role": "speaker"
       }
     ],
@@ -15551,7 +15551,7 @@
     "relationships": [
       {
         "label": "Fact-Checking with Wikidata",
-        "public_path": "/events/2026-01-20-fact-checking-with-wikidata",
+        "public_path": "/events/cf281d17-e650-4a9f-a018-974c209b19b9/fact-checking-with-wikidata",
         "role": "speaker"
       }
     ],
@@ -15601,7 +15601,7 @@
     "relationships": [
       {
         "label": "Paradoxes in Data Science",
-        "public_path": "/events/2021-11-23-paradoxes-in-data-science",
+        "public_path": "/events/8a1f6307-c78b-4f2e-9bfd-e3076627e363/paradoxes-in-data-science",
         "role": "speaker"
       }
     ],
@@ -15681,7 +15681,7 @@
     "relationships": [
       {
         "label": "Introduction to Bayesian Inference for Parameter Estimation",
-        "public_path": "/events/2022-11-29-introduction-to-bayesian-inference-for-parameter-estimation",
+        "public_path": "/events/abea3cf0-aaac-470e-8109-5a3f5aa63d1e/introduction-to-bayesian-inference-for-parameter-estimation",
         "role": "speaker"
       }
     ],
@@ -15781,7 +15781,7 @@
     "relationships": [
       {
         "label": "Make Your First ML Chatbot",
-        "public_path": "/events/2021-08-25-make-your-first-ml-chatbot",
+        "public_path": "/events/b0b55652-2d38-4442-a1ca-e0171fc802c0/make-your-first-ml-chatbot",
         "role": "speaker"
       }
     ],
@@ -15885,7 +15885,7 @@
     "relationships": [
       {
         "label": "Engineering AI-Powered Data Products",
-        "public_path": "/events/2026-08-03-engineering-ai-powered-data-products",
+        "public_path": "/events/4a3b03c4-ea24-4598-b2c6-ab57efee88b7/engineering-ai-powered-data-products",
         "role": "speaker"
       }
     ],
@@ -15979,7 +15979,7 @@
       },
       {
         "label": "Modern Data Warehouse",
-        "public_path": "/events/2022-03-22-modern-data-warehouse",
+        "public_path": "/events/904bb22e-29a8-4b17-8ecb-4b2f56cd0805/modern-data-warehouse",
         "role": "speaker"
       }
     ],
@@ -16076,7 +16076,7 @@
     "relationships": [
       {
         "label": "Building the Modern Geospatial Data Stack",
-        "public_path": "/events/2022-09-13-building-the-modern-geospatial-data-stack",
+        "public_path": "/events/ec47f11a-a1bd-4621-b9c8-ac7fb5a58ada/building-the-modern-geospatial-data-stack",
         "role": "speaker"
       }
     ],
@@ -16290,7 +16290,7 @@
     "relationships": [
       {
         "label": "Advancing Cancer Genomics with Machine Learning",
-        "public_path": "/events/2025-10-14-advancing-cancer-genomics-with-machine-learning",
+        "public_path": "/events/38928b59-4800-4467-ac8c-2ccb9345d736/advancing-cancer-genomics-with-machine-learning",
         "role": "speaker"
       }
     ],
@@ -16386,7 +16386,7 @@
     "relationships": [
       {
         "label": "GitOps for ML: Converting Notebooks to Reproducible Pipelines",
-        "public_path": "/events/2023-02-21-gitops-for-ml-converting-notebooks-to-reproducible-pipelines",
+        "public_path": "/events/12865b42-ea59-4a84-99a8-cdf0846a2d01/gitops-for-ml-converting-notebooks-to-reproducible-pipelines",
         "role": "speaker"
       }
     ],
@@ -16483,12 +16483,12 @@
       },
       {
         "label": "Modern Data Pipelines in AdTech - Life in the Trenches",
-        "public_path": "/events/2022-12-14-modern-data-pipelines-in-adtech-life-in-the-trenches",
+        "public_path": "/events/cc319d99-3318-4569-8860-cc2d52b5d4f5/modern-data-pipelines-in-adtech-life-in-the-trenches",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Summer Marathon: Career in Data",
-        "public_path": "/events/2021-06-14-datatalks-club-summer-marathon-career-in-data",
+        "public_path": "/events/55507aeb-9153-42db-b0de-7fd4f66e23fc/datatalks-club-summer-marathon-career-in-data",
         "role": "speaker"
       }
     ],
@@ -16539,17 +16539,17 @@
     "relationships": [
       {
         "label": "Practical Learning-to-Rank: Deep, Fast, Precise",
-        "public_path": "/events/2023-01-17-practical-learning-to-rank-deep-fast-precise",
+        "public_path": "/events/cf0ca15e-2768-4dd6-a9ff-f5e4f95c7716/practical-learning-to-rank-deep-fast-precise",
         "role": "speaker"
       },
       {
         "label": "Building an Open-Source Feature Store with Apache Flink",
-        "public_path": "/events/2021-10-05-building-an-open-source-feature-store-with-apache-flink",
+        "public_path": "/events/c25fc50d-d2d7-42c5-adcd-0bbe50f25e9e/building-an-open-source-feature-store-with-apache-flink",
         "role": "speaker"
       },
       {
         "label": "Reinforcement Learning for Search",
-        "public_path": "/events/2021-04-27-reinforcement-learning-for-search",
+        "public_path": "/events/fa50376d-af65-4213-9d08-0567be1daac1/reinforcement-learning-for-search",
         "role": "speaker"
       }
     ],
@@ -16838,7 +16838,7 @@
     "relationships": [
       {
         "label": "Building Scalable End-to-End Deep Learning Pipelines in the Cloud",
-        "public_path": "/events/2021-03-02-building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud",
+        "public_path": "/events/f7620ed1-8f88-4a79-9935-8dabb7459d1e/building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud",
         "role": "speaker"
       }
     ],
@@ -16980,12 +16980,12 @@
     "relationships": [
       {
         "label": "Machine Learning with Ray: Supercharge Your GPU Clusters",
-        "public_path": "/events/2023-10-17-machine-learning-with-ray-supercharge-your-gpu-clusters",
+        "public_path": "/events/7d9e8cc5-3bf9-44cd-afbf-8f03c9fad3b3/machine-learning-with-ray-supercharge-your-gpu-clusters",
         "role": "speaker"
       },
       {
         "label": "A Practical Guide to A/B Testing in MLOps",
-        "public_path": "/events/2022-09-27-a-practical-guide-to-a-b-testing-in-mlops",
+        "public_path": "/events/87c944d7-3dac-4587-b010-79a083fde1ce/a-practical-guide-to-a-b-testing-in-mlops",
         "role": "speaker"
       }
     ],
@@ -17035,7 +17035,7 @@
     "relationships": [
       {
         "label": "Three Stages of Real-Time Data Monitoring",
-        "public_path": "/events/2022-08-16-three-stages-of-real-time-data-monitoring",
+        "public_path": "/events/9fbeac7f-0889-4761-a509-b1df233bd9ae/three-stages-of-real-time-data-monitoring",
         "role": "speaker"
       }
     ],
@@ -17193,7 +17193,7 @@
       },
       {
         "label": "DataTalks.Club Summer Marathon: Career in Data",
-        "public_path": "/events/2021-06-14-datatalks-club-summer-marathon-career-in-data",
+        "public_path": "/events/55507aeb-9153-42db-b0de-7fd4f66e23fc/datatalks-club-summer-marathon-career-in-data",
         "role": "speaker"
       }
     ],
@@ -17367,12 +17367,12 @@
     "relationships": [
       {
         "label": "Machine Learning Design Patterns",
-        "public_path": "/events/2021-02-26-machine-learning-design-patterns",
+        "public_path": "/events/2bf4bdfe-d3dd-4411-ba5d-eb5b9be94b24/machine-learning-design-patterns",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: ML in Production",
-        "public_path": "/events/2021-02-26-datatalks-club-conference-ml-in-production",
+        "public_path": "/events/675b403f-7e57-40c7-9022-95a648841c87/datatalks-club-conference-ml-in-production",
         "role": "speaker"
       }
     ],
@@ -17536,7 +17536,7 @@
     "relationships": [
       {
         "label": "Building an ML Service Platform from the Ground Up",
-        "public_path": "/events/2022-11-08-building-an-ml-service-platform-from-the-ground-up",
+        "public_path": "/events/753e7036-9deb-494a-b71c-19c323f9e902/building-an-ml-service-platform-from-the-ground-up",
         "role": "speaker"
       }
     ],
@@ -17725,7 +17725,7 @@
       },
       {
         "label": "Deploying Serverless Machine Learning with AWS",
-        "public_path": "/events/2020-12-08-deploying-serverless-machine-learning-with-aws",
+        "public_path": "/events/15cd6217-172d-4250-88c1-c610a6791c97/deploying-serverless-machine-learning-with-aws",
         "role": "speaker"
       }
     ],
@@ -17832,7 +17832,7 @@
       },
       {
         "label": "Mitigating Bias with the XAI Toolbox",
-        "public_path": "/events/2022-05-03-mitigating-bias-with-the-xai-toolbox",
+        "public_path": "/events/15dff6f1-4343-4323-83bc-2d2faa5fa4bd/mitigating-bias-with-the-xai-toolbox",
         "role": "speaker"
       }
     ],
@@ -17875,7 +17875,7 @@
     "relationships": [
       {
         "label": "Foundations of Data Engineering Instruments",
-        "public_path": "/events/2025-05-13-foundations-of-data-engineering-instruments",
+        "public_path": "/events/c84ecc28-a5b0-443a-acf8-47b4f10f81aa/foundations-of-data-engineering-instruments",
         "role": "speaker"
       }
     ],
@@ -17913,7 +17913,7 @@
     "relationships": [
       {
         "label": "System Design in Data Engineering",
-        "public_path": "/events/2024-04-09-system-design-in-data-engineering",
+        "public_path": "/events/e7ac03b3-8b58-4ee0-8917-bdd489e968bd/system-design-in-data-engineering",
         "role": "speaker"
       }
     ],
@@ -17971,7 +17971,7 @@
     "relationships": [
       {
         "label": "How to Boost Your Impact as A Data Professional",
-        "public_path": "/events/2023-12-05-how-to-boost-your-impact-as-a-data-professional",
+        "public_path": "/events/dc0b3b6e-8309-4700-9f96-ed15d3762e41/how-to-boost-your-impact-as-a-data-professional",
         "role": "speaker"
       }
     ],
@@ -18279,7 +18279,7 @@
     "relationships": [
       {
         "label": "The Unspoken Relationship - Product Managers and Data Scientists",
-        "public_path": "/events/2022-03-01-the-unspoken-relationship-product-managers-and-data-scientists",
+        "public_path": "/events/d72c0ce2-450d-4359-bdf2-3631c1408c02/the-unspoken-relationship-product-managers-and-data-scientists",
         "role": "speaker"
       }
     ],
@@ -18430,7 +18430,7 @@
       },
       {
         "label": "Feature Selection in Machine Learning with Python",
-        "public_path": "/events/2022-08-23-feature-selection-in-machine-learning-with-python",
+        "public_path": "/events/953fc1ef-89ff-4615-a7e9-399cf3bd31bd/feature-selection-in-machine-learning-with-python",
         "role": "speaker"
       }
     ],
@@ -18523,7 +18523,7 @@
     "relationships": [
       {
         "label": "MLOps Zoomcamp - Experiment Tracking with Weights and Biases",
-        "public_path": "/events/2023-05-30-mlops-zoomcamp-experiment-tracking-with-weights-and-biases",
+        "public_path": "/events/adbf2c8e-eb3a-43e2-85fa-d2799a9de11b/mlops-zoomcamp-experiment-tracking-with-weights-and-biases",
         "role": "speaker"
       }
     ],
@@ -18569,7 +18569,7 @@
     "relationships": [
       {
         "label": "Orchestrating Enterprise ML Workload Jobs Across Clouds",
-        "public_path": "/events/2021-08-10-orchestrating-enterprise-ml-workload-jobs-across-clouds",
+        "public_path": "/events/d69b3b64-527f-44b1-ba13-4dfaa24c0fb7/orchestrating-enterprise-ml-workload-jobs-across-clouds",
         "role": "speaker"
       }
     ],
@@ -18811,12 +18811,12 @@
     "relationships": [
       {
         "label": "Dangers of Dirty Data",
-        "public_path": "/events/2021-02-12-dangers-of-dirty-data",
+        "public_path": "/events/12f1ab28-45d3-4c6b-b364-989ce1f8048f/dangers-of-dirty-data",
         "role": "speaker"
       },
       {
         "label": "DataTalks.Club Conference: Product and Process",
-        "public_path": "/events/2021-02-12-datatalks-club-conference-product-and-process",
+        "public_path": "/events/ed9032f4-68c6-4de9-9089-c98880a50300/datatalks-club-conference-product-and-process",
         "role": "speaker"
       }
     ],
@@ -19329,7 +19329,7 @@
     "relationships": [
       {
         "label": "How to write data pipelines with Apache Airflow® 3.0",
-        "public_path": "/events/2025-04-28-how-to-write-data-pipelines-with-apache-airflow-3-0",
+        "public_path": "/events/c5f867bd-9456-415d-9cea-a5bd923bd81b/how-to-write-data-pipelines-with-apache-airflow-3-0",
         "role": "speaker"
       }
     ],
@@ -19367,7 +19367,7 @@
     "relationships": [
       {
         "label": "Context Engineering for Agentic Hybrid Applications",
-        "public_path": "/events/2026-03-10-context-engineering-for-agentic-hybrid-applications",
+        "public_path": "/events/6611c7da-6f69-4644-b720-1e8b2084634c/context-engineering-for-agentic-hybrid-applications",
         "role": "speaker"
       }
     ],
@@ -19635,7 +19635,7 @@
     "relationships": [
       {
         "label": "Data Monetization with Machine Learning",
-        "public_path": "/events/2022-10-11-data-monetization-with-machine-learning",
+        "public_path": "/events/ea2da7ca-75ed-4e76-9e88-abf6e3414a82/data-monetization-with-machine-learning",
         "role": "speaker"
       }
     ],
@@ -19677,7 +19677,7 @@
     "relationships": [
       {
         "label": "Data Plumbing without the poop",
-        "public_path": "/events/2023-06-20-data-plumbing-without-the-poop",
+        "public_path": "/events/540de670-720c-4ce7-882b-3fbc42469c6d/data-plumbing-without-the-poop",
         "role": "speaker"
       }
     ],
@@ -19788,7 +19788,7 @@
       },
       {
         "label": "From Algorithms to Agents: Lessons from Building Copilot",
-        "public_path": "/events/2025-09-15-from-algorithms-to-agents-lessons-from-building-copilot",
+        "public_path": "/events/831d038d-9cf4-4ac6-890d-544326d36c4d/from-algorithms-to-agents-lessons-from-building-copilot",
         "role": "speaker"
       }
     ],
@@ -20027,7 +20027,7 @@
     "relationships": [
       {
         "label": "Observing Python Applications Using Prometheus",
-        "public_path": "/events/2022-12-13-observing-python-applications-using-prometheus",
+        "public_path": "/events/022be3f7-ccbd-45d4-9f8f-dd5369ac9d4b/observing-python-applications-using-prometheus",
         "role": "speaker"
       }
     ],
@@ -20161,7 +20161,7 @@
     "relationships": [
       {
         "label": "Data Quality and Reliability with Soda Core",
-        "public_path": "/events/2022-04-26-data-quality-and-reliability-with-soda-core",
+        "public_path": "/events/19ca34e1-e316-4c10-b050-baad17061eff/data-quality-and-reliability-with-soda-core",
         "role": "speaker"
       }
     ],
@@ -20262,7 +20262,7 @@
       },
       {
         "label": "DataTalks.Club Conference: Career in Data",
-        "public_path": "/events/2021-02-19-datatalks-club-conference-career-in-data",
+        "public_path": "/events/91b53bf3-d9b5-44ba-8d0b-57c20e875801/datatalks-club-conference-career-in-data",
         "role": "speaker"
       }
     ],
@@ -20313,7 +20313,7 @@
     "relationships": [
       {
         "label": "Unboxing Design Docs for Data Scientists",
-        "public_path": "/events/2021-08-03-unboxing-design-docs-for-data-scientists",
+        "public_path": "/events/5957dac8-38cc-474a-9df5-5a0f755a8229/unboxing-design-docs-for-data-scientists",
         "role": "speaker"
       }
     ],
@@ -20414,7 +20414,7 @@
     "relationships": [
       {
         "label": "Data Ingestion From APIs to Warehouses and Data Lakes",
-        "public_path": "/events/2025-02-10-data-ingestion-from-apis-to-warehouses-and-data-lakes",
+        "public_path": "/events/98d82440-c9b2-4bba-b255-725a6ece458f/data-ingestion-from-apis-to-warehouses-and-data-lakes",
         "role": "speaker"
       }
     ],
@@ -20820,7 +20820,7 @@
     "relationships": [
       {
         "label": "AI-Powered Computer Vision Applications in Media Industry",
-        "public_path": "/events/2021-12-07-ai-powered-computer-vision-applications-in-media-industry",
+        "public_path": "/events/9c878d94-5ae5-4d5b-bc09-408a5911a12d/ai-powered-computer-vision-applications-in-media-industry",
         "role": "speaker"
       }
     ],
@@ -20958,7 +20958,7 @@
     "relationships": [
       {
         "label": "From APIs to Warehouses: AI-Assisted Data Ingestion with dlt",
-        "public_path": "/events/2026-02-17-from-apis-to-warehouses-ai-assisted-data-ingestion-with-dlt",
+        "public_path": "/events/d21434d7-8868-4e82-86a4-6caf8ff76114/from-apis-to-warehouses-ai-assisted-data-ingestion-with-dlt",
         "role": "speaker"
       }
     ],

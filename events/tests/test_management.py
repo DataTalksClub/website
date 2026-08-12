@@ -176,7 +176,7 @@ class HistoricalRegistrationManagementTests(TestCase):
             data=json.dumps(
                 {
                     "state": HistoricalEventMapping.State.MAPPED,
-                    "canonical_slug": self.event["slug"],
+                    "event_id": self.event["identity_id"],
                     "mapping_set_revision": 1,
                     "reason_code": "exact_review",
                     "reason": "Synthetic exact mapping.",
@@ -200,13 +200,18 @@ class HistoricalRegistrationManagementTests(TestCase):
             self.assertEqual(response.json()["run_id"], run_id)
 
         preview = self.client.get(
-            f"/api/v1/admin/events/{self.event['slug']}/registration-total",
+            f"/api/v1/admin/events/{self.event['identity_id']}/registration-total",
             **self._headers(),
         )
         self.assertEqual(preview.status_code, 200)
         self.assertEqual(preview.json()["count"], 1)
         self.assertEqual(preview.json()["contributions"][0]["provider"], "luma")
         self.assertNotIn(self.external_id, json.dumps(preview.json()))
+        slug_preview = self.client.get(
+            f"/api/v1/admin/events/{self.event['slug']}/registration-total",
+            **self._headers(),
+        )
+        self.assertEqual(slug_preview.status_code, 404)
         self.assertEqual(
             HistoricalRegistrationSourceRun.objects.get().state,
             HistoricalRegistrationSourceRun.State.ACTIVE,
@@ -254,7 +259,7 @@ class HistoricalRegistrationManagementTests(TestCase):
             data=json.dumps(
                 {
                     "state": "mapped",
-                    "canonical_slug": self.event["slug"],
+                    "event_id": self.event["identity_id"],
                     "mapping_set_revision": 1,
                     "reason_code": "exact_review",
                     "reason": "Synthetic exact mapping.",

@@ -22,7 +22,6 @@ from accounts.studio_authorization import (
     authorize_studio_request,
 )
 from accounts.studio_sessions import session_reference
-from content.public_data import public_projection
 from core.audit import AuditWriteContext, record_audit_event
 from core.audit_queries import (
     AUDIT_DISPLAY_FIELDS,
@@ -45,6 +44,7 @@ from core.site_settings import (
     InvalidSiteSettingsBatch,
     SiteSettingsRevisionConflict,
 )
+from events.identity import EventIdentityNotFound, get_event_identity, list_event_identities
 from events.importers import ProtectedSourceError
 from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
 from events.services import (
@@ -87,6 +87,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                 "studio.audit.detail",
                 "events.historical_registration_import.detail",
                 "events.historical_registration_total.read",
+                "events.identity.detail",
             }
         ):
             continue
@@ -110,6 +111,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                     ),
                     "events.historical_registration_mapping.manage": "Historical mappings",
                     "events.historical_registration_total.read": "Registration total preview",
+                    "events.identity.read": "Event identities",
                 }.get(capability.key, capability.description),
                 "route": capability.studio.route,
             }
@@ -120,6 +122,22 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
 def _service_context(request: HttpRequest) -> ServiceContext:
     principal = request.studio_principal  # type: ignore[attr-defined]
     return ServiceContext.from_current(actor_ref=f"user:{principal.user.pk}")
+
+
+def _audit_identity_access(request: HttpRequest, *, event_id: uuid.UUID | None = None) -> None:
+    principal = request.studio_principal  # type: ignore[attr-defined]
+    record_audit_event(
+        action="events.identity.viewed",
+        target_type="events.event",
+        target_id=event_id,
+        target_label="event-identity",
+        outcome=AuditEvent.Outcome.SUCCEEDED,
+        context=AuditWriteContext(
+            actor_id=principal.user.pk,
+            actor_ref=f"user:{principal.user.pk}",
+        ),
+        metadata={"surface": "studio"},
+    )
 
 
 def _audit_fields_allowed(request: HttpRequest) -> bool:
@@ -561,6 +579,38 @@ def audit_detail(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
     )
 
 
+@capability_required("events.identity.read")
+def event_identity_list(request: HttpRequest) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        return HttpResponseNotAllowed(("GET", "HEAD"))
+    try:
+        result = list_event_identities(page=1, page_size=100)
+        _audit_identity_access(request)
+    except (TypeError, ValueError):
+        return HttpResponse("Event identities unavailable", status=500)
+    return render(
+        request,
+        "studio/event_identities.html",
+        {"identities": result["items"], "studio_navigation": _navigation(request)},
+    )
+
+
+@capability_required("events.identity.detail")
+def event_identity_detail(request: HttpRequest, event_id: uuid.UUID) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        return HttpResponseNotAllowed(("GET", "HEAD"))
+    try:
+        identity = get_event_identity(event_id)
+        _audit_identity_access(request, event_id=event_id)
+    except EventIdentityNotFound:
+        return HttpResponse("Event identity unavailable", status=404)
+    return render(
+        request,
+        "studio/event_identity_detail.html",
+        {"identity": identity, "studio_navigation": _navigation(request)},
+    )
+
+
 def historical_registration_list(request: HttpRequest) -> HttpResponse:
     if request.method not in {"GET", "HEAD", "POST"}:
         return HttpResponseNotAllowed(("GET", "HEAD", "POST"))
@@ -751,7 +801,7 @@ def historical_registration_mappings(request: HttpRequest) -> HttpResponse:
                     request.POST.get("external_event_identifier") or None
                 ),
                 "state": request.POST.get("state", ""),
-                "canonical_slug": request.POST.get("canonical_slug", ""),
+                "event_id": request.POST.get("event_id", ""),
                 "mapping_set_revision": int(request.POST.get("mapping_set_revision", "0")),
                 "expected_revision": expected_revision,
                 "reason_code": request.POST.get("reason_code", ""),
@@ -783,12 +833,20 @@ def historical_registration_mappings(request: HttpRequest) -> HttpResponse:
     listing = CAPABILITY_REGISTRY.require("events.historical_registration_mapping.manage").service(
         page=1, page_size=100
     )
+    identity_listing = list_event_identities(page=1, page_size=100)
+    event_identities = list(identity_listing["items"])
+    while len(event_identities) < identity_listing["total_count"]:
+        identity_listing = list_event_identities(
+            page=identity_listing["page"] + 1,
+            page_size=identity_listing["page_size"],
+        )
+        event_identities.extend(identity_listing["items"])
     return render(
         request,
         "studio/historical_registration_mappings.html",
         {
             "mappings": listing["items"],
-            "event_slugs": tuple(sorted(public_projection()["events_by_slug"])),
+            "event_identities": event_identities,
             "mapping_states": (
                 HistoricalEventMapping.State.MAPPED,
                 HistoricalEventMapping.State.EXCLUDED,
@@ -809,7 +867,7 @@ def historical_registration_mappings(request: HttpRequest) -> HttpResponse:
 
 def historical_registration_total(
     request: HttpRequest,
-    canonical_key: str,
+    event_id: uuid.UUID,
 ) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return HttpResponseNotAllowed(("GET", "HEAD"))
@@ -817,7 +875,7 @@ def historical_registration_total(
     if isinstance(selected, HttpResponse):
         return selected
     try:
-        preview = selected.capability.service(canonical_key)
+        preview = selected.capability.service(event_id)
     except HistoricalRegistrationInvalid:
         return HttpResponse("Registration total unavailable", status=404)
     return render(

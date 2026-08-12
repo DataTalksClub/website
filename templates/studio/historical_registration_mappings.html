@@ -32,10 +32,12 @@
                 <option value="{{ value }}" {% if value == mapping.state %}selected{% endif %}>{{ value }}</option>
               {% endfor %}
             </select>
-            <label for="event-{{ mapping.id }}">Exact canonical slug</label>
-            <select id="event-{{ mapping.id }}" name="canonical_slug">
+            <label for="event-{{ mapping.id }}">Exact Event identity</label>
+            <select id="event-{{ mapping.id }}" name="event_id">
               <option value="">No target (exclude)</option>
-              {% for slug in event_slugs %}<option value="{{ slug }}" {% if slug == mapping.canonical_slug %}selected{% endif %}>{{ slug }}</option>{% endfor %}
+              {% for identity in event_identities %}
+                <option value="{{ identity.id }}" {% if identity.id == mapping.event_id %}selected{% endif %}>{{ identity.title }} · {{ identity.slug }}</option>
+              {% endfor %}
             </select>
             <label for="coverage-{{ mapping.id }}">Coverage boundary</label>
             <input id="coverage-{{ mapping.id }}" name="coverage_boundary" value="historical" maxlength="128" required>

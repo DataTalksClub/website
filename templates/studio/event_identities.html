@@ -1,0 +1,29 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Event identities · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="event-identities-heading">
+    <p class="eyebrow">Studio · Events</p>
+    <h1 id="event-identities-heading">Event identities</h1>
+    <p class="lede">
+      Reviewed UUID identities and retained aliases. The UUID is the only lookup key; slugs are
+      cosmetic and source provenance is visible only on this authorized page.
+    </p>
+    <div class="credential-grid">
+      {% for identity in identities %}
+        <article class="audit-card">
+          <h2><a href="{% url 'studio:event-identity-detail' event_id=identity.id %}">{{ identity.title }}</a></h2>
+          <dl class="credential-metadata">
+            <div><dt>UUID</dt><dd><code>{{ identity.id }}</code></dd></div>
+            <div><dt>Slug</dt><dd><code>{{ identity.slug }}</code></dd></div>
+            <div><dt>Canonical</dt><dd><code>{{ identity.canonical_path }}</code></dd></div>
+            <div><dt>Aliases</dt><dd>{{ identity.aliases|length }}</dd></div>
+          </dl>
+        </article>
+      {% empty %}
+        <p>No Event identities are available.</p>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

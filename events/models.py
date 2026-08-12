@@ -8,13 +8,192 @@ management capability.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Collection
 from typing import Any
 
 from django.conf import settings
-from django.db import models
+from django.core.exceptions import ValidationError
+from django.db import models, transaction
 from django.db.models import F, Q
 
 from core.models import RevisionedModel
+
+from .slugs import event_title_slug
+
+
+class Event(models.Model):
+    """The database-owned identity for one public event.
+
+    The first migration intentionally contains only identity and source provenance.  Event
+    lifecycle/content/registration fields are added to this model by the owning follow-up
+    issues; no projection-only replacement model is introduced.
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=1_000)
+    slug = models.SlugField(max_length=255, db_index=True)
+    source_repository = models.CharField(max_length=255)
+    source_revision = models.CharField(max_length=64)
+    source_key = models.CharField(max_length=512)
+    source_path = models.CharField(max_length=512, default="")
+    source_checksum = models.CharField(max_length=64, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("source_key", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("source_repository", "source_revision", "source_key"),
+                name="events_event_source_identity_unique",
+            ),
+            models.CheckConstraint(condition=Q(title__gt=""), name="events_event_title_nonempty"),
+            models.CheckConstraint(
+                condition=Q(source_repository__gt="")
+                & Q(source_revision__gt="")
+                & Q(source_key__gt=""),
+                name="events_event_source_identity_nonempty",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.title
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self.title:
+            raise ValidationError({"title": "Event title is required."})
+        original_id = getattr(self, "_identity_original_id", self.id)
+        if not self._state.adding and original_id != self.id:
+            raise ValueError("event identity cannot be reassigned")
+        original = None
+        if not self._state.adding:
+            original = type(self).objects.filter(pk=self.pk).values("slug").first()
+        expected_slug = event_title_slug(self.title)
+        if self._state.adding and type(self).objects.filter(pk=self.pk).exists():
+            raise ValueError("event identity already exists")
+        # A stale or blank slug is a cosmetic snapshot, never a second identity.
+        self.slug = expected_slug
+
+        if not self._state.adding and not type(self).objects.filter(pk=self.pk).exists():
+            # Django otherwise treats a loaded object whose primary key was reassigned as a
+            # new insert.  Make identity reassignment explicit and fail closed.
+            raise ValueError("event identity cannot be reassigned")
+        original_slug = original["slug"] if original is not None else None
+        slug_changed = original_slug is not None and original_slug != expected_slug
+        update_fields = kwargs.get("update_fields")
+        if slug_changed and update_fields is not None and "slug" not in update_fields:
+            kwargs["update_fields"] = (*update_fields, "slug")
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            self._identity_original_id = self.id
+            if slug_changed and original_slug is not None:
+                EventAlias.objects.get_or_create(
+                    source_path=f"/events/{self.id}/{original_slug}",
+                    defaults={
+                        "event": self,
+                        "kind": EventAlias.Kind.TITLE_SLUG,
+                        "reason": "Previous title-derived Event slug.",
+                        "source_repository": self.source_repository,
+                        "source_revision": self.source_revision,
+                        "source_key": self.source_key,
+                    },
+                )
+
+    def clean(self) -> None:
+        super().clean()
+        try:
+            expected_slug = event_title_slug(self.title)
+        except ValueError as exc:
+            raise ValidationError({"title": str(exc)}) from exc
+        if self.slug and self.slug != expected_slug:
+            raise ValidationError({"slug": "Event slug is generated from title."})
+        self.slug = expected_slug
+
+    @classmethod
+    def from_db(
+        cls,
+        db: str | None,
+        field_names: Collection[str],
+        values: Collection[Any],
+    ) -> Event:
+        """Remember the persisted primary key so an in-memory reassignment cannot retarget a row."""
+
+        instance = super().from_db(db, field_names, values)
+        instance._identity_original_id = instance.id
+        return instance
+
+
+class EventAlias(models.Model):
+    """An immutable, reviewed source path that redirects to one Event identity."""
+
+    class Kind(models.TextChoices):
+        LEGACY_PATH = "legacy_path", "Legacy path"
+        TITLE_SLUG = "title_slug", "Previous title slug"
+        REVIEWED = "reviewed", "Reviewed alias"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.PROTECT, related_name="aliases")
+    source_path = models.CharField(max_length=1_024, unique=True)
+    kind = models.CharField(max_length=24, choices=Kind.choices)
+    reason = models.CharField(max_length=255)
+    source_repository = models.CharField(max_length=255)
+    source_revision = models.CharField(max_length=64)
+    source_key = models.CharField(max_length=512)
+    activated_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("source_path", "id")
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(source_path__startswith="/events/")
+                & ~Q(source_path__contains="?")
+                & ~Q(source_path__contains="#"),
+                name="events_alias_path_shape",
+            ),
+            models.CheckConstraint(
+                condition=Q(source_repository__gt="")
+                & Q(source_revision__gt="")
+                & Q(source_key__gt=""),
+                name="events_alias_source_nonempty",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return self.source_path
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        if not self._state.adding:
+            original = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values(
+                    "event_id",
+                    "source_path",
+                    "kind",
+                    "reason",
+                    "source_repository",
+                    "source_revision",
+                    "source_key",
+                )
+                .first()
+            )
+            if original is not None and (
+                original["event_id"] != self.event_id
+                or original["source_path"] != self.source_path
+                or original["kind"] != self.kind
+                or original["reason"] != self.reason
+                or original["source_repository"] != self.source_repository
+                or original["source_revision"] != self.source_revision
+                or original["source_key"] != self.source_key
+            ):
+                raise ValueError("event alias provenance is immutable")
+        if (
+            not self.source_path.startswith("/events/")
+            or "?" in self.source_path
+            or "#" in self.source_path
+        ):
+            raise ValidationError({"source_path": "Event aliases must be clean /events/ paths."})
+        super().save(*args, **kwargs)
 
 
 class HistoricalRegistrationSourceRun(RevisionedModel):
@@ -140,6 +319,13 @@ class HistoricalEventMapping(RevisionedModel):
         SOURCE_MISSING = "source_missing", "Source missing"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    event = models.ForeignKey(
+        Event,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="historical_registration_mappings",
+    )
     provider = models.CharField(
         max_length=16, choices=HistoricalRegistrationSourceRun.Provider.choices
     )

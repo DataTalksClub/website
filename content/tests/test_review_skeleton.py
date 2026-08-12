@@ -240,11 +240,11 @@ class PublicProjectionTests(TestCase):
             {
                 "role": "speaker",
                 "label": "Investing in Open-Source Data Tools",
-                "public_path": "/events/2023-07-11-investing-in-open-source-data-tools",
+                "public_path": events["investing-in-open-source-data-tools"]["public_path"],
             },
             bela_relationships,
         )
-        self.assertIn("2023-07-11-investing-in-open-source-data-tools", events)
+        self.assertIn("investing-in-open-source-data-tools", events)
 
     def test_event_boundaries_are_timezone_aware(self) -> None:
         before = event_groups(datetime.fromisoformat("2026-08-30T12:00:00+02:00"))
@@ -252,7 +252,7 @@ class PublicProjectionTests(TestCase):
         self.assertTrue(all(event["starts_at_value"].tzinfo for event in before.upcoming))
         self.assertEqual(
             before.upcoming[-1]["slug"],
-            "2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch",
+            "ai-dev-tools-zoomcamp-2026-course-launch",
         )
         self.assertFalse(after.upcoming)
 

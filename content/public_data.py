@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import uuid
 from dataclasses import dataclass
 from datetime import datetime
 from functools import lru_cache
@@ -11,6 +12,8 @@ from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
+
+from events.slugs import event_title_slug
 
 from .event_description_bridge import (
     EVENT_RECORD_SCHEMA_VERSION,
@@ -25,6 +28,7 @@ from .event_description_bridge import (
 )
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
+EVENT_IDENTITY_MANIFEST = PROJECTION_ROOT.parents[1] / "events" / "event_identity_manifest.json"
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     PROJECTION_ROOT.parents[1] / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
@@ -346,6 +350,25 @@ def public_projection() -> dict[str, Any]:
     projection_rules = manifest.get("projection_rules", {})
     if projection_rules.get("event_record_schema_version") != EVENT_RECORD_SCHEMA_VERSION:
         raise ImproperlyConfigured("Public event record schema version mismatch.")
+    try:
+        identity_manifest = json.loads(EVENT_IDENTITY_MANIFEST.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ImproperlyConfigured("Public event identity manifest is unavailable.") from exc
+    if not isinstance(identity_manifest, dict):
+        raise ImproperlyConfigured("Public event identity manifest shape mismatch.")
+    expected_identity_binding = {
+        "path": "events/event_identity_manifest.json",
+        "sha256": _sha256(EVENT_IDENTITY_MANIFEST),
+        "schema_version": identity_manifest.get("schema_version"),
+        "counts": identity_manifest.get("counts"),
+    }
+    if projection_rules.get("event_identity_manifest") != expected_identity_binding:
+        raise ImproperlyConfigured("Public event identity manifest binding mismatch.")
+    identity_aliases_by_id = {
+        item["id"]: tuple(alias["source_path"] for alias in item.get("aliases", []))
+        for item in identity_manifest.get("events", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
     if projection_rules.get("event_description_bridge") != expected_bridge_binding:
         raise ImproperlyConfigured("Public event description bridge binding mismatch.")
     if (
@@ -408,10 +431,54 @@ def public_projection() -> dict[str, Any]:
             raise ImproperlyConfigured(f"Public projection record provenance mismatch: {name}.")
         paths = [item["public_path"] for item in records]
         slugs = [item["slug"] for item in records]
-        if len(paths) != len(set(paths)) or len(slugs) != len(set(slugs)):
+        if len(paths) != len(set(paths)) or (name != "events" and len(slugs) != len(set(slugs))):
             raise ImproperlyConfigured(f"Public projection duplicate key: {name}.")
-        projection[f"{name}_by_slug"] = {item["slug"]: item for item in records}
+        by_slug = {
+            item["slug"]: item
+            for item in records
+            if name != "events" or sum(other["slug"] == item["slug"] for other in records) == 1
+        }
+        if name == "events":
+            for item in records:
+                for legacy_path in identity_aliases_by_id.get(item.get("identity_id"), ()):
+                    legacy_slug = legacy_path.removeprefix("/events/")
+                    if legacy_slug and legacy_slug not in by_slug:
+                        by_slug[legacy_slug] = item
+        projection[f"{name}_by_slug"] = by_slug
         projection[f"{name}_by_path"] = {item["public_path"]: item for item in records}
+        if name == "events":
+            identity_ids: set[str] = set()
+            source_identities: set[tuple[str, str, str]] = set()
+            by_source: dict[tuple[str, str, str], dict[str, Any]] = {}
+            by_identity: dict[str, dict[str, Any]] = {}
+            for event in records:
+                identity_id = event.get("identity_id")
+                if not isinstance(identity_id, str):
+                    raise ImproperlyConfigured("Public event identity is missing.")
+                try:
+                    parsed_identity = uuid.UUID(identity_id)
+                except ValueError as exc:
+                    raise ImproperlyConfigured("Public event identity is invalid.") from exc
+                if str(parsed_identity) != identity_id or parsed_identity.variant != uuid.RFC_4122:
+                    raise ImproperlyConfigured("Public event identity is not lowercase RFC 4122.")
+                if event.get("slug") != event_title_slug(event.get("title", "")):
+                    raise ImproperlyConfigured("Public event slug is not title-derived.")
+                if event.get("public_path") != f"/events/{identity_id}/{event['slug']}":
+                    raise ImproperlyConfigured("Public event canonical path mismatch.")
+                provenance = event.get("provenance", {})
+                source_identity = (
+                    provenance.get("repository", ""),
+                    provenance.get("revision", ""),
+                    provenance.get("source_key", ""),
+                )
+                if identity_id in identity_ids or source_identity in source_identities:
+                    raise ImproperlyConfigured("Public event identity collision.")
+                identity_ids.add(identity_id)
+                source_identities.add(source_identity)
+                by_source[source_identity] = event
+                by_identity[identity_id] = event
+            projection["events_by_source_identity"] = by_source
+            projection["events_by_identity_id"] = by_identity
     if any(
         podcast["transcript"]
         and (

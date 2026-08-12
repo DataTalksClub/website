@@ -13,12 +13,20 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 
-from content.public_data import public_projection
 from core.audit import AuditWriteContext, record_audit_event
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
 from jobs.dispatch import dispatch_after_commit
 
+from .identity import (
+    EventIdentityError,
+    EventIdentityNotFound,
+    attach_historical_mapping,
+    canonical_detail_path,
+    event_projection_record,
+    resolve_source_identity,
+    resolve_uuid,
+)
 from .importers import (
     STATUS_POLICY_VERSION,
     CanonicalProposal,
@@ -85,11 +93,17 @@ def _validate_coverage(value: str) -> str:
     return value
 
 
-def _canonical_event(slug: str) -> dict[str, Any]:
-    event = public_projection()["events_by_slug"].get(slug)
-    if event is None:
-        raise HistoricalRegistrationInvalid("canonical_event_unavailable")
-    return event
+def _canonical_event(event_id: uuid.UUID | str) -> dict[str, Any]:
+    """Resolve a CMP aggregate target by UUID, then exact source provenance only."""
+
+    try:
+        resolved = resolve_uuid(event_id)
+        record = event_projection_record(resolved)
+        if record.get("identity_id") != str(resolved.id):
+            raise EventIdentityError("event_projection_identity_mismatch")
+        return record
+    except (EventIdentityError, EventIdentityNotFound, ValueError, TypeError) as exc:
+        raise HistoricalRegistrationInvalid("canonical_event_unavailable") from exc
 
 
 def _canonical_identity(event: Mapping[str, Any]) -> tuple[str, str, str, str]:
@@ -103,11 +117,22 @@ def _canonical_identity(event: Mapping[str, Any]) -> tuple[str, str, str, str]:
 
 
 def _mapping_matches_projection(mapping: HistoricalEventMapping) -> bool:
+    event_id = mapping.event_id
+    if event_id is None:
+        # Legacy rows created before the UUID FK migration can be upgraded from
+        # their exact source provenance.  No title/date slug is consulted.
+        try:
+            attach_historical_mapping(mapping)
+        except (EventIdentityError, EventIdentityNotFound):
+            return False
+        event_id = mapping.event_id
+        if event_id is None:
+            return False
     try:
-        event = _canonical_event(mapping.canonical_slug_snapshot)
+        event = _canonical_event(event_id)
     except HistoricalRegistrationInvalid:
         return False
-    return _canonical_identity(event) == (
+    return event.get("identity_id") == str(mapping.event_id) and _canonical_identity(event) == (
         mapping.canonical_repository,
         mapping.canonical_revision,
         mapping.canonical_source_key,
@@ -134,7 +159,7 @@ def _transition(
     instance.save(update_fields=tuple(update_fields))
 
 
-def _candidate_proposal_fields(proposal: CanonicalProposal | None) -> dict[str, str]:
+def _candidate_proposal_fields(proposal: CanonicalProposal | None) -> dict[str, Any]:
     if proposal is None:
         return {
             "canonical_repository": "",
@@ -148,6 +173,19 @@ def _candidate_proposal_fields(proposal: CanonicalProposal | None) -> dict[str, 
         "canonical_source_key": proposal.source_key,
         "canonical_slug_snapshot": proposal.slug,
     }
+
+
+def _event_for_proposal(proposal: CanonicalProposal | None):
+    if proposal is None:
+        return None
+    try:
+        return resolve_source_identity(
+            repository=proposal.repository,
+            revision=proposal.revision,
+            source_key=proposal.source_key,
+        )
+    except EventIdentityNotFound:
+        return None
 
 
 def stage_registered_source(
@@ -236,15 +274,19 @@ def _persist_derived_source(
             False,
         )
     for candidate in derived.candidates:
+        event = _event_for_proposal(candidate.proposal)
         mapping, _created = HistoricalEventMapping.objects.get_or_create(
             provider=provider,
             external_event_identifier=candidate.external_event_identifier,
             defaults={
                 **_candidate_proposal_fields(candidate.proposal),
+                "event": event,
                 "state": HistoricalEventMapping.State.REVIEW_REQUIRED,
                 "mapping_set_revision": mapping_set_revision,
             },
         )
+        if event is not None:
+            attach_historical_mapping(mapping)
         HistoricalRegistrationAggregateRevision.objects.create(
             source_run=run,
             mapping=mapping,
@@ -261,11 +303,13 @@ def _persist_derived_source(
             reason_code=candidate.reason_code,
         )
     for external_id, proposal in derived.source_missing:
+        event = _event_for_proposal(proposal)
         HistoricalEventMapping.objects.get_or_create(
             provider=provider,
             external_event_identifier=external_id,
             defaults={
                 **_candidate_proposal_fields(proposal),
+                "event": event,
                 "state": HistoricalEventMapping.State.SOURCE_MISSING,
                 "mapping_set_revision": mapping_set_revision,
                 "reason_code": "source_missing",
@@ -357,7 +401,6 @@ def revise_mapping(
     provider: str | None,
     external_event_identifier: str | None,
     state: str,
-    canonical_slug: str,
     mapping_set_revision: int,
     expected_revision: int | None,
     reason_code: str,
@@ -366,6 +409,7 @@ def revise_mapping(
     combination_policy: str,
     reviewer: Any,
     context: ServiceContext,
+    event_id: uuid.UUID | str | None = None,
 ) -> HistoricalEventMapping:
     if state not in {HistoricalEventMapping.State.MAPPED, HistoricalEventMapping.State.EXCLUDED}:
         raise HistoricalRegistrationInvalid("mapping_state_invalid")
@@ -410,8 +454,11 @@ def revise_mapping(
         if slot.active_revision is not None
     }
     if state == HistoricalEventMapping.State.MAPPED:
-        event = _canonical_event(canonical_slug)
+        if event_id is None:
+            raise HistoricalRegistrationInvalid("event_identity_required")
+        event = _canonical_event(event_id)
         repository, revision, source_key, slug = _canonical_identity(event)
+        mapping.event_id = uuid.UUID(str(event["identity_id"]))
         mapping.canonical_repository = repository
         mapping.canonical_revision = revision
         mapping.canonical_source_key = source_key
@@ -432,6 +479,7 @@ def revise_mapping(
         "canonical_revision",
         "canonical_source_key",
         "canonical_slug_snapshot",
+        "event",
         "state",
         "mapping_set_revision",
         "reviewer",
@@ -687,13 +735,23 @@ def _bump_public_total(
         if total.revision != expected + 1:
             raise HistoricalRegistrationConflict("concurrent_total_change")
     event_hash = hashlib.sha256("\0".join(event_key[:3]).encode()).hexdigest()
+    try:
+        canonical_path = canonical_detail_path(
+            resolve_source_identity(
+                repository=repository,
+                revision=canonical_revision,
+                source_key=source_key,
+            ).id
+        )
+    except (EventIdentityError, EventIdentityNotFound) as exc:
+        raise HistoricalRegistrationConflict("event_identity_unmapped") from exc
     dispatch_after_commit(
         handler="events.registration_total.invalidate",
         deduplication_key=f"event-total-{event_hash}-{total.revision}",
         payload={
             "total_state_id": str(total.id),
             "total_revision": total.revision,
-            "path": f"/events/{slug}",
+            "path": canonical_path,
         },
     )
     return total
@@ -1057,7 +1115,8 @@ def rollback_source(
 @transaction.atomic
 def replace_aggregate_with_row_projection(
     *,
-    canonical_slug: str,
+    event_id: uuid.UUID | str | None = None,
+    canonical_slug: str | None = None,
     provider: str,
     coverage_boundary: str,
     replacement_revision_id: uuid.UUID,
@@ -1079,7 +1138,9 @@ def replace_aggregate_with_row_projection(
         or eligible_count < 0
     ):
         raise HistoricalRegistrationInvalid("replacement_invalid")
-    event = _canonical_event(canonical_slug)
+    if event_id is None or canonical_slug is not None:
+        raise HistoricalRegistrationInvalid("event_identity_required")
+    event = _canonical_event(event_id)
     key = _canonical_identity(event)
     slot = HistoricalRegistrationAggregateSlot.objects.select_related("active_revision").get(
         canonical_repository=key[0],
@@ -1138,7 +1199,8 @@ def replace_aggregate_with_row_projection(
 @transaction.atomic
 def restore_aggregate_from_row_projection(
     *,
-    canonical_slug: str,
+    event_id: uuid.UUID | str | None = None,
+    canonical_slug: str | None = None,
     provider: str,
     coverage_boundary: str,
     expected_slot_revision: int,
@@ -1149,7 +1211,9 @@ def restore_aggregate_from_row_projection(
     """Rollback a future row projection to its last accepted aggregate pointer."""
 
     _validate_reason_code(reason_code)
-    event = _canonical_event(canonical_slug)
+    if event_id is None or canonical_slug is not None:
+        raise HistoricalRegistrationInvalid("event_identity_required")
+    event = _canonical_event(event_id)
     key = _canonical_identity(event)
     slot = HistoricalRegistrationAggregateSlot.objects.get(
         canonical_repository=key[0],
@@ -1285,6 +1349,7 @@ def serialize_mapping(
 ) -> dict[str, Any]:
     return {
         "id": str(mapping.id),
+        "event_id": str(mapping.event_id) if mapping.event_id else None,
         "provider": mapping.provider,
         "external_event_identifier": (
             mapping.external_event_identifier
@@ -1318,8 +1383,8 @@ def list_mappings(*, page: int = 1, page_size: int = 20) -> dict[str, Any]:
     }
 
 
-def registration_total_preview(slug: str) -> dict[str, Any]:
-    event = _canonical_event(slug)
+def registration_total_preview(event_id: uuid.UUID | str) -> dict[str, Any]:
+    event = _canonical_event(event_id)
     repository, canonical_revision, source_key, canonical_slug = _canonical_identity(event)
     total_state = HistoricalRegistrationTotalState.objects.filter(
         canonical_repository=repository,
@@ -1363,6 +1428,7 @@ def registration_total_preview(slug: str) -> dict[str, Any]:
         )
     complete = bool(total_state and total_state.complete)
     return {
+        "event_id": str(event["identity_id"]),
         "canonical_slug": canonical_slug,
         "complete": complete,
         "count": sum(item["count"] for item in contributions) if complete else None,

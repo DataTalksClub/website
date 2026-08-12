@@ -3,10 +3,18 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
+from content.public_data import public_projection
+
+pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+
 SCREENSHOTS = Path(".tmp/screenshots/issue-105")
 PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-132")
 EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
-FEATURED_EVENT_PATH = "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch"
+FEATURED_EVENT_PATH = next(
+    event["public_path"]
+    for event in public_projection()["events"]
+    if event["title"] == "AI Dev Tools Zoomcamp 2026 Course Launch"
+)
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"

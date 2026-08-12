@@ -3,10 +3,10 @@
     "articles.json": "3eb3127a3615e3ff21817e4cf43fb3798303fe3f7098632c6d659c7b9538309d",
     "books.json": "44d9498ba6852038de61534cdd6fd8d02cbf9e0c16fcf33b2dd5e5b3e10def80",
     "courses.json": "318d7cb156cdcf74f346695d3db2b526e81c3321426c33365e91d3f471211c4d",
-    "editorial_route_migration.json": "369606b948d20a7d438efaacfe1e2d9ed7610f96d0edfcd48abd65134772a255",
-    "events.json": "7e20cc0140d2b39e4bc2f84f1d947da68f13d93678846c829ff4ecc9f26006f1",
+    "editorial_route_migration.json": "4181c552f7c620d64b9c3a07b83e052692a9b7a2918fc1d0fb422b901f69e21c",
+    "events.json": "260eeeb2974a436b80621d87df30bfea743273b3d38a6dfe9532dfb7d99f00ec",
     "media.json": "6b6670d01407c72649f89a7671e240d7c75d9653b9bb25b30f362e14b0325aea",
-    "people.json": "5c0e2ab52e710f28f6e4e9d676b772582437fdd3f9d60e032bbacf2e1535ef2d",
+    "people.json": "f1bc223aee48ff614bcc24351f3253897459b1b7e75ea70ecd5dec98ff1b0a44",
     "podcasts.json": "33409b09c184a02ff6b685d805d9ad05d74bb15d5b34ea86f34c5a10b4cb0c8d",
     "wiki.json": "5f64f4d4a7a7436830d5a5c039e081d82fbf47ac01b7fb891fa6c5816650ce68",
     "wiki_graph.json": "07f433eab8c818abf4a2d270c1f9a582bc450c16b7ffbbee344b8998eeb4ebb8",
@@ -66,6 +66,15 @@
       },
       "schema_version": 1
     },
+    "event_identity_manifest": {
+      "counts": {
+        "aliases": 421,
+        "events": 421
+      },
+      "path": "events/event_identity_manifest.json",
+      "schema_version": 1,
+      "sha256": "26c2fd6589ff8acd132ebef0b31d15a81dc43901e1ba0b2e4437e72aeab5d91e"
+    },
     "event_record_schema_version": 2,
     "event_source_timezone": "Europe/Berlin",
     "media": "signature-checked local allowlist with per-asset provenance",
@@ -120,7 +129,7 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "a87e04feb4055bca2bd4cb851b887e1a5d240d0f2b8a5f039a577aefc3ec22e9",
+  "tree_sha256": "47fef3a533d7a554958a472aba406d52cd5b899146848a8dc64b4cc1e56d9540",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

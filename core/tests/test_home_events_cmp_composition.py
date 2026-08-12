@@ -8,6 +8,8 @@ from pathlib import Path
 from django.template.loader import get_template
 from django.test import SimpleTestCase, TestCase
 
+from content.public_data import public_projection
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
 ADOPTED_CSS = REPOSITORY_ROOT / "courses/static/courses.css"
@@ -23,7 +25,11 @@ SCOPED_TEMPLATES = (
     REPOSITORY_ROOT / "templates/public/_event_meta.html",
     REPOSITORY_ROOT / "templates/public/event_detail.html",
 )
-FEATURED_EVENT_PATH = "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch"
+FEATURED_EVENT_PATH = next(
+    event["public_path"]
+    for event in public_projection()["events"]
+    if event["title"] == "AI Dev Tools Zoomcamp 2026 Course Launch"
+)
 
 
 def _ledger_rows(path: Path) -> list[dict[str, str]]:

@@ -93,7 +93,21 @@ urlpatterns = [
     path("events", public_views.events, name="events"),
     path("events.html", public_views.permanent_public_redirect, {"target": "/events"}),
     path("events/", public_views.permanent_public_redirect, {"target": "/events"}),
-    path("events/<slug:slug>", public_views.event_detail, name="public-event"),
+    path(
+        "events/<uuid:event_id>/<slug:slug>",
+        public_views.event_detail,
+        name="public-event",
+    ),
+    path(
+        "events/<uuid:event_id>",
+        public_views.event_detail_without_slug,
+        name="public-event-without-slug",
+    ),
+    path(
+        "events/<path:legacy_path>",
+        public_views.event_legacy_redirect,
+        name="public-event-legacy",
+    ),
     path("wiki", public_views.wiki_hub, name="wiki-home"),
     path("wiki/", public_views.permanent_public_redirect, {"target": "/wiki"}),
     path("wiki/search-corpus.json", public_views.wiki_search_json, name="wiki-search-json"),

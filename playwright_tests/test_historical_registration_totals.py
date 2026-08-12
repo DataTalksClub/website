@@ -110,6 +110,7 @@ def seed_total(event: dict, *, count: int, complete: bool) -> None:
     mapping = HistoricalEventMapping.objects.create(
         provider=HistoricalRegistrationSourceRun.Provider.LUMA,
         external_event_identifier=f"{PUBLIC_CANARY}-{suffix[:12]}",
+        event_id=event["identity_id"],
         canonical_repository=provenance["repository"],
         canonical_revision=provenance["revision"],
         canonical_source_key=provenance["source_key"],
@@ -177,6 +178,7 @@ def seed_validated_overlap(event: dict, *, suffix: str) -> HistoricalRegistratio
     mapping = HistoricalEventMapping.objects.create(
         provider=HistoricalRegistrationSourceRun.Provider.EVENTBRITE,
         external_event_identifier=f"synthetic-overlap-{suffix}",
+        event_id=event["identity_id"],
         canonical_repository=provenance["repository"],
         canonical_revision=provenance["revision"],
         canonical_source_key=provenance["source_key"],
@@ -443,7 +445,7 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
             HistoricalEventMapping.objects.filter(pk=mapping.pk).update(revision=F("revision") + 1)
             main_card = mapping_card(page, external_id)
             main_card.get_by_label("Decision").select_option("mapped")
-            main_card.get_by_label("Exact canonical slug").select_option(event["slug"])
+            main_card.get_by_label("Exact Event identity").select_option(event["identity_id"])
             main_card.get_by_label("Combination policy").select_option("replacement")
             main_card.get_by_label("Private review note").fill("Synthetic stale browser review.")
             with page.expect_response(
@@ -462,7 +464,7 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
 
             main_card = mapping_card(page, external_id)
             main_card.get_by_label("Decision").select_option("mapped")
-            main_card.get_by_label("Exact canonical slug").select_option(event["slug"])
+            main_card.get_by_label("Exact Event identity").select_option(event["identity_id"])
             main_card.get_by_label("Combination policy").select_option("replacement")
             main_card.get_by_label("Private review note").fill("Synthetic exact browser review.")
             screenshot(page, "studio-mapping-review", suffix)
@@ -494,7 +496,9 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
             assert "synthetic-private-canary@example.test" not in page.content()
             screenshot(page, "studio-import-detail-active", suffix)
 
-            preview_url = f"{live_server.url}/studio/events/{event['slug']}/registration-total/"
+            preview_url = (
+                f"{live_server.url}/studio/events/{event['identity_id']}/registration-total/"
+            )
             preview = page.goto(preview_url)
             assert_private(preview)
             expect(page.get_by_role("heading", name="Registration total preview")).to_be_visible()

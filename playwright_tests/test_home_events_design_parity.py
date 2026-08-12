@@ -9,7 +9,7 @@ import pytest
 from playwright.sync_api import Browser, Page, expect
 
 from content import public_views
-from content.public_data import EventGroups, event_groups
+from content.public_data import EventGroups, event_groups, public_projection
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
@@ -22,7 +22,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
 ADOPTED_CSS = REPOSITORY_ROOT / "courses/static/courses.css"
 SCREENSHOTS = Path(".tmp/screenshots/issue-130-remediation/after")
-FEATURED_EVENT_PATH = "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch"
+FEATURED_EVENT_PATH = next(
+    event["public_path"]
+    for event in public_projection()["events"]
+    if event["title"] == "AI Dev Tools Zoomcamp 2026 Course Launch"
+)
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),

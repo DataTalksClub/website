@@ -4,11 +4,23 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
+from content.public_data import public_projection
+
+pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+
 SCREENSHOTS = Path(".tmp/screenshots/issue-131")
-DESCRIBED_RECORDED_PATH = "/events/2026-08-03-build-and-ship-an-ai-assisted-full-stack-app"
 DESCRIBED_RECORDED_TITLE = "Build and Ship an AI-Assisted Full-Stack App"
-UNDESCRIBED_PATH = "/events/2026-08-10-test-containerize-and-deploy-an-ai-assisted-app"
 UNDESCRIBED_TITLE = "Test, Containerize, and Deploy an AI-Assisted App"
+DESCRIBED_RECORDED_PATH = next(
+    event["public_path"]
+    for event in public_projection()["events"]
+    if event["title"] == DESCRIBED_RECORDED_TITLE
+)
+UNDESCRIBED_PATH = next(
+    event["public_path"]
+    for event in public_projection()["events"]
+    if event["title"] == UNDESCRIBED_TITLE
+)
 
 
 def _screenshot(page: Page, name: str) -> None:
