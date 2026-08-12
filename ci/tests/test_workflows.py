@@ -32,11 +32,23 @@ def test_normal_workflow_keeps_release_concurrency_and_exact_base_contract() -> 
     classifier = jobs["classification"]
     assert classifier["needs"] == "resolve-release"
     assert classifier["outputs"]["profile"] == "${{ steps.selection.outputs.profile }}"
+    assert (
+        classifier["outputs"]["created_attempt"] == "${{ steps.selection.outputs.created_attempt }}"
+    )
+    assert (
+        classifier["outputs"]["selection_sha256"]
+        == "${{ steps.selection.outputs.selection_sha256 }}"
+    )
     script = runs(classifier)
     assert '--base "$EVENT_BEFORE"' in script
     assert '--after "$EVENT_AFTER"' in script
     assert '--github-sha "$GITHUB_SHA"' in script
     assert '--release-sha "$RELEASE_SHA"' in script
+    assert "--provenance-output .tmp/ci-selection/ci-selection-provenance.json" in script
+    assert '--run-id "$RUN_ID"' in script
+    assert '--created-attempt "$RUN_ATTEMPT"' in script
+    assert '--source-before-sha "$EVENT_BEFORE"' in script
+    assert '--source-after-sha "$EVENT_AFTER"' in script
     assert "--find-renames" not in script  # Git parsing is code-owned, not inline shell.
     checkouts = [step for step in classifier["steps"] if step.get("uses") == "actions/checkout@v4"]
     assert checkouts[0]["with"]["ref"] == "${{ github.sha }}"
@@ -54,13 +66,18 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     assert "rm -f .tmp/ci.sqlite3" not in script
     assert "manage.py migrate --noinput" not in script
     assert "ci.classifier validate" in script
+    assert "ci.provenance resolve" in script
+    assert "attempt-1" in script
+    assert '--expected-selection-sha256 "$SELECTION_SHA256"' in script
     assert "make test-ci-focused" in script
     selected_step = next(
         step
         for step in django["steps"]
         if step.get("name") == "Run the selected or complete Django suite"
     )
-    assert selected_step["env"]["CI_SELECTION_PATH"] == ".tmp/ci-selection/ci-selection.json"
+    assert (
+        selected_step["env"]["CI_SELECTION_PATH"] == ".tmp/ci-selection/resolved/ci-selection.json"
+    )
     assert "make test-factories" in script
     assert "make test-migrations" in script
     assert "make test" in script
@@ -92,6 +109,15 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
         "playwright",
         "container",
     }
+    gate_script = runs(gate)
+    assert "ci.provenance resolve" in gate_script
+    assert "--evidence .tmp/ci-selection/resolved/ci-selection-resolution.json" in gate_script
+    assert "attempt-1" in gate_script
+    assert "needs.classification.outputs.created_attempt == '1'" in str(gate)
+    assert '--expected-event "$EVENT_NAME"' in gate_script
+    assert '--expected-source-after-sha "$EVENT_AFTER"' in gate_script
+    assert '--expected-source-before-sha "$EVENT_BEFORE"' in gate_script
+    assert '--expected-selection-sha256 "$SELECTION_SHA256"' in gate_script
     for name in ("auto-capture-prior", "publish", "deploy"):
         assert "ci-gate" in jobs[name]["needs"]
         assert "needs.ci-gate.result == 'success'" in jobs[name]["if"]

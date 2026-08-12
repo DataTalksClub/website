@@ -5,6 +5,7 @@ import os
 import subprocess
 from pathlib import Path
 
+from ci.provenance import build_provenance, dump_provenance
 from ci.selection import (
     SHA_RE,
     ChangeRecord,
@@ -166,11 +167,21 @@ def _write_summary(path: str | None, summary: str) -> None:
         destination.write_text(summary, encoding="utf-8")
 
 
-def _append_outputs(path: str | None, selection: dict[str, object]) -> None:
+def _append_outputs(
+    path: str | None,
+    selection: dict[str, object],
+    *,
+    provenance: dict[str, object] | None = None,
+) -> None:
     if path:
         with Path(path).open("a", encoding="utf-8") as output:
             output.write(f"profile={selection['profile']}\n")
             output.write(f"reason={selection['reason']}\n")
+            if provenance is not None:
+                output.write(f"artifact_name={provenance['artifact_name']}\n")
+                output.write(f"created_attempt={provenance['created_attempt']}\n")
+                output.write(f"run_id={provenance['run_id']}\n")
+                output.write(f"selection_sha256={provenance['selection_sha256']}\n")
 
 
 def main() -> None:
@@ -186,6 +197,12 @@ def main() -> None:
     select.add_argument("--output", required=True)
     select.add_argument("--summary")
     select.add_argument("--github-output")
+    select.add_argument("--run-id")
+    select.add_argument("--created-attempt", type=int)
+    select.add_argument("--controller-sha")
+    select.add_argument("--source-after-sha")
+    select.add_argument("--source-before-sha")
+    select.add_argument("--provenance-output")
     validate = subparsers.add_parser("validate")
     validate.add_argument("--input", required=True)
     args = parser.parse_args()
@@ -202,9 +219,29 @@ def main() -> None:
         release_sha=args.release_sha,
     )
     dump_selection(selection, args.output)
+    provenance = None
+    provenance_arguments = (
+        args.run_id,
+        args.created_attempt,
+        args.controller_sha,
+        args.provenance_output,
+    )
+    if any(value is not None for value in provenance_arguments):
+        if not all(value is not None for value in provenance_arguments):
+            parser.error("provenance output requires run, attempt, controller, and output")
+        provenance = build_provenance(
+            load_selection(args.output),
+            run_id=args.run_id,
+            created_attempt=args.created_attempt,
+            controller_sha=args.controller_sha,
+            release_sha=args.release_sha,
+            source_after_sha=args.source_after_sha or None,
+            source_before_sha=args.source_before_sha or None,
+        )
+        dump_provenance(provenance, args.provenance_output)
     summary = selection_summary(selection)
     _write_summary(args.summary, summary)
-    _append_outputs(args.github_output, selection)
+    _append_outputs(args.github_output, selection, provenance=provenance)
 
 
 if __name__ == "__main__":
