@@ -68,6 +68,11 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     assert "ci.classifier validate" in script
     assert "ci.provenance resolve" in script
     assert "attempt-1" in script
+    assert "current-payload" in script
+    assert "attempt-1-payload" in script
+    assert "ci-selection.json ci-selection-provenance.json" in script
+    assert "--current-directory ../release-source/.tmp/ci-selection/current-payload" in script
+    assert "--fallback-directory ../release-source/.tmp/ci-selection/attempt-1-payload" in script
     assert '--expected-selection-sha256 "$SELECTION_SHA256"' in script
     assert "make test-ci-focused" in script
     selected_step = next(
@@ -123,6 +128,11 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert "ci.provenance resolve" in gate_script
     assert "--evidence .tmp/ci-selection/resolved/ci-selection-resolution.json" in gate_script
     assert "attempt-1" in gate_script
+    assert "current-payload" in gate_script
+    assert "attempt-1-payload" in gate_script
+    assert "ci-selection.json ci-selection-provenance.json" in gate_script
+    assert "--current-directory .tmp/ci-selection/current-payload" in gate_script
+    assert "--fallback-directory .tmp/ci-selection/attempt-1-payload" in gate_script
     assert "needs.classification.outputs.created_attempt == '1'" in str(gate)
     assert '--expected-event "$EVENT_NAME"' in gate_script
     assert '--expected-source-after-sha "$EVENT_AFTER"' in gate_script
@@ -137,6 +147,40 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert "make test-playwright" in runs(playwright)
     assert "playwright_mode == 'rerun'" in str(playwright)
     assert "release-image-" in str(jobs["container"])
+
+
+def test_container_jobs_establish_locked_environments_before_recording() -> None:
+    normal = workflow("ci.yml")["jobs"]["container"]
+    normal_sync = next(
+        step
+        for step in normal["steps"]
+        if step.get("name") == "Establish the locked controller environment"
+    )
+    normal_lock = next(
+        step for step in normal["steps"] if step.get("name") == "Verify the controller lockfile"
+    )
+    assert normal_sync["working-directory"] == ".tmp/ci-controller"
+    assert normal_sync["run"] == "uv sync --locked"
+    assert normal_lock["working-directory"] == ".tmp/ci-controller"
+    assert normal_lock["run"] == "uv lock --check"
+    normal_script = runs(normal)
+    assert normal_script.index("uv sync --locked") < normal_script.index(
+        "ci.verification environment"
+    )
+    assert normal_script.index("uv lock --check") < normal_script.index(
+        "ci.verification environment"
+    )
+
+    scheduled = workflow("scheduled-full-regression.yml")["jobs"]["container"]
+    scheduled_script = runs(scheduled)
+    assert "uv sync --locked" in scheduled_script
+    assert "uv lock --check" in scheduled_script
+    assert scheduled_script.index("uv sync --locked") < scheduled_script.index(
+        "ci.verification environment"
+    )
+    assert scheduled_script.index("uv lock --check") < scheduled_script.index(
+        "ci.verification environment"
+    )
 
 
 def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> None:
