@@ -364,6 +364,19 @@
   background: var(--surface-muted);
 }
 
+/*
+ * CMP registration integration: the copied Tailwind utilities are enhanced by
+ * JavaScript at runtime. Keep the source hero's intrinsic dimensions usable
+ * when that enhancement is unavailable, without changing the copied template
+ * or its JavaScript-enabled crop geometry.
+ */
+html.no-js #main-content:has(.registration-panel) img[alt=""] {
+  display: block;
+  height: auto;
+  max-width: 100%;
+  width: 100%;
+}
+
 @media (max-width: 40rem) {
   body.home-events-cmp-surface main .primer-button {
     min-height: 2.75rem;
