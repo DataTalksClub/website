@@ -456,6 +456,47 @@ def test_accessibility_core_smoke(
 
 
 @pytest.mark.accessibility
+@pytest.mark.core
+def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
+    page: Page,
+    live_server,
+    accessibility_environment: AccessibilityEnvironment,
+) -> None:
+    page.set_viewport_size({"width": 390, "height": 844})
+    _visit_surface(page, live_server, accessibility_environment, "homework")
+
+    account_menu = page.locator("details.user-menu")
+    expect(account_menu).not_to_have_attribute("open", "")
+    hidden_courses_link = account_menu.locator("a.user-menu-item", has_text="Courses")
+    expect(hidden_courses_link).to_have_count(1)
+    assert hidden_courses_link.evaluate("node => node.checkVisibility()") is False
+
+    geometry = page.locator(".breadcrumbs a[href]").evaluate_all(
+        """nodes => nodes.map(node => {
+          const rect = node.getBoundingClientRect();
+          return {
+            text: node.textContent.trim(),
+            top: rect.top,
+            bottom: rect.bottom,
+            width: rect.width,
+            height: rect.height,
+          };
+        })"""
+    )
+    assert len(geometry) == 2, geometry
+    first, second = geometry
+    assert first["height"] <= 24 and second["height"] <= 24, geometry
+    required_gap = max(0, 24 - first["height"]) / 2 + max(0, 24 - second["height"]) / 2
+    actual_gap = second["top"] - first["bottom"]
+    assert actual_gap + 0.5 >= required_gap, geometry
+    assert target_size_issues(page, "learner.homework") == []
+
+    screenshot_dir = Path(".tmp/screenshots/issue-128-breadcrumb-spacing-remediation")
+    screenshot_dir.mkdir(parents=True, exist_ok=True)
+    _capture_deterministic_screenshot(page, screenshot_dir / "homework-mobile.png")
+
+
+@pytest.mark.accessibility
 @pytest.mark.full
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
 def test_accessibility_visual_evidence(

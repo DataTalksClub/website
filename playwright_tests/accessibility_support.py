@@ -351,6 +351,8 @@ def target_size_issues(page: Page, state: str) -> list[str]:
           )].flatMap((node) => {
             const style = getComputedStyle(node);
             const rect = node.getBoundingClientRect();
+            // Chromium can retain a stale rectangle for descendants of a closed details element.
+            if (!node.checkVisibility()) return [];
             if (style.display === 'none' || style.visibility === 'hidden') return [];
             if (rect.width <= 0 || rect.height <= 0) return [];
             if (node.matches('a') && style.display === 'inline') return [];
