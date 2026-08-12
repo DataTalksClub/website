@@ -27,6 +27,7 @@ from review_import.workflow import (
     ReviewImporter,
     _migrate_fresh_database,
     _readonly_connection,
+    _scrub_sensitive_rows,
     _writable_connection,
     cleanup_snapshot,
     fingerprint,
@@ -709,6 +710,80 @@ class ReviewImportWorkflowTests(TestCase):
             check=False,
         )
         self.assertEqual(ignored.returncode, 0)
+
+    def test_fresh_scrub_removes_event_dependencies_with_foreign_keys_enabled(self) -> None:
+        database = self.case_dir / "dependency-scrub.sqlite3"
+        shutil.copy2(TEST_ROOT / "migrated-base.sqlite3", database)
+        database.chmod(0o600)
+
+        with _writable_connection(database) as connection:
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) FROM events_event").fetchone()[0],
+                0,
+            )
+            event_id = uuid.uuid4().hex
+            _insert(
+                connection,
+                "events_event",
+                {
+                    "id": event_id,
+                    "title": "Synthetic dependency event",
+                    "slug": "synthetic-dependency-event",
+                    "source_repository": "synthetic-repository",
+                    "source_revision": "synthetic-revision",
+                    "source_key": "synthetic-event",
+                    "source_path": "/events/synthetic-dependency-event",
+                    "source_checksum": "a" * 64,
+                    "created_at": "2026-08-12T00:00:00+00:00",
+                    "updated_at": "2026-08-12T00:00:00+00:00",
+                },
+            )
+            _insert(
+                connection,
+                "events_eventalias",
+                {
+                    "id": uuid.uuid4().hex,
+                    "source_path": "/events/synthetic-dependency-alias",
+                    "kind": "reviewed",
+                    "reason": "Synthetic dependency fixture",
+                    "source_repository": "synthetic-repository",
+                    "source_revision": "synthetic-revision",
+                    "source_key": "synthetic-event",
+                    "activated_at": "2026-08-12T00:00:00+00:00",
+                    "event_id": event_id,
+                },
+            )
+            connection.execute(
+                """
+                CREATE TABLE review_import_synthetic_dependency (
+                    id INTEGER PRIMARY KEY,
+                    event_id CHAR(32),
+                    FOREIGN KEY (event_id) REFERENCES events_event(id)
+                )
+                """
+            )
+            connection.execute(
+                "INSERT INTO review_import_synthetic_dependency (event_id) VALUES (?)",
+                (event_id,),
+            )
+
+            _scrub_sensitive_rows(connection)
+
+            self.assertEqual(connection.execute("PRAGMA foreign_keys").fetchone()[0], 1)
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) FROM events_event").fetchone()[0],
+                0,
+            )
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) FROM events_eventalias").fetchone()[0],
+                0,
+            )
+            self.assertIsNone(
+                connection.execute(
+                    "SELECT event_id FROM review_import_synthetic_dependency"
+                ).fetchone()[0]
+            )
+            self.assertEqual(connection.execute("PRAGMA foreign_key_check").fetchall(), [])
 
     def test_default_root_apply_retains_exactly_three_files(self) -> None:
         target = workflow.PRIVATE_ROOT / "review.sqlite3"
