@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import re
+from functools import wraps
 from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
+from django.core.paginator import EmptyPage, Paginator
 from django.http import (
     FileResponse,
     Http404,
@@ -31,7 +33,13 @@ from events.identity import (
 )
 from events.services import public_registration_total
 
-from .public_data import PROJECTION_ROOT, event_groups, podcast_seasons, public_projection
+from .public_data import (
+    PROJECTION_ROOT,
+    event_date_groups,
+    event_groups,
+    podcast_seasons,
+    public_projection,
+)
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
 WIKI_SPECIAL_CATEGORIES = {
@@ -42,6 +50,9 @@ WIKI_SPECIAL_CATEGORIES = {
     "how-tos": "how-to",
 }
 PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
+EVENT_PAST_PAGE_QUERY = re.compile(r"filter=past(?:&page=([1-9][0-9]{0,2}))?\Z", re.ASCII)
+EVENT_PAGE_SIZE = 20
+EVENT_MAX_PAGE = 999
 
 
 def _canonical(path: str) -> str:
@@ -75,7 +86,9 @@ def _json_ld(entity: dict, breadcrumbs: tuple[tuple[str, str], ...] = ()) -> str
 @require_safe
 def permanent_public_redirect(request: HttpRequest, *, target: str) -> HttpResponse:
     query = request.META.get("QUERY_STRING", "")
-    return HttpResponsePermanentRedirect(f"{target}?{query}" if query else target)
+    response = HttpResponsePermanentRedirect(f"{target}?{query}" if query else target)
+    response["Cache-Control"] = "public, max-age=300"
+    return response
 
 
 @require_safe
@@ -130,6 +143,33 @@ def _no_store(response: HttpResponse) -> HttpResponse:
     return response
 
 
+def _public_not_found(request: HttpRequest) -> HttpResponse:
+    response = render(request, "404.html", status=404)
+    response["Cache-Control"] = "max-age=0"
+    return response
+
+
+def _public_event_route(view):
+    """Apply the event route method and anonymous error cache contract.
+
+    ``require_safe`` raises a response before a view can classify the unsafe request, and Django's
+    default 404 handler does not know that an event path is a public cacheable miss.  Event routes
+    therefore use this small explicit boundary: read-only methods are allowed, unsafe methods are
+    no-store 405s, and identity/alias misses become bounded public 404s.
+    """
+
+    @wraps(view)
+    def wrapped(request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        if request.method not in {"GET", "HEAD"}:
+            return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+        try:
+            return view(request, *args, **kwargs)
+        except Http404:
+            return _public_not_found(request)
+
+    return csrf_exempt(wrapped)
+
+
 def _podcast_season_number(request: HttpRequest) -> tuple[bool, int | None]:
     raw_query = request.META.get("QUERY_STRING", "")
     if not raw_query:
@@ -144,24 +184,104 @@ def _podcast_season_path(number: int, *, latest: int) -> str:
     return "/podcast" if number == latest else f"/podcast?season={number}"
 
 
-@require_safe
+def _events_page_query(request: HttpRequest) -> tuple[bool, int] | None:
+    """Parse the intentionally small public events query contract.
+
+    Upcoming is represented by the clean hub.  Past accepts one exact filter and an optional
+    bounded positive page selector.  We inspect the raw query instead of ``request.GET`` so
+    encoded separators, duplicate keys, and alternate spellings cannot create cache variants.
+    """
+
+    raw_query = request.META.get("QUERY_STRING", "")
+    if raw_query == "":
+        return False, 1
+    if not isinstance(raw_query, str) or len(raw_query) > 32:
+        return None
+    match = EVENT_PAST_PAGE_QUERY.fullmatch(raw_query)
+    if match is None:
+        return None
+    page = int(match.group(1) or "1")
+    if page > EVENT_MAX_PAGE:
+        return None
+    return True, page
+
+
+def _events_page_path(*, past: bool, page: int) -> str:
+    if not past:
+        return "/events"
+    return "/events?filter=past" if page == 1 else f"/events?filter=past&page={page}"
+
+
+@csrf_exempt
 def events(request: HttpRequest) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+
+    parsed_query = _events_page_query(request)
+    if parsed_query is None:
+        return _no_store(HttpResponseBadRequest("Bad request."))
+
+    past, page_number = parsed_query
     groups = event_groups()
-    return _render(
+    upcoming_groups = groups.upcoming_groups or event_date_groups(list(groups.upcoming))
+    all_events = groups.recent if past else groups.upcoming
+    if past:
+        paginator = Paginator(all_events, EVENT_PAGE_SIZE)
+        try:
+            event_page = paginator.page(page_number)
+        except EmptyPage:
+            return _no_store(HttpResponse("Page not found.", status=404))
+        timeline_groups = event_date_groups(list(event_page.object_list), descending=True)
+        previous_event_page_path = (
+            _events_page_path(past=True, page=event_page.previous_page_number())
+            if event_page.has_previous()
+            else ""
+        )
+        next_event_page_path = (
+            _events_page_path(past=True, page=event_page.next_page_number())
+            if event_page.has_next()
+            else ""
+        )
+    else:
+        event_page = None
+        timeline_groups = upcoming_groups
+        previous_event_page_path = ""
+        next_event_page_path = ""
+
+    canonical_path = _events_page_path(past=past, page=page_number)
+    response = _render(
         request,
         "public/events.html",
-        path="/events",
-        title="Events — DataTalks.Club",
+        path=canonical_path,
+        title=("Past events" if past else "Events") + " — DataTalks.Club",
         description=(
             "Join our data science events including webinars, live podcasts, workshops, and "
             "conferences. Connect with experts and learn about the latest trends in data, ML, "
             "and AI."
         ),
-        context={"upcoming_events": groups.upcoming, "recent_events": groups.recent, "count": 421},
+        context={
+            "upcoming_events": groups.upcoming,
+            "recent_events": groups.recent,
+            "timeline_groups": timeline_groups,
+            "event_mode": "past" if past else "upcoming",
+            "is_past_events": past,
+            "event_page": event_page,
+            "event_page_size": EVENT_PAGE_SIZE,
+            "event_page_path": canonical_path,
+            "upcoming_path": "/events",
+            "past_path": "/events?filter=past",
+            "previous_event_page_path": previous_event_page_path,
+            "next_event_page_path": next_event_page_path,
+            "count": len(all_events),
+        },
     )
+    # Anonymous event catalogues are public but query-bounded.  Keep browser revalidation
+    # explicit; ResponsePolicyMiddleware still overrides this for authenticated requests.
+    response["Cache-Control"] = "max-age=0, must-revalidate"
+    return response
 
 
-@require_safe
+@_public_event_route
 def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
     try:
         identity = resolve_uuid(event_id)
@@ -223,7 +343,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     return response
 
 
-@require_safe
+@_public_event_route
 def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpResponse:
     try:
         target = canonical_detail_path(resolve_uuid(event_id).id)
@@ -232,7 +352,7 @@ def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpRespon
     return permanent_public_redirect(request, target=target)
 
 
-@require_safe
+@_public_event_route
 def event_legacy_redirect(request: HttpRequest, legacy_path: str) -> HttpResponse:
     try:
         event = resolve_legacy_path(f"/events/{legacy_path}")

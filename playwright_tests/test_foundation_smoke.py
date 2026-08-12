@@ -233,7 +233,12 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         "/people/alexeygrigorev/": "/people/alexeygrigorev.html",
     }
     for source, target in aliases.items():
-        query = "season=12" if source in {"/podcast.html", "/podcast/"} else "source=browser"
+        if source in {"/podcast.html", "/podcast/"}:
+            query = "season=12"
+        elif source in {"/events.html", "/events/"}:
+            query = "filter=past"
+        else:
+            query = "source=browser"
         response = page.request.get(
             f"{origin}{source}?{query}",
             max_redirects=0,

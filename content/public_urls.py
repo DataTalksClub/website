@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 
 from . import legal_views, public_views
 
@@ -93,6 +93,13 @@ urlpatterns = [
     path("events", public_views.events, name="events"),
     path("events.html", public_views.permanent_public_redirect, {"target": "/events"}),
     path("events/", public_views.permanent_public_redirect, {"target": "/events"}),
+    # The reviewed legacy map stores clean one-segment paths.  Keep the historical trailing-slash
+    # spelling as an explicit route so redirect behavior never depends on APPEND_SLASH.
+    re_path(
+        r"^events/(?P<legacy_path>[^/]+)/$",
+        public_views.event_legacy_redirect,
+        name="public-event-legacy-trailing-slash",
+    ),
     path(
         "events/<uuid:event_id>/<slug:slug>",
         public_views.event_detail,

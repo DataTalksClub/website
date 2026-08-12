@@ -6,12 +6,19 @@ from urllib.parse import urlsplit
 PRODUCTION_CANONICAL_HOST = "datatalks.club"
 _ENCODED_AMBIGUOUS_CHARACTER = re.compile(r"%(?:0[0-9a-f]|5c|7f)", re.IGNORECASE)
 _PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
+_EVENTS_QUERY = re.compile(r"filter=past(?:&page=([1-9][0-9]{0,2}))?\Z", re.ASCII)
 
 
 def _is_normalized_podcast_season(path: str, query: str) -> bool:
     if path != "/podcast":
         return False
     return _PODCAST_SEASON_QUERY.fullmatch(query) is not None
+
+
+def _is_normalized_events_filter(path: str, query: str) -> bool:
+    if path != "/events":
+        return False
+    return _EVENTS_QUERY.fullmatch(query) is not None
 
 
 def validated_canonical_url(value: object) -> str:
@@ -39,7 +46,11 @@ def validated_canonical_url(value: object) -> str:
         or parsed.hostname != PRODUCTION_CANONICAL_HOST
         or parsed.username is not None
         or parsed.password is not None
-        or (parsed.query and not _is_normalized_podcast_season(parsed.path, parsed.query))
+        or (
+            parsed.query
+            and not _is_normalized_podcast_season(parsed.path, parsed.query)
+            and not _is_normalized_events_filter(parsed.path, parsed.query)
+        )
         or parsed.fragment
         or not parsed.path.startswith("/")
         or parsed.path.startswith("//")

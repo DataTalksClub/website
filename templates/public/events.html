@@ -54,23 +54,59 @@
       to get notified about all our events (subscribing works from desktop only).
     </p>
   </header>
-  <section class="border-t app-border pt-8" aria-labelledby="upcoming-heading">
-    <h2 id="upcoming-heading" class="text-2xl font-semibold">Upcoming events</h2>
-    {% if not upcoming_events %}
-      <p class="mt-4 app-text">No upcoming events.</p>
+  <section class="border-t app-border pt-8" aria-labelledby="events-view-heading">
+    <nav class="event-view-tabs" aria-label="Event views">
+      <a
+        class="event-view-tab app-link"
+        href="{{ upcoming_path }}"
+        {% if not is_past_events %}
+          aria-current="page"
+        {% endif %}
+      >
+        Upcoming events
+      </a>
+      <a
+        class="event-view-tab app-link"
+        href="{{ past_path }}"
+        {% if is_past_events %}
+          aria-current="page"
+        {% endif %}
+      >
+        Past events
+      </a>
+    </nav>
+    <h2 id="events-view-heading" class="mt-7 text-2xl font-semibold">
+      {% if is_past_events %}
+        Past events
+      {% else %}
+        Upcoming events
+      {% endif %}
+    </h2>
+    <div class="mt-5" aria-label="Event timeline">
+      {% include "public/_event_timeline.html" %}
+    </div>
+    {% if is_past_events and event_page and event_page.paginator.num_pages > 1 %}
+      <nav class="event-pagination" aria-label="Past event pages">
+        {% if event_page.has_previous %}
+          <a
+            class="primer-button primer-button-secondary app-link"
+            href="{{ previous_event_page_path }}"
+          >
+            Previous
+          </a>
+        {% endif %}
+        <span class="event-pagination-status app-muted">
+          Page {{ event_page.number }} of {{ event_page.paginator.num_pages }}
+        </span>
+        {% if event_page.has_next %}
+          <a
+            class="primer-button primer-button-secondary app-link"
+            href="{{ next_event_page_path }}"
+          >
+            Next
+          </a>
+        {% endif %}
+      </nav>
     {% endif %}
-    <div class="mt-5 divide-y app-divide border-y app-border">
-      {% for event in upcoming_events %}
-        {% include "public/_event.html" %}
-      {% endfor %}
-    </div>
-  </section>
-  <section class="mt-10" aria-labelledby="recent-heading">
-    <h2 id="recent-heading" class="text-2xl font-semibold">Past events</h2>
-    <div class="mt-5 divide-y app-divide border-y app-border">
-      {% for event in recent_events %}
-        {% include "public/_event.html" %}
-      {% endfor %}
-    </div>
   </section>
 {% endblock %}

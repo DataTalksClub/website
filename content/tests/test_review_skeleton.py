@@ -127,8 +127,17 @@ class PublicProjectionTests(TestCase):
                     self.assertIn(f'href="{record["public_path"]}"', body)
 
         events = self.client.get("/events").content.decode()
+        archive = self.client.get("/events?filter=past").content.decode()
+        page_match = re.search(r"Page 1 of (\d+)", archive)
+        if page_match is not None:
+            archive_pages = [archive]
+            for page in range(2, int(page_match.group(1)) + 1):
+                response = self.client.get(f"/events?filter=past&page={page}")
+                self.assertEqual(response.status_code, 200)
+                archive_pages.append(response.content.decode())
+            archive = "".join(archive_pages)
         for event in self.projection["events"]:
-            self.assertIn(f'href="{event["public_path"]}"', events)
+            self.assertIn(f'href="{event["public_path"]}"', events + archive)
 
     def test_every_selected_detail_is_safe_and_canonical(self) -> None:
         for collection in ("articles", "podcasts", "books", "people", "events", "wiki"):
