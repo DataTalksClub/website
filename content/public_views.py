@@ -12,6 +12,7 @@ from django.http import (
     HttpRequest,
     HttpResponse,
     HttpResponseBadRequest,
+    HttpResponseNotAllowed,
     HttpResponsePermanentRedirect,
     JsonResponse,
 )
@@ -32,8 +33,7 @@ WIKI_SPECIAL_CATEGORIES = {
     "transitions": "transition",
     "how-tos": "how-to",
 }
-PODCAST_SEASONS_PER_PAGE = 3
-PODCAST_PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,8})\Z", re.ASCII)
+PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
 
 
 def _canonical(path: str) -> str:
@@ -122,14 +122,18 @@ def _no_store(response: HttpResponse) -> HttpResponse:
     return response
 
 
-def _podcast_page_number(request: HttpRequest) -> int | None:
+def _podcast_season_number(request: HttpRequest) -> tuple[bool, int | None]:
     raw_query = request.META.get("QUERY_STRING", "")
     if not raw_query:
-        return 1
+        return True, None
     if not isinstance(raw_query, str) or len(raw_query) > 32:
-        return None
-    match = PODCAST_PAGE_QUERY.fullmatch(raw_query)
-    return int(match.group(1)) if match else None
+        return False, None
+    match = PODCAST_SEASON_QUERY.fullmatch(raw_query)
+    return (True, int(match.group(1))) if match else (False, None)
+
+
+def _podcast_season_path(number: int, *, latest: int) -> str:
+    return "/podcast" if number == latest else f"/podcast?season={number}"
 
 
 @require_safe
@@ -240,28 +244,32 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
 # CSRF middleware runs before method decorators. This read-only callback is exempt so
 # unsafe methods reach the explicit 405 response; it performs no mutation.
 @csrf_exempt
-@require_safe
 def podcast_hub(request: HttpRequest) -> HttpResponse:
-    page_number = _podcast_page_number(request)
-    if page_number is None:
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+
+    valid_query, requested_season = _podcast_season_number(request)
+    if not valid_query:
         return _no_store(HttpResponseBadRequest("Bad request."))
 
     seasons = podcast_seasons()
-    total_pages = (len(seasons) + PODCAST_SEASONS_PER_PAGE - 1) // PODCAST_SEASONS_PER_PAGE
-    if page_number > total_pages:
+    latest_season = seasons[0].number
+    selected_number = latest_season if requested_season is None else requested_season
+    season_index = next(
+        (index for index, season in enumerate(seasons) if season.number == selected_number),
+        None,
+    )
+    if season_index is None:
         return _no_store(HttpResponse("Page not found.", status=404))
 
-    start = (page_number - 1) * PODCAST_SEASONS_PER_PAGE
-    page_seasons = seasons[start : start + PODCAST_SEASONS_PER_PAGE]
-
-    def page_path(number: int) -> str:
-        return "/podcast" if number == 1 else f"/podcast?page={number}"
-
-    canonical_path = page_path(page_number)
+    selected_season = seasons[season_index]
+    newer_season = seasons[season_index - 1] if season_index > 0 else None
+    older_season = seasons[season_index + 1] if season_index + 1 < len(seasons) else None
+    canonical_path = _podcast_season_path(selected_number, latest=latest_season)
     title = "DataTalks.Club Podcast"
-    if page_number > 1:
-        title = f"{title} — Page {page_number}"
-    return _render(
+    if selected_number != latest_season:
+        title = f"{title} — Season {selected_number}"
+    response = _render(
         request,
         "public/podcast_hub.html",
         path=canonical_path,
@@ -271,21 +279,40 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
             "engineers, and AI researchers. Listen on Apple Podcasts, Spotify, YouTube."
         ),
         context={
-            "seasons": page_seasons,
-            "page_number": page_number,
-            "page_links": tuple(
-                {"number": number, "path": page_path(number)}
-                for number in range(1, total_pages + 1)
+            "season": selected_season,
+            "season_links": tuple(
+                {
+                    "number": available.number,
+                    "path": _podcast_season_path(available.number, latest=latest_season),
+                }
+                for available in seasons
             ),
-            "total_pages": total_pages,
-            "previous_url": _canonical(page_path(page_number - 1)) if page_number > 1 else "",
-            "previous_path": page_path(page_number - 1) if page_number > 1 else "",
+            "newer_season": newer_season,
+            "newer_path": (
+                _podcast_season_path(newer_season.number, latest=latest_season)
+                if newer_season
+                else ""
+            ),
+            "older_season": older_season,
+            "older_path": (
+                _podcast_season_path(older_season.number, latest=latest_season)
+                if older_season
+                else ""
+            ),
+            "previous_url": (
+                _canonical(_podcast_season_path(newer_season.number, latest=latest_season))
+                if newer_season
+                else ""
+            ),
             "next_url": (
-                _canonical(page_path(page_number + 1)) if page_number < total_pages else ""
+                _canonical(_podcast_season_path(older_season.number, latest=latest_season))
+                if older_season
+                else ""
             ),
-            "next_path": page_path(page_number + 1) if page_number < total_pages else "",
         },
     )
+    response["Cache-Control"] = "max-age=0, must-revalidate"
+    return response
 
 
 @require_safe

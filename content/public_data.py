@@ -130,8 +130,12 @@ def ordered_podcasts(
 def podcast_seasons(
     records: tuple[dict[str, Any], ...] | None = None,
 ) -> tuple[PodcastSeason, ...]:
+    ordered = ordered_podcasts(records)
+    if not ordered:
+        raise ImproperlyConfigured("Public podcast catalogue must not be empty.")
+
     seasons: list[PodcastSeason] = []
-    for episode in ordered_podcasts(records):
+    for episode in ordered:
         season_number = episode["season"]
         if not seasons or seasons[-1].number != season_number:
             seasons.append(PodcastSeason(number=season_number, episodes=(episode,)))

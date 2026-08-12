@@ -37,6 +37,11 @@ from test_support.safety import (
 PUBLIC_FIXTURE_ROOT = Path(__file__).resolve().parent / "test_support" / "fixtures" / "public"
 OFFLINE_ROUTE_FIXTURES: dict[str, tuple[str, str, str]] = {}
 EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
+    "test_alias_query_and_safe_denial_browser_matrix": (
+        (re.compile(r"^/podcast$"), 400),
+        (re.compile(r"^/podcast$"), 404),
+        (re.compile(r"^/podcast$"), 405),
+    ),
     "test_complete_accessibility_registry": (
         (re.compile(r"^/_accessibility/identity-conflict/$"), 409),
         (re.compile(r"^/__accessibility_missing__$"), 404),

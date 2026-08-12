@@ -25,78 +25,89 @@
     </p>
   </header>
 
-  {% for season in seasons %}
-    <section class="mt-10" aria-labelledby="podcast-season-{{ season.number }}">
-      <h2 id="podcast-season-{{ season.number }}" class="text-2xl font-semibold">
-        Season {{ season.number }}
-      </h2>
-      <div class="mt-4 divide-y app-divide border-y app-border" data-podcast-season="{{ season.number }}">
-        {% for record in season.episodes %}
-          <article class="py-5" data-podcast-episode>
-            <p class="text-sm app-muted">
-              Season {{ record.season }} · Episode {{ record.episode }}
-              {% if record.published %}
-                · <time datetime="{{ record.published }}">{{ record.published|human_date }}</time>
-              {% endif %}
+  <section class="mt-10" aria-labelledby="podcast-season-{{ season.number }}">
+    <h2 id="podcast-season-{{ season.number }}" class="text-2xl font-semibold">
+      Season {{ season.number }}
+    </h2>
+    <div class="mt-4 divide-y app-divide border-y app-border" data-podcast-season="{{ season.number }}">
+      {% for record in season.episodes %}
+        <article class="py-5" data-podcast-episode>
+          <p class="text-sm app-muted">
+            Season {{ record.season }} · Episode {{ record.episode }}
+            {% if record.published %}
+              · <time datetime="{{ record.published }}">{{ record.published|human_date }}</time>
+            {% endif %}
+          </p>
+          <h3 class="mt-2 text-xl font-semibold">
+            <a class="app-link" href="{{ record.public_path }}">
+              {{ record.title }}
+            </a>
+          </h3>
+          <p class="mt-2 max-w-3xl leading-6 app-text">{{ record.description }}</p>
+          {% if record.guest_profiles %}
+            <p class="mt-2 text-sm app-muted">
+              Guests:
+              {% for guest in record.guest_profiles %}
+                {% if guest.public_path %}
+                  <a class="app-link" href="{{ guest.public_path }}">{{ guest.name }}</a>
+                {% else %}
+                  <span>{{ guest.name }}</span>
+                {% endif %}
+                {% if not forloop.last %}
+                  ·
+                {% endif %}
+              {% endfor %}
             </p>
-            <h3 class="mt-2 text-xl font-semibold">
-              <a class="app-link" href="{{ record.public_path }}">
-                {{ record.title }}
-              </a>
-            </h3>
-            <p class="mt-2 max-w-3xl leading-6 app-text">{{ record.description }}</p>
-          </article>
-        {% endfor %}
-      </div>
-    </section>
-  {% endfor %}
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  </section>
 
-  <nav class="mt-10" aria-label="Podcast pagination">
-    <p class="sr-only">Page {{ page_number }} of {{ total_pages }}</p>
-    <ul class="flex flex-wrap items-center gap-2">
-      {% if previous_path %}
+  <nav class="podcast-season-navigation mt-10" aria-label="Podcast seasons">
+    <ul class="podcast-season-adjacent flex flex-wrap items-center gap-2">
+      {% if newer_season %}
         <li>
           <a
-            class="primer-button primer-button-secondary"
-            href="{{ previous_path }}"
-            aria-label="Previous podcast page, page {{ page_number|add:'-1' }}"
+            class="pagination-target primer-button primer-button-secondary"
+            href="{{ newer_path }}"
           >
-            Previous
+            Newer season — Season {{ newer_season.number }}
           </a>
         </li>
       {% endif %}
-      {% for page_link in page_links %}
+      {% if older_season %}
         <li>
-          {% if page_link.number == page_number %}
+          <a
+            class="pagination-target primer-button primer-button-secondary"
+            href="{{ older_path }}"
+          >
+            Older season — Season {{ older_season.number }}
+          </a>
+        </li>
+      {% endif %}
+    </ul>
+    <ul class="podcast-season-list mt-4 flex flex-wrap items-center gap-2">
+      {% for season_link in season_links %}
+        <li>
+          {% if season_link.number == season.number %}
             <span
-              class="primer-button primer-button-primary"
+              class="podcast-season-current pagination-target primer-button primer-button-primary"
               aria-current="page"
-              aria-label="Podcast page {{ page_link.number }}, current page"
+              aria-label="Season {{ season_link.number }}, current season"
             >
-              {{ page_link.number }}
+              Season {{ season_link.number }}
             </span>
           {% else %}
             <a
-              class="primer-button primer-button-secondary"
-              href="{{ page_link.path }}"
-              aria-label="Podcast page {{ page_link.number }}"
+              class="pagination-target primer-button primer-button-secondary"
+              href="{{ season_link.path }}"
             >
-              {{ page_link.number }}
+              Season {{ season_link.number }}
             </a>
           {% endif %}
         </li>
       {% endfor %}
-      {% if next_path %}
-        <li>
-          <a
-            class="primer-button primer-button-secondary"
-            href="{{ next_path }}"
-            aria-label="Next podcast page, page {{ page_number|add:'1' }}"
-          >
-            Next
-          </a>
-        </li>
-      {% endif %}
     </ul>
   </nav>
 {% endblock %}
