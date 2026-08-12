@@ -326,6 +326,10 @@ jobs:
     outputs:
       profile: ${{ steps.selection.outputs.profile }}
       reason: ${{ steps.selection.outputs.reason }}
+      artifact_name: ${{ steps.selection.outputs.artifact_name }}
+      created_attempt: ${{ steps.selection.outputs.created_attempt }}
+      run_id: ${{ steps.selection.outputs.run_id }}
+      selection_sha256: ${{ steps.selection.outputs.selection_sha256 }}
     defaults:
       run:
         working-directory: .tmp/ci-controller
@@ -350,9 +354,12 @@ jobs:
           EVENT_BEFORE: ${{ github.event.before }}
           EVENT_AFTER: ${{ github.event.after }}
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CONTROLLER_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          mkdir -p .tmp
+          mkdir -p .tmp/ci-selection
           uv run --frozen python -m ci.classifier select \
             --repository ../release-source \
             --event "$EVENT_NAME" \
@@ -360,14 +367,20 @@ jobs:
             --after "$EVENT_AFTER" \
             --github-sha "$GITHUB_SHA" \
             --release-sha "$RELEASE_SHA" \
-            --output .tmp/ci-selection.json \
+            --run-id "$RUN_ID" \
+            --created-attempt "$RUN_ATTEMPT" \
+            --controller-sha "$CONTROLLER_SHA" \
+            --source-after-sha "$EVENT_AFTER" \
+            --source-before-sha "$EVENT_BEFORE" \
+            --output .tmp/ci-selection/ci-selection.json \
+            --provenance-output .tmp/ci-selection/ci-selection-provenance.json \
             --summary "$GITHUB_STEP_SUMMARY" \
             --github-output "$GITHUB_OUTPUT"
       - name: Preserve the machine-readable CI selection
         uses: actions/upload-artifact@v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: .tmp/ci-controller/.tmp/ci-selection.json
+          path: .tmp/ci-controller/.tmp/ci-selection
           if-no-files-found: error
           retention-days: 30
 
@@ -432,17 +445,55 @@ jobs:
       - run: uv lock --check
       - name: Restore the reviewed CI selection
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: .tmp/release-source/.tmp/ci-selection
+          path: .tmp/release-source/.tmp/ci-selection/current
+      - name: Restore attempt-one selection only for a reused classifier
+        if: github.run_attempt > 1 && needs.classification.outputs.created_attempt == '1'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-1
+          path: .tmp/release-source/.tmp/ci-selection/attempt-1
+      - name: Resolve same-run classifier evidence
+        working-directory: .tmp/ci-controller
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.event.after }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CLASSIFIER_ATTEMPT: ${{ needs.classification.outputs.created_attempt }}
+          PROFILE: ${{ needs.classification.outputs.profile }}
+          REASON: ${{ needs.classification.outputs.reason }}
+          SELECTION_SHA256: ${{ needs.classification.outputs.selection_sha256 }}
+        run: >-
+          uv run --frozen python -m ci.provenance resolve
+          --current-directory ../release-source/.tmp/ci-selection/current
+          --fallback-directory ../release-source/.tmp/ci-selection/attempt-1
+          --run-id "$RUN_ID"
+          --current-attempt "$RUN_ATTEMPT"
+          --classifier-created-attempt "$CLASSIFIER_ATTEMPT"
+          --controller-sha "$GITHUB_SHA"
+          --release-sha "$RELEASE_SHA"
+          --event "$EVENT_NAME"
+          --source-after-sha "$EVENT_AFTER"
+          --source-before-sha "$EVENT_BEFORE"
+          --expected-profile "$PROFILE"
+          --expected-reason "$REASON"
+          --expected-selection-sha256 "$SELECTION_SHA256"
+          --output-directory ../release-source/.tmp/ci-selection/resolved
+          --rejection-output ../release-source/.tmp/ci-selection/resolved/ci-selection-resolution.json
       - name: Validate the code-owned test selection
         working-directory: .tmp/ci-controller
         run: >-
           uv run --frozen python -m ci.classifier validate
-          --input ../release-source/.tmp/ci-selection/ci-selection.json
+          --input ../release-source/.tmp/ci-selection/resolved/ci-selection.json
       - name: Run the selected or complete Django suite
         env:
-          CI_SELECTION_PATH: .tmp/ci-selection/ci-selection.json
+          CI_SELECTION_PATH: .tmp/ci-selection/resolved/ci-selection.json
           SELECTED_PROFILE: ${{ needs.classification.outputs.profile }}
         run: |
           set -euo pipefail
@@ -672,7 +723,44 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: .tmp/ci-selection
+          path: .tmp/ci-selection/current
+      - name: Restore attempt-one selection only for a reused classifier
+        if: github.run_attempt > 1 && needs.classification.outputs.created_attempt == '1'
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-1
+          path: .tmp/ci-selection/attempt-1
+      - name: Resolve same-run classifier evidence
+        continue-on-error: true
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.event.after }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          CLASSIFIER_ATTEMPT: ${{ needs.classification.outputs.created_attempt }}
+          PROFILE: ${{ needs.classification.outputs.profile }}
+          REASON: ${{ needs.classification.outputs.reason }}
+          SELECTION_SHA256: ${{ needs.classification.outputs.selection_sha256 }}
+        run: >-
+          uv run --frozen python -m ci.provenance resolve
+          --current-directory .tmp/ci-selection/current
+          --fallback-directory .tmp/ci-selection/attempt-1
+          --run-id "$RUN_ID"
+          --current-attempt "$RUN_ATTEMPT"
+          --classifier-created-attempt "$CLASSIFIER_ATTEMPT"
+          --controller-sha "$GITHUB_SHA"
+          --release-sha "$RELEASE_SHA"
+          --event "$EVENT_NAME"
+          --source-after-sha "$EVENT_AFTER"
+          --source-before-sha "$EVENT_BEFORE"
+          --expected-profile "$PROFILE"
+          --expected-reason "$REASON"
+          --expected-selection-sha256 "$SELECTION_SHA256"
+          --output-directory .tmp/ci-selection/resolved
+          --rejection-output .tmp/ci-selection/resolved/ci-selection-resolution.json
       - name: Require every non-probe release check
         env:
           RESOLVE_RESULT: ${{ needs.resolve-release.result }}
@@ -681,9 +769,29 @@ jobs:
           DJANGO_RESULT: ${{ needs.django.result }}
           PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
+          PROFILE: ${{ needs.classification.outputs.profile }}
+          REASON: ${{ needs.classification.outputs.reason }}
+          RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_AFTER: ${{ github.event.after }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          SELECTION_SHA256: ${{ needs.classification.outputs.selection_sha256 }}
         run: |
           uv run --frozen python -m ci.gate normal \
-            --selection .tmp/ci-selection/ci-selection.json \
+            --selection .tmp/ci-selection/resolved/ci-selection.json \
+            --evidence .tmp/ci-selection/resolved/ci-selection-resolution.json \
+            --expected-profile "$PROFILE" \
+            --expected-reason "$REASON" \
+            --expected-controller-sha "$GITHUB_SHA" \
+            --expected-release-sha "$RELEASE_SHA" \
+            --expected-run-id "$RUN_ID" \
+            --expected-attempt "$RUN_ATTEMPT" \
+            --expected-event "$EVENT_NAME" \
+            --expected-source-after-sha "$EVENT_AFTER" \
+            --expected-source-before-sha "$EVENT_BEFORE" \
+            --expected-selection-sha256 "$SELECTION_SHA256" \
             --resolve-release "$RESOLVE_RESULT" \
             --classification "$CLASSIFICATION_RESULT" \
             --quality "$QUALITY_RESULT" \

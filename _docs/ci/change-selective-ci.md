@@ -19,10 +19,17 @@ root's reviewed closure; a missing or unmapped label never narrows the suite. A 
 runs factory and migration contracts before the complete Django suite. Focused profiles retain the
 existing exact sorted label runner.
 
-The classifier artifact is named `ci-selection-<run>-attempt-<attempt>`. It contains only bounded,
-schema-validated facts: source SHAs, profile, reason, changed-path count, mapped roots, and closed
-test labels. It intentionally contains no filenames. The `ci-gate` artifact records all required
-job outcomes, and capture, publish, and deploy require that aggregate gate to succeed.
+The classifier artifact is named `ci-selection-<run>-attempt-<attempt>`. It contains the canonical
+`ci-selection.json` plus a code-owned `ci-selection-provenance.json` sidecar. Both are bounded,
+schema-validated facts: source SHAs, controller and release identity, run/attempt, profile, reason,
+changed-path count, mapped roots, closed test labels, and the SHA-256 digest of the exact canonical
+selection bytes. It intentionally contains no filenames or unbounded logs. Every consumer resolves
+the current attempt first. On a failed-job rerun, a reused classifier may use attempt one only when
+the current artifact is absent and the sidecar proves attempt one belongs to this same run; there is
+no latest-artifact or cross-run fallback. Malformed, duplicate, stale, mismatched, or non-canonical
+evidence fails closed before tests or the aggregate gate. The `ci-gate` artifact records the resolved
+attempt/mode, safe rejection reason when applicable, and all required job outcomes; capture, publish,
+and deploy require that aggregate gate to succeed.
 
 The selector and its contract tests run from the current workflow controller checkout. Django and
 the existing release checks run against the exact selected release checkout. This keeps a manual
