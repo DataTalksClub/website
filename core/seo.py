@@ -5,14 +5,13 @@ from urllib.parse import urlsplit
 
 PRODUCTION_CANONICAL_HOST = "datatalks.club"
 _ENCODED_AMBIGUOUS_CHARACTER = re.compile(r"%(?:0[0-9a-f]|5c|7f)", re.IGNORECASE)
-_PODCAST_PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,8})\Z", re.ASCII)
+_PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
 
 
-def _is_normalized_podcast_page(path: str, query: str) -> bool:
+def _is_normalized_podcast_season(path: str, query: str) -> bool:
     if path != "/podcast":
         return False
-    match = _PODCAST_PAGE_QUERY.fullmatch(query)
-    return bool(match and int(match.group(1)) >= 2)
+    return _PODCAST_SEASON_QUERY.fullmatch(query) is not None
 
 
 def validated_canonical_url(value: object) -> str:
@@ -40,7 +39,7 @@ def validated_canonical_url(value: object) -> str:
         or parsed.hostname != PRODUCTION_CANONICAL_HOST
         or parsed.username is not None
         or parsed.password is not None
-        or (parsed.query and not _is_normalized_podcast_page(parsed.path, parsed.query))
+        or (parsed.query and not _is_normalized_podcast_season(parsed.path, parsed.query))
         or parsed.fragment
         or not parsed.path.startswith("/")
         or parsed.path.startswith("//")

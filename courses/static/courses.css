@@ -1239,6 +1239,28 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
 }
 
 /* Buttons */
+.podcast-season-navigation {
+  margin-top: 2.5rem;
+}
+
+.podcast-season-navigation ul {
+  list-style: none;
+  margin-bottom: 0;
+  padding-left: 0;
+}
+
+.podcast-season-adjacent,
+.podcast-season-list {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.podcast-season-list {
+  margin-top: 1rem;
+}
+
 .primer-button {
   align-items: center;
   border-radius: 6px;
@@ -2152,6 +2174,12 @@ body.dark-mode .primer-button {
 body.dark-mode .primer-button:hover {
   background: #6d99c2;
   border-color: #6d99c2;
+  color: #ffffff;
+}
+
+body.dark-mode .podcast-season-current {
+  background: #315f8f;
+  border-color: #315f8f;
   color: #ffffff;
 }
 

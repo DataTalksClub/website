@@ -4,7 +4,7 @@ import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-105")
-PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-119")
+PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-132")
 EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
 FEATURED_EVENT_PATH = "/events/2026-08-31-ai-dev-tools-zoomcamp-2026-course-launch"
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
@@ -18,6 +18,9 @@ def _shot(page: Page, name: str, *, full_page: bool = False) -> None:
 
 
 def _podcast_shot(page: Page, name: str) -> None:
+    preferences = page.get_by_role("dialog", name="Optional analytics")
+    if preferences.is_visible():
+        preferences.get_by_role("button", name="Keep analytics off").click()
     PODCAST_SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=PODCAST_SCREENSHOTS / name, full_page=True)
 
@@ -142,7 +145,7 @@ def test_internal_event_to_person_flow(
     ("viewport", "suffix"),
     [({"width": 1280, "height": 800}, "desktop"), ({"width": 390, "height": 844}, "mobile")],
 )
-def test_podcast_first_middle_and_last_pages(
+def test_podcast_latest_middle_and_oldest_seasons(
     page: Page,
     live_server,
     viewport: ViewportSize,
@@ -154,32 +157,34 @@ def test_podcast_first_middle_and_last_pages(
     page.on("requestfailed", lambda request: failed_requests.append(request.url))
 
     scenarios = (
-        (1, (24, 23, 22)),
-        (4, (15, 14, 13)),
-        (8, (3, 2, 1)),
+        (24, "/podcast"),
+        (12, "/podcast?season=12"),
+        (1, "/podcast?season=1"),
     )
-    for page_number, seasons in scenarios:
-        path = "/podcast" if page_number == 1 else f"/podcast?page={page_number}"
+    for season, path in scenarios:
         response = page.goto(f"{origin}{path}")
         assert response is not None and response.status == 200
         expect(page.get_by_role("heading", name="Podcast", exact=True)).to_be_visible()
-        for season in seasons:
-            expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
-        current_page = page.get_by_role("navigation", name="Podcast pagination").locator(
+        expect(page.locator("main h2")).to_have_count(1)
+        expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
+        current_season = page.get_by_role("navigation", name="Podcast seasons").locator(
             '[aria-current="page"]'
         )
-        expect(current_page).to_have_text(str(page_number))
-        expect(current_page).to_have_attribute(
+        expect(current_season).to_have_text(f"Season {season}")
+        expect(current_season).to_have_attribute(
             "aria-label",
-            f"Podcast page {page_number}, current page",
+            f"Season {season}, current season",
         )
-        canonical_path = "/podcast" if page_number == 1 else path
         expect(page.locator('link[rel="canonical"]')).to_have_attribute(
             "href",
-            f"https://datatalks.club{canonical_path}",
+            f"https://datatalks.club{path}",
+        )
+        expect(page.locator("[data-podcast-season]")).to_have_count(1)
+        expect(page.get_by_role("link", name="Season 24", exact=True)).to_have_count(
+            0 if season == 24 else 1
         )
         assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-        _podcast_shot(page, f"podcast-page-{page_number}-{suffix}.png")
+        _podcast_shot(page, f"podcast-season-{season}-{suffix}.png")
 
     assert failed_requests == []
 
@@ -220,7 +225,7 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         "/people/alexeygrigorev/": "/people/alexeygrigorev.html",
     }
     for source, target in aliases.items():
-        query = "page=2" if source in {"/podcast.html", "/podcast/"} else "source=browser"
+        query = "season=12" if source in {"/podcast.html", "/podcast/"} else "source=browser"
         response = page.request.get(
             f"{origin}{source}?{query}",
             max_redirects=0,

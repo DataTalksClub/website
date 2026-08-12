@@ -41,23 +41,41 @@ The baseline inventory covers:
 - Course-platform compatibility routes remain available on `courses.datatalks.club` until every known browser, script, certificate tool, and email template has migrated.
 - Path case, percent encoding, Unicode, query strings used by public behavior, and trailing-slash behavior are tested rather than normalized globally.
 
-### Podcast catalogue pagination
+### Podcast catalogue season navigation
 
-The `/podcast` catalogue groups episodes under explicit season headings, orders seasons by numeric
-season descending, and orders episodes within each season by numeric episode descending. Duplicate
-season/episode values use published date descending and then slug ascending as deterministic
-tie-breakers; genuine gaps and duplicates are preserved. Pages contain three complete seasons, so a
-season is never split, and expose numbered links plus accessible Previous/Next controls.
+Each successful `/podcast` catalogue response contains exactly one complete actual season. Seasons
+are ordered by numeric season descending, and episodes within the selected season are ordered by
+numeric episode descending. Duplicate season/episode values use published date descending and then
+slug ascending as deterministic tie-breakers; genuine gaps and duplicates are preserved. The clean
+`/podcast` path is a moving latest-season representation selected from the maximum validated numeric
+season, never a hard-coded season.
 
-The only accepted query is one exact ASCII positive `page=N` value. No query and `page=1` render the
-first page and canonicalize to `https://datatalks.club/podcast`; later in-range pages have an exact
-self-canonical, page-specific title, and normalized `prev`/`next` links. Page 1 links use the clean
-path. Duplicate, empty, signed, zero, leading-zero, encoded, overlong, or unknown parameters return
-`400` with `no-store`; a canonical positive page beyond the final page returns `404` with
-`no-store`. The `.html` and slash aliases preserve the raw query in their one-hop redirects.
-Paginated hub URLs stay out of the sitemap, while every canonical podcast detail `.html` URL remains
-present. The shared canonical validator's query exception is limited to normalized later podcast
-pages; all other canonical-query rejection remains unchanged.
+The only accepted query is one exact ASCII `season=[1-9][0-9]{0,8}` value. An existing older season
+uses `/podcast?season=N`, an exact self-canonical, the title
+`DataTalks.Club Podcast — Season N — DataTalks.Club`, and sequence relations in descending catalogue
+order: `prev` targets the adjacent newer actual season and `next` targets the adjacent older actual
+season. Relations and navigation skip gaps in the actual inventory. A relation or control for the
+latest season uses clean `/podcast`; all older controls use their exact normalized season query.
+
+An explicit query for the current latest season returns `200` but uses the clean canonical and
+latest-season title, and no internal link emits that query. Season controls list every actual season
+in numeric descending order, visibly name each `Season N`, mark the current control once with
+`aria-current="page"`, and provide explicit adjacent labels such as
+`Newer season — Season 13` and `Older season — Season 11`. A response never combines seasons or
+invents a missing one.
+
+Duplicate, empty, signed, zero, leading-zero, encoded, non-ASCII, overlong, alternate-case, mixed,
+unknown, former `page`, or otherwise non-exact query forms return bounded non-reflective `400`
+responses with `no-store`. An exact normalized positive season absent from the actual inventory
+returns a bounded non-reflective `404` with `no-store`, without a latest/nearest fallback. `GET` and
+`HEAD` have identical status and metadata behavior, with an empty HEAD body. Anonymous `POST` is
+rejected before catalogue/query work with `405`, exact `Allow: GET, HEAD`, and `no-store`.
+
+The `.html` and slash hub aliases preserve the raw query byte-for-byte in their one-hop redirects.
+Season-query hub URLs stay out of the sitemap, whose podcast portion remains exactly clean
+`/podcast` plus all 205 canonical podcast detail `.html` URLs. The shared canonical validator's
+only query exception is exact normalized `/podcast?season=N` syntax; the view emits such a canonical
+only for an existing non-latest season. All other canonical-query rejection remains unchanged.
 
 ### Canonical Wiki route
 
@@ -131,7 +149,7 @@ implicitly public.
 | Fingerprinted static | Versioned `/static/` filenames | 365 days; no stale error object | `public, max-age=31536000, immutable` | Normalized path plus CloudFront-normalized gzip/Brotli only |
 | Stable release asset | Code-owned active-release assets without a fingerprint | 24 hours; invalidate on activation | `public, max-age=3600` | Path plus normalized encoding |
 | Editorial detail | Approved article, podcast, Person, book, docs, FAQ, and wiki details | 600 seconds; stale-if-error at most 24 hours | `max-age=0, must-revalidate`; ETag/Last-Modified | Canonical path plus normalized encoding; no query |
-| Public hub/feed/sitemap | Approved hubs, feeds, sitemap, and explicit public JSON feeds | 300 seconds; stale-if-error at most 1 hour | `max-age=0, must-revalidate` | Canonical path; exact positive `page` only where registered |
+| Public hub/feed/sitemap | Approved hubs, feeds, sitemap, and explicit public JSON feeds | 300 seconds; stale-if-error at most 1 hour | `max-age=0, must-revalidate` | Canonical path; exact normalized positive selector only where registered (`season` for Podcast) |
 | Public course/event catalog or detail | Anonymous-stable catalog/detail pages only | 60 seconds; stale-if-error at most 5 minutes | `max-age=0, must-revalidate` | Canonical path; exact allowlisted pagination only |
 | Code-owned permanent redirect | Explicit public alias/redirect manifest only | 24 hours | `public, max-age=300` | Normalized source path; query follows the redirect contract |
 | Public 404 | Clean credential-free, query-free unknown `GET`/`HEAD` | 30 seconds; no stale-if-error | `max-age=0` | Normalized path |
@@ -154,8 +172,9 @@ sitemap. Neither robots nor cache status is an authorization control.
 ## Query and poisoning rules
 
 - Static, detail, feed, and sitemap cache keys contain no query parameter. A named hub may allow
-  one canonical positive-integer `page`; duplicate, empty, overlong, out-of-range, malformed, or
-  unknown parameters become no-store or a safe 400, never an unbounded variant.
+  one exact registered positive-integer selector; Podcast allows only normalized `season`.
+  Duplicate, empty, overlong, out-of-range, malformed, former `page`, or unknown parameters become
+  no-store or a safe 400, never an unbounded variant.
 - Known tracking keys may be removed by one safe canonical `GET`/`HEAD` redirect. They are not
   reflected or forwarded while absent from the key. Search text and arbitrary filters are not
   cached in the MVP.
