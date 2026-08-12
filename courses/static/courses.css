@@ -1261,6 +1261,11 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
   margin-top: 1rem;
 }
 
+.podcast-season-navigation .pagination-target:focus-visible {
+  outline: 3px solid var(--link-color, #315f8f) !important;
+  outline-offset: 3px !important;
+}
+
 .primer-button {
   align-items: center;
   border-radius: 6px;
