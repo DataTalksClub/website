@@ -68,6 +68,11 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     assert "ci.classifier validate" in script
     assert "ci.provenance resolve" in script
     assert "attempt-1" in script
+    assert "current-payload" in script
+    assert "attempt-1-payload" in script
+    assert "ci-selection.json ci-selection-provenance.json" in script
+    assert "--current-directory ../release-source/.tmp/ci-selection/current-payload" in script
+    assert "--fallback-directory ../release-source/.tmp/ci-selection/attempt-1-payload" in script
     assert '--expected-selection-sha256 "$SELECTION_SHA256"' in script
     assert "make test-ci-focused" in script
     selected_step = next(
@@ -123,6 +128,11 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert "ci.provenance resolve" in gate_script
     assert "--evidence .tmp/ci-selection/resolved/ci-selection-resolution.json" in gate_script
     assert "attempt-1" in gate_script
+    assert "current-payload" in gate_script
+    assert "attempt-1-payload" in gate_script
+    assert "ci-selection.json ci-selection-provenance.json" in gate_script
+    assert "--current-directory .tmp/ci-selection/current-payload" in gate_script
+    assert "--fallback-directory .tmp/ci-selection/attempt-1-payload" in gate_script
     assert "needs.classification.outputs.created_attempt == '1'" in str(gate)
     assert '--expected-event "$EVENT_NAME"' in gate_script
     assert '--expected-source-after-sha "$EVENT_AFTER"' in gate_script
