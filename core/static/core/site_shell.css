@@ -516,21 +516,38 @@ html.no-js #main-content:has(.registration-panel) img[alt=""] {
 }
 
 .event-timeline {
+  --event-timeline-column-gap: 1.25rem;
+  --event-timeline-group-gap: 2.5rem;
+  --event-timeline-marker-size: 1.25rem;
+  --event-timeline-rail-width: 0.125rem;
   display: grid;
-  gap: 2.5rem;
+  gap: var(--event-timeline-group-gap);
   min-width: 0;
 }
 
 .event-timeline-group {
   display: grid;
-  gap: 1.25rem;
+  gap: var(--event-timeline-column-gap);
   grid-template-columns: minmax(7rem, 9rem) minmax(0, 1fr);
   min-width: 0;
+  position: relative;
+}
+
+/* Continue the rail through the space between date groups. */
+.event-timeline-group:not(:last-child)::after {
+  background: var(--border-muted);
+  content: "";
+  height: calc(var(--event-timeline-group-gap) + 2.25rem);
+  left: calc(9rem + var(--event-timeline-column-gap));
+  position: absolute;
+  top: 100%;
+  width: var(--event-timeline-rail-width);
+  z-index: 0;
 }
 
 .event-timeline-date-rail {
   min-width: 0;
-  padding-top: 1.25rem;
+  padding-top: 1.125rem;
 }
 
 .event-timeline-date,
@@ -539,9 +556,11 @@ html.no-js #main-content:has(.registration-panel) img[alt=""] {
 }
 
 .event-timeline-date {
+  border-left: 0.25rem solid var(--link-color);
   font-size: 1rem;
   font-weight: 650;
   line-height: 1.35;
+  padding-left: 0.75rem;
 }
 
 .event-timeline-date time,
@@ -558,6 +577,7 @@ html.no-js #main-content:has(.registration-panel) img[alt=""] {
   min-width: 0;
   padding-left: 1.5rem;
   position: relative;
+  z-index: 1;
 }
 
 .event-timeline-content::before {
@@ -565,23 +585,40 @@ html.no-js #main-content:has(.registration-panel) img[alt=""] {
   content: "";
   inset: 0 auto 0 0;
   position: absolute;
-  width: 2px;
+  width: var(--event-timeline-rail-width);
 }
 
 .event-timeline-marker {
   background: var(--surface-bg);
-  border: 3px solid var(--link-color);
+  border: 0.25rem solid var(--link-color);
   border-radius: 50%;
-  height: 0.9rem;
-  left: -0.4rem;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 0.25rem var(--surface-bg);
+  height: var(--event-timeline-marker-size);
+  left: calc((var(--event-timeline-marker-size) / -2) + 0.0625rem);
   position: absolute;
-  top: 1.65rem;
-  width: 0.9rem;
-  z-index: 1;
+  top: 1.625rem;
+  width: var(--event-timeline-marker-size);
+  z-index: 2;
 }
 
 .event-timeline-rows {
   min-width: 0;
+}
+
+.event-timeline-rows > article {
+  min-width: 0;
+  position: relative;
+}
+
+.event-timeline-rows > article > div {
+  min-width: 0;
+}
+
+.event-timeline-rows > article > a {
+  align-items: center;
+  display: inline-flex;
+  min-height: 2.75rem;
 }
 
 .event-timeline-empty {
@@ -608,12 +645,19 @@ html.no-js #main-content:has(.registration-panel) img[alt=""] {
 
 @media (max-width: 48rem) {
   .event-timeline {
-    gap: 2rem;
+    --event-timeline-column-gap: 0.75rem;
+    --event-timeline-group-gap: 2rem;
+    gap: var(--event-timeline-group-gap);
   }
 
   .event-timeline-group {
-    gap: 0.75rem;
+    gap: var(--event-timeline-column-gap);
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .event-timeline-group:not(:last-child)::after {
+    height: calc(var(--event-timeline-group-gap) + 5.625rem);
+    left: 1.5rem;
   }
 
   .event-timeline-date-rail {
@@ -621,7 +665,8 @@ html.no-js #main-content:has(.registration-panel) img[alt=""] {
   }
 
   .event-timeline-content {
-    padding-left: 1.5rem;
+    margin-left: 1.5rem;
+    padding-left: 0;
   }
 }
 
