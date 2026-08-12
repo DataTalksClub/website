@@ -61,18 +61,40 @@ def test_public_fixture_has_exact_offline_provenance() -> None:
     )
 
 
-def test_deployed_missing_page_expectation_is_exact_and_cdn_masking_is_removed() -> None:
+def test_deployed_missing_page_expectations_are_exact_and_cdn_masking_is_removed() -> None:
     from conftest import (
         OFFLINE_ROUTE_FIXTURES,
+        _expected_local_request_failure,
         _expected_local_response,
     )
 
     test_name = "test_deployed_public_and_studio_html_are_exact_and_read_only"
     assert OFFLINE_ROUTE_FIXTURES == {}
-    assert _expected_local_response(test_name, 404, "/__dtc_deployed_smoke_missing__")
-    assert not _expected_local_response(test_name, 200, "/__dtc_deployed_smoke_missing__")
-    assert not _expected_local_response(test_name, 404, "/arbitrary-missing")
+    expected_paths = (
+        "/__dtc_deployed_smoke_missing__",
+        "/courses/__dtc_deployed_smoke_missing_course__",
+    )
+    for path in expected_paths:
+        assert _expected_local_response(test_name, 404, path)
+        assert not _expected_local_response(test_name, 200, path)
+        assert _expected_local_request_failure(test_name, f"https://web.dtcdev.click{path}")
+
+    rejected_paths = (
+        "/courses/__dtc_deployed_smoke_missing_course__/",
+        "/courses/__dtc_deployed_smoke_missing_course___",
+        "/courses/__dtc_deployed_smoke_missing__",
+        "/arbitrary-missing",
+    )
+    for path in rejected_paths:
+        assert not _expected_local_response(test_name, 404, path)
+        assert not _expected_local_request_failure(test_name, f"https://web.dtcdev.click{path}")
+
     assert not _expected_local_response("another_test", 404, "/__dtc_deployed_smoke_missing__")
+    assert not _expected_local_response(
+        "another_test",
+        404,
+        "/courses/__dtc_deployed_smoke_missing_course__",
+    )
 
 
 def test_public_provenance_rejects_changed_missing_extra_malformed_and_traversal(

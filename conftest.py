@@ -59,6 +59,7 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/_accessibility/identity-conflict/$"), 409),
     ),
     "test_deployed_public_and_studio_html_are_exact_and_read_only": (
+        (re.compile(r"^/courses/__dtc_deployed_smoke_missing_course__$"), 404),
         (re.compile(r"^/__dtc_deployed_smoke_missing__$"), 404),
     ),
     "test_fixture_redirect_gone_and_unknown_are_direct": (
