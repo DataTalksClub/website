@@ -68,6 +68,7 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "courses/migrations/0004_update_correct_answer_indexes.py",
                 "courses/migrations/0005_update_answers_with_indexes.py",
                 "courses/migrations/0006_course_first_homework_scored.py",
+                "events/migrations/0005_seed_event_identity_manifest.py",
             },
         )
         for path in paths:
