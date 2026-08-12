@@ -5,9 +5,11 @@ import json
 from pathlib import Path
 
 import pytest
+from django.test import Client
 from django.urls import reverse
 from playwright.sync_api import Page, expect
 
+from accounts.models import CustomUser
 from courses.models import Course, CourseRegistration, RegistrationCampaign
 from playwright_tests.accessibility_support import target_size_issues
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
@@ -51,6 +53,14 @@ REGISTRATION_CAMPAIGN = {
     "title": "Machine Learning Zoomcamp",
     "edition_label": "2026 cohort",
     "marketing_markdown": "Learn machine learning engineering in a free online course.",
+    # A deterministic 600x282 image exercises the same intrinsic dimensions as
+    # the production CMP registration hero without introducing an external test
+    # request or a binary fixture.
+    "hero_image_url": (
+        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' "
+        "width='600' height='282'%3E%3Crect width='600' height='282' "
+        "fill='slateblue'/%3E%3C/svg%3E"
+    ),
 }
 
 
@@ -154,6 +164,36 @@ def _capture_dark_mode(page: Page, path: Path) -> None:
     expect(dark_mode).to_have_attribute("aria-pressed", "true")
     _assert_no_horizontal_overflow(page)
     page.screenshot(path=path, full_page=True)
+
+
+def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
+    geometry = page.locator(".registration-panel").evaluate(
+        """panel => {
+          const image = panel.parentElement.querySelector('img[alt=""]');
+          const parent = image.parentElement;
+          const imageRect = image.getBoundingClientRect();
+          const parentRect = parent.getBoundingClientRect();
+          return {
+            imageHeight: imageRect.height,
+            imageLeft: imageRect.left,
+            imageNaturalHeight: image.naturalHeight,
+            imageNaturalWidth: image.naturalWidth,
+            imageRight: imageRect.right,
+            imageWidth: imageRect.width,
+            parentLeft: parentRect.left,
+            parentRight: parentRect.right,
+            scrollWidth: document.documentElement.scrollWidth,
+            viewportWidth: window.innerWidth,
+          };
+        }"""
+    )
+    assert geometry["imageNaturalWidth"] == 600, geometry
+    assert geometry["imageNaturalHeight"] == 282, geometry
+    assert geometry["imageWidth"] > 0 and geometry["imageHeight"] > 0, geometry
+    assert geometry["imageLeft"] >= geometry["parentLeft"] - 1, geometry
+    assert geometry["imageRight"] <= geometry["parentRight"] + 1, geometry
+    assert geometry["scrollWidth"] <= geometry["viewportWidth"], geometry
+    return geometry
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
@@ -327,6 +367,118 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
         full_page=True,
     )
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
+
+
+@pytest.mark.parametrize("viewport_width", (320, 390, 414))
+def test_registration_hero_fits_loaded_image_without_javascript(
+    browser,
+    live_server,
+    cmp_registration_campaign: RegistrationCampaign,
+    viewport_width: int,
+) -> None:
+    context = browser.new_context(
+        java_script_enabled=False,
+        viewport={"width": viewport_width, "height": 844},
+        color_scheme="light",
+        reduced_motion="reduce",
+    )
+    page = context.new_page()
+    try:
+        registration_path = reverse(
+            "registration_campaign",
+            kwargs={"campaign_slug": cmp_registration_campaign.slug},
+        )
+        response = page.goto(f"{live_server.url}{registration_path}", wait_until="networkidle")
+        assert response is not None and response.status == 200
+        expect(page.locator("html.no-js")).to_have_count(1)
+        expect(page.locator(".registration-panel form[data-registration-form]")).to_have_count(1)
+        geometry = _assert_registration_hero_is_contained(page)
+        assert (
+            abs(
+                geometry["imageWidth"] / geometry["imageHeight"]
+                - geometry["imageNaturalWidth"] / geometry["imageNaturalHeight"]
+            )
+            < 0.01
+        ), geometry
+
+        # Keep the overflow assertion fail-closed: an intentionally broken
+        # presentation rule must be observable before the page is restored.
+        mutated = page.locator("img[alt='']").evaluate(
+            """image => {
+              image.style.maxWidth = 'none';
+              image.style.minWidth = '600px';
+              image.style.width = '600px';
+              image.style.position = 'relative';
+              image.style.left = '600px';
+              const rect = image.getBoundingClientRect();
+              return {
+                imageRight: rect.right,
+                scrollWidth: document.documentElement.scrollWidth,
+                viewportWidth: window.innerWidth,
+              };
+            }"""
+        )
+        assert (
+            mutated["scrollWidth"] > mutated["viewportWidth"]
+            or mutated["imageRight"] > mutated["viewportWidth"]
+        ), mutated
+        page.reload(wait_until="networkidle")
+        _assert_registration_hero_is_contained(page)
+        page.screenshot(
+            path=Path(".tmp/screenshots/issue-134") / f"registration-no-js-{viewport_width}.png",
+            full_page=True,
+        )
+    finally:
+        context.close()
+
+
+def test_registration_hero_fits_success_state_without_javascript(
+    browser,
+    live_server,
+    cmp_registration_campaign: RegistrationCampaign,
+) -> None:
+    user = CustomUser.objects.create_user(
+        username="cmp-registration-success",
+        email="synthetic-success@example.invalid",
+        password="test-password",
+    )
+    CourseRegistration.objects.create(
+        campaign=cmp_registration_campaign,
+        course=cmp_registration_campaign.current_course,
+        user=user,
+        email=user.email,
+        name="Synthetic Student",
+        country="Germany",
+        region="Europe",
+        role="data_engineer",
+        accepted_newsletter=True,
+    )
+    client = Client()
+    client.force_login(user)
+    session_cookie = client.cookies["sessionid"]
+
+    context = browser.new_context(
+        java_script_enabled=False,
+        viewport={"width": 390, "height": 844},
+        color_scheme="light",
+        reduced_motion="reduce",
+    )
+    page = context.new_page()
+    try:
+        page.context.add_cookies(
+            [{"name": "sessionid", "value": session_cookie.value, "url": live_server.url}]
+        )
+        registration_path = reverse(
+            "registration_campaign",
+            kwargs={"campaign_slug": cmp_registration_campaign.slug},
+        )
+        response = page.goto(f"{live_server.url}{registration_path}", wait_until="networkidle")
+        assert response is not None and response.status == 200
+        expect(page.get_by_role("heading", name="You are already registered")).to_be_visible()
+        expect(page.locator(".registration-panel form[data-registration-form]")).to_have_count(0)
+        _assert_registration_hero_is_contained(page)
+    finally:
+        context.close()
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)

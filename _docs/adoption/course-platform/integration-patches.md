@@ -59,6 +59,10 @@ overlays:
 - `courses/static/courses.css`: issue #59 retains the adopted design system while constraining
   Studio Courses page headers to the mobile viewport; long course titles wrap instead of being
   clipped or expanding the document width;
+- `core/static/core/site_shell.css`: issue #134 adds a target-owned no-JavaScript registration
+  hero constraint after the adopted stylesheet. It makes the loaded CMP image a block-level,
+  max-width-contained element while retaining its intrinsic ratio and leaves JavaScript-enhanced
+  CMP crop geometry untouched; the copied registration template and stylesheet remain unchanged;
 - copied account, logout, and social-account templates: issue #59 replaces the obsolete
   Course Management page-title suffix with DataTalks.Club while leaving authentication behavior
   unchanged;
