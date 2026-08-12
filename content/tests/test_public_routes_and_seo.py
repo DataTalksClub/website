@@ -172,9 +172,20 @@ class PublicRouteAndSeoTests(TestCase):
         projection = public_projection()
         home = self.client.get("/").content.decode()
         hub = self.client.get("/events").content.decode()
+        archive = self.client.get("/events?filter=past").content.decode()
+        page_match = re.search(r"Page 1 of (\d+)", archive)
+        if page_match is not None:
+            archive_pages = [archive]
+            for page in range(2, int(page_match.group(1)) + 1):
+                response = self.client.get(f"/events?filter=past&page={page}")
+                self.assertEqual(response.status_code, 200)
+                archive_pages.append(response.content.decode())
+            archive = "".join(archive_pages)
         for body in (home, hub):
             self.assertNotRegex(body, r'href="https://(?:luma\.com|lu\.ma)')
             self.assertNotIn(" · workshop", body.casefold())
+        self.assertNotRegex(archive, r'href="https://(?:luma\.com|lu\.ma)')
+        self.assertNotIn(" · workshop", archive.casefold())
         people_paths = {person["public_path"] for person in projection["people"]}
         self.assertEqual(len(projection["events"]), 421)
         self.assertEqual(sum(len(event["speakers"]) for event in projection["events"]), 456)
@@ -190,7 +201,7 @@ class PublicRouteAndSeoTests(TestCase):
         )
         for event in projection["events"]:
             with self.subTest(event=event["slug"]):
-                self.assertIn(f'href="{event["public_path"]}"', hub)
+                self.assertIn(f'href="{event["public_path"]}"', hub + archive)
                 response = self.client.get(event["public_path"])
                 self.assertEqual(response.status_code, 200)
                 body = response.content.decode()

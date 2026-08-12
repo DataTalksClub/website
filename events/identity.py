@@ -130,10 +130,10 @@ def _parse_alias(value: Any, *, event_source: SourceIdentity) -> ManifestAlias:
     split = urlsplit(source_path)
     if (
         not source_path.startswith("/events/")
+        or source_path == "/events/"
         or split.path != source_path
         or split.query
         or split.fragment
-        or source_path.endswith("/")
     ):
         raise EventIdentityError("manifest_alias_path_invalid")
     return ManifestAlias(source_path, kind, reason, event_source)
@@ -282,12 +282,17 @@ def resolve_uuid(event_id: uuid.UUID | str) -> Event:
 def resolve_legacy_path(path: str) -> Event:
     if not isinstance(path, str) or not path.startswith("/events/"):
         raise EventIdentityNotFound("unknown_legacy_path")
-    try:
-        return Event.objects.get(aliases__source_path=path)
-    except Event.DoesNotExist as exc:
-        raise EventIdentityNotFound("unknown_legacy_path") from exc
-    except Event.MultipleObjectsReturned as exc:
-        raise EventIdentityError("legacy_alias_ambiguous") from exc
+    candidates = [path]
+    if path != "/events/":
+        candidates.append(path.removesuffix("/") if path.endswith("/") else f"{path}/")
+    for candidate in candidates:
+        try:
+            return Event.objects.get(aliases__source_path=candidate)
+        except Event.DoesNotExist:
+            continue
+        except Event.MultipleObjectsReturned as exc:
+            raise EventIdentityError("legacy_alias_ambiguous") from exc
+    raise EventIdentityNotFound("unknown_legacy_path")
 
 
 def redirect_for_supplied_slug(event_id: uuid.UUID | str, supplied_slug: str) -> str | None:

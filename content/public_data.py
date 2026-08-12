@@ -4,7 +4,7 @@ import hashlib
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -95,6 +95,25 @@ EXPECTED_RECORD_SOURCES = {
 class EventGroups:
     upcoming: tuple[dict[str, Any], ...]
     recent: tuple[dict[str, Any], ...]
+    upcoming_groups: tuple[EventDateGroup, ...] = ()
+    recent_groups: tuple[EventDateGroup, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class EventDateGroup:
+    """Events sharing the displayed local calendar date.
+
+    The public projection stores timezone-aware ISO timestamps.  The event hub displays dates
+    in the site's established Europe/Berlin timezone, so grouping must happen after conversion
+    rather than by slicing the UTC source string.  ``key`` is deliberately a stable ISO date
+    used only for accessible DOM identifiers.
+    """
+
+    key: str
+    date: date
+    display_date: str
+    weekday: str
+    events: tuple[dict[str, Any], ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -518,9 +537,47 @@ def event_groups(now: datetime | None = None) -> EventGroups:
             "fas fa-calendar-check",
         )
         (upcoming if event["starts_at_value"] >= current else recent).append(event)
-    upcoming.sort(key=lambda item: (item["starts_at_value"], item["slug"]))
-    recent.sort(key=lambda item: (item["starts_at_value"], item["slug"]), reverse=True)
-    return EventGroups(tuple(upcoming), tuple(recent))
+
+    # Keep ties deterministic even when two events share a title-derived slug.  UUID is the
+    # immutable final tie-breaker, so a source reorder cannot change the rendered catalogue.
+    def tie_breaker(item: dict[str, Any]) -> tuple[str, str]:
+        return item["title"].casefold(), str(item.get("identity_id", ""))
+
+    upcoming.sort(key=tie_breaker)
+    upcoming.sort(key=lambda item: item["starts_at_value"])
+    recent.sort(key=tie_breaker)
+    recent.sort(key=lambda item: item["starts_at_value"], reverse=True)
+    return EventGroups(
+        tuple(upcoming),
+        tuple(recent),
+        _event_date_groups(upcoming),
+        _event_date_groups(recent, descending=True),
+    )
+
+
+def event_date_groups(
+    events: list[dict[str, Any]], *, descending: bool = False
+) -> tuple[EventDateGroup, ...]:
+    grouped: dict[date, list[dict[str, Any]]] = {}
+    for event in events:
+        local_date = event["starts_at_value"].astimezone(ZoneInfo("Europe/Berlin")).date()
+        grouped.setdefault(local_date, []).append(event)
+
+    return tuple(
+        EventDateGroup(
+            key=local_date.isoformat(),
+            date=local_date,
+            display_date=f"{local_date:%b} {local_date.day}, {local_date:%Y}",
+            weekday=local_date.strftime("%A"),
+            events=tuple(items),
+        )
+        for local_date, items in sorted(grouped.items(), reverse=descending)
+    )
+
+
+# Keep the implementation detail private for callers that only need EventGroups while exposing
+# a small pure helper for the paginated event view and deterministic unit tests.
+_event_date_groups = event_date_groups
 
 
 def public_paths() -> tuple[str, ...]:
