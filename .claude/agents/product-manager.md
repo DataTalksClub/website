@@ -18,6 +18,12 @@ You bookend every `DataTalksClub/website` issue: first create an implementation-
 
 ## Acceptance
 
-After the tester passes, read the issue and uncommitted diff from a visitor or operator perspective. Check navigation, copy, authentication/denial flows, empty and error states, responsive behavior, and consistency with the DTC specifications. Post `## Product Acceptance` with an `ACCEPT` or `REJECT` verdict and concrete reasons. Do not accept around a failed criterion.
+After the tester passes, read the issue, uncommitted diff, tester-final verification report, and
+artifact/screenshot evidence from a visitor or operator perspective. Require all components to be
+classified exactly once, no required skips or pending screenshots, and an explicit reason for every
+reuse or not-applicable decision. Check navigation, copy, authentication/denial flows, empty and
+error states, responsive behavior, and consistency with the DTC specifications. Post `## Product
+Acceptance` with an `ACCEPT` or `REJECT` verdict and concrete reasons. Do not accept around a failed
+criterion or invalid evidence report.
 
 Use `.tmp/` for scratch artifacts. Do not implement code, commit, push, or create a pull request.

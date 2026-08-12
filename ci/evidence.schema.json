@@ -1,0 +1,205 @@
+{
+  "$id": "https://datatalks.club/schemas/ci/evidence-v3.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {"minLength": 1, "type": "string"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "size": {"minimum": 0, "type": "integer"}
+      },
+      "required": ["path", "sha256", "size"],
+      "type": "object"
+    },
+    "capture": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_path": {"minLength": 1, "type": "string"},
+        "browser": {"minLength": 1, "type": "string"},
+        "captured_at": {"$ref": "#/$defs/utcTimestamp"},
+        "height": {"minimum": 1, "type": "integer"},
+        "image_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "independent_inspection": {"const": true},
+        "render_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "route": {"pattern": "^/", "type": "string"},
+        "route_state": {"minLength": 1, "type": "string"},
+        "verdict": {"const": "pass"},
+        "viewport": {"enum": ["desktop", "mobile"]},
+        "width": {"minimum": 1, "type": "integer"}
+      },
+      "required": ["artifact_path", "browser", "captured_at", "height", "image_sha256", "independent_inspection", "render_sha256", "route", "route_state", "verdict", "viewport", "width"],
+      "type": "object"
+    },
+    "manifestEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {"pattern": "^[0-9]{6}$", "type": "string"},
+        "object_id": {"pattern": "^[0-9a-f]{40,64}$", "type": "string"},
+        "object_type": {"enum": ["blob", "commit"]},
+        "path": {"minLength": 1, "type": "string"}
+      },
+      "required": ["mode", "object_id", "object_type", "path"],
+      "type": "object"
+    },
+    "utcTimestamp": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifacts": {
+      "items": {"$ref": "#/$defs/artifact"},
+      "maxItems": 100,
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+    },
+    "command": {"minLength": 1, "type": "string"},
+    "component": {
+      "enum": ["compatibility", "container", "content_invariants", "django", "evidence_validation", "playwright", "quality", "screenshots", "selector"]
+    },
+    "counts": {
+      "additionalProperties": {"minimum": 0, "type": "integer"},
+      "minProperties": 1,
+      "propertyNames": {"minLength": 1},
+      "type": "object"
+    },
+    "digest_algorithm": {"const": "sha256"},
+    "environment": {
+      "additionalProperties": false,
+      "properties": {
+        "allowlisted_config": {"additionalProperties": {"type": "string"}, "type": "object"},
+        "architecture": {"minLength": 1, "type": "string"},
+        "browser": {"minLength": 1, "type": "string"},
+        "database": {"minLength": 1, "type": "string"},
+        "django": {"minLength": 1, "type": "string"},
+        "operating_system": {"minLength": 1, "type": "string"},
+        "playwright": {"minLength": 1, "type": "string"},
+        "python": {"minLength": 1, "type": "string"},
+        "runner_image": {"minLength": 1, "type": "string"},
+        "runner_image_version": {"minLength": 1, "type": "string"},
+        "sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "uv": {"minLength": 1, "type": "string"}
+      },
+      "required": ["allowlisted_config", "architecture", "browser", "database", "django", "operating_system", "playwright", "python", "runner_image", "runner_image_version", "sha256", "uv"],
+      "type": "object"
+    },
+    "evidence_id": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "exit_code": {"minimum": 0, "type": "integer"},
+    "expires_at": {"$ref": "#/$defs/utcTimestamp"},
+    "input_manifest": {"items": {"$ref": "#/$defs/manifestEntry"}, "type": "array", "uniqueItems": true},
+    "input_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+    "origin": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "issue": {"minimum": 1, "type": "integer"},
+            "kind": {"const": "local"},
+            "producer_role": {"enum": ["engineer", "tester"]},
+            "worktree": {"minLength": 1, "type": "string"}
+          },
+          "required": ["issue", "kind", "producer_role", "worktree"],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "artifact_id": {"minLength": 1, "type": "string"},
+            "job_id": {"minLength": 1, "type": "string"},
+            "kind": {"const": "github_actions"},
+            "ref": {"minLength": 1, "type": "string"},
+            "repository": {"minLength": 1, "type": "string"},
+            "run_attempt": {"minimum": 1, "type": "integer"},
+            "run_id": {"minimum": 1, "type": "integer"},
+            "workflow": {"minLength": 1, "type": "string"}
+          },
+          "required": ["artifact_id", "job_id", "kind", "ref", "repository", "run_attempt", "run_id", "workflow"],
+          "type": "object"
+        }
+      ]
+    },
+    "output": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact": {"$ref": "#/$defs/artifact"},
+        "counts": {
+          "additionalProperties": false,
+          "properties": {
+            "assertions": {"minimum": 0, "type": "integer"},
+            "captures": {"minimum": 0, "type": "integer"},
+            "failed": {"minimum": 0, "type": "integer"},
+            "passed": {"minimum": 0, "type": "integer"},
+            "records": {"minimum": 0, "type": "integer"},
+            "skipped": {"minimum": 0, "type": "integer"},
+            "structured_files": {"minimum": 0, "type": "integer"},
+            "tests": {"minimum": 0, "type": "integer"}
+          },
+          "required": ["assertions", "failed", "passed", "skipped", "tests"],
+          "type": "object"
+        },
+        "format": {"enum": ["container-check-v1", "content-invariants-v1", "screenshot-artifact-v1", "test-log-v1", "verification-plan-v3"]}
+      },
+      "required": ["artifact", "counts", "format"],
+      "type": "object"
+    },
+    "policy": {
+      "additionalProperties": false,
+      "properties": {
+        "graph_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "policy_version": {"minimum": 1, "type": "integer"}
+      },
+      "required": ["graph_sha256", "policy_version"],
+      "type": "object"
+    },
+    "produced_at": {"$ref": "#/$defs/utcTimestamp"},
+    "result": {"enum": ["action_required", "cancelled", "failure", "skipped", "stale", "success", "timed_out"]},
+    "schema_version": {"const": 3},
+    "screenshot": {
+      "oneOf": [
+        {"type": "null"},
+        {
+          "additionalProperties": false,
+          "properties": {
+            "captures": {"items": {"$ref": "#/$defs/capture"}, "minItems": 1, "type": "array", "uniqueItems": true},
+            "reviewer": {"minLength": 1, "type": "string"}
+          },
+          "required": ["captures", "reviewer"],
+          "type": "object"
+        }
+      ]
+    },
+    "selection": {
+      "additionalProperties": false,
+      "properties": {
+        "direct_nodes": {"items": {"type": "string"}, "type": "array", "uniqueItems": true},
+        "downstream_nodes": {"items": {"type": "string"}, "type": "array", "uniqueItems": true},
+        "reason": {"minLength": 1, "type": "string"},
+        "risk_flags": {"items": {"type": "string"}, "type": "array", "uniqueItems": true}
+      },
+      "required": ["direct_nodes", "downstream_nodes", "reason", "risk_flags"],
+      "type": "object"
+    },
+    "source_tree": {
+      "additionalProperties": false,
+      "properties": {
+        "commit": {"pattern": "^[0-9a-f]{40,64}$", "type": "string"},
+        "entry_count": {"minimum": 0, "type": "integer"},
+        "git_object_algorithm": {"enum": ["sha1", "sha256"]},
+        "manifest_sha256": {"pattern": "^[0-9a-f]{64}$", "type": "string"},
+        "tree_oid": {"pattern": "^[0-9a-f]{40,64}$", "type": "string"}
+      },
+      "required": ["commit", "entry_count", "git_object_algorithm", "manifest_sha256", "tree_oid"],
+      "type": "object"
+    },
+    "started_at": {"$ref": "#/$defs/utcTimestamp"},
+    "supersedes": {"oneOf": [{"pattern": "^[0-9a-f]{64}$", "type": "string"}, {"type": "null"}]},
+    "validity_class": {"enum": ["live", "standard", "visual", "volatile"]},
+    "validity_seconds": {"minimum": 1, "type": "integer"}
+  },
+  "required": ["artifacts", "command", "component", "counts", "digest_algorithm", "environment", "evidence_id", "exit_code", "expires_at", "input_manifest", "input_sha256", "origin", "output", "policy", "produced_at", "result", "schema_version", "screenshot", "selection", "source_tree", "started_at", "supersedes", "validity_class", "validity_seconds"],
+  "title": "DataTalksClub verification evidence envelope v2",
+  "type": "object"
+}

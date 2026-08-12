@@ -6,23 +6,7 @@
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
-	review-data-cleanup run-review-data verification-plan verification-run verification-full \
-	verification-quality verification-container verification-content-invariants \
-	verification-evidence-check verification-report-check
-
-VERIFY_BASE_SHA ?= HEAD
-VERIFY_HEAD_SHA ?= HEAD
-VERIFY_OUTPUT_DIR ?= .tmp/verification
-VERIFY_PLAN ?= $(if $(VERIFY_PLAN_PATH),$(VERIFY_PLAN_PATH),$(VERIFY_OUTPUT_DIR)/verification-plan.json)
-VERIFY_EVIDENCE_DIR ?= $(VERIFY_OUTPUT_DIR)/evidence
-VERIFY_REPORT ?= $(if $(VERIFY_REPORT_PATH),$(VERIFY_REPORT_PATH),$(VERIFY_OUTPUT_DIR)/verification-report.json)
-VERIFY_INVARIANT ?= $(VERIFY_EVIDENCE_DIR)/content-invariants.json
-VERIFY_CONTAINER_OUTPUT ?= $(VERIFY_EVIDENCE_DIR)/container-check.json
-VERIFY_ISSUE ?= 113
-VERIFY_WORKTREE ?= local
-VERIFY_CONSUMER ?= engineer
-VERIFY_PHASE ?= $(VERIFY_CONSUMER)
-VERIFY_PRODUCER_ROLE ?= $(if $(filter tester,$(VERIFY_CONSUMER)),tester,engineer)
+	review-data-cleanup run-review-data
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -120,67 +104,7 @@ test: test-compatibility
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel
 
 test-ci:
-	uv run --frozen pytest ci/tests tests_ci -q
-
-verification-plan:
-	mkdir -p "$(VERIFY_OUTPUT_DIR)" "$(VERIFY_EVIDENCE_DIR)"
-	@base="$$(git rev-parse "$(VERIFY_BASE_SHA)")"; \
-		head="$$(git rev-parse "$(VERIFY_HEAD_SHA)")"; \
-		uv run --frozen python -m ci.classifier select \
-			--repository . --event push --base "$$base" --after "$$head" \
-			--github-sha "$$head" --release-sha "$$head" \
-			--output "$(VERIFY_OUTPUT_DIR)/ci-selection.json"; \
-		uv run --frozen python -m ci.verification plan \
-			--repository . --base "$$base" --head "$$head" \
-			--selection "$(VERIFY_OUTPUT_DIR)/ci-selection.json" \
-			--evidence-directory "$(VERIFY_EVIDENCE_DIR)" --consumer "$(VERIFY_CONSUMER)" \
-			--include-worktree \
-			--output "$(VERIFY_PLAN)"
-
-verification-run:
-	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
-	uv run --frozen python -m ci.runner \
-			--plan "$(VERIFY_PLAN)" --repository . \
-			--output-directory "$(VERIFY_EVIDENCE_DIR)" \
-			--issue "$(VERIFY_ISSUE)" --worktree "$(VERIFY_WORKTREE)" \
-			--producer-role "$(VERIFY_PRODUCER_ROLE)"
-	$(MAKE) verification-report-check
-
-verification-quality: terminology-check database-portability-check lint format-check typecheck \
-	migrations-check django-check deployment-check test-ci
-
-verification-container:
-	uv run --frozen python -m ci.container_check --repository . \
-		--output "$(VERIFY_CONTAINER_OUTPUT)"
-
-verification-content-invariants:
-	uv run --frozen python -m ci.content_invariants --repository . \
-		--plan "$(VERIFY_PLAN)" --output "$(VERIFY_INVARIANT)"
-
-verification-full: verification-quality
-	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-verification-full-migrate-$${PPID}}" \
-		DJANGO_SETTINGS_MODULE=website.settings.test \
-		uv run --frozen python manage.py migrate --noinput
-	$(MAKE) test-factories
-	$(MAKE) test-migrations
-	$(MAKE) test
-	$(MAKE) test-playwright
-	$(MAKE) verification-container
-
-verification-evidence-check:
-	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
-	uv run --frozen python -m ci.verification validate-evidence-directory \
-			--directory "$(VERIFY_EVIDENCE_DIR)" --plan "$(VERIFY_PLAN)" \
-			--consumer "$(VERIFY_CONSUMER)"
-
-verification-report-check: verification-evidence-check
-	@pending=""; if test "$(VERIFY_PHASE)" = engineer; then pending="--allow-pending"; fi; \
-		uv run --frozen python -m ci.verification report \
-			--plan "$(VERIFY_PLAN)" --result-directory "$(VERIFY_EVIDENCE_DIR)" \
-			--phase "$(VERIFY_PHASE)" --output "$(VERIFY_REPORT)"; \
-		uv run --frozen python -m ci.verification validate-report \
-			--plan "$(VERIFY_PLAN)" --report "$(VERIFY_REPORT)" \
-			--evidence-directory "$(VERIFY_EVIDENCE_DIR)" $$pending
+	uv run --frozen pytest ci/tests -q
 
 test-ci-focused:
 	@test -n "$$CI_SELECTION_PATH" || (echo "CI_SELECTION_PATH is required" >&2; exit 2)

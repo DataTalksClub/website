@@ -55,6 +55,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: website-development-release
@@ -330,6 +331,14 @@ jobs:
       created_attempt: ${{ steps.selection.outputs.created_attempt }}
       run_id: ${{ steps.selection.outputs.run_id }}
       selection_sha256: ${{ steps.selection.outputs.selection_sha256 }}
+      verification_profile: ${{ steps.plan.outputs.profile }}
+      browser_profile: ${{ steps.plan.outputs.browser_profile }}
+      compatibility_mode: ${{ steps.plan.outputs.compatibility_mode }}
+      content_invariants_mode: ${{ steps.plan.outputs.content_invariants_mode }}
+      container_mode: ${{ steps.plan.outputs.container_mode }}
+      django_mode: ${{ steps.plan.outputs.django_mode }}
+      playwright_mode: ${{ steps.plan.outputs.playwright_mode }}
+      quality_mode: ${{ steps.plan.outputs.quality_mode }}
     defaults:
       run:
         working-directory: .tmp/ci-controller
@@ -376,7 +385,61 @@ jobs:
             --provenance-output .tmp/ci-selection/ci-selection-provenance.json \
             --summary "$GITHUB_STEP_SUMMARY" \
             --github-output "$GITHUB_OUTPUT"
-      - name: Preserve the machine-readable CI selection
+      - id: history
+        name: Restore bounded trusted verification evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          uv run --frozen python -m ci.history \
+            --repository "$GITHUB_REPOSITORY" \
+            --token "$GITHUB_TOKEN" \
+            --workflow ci.yml \
+            --current-run-id "$GITHUB_RUN_ID" \
+            --output-directory .tmp/prior-evidence \
+            --history .tmp/ci-selection/evidence-history.json \
+            --github-output "$GITHUB_OUTPUT"
+      - id: plan
+        name: Build the versioned risk and evidence plan
+        run: |
+          set -euo pipefail
+          base="$(jq -er .base .tmp/ci-selection/ci-selection.json)"
+          head="$(jq -er .head .tmp/ci-selection/ci-selection.json)"
+          uv run --frozen python -m ci.verification plan \
+            --repository ../release-source \
+            --base "$base" --head "$head" \
+            --selection .tmp/ci-selection/ci-selection.json \
+            --evidence-directory .tmp/prior-evidence \
+            --history .tmp/ci-selection/evidence-history.json \
+            --consumer ci --release-requires-image \
+            --output .tmp/ci-selection/verification-plan.json \
+            --summary "$GITHUB_STEP_SUMMARY" \
+            --github-output "$GITHUB_OUTPUT"
+      - name: Record the classifier job's actual environment
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/ci-selection/components
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/ci-selection/verification-plan.json --component selector \
+            --output .tmp/ci-selection/components/selector-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/ci-selection/verification-plan.json --component selector \
+            --result success --command "ci.classifier select and ci.verification plan" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/ci.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id classification \
+            --artifact-id "ci-selection-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/ci-selection \
+            --execution-environment .tmp/ci-selection/components/selector-environment.json \
+            --machine-output .tmp/ci-selection/verification-plan.json \
+            --output .tmp/ci-selection/components/selector-evidence.json
+      - name: Carry forward only evidence selected by the exact plan
+        run: |
+          uv run --frozen python -m ci.verification materialize-reuse \
+            --plan .tmp/ci-selection/verification-plan.json \
+            --evidence-directory .tmp/prior-evidence \
+            --output-directory .tmp/ci-selection/components-reused
+      - name: Preserve the machine-readable CI selection and plan
         uses: actions/upload-artifact@v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
@@ -386,7 +449,7 @@ jobs:
 
   quality:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
-    needs: resolve-release
+    needs: [resolve-release, classification]
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -404,19 +467,89 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
+      - name: Restore the reviewed verification plan
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/verification-input
       - run: uv sync --locked
       - run: uv lock --check
-      - run: make terminology-check
-      - run: make database-portability-check
-      - run: make lint
-      - run: make format-check
-      - run: make typecheck
-      - run: make migrations-check
-      - run: make django-check
-      - run: make deployment-check
+      - name: Run the current versioned quality contract against the selected release
+        working-directory: .tmp/ci-controller
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/components-quality
+          uv run --frozen python -m ci.quality_contract \
+            --repository ../release-source 2>&1 | \
+            tee .tmp/components-quality/quality-output.log
       - name: Run CI orchestration contract tests from the workflow controller
         working-directory: .tmp/ci-controller
-        run: make test-ci
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/components-quality
+          make test-ci 2>&1 | tee .tmp/components-quality/evidence-validation-output.log
+      - name: Run the compatibility contract when selected
+        if: needs.classification.outputs.compatibility_mode == 'rerun'
+        run: |
+          set -euo pipefail
+          make compatibility-source-artifacts-check compatibility-artifacts-check \
+            check-links check-seo 2>&1 | \
+            tee ../ci-controller/.tmp/components-quality/compatibility-output.log
+      - name: Record quality-job evidence with its actual environment
+        if: always() && needs.classification.result == 'success'
+        working-directory: .tmp/ci-controller
+        env:
+          JOB_STATUS: ${{ job.status }}
+          COMPATIBILITY_MODE: ${{ needs.classification.outputs.compatibility_mode }}
+          CONTENT_INVARIANTS_MODE: ${{ needs.classification.outputs.content_invariants_mode }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/components-quality
+          for component in quality compatibility content_invariants evidence_validation; do
+            mode="rerun"
+            if [[ "$component" == "compatibility" ]]; then mode="$COMPATIBILITY_MODE"; fi
+            if [[ "$component" == "content_invariants" ]]; then mode="$CONTENT_INVARIANTS_MODE"; fi
+            if [[ "$mode" != "rerun" ]]; then continue; fi
+            command="$(jq -er --arg component "$component" \
+              '.components[$component].command' .tmp/verification-input/verification-plan.json)"
+            artifact_args=()
+            machine_output=".tmp/components-quality/$component-output.log"
+            if [[ "$component" == "evidence_validation" ]]; then
+              machine_output=.tmp/components-quality/evidence-validation-output.log
+            fi
+            if [[ "$component" == "content_invariants" ]]; then
+              uv run --frozen python -m ci.content_invariants \
+                --repository ../release-source \
+                --plan .tmp/verification-input/verification-plan.json \
+                --output .tmp/components-quality/content-invariants.json
+              artifact_args=(--artifact .tmp/components-quality/content-invariants.json)
+              machine_output=.tmp/components-quality/content-invariants.json
+            fi
+            environment=.tmp/components-quality/$component-environment.json
+            uv run --frozen python -m ci.verification environment \
+              --plan .tmp/verification-input/verification-plan.json \
+              --component "$component" --output "$environment"
+            uv run --frozen python -m ci.verification record \
+              --plan .tmp/verification-input/verification-plan.json \
+              --component "$component" --result "$JOB_STATUS" --command "$command" \
+              --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+              --workflow .github/workflows/ci.yml --ref "$GITHUB_REF" \
+              --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+              --job-id quality \
+              --artifact-id "verification-component-quality-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+              --artifact-root .tmp/components-quality \
+              --execution-environment "$environment" \
+              --machine-output "$machine_output" "${artifact_args[@]}" \
+              --output ".tmp/components-quality/$component-evidence.json"
+          done
+      - name: Preserve quality evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-component-quality-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/components-quality
+          if-no-files-found: warn
+          retention-days: 30
 
   django:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
@@ -441,6 +574,11 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
+      - name: Restore the reviewed verification plan
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/verification-input
       - run: uv sync --locked
       - run: uv lock --check
       - name: Restore the reviewed CI selection
@@ -497,6 +635,8 @@ jobs:
           SELECTED_PROFILE: ${{ needs.classification.outputs.profile }}
         run: |
           set -euo pipefail
+          mkdir -p ../ci-controller/.tmp/components-django
+          exec > >(tee ../ci-controller/.tmp/components-django/django-output.log) 2>&1
           case "$SELECTED_PROFILE" in
             focused)
               make test-ci-focused
@@ -511,33 +651,144 @@ jobs:
               exit 1
               ;;
           esac
+      - name: Record Django evidence with the job's actual environment
+        if: always() && needs.classification.result == 'success'
+        working-directory: .tmp/ci-controller
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/components-django
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component django \
+            --output .tmp/components-django/django-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component django --result "$JOB_STATUS" \
+            --command "$(jq -er '.components.django.command' .tmp/verification-input/verification-plan.json)" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/ci.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id django \
+            --artifact-id "verification-component-django-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/components-django \
+            --execution-environment .tmp/components-django/django-environment.json \
+            --machine-output .tmp/components-django/django-output.log \
+            --output .tmp/components-django/django-evidence.json
+      - name: Preserve Django evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-component-django-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/components-django
+          if-no-files-found: warn
+          retention-days: 30
 
   playwright:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
-    needs: resolve-release
+    needs: [resolve-release, classification]
     runs-on: ubuntu-latest
+    env:
+      DJANGO_ALLOW_ASYNC_UNSAFE: "true"
+      DJANGO_SETTINGS_MODULE: website.settings.test
     defaults:
       run:
         working-directory: .tmp/release-source
     steps:
       - uses: actions/checkout@v4
+        if: needs.classification.outputs.playwright_mode == 'rerun'
         with:
           ref: ${{ needs.resolve-release.outputs.release_sha }}
           path: .tmp/release-source
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .tmp/ci-controller
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
           enable-cache: true
+      - name: Restore the reviewed verification plan
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/verification-input
       - run: uv sync --locked
+        if: needs.classification.outputs.playwright_mode == 'rerun'
       - run: uv lock --check
+        if: needs.classification.outputs.playwright_mode == 'rerun'
       - run: uv run playwright install --with-deps chromium
-      - run: make test-playwright-core
+        if: needs.classification.outputs.playwright_mode == 'rerun'
+      - name: Run the selected browser profile
+        if: needs.classification.outputs.playwright_mode == 'rerun'
+        env:
+          BROWSER_PROFILE: ${{ needs.classification.outputs.browser_profile }}
+        run: |
+          set -euo pipefail
+          mkdir -p ../ci-controller/.tmp/components-playwright
+          if [[ "$BROWSER_PROFILE" == "full" ]]; then
+            make test-playwright 2>&1 | \
+              tee ../ci-controller/.tmp/components-playwright/playwright-output.log
+          else
+            make test-playwright-core 2>&1 | \
+              tee ../ci-controller/.tmp/components-playwright/playwright-output.log
+          fi
+      - name: Record Playwright evidence with the job's actual environment
+        if: >-
+          always() &&
+          needs.classification.result == 'success' &&
+          needs.classification.outputs.playwright_mode == 'rerun'
+        working-directory: .tmp/ci-controller
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/components-playwright
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component playwright \
+            --output .tmp/components-playwright/playwright-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component playwright --result "$JOB_STATUS" \
+            --command "$(jq -er '.components.playwright.command' .tmp/verification-input/verification-plan.json)" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/ci.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id playwright \
+            --artifact-id "verification-component-playwright-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/components-playwright \
+            --execution-environment .tmp/components-playwright/playwright-environment.json \
+            --machine-output .tmp/components-playwright/playwright-output.log \
+            --output .tmp/components-playwright/playwright-evidence.json
+      - name: Preserve Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-component-playwright-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/components-playwright
+          if-no-files-found: warn
+          retention-days: 30
 
   container:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
-    needs: resolve-release
+    needs: [resolve-release, classification]
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .tmp/ci-controller
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - name: Restore the reviewed verification plan
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/verification-input
       - id: image-cache
         name: Restore the immutable tested-image cache for an automatic rerun
         if: github.event_name == 'push' || inputs.reuse_existing_image == false
@@ -557,7 +808,12 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.reuse_existing_image == true
         env:
           PUBLISHED_IMAGE_RECORD: ${{ inputs.published_image_record }}
-        run: test -n "$PUBLISHED_IMAGE_RECORD"
+        run: |
+          set -euo pipefail
+          test -n "$PUBLISHED_IMAGE_RECORD"
+          mkdir -p .tmp/ci-controller/.tmp/components-container
+          printf '%s\n' published_image_record_supplied immutable_image_reuse_selected >> \
+            .tmp/ci-controller/.tmp/components-container/container-assertions.txt
       - uses: actions/checkout@v4
         if: >-
           (github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false) &&
@@ -605,6 +861,11 @@ jobs:
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.created" }}' "$image")" = "$CONSTRUCTED_AT"
           test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
           test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
+          mkdir -p .tmp/ci-controller/.tmp/components-container
+          printf '%s\n' image_architecture_amd64 image_revision_label_matches_source \
+            image_version_label_matches_release image_created_label_matches_release \
+            image_runtime_user_configured_non_root runtime_uid_10001 runtime_gid_10001 >> \
+            .tmp/ci-controller/.tmp/components-container/container-assertions.txt
       - name: Verify the built runtime static manifest
         if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         env:
@@ -661,6 +922,10 @@ jobs:
             printf '%s\n' "$incompatible_output" >&2
             exit 1
           fi
+          printf '%s\n' static_manifest_valid static_manifest_absent_rejected \
+            static_manifest_malformed_rejected static_manifest_missing_entry_rejected \
+            static_manifest_incompatible_storage_rejected >> \
+            .tmp/ci-controller/.tmp/components-container/container-assertions.txt
       - name: Smoke-test liveness without publishing
         if: github.event_name != 'workflow_dispatch' || inputs.reuse_existing_image == false
         env:
@@ -681,6 +946,8 @@ jobs:
               --arg version "$VERSION" --arg sha "$RELEASE_SHA" --arg digest "$TEST_IMAGE_DIGEST" \
               '. == {status: "ok", version: $version, source_sha: $sha, image_digest: $digest}' > /dev/null; then
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
+              printf '%s\n' health_live_exact_release_identity unified_route_responds >> \
+                .tmp/ci-controller/.tmp/components-container/container-assertions.txt
               exit 0
             fi
             sleep 1
@@ -702,6 +969,50 @@ jobs:
           retention-days: 1
           if-no-files-found: error
           overwrite: true
+      - name: Record production-container evidence with the job's actual environment
+        if: always() && needs.classification.result == 'success'
+        working-directory: .tmp/ci-controller
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/components-container
+          touch .tmp/components-container/container-assertions.txt
+          jq -Rn \
+            --arg revision "${{ needs.resolve-release.outputs.release_sha }}" \
+            --arg status "$JOB_STATUS" \
+            '[inputs | select(length > 0)] as $assertions | {
+              assertions: $assertions,
+              revision: $revision,
+              schema_version: 1,
+              status: (if $status == "success" then "pass" else "failure" end)
+            }' < .tmp/components-container/container-assertions.txt > \
+            .tmp/components-container/container-check.json
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component container \
+            --output .tmp/components-container/container-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component container --result "$JOB_STATUS" \
+            --command "$(jq -er '.components.container.command' .tmp/verification-input/verification-plan.json)" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/ci.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id container \
+            --artifact-id "verification-component-container-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/components-container \
+            --execution-environment .tmp/components-container/container-environment.json \
+            --machine-output .tmp/components-container/container-check.json \
+            --output .tmp/components-container/container-evidence.json
+      - name: Preserve production-container evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-component-container-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/components-container
+          if-no-files-found: warn
+          retention-days: 30
 
   ci-gate:
     if: >-
@@ -718,19 +1029,19 @@ jobs:
           version: "0.10.11"
           enable-cache: true
       - id: selection-download
-        name: Restore classifier evidence for aggregate validation
+        name: Restore classifier plan and evidence for aggregate validation
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: .tmp/ci-selection/current
+          path: .tmp/verification-input
       - name: Restore attempt-one selection only for a reused classifier
         if: github.run_attempt > 1 && needs.classification.outputs.created_attempt == '1'
         uses: actions/download-artifact@v4
         continue-on-error: true
         with:
           name: ci-selection-${{ github.run_id }}-attempt-1
-          path: .tmp/ci-selection/attempt-1
+          path: .tmp/verification-input-attempt-1
       - name: Resolve same-run classifier evidence
         continue-on-error: true
         env:
@@ -746,8 +1057,8 @@ jobs:
           SELECTION_SHA256: ${{ needs.classification.outputs.selection_sha256 }}
         run: >-
           uv run --frozen python -m ci.provenance resolve
-          --current-directory .tmp/ci-selection/current
-          --fallback-directory .tmp/ci-selection/attempt-1
+          --current-directory .tmp/verification-input
+          --fallback-directory .tmp/verification-input-attempt-1
           --run-id "$RUN_ID"
           --current-attempt "$RUN_ATTEMPT"
           --classifier-created-attempt "$CLASSIFIER_ATTEMPT"
@@ -761,6 +1072,21 @@ jobs:
           --expected-selection-sha256 "$SELECTION_SHA256"
           --output-directory .tmp/ci-selection/resolved
           --rejection-output .tmp/ci-selection/resolved/ci-selection-resolution.json
+      - name: Restore fresh component evidence for aggregate validation
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: verification-component-*-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/verification-input/components
+          merge-multiple: true
+      - name: Build the exhaustive verification report
+        run: |
+          uv run --frozen python -m ci.verification report \
+            --plan .tmp/verification-input/verification-plan.json \
+            --result-directory .tmp/verification-input \
+            --phase ci --no-fail-exit \
+            --output .tmp/verification-input/verification-report.json \
+            --summary "$GITHUB_STEP_SUMMARY"
       - name: Require every non-probe release check
         env:
           RESOLVE_RESULT: ${{ needs.resolve-release.result }}
@@ -792,6 +1118,9 @@ jobs:
             --expected-source-after-sha "$EVENT_AFTER" \
             --expected-source-before-sha "$EVENT_BEFORE" \
             --expected-selection-sha256 "$SELECTION_SHA256" \
+            --verification-plan .tmp/verification-input/verification-plan.json \
+            --verification-report .tmp/verification-input/verification-report.json \
+            --verification-evidence-directory .tmp/verification-input \
             --resolve-release "$RESOLVE_RESULT" \
             --classification "$CLASSIFICATION_RESULT" \
             --quality "$QUALITY_RESULT" \
@@ -804,8 +1133,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-gate-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: .tmp/ci-gate.json
+          name: verification-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            .tmp/ci-gate.json
+            .tmp/verification-input
           if-no-files-found: warn
           retention-days: 30
 

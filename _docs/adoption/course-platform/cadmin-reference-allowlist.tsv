@@ -19,6 +19,7 @@ _docs/specs/06-studio-and-admin-api.md	historical specification	admin	Remove leg
 _docs/specs/10-verification-strategy.md	historical specification	testing	Remove legacy-route coverage only after the owning compatibility gate approves it.
 cadmin/__init__.py	legacy URL adapter	courses	Delete with the adapter after the owner approves the no-traffic and rollback-window gate.
 cadmin/legacy_urls.py	legacy URL adapter	courses	Delete after observed legacy traffic is zero for the approved window and rollback no longer requires it.
+ci/ownership.json	verification policy	testing	Remove the legacy-shim input only when the cadmin compatibility adapter is deleted.
 compatibility/contracts.py	legacy contract adapter	seo	Remove legacy mapping only after pinned source contracts and observed traffic approve retirement.
 compatibility/source_config.py	legacy contract adapter	seo	Remove legacy source routes only after the course-host compatibility gate passes.
 compatibility/tests/test_baseline.py	legacy contract test	testing	Remove with the exact source-contract mapping after its retirement gate passes.

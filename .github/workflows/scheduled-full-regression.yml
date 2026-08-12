@@ -42,14 +42,38 @@ jobs:
             --current-sha "$GITHUB_SHA" \
             --current-ref "$GITHUB_REF" \
             --checkout . \
-            --output .tmp/scheduled-selection.json \
+            --output .tmp/scheduled/scheduled-selection.json \
             --summary "$GITHUB_STEP_SUMMARY" \
             --github-output "$GITHUB_OUTPUT"
-      - name: Preserve the scheduled selection
+          uv run --frozen python -m ci.classifier select \
+            --repository . --event push --base "$GITHUB_SHA" --after "$GITHUB_SHA" \
+            --github-sha "$GITHUB_SHA" --release-sha "$GITHUB_SHA" \
+            --output .tmp/scheduled/ci-selection.json
+          uv run --frozen python -m ci.verification plan \
+            --repository . --base "$GITHUB_SHA" --head "$GITHUB_SHA" \
+            --selection .tmp/scheduled/ci-selection.json --consumer ci \
+            --output .tmp/scheduled/verification-plan.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/scheduled/verification-plan.json --component selector \
+            --output .tmp/scheduled/selector-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/scheduled/verification-plan.json --component selector \
+            --result success --command "ci.classifier select and ci.verification plan" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id classification \
+            --artifact-id "ci-selection-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/scheduled \
+            --execution-environment .tmp/scheduled/selector-environment.json \
+            --machine-output .tmp/scheduled/verification-plan.json \
+            --output .tmp/scheduled/selector-evidence.json
+      - name: Preserve the scheduled decision and shared plan
         uses: actions/upload-artifact@v4
         with:
-          name: scheduled-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
-          path: .tmp/scheduled-selection.json
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/scheduled
           if-no-files-found: error
           retention-days: 30
 
@@ -65,17 +89,51 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/input
       - run: uv sync --locked
       - run: uv lock --check
-      - run: make terminology-check
-      - run: make database-portability-check
-      - run: make lint
-      - run: make format-check
-      - run: make typecheck
-      - run: make migrations-check
-      - run: make django-check
-      - run: make deployment-check
-      - run: make test-ci
+      - name: Run and retain the complete quality output
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/evidence
+          uv run --frozen python -m ci.quality_contract \
+            --repository . 2>&1 | tee .tmp/evidence/quality-output.log
+      - name: Record shared quality and evidence-validator envelopes
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/evidence
+          for component in quality evidence_validation; do
+            command="$(jq -er --arg component "$component" \
+              '.components[$component].command' .tmp/input/verification-plan.json)"
+            environment=.tmp/evidence/$component-environment.json
+            uv run --frozen python -m ci.verification environment \
+              --plan .tmp/input/verification-plan.json --component "$component" \
+              --output "$environment"
+            uv run --frozen python -m ci.verification record \
+              --plan .tmp/input/verification-plan.json --component "$component" \
+              --result "$JOB_STATUS" --command "$command" \
+              --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+              --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
+              --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+              --job-id quality \
+              --artifact-id "verification-component-quality-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+              --artifact-root .tmp/evidence --execution-environment "$environment" \
+              --machine-output .tmp/evidence/quality-output.log \
+              --output ".tmp/evidence/$component-evidence.json"
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-component-quality-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/evidence
+          if-no-files-found: error
+          retention-days: 30
 
   factories:
     if: needs.selector.outputs.decision == 'run_full'
@@ -123,11 +181,106 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/input
       - run: uv sync --locked
       - run: uv lock --check
-      - run: make test
+      - name: Run and retain the complete Django output
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/evidence
+          exec > >(tee .tmp/evidence/django-output.log) 2>&1
+          make test
+      - name: Record shared Django envelope
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/evidence
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/input/verification-plan.json --component django \
+            --output .tmp/evidence/django-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/input/verification-plan.json --component django \
+            --result "$JOB_STATUS" --command "make test" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id django \
+            --artifact-id "verification-component-django-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/evidence \
+            --execution-environment .tmp/evidence/django-environment.json \
+            --machine-output .tmp/evidence/django-output.log \
+            --output .tmp/evidence/django-evidence.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-component-django-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/evidence
+          if-no-files-found: error
+          retention-days: 30
 
   playwright:
+    if: needs.selector.outputs.decision == 'run_full'
+    needs: selector
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_ALLOW_ASYNC_UNSAFE: "true"
+      DJANGO_SETTINGS_MODULE: website.settings.test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/input
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: uv run playwright install --with-deps chromium
+      - name: Run and retain the complete Playwright output
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/evidence
+          make test-playwright 2>&1 | tee .tmp/evidence/playwright-output.log
+      - name: Record shared Playwright envelope
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/evidence
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/input/verification-plan.json --component playwright \
+            --output .tmp/evidence/playwright-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/input/verification-plan.json --component playwright \
+            --result "$JOB_STATUS" --command "make test-playwright" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id playwright \
+            --artifact-id "verification-component-playwright-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/evidence \
+            --execution-environment .tmp/evidence/playwright-environment.json \
+            --machine-output .tmp/evidence/playwright-output.log \
+            --output .tmp/evidence/playwright-evidence.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-component-playwright-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  container:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
     runs-on: ubuntu-latest
@@ -139,19 +292,10 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
-      - run: uv sync --locked
-      - run: uv lock --check
-      - run: uv run playwright install --with-deps chromium
-      - run: make test-playwright
-
-  container:
-    if: needs.selector.outputs.decision == 'run_full'
-    needs: selector
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          ref: ${{ github.sha }}
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/input
       - name: Build the exact scheduled production image
         env:
           RELEASE_SHA: ${{ github.sha }}
@@ -175,6 +319,10 @@ jobs:
           test "$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image")" = "$RELEASE_SHA"
           test "$(docker run --rm --entrypoint id "$image" -u)" = "10001"
           test "$(docker run --rm --entrypoint id "$image" -g)" = "10001"
+          mkdir -p .tmp/evidence
+          printf '%s\n' image_architecture_amd64 image_revision_label_matches_source \
+            image_runtime_user_configured_non_root runtime_uid_10001 runtime_gid_10001 >> \
+            .tmp/evidence/container-assertions.txt
       - name: Verify the built runtime static manifest
         env:
           RELEASE_SHA: ${{ github.sha }}
@@ -229,6 +377,10 @@ jobs:
             printf '%s\n' "$incompatible_output" >&2
             exit 1
           fi
+          printf '%s\n' static_manifest_valid static_manifest_absent_rejected \
+            static_manifest_malformed_rejected static_manifest_missing_entry_rejected \
+            static_manifest_incompatible_storage_rejected >> \
+            .tmp/evidence/container-assertions.txt
       - name: Smoke-test scheduled image liveness
         run: |
           set -euo pipefail
@@ -239,11 +391,51 @@ jobs:
           for _ in $(seq 1 30); do
             if test "$(curl --fail --silent http://127.0.0.1:8000/health/live)" = '{"status": "ok", "version": "local-development-build-version-not-configured", "source_sha": null, "image_digest": null}'; then
               curl --fail --silent --output /dev/null http://127.0.0.1:8000/unified/
+              printf '%s\n' health_live_local_identity unified_route_responds >> \
+                .tmp/evidence/container-assertions.txt
               exit 0
             fi
             sleep 1
           done
           exit 1
+      - name: Record shared container envelope
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/evidence
+          touch .tmp/evidence/container-assertions.txt
+          jq -Rn \
+            --arg revision "$GITHUB_SHA" --arg status "$JOB_STATUS" \
+            '[inputs | select(length > 0)] as $assertions | {
+              assertions: $assertions,
+              revision: $revision,
+              schema_version: 1,
+              status: (if $status == "success" then "pass" else "failure" end)
+            }' < .tmp/evidence/container-assertions.txt > .tmp/evidence/container-check.json
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/input/verification-plan.json --component container \
+            --output .tmp/evidence/container-environment.json
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/input/verification-plan.json --component container \
+            --result "$JOB_STATUS" --command "make verification-container" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id container \
+            --artifact-id "verification-component-container-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/evidence \
+            --execution-environment .tmp/evidence/container-environment.json \
+            --machine-output .tmp/evidence/container-check.json \
+            --output .tmp/evidence/container-evidence.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verification-component-container-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/evidence
+          if-no-files-found: error
+          retention-days: 30
 
   full-regression:
     name: full-regression
@@ -261,6 +453,17 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
+      - name: Restore scheduled plan and selector evidence
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/input
+      - name: Restore all fresh component evidence
+        uses: actions/download-artifact@v4
+        with:
+          pattern: verification-component-*-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/evidence
+          merge-multiple: true
       - name: Require every selected full-regression component
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
@@ -277,6 +480,35 @@ jobs:
             --django "$DJANGO_RESULT" \
             --playwright "$PLAYWRIGHT_RESULT" \
             --container "$CONTAINER_RESULT"
+      - name: Validate evidence and build the aggregate scheduled state
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m ci.verification validate-evidence-directory \
+            --directory .tmp --plan .tmp/input/verification-plan.json --consumer ci
+          uv run --frozen python -m ci.verification report \
+            --plan .tmp/input/verification-plan.json --result-directory .tmp \
+            --phase ci --output .tmp/verification-report.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+          uv run --frozen python -m ci.verification state \
+            --repository . --revision "$GITHUB_SHA" --output .tmp/repository-state.json
+          uv run --frozen python -m ci.verification scheduled-state \
+            --plan .tmp/input/verification-plan.json \
+            --report .tmp/verification-report.json \
+            --state .tmp/repository-state.json \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --output .tmp/scheduled-state.json
+      - name: Preserve the complete aggregate scheduled evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: |
+            .tmp/input
+            .tmp/evidence
+            .tmp/verification-report.json
+            .tmp/repository-state.json
+            .tmp/scheduled-state.json
+          if-no-files-found: error
+          retention-days: 30
 
   scheduled-gate:
     if: always()
@@ -294,7 +526,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@v4
         with:
-          name: scheduled-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/scheduled-selection
       - name: Validate the scheduled decision and all component outcomes
         env:
