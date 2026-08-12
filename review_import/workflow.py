@@ -173,6 +173,12 @@ class AllowedDataset:
     logical_checksum: str
 
 
+@dataclass(frozen=True)
+class _ForeignKeyConstraint:
+    parent_table: str
+    columns: tuple[tuple[str, str], ...]
+
+
 FaultHook = Callable[[str], None]
 
 
@@ -488,6 +494,8 @@ def _migrate_fresh_database(db_path: Path) -> None:
     _run_django(db_path, ("migrate", "--noinput", "--verbosity", "0"), "migration")
     if not db_path.is_file():
         raise ImportFailure("migration-output-missing")
+    with _writable_connection(db_path) as connection:
+        _scrub_sensitive_rows(connection)
     _chmod_private(db_path, directory=False)
 
 
@@ -547,6 +555,168 @@ def _table_names(connection: sqlite3.Connection) -> set[str]:
 def _columns(connection: sqlite3.Connection, table: str) -> dict[str, sqlite3.Row]:
     query = f"PRAGMA table_info({_quote_identifier(table)})"
     return {str(row["name"]): row for row in connection.execute(query).fetchall()}
+
+
+def _foreign_key_constraints(
+    connection: sqlite3.Connection, table: str
+) -> tuple[_ForeignKeyConstraint, ...]:
+    grouped: dict[int, list[tuple[int, str, str, str]]] = {}
+    query = f"PRAGMA foreign_key_list({_quote_identifier(table)})"
+    for row in connection.execute(query).fetchall():
+        grouped.setdefault(int(row["id"]), []).append(
+            (int(row["seq"]), str(row["from"]), str(row["to"]), str(row["table"]))
+        )
+
+    constraints: list[_ForeignKeyConstraint] = []
+    for entries in grouped.values():
+        ordered = sorted(entries)
+        parent_table = ordered[0][3]
+        constraints.append(
+            _ForeignKeyConstraint(
+                parent_table=parent_table,
+                columns=tuple((entry[1], entry[2]) for entry in ordered),
+            )
+        )
+    return tuple(constraints)
+
+
+def _sensitive_delete_order(
+    sensitive_tables: set[str],
+    foreign_keys: Mapping[str, tuple[_ForeignKeyConstraint, ...]],
+) -> tuple[str, ...]:
+    dependents: dict[str, set[str]] = {table: set() for table in sensitive_tables}
+    for child_table in sensitive_tables:
+        for constraint in foreign_keys.get(child_table, ()):
+            parent_table = constraint.parent_table
+            if parent_table not in sensitive_tables:
+                continue
+            if parent_table == child_table:
+                continue
+            dependents[parent_table].add(child_table)
+
+    remaining = set(sensitive_tables)
+    deletion_order: list[str] = []
+    while remaining:
+        leaves = sorted(table for table in remaining if not (dependents[table] & remaining))
+        if not leaves:
+            first = sorted(remaining)[0]
+            raise ImportFailure("sensitive-foreign-key-cycle", table=first, count=len(remaining))
+        deletion_order.extend(leaves)
+        remaining.difference_update(leaves)
+    return tuple(deletion_order)
+
+
+def _clear_non_sensitive_references(
+    connection: sqlite3.Connection,
+    parent_table: str,
+    foreign_keys: Mapping[str, tuple[_ForeignKeyConstraint, ...]],
+) -> None:
+    parent_columns = _columns(connection, parent_table)
+    for child_table, constraints in foreign_keys.items():
+        if is_sensitive_table(child_table):
+            continue
+        child_columns = _columns(connection, child_table)
+        for constraint in constraints:
+            if constraint.parent_table != parent_table:
+                continue
+            columns = tuple(column for column, _parent_column in constraint.columns)
+            if any(column not in child_columns for column in columns):
+                raise ImportFailure(
+                    "sensitive-dependency",
+                    table=child_table,
+                    column=columns[0],
+                )
+            if any(
+                parent_column not in parent_columns for _column, parent_column in constraint.columns
+            ):
+                raise ImportFailure("sensitive-dependency", table=parent_table, count=1)
+
+            match = " AND ".join(
+                f"c.{_quote_identifier(column)} = p.{_quote_identifier(parent_column)}"
+                for column, parent_column in constraint.columns
+            )
+            count = int(
+                connection.execute(
+                    f"SELECT COUNT(*) FROM {_quote_identifier(child_table)} AS c "
+                    f"JOIN {_quote_identifier(parent_table)} AS p ON {match}"
+                ).fetchone()[0]
+            )
+            if not count:
+                continue
+            if any(
+                bool(child_columns[column]["notnull"]) or bool(child_columns[column]["pk"])
+                for column in columns
+            ):
+                raise ImportFailure(
+                    "sensitive-dependency",
+                    table=child_table,
+                    column=columns[0],
+                    count=count,
+                )
+            assignments = ", ".join(f"{_quote_identifier(column)} = NULL" for column in columns)
+            connection.execute(
+                f"UPDATE {_quote_identifier(child_table)} AS c SET {assignments} "
+                f"WHERE EXISTS (SELECT 1 FROM {_quote_identifier(parent_table)} AS p WHERE {match})"
+            )
+
+
+def _clear_self_references(
+    connection: sqlite3.Connection,
+    table: str,
+    constraints: Sequence[_ForeignKeyConstraint],
+) -> None:
+    columns_by_name = _columns(connection, table)
+    for constraint in constraints:
+        if constraint.parent_table != table:
+            continue
+        columns = tuple(column for column, _parent_column in constraint.columns)
+        if any(column not in columns_by_name for column in columns):
+            raise ImportFailure("sensitive-dependency", table=table, column=columns[0])
+        match = " AND ".join(
+            f"c.{_quote_identifier(column)} = p.{_quote_identifier(parent_column)}"
+            for column, parent_column in constraint.columns
+        )
+        count = int(
+            connection.execute(
+                f"SELECT COUNT(*) FROM {_quote_identifier(table)} AS c "
+                f"JOIN {_quote_identifier(table)} AS p ON {match}"
+            ).fetchone()[0]
+        )
+        if not count:
+            continue
+        if any(
+            bool(columns_by_name[column]["notnull"]) or bool(columns_by_name[column]["pk"])
+            for column in columns
+        ):
+            raise ImportFailure("sensitive-dependency", table=table, column=columns[0], count=count)
+        assignments = ", ".join(f"{_quote_identifier(column)} = NULL" for column in columns)
+        connection.execute(
+            f"UPDATE {_quote_identifier(table)} AS c SET {assignments} "
+            f"WHERE EXISTS (SELECT 1 FROM {_quote_identifier(table)} AS p WHERE {match})"
+        )
+
+
+def _scrub_sensitive_rows(connection: sqlite3.Connection) -> None:
+    foreign_keys_enabled = int(connection.execute("PRAGMA foreign_keys").fetchone()[0])
+    if foreign_keys_enabled != 1:
+        raise ImportFailure("foreign-keys-disabled")
+
+    tables = _table_names(connection)
+    foreign_keys = {table: _foreign_key_constraints(connection, table) for table in sorted(tables)}
+    sensitive_tables = {
+        table
+        for table in tables
+        if is_sensitive_table(table)
+        and connection.execute(f"SELECT COUNT(*) FROM {_quote_identifier(table)}").fetchone()[0]
+    }
+    for table in _sensitive_delete_order(sensitive_tables, foreign_keys):
+        _clear_self_references(connection, table, foreign_keys[table])
+        _clear_non_sensitive_references(connection, table, foreign_keys)
+        connection.execute(f"DELETE FROM {_quote_identifier(table)}")
+
+    if int(connection.execute("PRAGMA foreign_keys").fetchone()[0]) != 1:
+        raise ImportFailure("foreign-keys-disabled")
+    _assert_sqlite_integrity(connection)
 
 
 def _validate_source_schema(
