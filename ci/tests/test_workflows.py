@@ -149,6 +149,40 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert "release-image-" in str(jobs["container"])
 
 
+def test_container_jobs_establish_locked_environments_before_recording() -> None:
+    normal = workflow("ci.yml")["jobs"]["container"]
+    normal_sync = next(
+        step
+        for step in normal["steps"]
+        if step.get("name") == "Establish the locked controller environment"
+    )
+    normal_lock = next(
+        step for step in normal["steps"] if step.get("name") == "Verify the controller lockfile"
+    )
+    assert normal_sync["working-directory"] == ".tmp/ci-controller"
+    assert normal_sync["run"] == "uv sync --locked"
+    assert normal_lock["working-directory"] == ".tmp/ci-controller"
+    assert normal_lock["run"] == "uv lock --check"
+    normal_script = runs(normal)
+    assert normal_script.index("uv sync --locked") < normal_script.index(
+        "ci.verification environment"
+    )
+    assert normal_script.index("uv lock --check") < normal_script.index(
+        "ci.verification environment"
+    )
+
+    scheduled = workflow("scheduled-full-regression.yml")["jobs"]["container"]
+    scheduled_script = runs(scheduled)
+    assert "uv sync --locked" in scheduled_script
+    assert "uv lock --check" in scheduled_script
+    assert scheduled_script.index("uv sync --locked") < scheduled_script.index(
+        "ci.verification environment"
+    )
+    assert scheduled_script.index("uv lock --check") < scheduled_script.index(
+        "ci.verification environment"
+    )
+
+
 def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> None:
     data = workflow("ci.yml")
     assert data["permissions"] == {"contents": "read", "actions": "read"}

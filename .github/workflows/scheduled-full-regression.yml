@@ -292,6 +292,10 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
+      - name: Establish the locked verification environment
+        run: uv sync --locked
+      - name: Verify the verification lockfile
+        run: uv lock --check
       - uses: actions/download-artifact@v4
         with:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}

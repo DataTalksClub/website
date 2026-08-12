@@ -805,6 +805,12 @@ jobs:
         with:
           version: "0.10.11"
           enable-cache: true
+      - name: Establish the locked controller environment
+        working-directory: .tmp/ci-controller
+        run: uv sync --locked
+      - name: Verify the controller lockfile
+        working-directory: .tmp/ci-controller
+        run: uv lock --check
       - name: Restore the reviewed verification plan
         uses: actions/download-artifact@v4
         with:
