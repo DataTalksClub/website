@@ -59,8 +59,8 @@ overlays:
 - `courses/static/courses.css`: issue #59 retains the adopted design system while constraining
   Studio Courses page headers to the mobile viewport; long course titles wrap instead of being
   clipped or expanding the document width. Issue #132 adds target-owned, progressively enhanced
-  podcast season-control layout and dark-mode contrast rules without changing copied course
-  behavior;
+  podcast season-control layout and dark-mode contrast rules, including an explicit three-pixel
+  keyboard focus ring for the season controls, without changing copied course behavior;
 - `core/static/core/site_shell.css`: issue #134 adds a target-owned no-JavaScript registration
   hero constraint after the adopted stylesheet. It makes the loaded CMP image a block-level,
   max-width-contained element while retaining its intrinsic ratio and leaves JavaScript-enhanced
