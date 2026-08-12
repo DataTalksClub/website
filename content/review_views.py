@@ -1,13 +1,36 @@
 from __future__ import annotations
 
+import json
 from typing import Any
 
-from django.http import HttpRequest, HttpResponse
+from django.http import FileResponse, Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_safe
 
 from courses.models.course import Course
 
+from .docs_projection import (
+    DOCS_ROOT_PATH,
+    docs_asset_path,
+    docs_breadcrumbs,
+    docs_children,
+    docs_sibling_navigation,
+    render_docs_markdown,
+)
+from .docs_projection import (
+    docs_page as projected_docs_page,
+)
+from .faq_data import (
+    faq_answer_text,
+    faq_asset_content_type,
+    faq_asset_path,
+    faq_courses,
+    faq_questions,
+    render_faq_answer,
+)
+from .faq_data import (
+    faq_course as faq_course_data,
+)
 from .review_projection import (
     event_groups,
     projected_events,
@@ -153,57 +176,251 @@ def book_detail(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def docs_home(request: HttpRequest) -> HttpResponse:
+    document = projected_docs_page(DOCS_ROOT_PATH)
+    if document is None:
+        raise Http404("Documentation home is unavailable.")
+    rendered, headings = render_docs_markdown(document)
     return _render(
         request,
         "review/docs_home.html",
-        path="/docs/",
+        path="/docs",
         title="Documentation — DataTalks.Club",
-        description="Guides for DataTalks.Club courses and community learning.",
-        context=projection_context("docs"),
+        description=document.get("description")
+        or "Guides for DataTalks.Club courses and community learning.",
+        context={
+            "docs": document,
+            "docs_html": rendered,
+            "docs_headings": headings,
+            "docs_navigation": docs_children(None),
+        },
     )
 
 
 @require_safe
 def docs_getting_started(request: HttpRequest) -> HttpResponse:
-    document = review_projection()["docs"]
+    document = projected_docs_page("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
+    if document is None:
+        raise Http404("Documentation page is unavailable.")
+    rendered, headings = render_docs_markdown(document)
+    previous, following = docs_sibling_navigation(document)
     return _render(
         request,
         "review/docs_detail.html",
         path=document["public_path"],
         title=f"{document['title']} — AI Dev Tools Zoomcamp Docs",
-        description=document["summary"],
-        context=projection_context("docs"),
+        description=document.get("description") or "AI Dev Tools Zoomcamp documentation.",
+        context={
+            "docs": document,
+            "docs_html": rendered,
+            "docs_headings": headings,
+            "docs_breadcrumbs": docs_breadcrumbs(document),
+            "docs_children": docs_children(document.get("public_path")),
+            "docs_previous": previous,
+            "docs_next": following,
+        },
     )
 
 
 @require_safe
+def docs_page(request: HttpRequest, doc_path: str) -> HttpResponse:
+    public_path = f"/docs/{doc_path.lstrip('/')}"
+    if not public_path.endswith("/"):
+        public_path += "/"
+    document = projected_docs_page(public_path)
+    if document is None:
+        raise Http404("Documentation page is unavailable.")
+    rendered, headings = render_docs_markdown(document)
+    previous, following = docs_sibling_navigation(document)
+    return _render(
+        request,
+        "review/docs_detail.html",
+        path=document["public_path"],
+        title=f"{document['title']} — DataTalks.Club Documentation",
+        description=document.get("description") or "DataTalks.Club documentation.",
+        context={
+            "docs": document,
+            "docs_html": rendered,
+            "docs_headings": headings,
+            "docs_breadcrumbs": docs_breadcrumbs(document),
+            "docs_children": docs_children(document.get("public_path")),
+            "docs_previous": previous,
+            "docs_next": following,
+        },
+    )
+
+
+@require_safe
+def docs_asset(request: HttpRequest, asset: str) -> FileResponse:
+    resolved = docs_asset_path(asset)
+    if resolved is None:
+        raise Http404("Documentation asset is unavailable.")
+    path, content_type = resolved
+    response = FileResponse(path.open("rb"), content_type=content_type)
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+@require_safe
 def faq_home(request: HttpRequest) -> HttpResponse:
+    courses = faq_courses()
     return _render(
         request,
         "review/faq_home.html",
-        path="/faq/",
+        path="/faq",
         title="Frequently Asked Questions — DataTalks.Club",
         description="Answers to common questions about DataTalks.Club courses.",
-        context=projection_context("faq"),
+        context={
+            "faq_courses": courses,
+            "primary_navigation_current": "faq",
+        },
+    )
+
+
+def _faq_sections(course: dict[str, Any]) -> tuple[dict[str, Any], ...]:
+    return tuple(
+        {
+            **section,
+            "questions": tuple(
+                {
+                    **question,
+                    "rendered_answer": render_faq_answer(question),
+                }
+                for question in section["questions"]
+            ),
+        }
+        for section in course["sections"]
+    )
+
+
+def _faq_structured_data(course: dict[str, Any]) -> str:
+    canonical = _canonical(course["public_path"])
+    questions = []
+    for question in faq_questions(course):
+        question_url = f"{canonical}#{question['id']}"
+        questions.append(
+            {
+                "@type": "Question",
+                "@id": question_url,
+                "url": question_url,
+                "name": question["question"],
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": faq_answer_text(question),
+                },
+            }
+        )
+    graph = [
+        {
+            "@type": "FAQPage",
+            "@id": canonical,
+            "url": canonical,
+            "name": f"{course['name']} FAQ",
+            "mainEntity": questions,
+        },
+        {
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+                {
+                    "@type": "ListItem",
+                    "position": 1,
+                    "name": "Home",
+                    "item": _canonical("/"),
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 2,
+                    "name": "FAQ",
+                    "item": _canonical("/faq"),
+                },
+                {
+                    "@type": "ListItem",
+                    "position": 3,
+                    "name": course["name"],
+                    "item": canonical,
+                },
+            ],
+        },
+    ]
+    return json.dumps(
+        {"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False
+    ).replace("<", "\\u003c")
+
+
+@require_safe
+def faq_course(request: HttpRequest, course_slug: str) -> HttpResponse:
+    course = faq_course_data(course_slug)
+    if course is None:
+        raise Http404("FAQ course is unavailable.")
+    return _render(
+        request,
+        "review/faq_detail.html",
+        path=course["public_path"],
+        title=f"{course['name']} FAQ — DataTalks.Club",
+        description=f"Answers to common questions about {course['name']}.",
+        context={
+            "faq_course": course,
+            "faq_sections": _faq_sections(course),
+            "primary_navigation_current": "faq",
+            "structured_data": _faq_structured_data(course),
+        },
     )
 
 
 @require_safe
 def faq_ai_dev_tools(request: HttpRequest) -> HttpResponse:
-    faq = review_projection()["faq"]
-    return _render(
-        request,
-        "review/faq_detail.html",
-        path=faq["public_path"],
-        title=f"{faq['course']} FAQ — DataTalks.Club",
-        description=faq["question"],
-        context=projection_context("faq"),
+    return faq_course(request, "ai-dev-tools-zoomcamp")
+
+
+@require_safe
+def faq_courses_json(request: HttpRequest) -> JsonResponse:
+    return JsonResponse(
+        [
+            {
+                "course": course["slug"],
+                "course_name": course["name"],
+                "path": f"/json/{course['slug']}.json",
+                "questions_count": course["question_count"],
+            }
+            for course in faq_courses()
+        ],
+        safe=False,
+        json_dumps_params={"ensure_ascii": False},
     )
+
+
+@require_safe
+def faq_course_json(request: HttpRequest, course_slug: str) -> JsonResponse:
+    course = faq_course_data(course_slug)
+    if course is None:
+        raise Http404("FAQ course is unavailable.")
+    return JsonResponse(
+        [
+            {
+                "id": question["id"],
+                "course": question["course"],
+                "section": question["section"],
+                "question": question["question"],
+                "answer": question["answer"],
+            }
+            for question in faq_questions(course)
+        ],
+        safe=False,
+        json_dumps_params={"ensure_ascii": False},
+    )
+
+
+@require_safe
+def faq_asset(request: HttpRequest, course_slug: str, asset: str) -> FileResponse:
+    path = faq_asset_path(course_slug, asset)
+    if path is None:
+        raise Http404("FAQ asset is unavailable.")
+    return FileResponse(path.open("rb"), content_type=faq_asset_content_type(path))
 
 
 @require_safe
 def slack(request: HttpRequest) -> HttpResponse:
     page = review_projection()["slack"]
+    page = {**page, "public_path": "/slack"}
     return _render(
         request,
         "review/slack.html",

@@ -37,17 +37,22 @@ urlpatterns = [
     path("podcast.html", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path("podcast/", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path(
+        "podcast/<slug:episode_key>/<slug:title_slug>",
+        public_views.podcast_detail_canonical,
+        name="public-podcast-canonical",
+    ),
+    path(
         "podcast/<path:slug>/",
         public_views.permanent_detail_redirect,
         {"collection": "podcast"},
     ),
     path(
         "podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
-        public_views.podcast_detail,
+        public_views.podcast_detail_legacy,
         {"slug": "s24e06-how-to-build-ai-that-actually-ships-in-production"},
         name="podcast-ai-production",
     ),
-    path("podcast/<path:slug>.html", public_views.podcast_detail, name="public-podcast"),
+    path("podcast/<path:slug>.html", public_views.podcast_detail_legacy, name="public-podcast"),
     path(
         "podcast/<path:slug>",
         public_views.permanent_detail_redirect,
@@ -93,6 +98,8 @@ urlpatterns = [
     path("events", public_views.events, name="events"),
     path("events.html", public_views.permanent_public_redirect, {"target": "/events"}),
     path("events/", public_views.permanent_public_redirect, {"target": "/events"}),
+    path("events/past", public_views.events_past, name="events-past"),
+    path("events/past/", public_views.permanent_public_redirect, {"target": "/events/past"}),
     # The reviewed legacy map stores clean one-segment paths.  Keep the historical trailing-slash
     # spelling as an explicit route so redirect behavior never depends on APPEND_SLASH.
     re_path(
@@ -101,14 +108,24 @@ urlpatterns = [
         name="public-event-legacy-trailing-slash",
     ),
     path(
-        "events/<uuid:event_id>/<slug:slug>",
+        "events/<int:event_id>/<slug:slug>",
         public_views.event_detail,
         name="public-event",
     ),
     path(
-        "events/<uuid:event_id>",
+        "events/<int:event_id>",
         public_views.event_detail_without_slug,
         name="public-event-without-slug",
+    ),
+    path(
+        "events/<uuid:event_id>/<slug:slug>",
+        public_views.event_detail_legacy_uuid,
+        name="public-event-legacy-uuid",
+    ),
+    path(
+        "events/<uuid:event_id>",
+        public_views.event_detail_legacy_uuid_without_slug,
+        name="public-event-legacy-uuid-without-slug",
     ),
     path(
         "events/<path:legacy_path>",

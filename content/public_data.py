@@ -11,6 +11,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import DatabaseError
 from django.utils import timezone
 
 from events.slugs import event_title_slug
@@ -122,6 +123,18 @@ class PodcastSeason:
     episodes: tuple[dict[str, Any], ...]
 
 
+def podcast_public_path(record: dict[str, Any]) -> str:
+    """Return the canonical season/episode podcast URL without a file extension."""
+
+    season = _podcast_number(record, "season")
+    episode = _podcast_number(record, "episode")
+    title = record.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise ImproperlyConfigured("Public podcast title is required for its URL.")
+    key = f"s{season:02d}e{episode:02d}"
+    return f"/podcast/{key}/{event_title_slug(title)}"
+
+
 def _podcast_number(record: dict[str, Any], field: str) -> int:
     value = record.get(field)
     if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
@@ -215,6 +228,151 @@ def _editorial_route_manifest_digest(manifest: dict[str, Any]) -> str:
     return _canonical_json_sha256(
         {key: value for key, value in manifest.items() if key != "content_sha256"}
     )
+
+
+def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
+    """Return the database-owned event URL fields in one portable query.
+
+    The tuple is also a safe cache key: when Studio imports or edits an event, the next request
+    observes a different snapshot and rebuilds the adapted projection.
+    """
+
+    from events.models import Event
+
+    try:
+        rows = Event.objects.order_by("id").values_list("id", "public_id", "slug")
+        return tuple(
+            (str(event_id), int(public_id), slug)
+            for event_id, public_id, slug in rows
+            if public_id is not None
+        )
+    except (AssertionError, DatabaseError, RuntimeError) as exc:
+        if isinstance(exc, AssertionError) and "Database queries to" not in str(exc):
+            raise
+        if isinstance(exc, RuntimeError) and "Database access not allowed" not in str(exc):
+            raise
+        return ()
+
+
+def _apply_runtime_event_public_paths(
+    projection: dict[str, Any],
+    runtime_identities: tuple[tuple[str, int, str], ...] = (),
+) -> None:
+    """Replace UUID event paths with database-owned numeric public paths.
+
+    The checked projection keeps the UUID path as source evidence, while the running site uses
+    the stable numeric ``Event.public_id``.  UUIDs remain available in provenance and management
+    APIs; this adapter only changes links exposed by public templates, feeds, and sitemaps.
+    """
+
+    replacements: dict[str, str] = {}
+    # Resolve all identities in one portable query.  Calling ``canonical_detail_path`` for each
+    # projected event turns a catalogue request into hundreds of database round trips (and made
+    # sitemap/public-route checks unnecessarily slow).  The projection keeps the immutable UUID;
+    # the database supplies only the public number and current title-derived slug.
+    runtime_identity_map = {
+        event_id: (public_id, slug) for event_id, public_id, slug in runtime_identities
+    }
+    events: list[dict[str, Any]] = []
+    for raw_event in projection["events"]:
+        event = dict(raw_event)
+        identity_id = event.get("identity_id")
+        if isinstance(identity_id, str):
+            identity = runtime_identity_map.get(identity_id)
+            if identity is not None:
+                public_id, slug = identity
+                public_path = f"/events/{public_id}/{slug}"
+                replacements[event["public_path"]] = public_path
+                event["public_path"] = public_path
+        events.append(event)
+    projection["events"] = tuple(events)
+
+    # Rebuild all event indexes after changing the paths so every public consumer observes the
+    # same canonical URL.  The source-identity and UUID indexes intentionally remain keyed by
+    # their private identities.
+    projection["events_by_path"] = {event["public_path"]: event for event in events}
+    projection["events_by_identity_id"] = {
+        event["identity_id"]: event for event in events if event.get("identity_id")
+    }
+    projection["events_by_slug"] = {
+        slug: projection["events_by_identity_id"].get(event.get("identity_id"), event)
+        for slug, event in projection["events_by_slug"].items()
+    }
+    projection["events_by_source_identity"] = {
+        (
+            event["provenance"]["repository"],
+            event["provenance"]["revision"],
+            event["provenance"]["source_key"],
+        ): event
+        for event in events
+    }
+
+    for person in projection["people"]:
+        relationships = person.get("relationships", ())
+        person["relationships"] = tuple(
+            {
+                **relationship,
+                "public_path": replacements.get(
+                    relationship.get("public_path"), relationship.get("public_path", "")
+                ),
+            }
+            for relationship in relationships
+        )
+
+
+def _replace_exact_public_paths(value: Any, replacements: dict[str, str]) -> Any:
+    if isinstance(value, str):
+        return replacements.get(value, value)
+    if isinstance(value, list):
+        return [_replace_exact_public_paths(item, replacements) for item in value]
+    if isinstance(value, dict):
+        return {key: _replace_exact_public_paths(item, replacements) for key, item in value.items()}
+    return value
+
+
+def _apply_runtime_podcast_public_paths(projection: dict[str, Any]) -> None:
+    """Expose season/episode podcast paths while retaining `.html` source routes as aliases."""
+
+    replacements: dict[str, str] = {}
+    podcasts: list[dict[str, Any]] = []
+    for raw_podcast in projection["podcasts"]:
+        podcast = dict(raw_podcast)
+        canonical = podcast_public_path(podcast)
+        replacements[podcast["public_path"]] = canonical
+        podcast["public_path"] = canonical
+        podcasts.append(podcast)
+    if len({podcast["public_path"] for podcast in podcasts}) != len(podcasts):
+        raise ImproperlyConfigured("Public podcast canonical paths are not unique.")
+    projection["podcasts"] = tuple(podcasts)
+    projection["podcasts_by_path"] = {podcast["public_path"]: podcast for podcast in podcasts}
+    projection["podcasts_by_slug"] = {
+        slug: projection["podcasts_by_path"].get(podcast_public_path(podcast), podcast)
+        for slug, podcast in projection["podcasts_by_slug"].items()
+    }
+
+    for person in projection["people"]:
+        relationships = person.get("relationships", ())
+        person["relationships"] = tuple(
+            {
+                **relationship,
+                "public_path": replacements.get(
+                    relationship.get("public_path"), relationship.get("public_path", "")
+                ),
+            }
+            for relationship in relationships
+        )
+
+    projection["wiki_graph"] = _replace_exact_public_paths(projection["wiki_graph"], replacements)
+    projection["wiki_search"] = _replace_exact_public_paths(projection["wiki_search"], replacements)
+
+    route_manifest = projection["editorial_route_migration"]
+    projection["editorial_route_aliases_by_path"] = {
+        item["source_path"]: {
+            **item,
+            "final_path": replacements.get(item["final_path"], item["final_path"]),
+        }
+        for item in route_manifest["aliases"]
+    }
 
 
 def _expected_editorial_routes(
@@ -344,7 +502,7 @@ def _validate_editorial_route_manifest(
 
 
 @lru_cache(maxsize=1)
-def public_projection() -> dict[str, Any]:
+def _checked_public_projection() -> dict[str, Any]:
     manifest = _read_json(PROJECTION_ROOT / "manifest.json")
     if manifest.get("schema_version") != 1 or manifest.get("selection_mode") != EXPECTED_SELECTION:
         raise ImproperlyConfigured("Unsupported public projection selection.")
@@ -520,6 +678,50 @@ def public_projection() -> dict[str, Any]:
     return projection
 
 
+@lru_cache(maxsize=2)
+def _adapted_public_projection(
+    runtime_identities: tuple[tuple[str, int, str], ...],
+) -> dict[str, Any]:
+    """Build one immutable-by-convention runtime projection per event identity snapshot."""
+
+    # Runtime URL adapters replace values in a handful of nested structures.  Copy only the
+    # records they mutate rather than deep-copying the entire (large) content projection on every
+    # request; the checked file-backed projection remains immutable and safely cached.
+    source = _checked_public_projection()
+    projection = dict(source)
+    projection["events"] = tuple(dict(event) for event in source["events"])
+    projection["podcasts"] = tuple(dict(podcast) for podcast in source["podcasts"])
+    projection["people"] = tuple(
+        {
+            **person,
+            "relationships": tuple(
+                dict(relationship) for relationship in person.get("relationships", ())
+            ),
+        }
+        for person in source["people"]
+    )
+    _apply_runtime_podcast_public_paths(projection)
+    _apply_runtime_event_public_paths(projection, runtime_identities)
+    # The adapters mutate copied people records; refresh their lookup indexes as well so detail
+    # pages and relationship tests do not retain references to the checked source records.
+    projection["people_by_slug"] = {person["slug"]: person for person in projection["people"]}
+    projection["people_by_path"] = {
+        person["public_path"]: person for person in projection["people"]
+    }
+    return projection
+
+
+def public_projection() -> dict[str, Any]:
+    """Return the checked projection with database-owned public URL adapters applied.
+
+    The file-backed projection is cached, while the numeric event IDs come from the database.  A
+    compact identity snapshot keeps repeated public requests fast and automatically invalidates
+    the adapted projection after an event is imported or edited.
+    """
+
+    return _adapted_public_projection(_runtime_event_identity_snapshot())
+
+
 def event_groups(now: datetime | None = None) -> EventGroups:
     current = now or timezone.now()
     if timezone.is_naive(current):
@@ -590,11 +792,11 @@ def public_paths() -> tuple[str, ...]:
         "/events",
         "/courses",
         "/wiki",
-        "/docs/",
+        "/docs",
         "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
-        "/faq/",
+        "/faq",
         "/faq/ai-dev-tools-zoomcamp.html",
-        "/slack.html",
+        "/slack",
         "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
     }
     paths.update(

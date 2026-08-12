@@ -71,6 +71,43 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertNotIn("secret", str(blocks))
         self.assertIn("Visible text", str(blocks))
 
+    def test_book_archive_normalizes_ordered_threads_and_empty_replies(self) -> None:
+        archive = builder._book_archive(
+            [
+                {
+                    "name": "Reader",
+                    "text": "How do I start?",
+                    "replies": [
+                        {"name": "Author", "text": "Begin with chapter one."},
+                        {"name": "Reader", "text": ""},
+                    ],
+                }
+            ],
+            source_name="book.yaml",
+        )
+        self.assertEqual(
+            archive,
+            [
+                {
+                    "name": "Reader",
+                    "text": "How do I start?",
+                    "replies": [
+                        {"name": "Author", "text": "Begin with chapter one."},
+                        {"name": "Reader", "text": ""},
+                    ],
+                }
+            ],
+        )
+
+    def test_book_archive_rejects_unbounded_shapes(self) -> None:
+        with self.assertRaisesRegex(builder.ProjectionBuildError, "book archive rejected"):
+            builder._book_archive({"name": "Reader"}, source_name="book.yaml")
+        with self.assertRaisesRegex(builder.ProjectionBuildError, "book archive reply rejected"):
+            builder._book_archive(
+                [{"name": "Reader", "text": "Question", "replies": ["bad"]}],
+                source_name="book.yaml",
+            )
+
     def test_podcast_event_lineage_uses_only_exact_recording_identity(self) -> None:
         podcasts = [
             {

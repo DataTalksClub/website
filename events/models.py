@@ -14,7 +14,7 @@ from typing import Any
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import F, Q
+from django.db.models import F, Max, Q
 
 from core.models import RevisionedModel
 
@@ -30,6 +30,9 @@ class Event(models.Model):
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    # UUID remains the immutable internal identity.  This separate sequence is the
+    # human-facing public identifier used in event URLs.
+    public_id = models.PositiveIntegerField(null=True, unique=True, editable=False, db_index=True)
     title = models.CharField(max_length=1_000)
     slug = models.SlugField(max_length=255, db_index=True)
     source_repository = models.CharField(max_length=255)
@@ -84,6 +87,11 @@ class Event(models.Model):
         if slug_changed and update_fields is not None and "slug" not in update_fields:
             kwargs["update_fields"] = (*update_fields, "slug")
         with transaction.atomic():
+            if self._state.adding and self.public_id is None:
+                latest_public_id = (
+                    type(self).objects.aggregate(latest=Max("public_id")).get("latest") or 0
+                )
+                self.public_id = latest_public_id + 1
             super().save(*args, **kwargs)
             self._identity_original_id = self.id
             if slug_changed and original_slug is not None:

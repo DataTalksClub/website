@@ -33,7 +33,7 @@ class EventIdentityError(ValueError):
 
 
 class EventIdentityNotFound(LookupError):
-    """An unknown UUID/source identity/legacy alias was requested."""
+    """An unknown UUID/public ID/source identity/legacy alias was requested."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -244,7 +244,9 @@ def load_identity_manifest(path: Path | None = None) -> IdentityManifest:
 
 def canonical_detail_path(event_id: uuid.UUID | str) -> str:
     event = resolve_uuid(event_id)
-    return f"/events/{event.id}/{event.slug}"
+    if event.public_id is None:
+        raise EventIdentityNotFound("event_public_id_unavailable")
+    return f"/events/{event.public_id}/{event.slug}"
 
 
 def canonical_detail_url(event_id: uuid.UUID | str) -> str:
@@ -275,6 +277,25 @@ def resolve_uuid(event_id: uuid.UUID | str) -> Event:
     parsed = _coerce_uuid(event_id)
     try:
         return Event.objects.get(pk=parsed)
+    except Event.DoesNotExist as exc:
+        raise EventIdentityNotFound("unknown_event") from exc
+
+
+def resolve_public_id(public_id: int | str) -> Event:
+    """Resolve the stable numeric identifier used only by public event routes."""
+
+    if isinstance(public_id, bool):
+        raise EventIdentityNotFound("unknown_event")
+    if isinstance(public_id, int):
+        parsed = public_id
+    elif isinstance(public_id, str) and re.fullmatch(r"[1-9][0-9]*", public_id):
+        parsed = int(public_id)
+    else:
+        raise EventIdentityNotFound("unknown_event")
+    if parsed < 1:
+        raise EventIdentityNotFound("unknown_event")
+    try:
+        return Event.objects.get(public_id=parsed)
     except Event.DoesNotExist as exc:
         raise EventIdentityNotFound("unknown_event") from exc
 
@@ -311,8 +332,8 @@ def serialize_event_identity(event: Event) -> dict[str, Any]:
         "id": str(event.id),
         "title": event.title,
         "slug": event.slug,
-        "canonical_path": f"/events/{event.id}/{event.slug}",
-        "registration_path": f"/events/{event.id}/{event.slug}/register",
+        "canonical_path": canonical_detail_path(event.id),
+        "registration_path": canonical_registration_path(event.id),
         "aliases": [
             {
                 "path": alias.source_path,

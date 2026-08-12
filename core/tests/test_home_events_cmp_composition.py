@@ -25,11 +25,7 @@ SCOPED_TEMPLATES = (
     REPOSITORY_ROOT / "templates/public/_event_meta.html",
     REPOSITORY_ROOT / "templates/public/event_detail.html",
 )
-FEATURED_EVENT_PATH = next(
-    event["public_path"]
-    for event in public_projection()["events"]
-    if event["title"] == "AI Dev Tools Zoomcamp 2026 Course Launch"
-)
+FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 
 
 def _ledger_rows(path: Path) -> list[dict[str, str]]:
@@ -174,15 +170,20 @@ class HomeEventsCmpRenderingTests(TestCase):
             self.assertNotContains(response, "/static/core/site.css")
 
     def test_events_catalog_and_detail_preserve_public_content_and_seo(self) -> None:
+        featured_event_path = next(
+            event["public_path"]
+            for event in public_projection()["events"]
+            if event["title"] == FEATURED_EVENT_TITLE
+        )
         catalog = self.client.get("/events")
-        detail = self.client.get(FEATURED_EVENT_PATH)
+        detail = self.client.get(featured_event_path)
 
         self.assertEqual(catalog.status_code, 200)
         self.assertContains(catalog, "Events")
         self.assertContains(catalog, "Upcoming events")
         self.assertContains(catalog, "Past events")
         self.assertContains(catalog, "our Google calendar")
-        self.assertContains(catalog, f'href="{FEATURED_EVENT_PATH}"')
+        self.assertContains(catalog, f'href="{featured_event_path}"')
         self.assertNotContains(catalog, "/static/core/site.css")
 
         self.assertEqual(detail.status_code, 200)
@@ -193,7 +194,7 @@ class HomeEventsCmpRenderingTests(TestCase):
         self.assertNotContains(detail, "lu.ma")
         self.assertContains(
             detail,
-            f'<link rel="canonical" href="https://datatalks.club{FEATURED_EVENT_PATH}">',
+            f'<link rel="canonical" href="https://datatalks.club{featured_event_path}">',
         )
         self.assertContains(detail, 'type="application/ld+json"')
         self.assertNotContains(detail, "/static/core/site.css")

@@ -35,3 +35,4 @@ scripts/build_pinned_legacy_sources.py	adoption provenance	courses	Retain pinned
 scripts/verify_course_platform_adoption.py	adoption provenance	courses	Retain the source-root mapping while pinned CMP checksums are verified.
 studio_courses/tests/test_studio_course_routes.py	legacy contract test	courses	Remove literal redirect and legacy-name denial checks only when the adapter is deleted.
 website/urls.py	legacy URL adapter	courses	Remove the two legacy mounts only after the owner-approved no-traffic and rollback-window gate.
+course_platform_templates/base.html	copied source compatibility reference	courses	Remove the retained CMP cadmin route name only after the exact copied course shell is retired or receives an approved namespace migration.

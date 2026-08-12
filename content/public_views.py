@@ -29,10 +29,12 @@ from events.identity import (
     event_projection_record,
     redirect_for_supplied_slug,
     resolve_legacy_path,
+    resolve_public_id,
     resolve_uuid,
 )
 from events.services import public_registration_total
 
+from .faq_data import faq_courses
 from .public_data import (
     PROJECTION_ROOT,
     event_date_groups,
@@ -51,6 +53,7 @@ WIKI_SPECIAL_CATEGORIES = {
 }
 PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
 EVENT_PAST_PAGE_QUERY = re.compile(r"filter=past(?:&page=([1-9][0-9]{0,2}))?\Z", re.ASCII)
+EVENT_PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,2})\Z", re.ASCII)
 EVENT_PAGE_SIZE = 20
 EVENT_MAX_PAGE = 999
 
@@ -84,8 +87,10 @@ def _json_ld(entity: dict, breadcrumbs: tuple[tuple[str, str], ...] = ()) -> str
 
 
 @require_safe
-def permanent_public_redirect(request: HttpRequest, *, target: str) -> HttpResponse:
-    query = request.META.get("QUERY_STRING", "")
+def permanent_public_redirect(
+    request: HttpRequest, *, target: str, preserve_query: bool = True
+) -> HttpResponse:
+    query = request.META.get("QUERY_STRING", "") if preserve_query else ""
     response = HttpResponsePermanentRedirect(f"{target}?{query}" if query else target)
     response["Cache-Control"] = "public, max-age=300"
     return response
@@ -184,32 +189,23 @@ def _podcast_season_path(number: int, *, latest: int) -> str:
     return "/podcast" if number == latest else f"/podcast?season={number}"
 
 
-def _events_page_query(request: HttpRequest) -> tuple[bool, int] | None:
-    """Parse the intentionally small public events query contract.
-
-    Upcoming is represented by the clean hub.  Past accepts one exact filter and an optional
-    bounded positive page selector.  We inspect the raw query instead of ``request.GET`` so
-    encoded separators, duplicate keys, and alternate spellings cannot create cache variants.
-    """
-
+def _events_past_page_query(request: HttpRequest) -> int | None:
     raw_query = request.META.get("QUERY_STRING", "")
     if raw_query == "":
-        return False, 1
-    if not isinstance(raw_query, str) or len(raw_query) > 32:
+        return 1
+    if not isinstance(raw_query, str) or len(raw_query) > 16:
         return None
-    match = EVENT_PAST_PAGE_QUERY.fullmatch(raw_query)
+    match = EVENT_PAGE_QUERY.fullmatch(raw_query)
     if match is None:
         return None
-    page = int(match.group(1) or "1")
-    if page > EVENT_MAX_PAGE:
-        return None
-    return True, page
+    page = int(match.group(1))
+    return page if page <= EVENT_MAX_PAGE else None
 
 
 def _events_page_path(*, past: bool, page: int) -> str:
     if not past:
         return "/events"
-    return "/events?filter=past" if page == 1 else f"/events?filter=past&page={page}"
+    return "/events/past" if page == 1 else f"/events/past?page={page}"
 
 
 @csrf_exempt
@@ -217,11 +213,30 @@ def events(request: HttpRequest) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
 
-    parsed_query = _events_page_query(request)
-    if parsed_query is None:
-        return _no_store(HttpResponseBadRequest("Bad request."))
+    raw_query = request.META.get("QUERY_STRING", "")
+    if raw_query:
+        match = EVENT_PAST_PAGE_QUERY.fullmatch(raw_query)
+        if match is None:
+            return _no_store(HttpResponseBadRequest("Bad request."))
+        page_number = int(match.group(1) or "1")
+        if page_number > EVENT_MAX_PAGE:
+            return _no_store(HttpResponseBadRequest("Bad request."))
+        target = _events_page_path(past=True, page=page_number)
+        return permanent_public_redirect(request, target=target, preserve_query=False)
+    return _render_events(request, past=False, page_number=1)
 
-    past, page_number = parsed_query
+
+@csrf_exempt
+def events_past(request: HttpRequest) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    page_number = _events_past_page_query(request)
+    if page_number is None:
+        return _no_store(HttpResponseBadRequest("Bad request."))
+    return _render_events(request, past=True, page_number=page_number)
+
+
+def _render_events(request: HttpRequest, *, past: bool, page_number: int) -> HttpResponse:
     groups = event_groups()
     upcoming_groups = groups.upcoming_groups or event_date_groups(list(groups.upcoming))
     all_events = groups.recent if past else groups.upcoming
@@ -269,7 +284,7 @@ def events(request: HttpRequest) -> HttpResponse:
             "event_page_size": EVENT_PAGE_SIZE,
             "event_page_path": canonical_path,
             "upcoming_path": "/events",
-            "past_path": "/events?filter=past",
+            "past_path": "/events/past",
             "previous_event_page_path": previous_event_page_path,
             "next_event_page_path": next_event_page_path,
             "count": len(all_events),
@@ -284,7 +299,7 @@ def events(request: HttpRequest) -> HttpResponse:
 @_public_event_route
 def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
     try:
-        identity = resolve_uuid(event_id)
+        identity = resolve_public_id(event_id)
         redirect_path = redirect_for_supplied_slug(identity.id, slug)
     except EventIdentityNotFound as exc:
         raise Http404 from exc
@@ -303,6 +318,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         ),
         {**projected, "identity_id": str(identity.id)},
     )
+    event["public_path"] = canonical_detail_path(identity.id)
     entity = {
         "@type": "Event",
         "url": _canonical(canonical_detail_path(identity.id)),
@@ -345,6 +361,24 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
 
 @_public_event_route
 def event_detail_without_slug(request: HttpRequest, event_id: str) -> HttpResponse:
+    try:
+        target = canonical_detail_path(resolve_public_id(event_id).id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    return permanent_public_redirect(request, target=target)
+
+
+@_public_event_route
+def event_detail_legacy_uuid(request: HttpRequest, event_id: str, slug: str) -> HttpResponse:
+    try:
+        target = canonical_detail_path(resolve_uuid(event_id).id)
+    except EventIdentityNotFound as exc:
+        raise Http404 from exc
+    return permanent_public_redirect(request, target=target)
+
+
+@_public_event_route
+def event_detail_legacy_uuid_without_slug(request: HttpRequest, event_id: str) -> HttpResponse:
     try:
         target = canonical_detail_path(resolve_uuid(event_id).id)
     except EventIdentityNotFound as exc:
@@ -521,11 +555,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
-@require_safe
-def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    episode = public_projection()["podcasts_by_slug"].get(slug)
-    if episode is None:
-        raise Http404
+def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
     return _render(
         request,
         "public/podcast_detail.html",
@@ -564,6 +594,32 @@ def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
             ),
         },
     )
+
+
+@require_safe
+def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    episode = public_projection()["podcasts_by_slug"].get(slug)
+    if episode is None:
+        raise Http404
+    return _render_podcast_detail(request, episode)
+
+
+@require_safe
+def podcast_detail_canonical(
+    request: HttpRequest, episode_key: str, title_slug: str
+) -> HttpResponse:
+    episode = public_projection()["podcasts_by_path"].get(f"/podcast/{episode_key}/{title_slug}")
+    if episode is None:
+        raise Http404
+    return _render_podcast_detail(request, episode)
+
+
+@require_safe
+def podcast_detail_legacy(request: HttpRequest, slug: str) -> HttpResponse:
+    episode = public_projection()["podcasts_by_slug"].get(slug)
+    if episode is None:
+        raise Http404
+    return permanent_public_redirect(request, target=episode["public_path"])
 
 
 @require_safe
@@ -820,16 +876,17 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             ("/terms", ""),
             ("/privacy", ""),
             ("/impressum", ""),
-            ("/slack.html", ""),
+            ("/slack", ""),
         ),
         "docs": (
-            ("/docs/", ""),
+            ("/docs", ""),
             ("/docs/courses/ai-dev-tools-zoomcamp/getting-started/", ""),
         ),
-        "faq": (("/faq/", ""), ("/faq/ai-dev-tools-zoomcamp.html", "")),
     }
     if section in static_sections:
         return static_sections[section]
+    if section == "faq":
+        return (("/faq", ""),) + tuple((course["public_path"], "") for course in faq_courses())
     if section == "blog":
         return (("/blog", ""),) + tuple(
             (record["public_path"], record["published"][:10]) for record in projection["articles"]

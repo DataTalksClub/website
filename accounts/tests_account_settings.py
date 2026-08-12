@@ -47,8 +47,8 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, studio_url)
-        self.assertNotContains(response, courses_studio_url)
-        self.assertNotContains(response, "Course admin")
+        self.assertContains(response, courses_studio_url)
+        self.assertContains(response, "Studio Courses")
 
     @patch("accounts.views.email_preferences.get_email_preferences_for_user")
     def test_account_settings_does_not_block_on_datamailer_preferences(

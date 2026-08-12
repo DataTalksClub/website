@@ -1,4 +1,5 @@
 {% extends "core/base.html" %}
+{% load public %}
 {% block title %}
   {{ seo_title }}
 {% endblock %}
@@ -24,6 +25,35 @@
           </a>
         {% endfor %}
       </div>
+    {% endif %}
+    {% if record.archive %}
+      <section class="mt-12" aria-labelledby="book-questions-heading">
+        <h2 id="book-questions-heading" class="text-2xl font-semibold">
+          Questions and answers
+        </h2>
+        <div class="mt-6 space-y-6">
+          {% for thread in record.archive %}
+            <article class="border-l-4 app-border pl-4" data-book-question>
+              <p class="font-semibold app-text">{{ thread.name }}</p>
+              {% if thread.text %}
+                <p class="mt-2 leading-7 app-text">{{ thread.text|public_text }}</p>
+              {% endif %}
+              {% if thread.replies %}
+                <div class="mt-4 space-y-4">
+                  {% for reply in thread.replies %}
+                    <div class="border-l-2 app-border pl-4" data-book-answer>
+                      <p class="font-semibold app-muted">{{ reply.name }}</p>
+                      {% if reply.text %}
+                        <p class="mt-1 leading-7 app-text">{{ reply.text|public_text }}</p>
+                      {% endif %}
+                    </div>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </article>
+          {% endfor %}
+        </div>
+      </section>
     {% endif %}
   </article>
 {% endblock %}

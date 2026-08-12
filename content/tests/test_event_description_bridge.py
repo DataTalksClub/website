@@ -524,7 +524,7 @@ class PublicEventDescriptionTests(TestCase):
                 self.assertEqual(current_event["slug"], event_title_slug(current_event["title"]))
                 self.assertRegex(
                     current_event["public_path"],
-                    rf"^/events/{current_event['identity_id']}/{current_event['slug']}$",
+                    rf"^/events/(?:{current_event['identity_id']}|[1-9][0-9]*)/{current_event['slug']}$",
                 )
                 self.assertEqual(rollback_event["record_schema_version"], 2)
                 self.assertEqual(rollback_event["description_html"], "")

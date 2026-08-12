@@ -127,17 +127,41 @@ class PublicProjectionTests(TestCase):
                     self.assertIn(f'href="{record["public_path"]}"', body)
 
         events = self.client.get("/events").content.decode()
-        archive = self.client.get("/events?filter=past").content.decode()
+        archive = self.client.get("/events/past").content.decode()
         page_match = re.search(r"Page 1 of (\d+)", archive)
         if page_match is not None:
             archive_pages = [archive]
             for page in range(2, int(page_match.group(1)) + 1):
-                response = self.client.get(f"/events?filter=past&page={page}")
+                response = self.client.get(f"/events/past?page={page}")
                 self.assertEqual(response.status_code, 200)
                 archive_pages.append(response.content.decode())
             archive = "".join(archive_pages)
         for event in self.projection["events"]:
             self.assertIn(f'href="{event["public_path"]}"', events + archive)
+
+    def test_book_details_render_source_backed_questions_and_answers(self) -> None:
+        book = self.projection["books_by_slug"]["20201214-ml-bookcamp"]
+        self.assertEqual(len(book["archive"]), 15)
+        first_thread = book["archive"][0]
+        self.assertEqual(first_thread["name"], "Vladimir Finkelshtein")
+        self.assertIn("timeseries", first_thread["text"])
+        self.assertEqual(first_thread["replies"][0]["name"], "Alexey Grigorev")
+
+        response = self.client.get(book["public_path"])
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Questions and answers")
+        self.assertContains(response, "Vladimir Finkelshtein")
+        self.assertContains(response, "timeseries")
+        self.assertContains(response, "Alexey Grigorev")
+        self.assertContains(response, "data-book-question", count=15)
+        self.assertContains(response, "data-book-answer")
+        self.assertContains(response, 'rel="noopener noreferrer"')
+        self.assertNotContains(response, "<script>alert")
+
+        current_book = self.projection["books_by_slug"]["20250922-how-software-fails"]
+        self.assertEqual(current_book["archive"], [])
+        current_response = self.client.get(current_book["public_path"])
+        self.assertNotContains(current_response, "Questions and answers")
 
     def test_every_selected_detail_is_safe_and_canonical(self) -> None:
         for collection in ("articles", "podcasts", "books", "people", "events", "wiki"):
@@ -234,6 +258,15 @@ class PublicProjectionTests(TestCase):
                     )
 
         bela_relationships = people["belawiertz"]["relationships"]
+        early_stage_podcast_path = next(
+            record["public_path"]
+            for record in self.projection["podcasts"]
+            if record["title"]
+            == (
+                "Early-Stage Investing in Open Source Developer Tools: Deal Sourcing, Due "
+                "Diligence & Commercialization Models"
+            )
+        )
         self.assertIn(
             {
                 "role": "guest",
@@ -241,7 +274,7 @@ class PublicProjectionTests(TestCase):
                     "Early-Stage Investing in Open Source Developer Tools: Deal Sourcing, Due "
                     "Diligence & Commercialization Models"
                 ),
-                "public_path": "/podcast/investing-in-open-source-developer-tools.html",
+                "public_path": early_stage_podcast_path,
             },
             bela_relationships,
         )

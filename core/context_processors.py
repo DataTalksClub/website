@@ -22,9 +22,9 @@ PRIMARY_NAVIGATION_PREFIXES = (
     ("podcast", ("/podcast",)),
     ("wiki", ("/wiki",)),
     ("books", ("/books",)),
-    ("docs", ("/docs/",)),
-    ("faq", ("/faq/",)),
-    ("slack", ("/slack.html",)),
+    ("docs", ("/docs",)),
+    ("faq", ("/faq",)),
+    ("slack", ("/slack",)),
 )
 
 

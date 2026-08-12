@@ -226,6 +226,7 @@ AUTHORED_TEMPLATE_ROOTS = {
     "course_platform_templates": "account-learner-shared",
     "templates/404.html": "public",
     "templates/core": "public",
+    "templates/site_base.html": "public",
     "templates/public": "public",
     "templates/review": "public-review",
     "templates/studio": "studio",

@@ -7,15 +7,25 @@
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course help</p>
     <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">Frequently Asked Questions</h1>
     <p class="mt-4 max-w-3xl leading-7 app-text">
-      Answers to common questions from DataTalks.Club learners.
+      Browse source-backed answers for every DataTalks.Club Zoomcamp.
     </p>
   </header>
-  <article class="mt-10 border-y app-border py-6">
-    <p class="text-sm app-muted">{{ faq.course }}</p>
-    <h2 class="mt-2 text-xl font-semibold">
-      <a class="app-link" href="{% url 'faq-ai-dev-tools' %}#{{ faq.question_id }}">
-        {{ faq.question }}
-      </a>
-    </h2>
-  </article>
+  <section class="mt-10 grid gap-5 md:grid-cols-2" aria-label="FAQ courses">
+    {% for course in faq_courses %}
+      <article class="rounded-lg border app-border p-6">
+        <p class="text-sm app-muted">{{ course.section_count }} sections · {{ course.question_count }} questions</p>
+        <h2 class="mt-2 text-xl font-semibold">
+          <a class="app-link" href="{{ course.public_path }}">{{ course.name }}</a>
+        </h2>
+        <p class="mt-3 leading-7 app-text">
+          Read all questions and answers, with stable links to each question.
+        </p>
+        <p class="mt-4">
+          <a class="app-link" href="{{ course.public_path }}">View {{ course.name }} FAQ →</a>
+        </p>
+      </article>
+    {% empty %}
+      <p class="app-text">No FAQ courses are currently available.</p>
+    {% endfor %}
+  </section>
 {% endblock %}

@@ -1,22 +1,43 @@
 {% extends "core/base.html" %}
 {% block title %}
-  AI Dev Tools Zoomcamp FAQ — DataTalks.Club
+  {{ faq_course.name }} FAQ — DataTalks.Club
 {% endblock %}
 {% block content %}
   {% url 'faq-home' as hub_url %}
-  {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="FAQ" current_label=faq.course %}
-  <article class="max-w-4xl">
-    <h1 class="text-3xl font-semibold sm:text-4xl">{{ faq.course }} FAQ</h1>
-    <section id="{{ faq.question_id }}" class="scroll-mt-8 mt-10 border-t app-border pt-8">
-      <h2 class="text-2xl font-semibold">{{ faq.question }}</h2>
-      {% for paragraph in faq.answer %}
-        <p class="mt-4 leading-7 app-text">{{ paragraph }}</p>
-      {% endfor %}
-      <p class="mt-4">
-        <a class="app-link" href="{% url 'docs-ai-dev-tools-getting-started' %}">
-          Read the getting-started guide
-        </a>
+  {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="FAQ" current_label=faq_course.name %}
+  <article class="max-w-5xl">
+    <header>
+      <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course FAQ</p>
+      <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">{{ faq_course.name }} FAQ</h1>
+      <p class="mt-4 max-w-3xl leading-7 app-text">
+        Answers to common questions from {{ faq_course.name }} learners. Each question has a
+        stable ten-character link for sharing.
       </p>
-    </section>
+    </header>
+
+    <nav class="mt-8 rounded-lg border app-border p-5" aria-label="FAQ sections">
+      <p class="font-semibold app-heading">Sections</p>
+      <ol class="mt-3 grid gap-2 pl-5 md:grid-cols-2">
+        {% for section in faq_sections %}
+          <li>
+            <a class="app-link" href="#section-{{ section.id }}">{{ section.name }}</a>
+          </li>
+        {% endfor %}
+      </ol>
+    </nav>
+
+    {% for section in faq_sections %}
+      <section id="section-{{ section.id }}" class="scroll-mt-8 mt-12">
+        <h2 class="border-b app-border pb-3 text-2xl font-semibold">{{ section.name }}</h2>
+        <div class="divide-y app-border">
+          {% for question in section.questions %}
+            <article id="{{ question.id }}" class="scroll-mt-8 py-8">
+              <h3 class="text-xl font-semibold app-heading">{{ question.question }}</h3>
+              <div class="faq-answer mt-4 leading-7 app-text">{{ question.rendered_answer|safe }}</div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+    {% endfor %}
   </article>
 {% endblock %}

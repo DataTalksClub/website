@@ -280,6 +280,67 @@ def _string_list(value: Any, *, field: str, maximum: int) -> list[str]:
     return [_string(item, field=field, maximum=maximum) for item in value]
 
 
+def _book_archive(value: Any, *, source_name: str) -> list[dict[str, Any]]:
+    """Normalize the legacy book discussion threads without executing their Markdown.
+
+    Book records keep the original participant names and text as bounded data.  Rendering is
+    deliberately owned by the public template, where autoescaping prevents source content from
+    becoming executable HTML.  A handful of historical exports contain empty reply placeholders;
+    those are retained so the source ordering and thread shape remain lossless.
+    """
+
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ProjectionBuildError(f"book archive rejected: {source_name[:120]}")
+
+    archive: list[dict[str, Any]] = []
+    for thread in value:
+        if not isinstance(thread, dict):
+            raise ProjectionBuildError(f"book archive thread rejected: {source_name[:120]}")
+        replies_value = thread.get("replies", [])
+        if replies_value is None:
+            replies_value = []
+        if not isinstance(replies_value, list):
+            raise ProjectionBuildError(f"book archive replies rejected: {source_name[:120]}")
+        replies: list[dict[str, str]] = []
+        for reply in replies_value:
+            if not isinstance(reply, dict):
+                raise ProjectionBuildError(f"book archive reply rejected: {source_name[:120]}")
+            replies.append(
+                {
+                    "name": _string(
+                        reply.get("name"),
+                        field="book archive reply name",
+                        maximum=500,
+                    ),
+                    "text": _string(
+                        reply.get("text"),
+                        field="book archive reply text",
+                        maximum=20_000,
+                        optional=True,
+                    ),
+                }
+            )
+        archive.append(
+            {
+                "name": _string(
+                    thread.get("name"),
+                    field="book archive participant",
+                    maximum=500,
+                ),
+                "text": _string(
+                    thread.get("text"),
+                    field="book archive question",
+                    maximum=20_000,
+                    optional=True,
+                ),
+                "replies": replies,
+            }
+        )
+    return archive
+
+
 def _safe_url(value: Any, *, field: str, optional: bool = True) -> str:
     value = _string(value, field=field, maximum=2_048, optional=optional)
     if not value:
@@ -637,6 +698,7 @@ def _main_records(
                     raw.get("start"), field="book date", maximum=50, optional=True
                 ),
                 "links": book_links,
+                "archive": _book_archive(raw.get("archive"), source_name=path.name),
                 "image_source": _string(
                     raw.get("image") or raw.get("cover"),
                     field="book image",

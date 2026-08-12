@@ -229,6 +229,22 @@
   ],
   "rules": [
     {
+      "path": "content/faq_projection.json",
+      "pattern": "sandbox",
+      "class": "captured_compatibility",
+      "reason": "Generated FAQ content retains source-authored course guidance wording.",
+      "follow_up": "Regenerate only from the pinned FAQ source revision.",
+      "expected_count": 5
+    },
+    {
+      "path": "content/public_projection/books.json",
+      "pattern": "sandbox",
+      "class": "captured_compatibility",
+      "reason": "Generated book archive content retains source-authored discussion wording.",
+      "follow_up": "Regenerate only from the pinned content source revision.",
+      "expected_count": 5
+    },
+    {
       "path": ".github/workflows/ci.yml",
       "pattern": "name:\\s+sandbox",
       "class": "legacy_physical_identifier",

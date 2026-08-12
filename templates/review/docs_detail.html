@@ -1,33 +1,78 @@
 {% extends "core/base.html" %}
 {% block title %}
-  Getting Started — AI Dev Tools Zoomcamp Docs
+  {{ docs.title }} — DataTalks.Club Documentation
+{% endblock %}
+{% block breadcrumbs_nav %}
+  <nav class="breadcrumbs mb-6 text-sm app-muted md:mb-8" aria-label="Breadcrumb">
+    <ol class="flex list-none flex-wrap items-center gap-y-2 p-0 m-0">
+      {% for crumb in docs_breadcrumbs %}
+        <li class="flex items-center">
+          {% if not forloop.first %}
+            <span class="mx-2" aria-hidden="true">/</span>
+          {% endif %}
+          <a class="app-link" href="{{ crumb.public_path }}">{{ crumb.title }}</a>
+        </li>
+      {% endfor %}
+      <li class="flex items-center" aria-current="page">
+        <span class="mx-2" aria-hidden="true">/</span>{{ docs.title }}
+      </li>
+    </ol>
+  </nav>
 {% endblock %}
 {% block content %}
-  {% url 'docs-home' as hub_url %}
-  {% include "review/_breadcrumbs.html" with hub_url=hub_url hub_label="Docs" current_label=docs.title %}
-  <article class="max-w-4xl">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">AI Dev Tools Zoomcamp</p>
-    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">{{ docs.title }}</h1>
-    <p class="mt-4 text-lg leading-8 app-text">{{ docs.summary }}</p>
-    {% for section in docs.sections %}
-      <section id="{{ section.id }}" class="scroll-mt-8 mt-9">
-        <h2 class="text-2xl font-semibold">{{ section.title }}</h2>
-        <p class="mt-3 leading-7 app-text">{{ section.body }}</p>
-        {% if section.link_path %}
-          <a class="mt-3 inline-block app-link" href="{{ section.link_path }}">
-            {{ section.link_label }}
-          </a>
-        {% elif section.link_url %}
-          <a
-            class="mt-3 inline-block app-link"
-            href="{{ section.link_url }}"
-            target="_blank"
-            rel="noreferrer"
-          >
-            {{ section.link_label }} <span class="sr-only">(opens in a new tab)</span>
-          </a>
-        {% endif %}
-      </section>
-    {% endfor %}
-  </article>
+  <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
+    <article class="docs-content max-w-4xl leading-7 app-text">
+      {{ docs_html|safe }}
+      {% if docs_previous or docs_next %}
+        <nav class="mt-12 grid gap-4 border-t app-border pt-6 sm:grid-cols-2" aria-label="Documentation navigation">
+          {% if docs_previous %}
+            <a class="rounded-md border app-border p-4 app-link" href="{{ docs_previous.public_path }}">
+              <span class="block text-xs font-semibold uppercase tracking-wide app-muted">Previous</span>
+              <span class="mt-1 block font-semibold">{{ docs_previous.title }}</span>
+            </a>
+          {% endif %}
+          {% if docs_next %}
+            <a class="rounded-md border app-border p-4 app-link sm:text-right" href="{{ docs_next.public_path }}">
+              <span class="block text-xs font-semibold uppercase tracking-wide app-muted">Next</span>
+              <span class="mt-1 block font-semibold">{{ docs_next.title }}</span>
+            </a>
+          {% endif %}
+        </nav>
+      {% endif %}
+    </article>
+    <aside class="order-first lg:order-last" aria-label="On this page">
+      {% if docs_children %}
+        <h2 class="text-sm font-semibold uppercase tracking-wide app-muted">In this section</h2>
+        <ul class="mt-3 list-none space-y-2 border-l app-border pl-4">
+          {% for item in docs_children %}
+            <li>
+              {% if item.public_path == docs.public_path %}
+                <a class="app-link text-sm font-semibold" href="{{ item.public_path }}">
+                  {{ item.title }}
+                </a>
+              {% else %}
+                <a class="app-link text-sm" href="{{ item.public_path }}">
+                  {{ item.title }}
+                </a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if docs_headings|length > 1 %}
+        <h2 class="mt-8 text-sm font-semibold uppercase tracking-wide app-muted">On this page</h2>
+        <ul class="mt-3 list-none space-y-2 border-l app-border pl-4">
+          {% for heading in docs_headings %}
+            {% if heading.level > 1 %}
+              <li>
+                <a class="app-link text-sm" href="#{{ heading.id }}">
+                  {{ heading.title }}
+                </a>
+              </li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </aside>
+  </div>
 {% endblock %}

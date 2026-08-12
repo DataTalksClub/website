@@ -6,6 +6,7 @@ from pathlib import Path
 from django.test import SimpleTestCase
 
 from content.public_data import EVENT_TYPE_ICONS
+from core.templatetags.public import public_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_TEMPLATE_PATHS = (
@@ -128,3 +129,15 @@ class PublicTemplateSourceTests(SimpleTestCase):
                 self.assertNotIn("this page is maintained on", source)
                 self.assertNotIn('include "public/_source.html"', source)
                 self.assertNotIn('include "review/_source_link.html"', source)
+
+    def test_book_archive_text_escapes_markup_and_keeps_reviewed_links(self) -> None:
+        rendered = str(
+            public_text(
+                "<script>alert(1)</script> See [the guide](https://example.com/guide)\n"
+                "next line &gt; and &amp;"
+            )
+        )
+        self.assertNotIn("<script>", rendered)
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", rendered)
+        self.assertIn('href="https://example.com/guide"', rendered)
+        self.assertIn("<br>next line &gt; and &amp;", rendered)

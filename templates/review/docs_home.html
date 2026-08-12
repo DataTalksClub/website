@@ -3,20 +3,23 @@
   Documentation — DataTalks.Club
 {% endblock %}
 {% block content %}
-  <header>
+  <div class="max-w-4xl">
     <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course guides</p>
-    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">Documentation</h1>
-    <p class="mt-4 max-w-3xl leading-7 app-text">
-      Find setup guides and practical instructions for DataTalks.Club courses.
-    </p>
-  </header>
-  <article class="mt-10 border-y app-border py-6">
-    <p class="text-sm app-muted">AI Dev Tools Zoomcamp</p>
-    <h2 class="mt-2 text-2xl font-semibold">
-      <a class="app-link" href="{% url 'docs-ai-dev-tools-getting-started' %}">
-        {{ docs.title }}
-      </a>
-    </h2>
-    <p class="mt-3 max-w-3xl leading-7 app-text">{{ docs.summary }}</p>
-  </article>
+    <article class="docs-content mt-4 leading-7 app-text">
+      {{ docs_html|safe }}
+    </article>
+  </div>
+  <section class="mt-12 border-t app-border pt-8" aria-labelledby="docs-sections-heading">
+    <h2 id="docs-sections-heading" class="text-2xl font-semibold app-heading">Browse the documentation</h2>
+    <ul class="mt-5 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
+      {% for item in docs_navigation %}
+        <li class="rounded-md border app-border p-4">
+          <a class="app-link text-lg font-semibold" href="{{ item.public_path }}">{{ item.title }}</a>
+          {% if item.description %}
+            <p class="mt-2 text-sm leading-6 app-text">{{ item.description }}</p>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
 {% endblock %}

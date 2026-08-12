@@ -196,7 +196,7 @@ class SharedLegalFooterTests(TestCase):
         self.assertEqual(copied_base.count('{% include "core/_site_footer.html" %}'), 1)
         self.assertNotIn("site-footer-github", copied_base)
         self.assertNotIn("Analytics preferences</button>", copied_base)
-        self.assertIn('{% extends "base.html" %}', public_base)
+        self.assertIn('{% extends "site_base.html" %}', public_base)
         self.assertNotIn('{% include "core/_site_footer.html" %}', public_base)
 
     def test_github_icon_and_ordinary_legal_link_styles_are_separate(self) -> None:

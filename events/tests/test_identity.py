@@ -61,7 +61,8 @@ class EventIdentityManifestTests(TestCase):
             ).exists()
         )
         self.assertEqual(
-            canonical_detail_path(event.id), f"/events/{event.id}/identity-fixture-renamed"
+            canonical_detail_path(event.id),
+            f"/events/{event.public_id}/identity-fixture-renamed",
         )
         self.assertEqual(current_slug(event.id), "identity-fixture-renamed")
         event.id = uuid.uuid4()
