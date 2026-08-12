@@ -1,0 +1,53 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Course registration totals · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="course-count-runs-heading">
+    <p class="eyebrow">Studio · Courses</p>
+    <h1 id="course-count-runs-heading">Course registration totals</h1>
+    <p class="lede">
+      Stage aggregate-only campaign counts from a code-registered protected snapshot.
+      Registration rows and source locations are never stored or shown.
+    </p>
+
+    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
+
+    <section aria-labelledby="course-count-stage-heading">
+      <h2 id="course-count-stage-heading">Stage a registered source</h2>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        <label for="course-count-source-reference">Registered source key</label>
+        <input id="course-count-source-reference" type="password" name="source_reference" autocomplete="off" required>
+        <p class="foundation-note">Enter the opaque key supplied through the protected operator channel. Studio never displays it.</p>
+        <label for="course-count-reason">Reason code</label>
+        <input id="course-count-reason" name="reason_code" value="operator_stage" pattern="[a-z][a-z0-9_]{0,63}" required>
+        <label class="check-field">
+          <input type="checkbox" name="confirmed" value="true" required>
+          <span>Confirm aggregate-only staging</span>
+        </label>
+        <button type="submit">Stage source</button>
+      </form>
+    </section>
+
+    <section aria-labelledby="course-count-source-runs-heading">
+      <h2 id="course-count-source-runs-heading">Source runs</h2>
+      <div class="credential-grid">
+        {% for run in runs %}
+          <article class="audit-card">
+            <h3><a href="{% url 'studio:course-registration-count-detail' run_id=run.id %}">{{ run.state }}</a></h3>
+            <dl class="credential-metadata">
+              <div><dt>Campaigns</dt><dd>{{ run.campaign_total }}</dd></div>
+              <div><dt>Rows counted</dt><dd>{{ run.row_total }}</dd></div>
+              <div><dt>Schema</dt><dd>{{ run.schema_version }}</dd></div>
+              <div><dt>Revision</dt><dd>{{ run.revision }}</dd></div>
+            </dl>
+          </article>
+        {% empty %}
+          <p>No source runs have been staged.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </section>
+{% endblock %}

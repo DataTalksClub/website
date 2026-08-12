@@ -14,6 +14,7 @@ from django.utils import timezone
 from accounts.identity_values import normalize_account_email
 from accounts.models import CustomUser
 from accounts.studio_roles import (
+    COURSE_REGISTRATION_COUNT_BASELINE_MANAGE,
     HISTORICAL_REGISTRATION_IMPORT_MANAGE,
     HISTORICAL_REGISTRATION_MAPPING_MANAGE,
     MANAGE_API_CREDENTIALS,
@@ -190,6 +191,9 @@ def bootstrap_development_owner(
         credential_management = _permission(MANAGE_API_CREDENTIALS, using=using)
         historical_import = _permission(HISTORICAL_REGISTRATION_IMPORT_MANAGE, using=using)
         historical_mapping = _permission(HISTORICAL_REGISTRATION_MAPPING_MANAGE, using=using)
+        course_count_baseline = _permission(
+            COURSE_REGISTRATION_COUNT_BASELINE_MANAGE, using=using
+        )
         site_settings_read = _permission(SITE_SETTINGS_READ, using=using)
         site_settings_write = _permission(SITE_SETTINGS_WRITE, using=using)
 
@@ -291,6 +295,7 @@ def bootstrap_development_owner(
                 studio_access,
                 historical_import,
                 historical_mapping,
+                course_count_baseline,
                 site_settings_read,
                 site_settings_write,
             )

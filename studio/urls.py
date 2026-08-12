@@ -51,4 +51,24 @@ urlpatterns = [
         views.historical_registration_total,
         name="historical-registration-total",
     ),
+    path(
+        "courses/registration-count-baselines/",
+        views.course_registration_count_list,
+        name="course-registration-count-list",
+    ),
+    path(
+        "courses/registration-count-baselines/<uuid:run_id>/",
+        views.course_registration_count_detail,
+        name="course-registration-count-detail",
+    ),
+    path(
+        "courses/registration-count-baselines/<uuid:run_id>/<str:action>/",
+        views.course_registration_count_action,
+        name="course-registration-count-action",
+    ),
+    path(
+        "courses/registration-campaigns/<slug:campaign_slug>/public-count/",
+        views.course_registration_count_total,
+        name="course-registration-count-total",
+    ),
 ]

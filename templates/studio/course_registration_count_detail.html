@@ -1,0 +1,60 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Course count detail · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="course-count-detail-heading">
+    <p class="eyebrow">Studio · Courses · Registration total</p>
+    <h1 id="course-count-detail-heading">Course count reconciliation</h1>
+    <p class="lede">Safe campaign/cohort aggregate metadata only.</p>
+    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
+
+    <dl class="credential-metadata">
+      <div><dt>State</dt><dd>{{ run.state }}</dd></div>
+      <div><dt>Source checksum</dt><dd><code>{{ run.source_checksum }}</code></dd></div>
+      <div><dt>Schema checksum</dt><dd><code>{{ run.schema_checksum }}</code></dd></div>
+      <div><dt>Manifest checksum</dt><dd><code>{{ run.manifest_checksum }}</code></dd></div>
+      <div><dt>Campaigns</dt><dd>{{ run.campaign_total }}</dd></div>
+      <div><dt>Rows counted</dt><dd>{{ run.row_total }}</dd></div>
+      <div><dt>Revision</dt><dd>{{ run.revision }}</dd></div>
+    </dl>
+
+    <section aria-labelledby="course-count-actions-heading">
+      <h2 id="course-count-actions-heading">Confirmed actions</h2>
+      {% for action in actions %}
+        <form method="post" action="{% url 'studio:course-registration-count-action' run_id=run.id action=action %}">
+          {% csrf_token %}
+          <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}-{{ action }}">
+          <input type="hidden" name="expected_revision" value="{{ run.revision }}">
+          <input type="hidden" name="reason_code" value="operator_{{ action|cut:'-' }}">
+          <label class="check-field">
+            <input type="checkbox" name="confirmed" value="true" required>
+            <span>Confirm {{ action }}</span>
+          </label>
+          <button type="submit">{{ action|title }}</button>
+        </form>
+      {% endfor %}
+    </section>
+
+    <section aria-labelledby="course-count-campaigns-heading">
+      <h2 id="course-count-campaigns-heading">Campaign baselines</h2>
+      <div class="credential-grid">
+        {% for count in run.counts %}
+          <article class="audit-card">
+            <h3>{{ count.campaign_slug }} · {{ count.cohort_slug }}</h3>
+            <dl class="credential-metadata">
+              <div><dt>Baseline</dt><dd>{{ count.baseline_count }}</dd></div>
+              <div><dt>Coverage cutoff</dt><dd>{{ count.coverage_cutoff_at }}</dd></div>
+              <div><dt>Native start</dt><dd>{{ count.native_start_at }}</dd></div>
+              <div><dt>State</dt><dd>{{ count.state }}</dd></div>
+              <div><dt>Revision</dt><dd>{{ count.revision }}</dd></div>
+            </dl>
+            <p><a href="{% url 'studio:course-registration-count-total' campaign_slug=count.campaign_slug %}">Preview public count</a></p>
+          </article>
+        {% empty %}
+          <p>No campaign baseline is available.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </section>
+{% endblock %}

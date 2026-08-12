@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
@@ -9,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from core.audit import AuditWriteContext, record_audit_event
 from core.capabilities import ServiceKind
+from core.idempotency import hash_idempotency_key
 from core.models import AuditEvent
 from management_auth.idempotency import (
     credential_idempotency_operation,
@@ -20,6 +22,23 @@ from management_registry import CAPABILITY_REGISTRY
 
 from .authentication import authenticate, authorize, mark_used
 from .errors import APIError, error_response, permission_denied, strip_cors
+
+
+def _denied_audit_target(
+    capability_key: str,
+    route_kwargs: dict[str, Any],
+) -> tuple[str, uuid.UUID | None, str]:
+    if capability_key.startswith("courses.registration_count_baseline."):
+        route_target = route_kwargs.get("run_id")
+        target_id = route_target if isinstance(route_target, uuid.UUID) else None
+        return (
+            "courses.registration_count_source_run",
+            target_id,
+            "course-registration-count-source",
+        )
+    if capability_key.startswith("management.credentials."):
+        return "management.credential", None, "credential-request"
+    return "management.command", None, "management-command"
 
 
 def admin_capability(
@@ -82,27 +101,34 @@ def admin_capability(
                     and identity is not None
                     and error.status >= 400
                 ):
+                    target_type, target_id, target_label = _denied_audit_target(
+                        capability.key,
+                        kwargs,
+                    )
                     key_hash = ""
                     try:
-                        key_hash = hash_management_idempotency_key(
-                            identity.principal.id,
-                            credential_idempotency_operation(capability.key),
-                            request.headers.get("Idempotency-Key", ""),
-                        )
+                        raw_key = request.headers.get("Idempotency-Key", "")
+                        if capability.key.startswith("management.credentials."):
+                            key_hash = hash_management_idempotency_key(
+                                identity.principal.id,
+                                credential_idempotency_operation(capability.key),
+                                raw_key,
+                            )
+                        elif capability.key.startswith("courses.registration_count_baseline."):
+                            key_hash = hash_idempotency_key(capability.key, raw_key)
+                        else:
+                            key_hash = hash_management_idempotency_key(
+                                identity.principal.id,
+                                credential_idempotency_operation(capability.key),
+                                raw_key,
+                            )
                     except (AttributeError, TypeError, ValueError):
                         pass
                     record_audit_event(
                         action=capability.audit_action,
-                        target_type=(
-                            "management.credential"
-                            if capability.key.startswith("management.credentials.")
-                            else "management.command"
-                        ),
-                        target_label=(
-                            "credential-request"
-                            if capability.key.startswith("management.credentials.")
-                            else "management-command"
-                        ),
+                        target_type=target_type,
+                        target_id=target_id,
+                        target_label=target_label,
                         outcome=AuditEvent.Outcome.DENIED,
                         context=AuditWriteContext(
                             actor_id=identity.principal.user_id,
@@ -110,7 +136,14 @@ def admin_capability(
                             actor_ref=f"api_principal:{identity.principal.id}",
                             idempotency_key_hash=key_hash,
                         ),
-                        changes={},
+                        changes=(
+                            {
+                                "state": {"before": None, "after": None},
+                                "revision": {"before": None, "after": None},
+                            }
+                            if capability.key.startswith("courses.registration_count_baseline.")
+                            else {}
+                        ),
                         metadata=(
                             {
                                 "reason": error.code,
