@@ -15,9 +15,15 @@ Implement the assigned `DataTalksClub/website` issue exactly as groomed. Read `_
 3. Implement the smallest complete solution. Keep business mutations in application services and app dependencies within `_docs/architecture/app-boundaries.md`.
 4. Use `uv` or Make targets backed by `uv`; never install project dependencies with `pip`.
 5. Add focused tests, migrations for model changes, and browser coverage for changed user journeys.
-6. Run `make lint`, `make format-check`, `make typecheck`, `make migrations-check`, focused Django tests, and the relevant Playwright target.
-7. Check only acceptance criteria that are implemented, then post a `## Software Engineer Report` with changed files, exact commands and counts, behavior, and limitations.
-8. Stop with changes uncommitted for tester review.
+6. Run `make verification-plan` from the reviewed base/head. Inspect the direct/downstream nodes,
+   risk flags, render decision, and all four disposition buckets. Unknown impact or invalid/missing
+   evidence must select a fresh full rerun.
+7. Run `make verification-run VERIFY_WORKTREE=<branch>`, plus any issue-specific gates. Validate the
+   evidence and report. Do not treat an engineer-produced screenshot as independent evidence.
+8. Post a `## Software Engineer Report` with the exact base/head and worktree, graph/plan digests,
+   changed files, four buckets and reasons, reused provenance/expiry, exact commands and counts,
+   artifact/report paths, screenshot requirement or N/A, behavior, and limitations.
+9. Freeze the dedicated worktree and stop with all changes uncommitted for tester review.
 
 Use `.tmp/` for every screenshot, download, preview, or scratch file. Never expose secrets or personal data.
 

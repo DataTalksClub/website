@@ -104,10 +104,30 @@ working around a dependency, merging before the independent gates pass, or hidin
 - Implement only the issue scope and preserve unrelated worktree changes.
 - Add migrations for every model change and run the migration-drift check.
 - Add focused automated tests for every changed contract.
+- For every implementation, generate the versioned verification plan described in
+  `_docs/ci/change-selective-ci.md`. Record the exact base/head, graph and plan digests, and all
+  `rerun`, `reused`, `skipped`, and `not_applicable` dispositions in the engineer handoff.
+- Evidence reuse never means an undocumented skip. It requires an exact validated envelope and
+  artifact; otherwise run the component. Unknown impact or evidence/history failure selects fresh
+  full verification.
 - Template work must be verified at desktop and mobile sizes. The tester stores screenshots below `.tmp/screenshots/`, reads each image, and reports whether it contains the expected page rather than an error, debug page, or broken layout.
 - The tester runs focused Django tests plus `make test-playwright-core`. Broader checks are added when shared infrastructure or fixtures change.
+- The tester independently recomputes the plan from the engineer's frozen base/head, validates
+  every reused envelope and artifact, and explains any plan/digest drift before testing. The
+  tester-final report may not contain a required skip or pending screenshot evidence.
 - The PM accepts only after the tester passes, and evaluates navigation, copy, empty/error states, safe denials, and consistency with the issue.
 - Agents post their own role reports to the issue.
+
+For internal CI/process changes with no product-page render impact, screenshots are explicitly
+`not_applicable`; unrelated product screenshots are not evidence. When render impact exists, only
+the independent tester can satisfy the graph-derived route/state desktop/mobile screenshot gate. An
+engineer report may mark that component `pending_independent_tester`; CI, tester-final, deployment,
+and PM acceptance cannot pass while it is pending or partial.
+
+The engineer leaves the dedicated worktree uncommitted and frozen after posting the handoff. The
+tester records the observed HEAD, worktree status, plan/report paths, artifact digests, exact
+commands/counts, and screenshot paths. Any source, graph, policy, environment, or relevant input
+change after the plan was produced invalidates the handoff and returns it to engineering.
 
 ## Temporary files and sensitive data
 

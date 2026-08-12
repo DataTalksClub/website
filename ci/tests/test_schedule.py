@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import io
+import json
 import urllib.parse
+import zipfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 import pytest
 
+from ci.ownership import sha256_json
 from ci.schedule import (
     GITHUB_API_VERSION,
     WORKFLOW_PATH,
@@ -31,6 +35,7 @@ def run(
 ) -> dict[str, object]:
     result = {
         "id": run_id,
+        "run_attempt": 1,
         "event": "schedule",
         "head_branch": "main",
         "path": WORKFLOW_PATH,
@@ -415,3 +420,69 @@ def test_run_api_malformed_or_incomplete_payload_fails_safe(payload: object) -> 
     )
     with pytest.raises(HistoryUnavailable):
         client.list_runs("scheduled-full-regression.yml")
+
+
+def scheduled_state_archive(*, claimed_run_id: int = 8) -> bytes:
+    envelope = {
+        "evidence_ids": ["1" * 64],
+        "plan_sha256": "2" * 64,
+        "report_sha256": "3" * 64,
+        "repository": "owner/repo",
+        "result": "success",
+        "run_attempt": 1,
+        "run_id": claimed_run_id,
+        "schema_version": 1,
+        "source_sha": CURRENT,
+        "verification_state_sha256": "4" * 64,
+        "workflow": WORKFLOW_PATH,
+    }
+    envelope["envelope_sha256"] = sha256_json(envelope)
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w") as archive:
+        archive.writestr("scheduled-state-envelope.json", json.dumps(envelope))
+    return output.getvalue()
+
+
+def test_historical_state_is_read_from_exact_run_attempt_artifact() -> None:
+    body = scheduled_state_archive()
+    client = GitHubActionsClient(
+        api_url="https://api.github.invalid",
+        repository="owner/repo",
+        token="token",
+        fetch_json=lambda _url, _headers: {
+            "total_count": 1,
+            "artifacts": [
+                {
+                    "archive_download_url": "https://api.github.invalid/archive/8",
+                    "expired": False,
+                    "name": "verification-evidence-8-attempt-1",
+                    "size_in_bytes": len(body),
+                }
+            ],
+        },
+        fetch_bytes=lambda _url, _headers: body,
+    )
+    assert client.state_for_run(run(8)) == "4" * 64
+
+
+def test_archive_cannot_self_assert_a_different_run_identity() -> None:
+    body = scheduled_state_archive(claimed_run_id=999)
+    client = GitHubActionsClient(
+        api_url="https://api.github.invalid",
+        repository="owner/repo",
+        token="token",
+        fetch_json=lambda _url, _headers: {
+            "total_count": 1,
+            "artifacts": [
+                {
+                    "archive_download_url": "https://api.github.invalid/archive/8",
+                    "expired": False,
+                    "name": "verification-evidence-8-attempt-1",
+                    "size_in_bytes": len(body),
+                }
+            ],
+        },
+        fetch_bytes=lambda _url, _headers: body,
+    )
+    with pytest.raises(HistoryUnavailable, match="provenance"):
+        client.state_for_run(run(8))

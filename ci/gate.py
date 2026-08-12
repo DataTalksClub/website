@@ -9,6 +9,7 @@ from typing import Any
 from ci.provenance import EvidenceError, load_resolution, selection_digest
 from ci.schedule import load_schedule_decision
 from ci.selection import SCHEMA_VERSION, load_selection
+from ci.verification import load_plan, validate_report
 
 JOB_RESULTS = frozenset(
     {
@@ -55,6 +56,9 @@ def normal_gate(
     expected_source_after_sha: str | None = None,
     expected_source_before_sha: str | None = None,
     expected_selection_sha256: str | None = None,
+    verification_plan_path: str | Path | None = None,
+    verification_report_path: str | Path | None = None,
+    verification_evidence_directory: str | Path | None = None,
 ) -> dict[str, Any]:
     selection: dict[str, Any] | None
     selection_status = "valid"
@@ -127,9 +131,31 @@ def normal_gate(
             selection_status = "invalid"
             selection_rejection_reason = _safe_reason(exc)
     normalized = _normalize_outcomes(outcomes, NORMAL_REQUIRED_JOBS)
+    verification_report: dict[str, Any] | None = None
+    verification_status = "invalid"
+    try:
+        if (
+            verification_plan_path is None
+            or verification_report_path is None
+            or verification_evidence_directory is None
+        ):
+            raise ValueError("verification plan, report, and evidence must be supplied together")
+        plan = load_plan(verification_plan_path)
+        report_payload = json.loads(Path(verification_report_path).read_text(encoding="utf-8"))
+        verification_report = validate_report(
+            report_payload,
+            plan=plan,
+            evidence_directory=verification_evidence_directory,
+            allow_pending=False,
+        )
+        if verification_report["verdict"] == "success" and verification_report["phase"] == "ci":
+            verification_status = "valid"
+    except (OSError, ValueError, json.JSONDecodeError):
+        verification_report = None
     passed = (
         selection is not None
         and resolution is not None
+        and verification_status == "valid"
         and all(value == "success" for value in normalized.values())
     )
     evidence = None
@@ -153,6 +179,8 @@ def normal_gate(
         "selection_evidence": evidence,
         "selection_rejection_reason": selection_rejection_reason,
         "selection_status": selection_status,
+        "verification_report": verification_report,
+        "verification_status": verification_status,
         "verdict": "success" if passed else "failure",
     }
 
@@ -209,6 +237,8 @@ def gate_summary(payload: Mapping[str, Any]) -> str:
         )
     if payload.get("selection_rejection_reason"):
         lines.append(f"- Selection evidence rejection: `{payload['selection_rejection_reason']}`")
+    if "verification_status" in payload:
+        lines.append(f"- Verification evidence: `{payload['verification_status']}`")
     lines.append("")
     return "\n".join(lines)
 
@@ -244,7 +274,8 @@ def _write(payload: Mapping[str, Any], output: str, summary: str | None) -> None
     if summary:
         summary_path = Path(summary)
         summary_path.parent.mkdir(parents=True, exist_ok=True)
-        summary_path.write_text(gate_summary(payload), encoding="utf-8")
+        with summary_path.open("a", encoding="utf-8") as summary_file:
+            summary_file.write(gate_summary(payload))
 
 
 def _outcome_arguments(parser: argparse.ArgumentParser, names: tuple[str, ...]) -> None:
@@ -270,6 +301,9 @@ def main() -> None:
     normal.add_argument("--expected-selection-sha256")
     normal.add_argument("--output", required=True)
     normal.add_argument("--summary")
+    normal.add_argument("--verification-plan")
+    normal.add_argument("--verification-report")
+    normal.add_argument("--verification-evidence-directory")
     _outcome_arguments(normal, NORMAL_REQUIRED_JOBS)
     marker = commands.add_parser("marker")
     _outcome_arguments(marker, SCHEDULE_COMPONENTS)
@@ -302,6 +336,9 @@ def main() -> None:
             expected_source_after_sha=args.expected_source_after_sha,
             expected_source_before_sha=args.expected_source_before_sha,
             expected_selection_sha256=args.expected_selection_sha256,
+            verification_plan_path=args.verification_plan,
+            verification_report_path=args.verification_report,
+            verification_evidence_directory=args.verification_evidence_directory,
         )
     else:
         names = ("selector", *SCHEDULE_COMPONENTS, "full-regression")

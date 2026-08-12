@@ -89,6 +89,16 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     )
     assert validation["working-directory"] == ".tmp/ci-controller"
     quality = jobs["quality"]
+    release_quality = next(
+        step
+        for step in quality["steps"]
+        if step.get("name")
+        == "Run the current versioned quality contract against the selected release"
+    )
+    assert release_quality["working-directory"] == ".tmp/ci-controller"
+    assert "ci.quality_contract" in release_quality["run"]
+    assert "--repository ../release-source" in release_quality["run"]
+    assert "make verification-quality" not in release_quality["run"]
     contract_step = next(
         step
         for step in quality["steps"]
@@ -121,8 +131,48 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     for name in ("auto-capture-prior", "publish", "deploy"):
         assert "ci-gate" in jobs[name]["needs"]
         assert "needs.ci-gate.result == 'success'" in jobs[name]["if"]
-    assert jobs["playwright"]["steps"][-1]["run"] == "make test-playwright-core"
+    playwright = jobs["playwright"]
+    assert set(playwright["needs"]) == {"resolve-release", "classification"}
+    assert "make test-playwright-core" in runs(playwright)
+    assert "make test-playwright" in runs(playwright)
+    assert "playwright_mode == 'rerun'" in str(playwright)
     assert "release-image-" in str(jobs["container"])
+
+
+def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> None:
+    data = workflow("ci.yml")
+    assert data["permissions"] == {"contents": "read", "actions": "read"}
+    jobs = data["jobs"]
+    classifier = jobs["classification"]
+    assert "verification_profile" in classifier["outputs"]
+    assert "playwright_mode" in classifier["outputs"]
+    classifier_script = runs(classifier)
+    assert "ci.history" in classifier_script
+    assert "ci.verification plan" in classifier_script
+    assert "--release-requires-image" in classifier_script
+    assert "--component selector" in classifier_script
+    assert "ci.verification environment" in classifier_script
+    assert "quality compatibility content_invariants evidence_validation" in runs(jobs["quality"])
+    assert "quality-contract-v1" in (ROOT / "ci" / "ownership.json").read_text(encoding="utf-8")
+    workflow_text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert workflow_text.count("ci.verification record") == workflow_text.count("--machine-output")
+    assert workflow_text.count("ci.verification record") == workflow_text.count(
+        "--execution-environment"
+    )
+    assert "django-output.log" in workflow_text
+    assert "playwright-output.log" in workflow_text
+    assert "container-check.json" in workflow_text
+    assert "2>&1 | tee" in workflow_text
+
+    gate = jobs["ci-gate"]
+    gate_script = runs(gate)
+    assert "ci.verification report" in gate_script
+    assert "--verification-plan" in gate_script
+    assert "--verification-report" in gate_script
+    assert "--verification-evidence-directory" in gate_script
+    assert "verification-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}" in str(
+        gate
+    )
 
 
 def test_deploy_smoke_has_exact_readonly_authority_and_pinned_base_url() -> None:
@@ -223,16 +273,29 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "make test-migrations" in runs(jobs["migrations"])
     assert "make test" in runs(jobs["django"])
     assert "make test-playwright" in runs(jobs["playwright"])
+    assert "ci.quality_contract" in runs(jobs["quality"])
+    assert "make verification-quality" not in runs(jobs["quality"])
     container = runs(jobs["container"])
     assert "docker buildx build" in container
-    assert "scripts.verify_static_manifest" in container
     assert "--incompatible-storage-fixture" in container
     assert "website.settings.test" not in container
-    assert (
-        "Static manifest verification failed: staticfiles storage does not use the runtime "
-        "manifest backend" in container
-    )
-    assert "/health/live" in container
-    assert "APP_VERSION" not in container
-    assert '"source_sha": null, "image_digest": null' in container
     assert "local-development-build-version-not-configured" in container
+    aggregate = runs(jobs["full-regression"])
+    assert "ci.verification validate-evidence-directory" in aggregate
+    assert "ci.verification report" in aggregate
+    assert "ci.verification scheduled-state" in aggregate
+    assert "--directory .tmp" in aggregate
+    assert "verification-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}" in str(
+        jobs["full-regression"]
+    )
+    workflow_text = (ROOT / ".github" / "workflows" / "scheduled-full-regression.yml").read_text(
+        encoding="utf-8"
+    )
+    assert workflow_text.count("ci.verification record") == workflow_text.count("--machine-output")
+    assert workflow_text.count("ci.verification record") == workflow_text.count(
+        "--execution-environment"
+    )
+    assert "quality-output.log" in workflow_text
+    assert "django-output.log" in workflow_text
+    assert "playwright-output.log" in workflow_text
+    assert "container-check.json" in workflow_text

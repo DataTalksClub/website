@@ -1,0 +1,159 @@
+{
+  "components": {
+    "compatibility": {
+      "command": "make compatibility-source-artifacts-check compatibility-artifacts-check check-links check-seo",
+      "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
+      "relevant_patterns": ["compatibility/**", "_docs/compatibility/**", "scripts/build_legacy_manifest.py", "scripts/build_pinned_legacy_sources.py", "pyproject.toml", "uv.lock"],
+      "validity_class": "standard"
+    },
+    "content_invariants": {
+      "command": "make verification-content-invariants",
+      "environment_dimensions": ["architecture", "operating_system", "python", "runner_image", "uv"],
+      "relevant_patterns": ["content/**", "courses/**", "data/**", "_docs/compatibility/**"],
+      "validity_class": "standard"
+    },
+    "container": {
+      "command": "make verification-container",
+      "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
+      "relevant_patterns": ["Dockerfile", "Makefile", "deploy/**", "website/**", "scripts/verify_static_manifest.py", "pyproject.toml", "uv.lock", ".python-version"],
+      "validity_class": "volatile"
+    },
+    "django": {
+      "command": "make test",
+      "environment_dimensions": ["allowlisted_config", "architecture", "database", "django", "operating_system", "python", "runner_image", "uv"],
+      "relevant_patterns": ["accounts/**", "api/**", "cadmin/**", "content/**", "content_sync/**", "core/**", "course_management/**", "course_platform_templates/**", "courses/**", "data/**", "email_app/**", "events/**", "jobs/**", "management_api/**", "management_auth/**", "review_import/**", "studio/**", "studio_courses/**", "website/**", "templates/**", "ci/**", "tests_ci/**", ".github/workflows/**", "**/fixtures/**", "pyproject.toml", "uv.lock", "manage.py", "Makefile"],
+      "validity_class": "standard"
+    },
+    "evidence_validation": {
+      "command": "make test-ci",
+      "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
+      "relevant_patterns": ["ci/**", "tests_ci/**", ".github/workflows/**", "Makefile"],
+      "validity_class": "standard"
+    },
+    "playwright": {
+      "command": "make test-playwright-core",
+      "environment_dimensions": ["allowlisted_config", "architecture", "browser", "django", "operating_system", "playwright", "python", "runner_image", "uv"],
+      "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**", "pyproject.toml", "uv.lock"],
+      "validity_class": "volatile"
+    },
+    "quality": {
+      "command": "quality-contract-v1",
+      "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
+      "relevant_patterns": ["**/*.py", "ci/**", "tests_ci/**", ".github/workflows/**", "Makefile", "pyproject.toml", "uv.lock", ".python-version", "manage.py"],
+      "validity_class": "standard"
+    },
+    "screenshots": {
+      "command": "independent tester desktop/mobile capture and inspection",
+      "environment_dimensions": ["allowlisted_config", "architecture", "browser", "django", "operating_system", "playwright", "python", "runner_image", "uv"],
+      "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**"],
+      "validity_class": "visual"
+    },
+    "selector": {
+      "command": "make verification-plan",
+      "environment_dimensions": ["architecture", "django", "operating_system", "python", "runner_image", "uv"],
+      "relevant_patterns": ["ci/**", "tests_ci/**", ".github/workflows/**", "Makefile"],
+      "validity_class": "standard"
+    }
+  },
+  "nodes": [
+    {"id":"app.api","kind":"owner","prefixes":["api/"],"exact":[],"downstream":["django.api"],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.studio_courses","kind":"owner","prefixes":["studio_courses/"],"exact":[],"downstream":["django.studio_courses"],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.content","kind":"owner","prefixes":["content/"],"exact":[],"downstream":["django.accounts","django.content","django.core"],"components":["container","content_invariants","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.courses","kind":"owner","prefixes":["courses/"],"exact":[],"downstream":["django.accounts","django.api","django.content","django.core","django.courses","django.data","django.studio_courses"],"components":["container","content_invariants","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.data","kind":"owner","prefixes":["data/"],"exact":[],"downstream":["django.api","django.courses","django.data","django.studio_courses"],"components":["container","content_invariants","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.jobs","kind":"owner","prefixes":["jobs/"],"exact":[],"downstream":["django.jobs"],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.management_api","kind":"owner","prefixes":["management_api/"],"exact":[],"downstream":["django.api","django.management_api"],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.management_auth","kind":"owner","prefixes":["management_auth/"],"exact":[],"downstream":["django.api","django.core","django.management_api","django.management_auth"],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.review_import","kind":"owner","prefixes":["review_import/"],"exact":[],"downstream":["django.accounts","django.review_import"],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"app.studio","kind":"owner","prefixes":["studio/"],"exact":[],"downstream":["django.accounts","django.core","django.studio"],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+
+    {"id":"shared.accounts","kind":"owner","prefixes":["accounts/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["shared_runtime","auth_security_privacy"],"render_flags":[]},
+    {"id":"shared.core","kind":"owner","prefixes":["core/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["shared_runtime"],"render_flags":[]},
+    {"id":"shared.content_sync","kind":"owner","prefixes":["content_sync/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["shared_runtime"],"render_flags":[]},
+    {"id":"shared.email_app","kind":"owner","prefixes":["email_app/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["shared_runtime","auth_security_privacy"],"render_flags":[]},
+    {"id":"shared.events","kind":"owner","prefixes":["events/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["shared_runtime"],"render_flags":[]},
+
+    {"id":"surface.website","kind":"owner","prefixes":["website/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"volatile","risk_flags":["shared_runtime","deployment_runtime"],"render_flags":[]},
+    {"id":"surface.course_management","kind":"owner","prefixes":["course_management/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["shared_runtime"],"render_flags":[]},
+    {"id":"surface.course_platform_templates","kind":"owner","prefixes":["course_platform_templates/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality","screenshots"],"environment_dimensions":["architecture","browser","database","django","operating_system","playwright","python","runner_image","uv"],"validity_class":"visual","risk_flags":["shared_runtime"],"render_flags":["template"]},
+    {"id":"surface.templates","kind":"owner","prefixes":["templates/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality","screenshots"],"environment_dimensions":["architecture","browser","database","django","operating_system","playwright","python","runner_image","uv"],"validity_class":"visual","risk_flags":["shared_runtime"],"render_flags":["template"]},
+    {"id":"surface.playwright","kind":"owner","prefixes":["playwright_tests/","e2e/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality","screenshots"],"environment_dimensions":["architecture","browser","database","django","operating_system","playwright","python","runner_image","uv"],"validity_class":"visual","risk_flags":["test_infrastructure"],"render_flags":["browser_harness"]},
+    {"id":"surface.compatibility","kind":"owner","prefixes":["compatibility/"],"exact":[],"downstream":[],"components":["compatibility","container","django","playwright","quality"],"environment_dimensions":["architecture","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["compatibility_contract"],"render_flags":[]},
+    {"id":"surface.deploy","kind":"owner","prefixes":["deploy/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"volatile","risk_flags":["deployment_runtime"],"render_flags":[]},
+    {"id":"surface.scripts","kind":"owner","prefixes":["scripts/"],"exact":[],"downstream":[],"components":["container","django","playwright","quality"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["test_infrastructure"],"render_flags":[]},
+    {"id":"surface.ci","kind":"owner","prefixes":["ci/","tests_ci/"],"exact":[],"downstream":[],"components":["container","django","evidence_validation","playwright","quality","selector"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["test_infrastructure"],"render_flags":[]},
+    {"id":"surface.github","kind":"owner","prefixes":[".github/"],"exact":[],"downstream":[],"components":["container","django","evidence_validation","playwright","quality","selector"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"volatile","risk_flags":["test_infrastructure","deployment_runtime"],"render_flags":[]},
+    {"id":"surface.agent_process","kind":"owner","prefixes":[".claude/"],"exact":["AGENTS.md"],"downstream":[],"components":["evidence_validation","quality","selector"],"environment_dimensions":["architecture","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":["test_infrastructure"],"render_flags":[]},
+    {"id":"surface.documentation","kind":"owner","prefixes":["_docs/"],"exact":["README.md"],"downstream":[],"components":["evidence_validation","selector"],"environment_dimensions":["architecture","operating_system","python","runner_image","uv"],"validity_class":"standard","risk_flags":[],"render_flags":[]},
+    {"id":"surface.configuration","kind":"owner","prefixes":[],"exact":[".python-version","Dockerfile","Makefile","manage.py","package-lock.json","package.json","Pipfile","pyproject.toml","pytest.ini","mypy.ini","tox.ini","uv.lock"],"downstream":[],"components":["container","django","evidence_validation","playwright","quality","selector"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"volatile","risk_flags":["dependency_toolchain","deployment_runtime"],"render_flags":[]},
+
+    {"id":"django.accounts","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["accounts"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.api","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["api"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.studio_courses","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["studio_courses"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.content","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["content.tests"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.core","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["core"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.courses","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["courses"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.data","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["data"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.jobs","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["jobs"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.management_api","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["management_api"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.management_auth","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["management_auth"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.review_import","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["review_import"],"risk_flags":[],"render_flags":[]},
+    {"id":"django.studio","kind":"verification","prefixes":[],"exact":[],"downstream":[],"components":["django"],"environment_dimensions":["architecture","database","django","operating_system","python","runner_image","uv"],"validity_class":"standard","test_labels":["studio"],"risk_flags":[],"render_flags":[]}
+  ],
+  "large_content": {
+    "identity_fields": ["id", "key", "path", "slug"],
+    "metadata_fields": ["description", "name", "title"],
+    "patterns": ["content/**", "courses/**", "data/**", "_docs/compatibility/**"],
+    "structured_extensions": [".csv", ".json", ".jsonl", ".yaml", ".yml"],
+    "url_fields": ["href", "path", "url"]
+  },
+  "policy_version": 4,
+  "render_rules": {
+    "basenames": ["context_processors.py", "serializers.py", "urls.py", "views.py"],
+    "extensions": [".css", ".htm", ".html", ".jinja", ".jinja2", ".js", ".mjs", ".tmpl", ".tpl"],
+    "segments": ["static", "templates"]
+  },
+  "risk_rules": {
+    "global_fixture_segments": ["fixtures"],
+    "migration_segments": ["migrations"],
+    "policy_doc_prefixes": ["_docs/ci/"],
+    "policy_doc_exact": ["_docs/PROCESS.md"],
+    "test_basenames": ["conftest.py"],
+    "test_segments": ["tests", "tests_ci", "playwright_tests", "e2e"]
+  },
+  "schema_version": 2,
+  "screenshot_contract": {
+    "routes": [
+      {
+        "nodes": ["app.content", "shared.core", "surface.playwright", "surface.templates", "surface.website"],
+        "route": "/",
+        "state": "home"
+      },
+      {
+        "nodes": ["app.api", "app.courses", "app.data", "app.studio_courses", "shared.core", "surface.course_platform_templates", "surface.playwright", "surface.templates"],
+        "route": "/courses",
+        "state": "courses"
+      },
+      {
+        "nodes": ["app.studio", "shared.accounts", "shared.core", "surface.playwright", "surface.templates"],
+        "route": "/studio/",
+        "state": "studio-sign-in"
+      },
+      {
+        "nodes": ["shared.core", "surface.playwright", "surface.templates", "surface.website"],
+        "route": "/__verification_missing__",
+        "state": "not-found"
+      }
+    ],
+    "viewports": [
+      {"height": 900, "name": "desktop", "width": 1440},
+      {"height": 844, "name": "mobile", "width": 390}
+    ]
+  },
+  "validity_classes": {
+    "live": 14400,
+    "standard": 604800,
+    "visual": 604800,
+    "volatile": 86400
+  }
+}
