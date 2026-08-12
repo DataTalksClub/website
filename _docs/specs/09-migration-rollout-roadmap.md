@@ -297,3 +297,19 @@ checks real Luma/Eventbrite checksums, exact/review/exclude/source-missing mappi
 and overlap policy, replay, activation, rollback, and invalidation. Only aggregate totals and bounded
 codes may be captured. #112 stays open with `human` until that gate succeeds; #109 gates positive
 edge TTL, not the zero-TTL public total.
+
+## Course registration-count aggregate rollout
+
+Course historical counts use a course-owned expand-and-contract overlay, independent of the event
+aggregate models and policies. An authorized operator registers the protected CMP SQLite snapshot
+in local configuration, stages its exact manifest, validates every campaign plus recorded cohort,
+reviews the dry-run, and atomically activates the complete source run. Exact replay is a no-op;
+changed source/schema/policy/target facts create a new revision or fail closed. Rollback restores the
+prior accepted pointers without deleting provenance.
+
+Native rows start at an explicit boundary strictly after the protected snapshot cutoff. Activation
+blocks ambiguous pre-boundary rows. Later row-level migration must reconcile count, timestamp bounds,
+and checksum before atomically switching a slot from baseline-plus-native to rows-only; rollback
+restores the displaced baseline while excluding the retained replacement rows from double counting.
+Automated delivery uses synthetic SQLite only. Real checksum/schema/count review and protected-source
+disposal stay an authorized HUMAN gate, and no protected value may enter deployment evidence.

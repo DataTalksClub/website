@@ -33,6 +33,11 @@ from .project import (
     ReviewCriteria,
     ReviewCriteriaTypes,
 )
+from .registration_counts import (
+    CourseRegistrationCountRevision,
+    CourseRegistrationCountSlot,
+    CourseRegistrationCountSourceRun,
+)
 from .wrapped import UserWrappedStatistics, WrappedStatistics
 
 User = get_user_model()
@@ -42,6 +47,9 @@ __all__ = (
     "AnswerTypes",
     "Course",
     "CourseRegistration",
+    "CourseRegistrationCountRevision",
+    "CourseRegistrationCountSlot",
+    "CourseRegistrationCountSourceRun",
     "CriteriaResponse",
     "Enrollment",
     "Homework",

@@ -69,6 +69,12 @@ BACKEND_TEST_PATTERNS = (
     "connection.vendor",
     "has_select_for_update",
 )
+# This adapter reads an external, immutable CMP SQLite snapshot. The exception is
+# limited to SQLite safety/schema statements; its target persistence still uses
+# portable Django models and services, and every other backend token remains banned.
+BACKEND_PATTERN_EXCEPTIONS = {
+    Path("courses/registration_count_importer.py"): frozenset({"pragma "}),
+}
 DATABASE_REFERENCE = re.compile(
     r"\b(?:postgres(?:ql)?|psycopg|database_url)\b",
     re.IGNORECASE,
@@ -1264,8 +1270,9 @@ def check_application() -> list[str]:
             text = path.read_text(encoding="utf-8").lower()
             is_test = "tests" in relative.parts
             patterns = BACKEND_TEST_PATTERNS if is_test else BACKEND_PATTERNS
+            exceptions = BACKEND_PATTERN_EXCEPTIONS.get(relative, frozenset())
             for pattern in patterns:
-                if pattern in text:
+                if pattern in text and pattern not in exceptions:
                     errors.append(f"{relative}: backend-specific token {pattern!r}")
             if is_test and "postgresql" in path.name.lower():
                 errors.append(f"{relative}: backend-specific test module name")

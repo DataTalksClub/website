@@ -164,6 +164,31 @@ registration company may suggest organization. A non-empty account value always 
 reported, and every imported/suggested value remains unconfirmed until member submission. Historical
 `accepted_newsletter` evidence is preserved even though new consent is separate and optional.
 
+### Aggregate-only historical registration counts
+
+The `courses` app owns a temporary aggregate overlay for copied registration campaigns whose
+historical rows are not yet present in the unified database. A source run records immutable safe
+provenance, an immutable revision records one exact campaign and its recorded cohort, and one slot
+selects the active revision. The overlay stores counts, bounded coverage timestamps, schema and
+aggregate checksums, policy versions, and opaque source-reference digests only. It never selects or
+retains an email, name, answer, consent value, source filename/path, or legacy registration
+identifier.
+
+The public registration page renders a count only when evidence is complete. In
+`baseline_plus_native` mode its value is the accepted historical baseline plus native
+`CourseRegistration` rows created on or after the recorded native boundary. The baseline is not
+recomputed from a campaign's current pointer, and a repointed campaign, stale source registration,
+missing target, ambiguous pre-boundary native rows, quarantined run, or incomplete pointer omits the
+count rather than displaying zero. Database or infrastructure failure remains an error and is not
+presented as zero.
+
+A reviewed row-level replacement must reconcile the exact baseline count, minimum/maximum source
+timestamps, and aggregate checksum before the slot atomically enters `rows_only` mode. The aggregate
+and replacement rows are never counted together. Replacement and rollback retain immutable
+displacement evidence, change pointers/revisions without deleting history, and preserve the same
+public total. The copied registration template stays byte-identical; the only copied-view seam
+replaces its direct row count with this completeness-gated query.
+
 ### Staff scope
 
 Course/Cohort staff assignments support roles such as owner, instructor, grader, support, and communications operator. Studio/API services enforce global and object-scoped permissions. Public person profiles may link explicitly to staff users but do not grant access.

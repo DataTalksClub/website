@@ -68,6 +68,7 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("management_auth", "manage_api_credentials"),
                 ("events", "historical_registration_import_manage"),
                 ("events", "historical_registration_mapping_manage"),
+                ("courses", "registration_count_baseline_manage"),
                 ("core", "read_operational_settings"),
                 ("core", "change_operational_settings"),
             },
@@ -104,6 +105,7 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("core", "change_operational_settings"),
                 ("events", "historical_registration_import_manage"),
                 ("events", "historical_registration_mapping_manage"),
+                ("courses", "registration_count_baseline_manage"),
             },
         )
         self.assertEqual(APICredential.objects.count(), 0)

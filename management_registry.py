@@ -21,6 +21,7 @@ from core.capabilities import (
 )
 from core.management_health import management_health_factory, read_management_health
 from core.site_settings import SITE_SETTING_CAPABILITIES
+from courses.capabilities import COURSE_REGISTRATION_COUNT_CAPABILITIES
 from events.capabilities import EVENT_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
 from management_auth.policies import resolved_high_risk_policy_keys
@@ -132,6 +133,7 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         *SITE_SETTING_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,
         *EVENT_CAPABILITIES,
+        *COURSE_REGISTRATION_COUNT_CAPABILITIES,
         *CREDENTIAL_FIXTURE_CAPABILITIES,
     ),
     resolved_high_risk_policies=resolved_high_risk_policy_keys(),

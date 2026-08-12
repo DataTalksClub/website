@@ -80,6 +80,334 @@
         ],
         "type": "object"
       },
+      "CourseRegistrationCountActionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "const": true,
+            "type": "boolean"
+          },
+          "reason_code": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmed",
+          "reason_code"
+        ],
+        "type": "object"
+      },
+      "CourseRegistrationCountActionResult": {
+        "additionalProperties": true,
+        "properties": {
+          "replayed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "run_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "state",
+          "revision",
+          "replayed"
+        ],
+        "type": "object"
+      },
+      "CourseRegistrationCountImport": {
+        "additionalProperties": true,
+        "properties": {
+          "adapter_version": {
+            "type": "string"
+          },
+          "campaign_total": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "captured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "count_policy_version": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "manifest_checksum": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "reason_code": {
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "row_total": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "schema_checksum": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "schema_version": {
+            "type": "string"
+          },
+          "source_byte_size": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "source_checksum": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "source_frozen_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "staged",
+              "validated",
+              "active",
+              "cancelled",
+              "rolled_back",
+              "quarantined"
+            ],
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "adapter_version",
+          "schema_version",
+          "count_policy_version",
+          "source_checksum",
+          "source_byte_size",
+          "schema_checksum",
+          "manifest_checksum",
+          "captured_at",
+          "source_frozen_at",
+          "campaign_total",
+          "row_total",
+          "state",
+          "revision"
+        ],
+        "type": "object"
+      },
+      "CourseRegistrationCountImportCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed": {
+            "const": true,
+            "type": "boolean"
+          },
+          "reason_code": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "type": "string"
+          },
+          "source_reference": {
+            "pattern": "^[a-z][a-z0-9_.:-]{0,127}$",
+            "type": "string",
+            "writeOnly": true
+          }
+        },
+        "required": [
+          "source_reference",
+          "confirmed",
+          "reason_code"
+        ],
+        "type": "object"
+      },
+      "CourseRegistrationCountImportDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/CourseRegistrationCountImport"
+          },
+          {
+            "properties": {
+              "counts": {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "aggregate_checksum": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "baseline_count": {
+                      "minimum": 0,
+                      "type": "integer"
+                    },
+                    "campaign_slug": {
+                      "type": "string"
+                    },
+                    "cohort_slug": {
+                      "type": "string"
+                    },
+                    "coverage_cutoff_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "native_start_at": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "reason_code": {
+                      "type": "string"
+                    },
+                    "revision": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "state": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "campaign_slug",
+                    "cohort_slug",
+                    "baseline_count",
+                    "coverage_cutoff_at",
+                    "native_start_at",
+                    "aggregate_checksum",
+                    "state",
+                    "revision",
+                    "reason_code"
+                  ],
+                  "type": "object"
+                },
+                "type": "array"
+              }
+            },
+            "required": [
+              "counts"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "CourseRegistrationCountImportList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CourseRegistrationCountImport"
+            },
+            "type": "array"
+          },
+          "page": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "page_size": {
+            "maximum": 100,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "total_count": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "items",
+          "page",
+          "page_size",
+          "total_count"
+        ],
+        "type": "object"
+      },
+      "CourseRegistrationPublicCount": {
+        "additionalProperties": false,
+        "properties": {
+          "baseline_count": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "campaign_slug": {
+            "type": "string"
+          },
+          "cohort_slug": {
+            "type": "string"
+          },
+          "complete": {
+            "type": "boolean"
+          },
+          "count": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "mode": {
+            "enum": [
+              "",
+              "baseline_plus_native",
+              "rows_only"
+            ],
+            "type": "string"
+          },
+          "native_count": {
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "total_revision": {
+            "minimum": 1,
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "campaign_slug",
+          "cohort_slug",
+          "complete",
+          "count",
+          "total_revision",
+          "mode",
+          "baseline_count",
+          "native_count"
+        ],
+        "type": "object"
+      },
       "CredentialCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1336,6 +1664,1317 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/course-registration-count-imports": {
+      "get": {
+        "operationId": "courses.registration_count_baseline.manage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountImportList"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.manage"
+            ]
+          }
+        ],
+        "summary": "List safe course registration-count baseline metadata",
+        "x-audit-action": "courses.registration_count_baseline.listed",
+        "x-capability-key": "courses.registration_count_baseline.manage",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      },
+      "post": {
+        "operationId": "courses.registration_count_baseline.create",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRegistrationCountImportCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountImport"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.create"
+            ]
+          }
+        ],
+        "summary": "Stage one registered course count source",
+        "x-audit-action": "courses.registration_count_baseline.staged",
+        "x-capability-key": "courses.registration_count_baseline.create",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 5
+      }
+    },
+    "/course-registration-count-imports/{run_id}": {
+      "get": {
+        "operationId": "courses.registration_count_baseline.detail",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountImportDetail"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.detail"
+            ]
+          }
+        ],
+        "summary": "Read safe course count source and campaign revisions",
+        "x-audit-action": "courses.registration_count_baseline.viewed",
+        "x-capability-key": "courses.registration_count_baseline.detail",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      }
+    },
+    "/course-registration-count-imports/{run_id}/activate": {
+      "post": {
+        "operationId": "courses.registration_count_baseline.activate",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"rev-[1-9][0-9]*\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRegistrationCountActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountActionResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.activate"
+            ]
+          }
+        ],
+        "summary": "Activate a course count source",
+        "x-audit-action": "courses.registration_count_baseline.activate",
+        "x-capability-key": "courses.registration_count_baseline.activate",
+        "x-concurrency": "if_match",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 5
+      }
+    },
+    "/course-registration-count-imports/{run_id}/cancel": {
+      "post": {
+        "operationId": "courses.registration_count_baseline.cancel",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"rev-[1-9][0-9]*\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRegistrationCountActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountActionResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.cancel"
+            ]
+          }
+        ],
+        "summary": "Cancel a course count source",
+        "x-audit-action": "courses.registration_count_baseline.cancel",
+        "x-capability-key": "courses.registration_count_baseline.cancel",
+        "x-concurrency": "if_match",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 5
+      }
+    },
+    "/course-registration-count-imports/{run_id}/dry-run": {
+      "post": {
+        "operationId": "courses.registration_count_baseline.dry-run",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"rev-[1-9][0-9]*\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRegistrationCountActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountActionResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.dry-run"
+            ]
+          }
+        ],
+        "summary": "Dry Run a course count source",
+        "x-audit-action": "courses.registration_count_baseline.dry_run",
+        "x-capability-key": "courses.registration_count_baseline.dry-run",
+        "x-concurrency": "if_match",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 5
+      }
+    },
+    "/course-registration-count-imports/{run_id}/rollback": {
+      "post": {
+        "operationId": "courses.registration_count_baseline.rollback",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"rev-[1-9][0-9]*\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRegistrationCountActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountActionResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.rollback"
+            ]
+          }
+        ],
+        "summary": "Rollback a course count source",
+        "x-audit-action": "courses.registration_count_baseline.rollback",
+        "x-capability-key": "courses.registration_count_baseline.rollback",
+        "x-concurrency": "if_match",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 5
+      }
+    },
+    "/course-registration-count-imports/{run_id}/validate": {
+      "post": {
+        "operationId": "courses.registration_count_baseline.validate",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"rev-[1-9][0-9]*\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CourseRegistrationCountActionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationCountActionResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.validate"
+            ]
+          }
+        ],
+        "summary": "Validate a course count source",
+        "x-audit-action": "courses.registration_count_baseline.validate",
+        "x-capability-key": "courses.registration_count_baseline.validate",
+        "x-concurrency": "if_match",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 5
+      }
+    },
     "/credentials": {
       "get": {
         "operationId": "management.credentials.list",
@@ -4285,6 +5924,148 @@
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
+      }
+    },
+    "/registration-campaigns/{campaign_slug}/public-count": {
+      "get": {
+        "operationId": "courses.registration_count_baseline.total",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CourseRegistrationPublicCount"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "courses.registration_count_baseline.total"
+            ]
+          }
+        ],
+        "summary": "Read course campaign public-count completeness and contributions",
+        "x-audit-action": "courses.registration_count_baseline.total_viewed",
+        "x-capability-key": "courses.registration_count_baseline.total",
+        "x-concurrency": "none",
+        "x-django-permission": "courses.registration_count_baseline_manage",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
       }
     },
     "/settings": {

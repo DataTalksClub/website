@@ -52,6 +52,13 @@ the accepted legacy URL adapter.
 
 The source root templates use a distinct destination so their byte identity is retained without replacing the unified website's root template shell. The manifest records this mapping.
 
+Issue #133 keeps `courses/templates/courses/register.html` byte-identical and adds one deliberately
+narrow copied-view seam in `courses/views/registration.py`: the previous direct registration-row
+count is supplied by the course-owned completeness-gated historical-baseline service. Its current
+view and characterization-test bytes are recorded in `integration-patched-files.tsv`; the source
+bytes remain pinned in `copied-files.tsv`. All source derivation, activation, replacement, rollback,
+Studio, and admin API behavior is target-owned outside the copied template.
+
 Allowlisted tracked roots are `accounts/`, `api/`, `cadmin/`, `course_management/`, `courses/`, `data/`, `e2e/`, `templates/`, and `scripts/`. This includes all original app migrations, tests, templates/static assets, management commands, compatibility API, cadmin, and source operational scripts referenced by characterization tests.
 
 ## Explicit exclusions

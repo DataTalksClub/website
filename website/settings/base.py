@@ -246,6 +246,10 @@ DATAMAILER_IMPORT_S3_REGION = os.getenv("DATAMAILER_IMPORT_S3_REGION", "")
 DATAMAILER_SYNC_ON_USER_CREATE = env_flag("DATAMAILER_SYNC_ON_USER_CREATE", True)
 DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY = env_flag("DATAMAILER_OUTBOX_DISPATCH_IMMEDIATELY")
 
+# Opaque keys are configured by deployment code.  Locators and protected source
+# metadata are never accepted from Studio/API or persisted in the application DB.
+COURSE_REGISTRATION_COUNT_SOURCES: dict[str, dict[str, object]] = {}
+
 Q_CLUSTER = {
     "name": "dtc-website",
     "workers": 2,

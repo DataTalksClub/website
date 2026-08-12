@@ -65,6 +65,23 @@ event_identity_collection.management_capability_views = {  # type: ignore[attr-d
 
 
 @csrf_exempt
+def course_count_import_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.course_count_import_list(request, *args, **kwargs)
+    return views.course_count_import_create(request, *args, **kwargs)
+
+
+course_count_import_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "courses.registration_count_baseline.manage",
+    "courses.registration_count_baseline.create",
+)
+course_count_import_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.course_count_import_list,
+    "POST": views.course_count_import_create,
+}
+
+
+@csrf_exempt
 def site_settings_collection(request, *args, **kwargs):
     if request.method in {"GET", "HEAD"}:
         return views.site_settings_read(request, *args, **kwargs)
@@ -143,6 +160,46 @@ urlpatterns = [
         "events/identities/<uuid:event_id>",
         views.event_identity_detail,
         name="event-identity-detail",
+    ),
+    path(
+        "course-registration-count-imports",
+        course_count_import_collection,
+        name="course-registration-count-import-list",
+    ),
+    path(
+        "course-registration-count-imports/<uuid:run_id>",
+        views.course_count_import_detail,
+        name="course-registration-count-import-detail",
+    ),
+    path(
+        "course-registration-count-imports/<uuid:run_id>/dry-run",
+        views.course_count_import_dry_run,
+        name="course-registration-count-import-dry-run",
+    ),
+    path(
+        "course-registration-count-imports/<uuid:run_id>/validate",
+        views.course_count_import_validate,
+        name="course-registration-count-import-validate",
+    ),
+    path(
+        "course-registration-count-imports/<uuid:run_id>/activate",
+        views.course_count_import_activate,
+        name="course-registration-count-import-activate",
+    ),
+    path(
+        "course-registration-count-imports/<uuid:run_id>/cancel",
+        views.course_count_import_cancel,
+        name="course-registration-count-import-cancel",
+    ),
+    path(
+        "course-registration-count-imports/<uuid:run_id>/rollback",
+        views.course_count_import_rollback,
+        name="course-registration-count-import-rollback",
+    ),
+    path(
+        "registration-campaigns/<slug:campaign_slug>/public-count",
+        views.course_count_total,
+        name="course-registration-public-count",
     ),
     path(
         "credentials/<uuid:credential_id>/rotate",

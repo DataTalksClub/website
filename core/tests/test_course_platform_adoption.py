@@ -55,7 +55,7 @@ EXPECTED_MIGRATION_COUNTS = {
     "accounts": 12,
     "api": 0,
     "studio_courses": 0,
-    "courses": 40,
+    "courses": 41,
     "data": 5,
 }
 EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
@@ -242,6 +242,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "courses/migrations/0004_update_correct_answer_indexes.py",
                 "courses/migrations/0005_update_answers_with_indexes.py",
                 "courses/migrations/0006_course_first_homework_scored.py",
+                "courses/models/__init__.py",
                 "courses/templates/courses/course.html",
                 "courses/templates/courses/enrollment.html",
                 "courses/templates/courses/leaderboard_score_breakdown.html",
@@ -263,9 +264,11 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "courses/tests/test_leaderboard_score_breakdown_admin.py",
                 "courses/tests/test_noindex.py",
                 "courses/tests/test_project_submissions_view.py",
+                "courses/tests/test_registration_campaigns.py",
                 "courses/views/homework_submissions.py",
                 "courses/views/course_calendar_events.py",
                 "courses/views/project_submissions.py",
+                "courses/views/registration.py",
                 "data/tests/test_observability.py",
                 "scripts/generate_production_like_leaderboard_data.py",
                 "scripts/load_rds_export.py",
@@ -364,7 +367,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(migration_names("courses")[0], "0001_initial")
         self.assertEqual(
             migration_names("courses")[-1],
-            "0040_courseregistration_company_name",
+            "0041_courseregistrationcountsourcerun_and_more",
         )
         self.assertEqual(migration_names("data")[0], "0001_initial")
         self.assertEqual(migration_names("data")[-1], "0005_datamailersendaudit")

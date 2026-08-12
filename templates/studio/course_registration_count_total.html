@@ -1,0 +1,20 @@
+{% extends "studio/base.html" %}
+
+{% block title %}Course registration total preview · Studio · {{ brand_name }}{% endblock %}
+
+{% block content %}
+  <section class="panel studio-panel" aria-labelledby="course-registration-total-heading">
+    <p class="eyebrow">Studio · Courses</p>
+    <h1 id="course-registration-total-heading">Course registration total preview</h1>
+    <dl class="credential-metadata">
+      <div><dt>Campaign</dt><dd>{{ total.campaign_slug }}</dd></div>
+      <div><dt>Cohort</dt><dd>{{ total.cohort_slug|default:"Unavailable" }}</dd></div>
+      <div><dt>Complete</dt><dd>{{ total.complete|yesno:"Yes,No" }}</dd></div>
+      <div><dt>Total</dt><dd>{{ total.count|default_if_none:"Omitted" }}</dd></div>
+      <div><dt>Mode</dt><dd>{{ total.mode|default:"Unavailable" }}</dd></div>
+      <div><dt>Baseline</dt><dd>{{ total.baseline_count|default_if_none:"Unavailable" }}</dd></div>
+      <div><dt>Native rows</dt><dd>{{ total.native_count|default_if_none:"Unavailable" }}</dd></div>
+      <div><dt>Revision</dt><dd>{{ total.total_revision|default_if_none:"Unavailable" }}</dd></div>
+    </dl>
+  </section>
+{% endblock %}

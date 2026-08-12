@@ -351,3 +351,24 @@ acceptance at approximately 1440×900 and 390×844 uses synthetic fixtures to ex
 validation, activation, replay, conflict, rollback, warm-before/after total change, accessible
 labels/status/errors, and absence of protected values in DOM, accessibility tree, network, console,
 history, and screenshots. Real source reconciliation remains the separately authorized HUMAN gate.
+
+## Course registration-count verification
+
+Repository tests use synthetic SQLite snapshots under project-local `.tmp/` only. Adapter tests
+cover exact and changed checksum/size/schema, null/mixed/future timestamps, duplicate or changed
+campaign/cohort identity, zero/one/many counts, exact replay, conflicting reuse, activation,
+quarantine/omission, rollback, and database-error propagation. Tests inspect retained models,
+responses, audits, and logs for source paths, filenames, identifiers/digests, emails, names, answers,
+tokens, and payloads.
+
+Domain tests prove baseline-plus-native boundary arithmetic, campaign repoint fail-closed behavior,
+missing/stale source omission, row-level replacement reconciliation, no double counting, and
+replacement rollback with the same public total. Management tests prove the exact Studio/admin API
+routes, shared service, permission, idempotency, expected-revision conflict, private response,
+OpenAPI, safe preview, and audit redaction contracts.
+
+Browser acceptance at approximately 1440×900 and 390×844 covers copied registration-page zero,
+singular and plural output in light/dark mode, JavaScript disabled rendering, focus/overflow,
+console/network failures, and protected-value absence. The copied template checksum must remain
+unchanged. Real protected-source reconciliation and disposal remain a separately authorized HUMAN
+gate.

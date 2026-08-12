@@ -247,3 +247,27 @@ registry, never an upload or arbitrary server path, and never returns that key. 
 same events services and expose only safe counts, checksums, policy/mapping revisions, states, and
 bounded reason codes. Map/exclude/validate/activate/replace/rollback audit evidence contains no
 attendee value, provider payload, source path/filename, token, or secret.
+
+## Course registration-count baseline management
+
+The course-owned aggregate workflow uses the explicit permission
+`courses.registration_count_baseline_manage` and capability family
+`courses.registration_count_baseline.manage`. Every response is private/no-store/noindex, and the
+opaque source key accepted at creation is never returned.
+
+Studio owns `GET/POST /studio/courses/registration-count-baselines/`, `GET` detail at
+`/studio/courses/registration-count-baselines/<uuid>/`, confirmed revision-guarded `dry-run`,
+`validate`, `activate`, `cancel`, and `rollback` actions, and the safe total preview at
+`/studio/courses/registration-campaigns/<slug>/public-count/`. Admin API parity uses
+`GET/POST /api/v1/admin/course-registration-count-imports`, `GET` detail and the same action names at
+`/api/v1/admin/course-registration-count-imports/<uuid>/...`, plus
+`GET /api/v1/admin/registration-campaigns/<slug>/public-count`.
+
+Studio and admin API are adapters over the same `courses` services. POST requires an idempotency
+key, explicit confirmation and a bounded reason; state-changing detail actions also require the
+expected revision (`If-Match` in the API). Exact replay is a no-op. Safe responses and audits expose
+only UUIDs, states, counts, bounded timestamps, checksums, versions, safe target slugs, actor class,
+and reason codes. They never expose source paths/filenames, registration identifiers/digests,
+emails, names, answers, tokens, or payloads. Unauthorized high-risk attempts, conflicts, validation,
+activation, cancellation, replacement, and rollback use the normal redacted management audit
+policy.

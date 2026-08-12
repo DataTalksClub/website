@@ -21,6 +21,7 @@ from courses.registration import (
     render_markdown,
     youtube_embed_url,
 )
+from courses.services.registration_counts import public_course_registration_count
 
 from .registration_form import CourseRegistrationForm
 
@@ -117,12 +118,13 @@ def _registration_context(
     start_course_url = _start_course_url(campaign)
     country_options = ordered_countries()
     course_is_open = campaign_course_is_open(campaign)
+    public_count = public_course_registration_count(campaign)
 
     return {
         "campaign": campaign,
         "course": campaign.current_course,
         "course_is_open": course_is_open,
-        "signup_count": campaign.registrations.count(),
+        "signup_count": public_count.count if public_count is not None else None,
         "form": form,
         "registration": registration,
         "marketing_html": marketing_html,

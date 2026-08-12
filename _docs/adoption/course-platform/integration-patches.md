@@ -42,6 +42,12 @@ overlays:
 - `courses/templates/projects/project.html`: issue #75 replaces the external commit-ID screenshot
   with concise accessible text explaining where to copy the first seven commit characters. Project
   submission fields, validation, persistence, and operator controls remain unchanged;
+- `courses/models/__init__.py`, `courses/views/registration.py`, and
+  `courses/tests/test_registration_campaigns.py`: issue #133 exports additive course-owned models,
+  replaces only the copied view's direct registration-row count with the course-owned,
+  completeness-gated historical-baseline plus native-row query and characterizes omission of
+  unproven totals. The copied form submission/mutation path is unchanged, and
+  `courses/templates/courses/register.html` remains at its previously accepted byte checksum;
 - `studio_courses/`, copied staff links under `courses/`, and `accounts/views/impersonation.py`:
   issues #59 and #116
   mounts the complete copied operations surface canonically at `/studio/courses`, gives its route
