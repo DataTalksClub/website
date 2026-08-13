@@ -16,6 +16,7 @@ from ci.evidence import (
     choose_reusable_evidence,
     digest_manifest,
     environment_fingerprint,
+    environment_matches_plan,
     machine_output_claim,
     validate_envelope,
 )
@@ -121,6 +122,16 @@ def test_concrete_github_runner_image_version_changes_environment_identity() -> 
 
     with pytest.raises(EvidenceError, match="ImageVersion"):
         environment_fingerprint({"ImageOS": "ubuntu24"})
+
+
+def test_same_family_hosted_runner_drift_is_explicitly_compatible_for_fresh_execution() -> None:
+    planned = environment_fingerprint({"ImageOS": "ubuntu24", "ImageVersion": "20260801.1"})
+    actual = environment_fingerprint({"ImageOS": "ubuntu24", "ImageVersion": "20260808.1"})
+
+    assert not environment_matches_plan(actual, planned)
+    assert environment_matches_plan(actual, planned, allow_hosted_runner_drift=True)
+    windows = environment_fingerprint({"ImageOS": "windows2025", "ImageVersion": "20260808.1"})
+    assert not environment_matches_plan(windows, planned, allow_hosted_runner_drift=True)
 
 
 @pytest.mark.parametrize(

@@ -420,6 +420,7 @@ jobs:
           mkdir -p .tmp/ci-selection/components
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/ci-selection/verification-plan.json --component selector \
+            --allow-hosted-runner-drift \
             --output .tmp/ci-selection/components/selector-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/ci-selection/verification-plan.json --component selector \
@@ -431,6 +432,7 @@ jobs:
             --artifact-id "ci-selection-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/ci-selection \
             --execution-environment .tmp/ci-selection/components/selector-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/ci-selection/verification-plan.json \
             --output .tmp/ci-selection/components/selector-evidence.json
       - name: Carry forward only evidence selected by the exact plan
@@ -528,7 +530,8 @@ jobs:
             environment=.tmp/components-quality/$component-environment.json
             uv run --frozen python -m ci.verification environment \
               --plan .tmp/verification-input/verification-plan.json \
-              --component "$component" --output "$environment"
+              --component "$component" --output "$environment" \
+              --allow-hosted-runner-drift
             uv run --frozen python -m ci.verification record \
               --plan .tmp/verification-input/verification-plan.json \
               --component "$component" --result "$JOB_STATUS" --command "$command" \
@@ -539,6 +542,7 @@ jobs:
               --artifact-id "verification-component-quality-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
               --artifact-root .tmp/components-quality \
               --execution-environment "$environment" \
+              --allow-hosted-runner-drift \
               --machine-output "$machine_output" "${artifact_args[@]}" \
               --output ".tmp/components-quality/$component-evidence.json"
           done
@@ -683,6 +687,7 @@ jobs:
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/verification-input/verification-plan.json \
             --component django \
+            --allow-hosted-runner-drift \
             --output .tmp/components-django/django-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/verification-input/verification-plan.json \
@@ -695,6 +700,7 @@ jobs:
             --artifact-id "verification-component-django-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/components-django \
             --execution-environment .tmp/components-django/django-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/components-django/django-output.log \
             --output .tmp/components-django/django-evidence.json
       - name: Preserve Django evidence
@@ -769,6 +775,7 @@ jobs:
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/verification-input/verification-plan.json \
             --component playwright \
+            --allow-hosted-runner-drift \
             --output .tmp/components-playwright/playwright-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/verification-input/verification-plan.json \
@@ -781,6 +788,7 @@ jobs:
             --artifact-id "verification-component-playwright-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/components-playwright \
             --execution-environment .tmp/components-playwright/playwright-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/components-playwright/playwright-output.log \
             --output .tmp/components-playwright/playwright-evidence.json
       - name: Preserve Playwright evidence
@@ -1018,6 +1026,7 @@ jobs:
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/verification-input/verification-plan.json \
             --component container \
+            --allow-hosted-runner-drift \
             --output .tmp/components-container/container-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/verification-input/verification-plan.json \
@@ -1030,6 +1039,7 @@ jobs:
             --artifact-id "verification-component-container-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/components-container \
             --execution-environment .tmp/components-container/container-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/components-container/container-check.json \
             --output .tmp/components-container/container-evidence.json
       - name: Preserve production-container evidence

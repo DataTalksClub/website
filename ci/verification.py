@@ -22,6 +22,7 @@ from ci.evidence import (
     choose_reusable_evidence,
     component_inputs,
     environment_fingerprint,
+    environment_matches_plan,
     git_manifest,
     isoformat,
     load_envelopes,
@@ -1308,7 +1309,13 @@ def _envelope_matches_plan(
         and envelope["command"] == component_plan["command"]
         and envelope["input_sha256"] == component_plan["inputs"]["aggregate_sha256"]
         and envelope["input_manifest"] == component_plan["inputs"]["manifest"]
-        and envelope["environment"] == component_plan["environment"]
+        and environment_matches_plan(
+            envelope["environment"],
+            component_plan["environment"],
+            allow_hosted_runner_drift=(
+                rerun and envelope.get("origin", {}).get("kind") == "github_actions"
+            ),
+        )
         and envelope["validity_class"] == component_plan["validity_class"]
         and envelope["validity_seconds"] == component_plan["validity_seconds"]
         and envelope["policy"]
@@ -1629,6 +1636,7 @@ def main() -> None:
     environment_parser.add_argument("--plan", required=True)
     environment_parser.add_argument("--component", required=True, choices=PLAN_COMPONENTS)
     environment_parser.add_argument("--output", required=True)
+    environment_parser.add_argument("--allow-hosted-runner-drift", action="store_true")
 
     record_parser = commands.add_parser("record")
     record_parser.add_argument("--plan", required=True)
@@ -1653,6 +1661,7 @@ def main() -> None:
         "--producer-role", choices=("engineer", "tester"), default="engineer"
     )
     record_parser.add_argument("--worktree", default="local")
+    record_parser.add_argument("--allow-hosted-runner-drift", action="store_true")
 
     report_parser = commands.add_parser("report")
     report_parser.add_argument("--plan", required=True)
@@ -1735,7 +1744,11 @@ def main() -> None:
     if args.command_name == "environment":
         plan = load_plan(args.plan)
         actual_environment = environment_fingerprint()
-        if actual_environment != plan["components"][args.component]["environment"]:
+        if not environment_matches_plan(
+            actual_environment,
+            plan["components"][args.component]["environment"],
+            allow_hosted_runner_drift=args.allow_hosted_runner_drift,
+        ):
             raise VerificationError(
                 "executing component environment does not match the authorized plan"
             )
@@ -1781,6 +1794,7 @@ def main() -> None:
             ),
             artifacts=artifacts,
             machine_output=machine_output,
+            allow_hosted_runner_drift=args.allow_hosted_runner_drift,
         )
         dump_json(envelope, output_path)
         return

@@ -145,6 +145,49 @@ def environment_fingerprint(environ: Mapping[str, str] | None = None) -> dict[st
     return payload | {"sha256": sha256_json(payload)}
 
 
+def environment_matches_plan(
+    actual: Mapping[str, Any],
+    planned: Mapping[str, Any],
+    *,
+    allow_hosted_runner_drift: bool = False,
+) -> bool:
+    """Compare an execution environment with its plan-bound environment.
+
+    GitHub-hosted jobs in one workflow can be assigned different patch revisions of the
+    same Ubuntu image while the jobs are queued.  The concrete revision remains part of
+    each fingerprint (and therefore still prevents cross-run evidence reuse), but a caller
+    may explicitly allow this same-workflow drift when recording fresh hosted evidence.
+    """
+
+    actual_environment = validate_environment_fingerprint(actual)
+    planned_environment = validate_environment_fingerprint(planned)
+    if actual_environment == planned_environment:
+        return True
+    if not allow_hosted_runner_drift:
+        return False
+    actual_family, _, actual_version = actual_environment["runner_image"].partition("@")
+    planned_family, _, planned_version = planned_environment["runner_image"].partition("@")
+    if (
+        not actual_version
+        or not planned_version
+        or actual_family == "local"
+        or planned_family == "local"
+        or actual_family != planned_family
+    ):
+        return False
+    comparable_actual = {
+        key: value
+        for key, value in actual_environment.items()
+        if key not in {"runner_image", "runner_image_version", "sha256"}
+    }
+    comparable_planned = {
+        key: value
+        for key, value in planned_environment.items()
+        if key not in {"runner_image", "runner_image_version", "sha256"}
+    }
+    return comparable_actual == comparable_planned
+
+
 def git_manifest(
     repository: str | Path, revision: str
 ) -> tuple[list[dict[str, str]], dict[str, Any]]:
@@ -351,6 +394,7 @@ def build_envelope(
     completed_at: datetime | None = None,
     screenshot: Mapping[str, Any] | None = None,
     supersedes: str | None = None,
+    allow_hosted_runner_drift: bool = False,
 ) -> dict[str, Any]:
     if component not in plan.get("components", {}):
         raise EvidenceError("component is absent from the verification plan")
@@ -368,7 +412,11 @@ def build_envelope(
     if command != component_plan["command"]:
         raise EvidenceError("evidence command does not match the verification plan")
     normalized_environment = validate_environment_fingerprint(execution_environment)
-    if normalized_environment != component_plan["environment"]:
+    if not environment_matches_plan(
+        normalized_environment,
+        component_plan["environment"],
+        allow_hosted_runner_drift=allow_hosted_runner_drift,
+    ):
         raise EvidenceError("executing component environment does not match the verification plan")
     normalized_counts = _evidence_counts(
         plan=plan,
