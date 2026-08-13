@@ -339,6 +339,7 @@ jobs:
       django_mode: ${{ steps.plan.outputs.django_mode }}
       playwright_mode: ${{ steps.plan.outputs.playwright_mode }}
       quality_mode: ${{ steps.plan.outputs.quality_mode }}
+      screenshots_mode: ${{ steps.plan.outputs.screenshots_mode }}
     defaults:
       run:
         working-directory: .tmp/ci-controller
@@ -800,6 +801,125 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+  screenshots:
+    if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
+    needs: [resolve-release, classification]
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_ALLOW_ASYNC_UNSAFE: "true"
+      DJANGO_SETTINGS_MODULE: website.settings.test
+    defaults:
+      run:
+        working-directory: .tmp/release-source
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve-release.outputs.release_sha }}
+          path: .tmp/release-source
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: .tmp/ci-controller
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - name: Restore the reviewed verification plan
+        uses: actions/download-artifact@v4
+        with:
+          name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/verification-input
+      - name: Establish the release application environment
+        if: needs.classification.outputs.screenshots_mode == 'rerun'
+        run: uv sync --locked
+      - name: Establish the screenshot controller environment
+        if: needs.classification.outputs.screenshots_mode == 'rerun'
+        working-directory: .tmp/ci-controller
+        run: uv sync --locked
+      - name: Verify the release and controller lockfiles
+        if: needs.classification.outputs.screenshots_mode == 'rerun'
+        run: |
+          uv lock --check
+          (cd ../ci-controller && uv lock --check)
+      - name: Install the pinned Chromium browser
+        if: needs.classification.outputs.screenshots_mode == 'rerun'
+        working-directory: .tmp/ci-controller
+        run: uv run --frozen playwright install --with-deps chromium
+      - name: Migrate the synthetic SQLite database
+        if: needs.classification.outputs.screenshots_mode == 'rerun'
+        run: uv run --frozen python manage.py migrate --noinput
+      - name: Start the release application for local capture
+        if: needs.classification.outputs.screenshots_mode == 'rerun'
+        run: |
+          set -euo pipefail
+          mkdir -p ../ci-controller/.tmp/components-screenshots
+          uv run --frozen python manage.py runserver 127.0.0.1:8000 --noreload \
+            > ../ci-controller/.tmp/components-screenshots/server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:8000/health/live >/dev/null; then
+              break
+            fi
+            if [[ "$attempt" == "60" ]]; then
+              cat ../ci-controller/.tmp/components-screenshots/server.log >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          cd ../ci-controller
+          uv run --frozen python -m ci.screenshot_capture \
+            --plan .tmp/verification-input/verification-plan.json \
+            --base-url http://127.0.0.1:8000 \
+            --output .tmp/components-screenshots
+      - name: Record screenshot evidence with the job's actual environment
+        if: >-
+          always() &&
+          needs.classification.result == 'success' &&
+          needs.classification.outputs.screenshots_mode == 'rerun'
+        working-directory: .tmp/ci-controller
+        env:
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/components-screenshots
+          uv run --frozen python -m ci.verification environment \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component screenshots \
+            --allow-hosted-runner-drift \
+            --output .tmp/components-screenshots/screenshots-environment.json
+          artifact_args=()
+          for image in .tmp/components-screenshots/screenshots/*.png; do
+            artifact_args+=(--artifact "$image")
+          done
+          uv run --frozen python -m ci.verification record \
+            --plan .tmp/verification-input/verification-plan.json \
+            --component screenshots --result "$JOB_STATUS" \
+            --command "$(jq -er '.components.screenshots.command' .tmp/verification-input/verification-plan.json)" \
+            --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
+            --workflow .github/workflows/ci.yml --ref "$GITHUB_REF" \
+            --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --job-id screenshots \
+            --artifact-id "verification-component-screenshots-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
+            --artifact-root .tmp/components-screenshots \
+            --execution-environment .tmp/components-screenshots/screenshots-environment.json \
+            --allow-hosted-runner-drift \
+            --machine-output .tmp/components-screenshots/screenshots.json \
+            --screenshot .tmp/components-screenshots/screenshots.json \
+            "${artifact_args[@]}" \
+            --output .tmp/components-screenshots/screenshots-evidence.json
+      - name: Keep screenshot component successful when render inputs are unchanged
+        if: needs.classification.outputs.screenshots_mode != 'rerun'
+        run: echo "No render-impact changes; screenshot evidence is not applicable."
+      - name: Preserve screenshot evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-component-screenshots-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/ci-controller/.tmp/components-screenshots
+          if-no-files-found: warn
+          retention-days: 30
+
   container:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
@@ -1056,8 +1176,8 @@ jobs:
       always() &&
       (github.event_name != 'workflow_dispatch' || inputs.operation != 'probe')
     # Preserve the release-image prerequisite boundary checked by the frozen
-    # deployment contract: needs: [resolve-release, quality, django, playwright, container]
-    needs: [resolve-release, classification, quality, django, playwright, container]
+    # deployment contract: needs: [resolve-release, quality, django, playwright, container, screenshots]
+    needs: [resolve-release, classification, quality, django, playwright, container, screenshots]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -1152,6 +1272,7 @@ jobs:
           DJANGO_RESULT: ${{ needs.django.result }}
           PLAYWRIGHT_RESULT: ${{ needs.playwright.result }}
           CONTAINER_RESULT: ${{ needs.container.result }}
+          SCREENSHOTS_RESULT: ${{ needs.screenshots.result }}
           PROFILE: ${{ needs.classification.outputs.profile }}
           REASON: ${{ needs.classification.outputs.reason }}
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
@@ -1184,6 +1305,7 @@ jobs:
             --django "$DJANGO_RESULT" \
             --playwright "$PLAYWRIGHT_RESULT" \
             --container "$CONTAINER_RESULT" \
+            --screenshots "$SCREENSHOTS_RESULT" \
             --output .tmp/ci-gate.json \
             --summary "$GITHUB_STEP_SUMMARY"
       - name: Preserve aggregate CI evidence

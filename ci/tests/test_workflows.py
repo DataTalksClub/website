@@ -62,6 +62,7 @@ def test_normal_workflow_keeps_release_concurrency_and_exact_base_contract() -> 
         classifier["outputs"]["selection_sha256"]
         == "${{ steps.selection.outputs.selection_sha256 }}"
     )
+    assert classifier["outputs"]["screenshots_mode"] == "${{ steps.plan.outputs.screenshots_mode }}"
     script = runs(classifier)
     assert '--base "$EVENT_BEFORE"' in script
     assert '--after "$EVENT_AFTER"' in script
@@ -146,6 +147,7 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
         "django",
         "playwright",
         "container",
+        "screenshots",
     }
     gate_script = runs(gate)
     assert "ci.provenance resolve" in gate_script
@@ -213,6 +215,7 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     classifier = jobs["classification"]
     assert "verification_profile" in classifier["outputs"]
     assert "playwright_mode" in classifier["outputs"]
+    assert "screenshots_mode" in classifier["outputs"]
     classifier_script = runs(classifier)
     assert "ci.history" in classifier_script
     assert "ci.verification plan" in classifier_script
@@ -229,9 +232,34 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     assert "django-output.log" in workflow_text
     assert "playwright-output.log" in workflow_text
     assert "container-check.json" in workflow_text
+    assert "screenshots.json" in workflow_text
     assert "2>&1 | tee" in workflow_text
 
     gate = jobs["ci-gate"]
+    screenshots = jobs["screenshots"]
+    assert set(screenshots["needs"]) == {"resolve-release", "classification"}
+    screenshot_script = runs(screenshots)
+    assert "ci.screenshot_capture" in screenshot_script
+    assert "manage.py migrate --noinput" in screenshot_script
+    assert "playwright install --with-deps chromium" in screenshot_script
+    assert "--screenshot .tmp/components-screenshots/screenshots.json" in screenshot_script
+    assert "--component screenshots" in screenshot_script
+    assert ".components.screenshots.command" in screenshot_script
+    assert "screenshots_mode == 'rerun'" in str(screenshots)
+    assert "No render-impact changes" in screenshot_script
+    screenshot_artifact = (
+        "verification-component-screenshots-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
+    )
+    assert screenshot_artifact in str(screenshots)
+    assert set(gate["needs"]) == {
+        "resolve-release",
+        "classification",
+        "quality",
+        "django",
+        "playwright",
+        "container",
+        "screenshots",
+    }
     gate_script = runs(gate)
     assert "ci.verification report" in gate_script
     assert "--verification-plan" in gate_script
@@ -265,7 +293,15 @@ def test_deploy_smoke_has_exact_readonly_authority_and_pinned_base_url() -> None
 def test_manual_release_is_full_and_probe_contract_stays_separate() -> None:
     jobs = workflow("ci.yml")["jobs"]
     assert "manual_dispatch" in (ROOT / "ci" / "classifier.py").read_text(encoding="utf-8")
-    for name in ("classification", "quality", "django", "playwright", "container", "ci-gate"):
+    for name in (
+        "classification",
+        "quality",
+        "django",
+        "playwright",
+        "screenshots",
+        "container",
+        "ci-gate",
+    ):
         assert "operation != 'probe'" in jobs[name]["if"]
     for name in (
         "probe-contract",

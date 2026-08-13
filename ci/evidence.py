@@ -87,6 +87,7 @@ TRUSTED_CI_JOB_COMPONENTS = {
     "django": frozenset({"django"}),
     "playwright": frozenset({"playwright"}),
     "quality": frozenset({"compatibility", "content_invariants", "evidence_validation", "quality"}),
+    "screenshots": frozenset({"screenshots"}),
 }
 MAX_EVIDENCE_FILES = 500
 MAX_EVIDENCE_BYTES = 8 * 1024 * 1024
