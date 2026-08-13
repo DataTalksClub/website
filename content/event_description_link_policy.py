@@ -213,7 +213,7 @@ def projection_routes_and_fragments() -> tuple[set[str], dict[str, set[str]]]:
         "/wiki",
         "/docs/",
         "/faq/",
-        "/slack.html",
+        "/slack",
     }
     fragments: dict[str, set[str]] = {}
     for collection in (

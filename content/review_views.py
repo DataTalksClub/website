@@ -3,8 +3,16 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from django.http import FileResponse, Http404, HttpRequest, HttpResponse, JsonResponse
+from django.http import (
+    FileResponse,
+    Http404,
+    HttpRequest,
+    HttpResponse,
+    HttpResponseNotAllowed,
+    JsonResponse,
+)
 from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_safe
 
 from courses.models.course import Course
@@ -32,6 +40,7 @@ from .faq_data import (
     faq_course as faq_course_data,
 )
 from .review_projection import (
+    SLACK_PUBLIC_PATH,
     event_groups,
     projected_events,
     projection_context,
@@ -417,17 +426,25 @@ def faq_asset(request: HttpRequest, course_slug: str, asset: str) -> FileRespons
     return FileResponse(path.open("rb"), content_type=faq_asset_content_type(path))
 
 
-@require_safe
+@csrf_exempt
 def slack(request: HttpRequest) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        response = HttpResponseNotAllowed(("GET", "HEAD"))
+        response["Cache-Control"] = "no-store, max-age=0"
+        return response
     page = review_projection()["slack"]
-    page = {**page, "public_path": "/slack"}
+    # Keep the rendered context canonical even while an older source projection is being
+    # replaced.  The checked projection validator enforces the same path at load time.
+    page = {**page, "public_path": SLACK_PUBLIC_PATH}
+    context = projection_context("slack")
+    context["slack"] = page
     return _render(
         request,
         "review/slack.html",
         path=page["public_path"],
         title="Join our Slack — DataTalks.Club",
         description=page["lead"],
-        context=projection_context("slack"),
+        context=context,
     )
 
 

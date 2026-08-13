@@ -5,7 +5,10 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from compatibility.approved_targets import slack_target_expectation_set
+from compatibility.contracts import ContractClassification, load_public_contract_inventory
 from compatibility.diff import diff_source_production, dumps_differences
+from compatibility.expectations import QueryPolicy, dumps_expectations, loads_expectations
 from compatibility.models import (
     ClassificationKind,
     ReviewState,
@@ -27,9 +30,11 @@ CONTRACT_ROOT = ROOT / "_docs/compatibility"
 MANIFEST_PATH = CONTRACT_ROOT / "legacy-manifest.jsonl"
 MANIFEST_SCHEMA_PATH = CONTRACT_ROOT / "legacy-manifest.schema.json"
 DIFFERENCE_PATH = CONTRACT_ROOT / "legacy-manifest-differences.json"
+EXPECTATIONS_PATH = CONTRACT_ROOT / "approved-expectations.json"
 DIFFERENCE_SCHEMA_PATH = CONTRACT_ROOT / "legacy-manifest-differences.schema.json"
 MANIFEST_SHA256 = "94a6469530a290147e94f825eb981836e1358b9d0a72c7f50f0eda6d638e1d7f"
 DIFFERENCE_SHA256 = "72b2a68694b17c091ba09e29f1e44e2c052cd6d244b7c750abde3f66ad0cd4ff"
+EXPECTATIONS_SHA256 = "191fb47184d5aadce1ce0e6a3867cdb2dcdebe69665df61cdce28e687cfff045"
 DOCS_REPOSITORY = "https://github.com/DataTalksClub/docs.git"
 
 
@@ -66,6 +71,39 @@ def test_checked_manifest_and_difference_artifacts_are_exact_and_reproducible() 
         "route_added": 28,
         "route_removed": 4,
     }
+
+
+def test_slack_target_expectation_is_a_redirect_separate_from_source_provenance() -> None:
+    manifest_digest = _sha256(MANIFEST_PATH.read_bytes())
+    difference_digest = _sha256(DIFFERENCE_PATH.read_bytes())
+    contracts_path = CONTRACT_ROOT / "public-contracts.jsonl"
+    contracts_digest = _sha256(contracts_path.read_bytes())
+    artifact = EXPECTATIONS_PATH.read_text(encoding="utf-8")
+
+    assert _sha256(artifact.encode()) == EXPECTATIONS_SHA256
+    expectations = loads_expectations(artifact)
+    expected = slack_target_expectation_set(
+        manifest_sha256=manifest_digest,
+        differences_sha256=difference_digest,
+        public_contracts_sha256=contracts_digest,
+    )
+    assert expectations == expected
+    assert dumps_expectations(expectations) == artifact
+    assert len(expectations.expectations) == 1
+    redirect = expectations.expectations[0]
+    assert redirect.public_url == "https://datatalks.club/slack.html"
+    assert redirect.redirect_status == 301
+    assert redirect.redirect_target == "https://datatalks.club/slack"
+    assert redirect.query_policy is QueryPolicy.PRESERVE_RAW
+
+    source_contract = next(
+        contract
+        for contract in load_public_contract_inventory()
+        if contract.public_reference == "/slack.html"
+    )
+    assert source_contract.classification is ContractClassification.PRESERVE
+    assert source_contract.expected_status == 200
+    assert source_contract.source_path == "_site/slack.html"
 
 
 def test_checked_manifest_covers_the_exact_source_and_production_seed_sets() -> None:

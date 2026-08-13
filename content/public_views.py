@@ -86,10 +86,24 @@ def _json_ld(entity: dict, breadcrumbs: tuple[tuple[str, str], ...] = ()) -> str
     ).replace("<", "\\u003c")
 
 
-@require_safe
+def _no_store(response: HttpResponse) -> HttpResponse:
+    response["Cache-Control"] = "no-store, max-age=0"
+    return response
+
+
+@csrf_exempt
 def permanent_public_redirect(
     request: HttpRequest, *, target: str, preserve_query: bool = True
 ) -> HttpResponse:
+    """Serve one explicit public redirect with a bounded unsafe-method response.
+
+    Public aliases are safe read-only routes.  Handling the method boundary here (instead of
+    relying on ``require_safe``) lets the response policy reject unsafe requests before any
+    redirect work and attach the required no-store cache directive.
+    """
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
     query = request.META.get("QUERY_STRING", "") if preserve_query else ""
     response = HttpResponsePermanentRedirect(f"{target}?{query}" if query else target)
     response["Cache-Control"] = "public, max-age=300"
@@ -150,11 +164,6 @@ def _render(
         template,
         page_context,
     )
-
-
-def _no_store(response: HttpResponse) -> HttpResponse:
-    response["Cache-Control"] = "no-store, max-age=0"
-    return response
 
 
 def _public_not_found(request: HttpRequest) -> HttpResponse:
