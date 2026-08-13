@@ -6,16 +6,21 @@ Source repository: `DataTalksClub/course-management-platform`
 
 Pinned source commit: `98a235283904b4ef9ad29e196298540756cf1bcc`
 
-The adoption source was created without using the source working tree's files:
+The machine-readable pin is [`source-pin.json`](source-pin.json). The controlled
+upstream procedure is [`upstream-sync.md`](upstream-sync.md).
+
+The adoption source was created without using the source working tree's files.
+For a fresh checkout, provision the pin with:
 
 ```bash
-git clone --no-local --no-checkout /home/alexey/git/course-management-platform .tmp/cmp-source-98a2352
-git -C .tmp/cmp-source-98a2352 checkout --detach 98a235283904b4ef9ad29e196298540756cf1bcc
-git -C .tmp/cmp-source-98a2352 rev-parse HEAD
-git -C .tmp/cmp-source-98a2352 status --porcelain=v1 --untracked-files=all
+uv run python scripts/prepare_course_platform_source.py
+uv run python scripts/verify_course_platform_adoption.py
 ```
 
-The verified output was the exact pinned commit followed by no status entries.
+The helper clones `source_repository`, checks out the exact pinned commit
+detached, and rejects a dirty existing checkout. The verifier then confirms the
+exact pinned commit followed by no status entries. The complete upstream
+procedure is in [`upstream-sync.md`](upstream-sync.md).
 
 ## Tracked allowlist and literal copy
 

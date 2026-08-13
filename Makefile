@@ -3,6 +3,7 @@
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility \
+	test-course-platform-sync course-platform-source-checkout course-platform-sync-dry-run course-platform-sync \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
@@ -24,6 +25,9 @@ VERIFY_WORKTREE ?= local
 VERIFY_CONSUMER ?= engineer
 VERIFY_PHASE ?= $(VERIFY_CONSUMER)
 VERIFY_PRODUCER_ROLE ?= $(if $(filter tester,$(VERIFY_CONSUMER)),tester,engineer)
+CMP_SOURCE_REF ?= main
+CMP_SOURCE_REPOSITORY ?=
+CMP_SOURCE_CHECKOUT ?=
 SECURITY_ARTIFACT_INPUTS ?= .tmp/security/security-baseline.json .tmp/security/security-vulnerability-scan.json .tmp/security/security-redaction-canary.json
 SECURITY_ARTIFACT_CANARIES ?= synthetic-secret-canary synthetic-email@example.invalid synthetic-token-canary
 SECURITY_VULNERABILITY_EVIDENCE ?= .tmp/security/security-vulnerability-scan.json
@@ -38,7 +42,9 @@ ADOPTION_INTEGRATION_PYTHON = \
 	scripts/capture_screenshots.py \
 	scripts/check_database_portability.py \
 	scripts/render_course_platform_inventory.py \
-	scripts/verify_course_platform_adoption.py
+	scripts/verify_course_platform_adoption.py \
+	scripts/sync_course_platform.py \
+	scripts/prepare_course_platform_source.py
 
 COMPATIBILITY_PYTHON = \
 	compatibility \
@@ -71,7 +77,9 @@ typecheck:
 		scripts/build_local_review_db.py scripts/capture_screenshots.py \
 		scripts/check_database_portability.py \
 		scripts/render_course_platform_inventory.py \
-		scripts/verify_course_platform_adoption.py
+	scripts/verify_course_platform_adoption.py \
+	scripts/sync_course_platform.py \
+	scripts/prepare_course_platform_source.py
 
 migrations-check:
 	DJANGO_SETTINGS_MODULE=website.settings.test uv run python manage.py makemigrations --check --dry-run
@@ -134,6 +142,26 @@ check-management-parity:
 test-content:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test content.tests
+
+test-course-platform-sync:
+	uv run --frozen pytest scripts/tests/test_sync_course_platform.py -q
+
+course-platform-source-checkout:
+	uv run python scripts/prepare_course_platform_source.py
+
+course-platform-sync-dry-run:
+	uv run python scripts/sync_course_platform.py \
+		--source-ref "$(CMP_SOURCE_REF)" \
+		$(if $(CMP_SOURCE_REPOSITORY),--source-repository "$(CMP_SOURCE_REPOSITORY)",) \
+		$(if $(CMP_SOURCE_CHECKOUT),--source-checkout "$(CMP_SOURCE_CHECKOUT)",) \
+		--dry-run
+
+course-platform-sync:
+	uv run python scripts/sync_course_platform.py \
+		--source-ref "$(CMP_SOURCE_REF)" \
+		$(if $(CMP_SOURCE_REPOSITORY),--source-repository "$(CMP_SOURCE_REPOSITORY)",) \
+		$(if $(CMP_SOURCE_CHECKOUT),--source-checkout "$(CMP_SOURCE_CHECKOUT)",) \
+		--apply
 
 test: test-compatibility
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \

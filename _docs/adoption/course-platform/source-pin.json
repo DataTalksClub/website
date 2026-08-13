@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "source_checkout": ".tmp/cmp-source-98a2352",
+  "source_commit": "98a235283904b4ef9ad29e196298540756cf1bcc",
+  "source_repository": "https://github.com/DataTalksClub/course-management-platform.git"
+}

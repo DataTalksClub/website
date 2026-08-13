@@ -5,12 +5,14 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
 SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 SOURCE_CHECKOUT = Path(".tmp/cmp-source-98a2352")
+SOURCE_PIN = Path("_docs/adoption/course-platform/source-pin.json")
 MANIFEST = Path("_docs/adoption/course-platform/copied-files.tsv")
 PATCH_MANIFEST = Path("_docs/adoption/course-platform/integration-patched-files.tsv")
 TARGET_INTEGRATION_MANIFEST = Path(
@@ -201,9 +203,34 @@ def read_target_integration_manifest(path: Path) -> list[TargetIntegrationEntry]
     return entries
 
 
-def verify_source(source: Path) -> None:
-    if run_git(source, "rev-parse", "HEAD").strip() != SOURCE_COMMIT:
-        raise SystemExit(f"source checkout is not pinned to {SOURCE_COMMIT}")
+def read_source_pin(repo: Path) -> tuple[str, Path]:
+    """Return the current source commit and checkout from adoption metadata."""
+
+    path = repo / SOURCE_PIN
+    if not path.exists():
+        return SOURCE_COMMIT, SOURCE_CHECKOUT
+    try:
+        metadata = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"invalid source pin metadata: {path}: {exc}") from exc
+    if not isinstance(metadata, dict) or metadata.get("schema_version") != 1:
+        raise SystemExit(f"unsupported source pin metadata: {path}")
+    commit = metadata.get("source_commit")
+    checkout = metadata.get("source_checkout", str(SOURCE_CHECKOUT))
+    if (
+        not isinstance(commit, str)
+        or len(commit) != 40
+        or any(character not in "0123456789abcdef" for character in commit)
+    ):
+        raise SystemExit(f"invalid source pin commit: {path}")
+    if not isinstance(checkout, str) or not checkout.strip():
+        raise SystemExit(f"invalid source checkout path: {path}")
+    return commit, Path(checkout)
+
+
+def verify_source(source: Path, expected_commit: str = SOURCE_COMMIT) -> None:
+    if run_git(source, "rev-parse", "HEAD").strip() != expected_commit:
+        raise SystemExit(f"source checkout is not pinned to {expected_commit}")
     if run_git(source, "status", "--porcelain=v1", "--untracked-files=all"):
         raise SystemExit("source checkout is not clean")
 
@@ -310,16 +337,17 @@ def verify_cadmin_reference_allowlist(repo: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", type=Path, default=SOURCE_CHECKOUT)
+    parser.add_argument("--source", type=Path, default=None)
     parser.add_argument("--write-manifest", action="store_true")
     parser.add_argument("--write-patch-manifest", action="store_true")
-    args = parser.parse_args()
-
     repo = Path(__file__).resolve().parents[1]
-    source = args.source if args.source.is_absolute() else repo / args.source
+    args = parser.parse_args()
+    expected_commit, default_source = read_source_pin(repo)
+    source_arg = args.source if args.source is not None else default_source
+    source = source_arg if source_arg.is_absolute() else repo / source_arg
     manifest_path = repo / MANIFEST
 
-    verify_source(source)
+    verify_source(source, expected_commit)
     expected = expected_entries(source)
     if args.write_manifest:
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -342,7 +370,7 @@ def main() -> int:
     verify_target_integrations(repo, target_integrations)
     verify_cadmin_reference_allowlist(repo)
     print(
-        f"verified {len(recorded)} copied files from {SOURCE_COMMIT} and "
+        f"verified {len(recorded)} copied files from {expected_commit} and "
         f"{len(target_integrations)} target-owned compatibility shims"
     )
     return 0

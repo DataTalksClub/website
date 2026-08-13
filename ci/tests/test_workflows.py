@@ -290,6 +290,31 @@ def test_scheduled_workflow_has_exact_trigger_queue_and_least_permissions() -> N
     assert not any("permissions" in job for job in data["jobs"].values())
 
 
+def test_cmp_upstream_workflow_is_manual_or_scheduled_and_read_only() -> None:
+    data = workflow("cmp-upstream-sync.yml")
+    assert data["on"]["schedule"] == [{"cron": "31 */4 * * *"}]
+    assert "workflow_dispatch" in data["on"]
+    assert data["on"]["workflow_dispatch"]["inputs"]["source_ref"]["default"] == "main"
+    assert data["permissions"] == {"contents": "read"}
+    assert data["concurrency"] == {
+        "group": "website-cmp-upstream-drift",
+        "cancel-in-progress": "false",
+    }
+    assert set(data["jobs"]) == {"drift"}
+    job = data["jobs"]["drift"]
+    script = runs(job)
+    assert "scripts/sync_course_platform.py" in script
+    assert "--dry-run" in script
+    assert "--apply" not in script
+    workflow_text = (ROOT / ".github" / "workflows" / "cmp-upstream-sync.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "git push" not in workflow_text
+    assert "gh " not in workflow_text
+    assert "deploy" not in workflow_text.lower()
+    assert any(step.get("uses") == "actions/upload-artifact@v4" for step in job["steps"])
+
+
 def test_scheduled_workflow_has_no_mutation_or_aws_jobs_and_checks_exact_sha() -> None:
     data = workflow("scheduled-full-regression.yml")
     jobs = data["jobs"]

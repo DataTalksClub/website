@@ -1,0 +1,53 @@
+name: CMP upstream drift
+
+on:
+  schedule:
+    - cron: "31 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: CMP branch, tag, or 40-character commit SHA to inspect
+        required: true
+        default: main
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-cmp-upstream-drift
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    name: Report CMP drift
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_REF: ${{ inputs.source_ref || 'main' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - name: Dry-run CMP synchronization
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp/cmp-sync
+          uv run --frozen python scripts/sync_course_platform.py \
+            --source-ref "$SOURCE_REF" \
+            --dry-run \
+            --report .tmp/cmp-sync/report.json
+          cat .tmp/cmp-sync/report.json >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the deterministic drift report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmp-upstream-drift-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/cmp-sync/report.json
+          if-no-files-found: error
+          retention-days: 30
