@@ -6,6 +6,75 @@ The website adopts the Course Management Platform (CMP) by literal copy. It is
 not a Git mirror and CMP changes are never deployed automatically. A sync is a
 reviewed, source-pinned change to this repository.
 
+## Repeatable recipe
+
+Use this short sequence for the next CMP update. It deliberately resolves one
+immutable commit and then copies only the allowlisted bytes; it never merges a
+second Django project or reimplements CMP behavior.
+
+From a clean CMP checkout, commit and push the desired change first:
+
+```bash
+export CMP_ROOT=/home/alexey/git/course-management-platform
+export CMP_REPOSITORY=https://github.com/DataTalksClub/course-management-platform.git
+
+if [ -n "$(git -C "$CMP_ROOT" status --porcelain=v1 --untracked-files=all)" ]; then
+  echo "CMP checkout is dirty; commit or discard changes first" >&2
+  exit 1
+fi
+git -C "$CMP_ROOT" push origin HEAD:main
+export CMP_COMMIT_SHA="$(git -C "$CMP_ROOT" rev-parse HEAD)"
+printf 'CMP commit: %s\n' "$CMP_COMMIT_SHA"
+```
+
+From the website checkout, run a report-only dry run using that exact SHA. A
+unique checkout/report path makes the run reproducible and keeps old evidence:
+
+```bash
+export WEBSITE_ROOT=/home/alexey/git/dtc-website
+cd "$WEBSITE_ROOT"
+export CMP_REPORT=".tmp/cmp-sync-${CMP_COMMIT_SHA}.json"
+export CMP_CHECKOUT=".tmp/cmp-source-sync-${CMP_COMMIT_SHA}"
+
+uv run python scripts/sync_course_platform.py \
+  --source-repository "$CMP_REPOSITORY" \
+  --source-ref "$CMP_COMMIT_SHA" \
+  --source-checkout "$CMP_CHECKOUT" \
+  --dry-run \
+  --report "$CMP_REPORT"
+```
+
+Review `CMP_REPORT` for `status=ready` when the preflight can apply, or
+`status=no_change` when the requested SHA is already pinned. In both cases
+check the exact current/requested SHAs,
+allowlisted copy entries, excluded paths, and zero overlay conflicts or fatal
+errors. Only then apply the same command with `--apply` instead of
+`--dry-run`:
+
+```bash
+uv run python scripts/sync_course_platform.py \
+  --source-repository "$CMP_REPOSITORY" \
+  --source-ref "$CMP_COMMIT_SHA" \
+  --source-checkout "$CMP_CHECKOUT" \
+  --apply \
+  --report "$CMP_REPORT"
+```
+
+Verify the result with the same gates used by the adoption contract:
+
+```bash
+uv run python scripts/verify_course_platform_adoption.py
+make migrations-check
+uv run pytest scripts/tests/test_sync_course_platform.py -q
+uv run python manage.py test courses --noinput
+```
+
+Finish the normal issue lifecycle: inspect the diff, leave the branch
+uncommitted for the independent tester and PM, then commit with `Closes #N`,
+merge locally with `--no-ff`, push `main`, and wait for the exact CI/deploy run.
+Do not apply a report with conflicts, deletions, migration rewrites, or a dirty
+source; resolve those in a reviewed follow-up first.
+
 ## 1. Make a CMP commit eligible
 
 Only a pushed commit is eligible. The source worktree must be clean, including
