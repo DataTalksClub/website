@@ -48,6 +48,16 @@ overlays:
   completeness-gated historical-baseline plus native-row query and characterizes omission of
   unproven totals. The copied form submission/mutation path is unchanged, and
   `courses/templates/courses/register.html` remains at its previously accepted byte checksum;
+- `courses/models/project.py`: issue #144 adds runtime human-readable project and peer-review state
+  labels while preserving the stored enum values, workflow comparisons, and migration-stable
+  choices;
+- `courses/static/time_left.js`, `courses/templates/homework/stats.html`,
+  `courses/tests/test_homework_question_stats.py`, and `courses/tests/test_project_eval.py`: issue
+  #144 replaces deadline palette utility classes with semantic theme-backed statuses, preserves
+  real zero-valued statistics in both layouts, and characterizes the human-readable state labels
+  without changing deadline thresholds, submission behavior, or evaluation workflow;
+- `core/tests/test_accessibility.py` and `core/tests/test_course_platform_adoption.py` are
+  target-owned contract updates that follow the approved focus-token and adopted-overlay changes;
 - `studio_courses/`, copied staff links under `courses/`, and `accounts/views/impersonation.py`:
   issues #59 and #116
   mounts the complete copied operations surface canonically at `/studio/courses`, gives its route
@@ -66,7 +76,8 @@ overlays:
   Studio Courses page headers to the mobile viewport; long course titles wrap instead of being
   clipped or expanding the document width. Issue #132 adds target-owned, progressively enhanced
   podcast season-control layout and dark-mode contrast rules, including an explicit three-pixel
-  keyboard focus ring for the season controls, without changing copied course behavior;
+  keyboard focus ring for the season controls, and issue #144 adds theme-safe control, deadline,
+  readonly, and impersonation tokens without changing copied course behavior;
 - `core/static/core/site_shell.css`: issue #134 adds a target-owned no-JavaScript registration
   hero constraint after the adopted stylesheet. It makes the loaded CMP image a block-level,
   max-width-contained element while retaining its intrinsic ratio and leaves JavaScript-enhanced

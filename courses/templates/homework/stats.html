@@ -61,30 +61,30 @@
         <tbody class="divide-y app-divide">
           <tr>
             <td class="px-3 py-2 font-medium app-heading">Questions score</td>
-            <td class="px-3 py-2 text-right">{{ stats.min_questions_score|default:"-" }}</td>
+            <td class="px-3 py-2 text-right">{{ stats.min_questions_score|default_if_none:"-" }}</td>
             <td class="px-3 py-2 text-right">{% if stats.q1_questions_score is not None %}{{ stats.q1_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_questions_score is not None %}{{ stats.median_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right">{% if stats.avg_questions_score is not None %}{{ stats.avg_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right">{% if stats.q3_questions_score is not None %}{{ stats.q3_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{{ stats.max_questions_score|default:"-" }}</td>
+            <td class="px-3 py-2 text-right">{{ stats.max_questions_score|default_if_none:"-" }}</td>
           </tr>
           <tr>
             <td class="px-3 py-2 font-medium app-heading">Learning in public score</td>
-            <td class="px-3 py-2 text-right">{{ stats.min_learning_in_public_score|default:"-" }}</td>
+            <td class="px-3 py-2 text-right">{{ stats.min_learning_in_public_score|default_if_none:"-" }}</td>
             <td class="px-3 py-2 text-right">{% if stats.q1_learning_in_public_score is not None %}{{ stats.q1_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_learning_in_public_score is not None %}{{ stats.median_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right">{% if stats.avg_learning_in_public_score is not None %}{{ stats.avg_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right">{% if stats.q3_learning_in_public_score is not None %}{{ stats.q3_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{{ stats.max_learning_in_public_score|default:"-" }}</td>
+            <td class="px-3 py-2 text-right">{{ stats.max_learning_in_public_score|default_if_none:"-" }}</td>
           </tr>
           <tr>
             <td class="px-3 py-2 font-medium app-heading">Total score</td>
-            <td class="px-3 py-2 text-right">{{ stats.min_total_score|default:"-" }}</td>
+            <td class="px-3 py-2 text-right">{{ stats.min_total_score|default_if_none:"-" }}</td>
             <td class="px-3 py-2 text-right">{% if stats.q1_total_score is not None %}{{ stats.q1_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_total_score is not None %}{{ stats.median_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right">{% if stats.avg_total_score is not None %}{{ stats.avg_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
             <td class="px-3 py-2 text-right">{% if stats.q3_total_score is not None %}{{ stats.q3_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{{ stats.max_total_score|default:"-" }}</td>
+            <td class="px-3 py-2 text-right">{{ stats.max_total_score|default_if_none:"-" }}</td>
           </tr>
         </tbody>
       </table>
@@ -93,9 +93,9 @@
       <article class="p-3">
         <h3 class="font-medium app-heading">Questions score</h3>
         <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_questions_score|default:"-" }}</dd></div>
+          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_questions_score|default_if_none:"-" }}</dd></div>
           <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_questions_score is not None %}{{ stats.median_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_questions_score|default:"-" }}</dd></div>
+          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_questions_score|default_if_none:"-" }}</dd></div>
           <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_questions_score is not None %}{{ stats.q1_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
           <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_questions_score is not None %}{{ stats.avg_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
           <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_questions_score is not None %}{{ stats.q3_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
@@ -104,9 +104,9 @@
       <article class="p-3">
         <h3 class="font-medium app-heading">Learning in public score</h3>
         <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_learning_in_public_score|default:"-" }}</dd></div>
+          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_learning_in_public_score|default_if_none:"-" }}</dd></div>
           <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_learning_in_public_score is not None %}{{ stats.median_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_learning_in_public_score|default:"-" }}</dd></div>
+          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_learning_in_public_score|default_if_none:"-" }}</dd></div>
           <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_learning_in_public_score is not None %}{{ stats.q1_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
           <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_learning_in_public_score is not None %}{{ stats.avg_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
           <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_learning_in_public_score is not None %}{{ stats.q3_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
@@ -115,9 +115,9 @@
       <article class="p-3">
         <h3 class="font-medium app-heading">Total score</h3>
         <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_total_score|default:"-" }}</dd></div>
+          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_total_score|default_if_none:"-" }}</dd></div>
           <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_total_score is not None %}{{ stats.median_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_total_score|default:"-" }}</dd></div>
+          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_total_score|default_if_none:"-" }}</dd></div>
           <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_total_score is not None %}{{ stats.q1_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
           <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_total_score is not None %}{{ stats.avg_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
           <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_total_score is not None %}{{ stats.q3_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>

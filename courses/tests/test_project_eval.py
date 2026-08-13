@@ -1,8 +1,9 @@
 from django.urls import reverse
 
 from courses.models import (
-    PeerReviewState,
     CriteriaResponse,
+    PeerReviewState,
+    Project,
     ProjectState,
     ProjectVote,
 )
@@ -16,6 +17,55 @@ from courses.tests.project_eval_base import (
 def close_project_reviews(project):
     project.state = ProjectState.COMPLETED.value
     project.save()
+
+
+class ProjectStateChoiceLabelTests(ProjectEvaluationTestBase):
+    def test_project_and_peer_review_choices_are_human_readable(self):
+        project_labels = dict(Project._meta.get_field("state").choices)
+        self.assertEqual(
+            project_labels,
+            {
+                "CL": "CLOSED",
+                "CS": "COLLECTING_SUBMISSIONS",
+                "PR": "PEER_REVIEWING",
+                "CO": "COMPLETED",
+            },
+        )
+        self.assertEqual(
+            [
+                Project(state=value).get_state_display()
+                for value in ("CL", "CS", "PR", "CO")
+            ],
+            [
+                "Closed",
+                "Collecting submissions",
+                "Peer reviewing",
+                "Completed",
+            ],
+        )
+
+        review_labels = dict(
+            self.peer_review._meta.get_field("state").choices
+        )
+        self.assertEqual(
+            review_labels,
+            {"TR": "TO_REVIEW", "SU": "SUBMITTED"},
+        )
+        self.assertEqual(
+            [
+                self.peer_review.__class__(state=value).get_state_display()
+                for value in ("TR", "SU")
+            ],
+            ["To review", "Submitted"],
+        )
+
+    def test_peer_review_view_renders_human_readable_state(self):
+        self.client.login(**credentials)
+        response = self.client.get(self.eval_view_url())
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "To review")
+        self.assertNotContains(response, "TO_REVIEW")
 
 
 class ProjectEvaluationSubmitAuthTestCase(ProjectEvaluationTestBase):

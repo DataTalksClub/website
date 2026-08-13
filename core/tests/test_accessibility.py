@@ -34,7 +34,7 @@ class FocusStyleContractTests(SimpleTestCase):
         )
         self.assertEqual(stylesheet.count(f"{interactive_selector} {{"), 2)
         self.assertIn(
-            "outline: 3px solid var(--link-color, #315f8f) !important;",
+            "outline: 3px solid var(--focus-ring, #315f8f) !important;",
             stylesheet,
         )
         self.assertNotIn(
