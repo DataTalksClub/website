@@ -2,17 +2,18 @@ import math
 import statistics
 from enum import Enum
 
-from django.db import models
-from django.core.validators import URLValidator
 from django.contrib.auth import get_user_model
+from django.core.validators import URLValidator
+from django.db import models
 from django.utils import timezone
 
-from .course import Course, Enrollment
-from .stat_display import build_stat_fields, project_stat_sections
 from courses.validators.criteria_validators import (
     validate_review_criteria_options,
 )
 from courses.validators.custom_url_validators import validate_url_200
+
+from .course import Course, Enrollment
+from .stat_display import build_stat_fields, project_stat_sections
 
 User = get_user_model()
 
@@ -27,12 +28,21 @@ class ProjectState(Enum):
 def _build_enum_choices(enum_type):
     choices = []
     for state in enum_type:
+        # Keep historical migration state stable. Runtime model display methods
+        # below provide human-readable labels without changing stored choices.
         choice = (state.value, state.name)
         choices.append(choice)
     return choices
 
 
 PROJECT_STATE_CHOICES = _build_enum_choices(ProjectState)
+
+PROJECT_STATE_LABELS = {
+    ProjectState.CLOSED.value: "Closed",
+    ProjectState.COLLECTING_SUBMISSIONS.value: "Collecting submissions",
+    ProjectState.PEER_REVIEWING.value: "Peer reviewing",
+    ProjectState.COMPLETED.value: "Completed",
+}
 
 
 class Project(models.Model):
@@ -72,6 +82,9 @@ class Project(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_state_display(self):
+        return PROJECT_STATE_LABELS.get(self.state, self.state)
 
     @property
     def points_to_pass(self):
@@ -196,6 +209,11 @@ class PeerReviewState(Enum):
 
 PEER_REVIEW_STATE_CHOICES = _build_enum_choices(PeerReviewState)
 
+PEER_REVIEW_STATE_LABELS = {
+    PeerReviewState.TO_REVIEW.value: "To review",
+    PeerReviewState.SUBMITTED.value: "Submitted",
+}
+
 
 class PeerReview(models.Model):
     submission_under_evaluation = models.ForeignKey(
@@ -227,6 +245,9 @@ class PeerReview(models.Model):
 
     def __str__(self):
         return f"Peer review {self.id}, state={self.state}"
+
+    def get_state_display(self):
+        return PEER_REVIEW_STATE_LABELS.get(self.state, self.state)
 
 
 class CriteriaResponse(models.Model):

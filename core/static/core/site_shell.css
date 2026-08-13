@@ -126,7 +126,7 @@
 }
 
 .site-footer .site-footer-github:focus-visible {
-  outline-color: var(--link-color, #315f8f);
+  outline-color: var(--focus-ring, #315f8f);
 }
 
 .analytics-preferences {

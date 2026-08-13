@@ -29,7 +29,7 @@ body {
 }
 
 html body :is(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 3px solid var(--link-color, #315f8f) !important;
+  outline: 3px solid var(--focus-ring, #315f8f) !important;
   outline-offset: 3px !important;
   scroll-margin-block: 1rem;
 }

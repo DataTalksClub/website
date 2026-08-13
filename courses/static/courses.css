@@ -9,8 +9,13 @@
   --link-color: #315f8f;
   --link-hover: #244d78;
   --input-bg: #ffffff;
-  --input-border: #d0d7de;
+  /* Control boundaries must remain visible against their adjacent surface. */
+  --border-control: #6e7781;
+  --input-border: var(--border-control);
   --input-text: #24292f;
+  --control-readonly-bg: #f1f3f5;
+  --control-readonly-text: #24292f;
+  --control-readonly-label: #57606a;
   --success-bg: #e6f6ea;
   --success-text: #116329;
   --success-border: #b7dfc2;
@@ -23,7 +28,13 @@
   --info-bg: #edf5ff;
   --info-text: #315f8f;
   --info-border: rgba(49, 95, 143, 0.22);
-  --focus-ring: rgba(49, 95, 143, 0.4);
+  /* Full-opacity focus colour: at least 3:1 against the page surface. */
+  --focus-ring: #315f8f;
+  --impersonation-bg: #fff8c5;
+  --impersonation-border: #d4a72c;
+  --impersonation-text: #3b2300;
+  --impersonation-action-hover-bg: rgba(59, 35, 0, 0.12);
+  --impersonation-action-hover: #111827;
   --control-size: 1.1rem;
   --control-line-height: 1.35rem;
 }
@@ -39,8 +50,12 @@ body.dark-mode {
   --link-color: #8bb7df;
   --link-hover: #a7cbed;
   --input-bg: #0d1117;
-  --input-border: #30363d;
+  --border-control: #6e7681;
+  --input-border: var(--border-control);
   --input-text: #e6edf3;
+  --control-readonly-bg: #21262d;
+  --control-readonly-text: #e6edf3;
+  --control-readonly-label: #8b949e;
   --success-bg: rgba(31, 111, 59, 0.3);
   --success-text: #7ee787;
   --success-border: rgba(35, 134, 54, 0.4);
@@ -53,7 +68,12 @@ body.dark-mode {
   --info-bg: rgba(77, 127, 168, 0.22);
   --info-text: #8bb7df;
   --info-border: rgba(77, 127, 168, 0.42);
-  --focus-ring: rgba(139, 183, 223, 0.4);
+  --focus-ring: #8bb7df;
+  --impersonation-bg: #2d2516;
+  --impersonation-border: #bb8009;
+  --impersonation-text: #f0d98c;
+  --impersonation-action-hover-bg: rgba(240, 217, 140, 0.18);
+  --impersonation-action-hover: #fff6d7;
 }
 
 body {
@@ -92,6 +112,19 @@ body {
 
 .app-muted {
   color: var(--text-muted);
+}
+
+/* Deadline status is semantic so its meaning survives palette and theme changes. */
+.time-left--normal {
+  color: var(--text-muted);
+}
+
+.time-left--warning {
+  color: var(--warning-text);
+}
+
+.time-left--overdue {
+  color: var(--danger-text);
 }
 
 .app-link {
@@ -189,7 +222,7 @@ body {
 
 .country-combobox-panel {
   background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  border: 1px solid var(--border-control);
   border-radius: 6px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
   margin-top: 0.25rem;
@@ -244,7 +277,7 @@ body {
 input[type="checkbox"] {
   appearance: none;
   background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  border: 1px solid var(--border-control);
   border-radius: 4px;
   box-sizing: border-box;
   cursor: pointer;
@@ -284,7 +317,7 @@ input[type="checkbox"]:disabled {
 input[type="radio"] {
   appearance: none;
   background: var(--input-bg);
-  border: 1px solid var(--input-border);
+  border: 1px solid var(--border-control);
   border-radius: 50%;
   box-sizing: border-box;
   cursor: pointer;
@@ -914,9 +947,9 @@ header nav > div:last-child ul li {
 }
 
 .impersonation-banner {
-  background: #fff8c5;
-  border-bottom: 1px solid #d4a72c;
-  color: #3b2300;
+  background: var(--impersonation-bg);
+  border-bottom: 1px solid var(--impersonation-border);
+  color: var(--impersonation-text);
 }
 
 .impersonation-banner form {
@@ -926,7 +959,7 @@ header nav > div:last-child ul li {
 .impersonation-return-button {
   background: transparent;
   border: 0;
-  color: #3b2300;
+  color: var(--impersonation-text);
   cursor: pointer;
   font: inherit;
   font-weight: 700;
@@ -935,7 +968,13 @@ header nav > div:last-child ul li {
 }
 
 .impersonation-return-button:hover {
-  color: #111827;
+  background: var(--impersonation-action-hover-bg);
+  color: var(--impersonation-action-hover);
+}
+
+.impersonation-return-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 
 .form-container {
@@ -1006,7 +1045,7 @@ header nav > div:last-child ul li {
   box-sizing: border-box;
   min-height: 40px;
   background-color: var(--input-bg);
-  border-color: var(--input-border);
+  border-color: var(--border-control);
   border-radius: 6px;
   box-shadow: inset 0 1px 0 rgba(208, 215, 222, 0.2);
   color: var(--input-text);
@@ -1035,7 +1074,7 @@ form textarea,
 form select {
   box-sizing: border-box;
   background-color: var(--input-bg);
-  border: 1px solid var(--input-border);
+  border: 1px solid var(--border-control);
   border-radius: 6px;
   color: var(--input-text);
   font-size: 14px;
@@ -1046,17 +1085,41 @@ form select {
 
 .form-control:disabled,
 .form-control[readonly] {
-  background-color: #ffffff;
-  border-color: #d1d5db;
-  color: #57606a;
+  background-color: var(--control-readonly-bg);
+  border-color: var(--border-control);
+  color: var(--control-readonly-text);
   cursor: not-allowed;
-  opacity: 0.72;
+  opacity: 1;
+}
+
+form input[type="text"]:disabled,
+form input[type="url"]:disabled,
+form input[type="email"]:disabled,
+form input[type="password"]:disabled,
+form input[type="number"]:disabled,
+form input[type="search"]:disabled,
+form textarea:disabled,
+form select:disabled,
+form input[type="text"][readonly],
+form input[type="url"][readonly],
+form input[type="email"][readonly],
+form input[type="password"][readonly],
+form input[type="number"][readonly],
+form input[type="search"][readonly],
+form textarea[readonly],
+form select[readonly] {
+  background-color: var(--control-readonly-bg);
+  border-color: var(--border-control);
+  color: var(--control-readonly-text);
+  cursor: not-allowed;
+  opacity: 1;
 }
 
 /* Focused Inputs */
 .form-control:focus {
-  border-color: #315f8f;
-  box-shadow: inset 0 1px 0 rgba(208, 215, 222, 0.2), 0 0 0 3px rgba(49, 95, 143, 0.16);
+  border-color: var(--focus-ring);
+  box-shadow: inset 0 1px 0 rgba(208, 215, 222, 0.2),
+    0 0 0 3px color-mix(in srgb, var(--focus-ring) 25%, transparent);
 }
 
 .settings-page-title {
@@ -1262,7 +1325,7 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
 }
 
 .podcast-season-navigation .pagination-target:focus-visible {
-  outline: 3px solid var(--link-color, #315f8f) !important;
+  outline: 3px solid var(--focus-ring, #315f8f) !important;
   outline-offset: 3px !important;
 }
 
@@ -1578,19 +1641,23 @@ body.dark-mode .dark-mode-icon-stack .dark-mode-icon-dark {
 }
 
 .readonly-value {
+  background: var(--control-readonly-bg);
+  border: 1px solid var(--border-control);
+  border-radius: 6px;
   display: grid;
   gap: 0.15rem;
+  padding: 0.65rem 0.75rem;
 }
 
 .readonly-value-label {
-  color: var(--text-muted);
+  color: var(--control-readonly-label);
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
 }
 
 .readonly-value-content {
-  color: var(--text-primary);
+  color: var(--control-readonly-text);
   font-weight: 500;
 }
 
@@ -2132,9 +2199,9 @@ body.dark-mode .breadcrumbs ul li:not(:first-child)::before {
 }
 
 body.dark-mode .form-control {
-  background-color: #0d1117;
-  border-color: #30363d;
-  color: #e6edf3;
+  background-color: var(--input-bg);
+  border-color: var(--border-control);
+  color: var(--input-text);
 }
 
 body.dark-mode form input[type="text"],
@@ -2145,16 +2212,16 @@ body.dark-mode form input[type="number"],
 body.dark-mode form input[type="search"],
 body.dark-mode form textarea,
 body.dark-mode form select {
-  background-color: #0d1117;
-  border-color: #30363d;
-  color: #e6edf3;
+  background-color: var(--input-bg);
+  border-color: var(--border-control);
+  color: var(--input-text);
 }
 
 body.dark-mode .form-control:focus {
-  background-color: #0d1117;
-  border-color: #8bb7df;
-  color: #e6edf3;
-  box-shadow: 0 0 0 3px rgba(139, 183, 223, 0.18);
+  background-color: var(--input-bg);
+  border-color: var(--focus-ring);
+  color: var(--input-text);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 25%, transparent);
 }
 
 body.dark-mode form input[type="text"]:focus,
@@ -2165,9 +2232,33 @@ body.dark-mode form input[type="number"]:focus,
 body.dark-mode form input[type="search"]:focus,
 body.dark-mode form textarea:focus,
 body.dark-mode form select:focus {
-  border-color: #8bb7df;
+  border-color: var(--focus-ring);
   outline: none;
-  box-shadow: 0 0 0 3px rgba(139, 183, 223, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--focus-ring) 25%, transparent);
+}
+
+body.dark-mode .form-control:disabled,
+body.dark-mode .form-control[readonly],
+body.dark-mode form input[type="text"]:disabled,
+body.dark-mode form input[type="url"]:disabled,
+body.dark-mode form input[type="email"]:disabled,
+body.dark-mode form input[type="password"]:disabled,
+body.dark-mode form input[type="number"]:disabled,
+body.dark-mode form input[type="search"]:disabled,
+body.dark-mode form textarea:disabled,
+body.dark-mode form select:disabled,
+body.dark-mode form input[type="text"][readonly],
+body.dark-mode form input[type="url"][readonly],
+body.dark-mode form input[type="email"][readonly],
+body.dark-mode form input[type="password"][readonly],
+body.dark-mode form input[type="number"][readonly],
+body.dark-mode form input[type="search"][readonly],
+body.dark-mode form textarea[readonly],
+body.dark-mode form select[readonly] {
+  background-color: var(--control-readonly-bg);
+  border-color: var(--border-control);
+  color: var(--control-readonly-text);
+  opacity: 1;
 }
 
 body.dark-mode .primer-button {

@@ -171,3 +171,29 @@ class HomeworkQuestionStatsTestCase(TestCase):
         self.assertContains(response, "Option B")
         question_stats = response.context["question_stats"]
         self.assertEqual(len(question_stats), 3)
+
+    def test_stats_page_preserves_zero_min_and_max_in_both_layouts(self):
+        for _ in range(3):
+            _, submission = self.create_student_and_submission()
+            submission.questions_score = 0
+            submission.learning_in_public_score = 0
+            submission.total_score = 0
+            submission.save()
+
+        url = reverse(
+            "homework_statistics",
+            args=[self.course.slug, self.homework.slug],
+        )
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            'class="px-3 py-2 text-right">0</td>',
+            count=6,
+        )
+        self.assertContains(
+            response,
+            'class="font-semibold app-heading">0</dd>',
+            count=6,
+        )
