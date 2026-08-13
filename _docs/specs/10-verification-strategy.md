@@ -217,6 +217,10 @@ Tests that create real data are clearly tagged and cannot target a shared enviro
 ### Security, privacy, and accessibility
 
 - CSRF, session fixation/expiry/revocation, CORS, CSP/security headers, request limits, throttling, SSRF, XSS, CSV injection, and error leakage tests pass.
+- The non-identity portion is independently reviewable through the [issue #141 traceability
+  record](../security/issue-141-traceability.md) and [threat/control matrix](../security/non-identity-threat-control-matrix.md).
+  OIDC, MFA, reauthentication, break-glass, and high-risk action acceptance remain hand-offs to
+  #20/#28/#32/#33/#61 and are not silently counted by this gate.
 - Privacy export, correction, deletion/anonymization, retention, processor propagation, and restored-backup tombstone replay pass.
 - Automated accessibility checks plus manual keyboard, screen-reader, zoom/reflow, contrast, focus, reduced-motion, and form-error tests pass critical flows.
 - Member/profile/Slack/self/Studio/admin responses are private/no-store/noindex and absent from

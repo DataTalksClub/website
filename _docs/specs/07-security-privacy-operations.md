@@ -35,6 +35,11 @@ Protected assets include:
 - Formula-neutralize CSV exports.
 - Do not log or place secrets/tokens in URLs, metrics, traces, analytics, or error reports.
 
+Issue #141 records the independently verifiable non-identity controls and their owners in the
+[non-identity threat/control matrix](../security/non-identity-threat-control-matrix.md).  The
+matrix does not accept identity, OIDC/MFA, reauthentication, break-glass, or high-risk action
+semantics; those remain explicit hand-offs to their owning issues.
+
 ## Shared-cache trust and poisoning boundary
 
 CloudFront positive caching is deny-by-default. A deterministic versioned viewer-request function,

@@ -132,6 +132,8 @@ MIDDLEWARE = [
     # This policy must wrap short-circuits from health, SecurityMiddleware,
     # WhiteNoise, URL resolution, and error handlers.
     "core.middleware.ResponsePolicyMiddleware",
+    # Bound request bodies before parsers, authentication, or domain services.
+    "core.middleware.RequestBoundaryMiddleware",
     "management_api.middleware.AdminAPIResponseMiddleware",
     "course_management.middleware.ObservabilityExceptionMiddleware",
     "django.middleware.security.SecurityMiddleware",
@@ -274,6 +276,7 @@ X_FRAME_OPTIONS = "DENY"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
 # Keep the cookie host-only. Cross-host course continuity uses explicit
 # reauthentication and never broadens the cookie to ``.datatalks.club``.
 SESSION_COOKIE_DOMAIN = None

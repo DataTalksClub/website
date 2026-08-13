@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 
+from core.security import UnsafeInputError, validate_url
 from courses.models.course import Course, User
 from courses.models.homework import Submission
 from courses.models.project import ProjectSubmission
@@ -9,10 +10,13 @@ from courses.models.project import ProjectSubmission
 def _validate_learning_in_public_link(url_validator, link):
     try:
         url_validator(link)
-    except ValidationError:
+        # Learning links are user input.  Reject private/link-local/metadata
+        # literals but do not resolve or fetch arbitrary user hostnames.
+        validate_url(link, reject_private=True, resolve_private=False)
+    except (ValidationError, UnsafeInputError):
         raise ValidationError(
             "Learning in public links must be valid HTTP or HTTPS URLs."
-        )
+        ) from None
 
 
 def _is_blank_or_duplicate_link(link, cleaned_links):
@@ -23,9 +27,7 @@ def _is_blank_or_duplicate_link(link, cleaned_links):
     return is_duplicate
 
 
-def clean_learning_in_public_links(
-    links: list[str], cap: int
-) -> list[str]:
+def clean_learning_in_public_links(links: list[str], cap: int) -> list[str]:
     url_validator = URLValidator(schemes=["http", "https"])
     cleaned_links = []
 
@@ -68,9 +70,7 @@ def find_duplicate_learning_in_public_links(
     return sorted(duplicate_links)
 
 
-def _duplicate_homework_learning_links(
-    *, user, course, candidate_links, current_submission
-):
+def _duplicate_homework_learning_links(*, user, course, candidate_links, current_submission):
     submissions = _homework_submissions_with_learning_links(user, course)
     submissions = _exclude_current_submission(submissions, current_submission)
     return _duplicate_learning_links_from_submissions(

@@ -5,6 +5,8 @@ from typing import Any
 
 from django.http import HttpRequest, JsonResponse
 
+from core.redaction import redact
+
 
 @dataclass(slots=True)
 class APIError(Exception):
@@ -23,12 +25,15 @@ def error_response(request: HttpRequest, error: APIError) -> JsonResponse:
     payload: dict[str, Any] = {
         "error": {
             "code": error.code,
+            # APIError messages are code-owned, generic strings.  Dynamic
+            # fields are redacted below; preserving this allowlisted message
+            # keeps the stable public error envelope.
             "message": error.message,
             "request_id": getattr(request, "request_id", ""),
         }
     }
     if error.fields:
-        payload["error"]["fields"] = error.fields
+        payload["error"]["fields"] = redact(error.fields)
     if error.safe_result is not None:
         payload["result"] = error.safe_result
     response = JsonResponse(payload, status=error.status)

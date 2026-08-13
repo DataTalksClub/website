@@ -3,6 +3,7 @@
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility \
+	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
@@ -23,6 +24,9 @@ VERIFY_WORKTREE ?= local
 VERIFY_CONSUMER ?= engineer
 VERIFY_PHASE ?= $(VERIFY_CONSUMER)
 VERIFY_PRODUCER_ROLE ?= $(if $(filter tester,$(VERIFY_CONSUMER)),tester,engineer)
+SECURITY_ARTIFACT_INPUTS ?= .tmp/security/security-baseline.json .tmp/security/security-vulnerability-scan.json .tmp/security/security-redaction-canary.json
+SECURITY_ARTIFACT_CANARIES ?= synthetic-secret-canary synthetic-email@example.invalid synthetic-token-canary
+SECURITY_VULNERABILITY_EVIDENCE ?= .tmp/security/security-vulnerability-scan.json
 
 ADOPTION_INTEGRATION_PYTHON = \
 	accounts/managers.py \
@@ -77,6 +81,22 @@ django-check: check-openapi check-management-parity
 
 deployment-check:
 	DTC_ENVIRONMENT=production VERSION=20260809-143205-aaaaaaa SOURCE_SHA=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa IMAGE_DIGEST=sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb DJANGO_SETTINGS_MODULE=website.settings.production DJANGO_SECRET_KEY="$$(uv run python -c 'import secrets; print(secrets.token_urlsafe(64))')" DATABASE_URL=postgresql://check:check@127.0.0.1:5432/check DJANGO_ALLOWED_HOSTS=example.invalid DJANGO_CSRF_TRUSTED_ORIGINS=https://example.invalid uv run python manage.py check --deploy --fail-level ERROR
+
+security-check:
+	mkdir -p .tmp/security
+	uv run --frozen python -m scripts.security_baseline --repository . --output .tmp/security/security-baseline.json
+	uv run --frozen python -m scripts.security_vulnerability_scan --repository . --output "$(SECURITY_VULNERABILITY_EVIDENCE)"
+	uv run --frozen python -m scripts.security_canary_artifact --output .tmp/security/security-redaction-canary.json
+	$(MAKE) security-artifact-scan
+
+security-artifact-scan:
+	@test -n "$(SECURITY_ARTIFACT_INPUTS)" || (echo "SECURITY_ARTIFACT_INPUTS is required" >&2; exit 2)
+	@test -n "$(SECURITY_ARTIFACT_CANARIES)" || (echo "SECURITY_ARTIFACT_CANARIES is required" >&2; exit 2)
+	mkdir -p .tmp/security
+	uv run --frozen python -m scripts.security_artifact_scan \
+		$(foreach artifact,$(SECURITY_ARTIFACT_INPUTS),--input "$(artifact)") \
+		$(foreach canary,$(SECURITY_ARTIFACT_CANARIES),--canary "$(canary)") \
+		--output .tmp/security/security-artifact-scan.json
 
 terminology-check:
 	uv run python scripts/check_development_terminology.py
@@ -146,7 +166,7 @@ verification-run:
 			--producer-role "$(VERIFY_PRODUCER_ROLE)"
 	$(MAKE) verification-report-check
 
-verification-quality: terminology-check database-portability-check lint format-check typecheck \
+verification-quality: terminology-check database-portability-check security-check lint format-check typecheck \
 	migrations-check django-check deployment-check test-ci
 
 verification-container:

@@ -7,6 +7,8 @@ import pytest
 
 from ci.quality_contract import (
     AGGREGATE_TARGET,
+    LEGACY_QUALITY_CONTRACT_VERSION,
+    LEGACY_QUALITY_TARGETS,
     QUALITY_TARGETS,
     QualityContractError,
     inspect_makefile,
@@ -43,9 +45,9 @@ def test_exact_a220728_historical_makefile_uses_the_legacy_compatible_contract()
     body = HISTORICAL_MAKEFILE.read_bytes()
 
     assert hashlib.sha256(body).hexdigest() == HISTORICAL_MAKEFILE_SHA256
-    contract = inspect_makefile(body.decode("utf-8"))
-    assert contract.version == 1
-    assert contract.targets == QUALITY_TARGETS
+    contract = inspect_makefile(body.decode("utf-8"), allow_legacy=True)
+    assert contract.version == LEGACY_QUALITY_CONTRACT_VERSION
+    assert contract.targets == LEGACY_QUALITY_TARGETS
     assert not contract.aggregate_present
     assert "verification-quality:" not in body.decode("utf-8")
 

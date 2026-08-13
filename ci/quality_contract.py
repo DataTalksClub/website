@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 import re
 import subprocess
@@ -12,6 +13,7 @@ QUALITY_CONTRACT_VERSION = 1
 QUALITY_TARGETS = (
     "terminology-check",
     "database-portability-check",
+    "security-check",
     "lint",
     "format-check",
     "typecheck",
@@ -19,6 +21,14 @@ QUALITY_TARGETS = (
     "django-check",
     "deployment-check",
     "test-ci",
+)
+LEGACY_QUALITY_CONTRACT_VERSION = 0
+LEGACY_QUALITY_TARGETS = tuple(target for target in QUALITY_TARGETS if target != "security-check")
+# One immutable pre-#141 fixture remains runnable for release archaeology.  It
+# is never inferred from a missing target: only this exact historical source
+# may use the legacy contract.
+LEGACY_HISTORICAL_MAKEFILE_SHA256 = (
+    "378a3234f9d2fab30a7d5f6e6f6e9235103ca12f24ea6b9940a57e07176b8285"
 )
 AGGREGATE_TARGET = "verification-quality"
 MAX_MAKEFILE_BYTES = 256 * 1024
@@ -52,7 +62,7 @@ def _logical_lines(text: str) -> tuple[str, ...]:
     return tuple(logical)
 
 
-def inspect_makefile(text: str) -> QualityContract:
+def inspect_makefile(text: str, *, allow_legacy: bool = False) -> QualityContract:
     if "\x00" in text:
         raise QualityContractError("selected release Makefile contains a NUL byte")
     definitions: dict[str, tuple[str, ...]] = {}
@@ -67,22 +77,28 @@ def inspect_makefile(text: str) -> QualityContract:
                 raise QualityContractError(f"selected release Makefile redefines target {name}")
             definitions[name] = prerequisites
 
-    missing = tuple(target for target in QUALITY_TARGETS if target not in definitions)
+    legacy = allow_legacy and hashlib.sha256(text.encode("utf-8")).hexdigest() == (
+        LEGACY_HISTORICAL_MAKEFILE_SHA256
+    )
+    expected_targets = LEGACY_QUALITY_TARGETS if legacy else QUALITY_TARGETS
+    expected_version = LEGACY_QUALITY_CONTRACT_VERSION if legacy else QUALITY_CONTRACT_VERSION
+    missing = tuple(target for target in expected_targets if target not in definitions)
     if missing:
         raise QualityContractError(
-            "selected release cannot satisfy quality-contract-v1; missing targets: "
-            + ", ".join(missing)
+            f"selected release cannot satisfy quality-contract-v{expected_version}; "
+            "missing targets: " + ", ".join(missing)
         )
 
     aggregate_present = AGGREGATE_TARGET in definitions
-    if aggregate_present and definitions[AGGREGATE_TARGET] != QUALITY_TARGETS:
+    if aggregate_present and definitions[AGGREGATE_TARGET] != expected_targets:
         raise QualityContractError(
-            "selected release verification-quality target does not match quality-contract-v1"
+            "selected release verification-quality target does not match "
+            f"quality-contract-v{expected_version}"
         )
     return QualityContract(
         aggregate_present=aggregate_present,
-        targets=QUALITY_TARGETS,
-        version=QUALITY_CONTRACT_VERSION,
+        targets=expected_targets,
+        version=LEGACY_QUALITY_CONTRACT_VERSION if legacy else QUALITY_CONTRACT_VERSION,
     )
 
 
@@ -99,7 +115,7 @@ def load_contract(repository: str | Path) -> tuple[Path, QualityContract]:
         text = makefile.read_text(encoding="utf-8")
     except UnicodeError as error:
         raise QualityContractError("selected release Makefile is not UTF-8") from error
-    return root, inspect_makefile(text)
+    return root, inspect_makefile(text, allow_legacy=True)
 
 
 def run_quality_contract(

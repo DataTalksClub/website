@@ -4,6 +4,8 @@ from typing import Any, Protocol
 
 from django.conf import settings
 
+from core.redaction import REDACTED, is_sensitive_field, redact
+
 logger = logging.getLogger(__name__)
 
 LOG_RECORD_PROPERTY_KEYS = set(
@@ -35,20 +37,27 @@ class AppEvent:
     distinct_id: str
     properties: dict[str, Any] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        # Keep every backend (including copied CloudWatch formatting) behind
+        # one redaction boundary.  A caller may provide an email or provider
+        # identifier as ``distinct_id``; it must never become a metric field.
+        object.__setattr__(self, "distinct_id", str(redact(self.distinct_id)))
+
     def normalized_properties(self) -> dict[str, Any]:
         normalized = {
-            "event": self.name,
-            "schema_version": event_schema_version(),
-            "environment": observability_environment(),
-            "version": getattr(settings, "VERSION", ""),
-            "source_sha": getattr(settings, "SOURCE_SHA", None),
-            "image_digest": getattr(settings, "IMAGE_DIGEST", None),
+            "event": redact(self.name),
+            "schema_version": redact(event_schema_version()),
+            "environment": redact(observability_environment()),
+            "version": redact(getattr(settings, "VERSION", "")),
+            "source_sha": redact(getattr(settings, "SOURCE_SHA", None)),
+            "image_digest": redact(getattr(settings, "IMAGE_DIGEST", None)),
         }
         for key, value in self.properties.items():
+            safe_value = REDACTED if is_sensitive_field(key) else redact(value)
             if key in RESERVED_PROPERTY_KEYS:
-                normalized[f"app_{key}"] = value
+                normalized[f"app_{key}"] = safe_value
                 continue
-            normalized[key] = value
+            normalized[key] = safe_value
         return normalized
 
 
@@ -106,9 +115,14 @@ def report_exception(
         user=user,
         properties=properties,
     )
+    # Exception text/provider payloads are untrusted.  Keep the type for
+    # diagnostics while omitting the message and traceback from structured
+    # output; the bounded event above carries only redacted context.
+    safe_exception = RuntimeError("redacted exception")
     logger.exception(
-        "observability exception reported",
-        exc_info=(type(exc), exc, exc.__traceback__),
+        "observability exception reported type=%s",
+        type(exc).__name__,
+        exc_info=(type(safe_exception), safe_exception, None),
         extra=safe_logging_extra(properties or {}),
     )
 
@@ -180,7 +194,7 @@ def event_backend(name: str) -> EventBackend | None:
 class LogEventBackend:
     def record(self, event: AppEvent) -> None:
         extra = event.normalized_properties()
-        extra["distinct_id"] = event.distinct_id
+        extra["distinct_id"] = redact(event.distinct_id)
         logger.info("app_event", extra=extra)
 
 
@@ -192,8 +206,9 @@ class NoopEventBackend:
 def safe_logging_extra(properties: dict[str, Any]) -> dict[str, Any]:
     safe = {}
     for key, value in properties.items():
+        safe_value = REDACTED if is_sensitive_field(key) else redact(value)
         if key in LOG_RECORD_PROPERTY_KEYS:
-            safe[f"app_{key}"] = value
+            safe[f"app_{key}"] = safe_value
             continue
-        safe[key] = value
+        safe[key] = safe_value
     return safe

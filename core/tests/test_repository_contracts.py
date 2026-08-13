@@ -38,6 +38,44 @@ class RepositoryContractTests(SimpleTestCase):
         ):
             self.assertIn(f"`{app_name}`", document)
 
+    def test_non_identity_security_baseline_has_explicit_owners_and_handoffs(self) -> None:
+        matrix_path = BASE_DIR / "_docs/security/non-identity-threat-control-matrix.md"
+        traceability_path = BASE_DIR / "_docs/security/issue-141-traceability.md"
+        matrix = matrix_path.read_text(encoding="utf-8")
+        traceability = traceability_path.read_text(encoding="utf-8")
+        for phrase in (
+            "Browser response",
+            "Request body",
+            "Webhook ingress",
+            "Outbound/provider URL",
+            "Content URL/HTML and filesystem",
+            "Export cell / spreadsheet",
+            "Mutation payload / object and field scope",
+            "Logs, metrics, traces, audits, browser artifacts",
+            "Dependencies and runtime image",
+            "#61",
+            "#20",
+            "#28",
+            "#32",
+            "#33",
+        ):
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, matrix)
+        self.assertIn("core.middleware.RequestBoundaryMiddleware", traceability)
+        self.assertIn("neutralize_csv_formula", traceability)
+        self.assertIn("make security-check", traceability)
+
+    def test_playwright_artifact_redaction_bypass_is_test_harness_only(self) -> None:
+        harness = (BASE_DIR / "conftest.py").read_text(encoding="utf-8")
+        middleware = (BASE_DIR / "core/middleware.py").read_text(encoding="utf-8")
+
+        self.assertIn("bypass_csp=True", harness)
+        self.assertIn("test-harness", harness)
+        self.assertIn("def strict_csp_page", harness)
+        strict_fixture = harness.split("def strict_csp_page", 1)[1].split("@pytest.fixture", 1)[0]
+        self.assertNotIn("bypass_csp=True", strict_fixture)
+        self.assertNotIn("'unsafe-eval'", middleware)
+
     def test_process_documents_have_no_stale_source_repository_configuration(self) -> None:
         paths = [BASE_DIR / "AGENTS.md", BASE_DIR / "_docs/PROCESS.md"]
         paths.extend((BASE_DIR / ".claude/agents").glob("*.md"))
