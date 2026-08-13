@@ -10,14 +10,19 @@ pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 SCREENSHOTS = Path(".tmp/screenshots/issue-105")
 PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-132")
 EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
-FEATURED_EVENT_PATH = next(
-    event["public_path"]
-    for event in public_projection()["events"]
-    if event["title"] == "AI Dev Tools Zoomcamp 2026 Course Launch"
-)
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
+
+
+def _featured_event_path() -> str:
+    """Resolve the DB-backed numeric event URL once test data exists."""
+
+    return next(
+        event["public_path"]
+        for event in public_projection()["events"]
+        if event["title"] == FEATURED_EVENT_TITLE
+    )
 
 
 def _shot(page: Page, name: str, *, full_page: bool = False) -> None:
@@ -120,12 +125,13 @@ def test_internal_event_to_person_flow(
 ) -> None:
     page.set_viewport_size(viewport)
     origin = live_server.url
+    featured_event_path = _featured_event_path()
     page.goto(f"{origin}/events")
     page.get_by_role("link", name=FEATURED_EVENT_TITLE, exact=True).click()
-    expect(page).to_have_url(f"{origin}{FEATURED_EVENT_PATH}")
+    expect(page).to_have_url(f"{origin}{featured_event_path}")
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href",
-        f"https://datatalks.club{FEATURED_EVENT_PATH}",
+        f"https://datatalks.club{featured_event_path}",
     )
     expect(page.locator('section[aria-label="Event description"]')).to_have_count(1)
     expect(
@@ -133,7 +139,7 @@ def test_internal_event_to_person_flow(
     ).to_be_visible()
     expect(page.get_by_role("heading", name="Event links", exact=True)).to_have_count(0)
     expect(page.locator('a[href*="luma.com"], a[href*="lu.ma"]')).to_have_count(0)
-    expect(page.locator(f'a[href="{FEATURED_EVENT_PATH}/register"]')).to_have_count(0)
+    expect(page.locator(f'a[href="{featured_event_path}/register"]')).to_have_count(0)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     _event_description_shot(page, f"described-no-external-links-{suffix}.png")
 
@@ -200,6 +206,12 @@ def test_podcast_latest_middle_and_oldest_seasons(
 @pytest.mark.core
 def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server) -> None:
     origin = live_server.url
+    projection = public_projection()
+    podcast_target = next(
+        item["public_path"]
+        for item in projection["podcasts"]
+        if item["slug"] == "practical-llm-engineering-and-rag"
+    )
     aliases = {
         "/articles.html": "/blog",
         "/blog/": "/blog",
@@ -217,12 +229,8 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         "/blog/guide-to-free-online-courses-at-datatalks-club/": (
             "/blog/guide-to-free-online-courses-at-datatalks-club.html"
         ),
-        "/podcast/practical-llm-engineering-and-rag": (
-            "/podcast/practical-llm-engineering-and-rag.html"
-        ),
-        "/podcast/practical-llm-engineering-and-rag/": (
-            "/podcast/practical-llm-engineering-and-rag.html"
-        ),
+        "/podcast/practical-llm-engineering-and-rag": podcast_target,
+        "/podcast/practical-llm-engineering-and-rag/": podcast_target,
         "/books/20251006-software-development-at-rocket-speed": (
             "/books/20251006-software-development-at-rocket-speed.html"
         ),
@@ -243,11 +251,25 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
             f"{origin}{source}?{query}",
             max_redirects=0,
         )
+        expected_target = (
+            "/events/past"
+            if source in {"/events.html", "/events/"} and query == "filter=past"
+            else target
+        )
+        expected_query = "" if expected_target == "/events/past" else query
         assert response.status == 301
-        assert response.headers["location"] == f"{target}?{query}"
+        expected_location = (
+            f"{expected_target}?{expected_query}" if expected_query else expected_target
+        )
+        assert response.headers["location"] == expected_location
         navigation = page.goto(f"{origin}{source}?{query}")
         assert navigation is not None and navigation.status == 200
-        expect(page).to_have_url(f"{origin}{target}?{query}")
+        expected_url = (
+            f"{origin}{expected_target}?{expected_query}"
+            if expected_query
+            else f"{origin}{expected_target}"
+        )
+        expect(page).to_have_url(expected_url)
         assert navigation.request.redirected_from is not None
         assert navigation.request.redirected_from.redirected_from is None
 
@@ -272,7 +294,7 @@ def test_public_pages_remain_meaningful_without_javascript(
         for path, heading in (
             ("/", "The place to talk about data"),
             ("/events", "Events"),
-            (FEATURED_EVENT_PATH, FEATURED_EVENT_TITLE),
+            (_featured_event_path(), FEATURED_EVENT_TITLE),
             (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_NAME),
             ("/wiki/search", "Search"),
         ):
@@ -304,9 +326,14 @@ def test_public_pages_remain_meaningful_without_javascript(
 @pytest.mark.core
 def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> None:
     origin = live_server.url
+    podcast_path = next(
+        record["public_path"]
+        for record in public_projection()["podcasts"]
+        if record["slug"] == "practical-llm-engineering-and-rag"
+    )
     for path in (
         "/blog/sponsor-datatalks-club.html",
-        "/podcast/practical-llm-engineering-and-rag.html",
+        podcast_path,
         "/books/20251006-software-development-at-rocket-speed.html",
         "/wiki/a-a-testing",
     ):

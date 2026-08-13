@@ -96,8 +96,8 @@ urlpatterns = [
         {"collection": "people"},
     ),
     path("events", public_views.events, name="events"),
-    path("events.html", public_views.permanent_public_redirect, {"target": "/events"}),
-    path("events/", public_views.permanent_public_redirect, {"target": "/events"}),
+    path("events.html", public_views.legacy_events_redirect),
+    path("events/", public_views.legacy_events_redirect),
     path("events/past", public_views.events_past, name="events-past"),
     path("events/past/", public_views.permanent_public_redirect, {"target": "/events/past"}),
     # The reviewed legacy map stores clean one-segment paths.  Keep the historical trailing-slash

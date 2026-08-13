@@ -22,12 +22,17 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
 ADOPTED_CSS = REPOSITORY_ROOT / "courses/static/courses.css"
 SCREENSHOTS = Path(".tmp/screenshots/issue-130-remediation/after")
-FEATURED_EVENT_PATH = next(
-    event["public_path"]
-    for event in public_projection()["events"]
-    if event["title"] == "AI Dev Tools Zoomcamp 2026 Course Launch"
-)
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
+
+
+def _featured_event_path() -> str:
+    return next(
+        event["public_path"]
+        for event in public_projection()["events"]
+        if event["title"] == FEATURED_EVENT_TITLE
+    )
+
+
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
     ({"width": 390, "height": 844}, "mobile"),
@@ -35,7 +40,7 @@ VIEWPORTS = (
 SURFACES = (
     ("/", "home", "The place to talk about data"),
     ("/events", "events", "Events"),
-    (FEATURED_EVENT_PATH, "event-detail", FEATURED_EVENT_TITLE),
+    (_featured_event_path(), "event-detail", FEATURED_EVENT_TITLE),
 )
 SCOPED_ACTION_SELECTOR = (
     "#dark-mode-toggle, "
@@ -252,7 +257,7 @@ def test_empty_optional_and_error_states_are_responsive(
     event = next(
         item
         for item in (*event_groups().upcoming, *event_groups().recent)
-        if item["public_path"] == FEATURED_EVENT_PATH
+        if item["public_path"] == _featured_event_path()
     )
     optional_event = {**event, "speakers": (), "links": (), "ends_at": ""}
     monkeypatch.setattr(
@@ -261,7 +266,7 @@ def test_empty_optional_and_error_states_are_responsive(
         lambda: EventGroups((optional_event,), ()),
     )
     monkeypatch.setattr(public_views, "public_registration_total", lambda _event: None)
-    optional = page.goto(f"{live_server.url}{FEATURED_EVENT_PATH}")
+    optional = page.goto(f"{live_server.url}{_featured_event_path()}")
     assert optional is not None and optional.status == 200
     expect(page.get_by_role("heading", name=FEATURED_EVENT_TITLE, exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Speakers", exact=True)).to_have_count(0)

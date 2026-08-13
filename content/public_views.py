@@ -97,6 +97,15 @@ def permanent_public_redirect(
 
 
 @require_safe
+def legacy_events_redirect(request: HttpRequest) -> HttpResponse:
+    """Redirect the legacy event hub directly to its canonical filter path."""
+
+    if request.GET.get("filter") == "past" and len(request.GET) == 1:
+        return permanent_public_redirect(request, target="/events/past", preserve_query=False)
+    return permanent_public_redirect(request, target="/events")
+
+
+@require_safe
 def permanent_detail_redirect(
     request: HttpRequest,
     slug: str,
