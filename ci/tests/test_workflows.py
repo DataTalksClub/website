@@ -410,6 +410,13 @@ def test_scheduled_evidence_capture_and_record_symmetrically_allow_runner_drift(
         assert f"--component {name}" in verification_invocations(jobs[name], "environment")[0]
 
 
+def test_scheduled_aggregate_state_explicitly_allows_hosted_runner_drift() -> None:
+    jobs = workflow("scheduled-full-regression.yml")["jobs"]
+    invocations = verification_invocations(jobs["full-regression"], "scheduled-state")
+    assert len(invocations) == 1
+    assert invocations[0].split().count("--allow-hosted-runner-drift") == 1
+
+
 def test_scheduled_playwright_executes_and_records_the_planner_core_command() -> None:
     playwright = workflow("scheduled-full-regression.yml")["jobs"]["playwright"]
     planner_command = json.loads((ROOT / "ci" / "ownership.json").read_text(encoding="utf-8"))[
