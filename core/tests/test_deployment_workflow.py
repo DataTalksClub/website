@@ -1247,7 +1247,10 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn("--platform linux/amd64", workflow)
         self.assertIn("org.opencontainers.image.revision=$RELEASE_SHA", workflow)
         self.assertIn("10001:10001", workflow)
-        self.assertIn("needs: [resolve-release, quality, django, playwright, container]", workflow)
+        self.assertIn(
+            "needs: [resolve-release, quality, django, playwright, container, screenshots]",
+            workflow,
+        )
         self.assertIn("ImageNotFoundException", workflow)
         self.assertIn("Rollback requires reuse with no failure injection", workflow)
         self.assertIn("published-image record independently of deployment", workflow)

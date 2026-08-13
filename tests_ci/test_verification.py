@@ -147,6 +147,16 @@ def test_data_shape_and_navigation_changes_require_full_browser_and_screenshots(
     assert plan["components"]["screenshots"]["disposition"] == "rerun"
 
 
+def test_ci_render_plan_fails_closed_without_screenshot_evidence(tmp_path: Path) -> None:
+    _repository, plan = make_plan(tmp_path, {"api/templates/api/page.html": "changed\n"})
+    report = create_report(plan=plan, phase="ci")
+    screenshot_entry = next(
+        entry for entry in report["buckets"]["skipped"] if entry["component"] == "screenshots"
+    )
+    assert report["verdict"] == "failure"
+    assert screenshot_entry["reason"] == "required_result_missing"
+
+
 def test_screenshot_routes_are_derived_from_impacted_graph_nodes(tmp_path: Path) -> None:
     _repository, course_plan = make_plan(
         tmp_path, {"courses/templates/courses/catalog.html": "changed\n"}

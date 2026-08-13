@@ -30,6 +30,7 @@ NORMAL_REQUIRED_JOBS = (
     "django",
     "playwright",
     "container",
+    "screenshots",
 )
 SCHEDULE_COMPONENTS = (
     "quality",

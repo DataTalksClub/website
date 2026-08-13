@@ -1647,6 +1647,10 @@ def main() -> None:
     record_parser.add_argument("--artifact", action="append", default=[])
     record_parser.add_argument("--artifact-root", default=".")
     record_parser.add_argument("--machine-output", required=True)
+    record_parser.add_argument(
+        "--screenshot",
+        help="JSON screenshot inspection metadata bound to the machine output",
+    )
     record_parser.add_argument("--execution-environment", required=True)
     record_parser.add_argument("--origin-kind", choices=("github_actions", "local"), required=True)
     record_parser.add_argument("--repository-id", default="DataTalksClub/website")
@@ -1759,12 +1763,16 @@ def main() -> None:
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         result_path = output_path.with_name(f"{args.component}-result.json")
+        screenshot = None
+        if args.screenshot:
+            screenshot = json.loads(Path(args.screenshot).read_text(encoding="utf-8"))
         machine_output = machine_output_claim(
             args.machine_output,
             root=args.artifact_root,
             component=args.component,
             plan=plan,
             result=args.result,
+            screenshot=screenshot,
         )
         result_payload = {
             "command": args.command,
@@ -1794,6 +1802,7 @@ def main() -> None:
             ),
             artifacts=artifacts,
             machine_output=machine_output,
+            screenshot=screenshot,
             allow_hosted_runner_drift=args.allow_hosted_runner_drift,
         )
         dump_json(envelope, output_path)
