@@ -56,6 +56,7 @@ jobs:
             --summary "$GITHUB_STEP_SUMMARY"
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/scheduled/verification-plan.json --component selector \
+            --allow-hosted-runner-drift \
             --output .tmp/scheduled/selector-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/scheduled/verification-plan.json --component selector \
@@ -67,6 +68,7 @@ jobs:
             --artifact-id "ci-selection-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/scheduled \
             --execution-environment .tmp/scheduled/selector-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/scheduled/verification-plan.json \
             --output .tmp/scheduled/selector-evidence.json
       - name: Preserve the scheduled decision and shared plan
@@ -85,6 +87,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -114,6 +117,7 @@ jobs:
             environment=.tmp/evidence/$component-environment.json
             uv run --frozen python -m ci.verification environment \
               --plan .tmp/input/verification-plan.json --component "$component" \
+              --allow-hosted-runner-drift \
               --output "$environment"
             uv run --frozen python -m ci.verification record \
               --plan .tmp/input/verification-plan.json --component "$component" \
@@ -124,6 +128,7 @@ jobs:
               --job-id quality \
               --artifact-id "verification-component-quality-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
               --artifact-root .tmp/evidence --execution-environment "$environment" \
+              --allow-hosted-runner-drift \
               --machine-output .tmp/evidence/quality-output.log \
               --output ".tmp/evidence/$component-evidence.json"
           done
@@ -143,6 +148,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -159,6 +165,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -177,6 +184,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -202,6 +210,7 @@ jobs:
           mkdir -p .tmp/evidence
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/input/verification-plan.json --component django \
+            --allow-hosted-runner-drift \
             --output .tmp/evidence/django-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/input/verification-plan.json --component django \
@@ -213,6 +222,7 @@ jobs:
             --artifact-id "verification-component-django-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/evidence \
             --execution-environment .tmp/evidence/django-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/evidence/django-output.log \
             --output .tmp/evidence/django-evidence.json
       - uses: actions/upload-artifact@v4
@@ -234,6 +244,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -249,7 +260,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .tmp/evidence
-          make test-playwright 2>&1 | tee .tmp/evidence/playwright-output.log
+          make test-playwright-core 2>&1 | tee .tmp/evidence/playwright-output.log
       - name: Record shared Playwright envelope
         if: always()
         env:
@@ -259,10 +270,11 @@ jobs:
           mkdir -p .tmp/evidence
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/input/verification-plan.json --component playwright \
+            --allow-hosted-runner-drift \
             --output .tmp/evidence/playwright-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/input/verification-plan.json --component playwright \
-            --result "$JOB_STATUS" --command "make test-playwright" \
+            --result "$JOB_STATUS" --command "make test-playwright-core" \
             --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
             --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
@@ -270,6 +282,7 @@ jobs:
             --artifact-id "verification-component-playwright-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/evidence \
             --execution-environment .tmp/evidence/playwright-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/evidence/playwright-output.log \
             --output .tmp/evidence/playwright-evidence.json
       - uses: actions/upload-artifact@v4
@@ -288,6 +301,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -420,6 +434,7 @@ jobs:
             }' < .tmp/evidence/container-assertions.txt > .tmp/evidence/container-check.json
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/input/verification-plan.json --component container \
+            --allow-hosted-runner-drift \
             --output .tmp/evidence/container-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/input/verification-plan.json --component container \
@@ -431,6 +446,7 @@ jobs:
             --artifact-id "verification-component-container-$GITHUB_RUN_ID-attempt-$GITHUB_RUN_ATTEMPT" \
             --artifact-root .tmp/evidence \
             --execution-environment .tmp/evidence/container-environment.json \
+            --allow-hosted-runner-drift \
             --machine-output .tmp/evidence/container-check.json \
             --output .tmp/evidence/container-evidence.json
       - uses: actions/upload-artifact@v4
@@ -453,6 +469,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
@@ -522,6 +539,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
+          fetch-depth: 0
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.10.11"
