@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -21,6 +22,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from compatibility.approved_targets import slack_target_expectation_set  # noqa: E402
 from compatibility.contracts import (  # noqa: E402
     dumps_public_contract_inventory,
     load_public_contract_inventory,
@@ -47,6 +49,7 @@ from compatibility.diff import (  # noqa: E402
     dumps_differences,
     merge_captures,
 )
+from compatibility.expectations import dumps_expectations  # noqa: E402
 from compatibility.models import (  # noqa: E402
     Capture,
     CompatibilityRow,
@@ -71,11 +74,14 @@ from compatibility.source_config import (  # noqa: E402
 )
 
 DEFAULT_BASELINE = REPOSITORY_ROOT / "_docs/compatibility/generated-path-baseline.jsonl"
+DEFAULT_MANIFEST = REPOSITORY_ROOT / "_docs/compatibility/legacy-manifest.jsonl"
 DEFAULT_COURSE_ROUTES = REPOSITORY_ROOT / "_docs/compatibility/course-route-contracts.json"
 DEFAULT_WORKSPACE = REPOSITORY_ROOT / ".tmp/legacy-compatibility-sources"
 DEFAULT_CHECKPOINT = REPOSITORY_ROOT / ".tmp/compatibility/production.checkpoint.json"
 DEFAULT_PRODUCTION_WORK = REPOSITORY_ROOT / ".tmp/compatibility/production.jsonl"
 DEFAULT_PUBLIC_CONTRACTS = REPOSITORY_ROOT / "_docs/compatibility/public-contracts.jsonl"
+DEFAULT_EXPECTATIONS = REPOSITORY_ROOT / "_docs/compatibility/approved-expectations.json"
+DEFAULT_DIFFERENCES = REPOSITORY_ROOT / "_docs/compatibility/legacy-manifest-differences.json"
 PUBLIC_CONTRACT_SCHEMA = REPOSITORY_ROOT / "_docs/compatibility/public-contracts.schema.json"
 DIFFERENCE_SCHEMA = REPOSITORY_ROOT / "_docs/compatibility/legacy-manifest-differences.schema.json"
 
@@ -227,6 +233,35 @@ def _write_public_contracts(path: Path, value: str) -> None:
         raise
 
 
+def _write_expectations(path: Path, value: str) -> None:
+    """Atomically write the digest-bound target expectation sidecar."""
+
+    target = _contract_output_path(str(path))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if target.is_symlink():
+        raise CliError("approved-expectation output must not be a symlink")
+    scratch = REPOSITORY_ROOT / ".tmp/compatibility"
+    scratch.mkdir(parents=True, exist_ok=True)
+    staging = scratch / f"approved-expectations.{secrets.token_hex(8)}.pending"
+    descriptor = os.open(
+        staging,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+        0o644,
+    )
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(value)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(staging, target)
+    except BaseException:
+        try:
+            staging.unlink()
+        except FileNotFoundError:
+            pass
+        raise
+
+
 def _write_comparison(path: Path, value: str) -> None:
     """Atomically write a schema-validated comparison inside the repository."""
 
@@ -255,6 +290,17 @@ def _write_comparison(path: Path, value: str) -> None:
         except FileNotFoundError:
             pass
         raise
+
+
+def _sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as stream:
+            while chunk := stream.read(1024 * 1024):
+                digest.update(chunk)
+    except OSError as error:
+        raise CliError(f"artifact cannot be read: {path}") from error
+    return digest.hexdigest()
 
 
 def _validate_difference_document(value: str) -> None:
@@ -807,6 +853,46 @@ def _public_contracts(args: argparse.Namespace) -> int:
     return 0
 
 
+def _approved_expectations(args: argparse.Namespace) -> int:
+    """Regenerate the reviewed target sidecar from the exact checked artifacts."""
+
+    try:
+        loads_jsonl(args.manifest.read_text(encoding="utf-8"))
+        validate_record(
+            _load_strict_json(args.differences, "legacy differences"),
+            load_schema(DIFFERENCE_SCHEMA),
+        )
+        validate_jsonl_records(
+            args.public_contracts.read_text(encoding="utf-8"),
+            load_schema(PUBLIC_CONTRACT_SCHEMA),
+        )
+    except (OSError, UnicodeError, RecordSchemaError, ValueError, json.JSONDecodeError) as error:
+        raise CliError("approved-expectation inputs are invalid") from error
+
+    expectation_set = slack_target_expectation_set(
+        manifest_sha256=_sha256_path(args.manifest),
+        differences_sha256=_sha256_path(args.differences),
+        public_contracts_sha256=_sha256_path(args.public_contracts),
+    )
+    value = dumps_expectations(expectation_set)
+    output = _contract_output_path(str(args.output))
+    if args.check:
+        try:
+            current = output.read_text(encoding="utf-8")
+        except OSError as error:
+            raise CliError("approved-expectation artifact is missing") from error
+        if current != value:
+            raise CliError("approved-expectation artifact is stale; regenerate it without --check")
+        print(f"valid approved expectations: {len(expectation_set.expectations)} records")
+        return 0
+    _write_expectations(output, value)
+    print(
+        "approved expectations: "
+        f"{len(expectation_set.expectations)} records sha256={expectation_set.sha256}"
+    )
+    return 0
+
+
 def _validate(args: argparse.Namespace) -> int:
     value = args.manifest.read_text(encoding="utf-8")
     _, rows = loads_jsonl(value)
@@ -887,6 +973,15 @@ def parser() -> argparse.ArgumentParser:
     )
     public_contracts.add_argument("--check", action="store_true")
     public_contracts.set_defaults(handler=_public_contracts)
+    expectations = commands.add_parser(
+        "approved-expectations", help="regenerate or validate the reviewed target sidecar"
+    )
+    expectations.add_argument("--manifest", type=_path, default=DEFAULT_MANIFEST)
+    expectations.add_argument("--differences", type=_path, default=DEFAULT_DIFFERENCES)
+    expectations.add_argument("--public-contracts", type=_path, default=DEFAULT_PUBLIC_CONTRACTS)
+    expectations.add_argument("--output", type=_contract_output_path, default=DEFAULT_EXPECTATIONS)
+    expectations.add_argument("--check", action="store_true")
+    expectations.set_defaults(handler=_approved_expectations)
     validate = commands.add_parser("validate")
     validate.add_argument("manifest", type=_path)
     validate.set_defaults(handler=_validate)

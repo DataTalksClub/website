@@ -234,7 +234,7 @@ def _replace_image_tokens(answer: str, images: list[dict[str, Any]]) -> str:
 def render_faq_answer(question: dict[str, Any]) -> str:
     markdown = _replace_image_tokens(question["answer"], question.get("images", []))
     # Keep checked-in FAQ source content unchanged while replacing its legacy site link in the
-    # rendered answer.  This prevents public pages from sending readers back to /slack.html.
+    # rendered answer.  This prevents public pages from sending readers back to the legacy alias.
     markdown = re.sub(
         r"https?://datatalks\.club/slack\.html(?P<fragment>#[^\s)]+)?",
         lambda match: "/slack" + (match.group("fragment") or ""),

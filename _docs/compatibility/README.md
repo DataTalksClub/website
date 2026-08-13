@@ -123,8 +123,19 @@ captures suppress runtime monitoring through an internal context marker that an 
 set. Runtime events use known contract IDs or low-cardinality unknown/external groups and never
 record raw queries, fragments, unknown paths, referrers, user IDs, or response bodies.
 
-The checked real inputs intentionally have no approved expectation sidecar yet. This must remain a
-nonzero `BLOCKED` result until adapter issues produce independently reviewed expectations:
+`approved-expectations.json` is the target-owned, digest-bound sidecar for independently reviewed
+adapter behavior. It deliberately does not rewrite the source or production observations: the
+generated baseline and public-contract rows retain `/slack.html` as a `preserve`/`200` source
+observation, while the checked target expectation classifies that exact URL as one approved `301`
+hop to `/slack` with raw-query preservation. Regenerate and verify it through the same builder:
+
+```console
+uv run python scripts/build_legacy_manifest.py approved-expectations
+uv run python scripts/build_legacy_manifest.py approved-expectations --check
+```
+
+The checked-real-input invocation intentionally omits this scope-specific sidecar, so it must
+remain a nonzero `BLOCKED` result until a caller supplies independently reviewed expectations:
 
 ```console
 make check-links
@@ -195,6 +206,7 @@ uv run python scripts/build_legacy_manifest.py public-contracts --check
 
 # Regenerate the checked-in artifact after an intentional source-contract update:
 uv run python scripts/build_legacy_manifest.py public-contracts
+uv run python scripts/build_legacy_manifest.py approved-expectations
 
 uv run python scripts/build_legacy_manifest.py source \
   --workspace .tmp/legacy-compatibility-sources \

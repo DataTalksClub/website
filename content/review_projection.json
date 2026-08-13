@@ -163,7 +163,7 @@
   "slack": {
     "source": "main",
     "source_path": "slack.md",
-    "public_path": "/slack.html",
+    "public_path": "/slack",
     "title": "Join our Slack",
     "lead": "Join our community of data science professionals, machine learning engineers, and AI practitioners on Slack.",
     "channels": ["#book-of-the-week", "#career-questions", "#datascience", "#engineering", "#events", "#jobs", "#memes", "#random"],
@@ -178,7 +178,7 @@
     "summary": "Start with cross-course onboarding for registration, account setup, calendar, and newsletter updates, then follow the AI Dev Tools Zoomcamp-specific setup below.",
     "sections": [
       {"id": "star-the-github-repository", "title": "Star the GitHub repository", "body": "All course materials are here. Each module has its own folder (for example 01-overview, 03-mcp), and cohort-specific homework and deadlines are under the cohorts folder.", "link_label": "Open the course repository", "link_url": "https://github.com/DataTalksClub/ai-dev-tools-zoomcamp"},
-      {"id": "join-the-slack-channel", "title": "Join the Slack channel", "body": "After joining the DataTalks.Club Slack workspace, find the #course-ai-dev-tools-zoomcamp channel. This is where questions, announcements, and discussion happen.", "link_label": "Learn about our Slack community", "link_path": "/slack.html"},
+      {"id": "join-the-slack-channel", "title": "Join the Slack channel", "body": "After joining the DataTalks.Club Slack workspace, find the #course-ai-dev-tools-zoomcamp channel. This is where questions, announcements, and discussion happen.", "link_label": "Learn about our Slack community", "link_path": "/slack"},
       {"id": "follow-the-announcements", "title": "Follow the announcements", "body": "Join the course Telegram channel. Subscribe to the DataTalks.Club YouTube channel and check the course playlist.", "link_label": "Open the course Telegram channel", "link_url": "https://t.me/aidevtoolszoomcamp"},
       {"id": "how-to-work-through-the-course", "title": "How to work through the course", "body": "Start with the Q&A or launch session and Module 1. Read the README in each module folder, watch the pre-recorded lectures, do the homework, finish the final project, and then review three peers' projects.", "link_label": "Open the 2026 cohort", "link_path": "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026"}
     ],

@@ -235,6 +235,7 @@ compatibility-artifacts-check:
 		--output .tmp/compatibility/legacy-manifest-differences.check.json
 	cmp _docs/compatibility/legacy-manifest-differences.json \
 		.tmp/compatibility/legacy-manifest-differences.check.json
+	uv run python scripts/build_legacy_manifest.py approved-expectations --check
 
 check-links:
 	uv run pytest compatibility/tests/test_links.py compatibility/tests/test_runtime.py -q

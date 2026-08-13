@@ -12,6 +12,8 @@ from django.core.exceptions import ImproperlyConfigured
 from django.utils import timezone
 
 PROJECTION_PATH = Path(__file__).with_name("review_projection.json")
+SLACK_PUBLIC_PATH = "/slack"
+SLACK_LEGACY_PATH = "/slack.html"
 REQUIRED_SOURCE_REVISIONS = {
     "main": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
     "courses": "98a235283904b4ef9ad29e196298540756cf1bcc",
@@ -27,7 +29,7 @@ REQUIRED_PUBLIC_PATHS = {
     "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
     "/faq/ai-dev-tools-zoomcamp.html",
     "/wiki/ai-coding-tools",
-    "/slack.html",
+    SLACK_PUBLIC_PATH,
     "/courses/ai-dev-tools-zoomcamp",
 }
 
@@ -63,11 +65,17 @@ def _validate_projection(projection: dict[str, Any]) -> None:
     }
     if actual_revisions != REQUIRED_SOURCE_REVISIONS:
         raise ImproperlyConfigured("Review content projection revisions do not match inventory.")
-    missing_paths = REQUIRED_PUBLIC_PATHS - _public_paths(projection)
+    public_paths = _public_paths(projection)
+    missing_paths = REQUIRED_PUBLIC_PATHS - public_paths
     if missing_paths:
         raise ImproperlyConfigured(
             f"Review content projection is missing required paths: {sorted(missing_paths)!r}"
         )
+    slack_path = projection["slack"].get("public_path")
+    if slack_path != SLACK_PUBLIC_PATH:
+        raise ImproperlyConfigured("Slack review projection must use its canonical public path.")
+    if SLACK_LEGACY_PATH in public_paths:
+        raise ImproperlyConfigured("Legacy Slack path cannot be a rendered projection path.")
     if projection["podcast"]["guest"] not in projection["people"]:
         raise ImproperlyConfigured("Podcast guest does not resolve to one projected Person.")
     if not any(event.get("speaker") == "aleksandrkim" for event in projection["events"]):
