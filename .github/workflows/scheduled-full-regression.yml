@@ -517,6 +517,7 @@ jobs:
             --report .tmp/verification-report.json \
             --state .tmp/repository-state.json \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \
+            --allow-hosted-runner-drift \
             --output .tmp/scheduled-state.json
       - name: Preserve the complete aggregate scheduled evidence
         uses: actions/upload-artifact@v4

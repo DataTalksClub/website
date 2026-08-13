@@ -1027,19 +1027,98 @@ def repository_state(
 ) -> dict[str, Any]:
     graph = dict(graph) if graph is not None else load_graph()
     _manifest, source_tree = git_manifest(repository, revision)
-    environment = environment_fingerprint()
+    environment = validate_environment_fingerprint(environment_fingerprint())
+    component_environment = {
+        component: validate_environment_fingerprint(component_environment_fingerprint(component))
+        for component in PLAN_COMPONENTS
+    }
     payload = {
+        "component_environment": component_environment,
         "component_environment_sha256": {
-            component: component_environment_fingerprint(component)["sha256"]
-            for component in PLAN_COMPONENTS
+            component: fingerprint["sha256"]
+            for component, fingerprint in component_environment.items()
         },
+        "environment": environment,
         "environment_sha256": environment["sha256"],
         "graph_sha256": graph_digest(graph),
         "policy_version": graph["policy_version"],
         "source_manifest_sha256": source_tree["manifest_sha256"],
         "tree_oid": source_tree["tree_oid"],
     }
-    return payload | {"verification_state_sha256": sha256_json(payload)}
+    return _validate_repository_state(payload | {"verification_state_sha256": sha256_json(payload)})
+
+
+def _validate_repository_state(value: object) -> dict[str, Any]:
+    """Validate the aggregate state retained for scheduled coverage decisions."""
+    expected = {
+        "component_environment",
+        "component_environment_sha256",
+        "environment",
+        "environment_sha256",
+        "graph_sha256",
+        "policy_version",
+        "source_manifest_sha256",
+        "tree_oid",
+        "verification_state_sha256",
+    }
+    if not isinstance(value, dict) or set(value) != expected:
+        raise VerificationError("repository state has an invalid shape")
+    try:
+        environment = validate_environment_fingerprint(value["environment"])
+        component_environment = value["component_environment"]
+        if not isinstance(component_environment, dict) or set(component_environment) != set(
+            PLAN_COMPONENTS
+        ):
+            raise VerificationError("repository state component environments are incomplete")
+        validated_components = {
+            component: validate_environment_fingerprint(component_environment[component])
+            for component in PLAN_COMPONENTS
+        }
+    except (TypeError, ValueError) as exc:
+        raise VerificationError("repository state environment fingerprint is invalid") from exc
+
+    if value["environment_sha256"] != environment["sha256"]:
+        raise VerificationError("repository state global environment digest does not match")
+    component_digests = value["component_environment_sha256"]
+    if (
+        not isinstance(component_digests, dict)
+        or set(component_digests) != set(PLAN_COMPONENTS)
+        or component_digests
+        != {
+            component: fingerprint["sha256"]
+            for component, fingerprint in validated_components.items()
+        }
+    ):
+        raise VerificationError("repository state component environment digests do not match")
+    for field in ("graph_sha256", "source_manifest_sha256", "verification_state_sha256"):
+        if not isinstance(value[field], str) or not SHA256_RE.fullmatch(value[field]):
+            raise VerificationError("repository state digest is invalid")
+    if not isinstance(value["tree_oid"], str) or not SHA_RE.fullmatch(value["tree_oid"]):
+        raise VerificationError("repository state tree identity is invalid")
+    if not isinstance(value["policy_version"], int) or isinstance(value["policy_version"], bool):
+        raise VerificationError("repository state policy version is invalid")
+
+    identity = dict(value)
+    digest = identity.pop("verification_state_sha256")
+    if digest != sha256_json(identity):
+        raise VerificationError("repository state digest does not match its contents")
+    return value
+
+
+def _scheduled_environment_matches(
+    actual: Mapping[str, Any],
+    planned: Mapping[str, Any],
+    *,
+    allow_hosted_runner_drift: bool,
+) -> bool:
+    """Apply exact state identity by default; opt into hosted-runner drift explicitly."""
+    if not allow_hosted_runner_drift:
+        return actual == planned
+    return environment_matches_plan(
+        actual,
+        planned,
+        allow_hosted_runner_drift=True,
+    )
 
 
 def build_scheduled_state_envelope(
@@ -1050,22 +1129,35 @@ def build_scheduled_state_envelope(
     run_id: int,
     run_attempt: int,
     workflow: str = ".github/workflows/scheduled-full-regression.yml",
+    allow_hosted_runner_drift: bool = False,
 ) -> dict[str, Any]:
     plan = validate_plan(dict(plan))
     report = validate_report(dict(report))
+    state = _validate_repository_state(dict(state))
     if report["verdict"] != "success" or report["plan_sha256"] != sha256_json(plan):
         raise VerificationError("scheduled state requires a successful plan-bound report")
+    planned_component_environment = {
+        component: item["environment"] for component, item in plan["components"].items()
+    }
     if (
-        state.get("verification_state_sha256") is None
-        or state.get("source_manifest_sha256") != plan["source_tree"]["manifest_sha256"]
-        or state.get("graph_sha256") != plan["graph_sha256"]
-        or state.get("policy_version") != plan["policy_version"]
-        or state.get("environment_sha256") != plan["environment"]["sha256"]
-        or state.get("component_environment_sha256")
-        != {
-            component: item["environment"]["sha256"]
-            for component, item in plan["components"].items()
-        }
+        state["source_manifest_sha256"] != plan["source_tree"]["manifest_sha256"]
+        or state["tree_oid"] != plan["source_tree"]["tree_oid"]
+        or state["graph_sha256"] != plan["graph_sha256"]
+        or state["policy_version"] != plan["policy_version"]
+        or not _scheduled_environment_matches(
+            state["environment"],
+            plan["environment"],
+            allow_hosted_runner_drift=allow_hosted_runner_drift,
+        )
+        or set(state["component_environment"]) != set(planned_component_environment)
+        or any(
+            not _scheduled_environment_matches(
+                state["component_environment"][component],
+                planned_environment,
+                allow_hosted_runner_drift=allow_hosted_runner_drift,
+            )
+            for component, planned_environment in planned_component_environment.items()
+        )
     ):
         raise VerificationError("scheduled repository state does not match the plan")
     evidence_ids = sorted(
@@ -1690,6 +1782,7 @@ def main() -> None:
     scheduled_state_parser.add_argument("--state", required=True)
     scheduled_state_parser.add_argument("--run-id", type=int, required=True)
     scheduled_state_parser.add_argument("--run-attempt", type=int, required=True)
+    scheduled_state_parser.add_argument("--allow-hosted-runner-drift", action="store_true")
     scheduled_state_parser.add_argument("--output", required=True)
 
     args = parser.parse_args()
@@ -1841,6 +1934,7 @@ def main() -> None:
             state=state,
             run_id=args.run_id,
             run_attempt=args.run_attempt,
+            allow_hosted_runner_drift=args.allow_hosted_runner_drift,
         ),
         args.output,
     )

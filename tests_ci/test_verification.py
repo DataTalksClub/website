@@ -8,10 +8,12 @@ import pytest
 
 from ci.content_invariants import build_invariant_artifact
 from ci.evidence import build_envelope
+from ci.ownership import sha256_json
 from ci.selection import ChangeRecord, classify_records
 from ci.verification import (
     VerificationError,
     build_plan,
+    build_scheduled_state_envelope,
     create_report,
     materialize_reused_evidence,
     read_worktree_change_records,
@@ -38,6 +40,45 @@ def make_plan(tmp_path: Path, changed: dict[str, str]):
         records=records,
         now=NOW,
     )
+
+
+def scheduled_state_fixture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    planned_image: tuple[str, str] = ("ubuntu24", "20260801.1"),
+    actual_image: tuple[str, str] | None = None,
+):
+    monkeypatch.setenv("ImageOS", planned_image[0])
+    monkeypatch.setenv("ImageVersion", planned_image[1])
+    repository, plan = make_plan(tmp_path, {"api/service.py": "changed\n"})
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    origin = {"issue": 143, "kind": "local", "producer_role": "engineer", "worktree": "143"}
+    for component, item in plan["components"].items():
+        if item["disposition"] != "rerun":
+            continue
+        records, output = component_output(evidence, plan, component)
+        envelope = build_envelope(
+            plan=plan,
+            component=component,
+            result="success",
+            origin=origin,
+            command=item["command"],
+            execution_environment=item["environment"],
+            artifacts=records,
+            machine_output=output,
+            completed_at=NOW,
+        )
+        (evidence / f"{component}-evidence.json").write_text(
+            __import__("json").dumps(envelope, sort_keys=True), encoding="utf-8"
+        )
+    report = create_report(plan=plan, result_directory=evidence, phase="engineer")
+    if actual_image is not None:
+        monkeypatch.setenv("ImageOS", actual_image[0])
+        monkeypatch.setenv("ImageVersion", actual_image[1])
+    state = repository_state(repository, plan["head"])
+    return plan, report, state
 
 
 def test_single_app_plan_reruns_affected_closure_and_preserves_baseline_without_evidence(
@@ -388,6 +429,120 @@ def test_repository_state_ignores_commit_metadata_but_changes_with_tree(tmp_path
     base_state = repository_state(repository, base)
     head_state = repository_state(repository, head)
     assert base_state["verification_state_sha256"] != head_state["verification_state_sha256"]
+
+
+def test_scheduled_state_accepts_exact_aggregate_environment_without_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plan, report, state = scheduled_state_fixture(tmp_path, monkeypatch)
+
+    assert set(state["component_environment"]) == set(plan["components"])
+    assert state["environment_sha256"] == state["environment"]["sha256"]
+    assert state["component_environment_sha256"] == {
+        component: fingerprint["sha256"]
+        for component, fingerprint in state["component_environment"].items()
+    }
+
+    envelope = build_scheduled_state_envelope(
+        plan=plan,
+        report=report,
+        state=state,
+        run_id=143,
+        run_attempt=1,
+    )
+
+    assert envelope["verification_state_sha256"] == state["verification_state_sha256"]
+
+
+def test_scheduled_state_requires_explicit_opt_in_for_same_family_drift(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plan, report, state = scheduled_state_fixture(
+        tmp_path,
+        monkeypatch,
+        actual_image=("ubuntu24", "20260808.1"),
+    )
+
+    with pytest.raises(VerificationError, match="scheduled repository state"):
+        build_scheduled_state_envelope(
+            plan=plan,
+            report=report,
+            state=state,
+            run_id=143,
+            run_attempt=1,
+        )
+
+    envelope = build_scheduled_state_envelope(
+        plan=plan,
+        report=report,
+        state=state,
+        run_id=143,
+        run_attempt=1,
+        allow_hosted_runner_drift=True,
+    )
+    assert envelope["verification_state_sha256"] == state["verification_state_sha256"]
+
+
+def test_scheduled_state_rejects_different_runner_family_even_with_opt_in(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plan, report, state = scheduled_state_fixture(
+        tmp_path,
+        monkeypatch,
+        actual_image=("windows2025", "20260808.1"),
+    )
+
+    with pytest.raises(VerificationError, match="scheduled repository state"):
+        build_scheduled_state_envelope(
+            plan=plan,
+            report=report,
+            state=state,
+            run_id=143,
+            run_attempt=1,
+            allow_hosted_runner_drift=True,
+        )
+
+
+@pytest.mark.parametrize("field", ["environment", "component_environment"])
+def test_scheduled_state_rejects_tampered_raw_environment_fingerprints(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, field: str
+) -> None:
+    plan, report, state = scheduled_state_fixture(tmp_path, monkeypatch)
+    tampered = deepcopy(state)
+    if field == "environment":
+        tampered["environment"]["browser"] = "firefox"
+    else:
+        tampered["component_environment"]["django"]["browser"] = "firefox"
+
+    with pytest.raises(VerificationError, match="repository state"):
+        build_scheduled_state_envelope(
+            plan=plan,
+            report=report,
+            state=tampered,
+            run_id=143,
+            run_attempt=1,
+            allow_hosted_runner_drift=True,
+        )
+
+
+def test_scheduled_state_rejects_recomputed_tree_identity_tamper(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    plan, report, state = scheduled_state_fixture(tmp_path, monkeypatch)
+    tampered = deepcopy(state)
+    tampered["tree_oid"] = "f" * len(state["tree_oid"])
+    identity = dict(tampered)
+    identity.pop("verification_state_sha256")
+    tampered["verification_state_sha256"] = sha256_json(identity)
+
+    with pytest.raises(VerificationError, match="scheduled repository state"):
+        build_scheduled_state_envelope(
+            plan=plan,
+            report=report,
+            state=tampered,
+            run_id=143,
+            run_attempt=1,
+        )
 
 
 def test_worktree_plan_includes_dirty_tracked_and_untracked_candidate_files(
