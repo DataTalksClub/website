@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +21,27 @@ def runs(job: dict[str, Any]) -> str:
     return "\n".join(
         step["run"] for step in job["steps"] if isinstance(step, dict) and "run" in step
     )
+
+
+def logical_shell_commands(job: dict[str, Any]) -> list[str]:
+    commands: list[str] = []
+    continuation: list[str] = []
+    for raw_line in runs(job).splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        continued = line.endswith("\\")
+        continuation.append(line.removesuffix("\\").rstrip())
+        if not continued:
+            commands.append(" ".join(continuation))
+            continuation = []
+    assert not continuation
+    return commands
+
+
+def verification_invocations(job: dict[str, Any], subcommand: str) -> list[str]:
+    marker = f"python -m ci.verification {subcommand}"
+    return [command for command in logical_shell_commands(job) if marker in command]
 
 
 def test_normal_workflow_keeps_release_concurrency_and_exact_base_contract() -> None:
@@ -294,7 +317,59 @@ def test_scheduled_workflow_has_no_mutation_or_aws_jobs_and_checks_exact_sha() -
             step for step in job["steps"] if step.get("uses") == "actions/checkout@v4"
         ]
         assert checkout_steps
-        assert all(step["with"]["ref"] == "${{ github.sha }}" for step in checkout_steps)
+        assert all(
+            step["with"]
+            == {
+                "ref": "${{ github.sha }}",
+                "fetch-depth": "0",
+            }
+            for step in checkout_steps
+        )
+
+
+def test_scheduled_evidence_capture_and_record_symmetrically_allow_runner_drift() -> None:
+    jobs = workflow("scheduled-full-regression.yml")["jobs"]
+    evidence_jobs = {"selector", "quality", "django", "playwright", "container"}
+    assert {
+        name
+        for name, job in jobs.items()
+        if verification_invocations(job, "environment") or verification_invocations(job, "record")
+    } == evidence_jobs
+
+    for name in evidence_jobs:
+        environment_calls = verification_invocations(jobs[name], "environment")
+        record_calls = verification_invocations(jobs[name], "record")
+        assert len(environment_calls) == 1, name
+        assert len(record_calls) == 1, name
+        assert environment_calls[0].split().count("--allow-hosted-runner-drift") == 1, name
+        assert record_calls[0].split().count("--allow-hosted-runner-drift") == 1, name
+
+    assert "for component in quality evidence_validation; do" in runs(jobs["quality"])
+    for name in ("selector", "django", "playwright", "container"):
+        assert f"--component {name}" in verification_invocations(jobs[name], "environment")[0]
+
+
+def test_scheduled_playwright_executes_and_records_the_planner_core_command() -> None:
+    playwright = workflow("scheduled-full-regression.yml")["jobs"]["playwright"]
+    planner_command = json.loads((ROOT / "ci" / "ownership.json").read_text(encoding="utf-8"))[
+        "components"
+    ]["playwright"]["command"]
+    assert planner_command == "make test-playwright-core"
+    command_pattern = re.compile(r"\bmake test-playwright(?:-core)?\b")
+
+    execution = next(
+        step
+        for step in playwright["steps"]
+        if step.get("name") == "Run and retain the complete Playwright output"
+    )
+    recording = next(
+        step
+        for step in playwright["steps"]
+        if step.get("name") == "Record shared Playwright envelope"
+    )
+    assert command_pattern.findall(execution["run"]) == [planner_command]
+    assert command_pattern.findall(recording["run"]) == [planner_command]
+    assert f'--command "{planner_command}"' in recording["run"]
 
 
 def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() -> None:
@@ -316,7 +391,7 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "make test-factories" in runs(jobs["factories"])
     assert "make test-migrations" in runs(jobs["migrations"])
     assert "make test" in runs(jobs["django"])
-    assert "make test-playwright" in runs(jobs["playwright"])
+    assert "make test-playwright-core" in runs(jobs["playwright"])
     assert "ci.quality_contract" in runs(jobs["quality"])
     assert "make verification-quality" not in runs(jobs["quality"])
     container = runs(jobs["container"])
