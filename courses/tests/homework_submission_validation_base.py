@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from unittest import mock
 
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -18,10 +17,7 @@ from courses.models import (
 
 from .util import join_possible_answers
 
-
-credentials = dict(
-    username="test@test.com", email="test@test.com", password="12345"
-)
+credentials = dict(username="test@test.com", email="test@test.com", password="12345")
 
 
 @dataclass(frozen=True)
@@ -43,9 +39,7 @@ class AnswerPostData:
 
 class HomeworkSubmissionValidationBase(TestCase):
     def create_course(self):
-        return Course.objects.create(
-            title="Test Course", slug="test-course"
-        )
+        return Course.objects.create(title="Test Course", slug="test-course")
 
     def create_homework(self):
         return Homework.objects.create(
@@ -181,21 +175,13 @@ class HomeworkSubmissionValidationBase(TestCase):
         return self.client.post(homework_url, post_data, follow=follow)
 
     def get_saved_submission(self):
-        return Submission.objects.get(
-            homework=self.homework, student=self.user
-        )
+        return Submission.objects.get(homework=self.homework, student=self.user)
 
     def assert_no_submission(self):
         submission_exists = Submission.objects.filter(
             student=self.user, homework=self.homework
         ).exists()
         self.assertFalse(submission_exists)
-
-    def mock_failed_url_checks(self, mock_get, mock_head, status_code=404):
-        mock_response = mock.Mock()
-        mock_response.status_code = status_code
-        mock_get.return_value = mock_response
-        mock_head.return_value = mock_response
 
     def enable_homework_url_field(self):
         self.homework.homework_url_field = True

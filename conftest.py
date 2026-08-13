@@ -474,6 +474,48 @@ def browser_context_args() -> dict[str, object]:
 
 
 @pytest.fixture
+def strict_csp_page(
+    browser: Browser,
+    browser_context_args: dict[str, object],
+    live_server,
+):
+    """Provide a browser page that receives and enforces the production CSP.
+
+    The regular ``context`` fixture intentionally enables Playwright's
+    ``bypass_csp`` only because its failure screenshot wrapper evaluates a
+    redaction script in the page.  This fixture has no screenshot/evaluation
+    wrapper, so the browser smoke can prove the response policy itself.
+    """
+
+    del browser_context_args
+    context = browser.new_context(
+        accept_downloads=False,
+        color_scheme="light",
+        locale="en-US",
+        reduced_motion="reduce",
+        service_workers="block",
+        timezone_id="UTC",
+    )
+    origin = live_server.url
+
+    def route_request(route: Route) -> None:
+        url = route.request.url
+        parsed = urlsplit(url)
+        request_origin = f"{parsed.scheme}://{parsed.netloc}"
+        if parsed.scheme in {"about", "blob", "data"} or request_origin == origin:
+            route.continue_()
+            return
+        route.abort("blockedbyclient")
+
+    context.route("**/*", route_request)
+    page = context.new_page()
+    try:
+        yield page
+    finally:
+        context.close()
+
+
+@pytest.fixture
 def context(
     browser: Browser,
     browser_context_args: dict[str, object],
@@ -499,6 +541,11 @@ def context(
     screenshot_path = worker.artifacts / f"{artifact_name}.png"
     del browser_context_args
     context = browser.new_context(
+        # The fixture's screenshot wrapper uses page.evaluate to redact
+        # credentials before writing test artifacts.  Keep that test-harness
+        # mechanism independent of the production CSP; real browser clients
+        # still receive and enforce the response policy unchanged.
+        bypass_csp=True,
         accept_downloads=False,
         color_scheme="light",
         locale="en-US",

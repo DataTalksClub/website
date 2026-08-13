@@ -1,0 +1,29 @@
+# Non-identity threat and control matrix
+
+Issue #141 is the independently verifiable non-identity baseline split from
+identity issue #61.  This matrix is intentionally decision-free: it records
+controls that protect requests, content, boundaries, and evidence without
+choosing an OIDC provider, MFA policy, reauthentication rule, or high-risk
+business action.  Those rows are hand-offs to #20/#28/#32/#33/#61 and remain
+unchecked here.
+
+| Boundary / asset | Threat and fail-closed control | Owner | Focused evidence | Identity hand-off |
+| --- | --- | --- | --- | --- |
+| Browser response / public HTML | XSS, clickjacking, MIME sniffing, unsafe framing, and capability leakage. `ResponsePolicyMiddleware` emits CSP, `frame-ancestors`, MIME, referrer, permissions, and same-origin resource policy; private or credential-shaped responses are `private, no-store`. | `core` | `core.tests.test_non_identity_security.ResponseBoundaryTests`, SEO response-policy tests, desktop/mobile browser capture | #61 owns account/session lifecycle and post-login capability semantics. |
+| Browser mutation / session cookies | CSRF and cross-origin mutation. Django CSRF middleware remains enabled for state-changing browser routes; secure/SameSite cookie settings and deny-by-default CORS are explicit. | `website` + `core` | Django CSRF negative tests, response-header assertions, Studio/API route tests | #20/#61 own identity proof, session rotation, and MFA. |
+| Request body / parser | Oversized, malformed, deeply nested, or high-fan-out JSON. `RequestBoundaryMiddleware` checks seekable ASGI streams against both the configured cap and any declared length before parsing, replays the stream position for downstream parsers, and rejects understated lengths. Every unbounded nonseekable body method with missing/invalid `Content-Length` (including chunked transfer) fails closed before parsers; only Django's adapter-bounded zero-byte `LimitedStream` is retained for legacy no-body method routes. Shared JSON shape bounds reject parser bombs with bounded errors. | `core` + owning API | `core.tests.test_non_identity_security.RequestBoundaryBodyTests`, API parser tests, 413 canary | Identity-specific credential payloads remain #61. |
+| Webhook ingress / event idempotency | Forged, replayed, malformed, or oversized Datamailer callbacks. Exactly one credential source is accepted, token comparison is constant-time, JSON/content/shape bounds are enforced, unsupported values are generic, and event IDs remain idempotent. | `api` + `data` | `data.tests.test_datamailer_webhook*`, webhook canary/browser scenario | Provider signature/key rotation and operator response are #33/#86. |
+| Outbound/provider URL | SSRF to loopback, private, link-local, multicast, metadata, credential-bearing, or non-HTTPS targets. `validate_outbound_url` rejects private IP literals, private hostnames, DNS failures, credentials, non-HTTPS schemes, and non-443 ports before a fetch. Courses' synchronous URL validators use the no-network `validate_url` guard, reject private/metadata literals, never follow redirects, and treat `git` links as identifiers only. | `core`; caller owns transport | `BoundaryHelperTests.test_private_network_destinations_fail_closed_before_fetch`, `courses.tests.test_unit_url_validation` | Provider trust and secret lifecycle remain #20/#33. |
+| Content URL/HTML and filesystem | XSS, unsafe protocols, remote includes, traversal, and symlink escape. Shared URL/path guards and the existing content sanitizer allowlist reject dangerous schemes, traversal components, symlink components, and external active content. | `core` + `content_sync` | URL/path helper tests; content sanitizer and repository/importer negative tests | Content publication approval is #28/#38; identity does not gate it. |
+| Export cell / spreadsheet | CSV formula injection through `=`, `+`, `-`, or `@` cells. `neutralize_csv_formula` prefixes formula-looking cells before an export leaves an owning service. | Owning export service | CSV canary tests in the export owner and `BoundaryHelperTests` | PII export approval and reauthentication are #61/#86. |
+| Mutation payload / object and field scope | Mass assignment, hidden-field writes, object existence leaks, and cross-object access. API/Studio use explicit writable-field registries, scoped querysets, generic denials, and shared decision-free capability fixtures. | `studio`, `management_api`, owning domain service | #86/#87 fixture authorization tests; API mutation negative tests | Human identity and high-risk confirmation are #61/#86. |
+| Logs, metrics, traces, audits, browser artifacts | Secrets, tokens, cookies, URLs, provider payloads, email/PII, and request bodies escaping through observability. `core.redaction` is the shared bounded policy; event, CloudWatch, audit, and exception paths apply it before emission. | `core` + `course_management.observability` | redaction canary tests, audit presentation tests, `make security-artifact-scan` | Identity event taxonomy and retention are #61/#87. |
+| Dependencies and runtime image | Vulnerable/unlocked dependencies, root containers, or missing security evidence. `uv.lock`, frozen installs, non-root UID/GID 10001, and container verification are mandatory; the security baseline check fails when required evidence is absent. | `ci` + deployment | `make security-check`, `make verification-container`, dependency/container evidence | Provider and identity runtime controls remain their owning issues. |
+
+## Evidence boundary
+
+The controls above prove non-identity denial and redaction independently of
+OIDC, MFA, break-glass, high-risk action policy, or production AWS mutation.
+An implementation or test that claims any of those semantics is out of scope
+for #141 and must carry the owning issue reference instead of silently marking
+this matrix row complete.

@@ -50,9 +50,13 @@ ROOT = Path(__file__).resolve().parents[2]
 HISTORICAL_WORKFLOW_COMMIT = "91490f0d3f172327a400c9edf5b441265890f897"
 HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334caf42f9b2524850d"
 # Issue #116 mechanically moves the copied legacy package and therefore retargets only
-# the Ruff and mypy exclusions to studio_courses. Keep both workflow-isolation seals
-# pinned to the exact reviewed pyproject rather than weakening either check.
-STUDIO_COURSES_PYPROJECT_SHA256 = "2ad65f683ff2cdcd2d0e1bf02268947ba98c017162d15e9da5a4c0fd5c0f02da"
+# the Ruff and mypy exclusions to studio_courses. Issue #141 additionally raises
+# cryptography to >=50,<51 after pip-audit reported four advisories in 46.0.7;
+# keep both workflow-isolation seals pinned to this exact reviewed dependency policy.
+STUDIO_COURSES_PYPROJECT_SHA256 = "832e5a9f985b840dc401b1fb563e0f3366c16c7387d0ec6763940100aa6f1956"
+SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
+    "d1d86e5b47d483ca75deaf39a2369b189b19e0670c69d4be3ddeb7bc4e93e05b"
+)
 DATABASE_SECRET_ARN = (
     "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-Ab12Cd"
 )
@@ -966,7 +970,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
             ),
             "pyproject.toml": STUDIO_COURSES_PYPROJECT_SHA256,
-            "uv.lock": "070c1169e5902df2c7b202106da308a6b48060970b30804c08f13fed5ec66d9f",
+            "uv.lock": SECURITY_REMEDIATED_UV_LOCK_SHA256,
         }
         for relative_path, expected_hash in unchanged_hashes.items():
             actual_hash = hashlib.sha256((ROOT / relative_path).read_bytes()).hexdigest()
@@ -1143,7 +1147,7 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
                 "58b447bc72ddfd11359f801087ba5a2f896f0d56bff7a832c6a2768d34f74b92"
             ),
             "pyproject.toml": STUDIO_COURSES_PYPROJECT_SHA256,
-            "uv.lock": "070c1169e5902df2c7b202106da308a6b48060970b30804c08f13fed5ec66d9f",
+            "uv.lock": SECURITY_REMEDIATED_UV_LOCK_SHA256,
         }
         for relative_path, expected_hash in frozen_hashes.items():
             self.assertEqual(

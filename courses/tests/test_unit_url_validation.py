@@ -1,17 +1,19 @@
-from unittest import TestCase
+from unittest import TestCase, mock
+
+from django.core.exceptions import ValidationError
 
 from courses.validators.custom_url_validators import (
     URL_VALIDATION_TIMEOUT,
     clean_faq_contribution_url,
-    validate_url_200,
     get_error_message,
+    validate_url_200,
 )
-from django.core.exceptions import ValidationError
 
 
 class MockResponse:
-    def __init__(self, status_code):
+    def __init__(self, status_code, headers=None):
         self.status_code = status_code
+        self.headers = headers or {}
 
 
 class FaqContributionUrlValidationTestCase(TestCase):
@@ -20,9 +22,7 @@ class FaqContributionUrlValidationTestCase(TestCase):
 
         cleaned = clean_faq_contribution_url(url)
 
-        self.assertEqual(
-            cleaned, "https://github.com/DataTalksClub/faq/issues/281"
-        )
+        self.assertEqual(cleaned, "https://github.com/DataTalksClub/faq/issues/281")
 
     def test_clean_faq_contribution_url_accepts_pull_url(self):
         url = "https://github.com/DataTalksClub/faq/pull/266"
@@ -39,10 +39,7 @@ class FaqContributionUrlValidationTestCase(TestCase):
 
         self.assertEqual(
             context.exception.message_dict["faq_contribution_url"],
-            [
-                "FAQ contribution must be a valid HTTPS GitHub issue "
-                "or pull request URL."
-            ],
+            ["FAQ contribution must be a valid HTTPS GitHub issue or pull request URL."],
         )
 
     def test_clean_faq_contribution_url_rejects_other_github_urls(self):
@@ -93,6 +90,42 @@ class FaqContributionUrlValidationTestCase(TestCase):
 
 
 class UrlStatusValidationTestCase(TestCase):
+    @mock.patch("courses.validators.custom_url_validators.requests.head")
+    @mock.patch("core.security.socket.getaddrinfo")
+    def test_default_validation_never_fetches_or_resolves_user_url(self, mock_dns, mock_head):
+        validate_url_200("https://example.com/")
+
+        mock_dns.assert_not_called()
+        mock_head.assert_not_called()
+
+    @mock.patch("courses.validators.custom_url_validators.requests.head")
+    def test_private_destination_is_rejected_before_any_fetch(self, mock_head):
+        with self.assertRaises(ValidationError):
+            validate_url_200("https://127.0.0.1/")
+
+        mock_head.assert_not_called()
+
+    @mock.patch("courses.validators.custom_url_validators.requests.head")
+    def test_git_identifier_is_never_fetched_by_default(self, mock_head):
+        validate_url_200("git://github.com/DataTalksClub/faq.git")
+
+        mock_head.assert_not_called()
+
+    def test_injected_legacy_transport_cannot_follow_redirect(self):
+        captured = {}
+
+        def mock_get(url, **kwargs):
+            captured.update(kwargs)
+            return MockResponse(
+                302,
+                headers={"Location": "https://127.0.0.1/private"},
+            )
+
+        with self.assertRaises(ValidationError):
+            validate_url_200("https://example.com/", mock_get)
+
+        self.assertFalse(captured["allow_redirects"])
+
     def test_validation_code_200_github_mock(self):
         def mock_get(url, **kwargs):
             return MockResponse(200)
@@ -159,7 +192,6 @@ class UrlErrorMessageTestCase(TestCase):
         url = "https://www.linkedin.com/whatever"
         error = get_error_message(400, url)
         expected_error = (
-            f"The submitted link {url} does not "
-            + "return a 200 status code. Status code: 400."
+            f"The submitted link {url} does not " + "return a 200 status code. Status code: 400."
         )
         self.assertEqual(error, expected_error)

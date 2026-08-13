@@ -19,7 +19,10 @@ domains -> email_app intent service -> jobs -> Relay (leased call after commit o
 email_app/jobs may receive identifiers from domains, but domains do not import worker tasks
 ```
 
-- `core`: bootstrap configuration, health, middleware, request IDs, and future audit primitives.
+- `core`: bootstrap configuration, health, request IDs, shared redaction, non-identity browser and
+  request-boundary controls, and future audit primitives.  The decision-free threat/control
+  matrix for these controls lives in [`../security/non-identity-threat-control-matrix.md`](../security/non-identity-threat-control-matrix.md);
+  identity and high-risk semantics remain with their owning issues.
 - `accounts`: the email-based user model, private one-to-one member profile, Slack-access
   eligibility, staff authentication, groups, permissions, and future API credentials.
 - `content`: versioned GitHub-owned read models and public content presentation.

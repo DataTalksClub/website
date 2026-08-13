@@ -75,8 +75,8 @@ aggregate gate and cannot be accepted during replay, report validation, or evide
 
 Manual promotion and rollback apply `quality-contract-v1` from the trusted current workflow
 controller to the exact selected release checkout. The contract invokes the explicit maintained
-quality targets (`terminology-check`, `database-portability-check`, lint, format, type, migration,
-Django, deployment, and CI-policy checks) in that checkout. A pre-contract release such as
+quality targets (`terminology-check`, `database-portability-check`, `security-check`, lint, format,
+type, migration, Django, deployment, and CI-policy checks) in that checkout. A pre-contract release such as
 `a220728` is valid when all primitive targets exist; it does not need the future aggregate
 `verification-quality` target. If an aggregate target is present, its declared prerequisites must
 match the versioned contract exactly. A missing primitive, altered aggregate, duplicate definition,
