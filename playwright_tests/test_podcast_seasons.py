@@ -190,15 +190,41 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
     if suffix == "mobile":
         page.goto(f"{origin}/podcast?season=12", wait_until="networkidle")
         older_link = page.get_by_role("link", name="Older season — Season 11", exact=True)
-        older_link.focus()
+
+        # Locator.focus() is a programmatic focus and does not establish the
+        # keyboard modality that :focus-visible is intended to cover.  Start
+        # from the document body and traverse with real Tab input so this
+        # contract remains deterministic across browser/mobile profiles.
+        page.evaluate(
+            """
+            () => {
+              document.body.tabIndex = -1;
+              document.body.focus();
+            }
+            """
+        )
+        for _step in range(80):
+            page.keyboard.press("Tab")
+            if older_link.evaluate("element => element === document.activeElement"):
+                break
+        else:
+            raise AssertionError("keyboard traversal did not focus Older season — Season 11")
+
         expect(older_link).to_be_focused()
         focus = older_link.evaluate(
             """(node) => {
               const style = getComputedStyle(node);
-              return {style: style.outlineStyle, width: parseFloat(style.outlineWidth)};
+              return {
+                focusVisible: node.matches(':focus-visible'),
+                style: style.outlineStyle,
+                width: parseFloat(style.outlineWidth),
+                offset: parseFloat(style.outlineOffset),
+              };
             }"""
         )
-        assert focus["style"] != "none" and focus["width"] >= 3, focus
+        assert focus["focusVisible"] is True, focus
+        assert focus["style"] == "solid" and focus["width"] >= 3, focus
+        assert focus["offset"] >= 3, focus
         _screenshot(page, "podcast-season-12-mobile-focus.png")
 
     assert failed_requests == []
