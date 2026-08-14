@@ -239,14 +239,32 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     screenshots = jobs["screenshots"]
     assert set(screenshots["needs"]) == {"resolve-release", "classification"}
     screenshot_script = runs(screenshots)
-    assert "ci.screenshot_capture" in screenshot_script
-    assert "manage.py migrate --noinput" in screenshot_script
+    assert "ci.screenshot_runtime" in screenshot_script
+    assert "--repository ." in screenshot_script
+    assert "--controller-repository ../ci-controller" in screenshot_script
+    assert (
+        "--server-log ../ci-controller/.tmp/components-screenshots/server.log" in screenshot_script
+    )
     assert "playwright install --with-deps chromium" in screenshot_script
     assert "--screenshot .tmp/components-screenshots/screenshots.json" in screenshot_script
     assert "--component screenshots" in screenshot_script
     assert ".components.screenshots.command" in screenshot_script
     assert "screenshots_mode == 'rerun'" in str(screenshots)
     assert "No render-impact changes" in screenshot_script
+    screenshot_runtime_steps = [
+        step
+        for step in screenshots["steps"]
+        if step.get("name") == "Migrate and capture with one owned SQLite runtime"
+    ]
+    assert len(screenshot_runtime_steps) == 1
+    assert not any(
+        step.get("name")
+        in {
+            "Migrate the synthetic SQLite database",
+            "Start the release application for local capture",
+        }
+        for step in screenshots["steps"]
+    )
     screenshot_record = next(
         step
         for step in screenshots["steps"]
