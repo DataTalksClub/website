@@ -185,6 +185,53 @@ class PodcastSeasonNavigationTests(TestCase):
             types = {item.get("@type") for item in json.loads(payload_match.group(1))["@graph"]}
             self.assertIn("PodcastEpisode", types)
 
+    def test_detail_routes_keep_html_finals_and_reject_competing_season_paths(self) -> None:
+        projection = public_projection()
+        podcasts = projection["podcasts"]
+        migration = projection["editorial_route_migration"]
+        podcast_finals = {
+            item["final_path"] for item in migration["finals"] if item["collection"] == "podcasts"
+        }
+        podcast_aliases = [
+            item for item in migration["aliases"] if item["collection"] == "podcasts"
+        ]
+
+        self.assertEqual(len(podcasts), 205)
+        self.assertEqual({episode["public_path"] for episode in podcasts}, podcast_finals)
+        self.assertEqual(len(podcast_finals), 205)
+        self.assertTrue(
+            all(path.startswith("/podcast/") and path.endswith(".html") for path in podcast_finals)
+        )
+        self.assertEqual(len(podcast_aliases), 410)
+        self.assertEqual({item["final_path"] for item in podcast_aliases}, podcast_finals)
+
+        episode = podcasts[0]
+        final_path = episode["public_path"]
+        query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
+        for method in ("GET", "HEAD"):
+            response = self.client.generic(method, f"{final_path}?{query}", follow=False)
+            self.assertEqual(response.status_code, 200)
+            self.assertNotIn("Location", response.headers)
+        self.assertEqual(self.client.post(final_path).status_code, 405)
+
+        aliases = (final_path.removesuffix(".html"), f"{final_path.removesuffix('.html')}/")
+        for alias_path in aliases:
+            for method in ("GET", "HEAD"):
+                response = self.client.generic(method, f"{alias_path}?{query}", follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], f"{final_path}?{query}")
+            self.assertEqual(self.client.post(alias_path).status_code, 405)
+
+        competing_path = (
+            f"/podcast/s{episode['season']:02d}e{episode['episode']:02d}/competing-title"
+        )
+        for method in ("GET", "HEAD"):
+            response = self.client.generic(method, competing_path, follow=False)
+            self.assertEqual(response.status_code, 404)
+            self.assertNotIn("Location", response.headers)
+            self.assertNotContains(response, 'rel="canonical"', status_code=404)
+        self.assertEqual(self.client.post(competing_path).status_code, 405)
+
     def test_latest_middle_and_oldest_emit_exact_seo_and_navigation(self) -> None:
         scenarios = (
             ("/podcast", 24, "/podcast", "DataTalks.Club Podcast — DataTalks.Club", None, 23),

@@ -37,22 +37,17 @@ urlpatterns = [
     path("podcast.html", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path("podcast/", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path(
-        "podcast/<slug:episode_key>/<slug:title_slug>",
-        public_views.podcast_detail_canonical,
-        name="public-podcast-canonical",
-    ),
-    path(
         "podcast/<path:slug>/",
         public_views.permanent_detail_redirect,
         {"collection": "podcast"},
     ),
     path(
         "podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
-        public_views.podcast_detail_legacy,
+        public_views.podcast_detail,
         {"slug": "s24e06-how-to-build-ai-that-actually-ships-in-production"},
         name="podcast-ai-production",
     ),
-    path("podcast/<path:slug>.html", public_views.podcast_detail_legacy, name="public-podcast"),
+    path("podcast/<path:slug>.html", public_views.podcast_detail, name="public-podcast"),
     path(
         "podcast/<path:slug>",
         public_views.permanent_detail_redirect,

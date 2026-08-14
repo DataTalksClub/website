@@ -331,6 +331,39 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         assert invalid_redirect.status == 301
         assert invalid_redirect.headers["location"] == "/podcast?page=2"
 
+    episode = ordered_podcasts()[0]
+    final_path = episode["public_path"]
+    detail_query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
+    for alias in (final_path.removesuffix(".html"), f"{final_path.removesuffix('.html')}/"):
+        redirected = page.request.get(
+            f"{origin}{alias}?{detail_query}",
+            max_redirects=0,
+        )
+        assert redirected.status == 301
+        assert redirected.headers["location"] == f"{final_path}?{detail_query}"
+        head = page.request.head(f"{origin}{alias}?{detail_query}", max_redirects=0)
+        assert head.status == 301
+        assert head.headers["location"] == f"{final_path}?{detail_query}"
+
+    final = page.goto(f"{origin}{final_path}?{detail_query}", wait_until="networkidle")
+    assert final is not None and final.status == 200
+    expect(page).to_have_url(f"{origin}{final_path}?{detail_query}")
+    expect(page.get_by_role("heading", name=episode["title"], exact=True)).to_be_visible()
+    expect(page.locator('link[rel="canonical"]')).to_have_attribute(
+        "href",
+        f"https://datatalks.club{final_path}",
+    )
+    expect(page.locator('meta[property="og:url"]')).to_have_attribute(
+        "content",
+        f"https://datatalks.club{final_path}",
+    )
+
+    competing_path = f"/podcast/s{episode['season']:02d}e{episode['episode']:02d}/competing-title"
+    competing = page.request.get(f"{origin}{competing_path}", max_redirects=0)
+    assert competing.status == 404
+    assert "location" not in competing.headers
+    assert "canonical" not in competing.text().casefold()
+
     denials = (
         ("GET", "/podcast?page=2", 400),
         ("GET", "/podcast?season=01", 400),

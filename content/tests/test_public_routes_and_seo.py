@@ -89,17 +89,6 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertEqual(len(migration["aliases"]), 1_592)
         canonical_paths = {item["final_path"] for item in migration["finals"]}
         alias_map = {item["source_path"]: item["final_path"] for item in migration["aliases"]}
-        runtime_canonical_paths = set()
-        for item in migration["finals"]:
-            runtime_path = item["final_path"]
-            if item["collection"] == "podcasts":
-                podcast = next(
-                    record
-                    for record in projection["podcasts"]
-                    if record["provenance"]["source_key"] == item["record_key"]
-                )
-                runtime_path = podcast["public_path"]
-            runtime_canonical_paths.add(runtime_path)
         self.assertEqual(len(alias_map), 1_592)
         self.assertEqual(set(alias_map.values()), canonical_paths)
         self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
@@ -118,31 +107,24 @@ class PublicRouteAndSeoTests(TestCase):
             with self.subTest(source=source):
                 response = self.client.get(f"{source}?{query}", follow=False)
                 self.assertEqual(response.status_code, 301)
-                migration_entry = next(
-                    item for item in migration["aliases"] if item["source_path"] == source
-                )
-                expected_target = target
-                if migration_entry["collection"] == "podcasts":
-                    podcast = next(
-                        record
-                        for record in projection["podcasts"]
-                        if record["provenance"]["source_key"] == migration_entry["record_key"]
-                    )
-                    expected_target = podcast["public_path"]
-                self.assertEqual(response.headers["Location"], f"{expected_target}?{query}")
+                self.assertEqual(response.headers["Location"], f"{target}?{query}")
                 self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
                 head = self.client.head(f"{source}?{query}", follow=False)
                 self.assertEqual(head.status_code, 301)
-                self.assertEqual(head.headers["Location"], f"{expected_target}?{query}")
+                self.assertEqual(head.headers["Location"], f"{target}?{query}")
                 self.assertEqual(self.client.post(source).status_code, 405)
 
-        for target in runtime_canonical_paths:
+        for target in canonical_paths:
             with self.subTest(target=target):
                 final = self.client.get(target, follow=False)
                 self.assertEqual(final.status_code, 200)
                 self.assertNotIn("Location", final.headers)
                 self.assertEqual(final.headers["X-Robots-Tag"], "noindex, nofollow")
                 self.assertEqual(self.client.post(target).status_code, 405)
+                head = self.client.head(target, follow=False)
+                self.assertEqual(head.status_code, 200)
+                self.assertEqual(head.content, b"")
+                self.assertNotIn("Location", head.headers)
                 canonical_url = f"https://datatalks.club{target}"
                 self.assertContains(
                     final,

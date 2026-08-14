@@ -124,15 +124,18 @@ class PodcastSeason:
 
 
 def podcast_public_path(record: dict[str, Any]) -> str:
-    """Return the canonical season/episode podcast URL without a file extension."""
+    """Return the checked canonical podcast detail path."""
 
-    season = _podcast_number(record, "season")
-    episode = _podcast_number(record, "episode")
-    title = record.get("title")
-    if not isinstance(title, str) or not title.strip():
-        raise ImproperlyConfigured("Public podcast title is required for its URL.")
-    key = f"s{season:02d}e{episode:02d}"
-    return f"/podcast/{key}/{event_title_slug(title)}"
+    slug = record.get("slug")
+    public_path = record.get("public_path")
+    if (
+        not isinstance(slug, str)
+        or not slug
+        or not isinstance(public_path, str)
+        or public_path != f"/podcast/{slug}.html"
+    ):
+        raise ImproperlyConfigured("Public podcast canonical path is invalid.")
+    return public_path
 
 
 def _podcast_number(record: dict[str, Any], field: str) -> int:
@@ -318,61 +321,6 @@ def _apply_runtime_event_public_paths(
             }
             for relationship in relationships
         )
-
-
-def _replace_exact_public_paths(value: Any, replacements: dict[str, str]) -> Any:
-    if isinstance(value, str):
-        return replacements.get(value, value)
-    if isinstance(value, list):
-        return [_replace_exact_public_paths(item, replacements) for item in value]
-    if isinstance(value, dict):
-        return {key: _replace_exact_public_paths(item, replacements) for key, item in value.items()}
-    return value
-
-
-def _apply_runtime_podcast_public_paths(projection: dict[str, Any]) -> None:
-    """Expose season/episode podcast paths while retaining `.html` source routes as aliases."""
-
-    replacements: dict[str, str] = {}
-    podcasts: list[dict[str, Any]] = []
-    for raw_podcast in projection["podcasts"]:
-        podcast = dict(raw_podcast)
-        canonical = podcast_public_path(podcast)
-        replacements[podcast["public_path"]] = canonical
-        podcast["public_path"] = canonical
-        podcasts.append(podcast)
-    if len({podcast["public_path"] for podcast in podcasts}) != len(podcasts):
-        raise ImproperlyConfigured("Public podcast canonical paths are not unique.")
-    projection["podcasts"] = tuple(podcasts)
-    projection["podcasts_by_path"] = {podcast["public_path"]: podcast for podcast in podcasts}
-    projection["podcasts_by_slug"] = {
-        slug: projection["podcasts_by_path"].get(podcast_public_path(podcast), podcast)
-        for slug, podcast in projection["podcasts_by_slug"].items()
-    }
-
-    for person in projection["people"]:
-        relationships = person.get("relationships", ())
-        person["relationships"] = tuple(
-            {
-                **relationship,
-                "public_path": replacements.get(
-                    relationship.get("public_path"), relationship.get("public_path", "")
-                ),
-            }
-            for relationship in relationships
-        )
-
-    projection["wiki_graph"] = _replace_exact_public_paths(projection["wiki_graph"], replacements)
-    projection["wiki_search"] = _replace_exact_public_paths(projection["wiki_search"], replacements)
-
-    route_manifest = projection["editorial_route_migration"]
-    projection["editorial_route_aliases_by_path"] = {
-        item["source_path"]: {
-            **item,
-            "final_path": replacements.get(item["final_path"], item["final_path"]),
-        }
-        for item in route_manifest["aliases"]
-    }
 
 
 def _expected_editorial_routes(
@@ -700,7 +648,6 @@ def _adapted_public_projection(
         }
         for person in source["people"]
     )
-    _apply_runtime_podcast_public_paths(projection)
     _apply_runtime_event_public_paths(projection, runtime_identities)
     # The adapters mutate copied people records; refresh their lookup indexes as well so detail
     # pages and relationship tests do not retain references to the checked source records.
