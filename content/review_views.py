@@ -192,7 +192,7 @@ def docs_home(request: HttpRequest) -> HttpResponse:
     return _render(
         request,
         "review/docs_home.html",
-        path="/docs",
+        path="/docs/",
         title="Documentation — DataTalks.Club",
         description=document.get("description")
         or "Guides for DataTalks.Club courses and community learning.",
@@ -275,7 +275,7 @@ def faq_home(request: HttpRequest) -> HttpResponse:
     return _render(
         request,
         "review/faq_home.html",
-        path="/faq",
+        path="/faq/",
         title="Frequently Asked Questions — DataTalks.Club",
         description="Answers to common questions about DataTalks.Club courses.",
         context={
@@ -339,7 +339,7 @@ def _faq_structured_data(course: dict[str, Any]) -> str:
                     "@type": "ListItem",
                     "position": 2,
                     "name": "FAQ",
-                    "item": _canonical("/faq"),
+                    "item": _canonical("/faq/"),
                 },
                 {
                     "@type": "ListItem",

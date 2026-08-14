@@ -17,6 +17,69 @@ SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 class PublicRouteAndSeoTests(TestCase):
     maxDiff = None
 
+    def test_docs_and_faq_roots_preserve_trailing_slash_contract(self) -> None:
+        roots = (("/docs/", "/docs"), ("/faq/", "/faq"))
+        query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
+        canonical_inventory = set(public_paths())
+
+        for final_path, alias_path in roots:
+            with self.subTest(final_path=final_path):
+                self.assertIn(final_path, canonical_inventory)
+                self.assertNotIn(alias_path, canonical_inventory)
+
+                final = self.client.get(f"{final_path}?{query}", follow=False)
+                self.assertEqual(final.status_code, 200)
+                self.assertNotIn("Location", final.headers)
+                self.assertEqual(final.headers["X-Robots-Tag"], "noindex, nofollow")
+                self.assertContains(
+                    final,
+                    f'<link rel="canonical" href="https://datatalks.club{final_path}">',
+                    count=1,
+                )
+                self.assertContains(
+                    final,
+                    f'<meta property="og:url" content="https://datatalks.club{final_path}">',
+                    count=1,
+                )
+                self.assertNotRegex(
+                    final.content.decode(), rf'href="https://datatalks.club{alias_path}(?:"|[?#])'
+                )
+                self.assertNotRegex(final.content.decode(), rf'href="{alias_path}(?:"|[?#])')
+                self.assertEqual(self.client.head(final_path).status_code, 200)
+                self.assertEqual(self.client.post(final_path).status_code, 405)
+
+                alias = self.client.get(f"{alias_path}?{query}", follow=False)
+                self.assertEqual(alias.status_code, 301)
+                self.assertEqual(alias.headers["Location"], f"{final_path}?{query}")
+                self.assertEqual(alias.headers["X-Robots-Tag"], "noindex, nofollow")
+                head = self.client.head(f"{alias_path}?{query}", follow=False)
+                self.assertEqual(head.status_code, 301)
+                self.assertEqual(head.headers["Location"], f"{final_path}?{query}")
+                self.assertEqual(self.client.post(alias_path).status_code, 405)
+
+        faq_detail = self.client.get("/faq/ai-dev-tools-zoomcamp.html")
+        match = re.search(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
+            faq_detail.content.decode(),
+            re.DOTALL,
+        )
+        if match is None:
+            self.fail("FAQ detail does not emit JSON-LD")
+        graph = json.loads(match.group(1))["@graph"]
+        breadcrumb = next(item for item in graph if item["@type"] == "BreadcrumbList")
+        self.assertEqual(breadcrumb["itemListElement"][1]["item"], "https://datatalks.club/faq/")
+
+        for section, root in (("docs", "/docs/"), ("faq", "/faq/")):
+            with self.subTest(section=section):
+                response = self.client.get(f"/sitemaps/{section}.xml")
+                self.assertEqual(response.status_code, 200)
+                document = ElementTree.fromstring(response.content)
+                locations = [
+                    node.text or "" for node in document.findall("s:url/s:loc", SITEMAP_NAMESPACE)
+                ]
+                self.assertEqual(locations.count(f"https://datatalks.club{root}"), 1)
+                self.assertNotIn(f"https://datatalks.club{root.rstrip('/')}", locations)
+
     def test_explicit_hub_redirects_are_permanent_one_hop_and_query_preserving(self) -> None:
         redirects = {
             "/articles.html": "/blog",

@@ -32,9 +32,11 @@ class DocsProjectionTests(TestCase):
         self.assertEqual(page["parent_path"], "/docs/courses/ai-dev-tools-zoomcamp/")
 
     def test_docs_home_and_detail_emit_source_content_and_canonicals(self) -> None:
-        home = self.client.get("/docs")
+        home = self.client.get("/docs/")
         self.assertEqual(home.status_code, 200)
-        self.assertContains(home, '<link rel="canonical" href="https://datatalks.club/docs">')
+        self.assertNotIn("Location", home.headers)
+        self.assertContains(home, '<link rel="canonical" href="https://datatalks.club/docs/">')
+        self.assertContains(home, '<meta property="og:url" content="https://datatalks.club/docs/">')
         self.assertContains(home, "DataTalks.Club Zoomcamps Notes and Resources")
         self.assertContains(home, "/docs/courses/")
 
@@ -55,8 +57,6 @@ class DocsProjectionTests(TestCase):
     def test_every_projected_page_is_a_trailing_slash_public_page(self) -> None:
         for page in docs_projection()["pages"]:
             public_path = page["public_path"]
-            if public_path == DOCS_ROOT_PATH:
-                public_path = "/docs"
             with self.subTest(public_path=public_path):
                 response = self.client.get(public_path)
                 self.assertEqual(response.status_code, 200)
@@ -72,7 +72,7 @@ class DocsProjectionTests(TestCase):
         self.assertEqual(
             [(item["title"], item["public_path"]) for item in breadcrumbs],
             [
-                ("Documentation", "/docs"),
+                ("Documentation", "/docs/"),
                 ("General", "/docs/general/"),
                 ("Community Guidelines", "/docs/general/guidelines/"),
             ],

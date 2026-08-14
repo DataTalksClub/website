@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
+from content.docs_projection import docs_projection
 from content.public_data import public_projection
 
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
@@ -110,6 +111,68 @@ def test_public_home_and_hubs(
                 "flex-direction",
                 "column",
             )
+
+
+@pytest.mark.core
+@pytest.mark.parametrize(
+    "viewport",
+    [{"width": 1280, "height": 800}, {"width": 390, "height": 844}],
+)
+def test_docs_and_faq_root_trailing_slash_browser_contract(
+    page: Page,
+    live_server,
+    viewport: ViewportSize,
+) -> None:
+    page.set_viewport_size(viewport)
+    origin = live_server.url
+    query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
+
+    for final_path, alias_path, heading in (
+        ("/docs/", "/docs", "DataTalks.Club Zoomcamps Notes and Resources"),
+        ("/faq/", "/faq", "Frequently Asked Questions"),
+    ):
+        alias = page.request.get(f"{origin}{alias_path}?{query}", max_redirects=0)
+        assert alias.status == 301
+        assert alias.headers["location"] == f"{final_path}?{query}"
+        head = page.request.head(f"{origin}{alias_path}?{query}", max_redirects=0)
+        assert head.status == 301
+        assert head.headers["location"] == f"{final_path}?{query}"
+
+        response = page.goto(f"{origin}{final_path}?{query}", wait_until="networkidle")
+        assert response is not None and response.status == 200
+        assert "location" not in response.headers
+        expect(page).to_have_url(f"{origin}{final_path}?{query}")
+        expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
+        expect(page.locator('link[rel="canonical"]')).to_have_attribute(
+            "href", f"https://datatalks.club{final_path}"
+        )
+        expect(page.locator('meta[property="og:url"]')).to_have_attribute(
+            "content", f"https://datatalks.club{final_path}"
+        )
+        expect(page.locator(f'a[href="{final_path}"]')).to_have_count(1)
+        expect(page.locator(f'a[href="{alias_path}"]')).to_have_count(0)
+
+        redirected = page.goto(f"{origin}{alias_path}?{query}", wait_until="networkidle")
+        assert redirected is not None and redirected.status == 200
+        expect(page).to_have_url(f"{origin}{final_path}?{query}")
+
+    docs_detail = page.goto(
+        f"{origin}/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
+        wait_until="networkidle",
+    )
+    assert docs_detail is not None and docs_detail.status == 200
+    assert page.locator('a[href="/docs/"]').count() >= 1
+    docs_asset_path = docs_projection()["assets"][0]["public_path"]
+    docs_asset = page.request.get(f"{origin}{docs_asset_path}")
+    assert docs_asset.status == 200
+
+    faq_detail = page.goto(f"{origin}/faq/ai-dev-tools-zoomcamp.html", wait_until="networkidle")
+    assert faq_detail is not None and faq_detail.status == 200
+    assert page.locator('a[href="/faq/"]').count() >= 1
+    faq_courses = page.request.get(f"{origin}/faq/json/courses.json")
+    assert faq_courses.status == 200
+    faq_course = page.request.get(f"{origin}/faq/json/ai-dev-tools-zoomcamp.json")
+    assert faq_course.status == 200
 
 
 @pytest.mark.core

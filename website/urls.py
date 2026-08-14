@@ -36,8 +36,8 @@ urlpatterns = [
     path("", core_views.home, name="home"),
     path("", include("content.public_urls")),
     path("unified/", core_views.home, name="unified-home"),
-    path("docs", review_views.docs_home, name="docs-home"),
-    path("docs/", public_views.permanent_public_redirect, {"target": "/docs"}),
+    path("docs/", review_views.docs_home, name="docs-home"),
+    path("docs", public_views.permanent_public_redirect, {"target": "/docs/"}),
     path(
         "docs/courses/ai-dev-tools-zoomcamp/getting-started/",
         review_views.docs_getting_started,
@@ -45,8 +45,8 @@ urlpatterns = [
     ),
     path("docs/assets/<path:asset>", review_views.docs_asset, name="docs-asset"),
     path("docs/<path:doc_path>", review_views.docs_page, name="docs-page"),
-    path("faq", review_views.faq_home, name="faq-home"),
-    path("faq/", public_views.permanent_public_redirect, {"target": "/faq"}),
+    path("faq/", review_views.faq_home, name="faq-home"),
+    path("faq", public_views.permanent_public_redirect, {"target": "/faq/"}),
     path("faq/json/courses.json", review_views.faq_courses_json, name="faq-courses-json"),
     path(
         "faq/json/<slug:course_slug>.json",
