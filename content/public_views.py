@@ -623,24 +623,6 @@ def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
 
 
 @require_safe
-def podcast_detail_canonical(
-    request: HttpRequest, episode_key: str, title_slug: str
-) -> HttpResponse:
-    episode = public_projection()["podcasts_by_path"].get(f"/podcast/{episode_key}/{title_slug}")
-    if episode is None:
-        raise Http404
-    return _render_podcast_detail(request, episode)
-
-
-@require_safe
-def podcast_detail_legacy(request: HttpRequest, slug: str) -> HttpResponse:
-    episode = public_projection()["podcasts_by_slug"].get(slug)
-    if episode is None:
-        raise Http404
-    return permanent_public_redirect(request, target=episode["public_path"])
-
-
-@require_safe
 def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
     book = public_projection()["books_by_slug"].get(slug)
     if book is None:
