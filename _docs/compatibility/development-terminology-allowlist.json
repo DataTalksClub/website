@@ -283,6 +283,22 @@
       "reason": "The accepted roadmap retains its historical milestone title while current implementation uses development terminology.",
       "follow_up": "#94",
       "expected_count": 1
+    },
+    {
+      "path": "_docs/audits/2026-08-14-milestone-0-readiness.md",
+      "pattern": "(?:cost-aware sandbox network topology|accepted sandbox shape|#9 OPEN sandbox infrastructure)",
+      "class": "captured_compatibility",
+      "reason": "The accepted #150 matrix preserves the live #25 title, owner-resolution wording, and downstream #9 reference as captured provenance.",
+      "follow_up": "#94; recapture the readiness matrix after the development-network terminology migration.",
+      "expected_count": 3
+    },
+    {
+      "path": "scripts/validate_milestone_0_readiness.py",
+      "pattern": "Decision: Approve the cost-aware sandbox network topology",
+      "class": "captured_compatibility",
+      "reason": "The validator retains the exact live #25 title so the captured matrix rejects title drift.",
+      "follow_up": "#94; recapture the readiness matrix after the development-network terminology migration.",
+      "expected_count": 1
     }
   ]
 }
