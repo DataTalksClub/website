@@ -174,6 +174,74 @@ class DevelopmentTerminologyInventoryTests(SimpleTestCase):
                 errors = check(root, Path("policy.json"))
         self.assertTrue(any("digest differs" in error for error in errors))
 
+    def test_path_rule_allowance_is_count_bound(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "capture.md"
+            source.write_text(f"{FORMER_NAME}\n{FORMER_NAME}\n")
+            policy_path = root / "policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "self_reason": "policy data is excluded",
+                        "legacy_paths": [],
+                        "whole_files": [],
+                        "rules": [
+                            {
+                                "path": "capture.md",
+                                "pattern": FORMER_NAME,
+                                "class": "captured_compatibility",
+                                "reason": "fixture",
+                                "follow_up": "#94",
+                                "expected_count": 2,
+                            }
+                        ],
+                    }
+                )
+            )
+            with patch(
+                "scripts.check_development_terminology._tracked_paths",
+                return_value=(source, policy_path),
+            ):
+                self.assertEqual(check(root, Path("policy.json")), [])
+                source.write_text(f"{FORMER_NAME}\n")
+                errors = check(root, Path("policy.json"))
+        self.assertTrue(any("rule count differs" in error for error in errors))
+
+    def test_stale_path_rule_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "capture.md"
+            source.write_text("development\n")
+            policy_path = root / "policy.json"
+            policy_path.write_text(
+                json.dumps(
+                    {
+                        "version": 1,
+                        "self_reason": "policy data is excluded",
+                        "legacy_paths": [],
+                        "whole_files": [],
+                        "rules": [
+                            {
+                                "path": "capture.md",
+                                "pattern": FORMER_NAME,
+                                "class": "captured_compatibility",
+                                "reason": "fixture",
+                                "follow_up": "#94",
+                                "expected_count": 1,
+                            }
+                        ],
+                    }
+                )
+            )
+            with patch(
+                "scripts.check_development_terminology._tracked_paths",
+                return_value=(source, policy_path),
+            ):
+                errors = check(root, Path("policy.json"))
+        self.assertTrue(any("stale rule allowance" in error for error in errors))
+
     def test_legacy_link_notices_are_small_and_non_executable(self) -> None:
         for relative in (
             "_docs/runbooks/" + FORMER_NAME + "-release.md",

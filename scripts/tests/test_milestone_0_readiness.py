@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.check_development_terminology import FORMER_NAME
 from scripts.validate_milestone_0_readiness import (
     AUDIT_PATH,
     ValidationError,
@@ -17,6 +18,12 @@ def test_milestone_0_matrix_has_exact_live_snapshot_contract() -> None:
 
     assert len(rows) == 20
     assert {row.issue_number for row in rows} == set(range(12, 30)) | {30, 34}
+
+
+def test_validator_preserves_the_exact_historical_issue_25_title() -> None:
+    row = next(row for row in validate() if row.issue_number == 25)
+
+    assert row.cells[1] == f"Decision: Approve the cost-aware {FORMER_NAME} network topology"
 
 
 def test_validator_rejects_unknown_status() -> None:
