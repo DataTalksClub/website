@@ -2,6 +2,7 @@ path	classification	owner	removal_gate
 _docs/adoption/course-platform/README.md	adoption provenance	courses	Retain while the pinned CMP adoption baseline is authoritative.
 _docs/adoption/course-platform/upstream-sync.md	adoption provenance	courses	Retain while the controlled CMP upstream procedure and namespace mapping remain authoritative.
 _docs/adoption/course-platform/cadmin-reference-allowlist.tsv	adoption provenance	courses	Remove only after every listed compatibility and provenance reference reaches its recorded gate.
+_docs/audits/2026-08-14-course-platform-schema-data-inventory.md	adoption provenance	courses	Retain while #152's static course-platform schema/data baseline is authoritative; remove when superseded by an approved inventory.
 _docs/adoption/course-platform/copied-files.tsv	adoption provenance	courses	Retain while pinned source-to-destination checksum evidence is required.
 _docs/adoption/course-platform/integration-patches.md	adoption provenance	courses	Retain while the mechanical rename and legacy adapter remain part of adoption history.
 _docs/adoption/course-platform/target-owned-compatibility-shims.tsv	adoption provenance	courses	Remove adapter rows only after the legacy URL traffic gate is approved.
@@ -33,6 +34,7 @@ playwright_tests/test_accessibility.py	legacy contract test	accessibility	Remove
 review_import/tests/test_workflow.py	legacy contract test	courses	Remove the offline legacy browsing probes only when the legacy route adapter is deleted.
 scripts/build_legacy_manifest.py	legacy contract tooling	seo	Remove legacy route generation only after its compatibility artifacts are retired.
 scripts/build_pinned_legacy_sources.py	adoption provenance	courses	Retain pinned source mapping while the CMP adoption ledger remains authoritative.
+scripts/validate_course_platform_schema_inventory.py	adoption provenance	testing	Retain while #152's fail-closed inventory contract is enforced; remove when the inventory and its drift tests are retired.
 scripts/sync_course_platform.py	adoption provenance	courses	Retain controlled upstream mapping and conflict detection while CMP is adopted by literal copy.
 scripts/tests/test_sync_course_platform.py	adoption provenance test	courses	Retain sync safety coverage while CMP is adopted by literal copy.
 scripts/verify_course_platform_adoption.py	adoption provenance	courses	Retain the source-root mapping while pinned CMP checksums are verified.
