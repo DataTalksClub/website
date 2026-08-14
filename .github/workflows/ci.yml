@@ -845,33 +845,18 @@ jobs:
         if: needs.classification.outputs.screenshots_mode == 'rerun'
         working-directory: .tmp/ci-controller
         run: uv run --frozen playwright install --with-deps chromium
-      - name: Migrate the synthetic SQLite database
-        if: needs.classification.outputs.screenshots_mode == 'rerun'
-        run: uv run --frozen python manage.py migrate --noinput
-      - name: Start the release application for local capture
+      - name: Migrate and capture with one owned SQLite runtime
         if: needs.classification.outputs.screenshots_mode == 'rerun'
         run: |
           set -euo pipefail
           mkdir -p ../ci-controller/.tmp/components-screenshots
-          uv run --frozen python manage.py runserver 127.0.0.1:8000 --noreload \
-            > ../ci-controller/.tmp/components-screenshots/server.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent http://127.0.0.1:8000/health/live >/dev/null; then
-              break
-            fi
-            if [[ "$attempt" == "60" ]]; then
-              cat ../ci-controller/.tmp/components-screenshots/server.log >&2
-              exit 1
-            fi
-            sleep 1
-          done
-          cd ../ci-controller
-          uv run --frozen python -m ci.screenshot_capture \
-            --plan .tmp/verification-input/verification-plan.json \
+          uv run --frozen python -m ci.screenshot_runtime \
+            --repository . \
+            --controller-repository ../ci-controller \
+            --plan ../ci-controller/.tmp/verification-input/verification-plan.json \
             --base-url http://127.0.0.1:8000 \
-            --output .tmp/components-screenshots
+            --output ../ci-controller/.tmp/components-screenshots \
+            --server-log ../ci-controller/.tmp/components-screenshots/server.log
       - name: Record screenshot evidence with the job's actual environment
         if: >-
           always() &&
