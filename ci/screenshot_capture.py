@@ -28,6 +28,7 @@ DEBUG_MARKERS = (
     "internal server error",
 )
 SAFE_FILENAME = re.compile(r"[^a-z0-9]+")
+PAGE_BODY_READY_TIMEOUT_MS = 10_000
 
 
 def _capture_name(capture: Mapping[str, Any]) -> str:
@@ -49,7 +50,7 @@ def _assert_page_is_safe(page: Page, *, route_state: str, status: int | None) ->
     elif not 200 <= status < 400:
         raise RuntimeError(f"application route returned unexpected status {status}")
 
-    body_text = page.locator("body").inner_text(timeout=10).strip()
+    body_text = page.locator("body").inner_text(timeout=PAGE_BODY_READY_TIMEOUT_MS).strip()
     if not body_text:
         raise RuntimeError("screenshot route rendered an empty document")
     lowered = body_text.lower()

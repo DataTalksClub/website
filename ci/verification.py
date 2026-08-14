@@ -1686,6 +1686,50 @@ def _read_history(path: str | None) -> list[dict[str, Any]]:
     return payload
 
 
+def _read_screenshot_metadata(path: str | Path) -> dict[str, Any]:
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise VerificationError(
+            "screenshot capture failed before evidence recording: "
+            f"machine output is missing ({path})"
+        ) from None
+    except (UnicodeError, json.JSONDecodeError) as exc:
+        raise VerificationError(
+            f"screenshot capture produced unreadable machine output ({path})"
+        ) from exc
+    if not isinstance(payload, dict):
+        raise VerificationError(f"screenshot machine output must be an object ({path})")
+    return payload
+
+
+def _record_machine_output(
+    path: str | Path,
+    *,
+    root: str | Path,
+    component: str,
+    plan: Mapping[str, Any],
+    result: str,
+    screenshot: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    try:
+        return machine_output_claim(
+            path,
+            root=root,
+            component=component,
+            plan=plan,
+            result=result,
+            screenshot=screenshot,
+        )
+    except FileNotFoundError:
+        if component != "screenshots":
+            raise
+        raise VerificationError(
+            "screenshot capture failed before evidence recording: "
+            f"machine output is missing ({path})"
+        ) from None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command_name", required=True)
@@ -1858,8 +1902,8 @@ def main() -> None:
         result_path = output_path.with_name(f"{args.component}-result.json")
         screenshot = None
         if args.screenshot:
-            screenshot = json.loads(Path(args.screenshot).read_text(encoding="utf-8"))
-        machine_output = machine_output_claim(
+            screenshot = _read_screenshot_metadata(args.screenshot)
+        machine_output = _record_machine_output(
             args.machine_output,
             root=args.artifact_root,
             component=args.component,
