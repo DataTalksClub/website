@@ -21,8 +21,13 @@ class FaqRoutesTests(TestCase):
         )
 
     def test_faq_hub_lists_every_course(self) -> None:
-        response = self.client.get("/faq")
+        response = self.client.get("/faq/")
         self.assertEqual(response.status_code, 200)
+        self.assertNotIn("Location", response.headers)
+        self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/faq/">')
+        self.assertContains(
+            response, '<meta property="og:url" content="https://datatalks.club/faq/">'
+        )
         for course in faq_courses():
             self.assertContains(response, course["name"])
             self.assertContains(response, f'href="{course["public_path"]}"')

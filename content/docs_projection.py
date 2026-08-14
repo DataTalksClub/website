@@ -337,7 +337,7 @@ def docs_children(parent_path: str | None) -> tuple[dict[str, Any], ...]:
 
 
 def docs_breadcrumbs(page: Mapping[str, Any]) -> tuple[dict[str, str], ...]:
-    result: list[dict[str, str]] = [{"title": "Documentation", "public_path": "/docs"}]
+    result: list[dict[str, str]] = [{"title": "Documentation", "public_path": DOCS_ROOT_PATH}]
     chain: list[dict[str, Any]] = []
     current = page
     by_path = {item["public_path"]: item for item in docs_projection()["pages"]}

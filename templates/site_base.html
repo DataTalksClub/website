@@ -178,14 +178,14 @@
                                {% endif %}>
                                 Books
                             </a>
-                            <a href="{{ docs_url|default:'/docs' }}"
+                            <a href="{{ docs_url|default:'/docs/' }}"
                                class="app-heading app-link"
                                {% if primary_navigation_current == "docs" %}
                                    aria-current="page"
                                {% endif %}>
                                 Docs
                             </a>
-                            <a href="{{ faq_url|default:'/faq' }}"
+                            <a href="{{ faq_url|default:'/faq/' }}"
                                class="app-heading app-link"
                                {% if primary_navigation_current == "faq" %}
                                    aria-current="page"

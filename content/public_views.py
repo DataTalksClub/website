@@ -879,14 +879,14 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             ("/slack", ""),
         ),
         "docs": (
-            ("/docs", ""),
+            ("/docs/", ""),
             ("/docs/courses/ai-dev-tools-zoomcamp/getting-started/", ""),
         ),
     }
     if section in static_sections:
         return static_sections[section]
     if section == "faq":
-        return (("/faq", ""),) + tuple((course["public_path"], "") for course in faq_courses())
+        return (("/faq/", ""),) + tuple((course["public_path"], "") for course in faq_courses())
     if section == "blog":
         return (("/blog", ""),) + tuple(
             (record["public_path"], record["published"][:10]) for record in projection["articles"]
