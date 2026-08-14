@@ -443,6 +443,48 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 1})
 
 
+def test_registration_pages_emit_exact_production_canonicals(
+    page: Page,
+    live_server,
+    cmp_registration_campaign: RegistrationCampaign,
+) -> None:
+    campaigns = [
+        RegistrationCampaign.objects.create(
+            slug="ml-zoomcamp",
+            title="Machine Learning Zoomcamp",
+            current_course=cmp_registration_campaign.current_course,
+        ),
+        RegistrationCampaign.objects.create(
+            slug="ai-dev-tools",
+            title="AI Dev Tools Zoomcamp",
+            current_course=cmp_registration_campaign.current_course,
+        ),
+    ]
+
+    for campaign in campaigns:
+        registration_path = reverse(
+            "registration_campaign",
+            kwargs={"campaign_slug": campaign.slug},
+        )
+        response = page.goto(
+            f"{live_server.url}{registration_path}?utm_source=canonical-test",
+            wait_until="networkidle",
+        )
+
+        assert response is not None and response.status == 200
+        assert response.headers["x-robots-tag"] == "noindex, nofollow"
+        canonical = page.locator('link[rel="canonical"]')
+        expect(canonical).to_have_count(1)
+        expect(canonical).to_have_attribute(
+            "href",
+            f"https://datatalks.club/register/{campaign.slug}",
+        )
+        assert page.locator('link[rel="canonical"][href^="https://web.dtcdev.click/"]').count() == 0
+        assert (
+            page.locator(f'link[rel="canonical"][href$="/register/{campaign.slug}/"]').count() == 0
+        )
+
+
 @pytest.mark.parametrize("viewport_width", (320, 390, 414))
 def test_registration_hero_fits_loaded_image_without_javascript(
     browser,

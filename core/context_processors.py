@@ -56,6 +56,15 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         course_slug = resolver_match.kwargs.get("course_slug")
         if course_slug and Course.objects.filter(slug=course_slug).exists():
             canonical_url = f"https://datatalks.club/courses/{course_slug}"
+    if (
+        canonical_url is None
+        and resolver_match is not None
+        and not resolver_match.namespace
+        and resolver_match.url_name == "registration_campaign"
+    ):
+        campaign_slug = resolver_match.kwargs.get("campaign_slug")
+        if campaign_slug:
+            canonical_url = f"https://datatalks.club/register/{campaign_slug}"
     return {
         "brand_name": settings.SITE_NAME,
         "VERSION": settings.VERSION,
