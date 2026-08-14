@@ -12,6 +12,8 @@ from ci.ownership import sha256_json
 from ci.selection import ChangeRecord, classify_records
 from ci.verification import (
     VerificationError,
+    _read_screenshot_metadata,
+    _record_machine_output,
     build_plan,
     build_scheduled_state_envelope,
     create_report,
@@ -25,6 +27,62 @@ from ci.verification import (
 from tests_ci.helpers import component_output, repository_with_change, selection_for
 
 NOW = datetime(2026, 8, 9, 12, tzinfo=UTC)
+
+
+def test_screenshot_recorder_reports_missing_machine_output_without_fabricating_it(
+    tmp_path: Path,
+) -> None:
+    missing = tmp_path / "screenshots.json"
+
+    with pytest.raises(
+        VerificationError,
+        match=r"screenshot capture failed before evidence recording: machine output is missing",
+    ):
+        _read_screenshot_metadata(missing)
+
+    assert not missing.exists()
+
+
+def test_screenshot_recorder_reports_unreadable_machine_output(tmp_path: Path) -> None:
+    output = tmp_path / "screenshots.json"
+    output.write_text("not json", encoding="utf-8")
+
+    with pytest.raises(
+        VerificationError,
+        match=r"screenshot capture produced unreadable machine output",
+    ):
+        _read_screenshot_metadata(output)
+
+
+def test_screenshot_machine_output_failure_is_wrapped_without_swallowing_other_components(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    def missing_output(*_args: object, **_kwargs: object) -> dict[str, object]:
+        raise FileNotFoundError(tmp_path / "screenshots.json")
+
+    monkeypatch.setattr("ci.verification.machine_output_claim", missing_output)
+
+    with pytest.raises(
+        VerificationError,
+        match=r"screenshot capture failed before evidence recording: machine output is missing",
+    ):
+        _record_machine_output(
+            tmp_path / "screenshots.json",
+            root=tmp_path,
+            component="screenshots",
+            plan={},
+            result="failure",
+        )
+
+    with pytest.raises(FileNotFoundError):
+        _record_machine_output(
+            tmp_path / "playwright-output.log",
+            root=tmp_path,
+            component="playwright",
+            plan={},
+            result="failure",
+        )
 
 
 def make_plan(tmp_path: Path, changed: dict[str, str]):

@@ -247,6 +247,17 @@ def test_normal_workflow_uses_versioned_plan_and_trusted_evidence_artifact() -> 
     assert ".components.screenshots.command" in screenshot_script
     assert "screenshots_mode == 'rerun'" in str(screenshots)
     assert "No render-impact changes" in screenshot_script
+    screenshot_record = next(
+        step
+        for step in screenshots["steps"]
+        if step.get("name") == "Record screenshot evidence with the job's actual environment"
+    )
+    assert screenshot_record["if"].startswith("always()")
+    assert (
+        "--machine-output .tmp/components-screenshots/screenshots.json" in screenshot_record["run"]
+    )
+    assert "--screenshot .tmp/components-screenshots/screenshots.json" in screenshot_record["run"]
+    assert "artifact_args" in screenshot_record["run"]
     screenshot_artifact = (
         "verification-component-screenshots-${{ github.run_id }}-attempt-${{ github.run_attempt }}"
     )
