@@ -142,6 +142,27 @@ def _capture_snapshot(
         raise safe_error from None
 
 
+def _verify_terminal_capture(
+    gateway: ReleaseGateway,
+    expected_task_definitions: dict[str, str],
+    expected_desired_counts: dict[str, int],
+    expected_identity: ReleaseIdentity | None,
+    *,
+    evidence_path: Path | None,
+) -> None:
+    """Verify a captured pair and persist only bounded evidence for late failures."""
+
+    try:
+        gateway.verify_terminal(
+            expected_task_definitions,
+            expected_desired_counts,
+            expected_identity,
+        )
+    except Exception as error:
+        _record_failed_stage(evidence_path, "capture:terminal", error)
+        raise
+
+
 def _record_recovery_evidence(
     path: Path | None,
     stage: str,
@@ -556,10 +577,12 @@ def capture_current_service_pair(
     )
     gateway.verify_active_service_pair(pair, identity)
     gateway.verify_image_digest_exists(identity)
-    gateway.verify_terminal(
+    _verify_terminal_capture(
+        gateway,
         {"web": web.task_definition_arn, "worker": worker.task_definition_arn},
         {"web": web.desired_count, "worker": worker.desired_count},
         identity,
+        evidence_path=evidence_path,
     )
     pair.write(pair_path)
     return pair
@@ -593,10 +616,12 @@ def capture_recovery_context(
             web.identity_schema,
         )
         _verify_expected_prior(gateway, expected, identity)
-    gateway.verify_terminal(
+    _verify_terminal_capture(
+        gateway,
         {"web": web.task_definition_arn, "worker": worker.task_definition_arn},
         {"web": web.desired_count, "worker": worker.desired_count},
         identity,
+        evidence_path=evidence_path,
     )
     _write_recovery_context(path, repository_uri, web, worker)
     return RecoveryContext.read(path)
@@ -935,10 +960,12 @@ def _recapture_prior_before_mutation(
             config.expected_prior_release,
             prior_identity,
         )
-    gateway.verify_terminal(
+    _verify_terminal_capture(
+        gateway,
         {"web": web.task_definition_arn, "worker": worker.task_definition_arn},
         {"web": web.desired_count, "worker": worker.desired_count},
         prior_identity,
+        evidence_path=config.evidence_path,
     )
     return web, worker
 
