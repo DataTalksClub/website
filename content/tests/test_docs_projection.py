@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 
 from django.test import TestCase
 
 from content.docs_projection import (
+    DOCS_PROJECTION_PATH,
     DOCS_ROOT_PATH,
     DOCS_SOURCE_REVISION,
+    _prepare_markdown,
     docs_asset_path,
     docs_breadcrumbs,
     docs_page,
@@ -94,6 +98,119 @@ class DocsProjectionTests(TestCase):
         self.assertNotIn("<script", html.lower())
         self.assertNotIn("javascript:", html.lower())
         self.assertNotRegex(html, re.compile(r"on\w+\s*=", re.IGNORECASE))
+
+    def test_render_time_link_allowlist_preserves_fragments_and_external_links(self) -> None:
+        source = (
+            "[events](/events.html?utm_source=docs#upcoming) "
+            "[events](https://datatalks.club/events.html?utm_source=docs#upcoming) "
+            "[empty](/events.html?#) "
+            "[podcast](/podcast.html#episodes) "
+            "[podcast](https://datatalks.club/podcast.html?season=3#latest) "
+            "[books](/books.html?sort=recent) "
+            "[books](https://datatalks.club/books.html#archive) "
+            "[slack](/slack.html?source=docs#join) "
+            "[guidelines](https://datatalks.club/slack/guidelines.html#rules) "
+            "[newsletter](/newsletter.html?utm_source=docs#weekly) "
+            "[newsletter](https://datatalks.club/newsletter.html#weekly) "
+            "[Luma](https://luma.com/dtc-events) "
+            "[channel](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA)"
+        )
+        prepared = _prepare_markdown(source)
+        self.assertEqual(
+            prepared,
+            (
+                "[events](/events?utm_source=docs#upcoming) "
+                "[events](/events?utm_source=docs#upcoming) "
+                "[empty](/events?#) "
+                "[podcast](/podcast#episodes) "
+                "[podcast](/podcast?season=3#latest) "
+                "[books](/books?sort=recent) "
+                "[books](/books#archive) "
+                "[slack](/slack?source=docs#join) "
+                "[guidelines](/slack#rules) "
+                "newsletter newsletter "
+                "[our events page](/events) "
+                "[channel](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA)"
+            ),
+        )
+        self.assertNotIn("newsletter.html", prepared)
+        self.assertNotIn("luma.com", prepared)
+
+    def test_link_rewrites_do_not_touch_markdown_outside_intended_spans(self) -> None:
+        source = (
+            "Literal /events.html and https://datatalks.club/slack.html stay unchanged.\n\n"
+            "`[events](/events.html)` and `[Luma](https://luma.com/dtc-events)` stay unchanged.\n\n"
+            "[external](https://example.com/events.html) and "
+            "[other host](https://www.datatalks.club/events.html) stay unchanged."
+        )
+        self.assertEqual(_prepare_markdown(source), source)
+
+    def test_rendered_activity_pages_use_canonical_hubs_and_targeted_events_cta(self) -> None:
+        expected_hubs = {
+            "/docs/activities/": ("/events",),
+            "/docs/activities/podcast/": ("/podcast", "/events"),
+            "/docs/activities/webinars/": ("/events",),
+            "/docs/activities/workshops/": ("/events",),
+            "/docs/activities/book-of-the-week/": ("/books", "/slack"),
+        }
+        for public_path, destinations in expected_hubs.items():
+            with self.subTest(public_path=public_path):
+                page = docs_page(public_path)
+                self.assertIsNotNone(page)
+                rendered, _ = render_docs_markdown(page or {})
+                for destination in destinations:
+                    self.assertIn(f'href="{destination}', rendered)
+                self.assertNotRegex(
+                    rendered,
+                    r'href="(?:https://datatalks\.club)?/(?:events|podcast|books)\.html',
+                )
+        activities, _ = render_docs_markdown(docs_page("/docs/activities/") or {})
+        self.assertIn('href="/events"', activities)
+        self.assertNotIn("luma.com", activities.lower())
+        self.assertNotIn(">Luma<", activities)
+        workshops, _ = render_docs_markdown(docs_page("/docs/activities/workshops/") or {})
+        self.assertIn("via Luma", workshops)
+
+    def test_all_affected_docs_pages_apply_slack_and_newsletter_exceptions(self) -> None:
+        newsletter_pages = {
+            "/docs/courses/llm-zoomcamp/resources/": "DataTalks.Club newsletter",
+            "/docs/courses/ml-zoomcamp/resources/": "DataTalks.Club Newsletter",
+            "/docs/courses/zoomcamp-logistics/email/": "DataTalks.Club newsletter",
+        }
+        for public_path, heading_copy in newsletter_pages.items():
+            with self.subTest(public_path=public_path):
+                page = docs_page(public_path)
+                self.assertIsNotNone(page)
+                rendered, _ = render_docs_markdown(page or {})
+                self.assertIn(heading_copy, rendered)
+                self.assertNotRegex(rendered, r'href="[^" ]*newsletter\.html')
+        ml_resources, _ = render_docs_markdown(
+            docs_page("/docs/courses/ml-zoomcamp/resources/") or {}
+        )
+        self.assertIn('href="https://us19.campaign-archive.com/home/', ml_resources)
+
+        for page in docs_projection()["pages"]:
+            if not re.search(r"/slack(?:/guidelines)?\.html", str(page["body"])):
+                continue
+            with self.subTest(public_path=page["public_path"]):
+                rendered, _ = render_docs_markdown(page)
+                self.assertNotRegex(
+                    rendered,
+                    r'href="(?:https://datatalks\.club)?/slack(?:/guidelines)?\.html',
+                )
+                self.assertIn('href="/slack', rendered)
+
+    def test_rendering_keeps_projection_source_and_metadata_immutable(self) -> None:
+        before_bytes = DOCS_PROJECTION_PATH.read_bytes()
+        before_projection = json.loads(before_bytes)
+        before_digest = hashlib.sha256(before_bytes).hexdigest()
+
+        for page in docs_projection()["pages"]:
+            render_docs_markdown(page)
+
+        after_bytes = DOCS_PROJECTION_PATH.read_bytes()
+        self.assertEqual(hashlib.sha256(after_bytes).hexdigest(), before_digest)
+        self.assertEqual(json.loads(after_bytes), before_projection)
 
     def test_referenced_assets_are_served_only_from_the_pinned_allowlist(self) -> None:
         asset = docs_projection()["assets"][0]
