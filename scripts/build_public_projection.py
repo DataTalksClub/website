@@ -35,6 +35,7 @@ from content.event_description_bridge import (  # noqa: E402
     apply_bridge_to_events,
     bridge_manifest_binding,
 )
+from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
@@ -385,6 +386,7 @@ def _slugify(value: str) -> str:
 
 def _plain_inline(value: str) -> str:
     value = LIQUID.sub("", value)
+    value = strip_target_attributes_from_links(value)
     value = MARKDOWN_IMAGE.sub(lambda match: match.group(1), value)
     value = MARKDOWN_LINK.sub(lambda match: match.group(1), value)
 

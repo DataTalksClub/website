@@ -27,6 +27,7 @@ from .event_description_bridge import (
     load_event_description_bridge,
     validate_projected_event,
 )
+from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
 EVENT_IDENTITY_MANIFEST = PROJECTION_ROOT.parents[1] / "events" / "event_identity_manifest.json"
@@ -45,6 +46,9 @@ EXPECTED_COUNTS = {
     "courses": 12,
     "media": 1_253,
 }
+# The accepted projection audit found these exact supported metadata markers.  Runtime cleanup
+# uses this canary to ensure the immutable-source allowlist does not silently broaden or drift.
+EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 270, "people": 10}
 EXPECTED_SELECTION = "preferred"
 EDITORIAL_ROUTE_COLLECTIONS = {
     "articles": "/blog",
@@ -639,9 +643,63 @@ def _adapted_public_projection(
     projection = dict(source)
     projection["events"] = tuple(dict(event) for event in source["events"])
     projection["podcasts"] = tuple(dict(podcast) for podcast in source["podcasts"])
+
+    # The checked projection flattened Markdown links before runtime loading.  Build a provenance
+    # allowlist from that immutable source so only its known leaked blocks opt into metadata
+    # removal; an arbitrary attached ``literal{:target="blank"}`` value never does.
+    leaked_blocks: dict[str, dict[str, frozenset[int]]] = {}
+    for collection in ("articles", "people"):
+        collection_allowlist: dict[str, frozenset[int]] = {}
+        marker_count = 0
+        for record in source[collection]:
+            block_indexes = frozenset(
+                index
+                for index, block in enumerate(record.get("blocks", ()))
+                if isinstance(block, dict)
+                and isinstance(block.get("text"), str)
+                and target_attribute_count(block["text"]) > 0
+            )
+            marker_count += sum(
+                target_attribute_count(block.get("text", ""))
+                for block in record.get("blocks", ())
+                if isinstance(block, dict) and isinstance(block.get("text"), str)
+            )
+            collection_allowlist[record["slug"]] = block_indexes
+        if marker_count != EXPECTED_LEAKED_TARGET_MARKERS[collection]:
+            raise ImproperlyConfigured("Public projection leaked target marker count mismatch.")
+        leaked_blocks[collection] = collection_allowlist
+
+    def copy_body_record(
+        record: dict[str, Any],
+        *,
+        collection: str,
+    ) -> dict[str, Any]:
+        copied = dict(record)
+        raw_blocks = record.get("blocks")
+        if isinstance(raw_blocks, (list, tuple)):
+            copied_blocks: list[Any] = []
+            allowed_indexes = leaked_blocks[collection].get(record["slug"], frozenset())
+            for index, raw_block in enumerate(raw_blocks):
+                if not isinstance(raw_block, dict):
+                    copied_blocks.append(raw_block)
+                    continue
+                block = dict(raw_block)
+                text = block.get("text")
+                if isinstance(text, str) and index in allowed_indexes:
+                    block["text"] = strip_leaked_target_attributes(
+                        text,
+                        validated_projection=True,
+                    )
+                copied_blocks.append(block)
+            copied["blocks"] = copied_blocks
+        return copied
+
+    projection["articles"] = tuple(
+        copy_body_record(article, collection="articles") for article in source["articles"]
+    )
     projection["people"] = tuple(
         {
-            **person,
+            **copy_body_record(person, collection="people"),
             "relationships": tuple(
                 dict(relationship) for relationship in person.get("relationships", ())
             ),
@@ -649,8 +707,14 @@ def _adapted_public_projection(
         for person in source["people"]
     )
     _apply_runtime_event_public_paths(projection, runtime_identities)
-    # The adapters mutate copied people records; refresh their lookup indexes as well so detail
-    # pages and relationship tests do not retain references to the checked source records.
+    # The adapters mutate copied article/people records; refresh their lookup indexes as well so
+    # detail pages and relationship tests do not retain references to checked source records.
+    projection["articles_by_slug"] = {
+        article["slug"]: article for article in projection["articles"]
+    }
+    projection["articles_by_path"] = {
+        article["public_path"]: article for article in projection["articles"]
+    }
     projection["people_by_slug"] = {person["slug"]: person for person in projection["people"]}
     projection["people_by_path"] = {
         person["public_path"]: person for person in projection["people"]

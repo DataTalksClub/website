@@ -9,6 +9,10 @@ from pathlib import Path
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from content.public_text import (
+    strip_leaked_target_attributes,
+    strip_target_attributes_from_links,
+)
 from scripts import build_public_projection as builder
 
 
@@ -70,6 +74,68 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertNotIn("<script", str(blocks))
         self.assertNotIn("secret", str(blocks))
         self.assertIn("Visible text", str(blocks))
+
+    def test_target_attribute_grammar_is_narrow_and_preserves_link_content(self) -> None:
+        self.assertEqual(
+            strip_target_attributes_from_links(
+                '[label](https://example.test/path){:target = "blank"}, surrounding prose'
+            ),
+            "[label](https://example.test/path), surrounding prose",
+        )
+        self.assertEqual(
+            strip_target_attributes_from_links(
+                "[label](https://example.test/path){:target=&quot;blank&quot;}."
+            ),
+            "[label](https://example.test/path).",
+        )
+        self.assertEqual(
+            builder._plain_inline(
+                '[label](https://example.test/path){:target="blank"}, surrounding prose'
+            ),
+            "label, surrounding prose",
+        )
+
+        unsupported = (
+            '[label](https://example.test/path){:target="_blank"}',
+            "[label](https://example.test/path){:target=blank}",
+            "[label](https://example.test/path){:target='blank'}",
+            '[label](https://example.test/path){:target="blank" class="external"}',
+            "[label](https://example.test/path){#external}",
+            'literal {:target="blank"}',
+        )
+        for value in unsupported:
+            with self.subTest(value=value):
+                self.assertEqual(strip_target_attributes_from_links(value), value)
+
+        code = '`[label](https://example.test/path){:target="blank"}`'
+        self.assertEqual(strip_target_attributes_from_links(code), code)
+        self.assertEqual(strip_leaked_target_attributes(code), code)
+        self.assertEqual(
+            strip_leaked_target_attributes('literal {:target="blank"}'),
+            'literal {:target="blank"}',
+        )
+        self.assertEqual(
+            strip_leaked_target_attributes('literal{:target="blank"}'),
+            'literal{:target="blank"}',
+        )
+        self.assertEqual(
+            strip_leaked_target_attributes(
+                'label{:target="blank"}',
+                validated_projection=True,
+            ),
+            "label",
+        )
+        self.assertEqual(
+            strip_leaked_target_attributes("label{:target=&quot;blank&quot;}"),
+            "label{:target=&quot;blank&quot;}",
+        )
+        self.assertEqual(
+            strip_leaked_target_attributes(
+                "label{:target=&quot;blank&quot;}",
+                validated_projection=True,
+            ),
+            "label",
+        )
 
     def test_book_archive_normalizes_ordered_threads_and_empty_replies(self) -> None:
         archive = builder._book_archive(
