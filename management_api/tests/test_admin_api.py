@@ -96,6 +96,7 @@ class AdminAPIHealthTests(TestCase):
     def test_openapi_uses_the_canonical_release_identity_contract(self) -> None:
         document = generate_document()
         health = document["components"]["schemas"]["AdminHealth"]
+        event_identity = document["components"]["schemas"]["EventIdentity"]
 
         self.assertEqual(document["info"]["version"], settings.VERSION)
         self.assertEqual(
@@ -104,6 +105,17 @@ class AdminAPIHealthTests(TestCase):
         )
         self.assertEqual(health["properties"]["source_sha"]["type"], ["string", "null"])
         self.assertEqual(health["properties"]["image_digest"]["type"], ["string", "null"])
+        self.assertEqual(event_identity["properties"]["id"], {"type": "string", "format": "uuid"})
+        self.assertEqual(
+            event_identity["properties"]["public_id"],
+            {"type": "integer", "minimum": 1, "readOnly": True},
+        )
+        self.assertEqual(
+            event_identity["properties"]["canonical_path"]["pattern"],
+            "^/events/[1-9][0-9]*/[-a-z0-9]+$",
+        )
+        self.assertIn("/events/identities/{event_id}", document["paths"])
+        self.assertNotIn("/events/identities/{public_id}", document["paths"])
 
     def test_failure_matrix_is_generic_and_confused_deputies_are_rejected(self) -> None:
         staff = get_user_model().objects.create_user(username="session-staff", is_staff=True)

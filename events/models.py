@@ -14,11 +14,34 @@ from typing import Any
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.db.models import F, Max, Q
+from django.db.models import F, Q
 
 from core.models import RevisionedModel
 
 from .slugs import event_title_slug
+
+
+class EventPublicIdSequence(models.Model):
+    """The durable, never-decremented allocator for public Event route IDs."""
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    next_public_id = models.PositiveIntegerField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(id=1),
+                name="events_public_id_sequence_singleton",
+            ),
+            models.CheckConstraint(
+                condition=Q(next_public_id__gt=0),
+                name="events_public_id_sequence_positive",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Next public Event ID: {self.next_public_id}"
 
 
 class Event(models.Model):
@@ -28,6 +51,8 @@ class Event(models.Model):
     lifecycle/content/registration fields are added to this model by the owning follow-up
     issues; no projection-only replacement model is introduced.
     """
+
+    _allow_public_id_assignment: bool = False
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # UUID remains the immutable internal identity.  This separate sequence is the
@@ -52,6 +77,10 @@ class Event(models.Model):
             ),
             models.CheckConstraint(condition=Q(title__gt=""), name="events_event_title_nonempty"),
             models.CheckConstraint(
+                condition=Q(public_id__isnull=True) | Q(public_id__gt=0),
+                name="events_event_public_id_positive",
+            ),
+            models.CheckConstraint(
                 condition=Q(source_repository__gt="")
                 & Q(source_revision__gt="")
                 & Q(source_key__gt=""),
@@ -70,7 +99,7 @@ class Event(models.Model):
             raise ValueError("event identity cannot be reassigned")
         original = None
         if not self._state.adding:
-            original = type(self).objects.filter(pk=self.pk).values("slug").first()
+            original = type(self).objects.filter(pk=self.pk).values("slug", "public_id").first()
         expected_slug = event_title_slug(self.title)
         if self._state.adding and type(self).objects.filter(pk=self.pk).exists():
             raise ValueError("event identity already exists")
@@ -81,22 +110,23 @@ class Event(models.Model):
             # Django otherwise treats a loaded object whose primary key was reassigned as a
             # new insert.  Make identity reassignment explicit and fail closed.
             raise ValueError("event identity cannot be reassigned")
+        if self._state.adding and (
+            self.public_id is None or not getattr(self, "_allow_public_id_assignment", False)
+        ):
+            raise ValueError("event public ID must be allocated by the identity service")
+        if original is not None and original["public_id"] != self.public_id:
+            raise ValueError("event public ID is immutable")
         original_slug = original["slug"] if original is not None else None
         slug_changed = original_slug is not None and original_slug != expected_slug
         update_fields = kwargs.get("update_fields")
         if slug_changed and update_fields is not None and "slug" not in update_fields:
             kwargs["update_fields"] = (*update_fields, "slug")
         with transaction.atomic():
-            if self._state.adding and self.public_id is None:
-                latest_public_id = (
-                    type(self).objects.aggregate(latest=Max("public_id")).get("latest") or 0
-                )
-                self.public_id = latest_public_id + 1
             super().save(*args, **kwargs)
             self._identity_original_id = self.id
             if slug_changed and original_slug is not None:
                 EventAlias.objects.get_or_create(
-                    source_path=f"/events/{self.id}/{original_slug}",
+                    source_path=f"/events/{self.public_id}/{original_slug}",
                     defaults={
                         "event": self,
                         "kind": EventAlias.Kind.TITLE_SLUG,
@@ -135,6 +165,9 @@ class EventAlias(models.Model):
     """An immutable, reviewed source path that redirects to one Event identity."""
 
     class Kind(models.TextChoices):
+        LEGACY_DATE_PATH = "legacy_date_path", "Legacy date/title path"
+        LEGACY_UUID = "legacy_uuid", "Legacy UUID path"
+        # Retained for rows created before the numeric-public reconciliation migration.
         LEGACY_PATH = "legacy_path", "Legacy path"
         TITLE_SLUG = "title_slug", "Previous title slug"
         REVIEWED = "reviewed", "Reviewed alias"

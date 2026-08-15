@@ -125,6 +125,34 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
     ):
         raise ContainerCheckError("incompatible static storage diagnostic is not exact")
 
+    runtime = fixtures / f"runtime-{os.getpid()}"
+    runtime.mkdir(parents=True, exist_ok=True)
+    # The image runs as uid 10001. This process-scoped scratch mount must be writable by that
+    # non-root identity so the local SQLite database exercises the real migration graph.
+    runtime.chmod(0o777)
+    runtime_mount = f"type=bind,source={runtime},target=/app/.tmp"
+    _run(
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--env",
+            "DJANGO_SETTINGS_MODULE=website.settings.local",
+            "--mount",
+            runtime_mount,
+            "--entrypoint",
+            "uv",
+            image,
+            "run",
+            "--no-sync",
+            "python",
+            "manage.py",
+            "migrate",
+            "--noinput",
+        ],
+        cwd=repository,
+    )
+
     try:
         _run(
             [
@@ -135,6 +163,8 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
                 container,
                 "--env",
                 "DJANGO_SETTINGS_MODULE=website.settings.local",
+                "--mount",
+                runtime_mount,
                 "--publish",
                 "127.0.0.1::8000",
                 image,
@@ -179,6 +209,7 @@ def verify_container(repository: Path, revision: str) -> dict[str, Any]:
                                     "static_manifest_malformed_rejected",
                                     "static_manifest_missing_entry_rejected",
                                     "static_manifest_incompatible_storage_rejected",
+                                    "local_sqlite_migration_graph_applied",
                                     "health_live_local_identity",
                                     "unified_route_responds",
                                 ],

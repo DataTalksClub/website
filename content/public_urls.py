@@ -102,23 +102,23 @@ urlpatterns = [
         public_views.event_legacy_redirect,
         name="public-event-legacy-trailing-slash",
     ),
-    path(
-        "events/<int:event_id>/<slug:slug>",
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)$",
         public_views.event_detail,
         name="public-event",
     ),
-    path(
-        "events/<int:event_id>",
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)$",
         public_views.event_detail_without_slug,
         name="public-event-without-slug",
     ),
-    path(
-        "events/<uuid:event_id>/<slug:slug>",
+    re_path(
+        r"^events/(?P<event_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/(?P<slug>[-a-zA-Z0-9_]+)$",
         public_views.event_detail_legacy_uuid,
         name="public-event-legacy-uuid",
     ),
-    path(
-        "events/<uuid:event_id>",
+    re_path(
+        r"^events/(?P<event_id>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
         public_views.event_detail_legacy_uuid_without_slug,
         name="public-event-legacy-uuid-without-slug",
     ),

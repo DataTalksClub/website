@@ -41,6 +41,34 @@ The baseline inventory covers:
 - Course-platform compatibility routes remain available on `courses.datatalks.club` until every known browser, script, certificate tool, and email template has migrated.
 - Path case, percent encoding, Unicode, query strings used by public behavior, and trailing-slash behavior are tested rather than normalized globally.
 
+### Canonical public Event identity
+
+The sole public Event detail canonical is
+`/events/<positive-public-id>/<current-title-slug>`. `public-id` is one plain base-10 integer matching
+`[1-9][0-9]*`; it has no sign, prefix, or leading zero. It is stable, immutable, unique, and never
+reused or renumbered. The current title-derived slug is cosmetic and never selects the Event. Event
+UUID remains the immutable internal identity and the only management-route lookup key.
+
+Exact numeric-only and known numeric/stale-slug `GET`/`HEAD` requests redirect permanently in one
+hop to the numeric/current-slug canonical with the raw query preserved. The accepted lowercase
+RFC 4122 UUID/current-slug and UUID-only public URLs are compatibility aliases with the same direct
+destination. Each reviewed date/title alias records both its clean and accepted trailing-slash
+spelling explicitly. Alias ownership and reason remain in the checked route manifest; resolution
+does not guess the opposite slash form, a nearby date/title, case, source/provider key, or slug.
+
+Canonical numeric `GET`/`HEAD` is terminal `200` and self-canonical. A query-bearing terminal detail
+remains `200` with a query-free production canonical but is `no-store`; approved redirects retain
+`public, max-age=300`. Zero, negative, signed, zero-padded, overlong/malformed, unknown, alternate-case
+UUID, canonical trailing-slash, unrecorded alias-slash, and other non-exact forms are rendered `404`
+without a redirect (`max-age=0` when query-free, otherwise `no-store`). Unsafe methods return `405`,
+exact `Allow: GET, HEAD`, and `no-store`. No public Event response falls back to a hub or homepage.
+
+Canonical, Open Graph, JSON-LD Event and breadcrumb URLs, internal links, registration/calendar
+builders, feeds, and sitemaps emit only the numeric/current-title-slug form. UUID/date paths are
+redirect sources only. The identity manifest separately records UUID/source provenance, numeric
+canonical, and exact aliases; a missing, duplicate, ambiguous, or renumbered UUID/public-ID mapping
+fails closed before activation. A deterministic replay preserves all reviewed assignments.
+
 ### Podcast catalogue season navigation
 
 Each successful `/podcast` catalogue response contains exactly one complete actual season. Seasons
@@ -258,7 +286,7 @@ The legacy static build and URL manifest remain available throughout the rollbac
 
 ## Historical registration-total representation
 
-The checked canonical event detail `/events/<slug>` may show one exact, unrounded, non-negative
+The checked canonical event detail `/events/<positive-public-id>/<current-title-slug>` may show one exact, unrounded, non-negative
 integer as `N registered` when the events query reports complete accepted coverage. The event hub,
 sitemaps, structured data, search, caches, and every other public surface omit the total. They also
 omit provider splits, source/mapping state, external event identifiers, and all attendee identity.

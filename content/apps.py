@@ -24,10 +24,10 @@ def review_projection_check(app_configs, **kwargs):
 @register()
 def public_projection_check(app_configs, **kwargs):
     del app_configs, kwargs
-    from .public_data import public_projection
+    from .public_data import _checked_public_projection
 
     try:
-        public_projection()
+        _checked_public_projection()
     except ImproperlyConfigured as exc:
         return [
             Error(

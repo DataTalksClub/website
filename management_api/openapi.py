@@ -648,6 +648,8 @@ def generate_document() -> dict[str, Any]:
                     "additionalProperties": False,
                     "required": [
                         "id",
+                        "public_id",
+                        "public_url",
                         "title",
                         "slug",
                         "canonical_path",
@@ -657,12 +659,19 @@ def generate_document() -> dict[str, Any]:
                     ],
                     "properties": {
                         "id": {"type": "string", "format": "uuid"},
+                        "public_id": {"type": "integer", "minimum": 1, "readOnly": True},
+                        "public_url": {"type": "string", "format": "uri", "readOnly": True},
                         "title": {"type": "string", "minLength": 1},
                         "slug": {"type": "string", "minLength": 1},
-                        "canonical_path": {"type": "string", "pattern": "^/events/[0-9a-f-]+/"},
+                        "canonical_path": {
+                            "type": "string",
+                            "pattern": "^/events/[1-9][0-9]*/[-a-z0-9]+$",
+                            "readOnly": True,
+                        },
                         "registration_path": {
                             "type": "string",
-                            "pattern": "^/events/[0-9a-f-]+/.+/register$",
+                            "pattern": "^/events/[1-9][0-9]*/[-a-z0-9]+/register$",
+                            "readOnly": True,
                         },
                         "aliases": {
                             "type": "array",

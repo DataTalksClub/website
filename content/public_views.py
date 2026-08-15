@@ -186,9 +186,14 @@ def _public_event_route(view):
         if request.method not in {"GET", "HEAD"}:
             return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
         try:
-            return view(request, *args, **kwargs)
+            response = view(request, *args, **kwargs)
         except Http404:
-            return _public_not_found(request)
+            response = _public_not_found(request)
+        # Redirect aliases preserve their raw query under the explicit redirect cache policy.
+        # A terminal detail/error carrying any query is not a query-keyed public object.
+        if request.META.get("QUERY_STRING", "") and response.status_code != 301:
+            return _no_store(response)
+        return response
 
     return csrf_exempt(wrapped)
 
@@ -406,8 +411,9 @@ def event_detail_legacy_uuid_without_slug(request: HttpRequest, event_id: str) -
 
 @_public_event_route
 def event_legacy_redirect(request: HttpRequest, legacy_path: str) -> HttpResponse:
+    del legacy_path
     try:
-        event = resolve_legacy_path(f"/events/{legacy_path}")
+        event = resolve_legacy_path(request.path_info)
         target = canonical_detail_path(event.id)
     except EventIdentityNotFound as exc:
         raise Http404 from exc

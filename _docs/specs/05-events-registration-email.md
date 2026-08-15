@@ -4,15 +4,18 @@ Status: draft
 
 ## Event model
 
-Before database Event cutover, the bounded checked projection exposes each legacy public event at
-`/events/<event-slug>`. Homepage and hub links enter that internal detail first. Provider and
+Before full lifecycle cutover, the bounded checked projection exposes each legacy public event at
+`/events/<positive-public-id>/<current-title-slug>`. Homepage and hub links enter that internal
+detail first. Provider and
 recording destinations appear only as clearly labelled safe external actions on the detail, and
 every checked speaker key resolves to `/people/<short>.html`. This surface is read-only and does
 not introduce registration, email, or provider mutations.
 
 ### Event
 
-- UUID and immutable internal identity;
+- UUID and immutable internal identity used by relations, services, audit, Studio, and admin API;
+- separate stable, unique, positive numeric public ID, allocated collision-safely once, never reused
+  or renumbered, and exposed by management only as read-only public metadata;
 - stable public slug with explicit aliases for approved renames;
 - title, summary, sanitized body, event type, image, and visibility;
 - timezone-aware start/end plus the event's IANA timezone;
@@ -21,6 +24,12 @@ not introduce registration, email, or provider mutations.
 - lifecycle state, publication timestamps, revision, calendar UID, and calendar sequence;
 - optional recording, recap, course/cohort, or external-event relationship;
 - ordered person relationships for speakers and hosts.
+
+The public ID alone selects a public Event; its title slug is cosmetic. Publication fails closed
+without a public ID. Imports and replays preserve the checked UUID/public-ID pair and reject missing,
+duplicate, ambiguous, or renumbered mappings atomically. The accepted UUID/current-slug, UUID-only,
+and reviewed date/title spellings remain exact one-hop aliases to the numeric/current-slug canonical.
+No public slug-only, date/title-derived, provider-ID, source-key, or numeric management lookup exists.
 
 Lifecycle: `draft -> published -> completed -> archived`, with `cancelled` reachable before completion. Registration availability is derived from publication, registration window, event time, and cancellation state.
 
@@ -257,6 +266,9 @@ Both interfaces can:
   rotation, resend, suppression, outage, quarantine, and deletion never leak or retain the join URL.
 - Public event catalog/detail caching cannot store a registration, management, provider, profile,
   Slack, or credentialed response.
+- Public Event links, canonical/OG/JSON-LD, breadcrumbs, registration/calendar builders, feeds, and
+  sitemaps emit only `/events/<positive-public-id>/<current-title-slug>`; UUID remains management-only
+  identity and a retained public redirect source.
 - Every event/email management action has Studio/admin API parity and negative authorization tests.
 - New website code has no direct Amazon SES or Datamailer send path, no canonical mutable template
   store, and no provider-attempt/event stack; only approved development `courses` delivery may

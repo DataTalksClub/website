@@ -928,19 +928,20 @@ def _events(
 
 
 def _apply_event_identity_manifest(events: list[dict[str, Any]]) -> None:
-    """Apply reviewed UUIDs without deriving identity from mutable source fields."""
+    """Bind checked UUID evidence to the reviewed numeric public route manifest."""
 
     try:
         payload = json.loads(EVENT_IDENTITY_MANIFEST.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ProjectionBuildError("event identity manifest cannot be read") from exc
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+    if not isinstance(payload, dict) or payload.get("schema_version") != 2:
         raise ProjectionBuildError("event identity manifest schema mismatch")
     entries = payload.get("events")
     if not isinstance(entries, list) or len(entries) != len(events):
         raise ProjectionBuildError("event identity manifest event count mismatch")
     by_source: dict[tuple[str, str, str], dict[str, Any]] = {}
     seen_ids: set[str] = set()
+    seen_public_ids: set[int] = set()
     for entry in entries:
         if not isinstance(entry, dict):
             raise ProjectionBuildError("event identity manifest entry shape mismatch")
@@ -961,6 +962,15 @@ def _apply_event_identity_manifest(events: list[dict[str, Any]]) -> None:
         if entry["id"] in seen_ids:
             raise ProjectionBuildError("event identity manifest duplicate UUID")
         seen_ids.add(entry["id"])
+        public_id = entry.get("public_id")
+        if (
+            isinstance(public_id, bool)
+            or not isinstance(public_id, int)
+            or public_id < 1
+            or public_id in seen_public_ids
+        ):
+            raise ProjectionBuildError("event identity manifest public ID mismatch")
+        seen_public_ids.add(public_id)
         by_source[key] = entry
     seen: set[tuple[str, str, str]] = set()
     for event in events:
@@ -977,12 +987,21 @@ def _apply_event_identity_manifest(events: list[dict[str, Any]]) -> None:
             or slug != event_title_slug(event["title"])
         ):
             raise ProjectionBuildError("event identity manifest title snapshot mismatch")
-        expected = f"/events/{entry['id']}/{slug}"
-        if entry.get("path") != expected:
+        canonical = f"/events/{entry['public_id']}/{slug}"
+        accepted_uuid_path = f"/events/{entry['id']}/{slug}"
+        aliases = entry.get("aliases")
+        if (
+            entry.get("canonical_path") != canonical
+            or not isinstance(aliases, list)
+            or accepted_uuid_path not in {alias.get("source_path") for alias in aliases}
+        ):
             raise ProjectionBuildError("event identity manifest canonical path mismatch")
         event["identity_id"] = entry["id"]
         event["slug"] = slug
-        event["public_path"] = expected
+        # This checked projection remains the accepted UUID-era source evidence. Runtime replaces
+        # it fail-closed from the numeric manifest/database mapping before any public consumer
+        # sees it.
+        event["public_path"] = accepted_uuid_path
         seen.add(key)
     if len(seen) != len(events):
         raise ProjectionBuildError("event identity manifest contains an unknown source identity")
@@ -993,7 +1012,7 @@ def _event_identity_manifest_binding() -> dict[str, Any]:
         payload = json.loads(EVENT_IDENTITY_MANIFEST.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ProjectionBuildError("event identity manifest cannot be read") from exc
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+    if not isinstance(payload, dict) or payload.get("schema_version") != 2:
         raise ProjectionBuildError("event identity manifest schema mismatch")
     counts = payload.get("counts")
     entries = payload.get("events")

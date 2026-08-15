@@ -51,7 +51,11 @@ class EventTimelineRouteTests(TestCase):
         events = Event.objects.prefetch_related("aliases").order_by("source_key")
         self.assertEqual(events.count(), 421)
         for event in events:
-            alias = event.aliases.get()
+            alias = (
+                event.aliases.filter(kind="legacy_date_path")
+                .exclude(source_path__endswith="/")
+                .get()
+            )
             with self.subTest(alias=alias.source_path):
                 response = self.client.get(
                     alias.source_path + "/?utm_source=qa",
@@ -70,7 +74,12 @@ class EventTimelineRouteTests(TestCase):
         assert event is not None
         canonical = canonical_detail_path(event.id)
         stale = f"/events/{event.id}/stale-title"
-        alias = event.aliases.get().source_path
+        alias = (
+            event.aliases.filter(kind="legacy_date_path")
+            .exclude(source_path__endswith="/")
+            .get()
+            .source_path
+        )
 
         for path in (
             "/events/00000000-0000-4000-8000-000000000000/nope",
