@@ -173,6 +173,42 @@ CRITICAL_STATES = (
     ),
 )
 
+# The meaningful public read-only states that must render without client-side JavaScript.  Keep
+# route-contract states (the removed people catalogue and approved redirect) in the complete
+# JavaScript-enabled scenario only: they assert an HTTP contract rather than a rendered page.
+#
+# The Playwright fixture owns the source-backed surface/marker map.  Its policy check requires
+# this tuple to match that map exactly, so a stale/duplicated/unclassified registry ID fails before
+# a browser matrix can silently skip it.
+NO_JAVASCRIPT_PUBLIC_STATE_IDS = (
+    "public.home",
+    "public.blog-hub",
+    "public.podcast-hub",
+    "public.books-hub",
+    "public.events-hub",
+    "public.courses-hub",
+    "public.wiki-hub",
+    "public.docs-hub",
+    "public.faq-hub",
+    "public.slack",
+    "public.article-detail",
+    "public.podcast-transcript-media",
+    "public.book-detail",
+    "public.event-aggregate-speaker",
+    "public.person-detail",
+    "public.course-detail",
+    "public.wiki-detail",
+    "public.docs-nested",
+    "public.faq-anchor",
+    "public.wiki-results",
+    "public.wiki-zero-results",
+    "public.wiki-graph",
+    "public.wiki-special-pages",
+    "public.missing-media",
+    "public.empty-state",
+    "public.application-404",
+)
+
 # No exception is accepted by this implementation. Keeping the typed registry here makes any
 # future exception reviewable and forces all required ownership/expiry fields to be supplied.
 AXE_EXCEPTIONS: tuple[AxeException, ...] = ()
