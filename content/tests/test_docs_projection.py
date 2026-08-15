@@ -3,18 +3,27 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from copy import deepcopy
+from typing import Any
+from unittest.mock import patch
 
+from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 
 from content.docs_projection import (
     DOCS_PROJECTION_PATH,
     DOCS_ROOT_PATH,
+    DOCS_SEARCH_URL,
     DOCS_SOURCE_REVISION,
     _prepare_markdown,
+    build_docs_navigation,
     docs_asset_path,
     docs_breadcrumbs,
+    docs_navigation_tree,
     docs_page,
+    docs_parent,
     docs_projection,
+    docs_sequential_navigation,
     render_docs_markdown,
 )
 
@@ -56,7 +65,173 @@ class DocsProjectionTests(TestCase):
         self.assertContains(detail, 'id="star-the-github-repository"')
         self.assertContains(detail, 'href="/docs/courses/zoomcamp-logistics/joining/"')
         self.assertNotContains(detail, "3f23e006ffdaa498bbc69697408853b6f5eb37dc")
-        self.assertNotContains(detail, "DataTalksClub/docs")
+        self.assertContains(detail, DOCS_SEARCH_URL)
+        projected_detail = docs_page(detail_path)
+        self.assertIsNotNone(projected_detail)
+        self.assertContains(detail, (projected_detail or {})["edit_url"])
+
+    def test_tree_is_complete_ordered_and_stable_across_source_reordering(self) -> None:
+        pages = docs_projection()["pages"]
+        tree = docs_navigation_tree()
+        reversed_tree = build_docs_navigation(tuple(reversed(pages)))
+        self.assertEqual(tree.root.public_path, DOCS_ROOT_PATH)
+        self.assertEqual(len(tree.preorder), 106)
+        self.assertEqual(len(tree.documents), 105)
+        self.assertEqual(
+            [item.public_path for item in tree.preorder],
+            [item.public_path for item in reversed_tree.preorder],
+        )
+        for item in tree.preorder:
+            expected = sorted(
+                item.children,
+                key=lambda child: (
+                    int(child.page.get("nav_order") or 0),
+                    child.title.casefold(),
+                    child.public_path,
+                ),
+            )
+            self.assertEqual(list(item.children), expected)
+
+    def test_tree_validation_fails_closed_with_bounded_source_diagnostics(self) -> None:
+        root: dict[str, Any] = {
+            "source_path": "index.md",
+            "public_path": DOCS_ROOT_PATH,
+            "title": "Home",
+            "parent_path": None,
+        }
+        section: dict[str, Any] = {
+            "source_path": "section.md",
+            "public_path": "/docs/section/",
+            "title": "Section",
+            "parent_path": None,
+        }
+        child: dict[str, Any] = {
+            "source_path": "child.md",
+            "public_path": "/docs/child/",
+            "title": "Child",
+            "parent_path": "/docs/section/",
+        }
+        fixtures: dict[str, list[dict[str, Any]]] = {
+            "orphan": [root, child | {"parent_path": "/docs/missing/"}],
+            "self_parent": [root, child | {"parent_path": "/docs/child/"}],
+            "parent_cycle": [
+                root,
+                section | {"parent_path": "/docs/child/"},
+                child | {"parent_path": "/docs/section/"},
+            ],
+            "duplicate_public_path": [root, section, child | {"public_path": "/docs/section/"}],
+            "duplicate_source_path": [root, section, child | {"source_path": "section.md"}],
+            "noncanonical_public_path": [root, section | {"public_path": "/docs/section"}],
+        }
+        for code, fixture in fixtures.items():
+            with (
+                self.subTest(code=code),
+                self.assertRaisesRegex(
+                    ImproperlyConfigured,
+                    rf"Docs navigation {code}: [^\n]{{1,160}}$",
+                ),
+            ):
+                build_docs_navigation(tuple(fixture))
+
+    def test_landing_contains_every_document_once_in_the_complete_tree(self) -> None:
+        response = self.client.get(DOCS_ROOT_PATH)
+        self.assertEqual(response.status_code, 200)
+        navigation = response.context["docs_navigation"]
+
+        def flatten(items):
+            for item in items:
+                yield item
+                yield from flatten(item.children)
+
+        rendered_items = tuple(flatten(navigation))
+        self.assertEqual(len(rendered_items), 105)
+        self.assertEqual(
+            {item.public_path for item in rendered_items},
+            {
+                page["public_path"]
+                for page in docs_projection()["pages"]
+                if page["public_path"] != DOCS_ROOT_PATH
+            },
+        )
+        html = response.content.decode("utf-8")
+        tree_html = html.split('<nav class="docs-home-tree"', 1)[1].split("</nav>", 1)[0]
+        for item in rendered_items:
+            with self.subTest(public_path=item.public_path):
+                self.assertEqual(tree_html.count(f'href="{item.public_path}"'), 1)
+
+    def test_root_only_projection_has_explicit_empty_state_without_empty_nav(self) -> None:
+        root = deepcopy(docs_page(DOCS_ROOT_PATH) or {})
+        tree = build_docs_navigation((root,))
+        with (
+            patch("content.review_views.projected_docs_page", return_value=root),
+            patch("content.review_views.docs_navigation_tree", return_value=tree),
+        ):
+            response = self.client.get(DOCS_ROOT_PATH)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "DataTalks.Club Zoomcamps Notes and Resources")
+        self.assertContains(response, "No documentation sections are available yet.")
+        self.assertNotContains(response, 'aria-label="Documentation sections"')
+
+    def test_detail_context_uses_parent_and_depth_first_previous_next(self) -> None:
+        tree = docs_navigation_tree()
+        first = tree.documents[0]
+        middle = tree.documents[len(tree.documents) // 2]
+        last = tree.documents[-1]
+        for index, item in enumerate((first, middle, last)):
+            page = dict(item.page)
+            previous, following = docs_sequential_navigation(page)
+            with self.subTest(public_path=item.public_path):
+                self.assertEqual(
+                    previous and previous["public_path"],
+                    None
+                    if index == 0
+                    else tree.documents[tree.documents.index(item) - 1].public_path,
+                )
+                self.assertEqual(
+                    following and following["public_path"],
+                    None
+                    if item is last
+                    else tree.documents[tree.documents.index(item) + 1].public_path,
+                )
+                response = self.client.get(item.public_path)
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.context["docs_parent"], docs_parent(page))
+                self.assertEqual(response.context["docs_previous"], previous)
+                self.assertEqual(response.context["docs_next"], following)
+
+    def test_detail_marks_current_once_in_each_navigation_landmark(self) -> None:
+        path = "/docs/courses/ai-dev-tools-zoomcamp/getting-started/"
+        response = self.client.get(path)
+        html = response.content.decode("utf-8")
+        breadcrumb = html.split('aria-label="Breadcrumb"', 1)[1].split("</nav>", 1)[0]
+        tree = html.split('aria-label="Documentation sections"', 1)[1].split("</nav>", 1)[0]
+        self.assertEqual(breadcrumb.count('aria-current="page"'), 1)
+        self.assertEqual(tree.count('aria-current="page"'), 1)
+        self.assertIn(f'href="{path}"', tree)
+
+    def test_search_and_edit_actions_are_exact_external_links(self) -> None:
+        for path in (DOCS_ROOT_PATH, "/docs/general/guidelines/ai-usage/"):
+            page = docs_page(path)
+            if page is None:
+                self.fail(f"projected Docs page is missing: {path}")
+            response = self.client.get(path)
+            self.assertContains(response, f'href="{DOCS_SEARCH_URL}"')
+            self.assertContains(response, f'href="{page["edit_url"]}"')
+            actions = response.content.decode("utf-8").split('class="docs-actions"', 1)[1]
+            actions = actions.split("</div>", 1)[0]
+            self.assertEqual(actions.count('target="_blank"'), 2)
+            self.assertEqual(actions.count('rel="noopener noreferrer"'), 2)
+            self.assertNotContains(response, DOCS_SOURCE_REVISION)
+
+    def test_route_alias_unknown_search_and_query_behavior_remain_bounded(self) -> None:
+        alias = self.client.get("/docs", query_params={"source": "test"})
+        self.assertEqual(alias.status_code, 301)
+        self.assertEqual(alias.headers["Location"], "/docs/?source=test")
+        self.assertEqual(self.client.get("/docs/search").status_code, 404)
+        self.assertEqual(self.client.get("/docs/not-a-projected-page/").status_code, 404)
+        queried = self.client.get(DOCS_ROOT_PATH, query_params={"q": "unchanged"})
+        self.assertEqual(queried.status_code, 200)
+        self.assertContains(queried, '<link rel="canonical" href="https://datatalks.club/docs/">')
 
     def test_every_projected_page_is_a_trailing_slash_public_page(self) -> None:
         for page in docs_projection()["pages"]:

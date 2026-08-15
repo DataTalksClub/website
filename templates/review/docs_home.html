@@ -1,25 +1,41 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}
   Documentation — DataTalks.Club
 {% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'core/docs_navigation.css' %}">
+{% endblock %}
 {% block content %}
-  <div class="max-w-4xl">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Course guides</p>
-    <article class="docs-content mt-4 leading-7 app-text">
+  <div class="docs-page">
+    <article class="docs-content docs-introduction app-text">
       {{ docs_html|safe }}
     </article>
+    <div class="docs-actions" aria-label="Documentation actions">
+      <a
+        class="docs-action app-link"
+        href="{{ docs_search_url }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Search documentation on GitHub (opens in a new tab)"
+      >Search documentation on GitHub <span aria-hidden="true">↗</span></a>
+      <a
+        class="docs-action app-link"
+        href="{{ docs.edit_url }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Edit this page on GitHub (opens in a new tab)"
+      >Edit this page on GitHub <span aria-hidden="true">↗</span></a>
+    </div>
+    <section class="docs-home-navigation" aria-labelledby="docs-sections-heading">
+      <h2 id="docs-sections-heading" class="docs-section-heading">Documentation sections</h2>
+      {% if docs_navigation %}
+        <nav class="docs-home-tree" aria-label="Documentation sections">
+          {% include "review/_docs_navigation_tree.html" with docs_items=docs_navigation only %}
+        </nav>
+      {% else %}
+        <p class="docs-empty-state">No documentation sections are available yet.</p>
+      {% endif %}
+    </section>
   </div>
-  <section class="mt-12 border-t app-border pt-8" aria-labelledby="docs-sections-heading">
-    <h2 id="docs-sections-heading" class="text-2xl font-semibold app-heading">Browse the documentation</h2>
-    <ul class="mt-5 grid list-none gap-4 p-0 sm:grid-cols-2 lg:grid-cols-3">
-      {% for item in docs_navigation %}
-        <li class="rounded-md border app-border p-4">
-          <a class="app-link text-lg font-semibold" href="{{ item.public_path }}">{{ item.title }}</a>
-          {% if item.description %}
-            <p class="mt-2 text-sm leading-6 app-text">{{ item.description }}</p>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  </section>
 {% endblock %}

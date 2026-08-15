@@ -10,6 +10,7 @@ from xml.etree import ElementTree
 from django.conf import settings
 from django.test import TestCase
 
+from content.docs_projection import docs_page
 from content.public_data import public_paths, public_projection
 from content.review_projection import review_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
@@ -427,7 +428,6 @@ class PublicRouteAndSeoTests(TestCase):
             *(source["revision"] for source in projection["sources"].values()),
         }
         for path in (
-            "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
             "/faq/ai-dev-tools-zoomcamp.html",
             "/slack",
             "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
@@ -438,6 +438,20 @@ class PublicRouteAndSeoTests(TestCase):
                 body = response.content.decode()
                 for value in blocked:
                     self.assertNotIn(value, body)
+
+    def test_docs_details_expose_only_the_explicit_edit_action(self) -> None:
+        page = docs_page("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
+        self.assertIsNotNone(page)
+        assert page is not None
+
+        response = self.client.get(page["public_path"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{page["edit_url"]}"', count=1)
+        self.assertNotContains(response, "Checked source")
+        self.assertNotContains(response, "View source on GitHub")
+        self.assertNotContains(response, "This page is maintained on")
+        self.assertNotContains(response, review_projection()["sources"]["docs"]["revision"])
 
     def test_every_section_sitemap_entry_is_a_unique_canonical_public_200(self) -> None:
         root = self.client.get("/sitemap.xml")
