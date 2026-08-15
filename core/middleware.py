@@ -69,6 +69,17 @@ _CORS_HEADERS = frozenset(
     }
 )
 _BODY_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
+_CREDENTIAL_HEADER_NAMES = frozenset(
+    {
+        "Authorization",
+        "X-CSRFToken",
+        "X-Preview-Token",
+        "X-Management-Token",
+    }
+)
+# These cookies are documented, non-credential preferences.  Every other
+# viewer cookie is treated as unknown credential-like state and is private.
+_ANONYMOUS_COOKIE_NAMES = frozenset({"browser_timezone", "dtc_analytics_consent"})
 
 
 def apply_security_headers(response: HttpResponse) -> None:
@@ -264,16 +275,23 @@ class RequestIdMiddleware:
             reset_context(tokens)
 
 
-def _is_authenticated_request(request: HttpRequest) -> bool:
+def _is_credential_bearing_request(request: HttpRequest) -> bool:
     user = getattr(request, "user", None)
     if bool(user is not None and user.is_authenticated):
         return True
     # Fail closed when an earlier middleware short-circuits before Django can
-    # resolve the principal (notably SecurityMiddleware and WhiteNoise).
-    if request.headers.get("Authorization"):
+    # resolve the principal (notably SecurityMiddleware and WhiteNoise), and
+    # for viewer-supplied credentials that do not establish a Django user.
+    if any(request.headers.get(name) for name in _CREDENTIAL_HEADER_NAMES):
         return True
     session_cookie_name = getattr(settings, "SESSION_COOKIE_NAME", "sessionid")
-    return session_cookie_name in request.COOKIES
+    csrf_cookie_name = getattr(settings, "CSRF_COOKIE_NAME", "csrftoken")
+    if session_cookie_name in request.COOKIES or csrf_cookie_name in request.COOKIES:
+        return True
+    # Only documented non-credential preferences are anonymous-safe.  Any
+    # other cookie is unknown credential-like state and must not share a
+    # response.
+    return any(name not in _ANONYMOUS_COOKIE_NAMES for name in request.COOKIES)
 
 
 def _is_private_surface(request: HttpRequest) -> bool:
@@ -340,6 +358,6 @@ class ResponsePolicyMiddleware:
         if settings.NOINDEX or private_surface:
             # Assignment replaces a downstream value instead of appending a second field.
             response["X-Robots-Tag"] = ROBOTS_HEADER_VALUE
-        if _is_authenticated_request(request) or private_surface:
+        if _is_credential_bearing_request(request) or private_surface:
             apply_private_no_store(response)
         return response
