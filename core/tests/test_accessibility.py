@@ -13,6 +13,7 @@ from core.accessibility_registry import (
     AXE_EXCEPTIONS,
     BEHAVIOR_SCENARIOS,
     CRITICAL_STATES,
+    NO_JAVASCRIPT_PUBLIC_STATE_IDS,
     registry_fingerprint,
     template_readability_issues,
     template_surface,
@@ -64,6 +65,21 @@ class AccessibilityRegistryTests(SimpleTestCase):
                 if state.axe_surface is None:
                     self.assertTrue(state.route_contract)
         self.assertRegex(registry_fingerprint(), r"^[0-9a-f]{64}$")
+
+    def test_no_javascript_public_policy_is_exactly_rendered_public_states(self) -> None:
+        self.assertEqual(len(NO_JAVASCRIPT_PUBLIC_STATE_IDS), 26)
+        self.assertEqual(
+            len(NO_JAVASCRIPT_PUBLIC_STATE_IDS),
+            len(set(NO_JAVASCRIPT_PUBLIC_STATE_IDS)),
+        )
+        states = {state.identifier: state for state in CRITICAL_STATES}
+        for identifier in NO_JAVASCRIPT_PUBLIC_STATE_IDS:
+            with self.subTest(state=identifier):
+                state = states[identifier]
+                self.assertEqual(state.group, "public")
+                self.assertEqual(state.behavior_test, "public-current-states")
+                self.assertIsNotNone(state.axe_surface)
+                self.assertFalse(state.route_contract)
 
     def test_every_authored_product_template_has_one_surface_owner(self) -> None:
         root = Path(settings.BASE_DIR)

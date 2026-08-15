@@ -6,6 +6,16 @@ body {
   overflow-wrap: anywhere;
 }
 
+/*
+ * Public detail artwork is rendered before the Tailwind runtime runs. Keep the
+ * source-backed media inside the readable article column when JavaScript is
+ * disabled (the utility classes still provide the richer JS-enabled styling).
+ */
+#main-content > #content > article > img {
+  height: auto;
+  max-width: 100%;
+}
+
 .faq-answer :is(code, pre) {
   overflow-wrap: anywhere;
   white-space: pre-wrap;

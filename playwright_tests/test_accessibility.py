@@ -4,7 +4,7 @@ import hashlib
 import json
 import uuid
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -18,9 +18,15 @@ from playwright.sync_api import Browser, Page, expect
 from accounts.studio_sessions import SESSION_REFERENCE_KEY, revoke_staff_session
 from accounts.studio_test_support import make_studio_user
 from content import public_data
+from content.docs_projection import docs_pages
 from content.public_data import public_projection
 from content.review_projection import review_projection
-from core.accessibility_registry import BEHAVIOR_SCENARIOS, CRITICAL_STATES
+from core.accessibility_registry import (
+    BEHAVIOR_SCENARIOS,
+    CRITICAL_STATES,
+    NO_JAVASCRIPT_PUBLIC_STATE_IDS,
+    PUBLIC_TEST,
+)
 from core.models import AuditEvent
 from course_management.datamailer_templates.accessibility import (
     render_current_transactional_email,
@@ -98,6 +104,66 @@ class AccessibilityEnvironment:
     users: dict[str, object]
     credential_target_id: str
     objects: dict[str, object]
+
+
+@dataclass(frozen=True, slots=True)
+class PublicRenderedState:
+    """A rendered public state shared by the JS and no-JS scenario executors."""
+
+    identifier: str
+    surface: str
+    marker: str
+
+
+def _public_rendered_states(
+    environment: AccessibilityEnvironment,
+) -> tuple[PublicRenderedState, ...]:
+    """Build the public state/marker map from the frozen projections and fixture environment."""
+
+    public = public_projection()
+    review_public = review_projection()
+    event = environment.objects["event"]
+    assert isinstance(event, dict)
+    article = public["articles"][0]
+    book = public["books"][0]
+    public_course = public["courses"][0]
+    wiki = public["wiki"][0]
+    faq = review_public["faq"]
+    speaker = event["speakers"][0]
+    docs = next(
+        page
+        for page in docs_pages()
+        if page["public_path"] == "/docs/courses/ai-dev-tools-zoomcamp/getting-started/"
+    )
+
+    return (
+        PublicRenderedState("public.home", "home", "Upcoming events"),
+        PublicRenderedState("public.blog-hub", "blog", "Latest Articles"),
+        PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
+        PublicRenderedState("public.books-hub", "books", "Book of the Week"),
+        PublicRenderedState("public.events-hub", "events", "Events"),
+        PublicRenderedState("public.courses-hub", "courses", "Learn data skills"),
+        PublicRenderedState("public.wiki-hub", "wiki", "Podcast Wiki"),
+        PublicRenderedState("public.docs-hub", "docs", "Documentation"),
+        PublicRenderedState("public.faq-hub", "faq", "Frequently Asked Questions"),
+        PublicRenderedState("public.slack", "slack", "Slack"),
+        PublicRenderedState("public.article-detail", "article", article["title"]),
+        PublicRenderedState("public.podcast-transcript-media", "podcast-detail", "Transcript"),
+        PublicRenderedState("public.book-detail", "book", book["title"]),
+        PublicRenderedState("public.event-aggregate-speaker", "event", "3 registered"),
+        PublicRenderedState("public.person-detail", "person", speaker["name"]),
+        PublicRenderedState("public.course-detail", "course", public_course["title"]),
+        PublicRenderedState("public.wiki-detail", "wiki-detail", wiki["title"]),
+        PublicRenderedState("public.docs-nested", "docs-detail", docs["title"]),
+        PublicRenderedState("public.faq-anchor", "faq-anchor", faq["question"]),
+        PublicRenderedState("public.wiki-results", "wiki-results", "results for"),
+        PublicRenderedState("public.wiki-zero-results", "wiki-zero", "0 results"),
+        PublicRenderedState("public.wiki-graph", "wiki-graph", "Podcast Graph"),
+        PublicRenderedState("public.wiki-special-pages", "wiki-special", "Special pages"),
+        PublicRenderedState("public.missing-media", "missing-media", "unavailable"),
+        PublicRenderedState("public.empty-state", "wiki-zero", "0 results"),
+        PublicRenderedState("public.application-404", "missing", "Page not found"),
+    )
 
 
 def _restore_audit_event_id_default() -> None:
@@ -634,36 +700,8 @@ def _public_scenario(recorder: ScenarioRecorder) -> set[str]:
     event = recorder.environment.objects["event"]
     assert isinstance(event, dict)
     seed_total(event, count=3, complete=True)
-    simple_states = (
-        ("public.home", "home", "Upcoming events"),
-        ("public.blog-hub", "blog", "Latest Articles"),
-        ("public.podcast-hub", "podcast", "Podcast"),
-        ("public.books-hub", "books", "Book of the Week"),
-        ("public.events-hub", "events", "Events"),
-        ("public.courses-hub", "courses", "Learn data skills"),
-        ("public.wiki-hub", "wiki", "Podcast Wiki"),
-        ("public.docs-hub", "docs", "Documentation"),
-        ("public.faq-hub", "faq", "Frequently Asked Questions"),
-        ("public.slack", "slack", "Slack"),
-        ("public.article-detail", "article", None),
-        ("public.podcast-transcript-media", "podcast-detail", "Transcript"),
-        ("public.book-detail", "book", None),
-        ("public.event-aggregate-speaker", "event", "3 registered"),
-        ("public.person-detail", "person", None),
-        ("public.course-detail", "course", None),
-        ("public.wiki-detail", "wiki-detail", None),
-        ("public.docs-nested", "docs-detail", None),
-        ("public.faq-anchor", "faq-anchor", None),
-        ("public.wiki-results", "wiki-results", None),
-        ("public.wiki-zero-results", "wiki-zero", "0 results"),
-        ("public.wiki-graph", "wiki-graph", None),
-        ("public.wiki-special-pages", "wiki-special", None),
-        ("public.missing-media", "missing-media", "unavailable"),
-        ("public.empty-state", "wiki-zero", "0 results"),
-        ("public.application-404", "missing", "Page not found"),
-    )
-    for state, surface, marker in simple_states:
-        recorder.scan(state, surface, text=marker)
+    for state in _public_rendered_states(recorder.environment):
+        recorder.scan(state.identifier, state.surface, text=state.marker)
 
     for state, path in (
         ("public.people-removed", "/people"),
@@ -689,6 +727,154 @@ def _public_scenario(recorder: ScenarioRecorder) -> set[str]:
     expect(recorder.page.get_by_role("heading", name="Latest Articles")).to_be_visible()
     recorder.scan_current("public.approved-redirect-destination")
     return recorder.checked
+
+
+def _no_javascript_public_policy_issues(
+    environment: AccessibilityEnvironment,
+) -> list[str]:
+    """Return bounded diagnostics for the explicit rendered no-JavaScript policy."""
+
+    policy_ids = tuple(NO_JAVASCRIPT_PUBLIC_STATE_IDS)
+    issues: list[str] = []
+    if len(policy_ids) != 26:
+        issues.append(f"policy must contain exactly 26 IDs, found {len(policy_ids)}")
+    duplicate_policy_ids = sorted(
+        identifier for identifier in set(policy_ids) if policy_ids.count(identifier) > 1
+    )
+    if duplicate_policy_ids:
+        issues.append(f"policy IDs are duplicated: {duplicate_policy_ids}")
+
+    states_by_id = {state.identifier: state for state in CRITICAL_STATES}
+    for identifier in policy_ids:
+        state = states_by_id.get(identifier)
+        if state is None:
+            issues.append(f"policy ID is absent from CRITICAL_STATES: {identifier}")
+            continue
+        if state.group != "public":
+            issues.append(f"policy ID changed group: {identifier} group={state.group!r}")
+        if state.axe_surface is None:
+            issues.append(f"policy ID has no rendered surface: {identifier}")
+        if state.route_contract:
+            issues.append(f"route-contract ID cannot be rendered no-JS: {identifier}")
+        if state.behavior_test != PUBLIC_TEST:
+            issues.append(
+                f"policy ID is not assigned to the public scenario: "
+                f"{identifier} behavior={state.behavior_test!r}"
+            )
+
+    rendered_states = _public_rendered_states(environment)
+    fixture_ids = tuple(state.identifier for state in rendered_states)
+    duplicate_fixture_ids = sorted(
+        identifier for identifier in set(fixture_ids) if fixture_ids.count(identifier) > 1
+    )
+    if duplicate_fixture_ids:
+        issues.append(f"fixture state IDs are duplicated: {duplicate_fixture_ids}")
+    policy_set = set(policy_ids)
+    fixture_set = set(fixture_ids)
+    for identifier in sorted(policy_set - fixture_set):
+        issues.append(f"policy ID has no fixture route/marker: {identifier}")
+    for identifier in sorted(fixture_set - policy_set):
+        issues.append(f"fixture state is not classified by policy: {identifier}")
+
+    for rendered in rendered_states:
+        surface = environment.surfaces.get(rendered.surface)
+        if surface is None:
+            issues.append(
+                f"fixture route is missing: state={rendered.identifier} surface={rendered.surface}"
+            )
+            continue
+        if not surface.path:
+            issues.append(
+                f"fixture route is empty: state={rendered.identifier} surface={rendered.surface}"
+            )
+        expected_status = 404 if rendered.identifier == "public.application-404" else 200
+        if surface.expected_status != expected_status:
+            issues.append(
+                f"fixture status disagrees with the public-read policy: "
+                f"state={rendered.identifier} route={surface.path} "
+                f"expected={expected_status} fixture={surface.expected_status}"
+            )
+        registry_state = states_by_id.get(rendered.identifier)
+        if registry_state is not None and registry_state.axe_surface != rendered.surface:
+            issues.append(
+                f"fixture surface disagrees with registry: state={rendered.identifier} "
+                f"registry={registry_state.axe_surface!r} fixture={rendered.surface!r}"
+            )
+        if not rendered.marker.strip():
+            issues.append(f"fixture marker is empty: state={rendered.identifier}")
+    return issues
+
+
+def _assert_no_javascript_public_state(
+    page: Page,
+    live_server,
+    environment: AccessibilityEnvironment,
+    rendered: PublicRenderedState,
+    *,
+    viewport_name: str,
+) -> None:
+    surface = environment.surfaces[rendered.surface]
+    diagnostic = f"state={rendered.identifier} route={surface.path} viewport={viewport_name}"
+    try:
+        _visit_surface(page, live_server, environment, rendered.surface)
+        main = page.locator("main, [role='main']")
+        expect(main).to_have_count(1)
+        primary_heading = main.locator("h1, [role='heading'][aria-level='1']")
+        expect(primary_heading).to_have_count(1)
+        expect(primary_heading).to_be_visible()
+        expect(page.locator(".site-navigation-links")).to_be_visible()
+        expect(main.get_by_text(rendered.marker, exact=False).first).to_be_visible()
+
+        geometry = page.evaluate(
+            """() => ({
+                viewport_width: window.innerWidth,
+                document_width: document.documentElement.scrollWidth,
+                body_width: document.body.scrollWidth,
+            })"""
+        )
+        assert geometry["document_width"] <= geometry["viewport_width"] + 1, (
+            "horizontal overflow exceeds 1px: "
+            f"document={geometry['document_width']} body={geometry['body_width']} "
+            f"viewport={geometry['viewport_width']}"
+        )
+
+        body_text = page.locator("body").inner_text().strip()
+        assert body_text, "rendered body is blank"
+        lowered = body_text.casefold()
+        forbidden_markers = (
+            "traceback (most recent call last)",
+            "django debug toolbar",
+            "exception type",
+            "request information",
+            "internal server error",
+        )
+        for marker in forbidden_markers:
+            assert marker not in lowered, f"error/debug output contains {marker!r}"
+
+    except Exception as exc:
+        raise AssertionError(f"{diagnostic}: {exc}") from exc
+
+
+@pytest.mark.accessibility
+@pytest.mark.full
+def test_javascript_off_public_policy_rejects_missing_fixture_route(
+    accessibility_environment: AccessibilityEnvironment,
+) -> None:
+    """A test-only route removal cannot silently shrink the no-JS matrix."""
+
+    missing_route_surfaces = {
+        name: surface
+        for name, surface in accessibility_environment.surfaces.items()
+        if name != "article"
+    }
+    broken_environment = replace(
+        accessibility_environment,
+        surfaces=missing_route_surfaces,
+    )
+    issues = _no_javascript_public_policy_issues(broken_environment)
+    assert any(
+        "public.article-detail" in issue and "fixture route is missing" in issue for issue in issues
+    ), issues
 
 
 def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
@@ -1494,18 +1680,34 @@ def test_focus_scan_restores_scroll_before_geometry_checks(page: Page) -> None:
 def test_javascript_off_public_reads_remain_semantic(
     browser: Browser,
     live_server,
+    accessibility_environment: AccessibilityEnvironment,
 ) -> None:
-    context = browser.new_context(
-        java_script_enabled=False,
-        viewport={"width": 390, "height": 844},
-        reduced_motion="reduce",
-    )
-    page = context.new_page()
-    try:
-        for path in ("/", "/blog", "/podcast", "/events", "/courses", "/wiki", "/docs/", "/faq/"):
-            response = page.goto(f"{live_server.url}{path}")
-            assert response is not None and response.status == 200
-            expect(page.locator("main h1")).to_have_count(1)
-            expect(page.locator(".site-navigation-links")).to_be_visible()
-    finally:
-        context.close()
+    policy_issues = _no_javascript_public_policy_issues(accessibility_environment)
+    assert not policy_issues, "; ".join(policy_issues)
+    event = accessibility_environment.objects["event"]
+    assert isinstance(event, dict)
+    seed_total(event, count=3, complete=True)
+    rendered_states = _public_rendered_states(accessibility_environment)
+
+    for viewport, viewport_name in VIEWPORTS:
+        for rendered in rendered_states:
+            # A new context per state prevents cookies, navigation state, or a prior document from
+            # making this server-rendered contract pass accidentally.  The existing eight hub
+            # states are deliberately included in this same policy matrix and remain covered by
+            # the legacy mobile smoke above.
+            context = browser.new_context(
+                java_script_enabled=False,
+                viewport=viewport,
+                reduced_motion="reduce",
+            )
+            page = context.new_page()
+            try:
+                _assert_no_javascript_public_state(
+                    page,
+                    live_server,
+                    accessibility_environment,
+                    rendered,
+                    viewport_name=viewport_name,
+                )
+            finally:
+                context.close()
