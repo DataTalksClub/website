@@ -18,6 +18,19 @@ from content.public_data import event_groups, ordered_podcasts, public_projectio
 from content.review_projection import review_projection
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
+PRODUCTION_ROBOTS_BODY = (
+    "User-agent: *\n"
+    "Disallow: /admin/\n"
+    "Disallow: /_site/\n"
+    "Disallow: /drafts/\n"
+    "Disallow: /config/\n"
+    "Disallow: /scripts/\n"
+    "Disallow: /styles/\n"
+    "Sitemap: https://datatalks.club/sitemap.xml\n"
+    "Sitemap: https://datatalks.club/sitemaps/wiki.xml\n"
+)
+ROBOTS_CONTENT_TYPE = "text/plain; charset=utf-8"
+ROBOTS_ALLOWED_METHODS = ("GET", "HEAD")
 
 
 def management_slash_redirect(request: HttpRequest) -> HttpResponse:
@@ -59,13 +72,16 @@ def _development_seo_response(body: str, content_type: str) -> HttpResponse:
     return HttpResponse(body, content_type=content_type)
 
 
-@require_safe
 def robots(request: HttpRequest) -> HttpResponse:
-    del request
-    return _development_seo_response(
-        DEVELOPMENT_ROBOTS_BODY,
-        "text/plain; charset=utf-8",
-    )
+    if request.method not in ROBOTS_ALLOWED_METHODS:
+        not_allowed_response = HttpResponseNotAllowed(ROBOTS_ALLOWED_METHODS)
+        not_allowed_response["Cache-Control"] = "no-store, max-age=0"
+        return not_allowed_response
+    if settings.NOINDEX:
+        return _development_seo_response(DEVELOPMENT_ROBOTS_BODY, ROBOTS_CONTENT_TYPE)
+    response = HttpResponse(PRODUCTION_ROBOTS_BODY, content_type=ROBOTS_CONTENT_TYPE)
+    response["Cache-Control"] = "max-age=0, must-revalidate"
+    return response
 
 
 @require_safe

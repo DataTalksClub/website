@@ -13,7 +13,7 @@ from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitema
 from core.middleware import apply_private_no_store
 from core.preview import SENSITIVE_PREVIEW_QUERY_KEYS, staff_preview_required
 from core.seo import validated_canonical_url
-from core.views import DEVELOPMENT_ROBOTS_BODY
+from core.views import DEVELOPMENT_ROBOTS_BODY, PRODUCTION_ROBOTS_BODY
 from courses.models import Course
 
 FIXTURE_URLCONF = "core.tests.seo_fixture_urls"
@@ -122,6 +122,11 @@ class DevelopmentResponsePolicyTests(TestCase):
         for headers in (
             {"authorization": "Bearer opaque-input"},
             {"cookie": "sessionid=opaque-session"},
+            {"cookie": "csrftoken=opaque-csrf"},
+            {"cookie": "opaque_credential=opaque-value"},
+            {"x-csrftoken": "opaque-csrf-header"},
+            {"x-preview-token": "opaque-preview"},
+            {"x-management-token": "opaque-management"},
         ):
             with self.subTest(headers=headers):
                 response = self.client.get("/missing", headers=headers)
@@ -164,10 +169,90 @@ class DevelopmentRobotsAndSitemapTests(TestCase):
         self.assertEqual(head.content, b"")
 
     @override_settings(NOINDEX=False)
-    def test_production_exposes_only_the_public_sitemap(self) -> None:
+    def test_production_robots_contract_and_public_sitemap(self) -> None:
         robots = self.client.get("/robots.txt")
-        self.assertEqual(robots.status_code, 404)
+        self.assertEqual(robots.status_code, 200)
+        self.assertEqual(robots.content, PRODUCTION_ROBOTS_BODY.encode())
+        self.assertEqual(robots.headers["Content-Type"], "text/plain; charset=utf-8")
+        self.assertEqual(robots.headers["Cache-Control"], "max-age=0, must-revalidate")
         self.assertNotIn("X-Robots-Tag", robots.headers)
+        self.assertNotIn("/podwiki/", robots.content.decode())
+        self.assertNotIn("web.dtcdev.click", robots.content.decode())
+
+        head = self.client.head("/robots.txt")
+        self.assertEqual(head.status_code, 200)
+        self.assertEqual(head.content, b"")
+        self.assertEqual(head.headers["Content-Type"], robots.headers["Content-Type"])
+        self.assertEqual(head.headers["Cache-Control"], robots.headers["Cache-Control"])
+        self.assertNotIn("X-Robots-Tag", head.headers)
+
+        for method in ("POST", "PUT", "PATCH", "DELETE", "OPTIONS"):
+            with self.subTest(method=method):
+                response = self.client.generic(method, "/robots.txt", data=b"opaque-input")
+                self.assertEqual(response.status_code, 405)
+                self.assertEqual(response.headers["Allow"], "GET, HEAD")
+                self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+                self.assertNotIn("public", cache_directives(response))
+                self.assertNotIn("s-maxage=3600", cache_directives(response))
+
+        credential_responses = (
+            (
+                "authorization",
+                self.client.get("/robots.txt", HTTP_AUTHORIZATION="Bearer opaque-input"),
+                self.client.head("/robots.txt", HTTP_AUTHORIZATION="Bearer opaque-input"),
+            ),
+            (
+                "session-cookie",
+                self.client.get("/robots.txt", HTTP_COOKIE="sessionid=opaque-session"),
+                self.client.head("/robots.txt", HTTP_COOKIE="sessionid=opaque-session"),
+            ),
+            (
+                "csrf-cookie",
+                self.client.get("/robots.txt", HTTP_COOKIE="csrftoken=opaque-csrf"),
+                self.client.head("/robots.txt", HTTP_COOKIE="csrftoken=opaque-csrf"),
+            ),
+            (
+                "csrf-token-header",
+                self.client.get("/robots.txt", HTTP_X_CSRFTOKEN="opaque-csrf-header"),
+                self.client.head("/robots.txt", HTTP_X_CSRFTOKEN="opaque-csrf-header"),
+            ),
+            (
+                "unknown-cookie",
+                self.client.get("/robots.txt", HTTP_COOKIE="opaque_credential=opaque-value"),
+                self.client.head("/robots.txt", HTTP_COOKIE="opaque_credential=opaque-value"),
+            ),
+            (
+                "preview-token-header",
+                self.client.get("/robots.txt", HTTP_X_PREVIEW_TOKEN="opaque-preview"),
+                self.client.head("/robots.txt", HTTP_X_PREVIEW_TOKEN="opaque-preview"),
+            ),
+            (
+                "management-token-header",
+                self.client.get("/robots.txt", HTTP_X_MANAGEMENT_TOKEN="opaque-management"),
+                self.client.head("/robots.txt", HTTP_X_MANAGEMENT_TOKEN="opaque-management"),
+            ),
+        )
+        for credential_kind, get_response, head_response in credential_responses:
+            for method, response in (("GET", get_response), ("HEAD", head_response)):
+                with self.subTest(credential_kind=credential_kind, method=method):
+                    directives = cache_directives(response)
+                    self.assertTrue({"private", "no-store", "max-age=0"}.issubset(directives))
+                    self.assertNotIn("public", directives)
+                    self.assertFalse(
+                        any(
+                            item.startswith("s-maxage=") and item != "s-maxage=0"
+                            for item in directives
+                        )
+                    )
+
+        for cookie in (
+            "dtc_analytics_consent=v1.allow",
+            "browser_timezone=Europe%2FBerlin",
+        ):
+            with self.subTest(cookie=cookie):
+                preference = self.client.get("/robots.txt", HTTP_COOKIE=cookie)
+                self.assertEqual(cache_directives(preference), {"max-age=0", "must-revalidate"})
+                self.assertNotIn("private", preference.headers["Cache-Control"])
 
         sitemap = self.client.get("/sitemap.xml")
         self.assertEqual(sitemap.status_code, 200)
