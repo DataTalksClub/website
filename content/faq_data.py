@@ -38,6 +38,14 @@ _QUESTION_ID = re.compile(r"^[A-Za-z0-9]{10}$", re.ASCII)
 _IMAGE_TOKEN = re.compile(
     r"<\{IMAGE:(?P<bracket>[A-Za-z0-9_-]+)\}>|<>\{IMAGE:(?P<malformed>[A-Za-z0-9_-]+)\}|\{IMAGE:(?P<bare>[A-Za-z0-9_-]+)\}"
 )
+_FAQ_IMAGE_WRAPPER = re.compile(
+    r"!\[(?P<label>(?:\\.|[^\]\\\r\n])*)\]"
+    r"\(\s*(?:"
+    r"<\{IMAGE:(?P<bracket>[A-Za-z0-9_-]+)\}>|"
+    r"<>\{IMAGE:(?P<malformed>[A-Za-z0-9_-]+)\}|"
+    r"\{IMAGE:(?P<bare>[A-Za-z0-9_-]+)\}"
+    r")\s*\)"
+)
 
 
 class _FAQRenderer(mistune.HTMLRenderer):
@@ -328,22 +336,188 @@ def _convert_plain_urls_to_links(text: str) -> str:
     return "".join(result)
 
 
-def _replace_image_tokens(answer: str, images: list[dict[str, Any]]) -> str:
-    image_map = {image["id"]: image for image in images}
+def _faq_declared_image_path(course_slug: str | None, public_path: str) -> str | None:
+    """Return a local asset filename for one safe, declared FAQ image path."""
 
-    def replace(match: re.Match[str]) -> str:
-        image = image_map.get(
-            match.group("bracket") or match.group("malformed") or match.group("bare")
-        )
-        if image is None:
-            return match.group(0)
-        return f"![{image['description']}]({image['public_path']})"
+    if not course_slug or not isinstance(public_path, str):
+        return None
+    try:
+        parsed = urlsplit(public_path)
+    except ValueError:
+        return None
+    if (
+        parsed.path != public_path
+        or parsed.scheme
+        or parsed.netloc
+        or parsed.query
+        or parsed.fragment
+        or any(character.isspace() or ord(character) < 0x20 for character in public_path)
+    ):
+        return None
+    prefix = f"/faq/images/{course_slug}/"
+    if not public_path.startswith(prefix):
+        return None
+    asset = public_path.removeprefix(prefix)
+    if not asset or "/" in asset or "\\" in asset:
+        return None
+    if faq_asset_path(course_slug, asset) is None:
+        return None
+    return asset
 
-    return _IMAGE_TOKEN.sub(replace, answer)
+
+def _faq_image_map(
+    course_slug: str | None, images: list[dict[str, Any]]
+) -> dict[str, tuple[str, str]]:
+    """Build a same-question map of image IDs to checked-in, declared assets."""
+
+    image_map: dict[str, tuple[str, str]] = {}
+    for image in images:
+        if not isinstance(image, Mapping):
+            continue
+        image_id = image.get("id")
+        description = image.get("description")
+        public_path = image.get("public_path")
+        if (
+            not isinstance(image_id, str)
+            or not re.fullmatch(r"[A-Za-z0-9_-]+", image_id)
+            or not isinstance(description, str)
+            or not isinstance(public_path, str)
+            or _faq_declared_image_path(course_slug, public_path) is None
+        ):
+            continue
+        image_map[image_id] = (description, public_path)
+    return image_map
+
+
+def _faq_image_token_id(match: re.Match[str]) -> str:
+    return match.group("bracket") or match.group("malformed") or match.group("bare")
+
+
+def _faq_image_markdown(image: tuple[str, str]) -> str:
+    description, public_path = image
+    # The description is source-derived alt text.  Escape the Markdown delimiters before
+    # handing it to Mistune so an unusual description cannot create nested markup.
+    alt = description.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+    return f"![{alt}]({public_path})"
+
+
+def _replace_image_tokens_in_text(text: str, image_map: Mapping[str, tuple[str, str]]) -> str:
+    """Rewrite supported image-token forms in one non-code Markdown segment."""
+
+    result: list[str] = []
+    position = 0
+    while position < len(text):
+        # Consume a malformed legacy image expression before matching its inner token.  This
+        # prevents nested ![...]( ![...](...) ) output and removes unknown wrappers safely.
+        wrapper = _FAQ_IMAGE_WRAPPER.match(text, position)
+        if wrapper is not None:
+            image = image_map.get(_faq_image_token_id(wrapper))
+            result.append(_faq_image_markdown(image) if image is not None else "")
+            position = wrapper.end()
+            continue
+
+        token = _IMAGE_TOKEN.match(text, position)
+        if token is not None:
+            image = image_map.get(_faq_image_token_id(token))
+            result.append(_faq_image_markdown(image) if image is not None else "")
+            position = token.end()
+            continue
+
+        result.append(text[position])
+        position += 1
+    return "".join(result)
+
+
+def _markdown_code_end(text: str, position: int) -> int | None:
+    """Return the end of a fenced or inline code span beginning at *position*."""
+
+    character = text[position]
+    if character not in "`~":
+        return None
+    run_end = position + 1
+    while run_end < len(text) and text[run_end] == character:
+        run_end += 1
+    run_length = run_end - position
+    line_start = text.rfind("\n", 0, position) + 1
+    indentation = text[line_start:position]
+
+    # A backtick/tilde run at the start of a line is a fenced code block.  Keep the entire
+    # block byte-for-byte unchanged, including any legacy-looking tokens in the code.
+    if run_length >= 3 and len(indentation) <= 3 and not indentation.strip(" "):
+        opening_line_end = text.find("\n", run_end)
+        if opening_line_end < 0:
+            return len(text)
+        cursor = opening_line_end + 1
+        while cursor < len(text):
+            line_end = text.find("\n", cursor)
+            if line_end < 0:
+                line_end = len(text)
+                next_cursor = len(text)
+            else:
+                next_cursor = line_end + 1
+            line = text[cursor:line_end]
+            closing = re.match(r" {0,3}(?P<fence>[`~]{3,})[ \t]*$", line)
+            if (
+                closing is not None
+                and closing.group("fence")[0] == character
+                and len(closing.group("fence")) >= run_length
+            ):
+                return next_cursor
+            cursor = next_cursor
+        return len(text)
+
+    # Inline code uses a matching run of backticks.  Tildes are only fences in the supported
+    # Markdown grammar and otherwise remain ordinary text.
+    if character != "`":
+        return None
+    closing_position = text.find(character * run_length, run_end)
+    return None if closing_position < 0 else closing_position + run_length
+
+
+def _replace_image_tokens_outside_code(
+    answer: str, image_map: Mapping[str, tuple[str, str]]
+) -> str:
+    """Apply the compatibility rewrite without touching Markdown code spans or fences."""
+
+    result: list[str] = []
+    unprotected_start = 0
+    position = 0
+    while position < len(answer):
+        code_end = _markdown_code_end(answer, position)
+        if code_end is None:
+            position += 1
+            continue
+        if unprotected_start < position:
+            result.append(
+                _replace_image_tokens_in_text(answer[unprotected_start:position], image_map)
+            )
+        result.append(answer[position:code_end])
+        position = code_end
+        unprotected_start = position
+    if unprotected_start < len(answer):
+        result.append(_replace_image_tokens_in_text(answer[unprotected_start:], image_map))
+    return "".join(result)
+
+
+def _replace_image_tokens(
+    answer: str,
+    images: list[dict[str, Any]],
+    *,
+    course_slug: str | None = None,
+) -> str:
+    """Resolve legacy FAQ image tokens using only this question's local declarations."""
+
+    image_map = _faq_image_map(course_slug, images)
+    return _replace_image_tokens_outside_code(answer, image_map)
 
 
 def render_faq_answer(question: dict[str, Any]) -> str:
-    markdown = _replace_image_tokens(question["answer"], question.get("images", []))
+    course_slug = question.get("course")
+    if not isinstance(course_slug, str):
+        course_slug = None
+    markdown = _replace_image_tokens(
+        question["answer"], question.get("images", []), course_slug=course_slug
+    )
     # Keep checked-in FAQ source content unchanged while replacing its legacy site link in the
     # rendered answer.  This prevents public pages from sending readers back to the legacy alias.
     markdown = re.sub(
@@ -351,7 +525,6 @@ def render_faq_answer(question: dict[str, Any]) -> str:
         lambda match: "/slack" + (match.group("fragment") or ""),
         markdown,
     )
-    course_slug = question.get("course")
     if isinstance(course_slug, str):
         question_links, question_slugs = _faq_question_reference_index(course_slug)
     else:
