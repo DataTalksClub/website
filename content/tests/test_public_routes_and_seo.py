@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
+from pathlib import Path
 from urllib.parse import urlsplit
 from xml.etree import ElementTree
 
+from django.conf import settings
 from django.test import TestCase
 
 from content.public_data import public_paths, public_projection
@@ -312,6 +315,73 @@ class PublicRouteAndSeoTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, 'alt="Portrait of ', count=1)
             self.assertNotContains(response, 'href="/people"')
+
+    def test_article_and_person_body_attributes_are_removed_without_copy_mutation(self) -> None:
+        projection_root = Path(settings.BASE_DIR) / "content" / "public_projection"
+        before = {
+            path.relative_to(projection_root).as_posix(): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in sorted(projection_root.rglob("*"))
+            if path.is_file()
+        }
+
+        projection = public_projection()
+        article = projection["articles_by_slug"]["ai-dev-tools-zoomcamp"]
+        person = projection["people_by_slug"]["agnieszkamikolajczyk"]
+        self.assertTrue(
+            any("AI-Native Development" in block.get("text", "") for block in article["blocks"])
+        )
+        self.assertTrue(any("Omdena" in block.get("text", "") for block in person["blocks"]))
+        for record in (*projection["articles"], *projection["people"]):
+            body = " ".join(block["text"] for block in record["blocks"])
+            self.assertNotRegex(body, r"\{:[ \t]*target[ \t]*=")
+
+        raw_article = json.loads((projection_root / "articles.json").read_text(encoding="utf-8"))
+        raw_person = json.loads((projection_root / "people.json").read_text(encoding="utf-8"))
+        self.assertTrue(
+            any(
+                '{:target="blank"}' in block.get("text", "")
+                for record in raw_article
+                for block in record.get("blocks", [])
+            )
+        )
+        self.assertTrue(
+            any(
+                '{:target="blank"}' in block.get("text", "")
+                for record in raw_person
+                for block in record.get("blocks", [])
+            )
+        )
+
+        after = {
+            path.relative_to(projection_root).as_posix(): hashlib.sha256(
+                path.read_bytes()
+            ).hexdigest()
+            for path in sorted(projection_root.rglob("*"))
+            if path.is_file()
+        }
+        self.assertEqual(after, before)
+
+    def test_affected_article_person_and_control_bodies_render_cleanly(self) -> None:
+        affected = (
+            (
+                "/blog/ai-dev-tools-zoomcamp.html",
+                "AI-Native Development: Specifications, Loop Engineering, and Graph Engineering.",
+            ),
+            ("/people/agnieszkamikolajczyk.html", "Omdena - AI for Good"),
+        )
+        for path, expected_copy in affected:
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                body = response.content.decode()
+                self.assertIn(expected_copy, body)
+                self.assertNotRegex(body, r"\{:[ \t]*target[ \t]*=")
+
+        control = self.client.get("/blog/sponsor-datatalks-club.html")
+        self.assertEqual(control.status_code, 200)
+        self.assertNotRegex(control.content.decode(), r"\{:[ \t]*target[ \t]*=")
 
     def test_representative_details_emit_valid_type_specific_json_ld(self) -> None:
         paths_and_types = (
