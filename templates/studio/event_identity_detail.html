@@ -8,8 +8,10 @@
     <h1 id="event-identity-heading">{{ identity.title }}</h1>
     <dl class="credential-metadata">
       <div><dt>UUID</dt><dd><code>{{ identity.id }}</code></dd></div>
+      <div><dt>Public ID (read-only)</dt><dd><code>{{ identity.public_id }}</code></dd></div>
       <div><dt>Current slug</dt><dd><code>{{ identity.slug }}</code></dd></div>
       <div><dt>Canonical detail</dt><dd><code>{{ identity.canonical_path }}</code></dd></div>
+      <div><dt>Public URL</dt><dd><code>{{ identity.public_url }}</code></dd></div>
       <div><dt>Canonical registration</dt><dd><code>{{ identity.registration_path }}</code></dd></div>
     </dl>
 

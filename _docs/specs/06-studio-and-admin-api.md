@@ -142,7 +142,8 @@ Person as distinct records.
 
 - JSON-only request/response for management operations.
 - Stable `/api/v1/admin/` prefix and generated OpenAPI 3.1 document.
-- UUID identifiers in management routes; public slugs are fields, not identity.
+- UUID identifiers in management routes. Event `public_id`, numeric public URL, and public slug are
+  read-only metadata; no Studio/admin API route resolves or mutates an Event by its public ID.
 - Consistent error envelope with code, safe message, field errors, request ID, and documentation link where useful.
 - Cursor or bounded page-number pagination with maximum page size.
 - Explicit filter/sort field allowlists and field-level serialization.

@@ -838,7 +838,6 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
 
 def _events(context: FactoryContext, state: str) -> dict[str, object]:
     SourceRun = _model("events.HistoricalRegistrationSourceRun")
-    Event = _model("events.Event")
     Mapping = _model("events.HistoricalEventMapping")
     Aggregate = _model("events.HistoricalRegistrationAggregateRevision")
     Slot = _model("events.HistoricalRegistrationAggregateSlot")
@@ -871,8 +870,10 @@ def _events(context: FactoryContext, state: str) -> dict[str, object]:
     )
     mapping_factory = f"{prefix}.historical_event_mapping"
     mapping_key = _key(context, mapping_factory, state)
-    canonical_event = Event.objects.create(
-        id=_uuid(context, f"{prefix}.event", state),
+    from events.identity import create_event_identity
+
+    canonical_event = create_event_identity(
+        event_id=_uuid(context, f"{prefix}.event", state),
         title=f"Synthetic Historical Event {mapping_key}",
         source_repository="DataTalksClub/synthetic",
         source_revision="a" * 40,

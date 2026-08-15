@@ -16,6 +16,7 @@
           <h2><a href="{% url 'studio:event-identity-detail' event_id=identity.id %}">{{ identity.title }}</a></h2>
           <dl class="credential-metadata">
             <div><dt>UUID</dt><dd><code>{{ identity.id }}</code></dd></div>
+            <div><dt>Public ID (read-only)</dt><dd><code>{{ identity.public_id }}</code></dd></div>
             <div><dt>Slug</dt><dd><code>{{ identity.slug }}</code></dd></div>
             <div><dt>Canonical</dt><dd><code>{{ identity.canonical_path }}</code></dd></div>
             <div><dt>Aliases</dt><dd>{{ identity.aliases|length }}</dd></div>

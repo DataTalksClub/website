@@ -14,6 +14,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import DatabaseError
 from django.utils import timezone
 
+from events.identity import EventIdentityError, load_identity_manifest
 from events.slugs import event_title_slug
 
 from .event_description_bridge import (
@@ -31,6 +32,12 @@ from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
 EVENT_IDENTITY_MANIFEST = PROJECTION_ROOT.parents[1] / "events" / "event_identity_manifest.json"
+ACCEPTED_UUID_IDENTITY_BINDING = {
+    "path": "events/event_identity_manifest.json",
+    "sha256": "26c2fd6589ff8acd132ebef0b31d15a81dc43901e1ba0b2e4437e72aeab5d91e",
+    "schema_version": 1,
+    "counts": {"events": 421, "aliases": 421},
+}
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     PROJECTION_ROOT.parents[1] / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
@@ -237,6 +244,15 @@ def _editorial_route_manifest_digest(manifest: dict[str, Any]) -> str:
     )
 
 
+@lru_cache(maxsize=1)
+def _manifest_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
+    try:
+        manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
+    except EventIdentityError as exc:
+        raise ImproperlyConfigured("Public Event identity manifest is invalid.") from exc
+    return tuple((str(item.id), item.public_id, item.slug) for item in manifest.events)
+
+
 def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
     """Return the database-owned event URL fields in one portable query.
 
@@ -247,18 +263,27 @@ def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
     from events.models import Event
 
     try:
-        rows = Event.objects.order_by("id").values_list("id", "public_id", "slug")
-        return tuple(
-            (str(event_id), int(public_id), slug)
-            for event_id, public_id, slug in rows
-            if public_id is not None
-        )
+        rows = {
+            str(event_id): (public_id, slug)
+            for event_id, public_id, slug in Event.objects.order_by("id").values_list(
+                "id", "public_id", "slug"
+            )
+        }
+        resolved: list[tuple[str, int, str]] = []
+        for event_id, expected_public_id, _manifest_slug in _manifest_event_identity_snapshot():
+            runtime = rows.get(event_id)
+            if runtime is None or runtime[0] != expected_public_id:
+                raise ImproperlyConfigured("Public Event UUID/public-ID mapping is incomplete.")
+            resolved.append((event_id, expected_public_id, runtime[1]))
+        return tuple(resolved)
     except (AssertionError, DatabaseError, RuntimeError) as exc:
         if isinstance(exc, AssertionError) and "Database queries to" not in str(exc):
             raise
         if isinstance(exc, RuntimeError) and "Database access not allowed" not in str(exc):
             raise
-        return ()
+        if isinstance(exc, (AssertionError, RuntimeError)):
+            return _manifest_event_identity_snapshot()
+        raise ImproperlyConfigured("Public Event UUID/public-ID mapping is unavailable.") from exc
 
 
 def _apply_runtime_event_public_paths(
@@ -286,11 +311,12 @@ def _apply_runtime_event_public_paths(
         identity_id = event.get("identity_id")
         if isinstance(identity_id, str):
             identity = runtime_identity_map.get(identity_id)
-            if identity is not None:
-                public_id, slug = identity
-                public_path = f"/events/{public_id}/{slug}"
-                replacements[event["public_path"]] = public_path
-                event["public_path"] = public_path
+            if identity is None:
+                raise ImproperlyConfigured("Public Event UUID/public-ID mapping is incomplete.")
+            public_id, slug = identity
+            public_path = f"/events/{public_id}/{slug}"
+            replacements[event["public_path"]] = public_path
+            event["public_path"] = public_path
         events.append(event)
     projection["events"] = tuple(events)
 
@@ -480,24 +506,29 @@ def _checked_public_projection() -> dict[str, Any]:
     if projection_rules.get("event_record_schema_version") != EVENT_RECORD_SCHEMA_VERSION:
         raise ImproperlyConfigured("Public event record schema version mismatch.")
     try:
-        identity_manifest = json.loads(EVENT_IDENTITY_MANIFEST.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
-        raise ImproperlyConfigured("Public event identity manifest is unavailable.") from exc
-    if not isinstance(identity_manifest, dict):
-        raise ImproperlyConfigured("Public event identity manifest shape mismatch.")
-    expected_identity_binding = {
+        identity_manifest = load_identity_manifest(EVENT_IDENTITY_MANIFEST)
+    except EventIdentityError as exc:
+        raise ImproperlyConfigured("Public event identity manifest is invalid.") from exc
+    # The checked projection retains its accepted UUID-era manifest digest as migration
+    # evidence.  Runtime binds separately to the current schema-v2 numeric route manifest.
+    current_identity_binding = {
         "path": "events/event_identity_manifest.json",
         "sha256": _sha256(EVENT_IDENTITY_MANIFEST),
-        "schema_version": identity_manifest.get("schema_version"),
-        "counts": identity_manifest.get("counts"),
+        "schema_version": identity_manifest.schema_version,
+        "counts": {
+            "events": len(identity_manifest.events),
+            "aliases": len(identity_manifest.aliases),
+        },
     }
-    if projection_rules.get("event_identity_manifest") != expected_identity_binding:
-        raise ImproperlyConfigured("Public event identity manifest binding mismatch.")
+    if projection_rules.get("event_identity_manifest") not in (
+        ACCEPTED_UUID_IDENTITY_BINDING,
+        current_identity_binding,
+    ):
+        raise ImproperlyConfigured("Accepted UUID Event identity evidence binding mismatch.")
     identity_aliases_by_id = {
-        item["id"]: tuple(alias["source_path"] for alias in item.get("aliases", []))
-        for item in identity_manifest.get("events", [])
-        if isinstance(item, dict) and isinstance(item.get("id"), str)
+        str(item.id): tuple(alias for alias in item.aliases) for item in identity_manifest.events
     }
+    identities_by_id = {str(item.id): item for item in identity_manifest.events}
     if projection_rules.get("event_description_bridge") != expected_bridge_binding:
         raise ImproperlyConfigured("Public event description bridge binding mismatch.")
     if (
@@ -569,8 +600,10 @@ def _checked_public_projection() -> dict[str, Any]:
         }
         if name == "events":
             for item in records:
-                for legacy_path in identity_aliases_by_id.get(item.get("identity_id"), ()):
-                    legacy_slug = legacy_path.removeprefix("/events/")
+                for alias in identity_aliases_by_id.get(item.get("identity_id"), ()):
+                    if alias.kind != "legacy_date_path" or alias.source_path.endswith("/"):
+                        continue
+                    legacy_slug = alias.source_path.removeprefix("/events/")
                     if legacy_slug and legacy_slug not in by_slug:
                         by_slug[legacy_slug] = item
         projection[f"{name}_by_slug"] = by_slug
@@ -592,8 +625,14 @@ def _checked_public_projection() -> dict[str, Any]:
                     raise ImproperlyConfigured("Public event identity is not lowercase RFC 4122.")
                 if event.get("slug") != event_title_slug(event.get("title", "")):
                     raise ImproperlyConfigured("Public event slug is not title-derived.")
-                if event.get("public_path") != f"/events/{identity_id}/{event['slug']}":
-                    raise ImproperlyConfigured("Public event canonical path mismatch.")
+                identity = identities_by_id.get(identity_id)
+                if identity is None:
+                    raise ImproperlyConfigured("Public event route identity is unmapped.")
+                accepted_uuid_path = f"/events/{identity_id}/{event['slug']}"
+                if event.get("public_path") != accepted_uuid_path or accepted_uuid_path not in {
+                    alias.source_path for alias in identity.aliases
+                }:
+                    raise ImproperlyConfigured("Accepted UUID Event route evidence mismatch.")
                 provenance = event.get("provenance", {})
                 source_identity = (
                     provenance.get("repository", ""),

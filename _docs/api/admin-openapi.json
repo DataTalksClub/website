@@ -698,7 +698,8 @@
             "type": "array"
           },
           "canonical_path": {
-            "pattern": "^/events/[0-9a-f-]+/",
+            "pattern": "^/events/[1-9][0-9]*/[-a-z0-9]+$",
+            "readOnly": true,
             "type": "string"
           },
           "id": {
@@ -734,8 +735,19 @@
             ],
             "type": "object"
           },
+          "public_id": {
+            "minimum": 1,
+            "readOnly": true,
+            "type": "integer"
+          },
+          "public_url": {
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
           "registration_path": {
-            "pattern": "^/events/[0-9a-f-]+/.+/register$",
+            "pattern": "^/events/[1-9][0-9]*/[-a-z0-9]+/register$",
+            "readOnly": true,
             "type": "string"
           },
           "slug": {
@@ -749,6 +761,8 @@
         },
         "required": [
           "id",
+          "public_id",
+          "public_url",
           "title",
           "slug",
           "canonical_path",
