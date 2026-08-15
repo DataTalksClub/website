@@ -215,6 +215,133 @@ class FaqRoutesTests(TestCase):
             "text/css",
         )
 
+    def test_legacy_image_tokens_are_removed_or_rendered_for_all_evidence_questions(self) -> None:
+        evidence_ids = (
+            "b4a5d32d6b",
+            "c549d24645",
+            "d01f2fb06b",
+            "bcd4190972",
+            "52d606a66e",
+            "3b76daefb2",
+            "f74891d445",
+        )
+        questions = {
+            question["id"]: question
+            for course in faq_courses()
+            for question in faq_questions(course)
+            if question["id"] in evidence_ids
+        }
+        self.assertEqual(set(questions), set(evidence_ids))
+        for question_id in evidence_ids:
+            with self.subTest(question_id=question_id):
+                rendered = render_faq_answer(questions[question_id])
+                self.assertNotIn("{IMAGE:", rendered)
+                self.assertNotIn("<>", rendered)
+                self.assertNotIn("![](", rendered)
+        rendered = render_faq_answer(questions["f74891d445"])
+        self.assertEqual(
+            rendered.count('<img src="/faq/images/mlops-zoomcamp/image_09b2050c.png"'), 1
+        )
+        self.assertIn('alt="image #1" loading="lazy"', rendered)
+
+    def test_image_token_forms_render_once_and_unknown_nested_wrappers_are_removed(self) -> None:
+        course = next(course for course in faq_courses() if course["slug"] == "mlops-zoomcamp")
+        source_question = next(
+            question for question in faq_questions(course) if question["id"] == "f74891d445"
+        )
+        image = source_question["images"][0]
+        answer = "\n".join(
+            (
+                "before {IMAGE:image_1}",
+                "<{IMAGE:image_1}>",
+                "<>{IMAGE:image_1}",
+                "![legacy label](<{IMAGE:image_1}>)",
+                "after <{IMAGE:image_1}>",
+                "![missing](<{IMAGE:missing}>)",
+                "tail {IMAGE:missing}",
+            )
+        )
+        rendered = render_faq_answer(
+            {
+                **source_question,
+                "answer": answer,
+                "images": [image],
+            }
+        )
+        self.assertEqual(
+            rendered.count('<img src="/faq/images/mlops-zoomcamp/image_09b2050c.png"'), 5
+        )
+        self.assertNotIn("missing", rendered)
+        self.assertNotIn("{IMAGE:", rendered)
+        self.assertNotIn("![](", rendered)
+        self.assertNotIn("<>", rendered)
+
+    def test_image_tokens_respect_markdown_code_and_ordinary_images(self) -> None:
+        course = next(course for course in faq_courses() if course["slug"] == "mlops-zoomcamp")
+        source_question = next(
+            question for question in faq_questions(course) if question["id"] == "f74891d445"
+        )
+        answer = (
+            "![ordinary](/faq/images/mlops-zoomcamp/image_09b2050c.png)\n\n"
+            "`<{IMAGE:image_1}>`\n\n"
+            "```text\n<{IMAGE:image_1}>\n```\n\n"
+            "visible {IMAGE:image_1}"
+        )
+        rendered = render_faq_answer(
+            {
+                **source_question,
+                "answer": answer,
+                "images": source_question["images"],
+            }
+        )
+        self.assertEqual(rendered.count('src="/faq/images/mlops-zoomcamp/image_09b2050c.png"'), 2)
+        self.assertIn("&lt;{IMAGE:image_1}&gt;", rendered)
+        self.assertIn('<pre><code class="language-text">&lt;{IMAGE:image_1}&gt;', rendered)
+        self.assertNotIn("visible {IMAGE:image_1}", rendered)
+
+    def test_image_token_resolution_rejects_missing_or_untrusted_declared_assets(self) -> None:
+        course = next(course for course in faq_courses() if course["slug"] == "mlops-zoomcamp")
+        source_question = next(
+            question for question in faq_questions(course) if question["id"] == "f74891d445"
+        )
+        answer = "before {IMAGE:missing} ![bad](<{IMAGE:missing}>) after {IMAGE:unsafe}"
+        rendered = render_faq_answer(
+            {
+                **source_question,
+                "answer": answer,
+                "images": [
+                    {
+                        "id": "missing",
+                        "description": "missing",
+                        "public_path": "/faq/images/mlops-zoomcamp/nope.png",
+                    },
+                    {
+                        "id": "unsafe",
+                        "description": "unsafe",
+                        "public_path": "https://example.com/a.png",
+                    },
+                ],
+            }
+        )
+        self.assertEqual(rendered, "<p>before   after</p>\n")
+        self.assertNotIn("src=", rendered)
+        self.assertNotIn("nope.png", rendered)
+        self.assertNotIn("example.com", rendered)
+
+    def test_faq_rendering_keeps_projection_and_json_feeds_byte_identical(self) -> None:
+        projection_bytes = FAQ_PROJECTION_PATH.read_bytes()
+        feed_bytes = {
+            course["slug"]: self.client.get(f"/faq/json/{course['slug']}.json").content
+            for course in faq_courses()
+        }
+        for course in faq_courses():
+            for question in faq_questions(course):
+                render_faq_answer(question)
+        self.assertEqual(FAQ_PROJECTION_PATH.read_bytes(), projection_bytes)
+        for slug, before in feed_bytes.items():
+            with self.subTest(course=slug):
+                self.assertEqual(self.client.get(f"/faq/json/{slug}.json").content, before)
+
     def test_unknown_faq_records_are_404(self) -> None:
         for path in (
             "/faq/missing-course.html",
