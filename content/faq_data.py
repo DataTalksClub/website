@@ -10,10 +10,12 @@ from __future__ import annotations
 import json
 import mimetypes
 import re
+from collections.abc import Mapping
 from functools import lru_cache
 from html.parser import HTMLParser
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
+from urllib.parse import urlsplit
 
 import mistune
 from django.core.exceptions import ImproperlyConfigured
@@ -41,6 +43,28 @@ _IMAGE_TOKEN = re.compile(
 class _FAQRenderer(mistune.HTMLRenderer):
     """Keep source image descriptions while adding a predictable lazy-loading hint."""
 
+    def __init__(
+        self,
+        *,
+        faq_course_slug: str | None = None,
+        faq_question_links: Mapping[str, str] | None = None,
+        faq_question_slugs: Mapping[str, str] | None = None,
+        escape: bool = True,
+    ) -> None:
+        super().__init__(escape=escape)
+        self._faq_course_slug = faq_course_slug
+        self._faq_question_links = faq_question_links or {}
+        self._faq_question_slugs = faq_question_slugs or {}
+
+    def link(self, text: str, url: str, title: str | None = None) -> str:
+        url = _resolve_faq_question_link(
+            url,
+            course_slug=self._faq_course_slug,
+            question_links=self._faq_question_links,
+            question_slugs=self._faq_question_slugs,
+        )
+        return super().link(text, url, title)
+
     def image(self, text: str, url: str, title: str | None = None) -> str:
         source = mistune.escape(self.safe_url(url), quote=True)
         alt = mistune.escape(text, quote=True)
@@ -55,6 +79,93 @@ _MARKDOWN = mistune.create_markdown(
     escape=False,
     plugins=("strikethrough", "table"),
 )
+
+
+def _faq_question_slug(filename: str) -> str | None:
+    """Return the source filename's human-readable slug, if it has one."""
+
+    stem = filename.removesuffix(".md")
+    _sort_order, separator, remainder = stem.partition("_")
+    if not separator or not _sort_order.isdigit() or not remainder:
+        return None
+    if len(remainder) > 11 and remainder[10] == "_" and _QUESTION_ID.fullmatch(remainder[:10]):
+        remainder = remainder[11:]
+    return remainder or None
+
+
+def _add_faq_question_reference(
+    references: dict[str, str | None], key: str, question_id: str
+) -> None:
+    """Add one reference while dropping ambiguous aliases from the bounded index."""
+
+    existing = references.get(key)
+    if existing is None and key in references:
+        return
+    if existing is not None and existing != question_id:
+        references[key] = None
+        return
+    references[key] = question_id
+
+
+@lru_cache(maxsize=len(FAQ_COURSE_ORDER))
+def _faq_question_reference_index(
+    course_slug: str,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Build immutable-source, same-course lookup maps for one FAQ render."""
+
+    course = faq_course(course_slug)
+    if course is None:
+        return {}, {}
+
+    filenames: dict[str, str | None] = {}
+    slugs: dict[str, str | None] = {}
+    for question in faq_questions(course):
+        question_id = question["id"]
+        source_path = question.get("source_path")
+        if not isinstance(source_path, str):
+            continue
+        filename = PurePosixPath(source_path).name
+        if not filename or filename in {".", ".."}:
+            continue
+        _add_faq_question_reference(filenames, filename, question_id)
+        slug = _faq_question_slug(filename)
+        if slug:
+            _add_faq_question_reference(slugs, slug, question_id)
+
+    # An ambiguous alias is deliberately omitted rather than guessed.  This keeps every
+    # rewrite bounded to one projected question in the current course.
+    return (
+        {key: value for key, value in filenames.items() if value is not None},
+        {key: value for key, value in slugs.items() if value is not None},
+    )
+
+
+def _resolve_faq_question_link(
+    value: str,
+    *,
+    course_slug: str | None,
+    question_links: Mapping[str, str],
+    question_slugs: Mapping[str, str],
+) -> str:
+    """Resolve one exact source-relative question reference to its public FAQ fragment."""
+
+    if not course_slug or not value or "\\" in value or value.startswith("/"):
+        return value
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return value
+    if parsed.scheme or parsed.netloc or "?" in value or "#" in value or not parsed.path:
+        return value
+
+    path = parsed.path
+    filename = PurePosixPath(path).name
+    question_id = question_links.get(filename)
+    if question_id is None and "/" not in path and path in question_slugs:
+        question_id = question_slugs[path]
+    if question_id is None:
+        return value
+    return f"/faq/{course_slug}.html#{question_id}"
 
 
 def _load_projection() -> dict[str, Any]:
@@ -240,7 +351,24 @@ def render_faq_answer(question: dict[str, Any]) -> str:
         lambda match: "/slack" + (match.group("fragment") or ""),
         markdown,
     )
-    rendered = str(_MARKDOWN(_convert_plain_urls_to_links(markdown)))
+    course_slug = question.get("course")
+    if isinstance(course_slug, str):
+        question_links, question_slugs = _faq_question_reference_index(course_slug)
+    else:
+        course_slug = None
+        question_links, question_slugs = {}, {}
+    renderer = _FAQRenderer(
+        escape=False,
+        faq_course_slug=course_slug,
+        faq_question_links=question_links,
+        faq_question_slugs=question_slugs,
+    )
+    markdown_renderer = mistune.create_markdown(
+        renderer=renderer,
+        escape=False,
+        plugins=("strikethrough", "table"),
+    )
+    rendered = str(markdown_renderer(_convert_plain_urls_to_links(markdown)))
     return sanitize_rendered_html("faq", rendered)
 
 
