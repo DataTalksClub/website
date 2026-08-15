@@ -72,60 +72,74 @@ def _allowed_render_attribute(tag: str, name: str, value: str) -> bool:
     return tag == "time" and name == "datetime"
 
 
-_CONTENT_CLEANER = Cleaner(
-    tags=frozenset(
-        {
-            "a",
-            "abbr",
-            "b",
-            "blockquote",
-            "br",
-            "code",
-            "dd",
-            "del",
-            "details",
-            "div",
-            "dl",
-            "dt",
-            "em",
-            "figcaption",
-            "figure",
-            "h1",
-            "h2",
-            "h3",
-            "h4",
-            "h5",
-            "h6",
-            "hr",
-            "i",
-            "img",
-            "kbd",
-            "li",
-            "mark",
-            "ol",
-            "p",
-            "pre",
-            "s",
-            "span",
-            "strong",
-            "sub",
-            "summary",
-            "sup",
-            "table",
-            "tbody",
-            "td",
-            "th",
-            "thead",
-            "time",
-            "tr",
-            "ul",
-        }
-    ),
-    attributes=_allowed_render_attribute,
-    protocols=frozenset({"http", "https", "mailto", "tel"}),
-    strip=True,
-    strip_comments=True,
+_CONTENT_ALLOWED_TAGS = frozenset(
+    {
+        "a",
+        "abbr",
+        "b",
+        "blockquote",
+        "br",
+        "code",
+        "dd",
+        "del",
+        "details",
+        "div",
+        "dl",
+        "dt",
+        "em",
+        "figcaption",
+        "figure",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "hr",
+        "i",
+        "img",
+        "kbd",
+        "li",
+        "mark",
+        "ol",
+        "p",
+        "pre",
+        "s",
+        "span",
+        "strong",
+        "sub",
+        "summary",
+        "sup",
+        "table",
+        "tbody",
+        "td",
+        "th",
+        "thead",
+        "time",
+        "tr",
+        "ul",
+    }
 )
+_CONTENT_ALLOWED_PROTOCOLS = frozenset({"http", "https", "mailto", "tel"})
+
+
+def _new_content_cleaner() -> Cleaner:
+    """Build one private parser from the immutable shared sanitizer policy.
+
+    Bleach's ``Cleaner`` owns parser/filter state and is not safe to share between concurrent
+    calls.  The policy itself is immutable, so constructing a cleaner per call preserves the
+    exact allowlist while keeping all mutable parser state invocation-local.
+    """
+
+    return Cleaner(
+        tags=_CONTENT_ALLOWED_TAGS,
+        attributes=_allowed_render_attribute,
+        protocols=_CONTENT_ALLOWED_PROTOCOLS,
+        strip=True,
+        strip_comments=True,
+    )
+
+
 _ALLOWED_PREPARATION_STATES = frozenset(
     {ContentRelease.Status.FETCHING, ContentRelease.Status.VALIDATING}
 )
@@ -151,7 +165,7 @@ def sanitize_rendered_html(content_kind: str, rendered_html: str) -> str:
     """
 
     _validate_version(content_kind, field_name="content_kind")
-    return _CONTENT_CLEANER.clean(rendered_html)
+    return _new_content_cleaner().clean(rendered_html)
 
 
 @dataclass(frozen=True, slots=True)
