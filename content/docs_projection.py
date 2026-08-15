@@ -39,7 +39,6 @@ _LIQUID_RELATIVE_URL = re.compile(
 )
 _KRAMDOWN_ATTRIBUTE_LINE = re.compile(r"(?m)^\s*\{:\s*[^}\n]+\}\s*$")
 _KRAMDOWN_INLINE_ATTRIBUTE = re.compile(r"\]\((?P<url>[^)\n]+)\)\{:\s*[^}\n]+\}")
-_LEGACY_SLACK_URL = re.compile(r"https?://datatalks\.club/slack\.html(?:#[^\s)]+)?")
 _HEADING = re.compile(
     r"(?P<open><h(?P<level>[1-6])>)(?P<body>.*?)(?P<close></h(?P=level)>)",
     re.DOTALL,
@@ -111,6 +110,191 @@ def _docs_url(value: str) -> str:
     return value
 
 
+_INTERNAL_HUB_PATHS = {
+    "/events.html": "/events",
+    "/podcast.html": "/podcast",
+    "/books.html": "/books",
+    "/slack.html": "/slack",
+    "/slack/guidelines.html": "/slack",
+}
+_NEWSLETTER_PATH = "/newsletter.html"
+_LUMA_EVENTS_URL = "https://luma.com/dtc-events"
+
+
+def _rewritten_internal_destination(value: str) -> str | None:
+    """Return the allowlisted destination replacement, preserving query and fragment."""
+
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc:
+        if parsed.scheme != "https" or parsed.netloc != "datatalks.club":
+            return None
+    replacement = _INTERNAL_HUB_PATHS.get(parsed.path)
+    if replacement is None:
+        return None
+    query_source = value.split("#", 1)[0]
+    query = f"?{parsed.query}" if "?" in query_source else ""
+    fragment = f"#{parsed.fragment}" if "#" in value else ""
+    return f"{replacement}{query}{fragment}"
+
+
+def _is_newsletter_destination(value: str) -> bool:
+    parsed = urlsplit(value)
+    if parsed.scheme or parsed.netloc:
+        if parsed.scheme != "https" or parsed.netloc != "datatalks.club":
+            return False
+    return parsed.path == _NEWSLETTER_PATH
+
+
+def _find_unescaped(value: str, start: int, target: str) -> int | None:
+    """Find one unescaped character in Markdown text."""
+
+    index = start
+    while index < len(value):
+        if value[index] == "\\":
+            index += 2
+            continue
+        if value[index] == target:
+            return index
+        index += 1
+    return None
+
+
+def _find_link_label_end(value: str, start: int) -> int | None:
+    """Find a closing Markdown link label bracket, allowing nested brackets."""
+
+    depth = 0
+    index = start
+    while index < len(value):
+        character = value[index]
+        if character == "\\":
+            index += 2
+            continue
+        if character == "[":
+            depth += 1
+        elif character == "]":
+            if depth == 0:
+                return index
+            depth -= 1
+        index += 1
+    return None
+
+
+def _find_link_destination_end(value: str, start: int) -> int | None:
+    """Find the closing parenthesis for one Markdown inline link."""
+
+    depth = 0
+    index = start
+    while index < len(value):
+        character = value[index]
+        if character == "\\":
+            index += 2
+            continue
+        if character == "(":
+            depth += 1
+        elif character == ")":
+            if depth == 0:
+                return index
+            depth -= 1
+        index += 1
+    return None
+
+
+def _link_destination_token(inner: str) -> tuple[int, int, str] | None:
+    """Return the destination token offsets and value from Markdown link contents."""
+
+    start = 0
+    while start < len(inner) and inner[start].isspace():
+        start += 1
+    if start == len(inner):
+        return None
+    if inner[start] == "<":
+        end = _find_unescaped(inner, start + 1, ">")
+        if end is None:
+            return None
+        return start + 1, end, inner[start + 1 : end]
+    end = start
+    while end < len(inner) and not inner[end].isspace():
+        end += 1
+    return start, end, inner[start:end]
+
+
+def _rewrite_markdown_links(value: str) -> str:
+    """Apply the narrow docs-link compatibility policy to inline Markdown links.
+
+    Parsing links here (instead of replacing URL-looking text globally) keeps code spans, prose,
+    unrelated hosts, and source text outside an intended Markdown destination byte-for-byte intact.
+    """
+
+    output: list[str] = []
+    cursor = 0
+    index = 0
+    while index < len(value):
+        if value[index] == "`":
+            run_end = index
+            while run_end < len(value) and value[run_end] == "`":
+                run_end += 1
+            closing = value.find(value[index:run_end], run_end)
+            if closing < 0:
+                index = len(value)
+            else:
+                index = closing + run_end - index
+            continue
+        if value[index] != "[" or (index > 0 and value[index - 1] in {"\\", "!"}):
+            index += 1
+            continue
+        label_end = _find_link_label_end(value, index + 1)
+        if label_end is None or label_end + 1 >= len(value) or value[label_end + 1] != "(":
+            index += 1
+            continue
+        destination_end = _find_link_destination_end(value, label_end + 2)
+        if destination_end is None:
+            index += 1
+            continue
+        inner = value[label_end + 2 : destination_end]
+        token = _link_destination_token(inner)
+        if token is None:
+            index = destination_end + 1
+            continue
+        token_start, token_end, destination = token
+        replacement_url = _rewritten_internal_destination(destination)
+        remove_wrapper = _is_newsletter_destination(destination)
+        replace_luma_label = destination == _LUMA_EVENTS_URL and value[index + 1 : label_end] == (
+            "Luma"
+        )
+        if replace_luma_label:
+            replacement_url = "/events"
+        if replacement_url is None and not remove_wrapper and not replace_luma_label:
+            index = destination_end + 1
+            continue
+
+        output.append(value[cursor:index])
+        label = value[index + 1 : label_end]
+        if remove_wrapper:
+            output.append(label)
+        else:
+            rewritten_inner = inner
+            if replacement_url is not None:
+                is_angle_destination = inner[token_start - 1 : token_start] == "<"
+                rewritten_destination = (
+                    f"<{replacement_url}>" if is_angle_destination else replacement_url
+                )
+                if is_angle_destination:
+                    rewritten_inner = (
+                        inner[: token_start - 1] + rewritten_destination + inner[token_end + 1 :]
+                    )
+                else:
+                    rewritten_inner = (
+                        inner[:token_start] + rewritten_destination + inner[token_end:]
+                    )
+            if replace_luma_label:
+                label = "our events page"
+            output.append(f"[{label}]({rewritten_inner})")
+        cursor = destination_end + 1
+        index = cursor
+    output.append(value[cursor:])
+    return "".join(output)
+
+
 def _prepare_markdown(raw: str) -> str:
     # Just the Docs uses these attribute-only lines for typography and button classes.  They are
     # presentation metadata rather than content, and allowing them through mistune would expose
@@ -118,14 +302,7 @@ def _prepare_markdown(raw: str) -> str:
     prepared = _KRAMDOWN_ATTRIBUTE_LINE.sub("", raw)
     prepared = _KRAMDOWN_INLINE_ATTRIBUTE.sub(lambda match: f"]({match.group('url')})", prepared)
     prepared = _LIQUID_RELATIVE_URL.sub(lambda match: _docs_url(match.group("path")), prepared)
-    # The source repository still contains the old GitHub Pages URL in a few documents.  Keep
-    # those source bodies immutable, but ensure rendered Django pages link to the canonical route.
-    return _LEGACY_SLACK_URL.sub(
-        lambda match: (
-            "/slack" + ("#" + match.group(0).split("#", 1)[1] if "#" in match.group(0) else "")
-        ),
-        prepared,
-    )
+    return _rewrite_markdown_links(prepared)
 
 
 def _asset_file(source_path: str) -> Path | None:
