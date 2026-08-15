@@ -1,6 +1,10 @@
 {% extends "core/base.html" %}
+{% load static %}
 {% block title %}
   {{ docs.title }} — DataTalks.Club Documentation
+{% endblock %}
+{% block extra_css %}
+  <link rel="stylesheet" href="{% static 'core/docs_navigation.css' %}">
 {% endblock %}
 {% block breadcrumbs_nav %}
   <nav class="breadcrumbs mb-6 text-sm app-muted md:mb-8" aria-label="Breadcrumb">
@@ -13,66 +17,89 @@
           <a class="app-link" href="{{ crumb.public_path }}">{{ crumb.title }}</a>
         </li>
       {% endfor %}
-      <li class="flex items-center" aria-current="page">
-        <span class="mx-2" aria-hidden="true">/</span>{{ docs.title }}
+      <li class="flex items-center">
+        <span class="mx-2" aria-hidden="true">/</span>
+        <span aria-current="page">{{ docs.title }}</span>
       </li>
     </ol>
   </nav>
 {% endblock %}
 {% block content %}
-  <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_16rem]">
-    <article class="docs-content max-w-4xl leading-7 app-text">
-      {{ docs_html|safe }}
-      {% if docs_previous or docs_next %}
-        <nav class="mt-12 grid gap-4 border-t app-border pt-6 sm:grid-cols-2" aria-label="Documentation navigation">
-          {% if docs_previous %}
-            <a class="rounded-md border app-border p-4 app-link" href="{{ docs_previous.public_path }}">
-              <span class="block text-xs font-semibold uppercase tracking-wide app-muted">Previous</span>
-              <span class="mt-1 block font-semibold">{{ docs_previous.title }}</span>
-            </a>
-          {% endif %}
-          {% if docs_next %}
-            <a class="rounded-md border app-border p-4 app-link sm:text-right" href="{{ docs_next.public_path }}">
-              <span class="block text-xs font-semibold uppercase tracking-wide app-muted">Next</span>
-              <span class="mt-1 block font-semibold">{{ docs_next.title }}</span>
-            </a>
-          {% endif %}
-        </nav>
-      {% endif %}
-    </article>
-    <aside class="order-first lg:order-last" aria-label="On this page">
-      {% if docs_children %}
-        <h2 class="text-sm font-semibold uppercase tracking-wide app-muted">In this section</h2>
-        <ul class="mt-3 list-none space-y-2 border-l app-border pl-4">
-          {% for item in docs_children %}
-            <li>
-              {% if item.public_path == docs.public_path %}
-                <a class="app-link text-sm font-semibold" href="{{ item.public_path }}">
-                  {{ item.title }}
-                </a>
-              {% else %}
-                <a class="app-link text-sm" href="{{ item.public_path }}">
-                  {{ item.title }}
-                </a>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-      {% if docs_headings|length > 1 %}
-        <h2 class="mt-8 text-sm font-semibold uppercase tracking-wide app-muted">On this page</h2>
-        <ul class="mt-3 list-none space-y-2 border-l app-border pl-4">
-          {% for heading in docs_headings %}
-            {% if heading.level > 1 %}
-              <li>
-                <a class="app-link text-sm" href="#{{ heading.id }}">
-                  {{ heading.title }}
-                </a>
-              </li>
-            {% endif %}
-          {% endfor %}
-        </ul>
-      {% endif %}
+  <div class="docs-page docs-detail-layout">
+    <aside class="docs-detail-tree" aria-labelledby="docs-tree-heading">
+      <nav class="docs-tree-panel" aria-label="Documentation sections">
+        <h2 id="docs-tree-heading" class="docs-tree-panel-heading">Documentation sections</h2>
+        {% include "review/_docs_navigation_tree.html" with docs_items=docs_navigation docs_current_path=docs.public_path only %}
+      </nav>
     </aside>
+    <div class="docs-detail-content">
+      <div class="docs-actions" aria-label="Documentation actions">
+        <a
+          class="docs-action app-link"
+          href="{{ docs_search_url }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Search documentation on GitHub (opens in a new tab)"
+        >Search documentation on GitHub <span aria-hidden="true">↗</span></a>
+        <a
+          class="docs-action app-link"
+          href="{{ docs.edit_url }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Edit this page on GitHub (opens in a new tab)"
+        >Edit this page on GitHub <span aria-hidden="true">↗</span></a>
+      </div>
+      <nav class="docs-context-navigation" aria-label="Document context">
+        <a class="docs-context-link docs-context-parent app-link" href="{{ docs_parent.public_path }}">
+          <span class="docs-context-label app-muted">Parent</span>
+          <span class="docs-context-title">{{ docs_parent.title }}</span>
+        </a>
+        {% if docs_previous %}
+          <a class="docs-context-link app-link" href="{{ docs_previous.public_path }}">
+            <span class="docs-context-label app-muted">Previous</span>
+            <span class="docs-context-title">{{ docs_previous.title }}</span>
+          </a>
+        {% endif %}
+        {% if docs_next %}
+          <a class="docs-context-link app-link" href="{{ docs_next.public_path }}">
+            <span class="docs-context-label app-muted">Next</span>
+            <span class="docs-context-title">{{ docs_next.title }}</span>
+          </a>
+        {% endif %}
+      </nav>
+      {% if docs_children or docs_headings|length > 1 %}
+        <aside class="docs-local-navigation" aria-label="Document navigation">
+          {% if docs_children %}
+            <section class="docs-local-panel" aria-labelledby="docs-children-heading">
+              <h2 id="docs-children-heading" class="docs-local-heading">In this section</h2>
+              <ul class="docs-local-list">
+                {% for item in docs_children %}
+                  <li>
+                    <a class="app-link" href="{{ item.public_path }}">{{ item.title }}</a>
+                  </li>
+                {% endfor %}
+              </ul>
+            </section>
+          {% endif %}
+          {% if docs_headings|length > 1 %}
+            <section class="docs-local-panel" aria-labelledby="docs-headings-heading">
+              <h2 id="docs-headings-heading" class="docs-local-heading">On this page</h2>
+              <ul class="docs-local-list">
+                {% for heading in docs_headings %}
+                  {% if heading.level > 1 %}
+                    <li>
+                      <a class="app-link" href="#{{ heading.id }}">{{ heading.title }}</a>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+              </ul>
+            </section>
+          {% endif %}
+        </aside>
+      {% endif %}
+      <article class="docs-content app-text">
+        {{ docs_html|safe }}
+      </article>
+    </div>
   </div>
 {% endblock %}

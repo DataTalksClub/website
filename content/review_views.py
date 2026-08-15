@@ -19,10 +19,13 @@ from courses.models.course import Course
 
 from .docs_projection import (
     DOCS_ROOT_PATH,
+    DOCS_SEARCH_URL,
     docs_asset_path,
     docs_breadcrumbs,
     docs_children,
-    docs_sibling_navigation,
+    docs_navigation_tree,
+    docs_parent,
+    docs_sequential_navigation,
     render_docs_markdown,
 )
 from .docs_projection import (
@@ -189,6 +192,7 @@ def docs_home(request: HttpRequest) -> HttpResponse:
     if document is None:
         raise Http404("Documentation home is unavailable.")
     rendered, headings = render_docs_markdown(document)
+    navigation = docs_navigation_tree()
     return _render(
         request,
         "review/docs_home.html",
@@ -200,9 +204,28 @@ def docs_home(request: HttpRequest) -> HttpResponse:
             "docs": document,
             "docs_html": rendered,
             "docs_headings": headings,
-            "docs_navigation": docs_children(None),
+            "docs_navigation": navigation.root.children,
+            "docs_search_url": DOCS_SEARCH_URL,
         },
     )
+
+
+def _docs_detail_context(
+    document: dict[str, Any], rendered: str, headings: tuple[dict[str, Any], ...]
+) -> dict[str, Any]:
+    previous, following = docs_sequential_navigation(document)
+    return {
+        "docs": document,
+        "docs_html": rendered,
+        "docs_headings": headings,
+        "docs_breadcrumbs": docs_breadcrumbs(document),
+        "docs_children": docs_children(document.get("public_path")),
+        "docs_navigation": docs_navigation_tree().root.children,
+        "docs_parent": docs_parent(document),
+        "docs_previous": previous,
+        "docs_next": following,
+        "docs_search_url": DOCS_SEARCH_URL,
+    }
 
 
 @require_safe
@@ -211,22 +234,13 @@ def docs_getting_started(request: HttpRequest) -> HttpResponse:
     if document is None:
         raise Http404("Documentation page is unavailable.")
     rendered, headings = render_docs_markdown(document)
-    previous, following = docs_sibling_navigation(document)
     return _render(
         request,
         "review/docs_detail.html",
         path=document["public_path"],
         title=f"{document['title']} — AI Dev Tools Zoomcamp Docs",
         description=document.get("description") or "AI Dev Tools Zoomcamp documentation.",
-        context={
-            "docs": document,
-            "docs_html": rendered,
-            "docs_headings": headings,
-            "docs_breadcrumbs": docs_breadcrumbs(document),
-            "docs_children": docs_children(document.get("public_path")),
-            "docs_previous": previous,
-            "docs_next": following,
-        },
+        context=_docs_detail_context(document, rendered, headings),
     )
 
 
@@ -239,22 +253,13 @@ def docs_page(request: HttpRequest, doc_path: str) -> HttpResponse:
     if document is None:
         raise Http404("Documentation page is unavailable.")
     rendered, headings = render_docs_markdown(document)
-    previous, following = docs_sibling_navigation(document)
     return _render(
         request,
         "review/docs_detail.html",
         path=document["public_path"],
         title=f"{document['title']} — DataTalks.Club Documentation",
         description=document.get("description") or "DataTalks.Club documentation.",
-        context={
-            "docs": document,
-            "docs_html": rendered,
-            "docs_headings": headings,
-            "docs_breadcrumbs": docs_breadcrumbs(document),
-            "docs_children": docs_children(document.get("public_path")),
-            "docs_previous": previous,
-            "docs_next": following,
-        },
+        context=_docs_detail_context(document, rendered, headings),
     )
 
 

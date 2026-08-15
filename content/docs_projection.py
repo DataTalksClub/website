@@ -14,10 +14,12 @@ import html
 import json
 import re
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass
 from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path, PurePosixPath
+from types import MappingProxyType
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -30,6 +32,7 @@ DOCS_PROJECTION_PATH = Path(__file__).with_name("docs_projection.json")
 DOCS_ASSET_ROOT = Path(__file__).with_name("docs_assets")
 DOCS_SOURCE_REVISION = "3f23e006ffdaa498bbc69697408853b6f5eb37dc"
 DOCS_ROOT_PATH = "/docs/"
+DOCS_SEARCH_URL = "https://github.com/DataTalksClub/docs/search"
 _DOCS_ASSET_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "image/svg+xml"})
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _DOCS_PREFIXES = ("/courses/", "/general/", "/activities/", "/assets/")
@@ -44,6 +47,36 @@ _HEADING = re.compile(
     re.DOTALL,
 )
 _MARKDOWN = mistune.create_markdown(escape=False, plugins=("strikethrough", "table"))
+
+
+@dataclass(frozen=True, slots=True)
+class DocsNavigationItem:
+    """One immutable page position in the source-backed Docs hierarchy."""
+
+    page: Mapping[str, Any]
+    children: tuple[DocsNavigationItem, ...]
+
+    @property
+    def public_path(self) -> str:
+        return str(self.page["public_path"])
+
+    @property
+    def title(self) -> str:
+        return str(self.page["title"])
+
+    @property
+    def description(self) -> str:
+        return str(self.page.get("description") or "")
+
+
+@dataclass(frozen=True, slots=True)
+class DocsNavigationTree:
+    """A validated hierarchy and its deterministic depth-first reading order."""
+
+    root: DocsNavigationItem
+    preorder: tuple[DocsNavigationItem, ...]
+    documents: tuple[DocsNavigationItem, ...]
+    by_path: Mapping[str, DocsNavigationItem]
 
 
 class _HeadingText(HTMLParser):
@@ -367,6 +400,147 @@ def render_docs_markdown(page: Mapping[str, Any] | str) -> tuple[str, tuple[dict
     return sanitize_rendered_html("docs", rendered), headings
 
 
+def _bounded_source_path(page: Mapping[str, Any]) -> str:
+    """Return a content-free source identifier suitable for a bounded diagnostic."""
+
+    source_path = page.get("source_path")
+    if not isinstance(source_path, str) or not source_path:
+        return "<unknown>"
+    normalized = re.sub(r"[\x00-\x1f\x7f]", "?", source_path.replace("\\", "/"))
+    return normalized[:160]
+
+
+def _navigation_error(code: str, page: Mapping[str, Any]) -> ImproperlyConfigured:
+    return ImproperlyConfigured(f"Docs navigation {code}: {_bounded_source_path(page)}")
+
+
+def build_docs_navigation(pages: Iterable[Mapping[str, Any]]) -> DocsNavigationTree:
+    """Validate and build the complete Docs tree from projected parent relationships.
+
+    ``parent_path`` is the only ancestry input. A missing parent means a direct child of the
+    documentation root; URL segments and titles are deliberately never used to guess a parent.
+    Siblings use the source contract's existing ordering key, and ``documents`` is the resulting
+    depth-first pre-order beneath the root for Previous/Next reading context.
+    """
+
+    records: list[dict[str, Any]] = []
+    by_path: dict[str, dict[str, Any]] = {}
+    source_paths: set[str] = set()
+    for raw_page in pages:
+        if not isinstance(raw_page, Mapping):
+            raise ImproperlyConfigured("Docs navigation page must be an object: <unknown>")
+        page = dict(raw_page)
+        public_path = page.get("public_path")
+        source_path = page.get("source_path")
+        if (
+            not isinstance(public_path, str)
+            or not public_path.startswith(DOCS_ROOT_PATH)
+            or not public_path.endswith("/")
+            or "?" in public_path
+            or "#" in public_path
+        ):
+            raise _navigation_error("noncanonical_public_path", page)
+        if public_path in by_path:
+            raise _navigation_error("duplicate_public_path", page)
+        if not isinstance(source_path, str) or not source_path:
+            raise _navigation_error("invalid_source_path", page)
+        if source_path in source_paths:
+            raise _navigation_error("duplicate_source_path", page)
+        title = page.get("title")
+        if not isinstance(title, str) or not title.strip():
+            raise _navigation_error("missing_title", page)
+        parent_path = page.get("parent_path")
+        if parent_path is not None and not isinstance(parent_path, str):
+            raise _navigation_error("invalid_parent", page)
+        records.append(page)
+        by_path[public_path] = page
+        source_paths.add(source_path)
+
+    root_page = by_path.get(DOCS_ROOT_PATH)
+    if root_page is None:
+        raise ImproperlyConfigured("Docs navigation root_missing: <unknown>")
+    if root_page.get("parent_path") is not None:
+        raise _navigation_error("root_parent", root_page)
+
+    for page in records:
+        if page is root_page:
+            continue
+        public_path = str(page["public_path"])
+        parent_path = page.get("parent_path")
+        if parent_path == public_path:
+            raise _navigation_error("self_parent", page)
+        if parent_path is not None and parent_path not in by_path:
+            raise _navigation_error("orphan", page)
+
+    # Validate every parent chain, including components that are not reachable from a top-level
+    # page. This produces a stable source-path diagnostic before a partial tree can be returned.
+    resolved: set[str] = {DOCS_ROOT_PATH}
+    for page in records:
+        public_path = str(page["public_path"])
+        if public_path in resolved:
+            continue
+        chain: list[str] = []
+        chain_positions: dict[str, int] = {}
+        current = page
+        while True:
+            current_path = str(current["public_path"])
+            if current_path in resolved:
+                break
+            if current_path in chain_positions:
+                raise _navigation_error("parent_cycle", current)
+            chain_positions[current_path] = len(chain)
+            chain.append(current_path)
+            parent_path = current.get("parent_path")
+            if parent_path is None or parent_path == DOCS_ROOT_PATH:
+                break
+            parent = by_path.get(str(parent_path))
+            if parent is None:
+                raise _navigation_error("orphan", current)
+            current = parent
+        resolved.update(chain)
+
+    children_by_parent: dict[str, list[dict[str, Any]]] = {path: [] for path in by_path}
+    for page in records:
+        if page is root_page:
+            continue
+        parent_path = page.get("parent_path")
+        effective_parent = DOCS_ROOT_PATH if parent_path is None else str(parent_path)
+        children_by_parent[effective_parent].append(page)
+    for children in children_by_parent.values():
+        children.sort(key=_nav_key)
+
+    built_by_path: dict[str, DocsNavigationItem] = {}
+
+    def build_item(page: Mapping[str, Any]) -> DocsNavigationItem:
+        path = str(page["public_path"])
+        item = DocsNavigationItem(
+            page=MappingProxyType(dict(page)),
+            children=tuple(build_item(child) for child in children_by_parent[path]),
+        )
+        built_by_path[path] = item
+        return item
+
+    root = build_item(root_page)
+    preorder: list[DocsNavigationItem] = []
+
+    def visit(item: DocsNavigationItem) -> None:
+        preorder.append(item)
+        for child in item.children:
+            visit(child)
+
+    visit(root)
+    if len(preorder) != len(records):
+        missing_path = next(path for path in by_path if path not in built_by_path)
+        raise _navigation_error("unreachable", by_path[missing_path])
+    ordered = tuple(preorder)
+    return DocsNavigationTree(
+        root=root,
+        preorder=ordered,
+        documents=ordered[1:],
+        by_path=MappingProxyType(dict(built_by_path)),
+    )
+
+
 def _validate_projection(projection: Mapping[str, Any]) -> None:
     if projection.get("schema_version") != 1:
         raise ImproperlyConfigured("Unsupported docs content projection schema.")
@@ -425,6 +599,9 @@ def _validate_projection(projection: Mapping[str, Any]) -> None:
             raise ImproperlyConfigured(f"Docs projection asset checksum mismatch: {source_path}")
         asset_paths.add(public_path)
         asset_sources.add(source_path)
+    # Navigation validation runs before the older metadata checks so hierarchy failures always
+    # use the bounded, content-free source-path diagnostic and cannot fall through to partial data.
+    build_docs_navigation(pages)
     public_paths: set[str] = set()
     source_paths: set[str] = set()
     for page in pages:
@@ -461,10 +638,11 @@ def _validate_projection(projection: Mapping[str, Any]) -> None:
     if DOCS_ROOT_PATH not in public_paths:
         raise ImproperlyConfigured("Docs projection root page is missing.")
     for page in pages:
-        for key in ("parent_path", "grand_parent_path"):
-            value = page.get(key)
-            if value is not None and value not in public_paths:
-                raise ImproperlyConfigured(f"Docs projection {key} does not resolve: {value}")
+        value = page.get("grand_parent_path")
+        if value is not None and value not in public_paths:
+            raise ImproperlyConfigured(
+                f"Docs projection grand_parent_path does not resolve: {value}"
+            )
 
 
 @lru_cache(maxsize=1)
@@ -503,31 +681,66 @@ def _nav_key(page: Mapping[str, Any]) -> tuple[int, str, str]:
     return order, str(page.get("title") or "").casefold(), str(page["public_path"])
 
 
+@lru_cache(maxsize=1)
+def docs_navigation_tree() -> DocsNavigationTree:
+    """Return the one validated tree for the active checked projection."""
+
+    return build_docs_navigation(tuple(docs_projection()["pages"]))
+
+
 def docs_children(parent_path: str | None) -> tuple[dict[str, Any], ...]:
-    children = [
-        dict(page)
-        for page in docs_projection()["pages"]
-        if page["public_path"] != DOCS_ROOT_PATH and page.get("parent_path") == parent_path
-    ]
-    children.sort(key=_nav_key)
-    return tuple(children)
+    tree = docs_navigation_tree()
+    effective_parent = DOCS_ROOT_PATH if parent_path is None else parent_path
+    parent = tree.by_path.get(effective_parent)
+    if parent is None:
+        return ()
+    return tuple(dict(child.page) for child in parent.children)
 
 
 def docs_breadcrumbs(page: Mapping[str, Any]) -> tuple[dict[str, str], ...]:
     result: list[dict[str, str]] = [{"title": "Documentation", "public_path": DOCS_ROOT_PATH}]
     chain: list[dict[str, Any]] = []
     current = page
-    by_path = {item["public_path"]: item for item in docs_projection()["pages"]}
+    by_path = docs_navigation_tree().by_path
     while current.get("parent_path"):
         parent_path = str(current["parent_path"])
-        parent = by_path.get(parent_path)
-        if parent is None:
+        if parent_path == DOCS_ROOT_PATH:
             break
+        parent_item = by_path.get(parent_path)
+        if parent_item is None:
+            break
+        parent = dict(parent_item.page)
         chain.append(parent)
         current = parent
     for parent in reversed(chain):
         result.append({"title": str(parent["title"]), "public_path": str(parent["public_path"])})
     return tuple(result)
+
+
+def docs_parent(page: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the explicit parent, using the Docs landing for top-level pages."""
+
+    parent_path = page.get("parent_path")
+    if parent_path is None or parent_path == DOCS_ROOT_PATH:
+        return {"title": "Documentation", "public_path": DOCS_ROOT_PATH}
+    parent = docs_navigation_tree().by_path.get(str(parent_path))
+    if parent is None:  # The validated tree makes this defensive branch unreachable.
+        raise _navigation_error("orphan", page)
+    return dict(parent.page)
+
+
+def docs_sequential_navigation(
+    page: Mapping[str, Any],
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """Return adjacent detail documents in deterministic depth-first pre-order."""
+
+    documents = docs_navigation_tree().documents
+    for index, item in enumerate(documents):
+        if item.public_path == page.get("public_path"):
+            previous = dict(documents[index - 1].page) if index else None
+            following = dict(documents[index + 1].page) if index + 1 < len(documents) else None
+            return previous, following
+    return None, None
 
 
 def docs_sibling_navigation(
@@ -551,14 +764,21 @@ def docs_navigation() -> tuple[dict[str, Any], ...]:
 __all__ = [
     "DOCS_ASSET_ROOT",
     "DOCS_ROOT_PATH",
+    "DOCS_SEARCH_URL",
     "DOCS_SOURCE_REVISION",
+    "DocsNavigationItem",
+    "DocsNavigationTree",
+    "build_docs_navigation",
     "docs_breadcrumbs",
     "docs_children",
     "docs_asset_path",
     "docs_navigation",
+    "docs_navigation_tree",
     "docs_page",
+    "docs_parent",
     "docs_pages",
     "docs_projection",
+    "docs_sequential_navigation",
     "docs_sibling_navigation",
     "render_docs_markdown",
 ]
