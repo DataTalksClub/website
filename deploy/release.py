@@ -4,15 +4,18 @@ import datetime
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from deploy.contracts import (
+    CAPTURE_REASON_SCHEMA_VERSION,
     RECOVERY_PHASE_TIMEOUT_SECONDS,
     RELEASE_MANAGER,
     SERVICE_RECEIPT_BINDING_REASONS,
     WEB_RECOVERY_TIMEOUT_SECONDS,
     WORKER_RECOVERY_TIMEOUT_SECONDS,
     ActiveServicePair,
+    CaptureContractError,
+    CaptureWorkload,
     ReleaseContractError,
     ReleaseFailureReason,
     ReleaseIdentity,
@@ -86,13 +89,57 @@ def _identity_evidence(identity: ReleaseIdentity | None) -> dict[str, str | int 
 
 def _record_failed_stage(path: Path | None, stage: str, error: Exception) -> None:
     try:
-        proof = {"error_class": type(error).__name__}
-        if isinstance(error, ReleaseContractError):
+        proof: dict[str, object]
+        if isinstance(error, CaptureContractError):
+            proof = {
+                "reason_schema_version": CAPTURE_REASON_SCHEMA_VERSION,
+                "reason_code": error.reason_code,
+                "workload": error.workload,
+            }
+        else:
+            proof = {"error_class": type(error).__name__}
+        if isinstance(error, ReleaseContractError) and not isinstance(
+            error,
+            CaptureContractError,
+        ):
             proof["reason_code"] = error.reason_code
         _record_evidence(path, stage, "failed", proof)
     except Exception:
         # Evidence must never mask the release error or prevent exact-pair recovery.
         pass
+
+
+def _capture_snapshot(
+    gateway: ReleaseGateway,
+    workload: str,
+    evidence_path: Path | None,
+) -> ServiceSnapshot:
+    """Capture one workload and persist only its bounded diagnostic on failure."""
+
+    if workload not in {"web", "worker"}:
+        raise ReleaseContractError("capture workload differs")
+    capture_workload = cast("CaptureWorkload", workload)
+    try:
+        return gateway.capture_service(workload)
+    except CaptureContractError as error:
+        _record_failed_stage(evidence_path, f"capture:{workload}", error)
+        raise
+    except ReleaseContractError:
+        safe_error = CaptureContractError(
+            f"{workload} service capture failed safely",
+            workload=capture_workload,
+            reason_code="internal",
+        )
+        _record_failed_stage(evidence_path, f"capture:{workload}", safe_error)
+        raise safe_error from None
+    except Exception:
+        safe_error = CaptureContractError(
+            f"{workload} service capture failed safely",
+            workload=capture_workload,
+            reason_code="internal",
+        )
+        _record_failed_stage(evidence_path, f"capture:{workload}", safe_error)
+        raise safe_error from None
 
 
 def _record_recovery_evidence(
@@ -460,10 +507,11 @@ def capture_current_service_pair(
     *,
     expected_web_count: int,
     expected_worker_count: int,
+    evidence_path: Path | None = None,
 ) -> ActiveServicePair:
     """Synthesize a prior record only from one stable, normalized managed release."""
-    web = gateway.capture_service("web")
-    worker = gateway.capture_service("worker")
+    web = _capture_snapshot(gateway, "web", evidence_path)
+    worker = _capture_snapshot(gateway, "worker", evidence_path)
     for workload, snapshot in (("web", web), ("worker", worker)):
         if snapshot.desired_count < 1:
             raise ReleaseContractError(
@@ -522,10 +570,11 @@ def capture_recovery_context(
     repository_uri: str,
     path: Path,
     expected: ReleaseRecord | ActiveServicePair | None,
+    evidence_path: Path | None = None,
 ) -> RecoveryContext:
     """Persist a strict pre-mutation checkpoint for human abrupt-runner recovery."""
-    web = gateway.capture_service("web")
-    worker = gateway.capture_service("worker")
+    web = _capture_snapshot(gateway, "web", evidence_path)
+    worker = _capture_snapshot(gateway, "worker", evidence_path)
     bootstrap = validate_prior_pair(web, worker, expected)
     identity: ReleaseIdentity | None = None
     if not bootstrap:
@@ -873,8 +922,8 @@ def _recapture_prior_before_mutation(
     initial_bootstrap: bool,
     prior_identity: ReleaseIdentity | None,
 ) -> tuple[ServiceSnapshot, ServiceSnapshot]:
-    web = gateway.capture_service("web")
-    worker = gateway.capture_service("worker")
+    web = _capture_snapshot(gateway, "web", config.evidence_path)
+    worker = _capture_snapshot(gateway, "worker", config.evidence_path)
     observed_bootstrap = validate_prior_pair(web, worker, config.expected_prior_release)
     if observed_bootstrap != initial_bootstrap:
         raise ReleaseContractError("active release changed before service mutation")
@@ -907,8 +956,8 @@ def _verify_expected_prior(
 
 
 def promote(gateway: ReleaseGateway, config: PromotionConfig) -> ReleaseRecord:
-    prior_web = gateway.capture_service("web")
-    prior_worker = gateway.capture_service("worker")
+    prior_web = _capture_snapshot(gateway, "web", config.evidence_path)
+    prior_worker = _capture_snapshot(gateway, "worker", config.evidence_path)
     bootstrap = validate_prior_pair(
         prior_web,
         prior_worker,
@@ -1342,8 +1391,8 @@ def rollback(
     evidence_path: Path | None = None,
     recovery_context_path: Path | None = None,
 ) -> ReleaseRecord:
-    current_web = gateway.capture_service("web")
-    current_worker = gateway.capture_service("worker")
+    current_web = _capture_snapshot(gateway, "web", evidence_path)
+    current_worker = _capture_snapshot(gateway, "worker", evidence_path)
     validate_prior_pair(current_web, current_worker, current)
     current_identity = ReleaseIdentity(
         source_sha=current.source_sha,
@@ -1363,8 +1412,8 @@ def rollback(
     gateway.verify_release_record(target, target_identity)
     gateway.verify_image_digest_exists(current_identity)
     gateway.verify_image_digest_exists(target_identity)
-    current_web = gateway.capture_service("web")
-    current_worker = gateway.capture_service("worker")
+    current_web = _capture_snapshot(gateway, "web", evidence_path)
+    current_worker = _capture_snapshot(gateway, "worker", evidence_path)
     validate_prior_pair(current_web, current_worker, current)
     gateway.verify_terminal(
         {
@@ -1680,8 +1729,8 @@ def restore_after_finalization_failure(
         version=failed_release.version,
         identity_schema=failed_release.identity_schema,
     )
-    current_web = gateway.capture_service("web")
-    current_worker = gateway.capture_service("worker")
+    current_web = _capture_snapshot(gateway, "web", evidence_path)
+    current_worker = _capture_snapshot(gateway, "worker", evidence_path)
     validate_prior_pair(current_web, current_worker, failed_release)
     gateway.verify_release_record(failed_release, failed_identity)
     gateway.verify_terminal(

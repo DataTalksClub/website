@@ -1431,13 +1431,22 @@ jobs:
             --repository-uri "$REPOSITORY_URI" \
             --expected-web-count "$WEB_DESIRED_COUNT" \
             --expected-worker-count "$WORKER_DESIRED_COUNT" \
-            --release-record-path .tmp/deployment/active-service-pair.json
+            --release-record-path .tmp/deployment/active-service-pair.json \
+            --evidence-path .tmp/deployment/capture-evidence.json
           prior_source="$(jq -er '.source_sha' .tmp/deployment/active-service-pair.json)"
           git cat-file -e "${prior_source}^{commit}"
           test "$(git rev-parse "${prior_source}^{commit}")" = "$prior_source"
           git merge-base --is-ancestor "$prior_source" refs/remotes/origin/main
           pair="$(jq -c . .tmp/deployment/active-service-pair.json)"
           echo "active_service_pair=$pair" >> "$GITHUB_OUTPUT"
+      - name: Preserve redacted automatic capture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: development-capture-evidence-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/deployment/capture-evidence.json
+          if-no-files-found: warn
+          retention-days: 90
 
   publish:
     if: >-
@@ -1851,7 +1860,8 @@ jobs:
             "${runtime_args[@]}" \
             --repository-uri "$REPOSITORY_URI" \
             "${expected_args[@]}" \
-            --recovery-context-path .tmp/deployment/pre-mutation-recovery-context.json
+            --recovery-context-path .tmp/deployment/pre-mutation-recovery-context.json \
+            --evidence-path .tmp/deployment/controller-evidence.json
       - name: Preserve the exact pre-mutation incident checkpoint
         timeout-minutes: 2
         uses: actions/upload-artifact@v4

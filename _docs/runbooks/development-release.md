@@ -1331,6 +1331,45 @@ the first observation, or infer adoption from a running task, target health, log
 completed deployment. A candidate that never becomes the unique PRIMARY by its workload recovery
 deadline, or any third/cross-paired identity, leaves recovery failed closed for operator review.
 
+### Capture failure diagnostics (schema 1)
+
+Every `capture_service` failure has one `reason_schema_version=1`, one `reason_code`, and one
+`workload` (`web` or `worker`). The closed vocabulary is:
+
+| Category | Codes |
+| --- | --- |
+| Service lookup and projection | `service_lookup`, `service_identity`, `service_projection` |
+| PRIMARY selection and projection | `primary_cardinality`, `primary_projection`, `primary_identity` |
+| Exact terminal contract | `target_mismatch`, `primary_rollout_state`, `primary_failed_tasks` |
+| Exact terminal counts | `service_running_mismatch`, `service_pending_nonzero`, `primary_running_mismatch`, `primary_pending_nonzero` |
+| Task release identity | `release_identity` |
+| Unknown/provider/internal failure | `internal` |
+
+Capture evaluates predicates in source order. Within the terminal predicate, a non-`COMPLETED`
+rollout is reported before failed tasks; count mismatches are reported in this order: service
+running, service pending, PRIMARY running, PRIMARY pending. The code and workload are attached to
+the existing redacted evidence projection while the existing bounded human-readable message is
+retained. Unknown exceptions are mapped to `internal`; their text and provider payloads never reach
+CLI output, evidence, artifacts, or logs. A failed automatic prior capture preserves the same
+projection in its attempt-qualified capture-evidence artifact. A failed pre-mutation recovery
+capture appends it to controller evidence, and both paths remain fail-closed before any release
+mutation. These diagnostics distinguish predicates without recording raw ECS counts or resource
+identifiers and never authorize retry, fallback, or eventual-convergence success.
+
+For example, an operator may see this bounded failed stage (with no provider payload or raw count):
+
+```json
+{
+  "stage": "capture:web",
+  "result": "failed",
+  "proof": {
+    "reason_schema_version": 1,
+    "reason_code": "service_pending_nonzero",
+    "workload": "web"
+  }
+}
+```
+
 Restorative failure classification retains `receipt_deadline_expired` only when every observed
 restorative error is that allowlisted deadline reason. If any workload, terminal, or health error is
 `contract_contradiction`, that contradiction takes precedence. A generic exception or an unknown

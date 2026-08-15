@@ -196,11 +196,11 @@
     },
     {
       "path": "core/tests/test_deployment_workflow.py",
-      "sha256": "3a6dc74288810a949cede0f59d0e8fda9326bec67d4e7642b6fbef0c0be3f720",
+      "sha256": "8fdc7dcb0494625198511cce7e0a1e47049f68600be5c0084b107233369e66ba",
       "class": "legacy_contract_test",
       "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, exact physical values, and the issue-141 dependency advisory remediation.",
       "follow_up": "#94",
-      "expected_count": 27
+      "expected_count": 28
     },
     {
       "path": "content/public_projection/podcasts.json",

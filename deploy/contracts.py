@@ -49,6 +49,43 @@ SERVICE_RECEIPT_BINDING_REASONS = {
     "partial_acknowledgement_zero_count_initialization",
 }
 
+CAPTURE_REASON_SCHEMA_VERSION = 1
+CAPTURE_REASON_CODES = {
+    "service_lookup",
+    "service_identity",
+    "service_projection",
+    "primary_cardinality",
+    "primary_projection",
+    "primary_identity",
+    "target_mismatch",
+    "primary_rollout_state",
+    "primary_failed_tasks",
+    "service_running_mismatch",
+    "service_pending_nonzero",
+    "primary_running_mismatch",
+    "primary_pending_nonzero",
+    "release_identity",
+    "internal",
+}
+CaptureReasonCode = Literal[
+    "service_lookup",
+    "service_identity",
+    "service_projection",
+    "primary_cardinality",
+    "primary_projection",
+    "primary_identity",
+    "target_mismatch",
+    "primary_rollout_state",
+    "primary_failed_tasks",
+    "service_running_mismatch",
+    "service_pending_nonzero",
+    "primary_running_mismatch",
+    "primary_pending_nonzero",
+    "release_identity",
+    "internal",
+]
+CaptureWorkload = Literal["web", "worker"]
+
 
 class ReleaseContractError(RuntimeError):
     """Raised when a release input or observed runtime state is unsafe."""
@@ -63,6 +100,28 @@ class ReleaseContractError(RuntimeError):
             raise ValueError("release failure reason code is not allowlisted")
         super().__init__(message)
         self.reason_code = reason_code
+
+
+class CaptureContractError(ReleaseContractError):
+    """A safe, versioned reason for a pre-mutation ECS service capture failure."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        workload: CaptureWorkload,
+        reason_code: CaptureReasonCode,
+    ) -> None:
+        if workload not in {"web", "worker"}:
+            raise ValueError("capture workload is not allowlisted")
+        if reason_code not in CAPTURE_REASON_CODES:
+            raise ValueError("capture reason code is not allowlisted")
+        super().__init__(message)
+        self.reason_schema_version = CAPTURE_REASON_SCHEMA_VERSION
+        self.workload = workload
+        # Keep the existing ReleaseContractError surface while replacing its generic
+        # reason with the bounded capture vocabulary for evidence and CLI callers.
+        self.reason_code = reason_code  # type: ignore[assignment]
 
 
 def _validate_count(value: object, *, context: str) -> int:
