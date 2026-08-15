@@ -4,10 +4,11 @@ import hashlib
 import json
 import re
 import subprocess
+import tempfile
 from argparse import Namespace
 from itertools import permutations
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import yaml  # type: ignore[import-untyped]
@@ -31,7 +32,10 @@ from deploy.aws_gateway import (
     AwsReleaseGateway,
 )
 from deploy.contracts import (
+    CAPTURE_REASON_CODES,
+    CAPTURE_REASON_SCHEMA_VERSION,
     ActiveServicePair,
+    CaptureContractError,
     ReleaseContractError,
     ReleaseIdentity,
     ServicePredecessor,
@@ -40,6 +44,7 @@ from deploy.contracts import (
     ServiceUpdateReceipt,
 )
 from deploy.legacy_development_compatibility import ECR_REPOSITORY_URI
+from deploy.release import capture_current_service_pair, capture_recovery_context
 from deploy.task_definitions import (
     FIXED_NONSECRET_ENVIRONMENT,
     TaskDefinitionConfig,
@@ -114,6 +119,28 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
             if step.get("uses") == "aws-actions/configure-aws-credentials@v4"
         )
         self.assertLess(validation_index, oidc_index)
+
+    def test_capture_paths_preserve_redacted_diagnostics_before_release_mutation(self) -> None:
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        auto_capture = workflow.split("  auto-capture-prior:\n", maxsplit=1)[1].split(
+            "\n  publish:\n", maxsplit=1
+        )[0]
+        deploy = workflow.split("\n  deploy:\n", maxsplit=1)[1].split(
+            "\n  probe-contract:\n", maxsplit=1
+        )[0]
+        self.assertIn(
+            "--evidence-path .tmp/deployment/capture-evidence.json",
+            auto_capture,
+        )
+        self.assertIn("Preserve redacted automatic capture evidence", auto_capture)
+        self.assertIn(
+            "--evidence-path .tmp/deployment/controller-evidence.json",
+            deploy,
+        )
+        self.assertLess(
+            deploy.index("--evidence-path .tmp/deployment/controller-evidence.json"),
+            deploy.index("Preserve the exact pre-mutation incident checkpoint"),
+        )
 
     def test_every_compatibility_validator_runs_after_checkout_and_uv_setup(self) -> None:
         document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
@@ -1397,6 +1424,397 @@ class FakeServiceSequenceEcs:
         if self.clock is not None:
             self.clock.current += self.update_delay
         return json.loads(json.dumps(self.update_response))
+
+
+class CaptureServiceEcs:
+    def __init__(
+        self,
+        service: dict[str, object] | None,
+        task_definition: dict[str, object] | None = None,
+        *,
+        describe_error: Exception | None = None,
+        failures: list[dict[str, object]] | None = None,
+    ) -> None:
+        self.service = service
+        self.task_definition = task_definition
+        self.describe_error = describe_error
+        self.failures = failures or []
+
+    def describe_services(self, **kwargs):  # type: ignore[no-untyped-def]
+        del kwargs
+        if self.describe_error is not None:
+            raise self.describe_error
+        services = [] if self.service is None else [json.loads(json.dumps(self.service))]
+        return {"failures": json.loads(json.dumps(self.failures)), "services": services}
+
+    def describe_task_definition(self, **kwargs):  # type: ignore[no-untyped-def]
+        del kwargs
+        if self.task_definition is None:
+            return {"taskDefinition": None, "tags": []}
+        return {
+            "taskDefinition": json.loads(json.dumps(self.task_definition)),
+            "tags": [],
+        }
+
+
+class CaptureServiceContractTests(SimpleTestCase):
+    WEB_TASK = "arn:aws:ecs:eu-west-1:817685572750:task-definition/web:1"
+    WORKER_TASK = "arn:aws:ecs:eu-west-1:817685572750:task-definition/worker:1"
+    SOURCE_SHA = "a" * 40
+    DIGEST = f"sha256:{'b' * 64}"
+    REPOSITORY = "817685572750.dkr.ecr.eu-west-1.amazonaws.com/website-sandbox"
+
+    @classmethod
+    def gateway(cls, ecs: CaptureServiceEcs) -> AwsReleaseGateway:
+        gateway = AwsReleaseGateway.__new__(AwsReleaseGateway)
+        gateway.config = AwsReleaseConfig(
+            region="eu-west-1",
+            cluster_arn="arn:aws:ecs:eu-west-1:817685572750:cluster/website",
+            web_target_group_arn=(
+                "arn:aws:elasticloadbalancing:eu-west-1:817685572750:targetgroup/web/abc"
+            ),
+            service_names={"web": "web", "worker": "worker"},
+            task_families={"web": "web", "worker": "worker", "migration": "migration"},
+            container_names={"web": "web", "worker": "worker", "migration": "migration"},
+            task_role_arn="arn:aws:iam::817685572750:role/task",
+            execution_role_arn="arn:aws:iam::817685572750:role/execution",
+            subnet_ids=["subnet-1"],
+            security_group_ids=["sg-1"],
+            assign_public_ip=True,
+            base_url="https://web.dtcdev.click",
+            screenshot_directory=Path(".tmp/deployed-smoke"),
+            timeout_seconds=MAX_STAGE_TIMEOUT_SECONDS,
+            web_stabilization_timeout_seconds=WEB_STABILIZATION_TIMEOUT_SECONDS,
+            worker_stabilization_timeout_seconds=WORKER_STABILIZATION_TIMEOUT_SECONDS,
+            poll_seconds=10,
+        )
+        gateway.ecs = ecs
+        return gateway
+
+    @classmethod
+    def service(cls, workload: str = "web", **overrides: object) -> dict[str, object]:
+        task_definition = overrides.pop(
+            "taskDefinition",
+            cls.WORKER_TASK if workload == "worker" else cls.WEB_TASK,
+        )
+        deployment = {
+            "status": "PRIMARY",
+            "id": "ecs-svc/web-1",
+            "taskDefinition": task_definition,
+            "desiredCount": 1,
+            "runningCount": 1,
+            "pendingCount": 0,
+            "failedTasks": 0,
+            "rolloutState": "COMPLETED",
+        }
+        service = {
+            "serviceName": workload,
+            "taskDefinition": task_definition,
+            "desiredCount": 1,
+            "runningCount": 1,
+            "pendingCount": 0,
+            "deployments": [deployment],
+        }
+        service.update(overrides)
+        return service
+
+    @classmethod
+    def task_definition(cls, workload: str = "web", **overrides: object) -> dict[str, object]:
+        container: dict[str, object] = {
+            "name": workload,
+            "image": f"{cls.REPOSITORY}@{cls.DIGEST}",
+            "environment": [
+                {"name": "VERSION", "value": "20260809-143205-aaaaaaa"},
+                {"name": "SOURCE_SHA", "value": cls.SOURCE_SHA},
+                {"name": "IMAGE_DIGEST", "value": cls.DIGEST},
+            ],
+        }
+        container.update(overrides)
+        return {"containerDefinitions": [container]}
+
+    @classmethod
+    def primary(cls, workload: str = "web") -> dict[str, object]:
+        service = cls.service(workload)
+        deployments = cast(list[dict[str, object]], service["deployments"])
+        return deployments[0]
+
+    def assert_reason(
+        self,
+        reason_code: str,
+        *,
+        service: dict[str, object] | None = None,
+        task_definition: dict[str, object] | None = None,
+        describe_error: Exception | None = None,
+        failures: list[dict[str, object]] | None = None,
+        workload: str = "web",
+    ) -> None:
+        gateway = self.gateway(
+            CaptureServiceEcs(
+                service or self.service(workload),
+                task_definition or self.task_definition(workload),
+                describe_error=describe_error,
+                failures=failures,
+            )
+        )
+        with self.assertRaises(CaptureContractError) as caught:
+            gateway.capture_service(workload)
+        error = caught.exception
+        self.assertEqual(error.reason_schema_version, CAPTURE_REASON_SCHEMA_VERSION)
+        self.assertEqual(error.reason_code, reason_code)
+        self.assertEqual(error.workload, workload)
+        self.assertNotIn("sentinel-provider", str(error))
+        self.assertNotIn("sentinel-provider", repr(error))
+        self.assertIsNone(error.__cause__)
+
+    def test_capture_reason_schema_rejects_unknown_values(self) -> None:
+        self.assertEqual(
+            CAPTURE_REASON_CODES,
+            {
+                "service_lookup",
+                "service_identity",
+                "service_projection",
+                "primary_cardinality",
+                "primary_projection",
+                "primary_identity",
+                "target_mismatch",
+                "primary_rollout_state",
+                "primary_failed_tasks",
+                "service_running_mismatch",
+                "service_pending_nonzero",
+                "primary_running_mismatch",
+                "primary_pending_nonzero",
+                "release_identity",
+                "internal",
+            },
+        )
+        with self.assertRaises(ValueError):
+            CaptureContractError(
+                "safe",
+                workload="admin",  # type: ignore[arg-type]
+                reason_code="internal",
+            )
+        with self.assertRaises(ValueError):
+            CaptureContractError(
+                "safe",
+                workload="web",
+                reason_code="unknown",  # type: ignore[arg-type]
+            )
+
+    def test_capture_reasons_cover_every_contract_branch_and_redact_details(self) -> None:
+        self.assert_reason(
+            "service_lookup",
+            service=None,
+            failures=[{"arn": "sentinel-provider-identifier"}],
+        )
+        self.assert_reason("service_identity", service=self.service(serviceName="other"))
+        self.assert_reason("service_projection", service=self.service(taskDefinition=None))
+        self.assert_reason("primary_cardinality", service=self.service(deployments=[]))
+        self.assert_reason(
+            "primary_projection",
+            service=self.service(deployments=[{"status": "PRIMARY"}]),
+        )
+        self.assert_reason(
+            "primary_identity",
+            service=self.service(deployments=[self.primary() | {"id": None}]),
+        )
+        self.assert_reason(
+            "target_mismatch",
+            service=self.service(
+                deployments=[self.primary() | {"taskDefinition": self.WORKER_TASK}]
+            ),
+        )
+        self.assert_reason(
+            "primary_rollout_state",
+            service=self.service(deployments=[self.primary() | {"rolloutState": "IN_PROGRESS"}]),
+        )
+        self.assert_reason(
+            "primary_failed_tasks",
+            service=self.service(deployments=[self.primary() | {"failedTasks": 1}]),
+        )
+        self.assert_reason("service_running_mismatch", service=self.service(runningCount=0))
+        self.assert_reason("service_pending_nonzero", service=self.service(pendingCount=1))
+        self.assert_reason(
+            "primary_running_mismatch",
+            service=self.service(deployments=[self.primary() | {"runningCount": 0}]),
+        )
+        self.assert_reason(
+            "primary_pending_nonzero",
+            service=self.service(deployments=[self.primary() | {"pendingCount": 1}]),
+        )
+        self.assert_reason(
+            "release_identity",
+            task_definition=self.task_definition(
+                environment=[{"name": "SOURCE_SHA", "value": "sentinel-provider-payload"}]
+            ),
+        )
+        self.assert_reason(
+            "internal",
+            describe_error=RuntimeError("sentinel-provider-payload"),
+        )
+
+    def test_capture_reasons_cover_every_contract_branch_for_worker(self) -> None:
+        primary = self.primary("worker")
+        self.assert_reason(
+            "service_lookup",
+            service=None,
+            failures=[{"arn": "sentinel-provider-identifier"}],
+            workload="worker",
+        )
+        self.assert_reason(
+            "service_identity",
+            service=self.service("worker", serviceName="other"),
+            workload="worker",
+        )
+        self.assert_reason(
+            "service_projection",
+            service=self.service("worker", taskDefinition=None),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_cardinality",
+            service=self.service("worker", deployments=[]),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_projection",
+            service=self.service("worker", deployments=[{"status": "PRIMARY"}]),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_identity",
+            service=self.service("worker", deployments=[primary | {"id": None}]),
+            workload="worker",
+        )
+        self.assert_reason(
+            "target_mismatch",
+            service=self.service(
+                "worker",
+                deployments=[primary | {"taskDefinition": self.WEB_TASK}],
+            ),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_rollout_state",
+            service=self.service(
+                "worker",
+                deployments=[primary | {"rolloutState": "IN_PROGRESS"}],
+            ),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_failed_tasks",
+            service=self.service("worker", deployments=[primary | {"failedTasks": 1}]),
+            workload="worker",
+        )
+        self.assert_reason(
+            "service_running_mismatch",
+            service=self.service("worker", runningCount=0),
+            workload="worker",
+        )
+        self.assert_reason(
+            "service_pending_nonzero",
+            service=self.service("worker", pendingCount=1),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_running_mismatch",
+            service=self.service("worker", deployments=[primary | {"runningCount": 0}]),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_pending_nonzero",
+            service=self.service("worker", deployments=[primary | {"pendingCount": 1}]),
+            workload="worker",
+        )
+        self.assert_reason(
+            "release_identity",
+            task_definition=self.task_definition(
+                "worker",
+                environment=[{"name": "SOURCE_SHA", "value": "sentinel-provider-payload"}],
+            ),
+            workload="worker",
+        )
+        self.assert_reason(
+            "internal",
+            describe_error=RuntimeError("sentinel-provider-payload"),
+            workload="worker",
+        )
+
+    def test_capture_precedence_is_deterministic_and_applies_to_both_workloads(self) -> None:
+        service = self.service(
+            runningCount=0,
+            pendingCount=1,
+            deployments=[
+                self.primary()
+                | {"runningCount": 0, "pendingCount": 1, "failedTasks": 1, "rolloutState": "FAILED"}
+            ],
+        )
+        self.assert_reason("primary_rollout_state", service=service)
+        worker_primary = self.primary() | {"taskDefinition": self.WORKER_TASK}
+        self.assert_reason(
+            "service_running_mismatch",
+            service=self.service(
+                serviceName="worker",
+                taskDefinition=self.WORKER_TASK,
+                runningCount=0,
+                pendingCount=1,
+                deployments=[worker_primary],
+            ),
+            workload="worker",
+        )
+        self.assert_reason(
+            "primary_running_mismatch",
+            service=self.service(
+                "worker",
+                deployments=[self.primary("worker") | {"runningCount": 0, "pendingCount": 1}],
+            ),
+            workload="worker",
+        )
+
+    def test_capture_current_and_recovery_persist_only_redacted_failure_projection(self) -> None:
+        Path(".tmp").mkdir(exist_ok=True)
+        for capture in ("current", "recovery"):
+            with (
+                self.subTest(capture=capture),
+                tempfile.TemporaryDirectory(dir=".tmp") as directory,
+            ):
+                directory_path = Path(directory)
+                evidence_path = directory_path / "capture-evidence.json"
+                gateway = self.gateway(
+                    CaptureServiceEcs(
+                        self.service(runningCount=0),
+                        self.task_definition(),
+                        describe_error=RuntimeError("sentinel-provider-payload"),
+                    )
+                )
+                with self.assertRaises(CaptureContractError):
+                    if capture == "current":
+                        capture_current_service_pair(
+                            gateway,
+                            self.REPOSITORY,
+                            directory_path / "active-service-pair.json",
+                            expected_web_count=1,
+                            expected_worker_count=1,
+                            evidence_path=evidence_path,
+                        )
+                    else:
+                        capture_recovery_context(
+                            gateway,
+                            self.REPOSITORY,
+                            directory_path / "recovery-context.json",
+                            None,
+                            evidence_path=evidence_path,
+                        )
+                payload = json.loads(evidence_path.read_text())
+                self.assertEqual(
+                    payload["stages"][-1]["proof"],
+                    {
+                        "reason_code": "internal",
+                        "reason_schema_version": CAPTURE_REASON_SCHEMA_VERSION,
+                        "workload": "web",
+                    },
+                )
+                self.assertNotIn("sentinel-provider-payload", evidence_path.read_text())
 
 
 class WorkerStabilizationContractTests(SimpleTestCase):

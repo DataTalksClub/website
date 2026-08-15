@@ -271,6 +271,7 @@ def _capture_current(arguments: argparse.Namespace) -> ActiveServicePair:
         arguments.release_record_path,
         expected_web_count=arguments.expected_web_count,
         expected_worker_count=arguments.expected_worker_count,
+        evidence_path=arguments.evidence_path,
     )
 
 
@@ -287,6 +288,7 @@ def _capture_recovery(arguments: argparse.Namespace) -> RecoveryContext:
         arguments.repository_uri,
         arguments.recovery_context_path,
         expected,
+        evidence_path=arguments.evidence_path,
     )
 
 
@@ -339,6 +341,7 @@ def build_parser() -> argparse.ArgumentParser:
     capture_parser.add_argument("--expected-web-count", type=int, required=True)
     capture_parser.add_argument("--expected-worker-count", type=int, required=True)
     capture_parser.add_argument("--release-record-path", type=Path, required=True)
+    capture_parser.add_argument("--evidence-path", type=Path)
     capture_parser.set_defaults(handler=_capture_current)
 
     recovery_capture_parser = subparsers.add_parser("capture-recovery")
@@ -347,6 +350,7 @@ def build_parser() -> argparse.ArgumentParser:
     recovery_capture_parser.add_argument("--prior-release-record", type=Path)
     recovery_capture_parser.add_argument("--active-service-pair", type=Path)
     recovery_capture_parser.add_argument("--recovery-context-path", type=Path, required=True)
+    recovery_capture_parser.add_argument("--evidence-path", type=Path)
     recovery_capture_parser.set_defaults(handler=_capture_recovery)
     return parser
 

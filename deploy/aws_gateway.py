@@ -5,9 +5,11 @@ import os
 import subprocess
 import sys
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import boto3  # type: ignore[import-untyped]
 
@@ -21,6 +23,9 @@ from deploy.contracts import (
     WEB_RECOVERY_TIMEOUT_SECONDS,
     WORKER_RECOVERY_TIMEOUT_SECONDS,
     ActiveServicePair,
+    CaptureContractError,
+    CaptureReasonCode,
+    CaptureWorkload,
     ReleaseContractError,
     ReleaseIdentity,
     ReleaseRecord,
@@ -136,6 +141,32 @@ class AwsReleaseConfig:
 class _DeploymentPhaseProof:
     predecessors_have_zero_work: bool
     candidate_is_exact_terminal_primary: bool
+
+
+@contextmanager
+def _capture_stage(
+    workload: CaptureWorkload,
+    reason_code: CaptureReasonCode,
+    message: str,
+) -> Iterator[None]:
+    """Convert a capture-stage failure into a bounded, workload-scoped diagnostic."""
+
+    try:
+        yield
+    except CaptureContractError:
+        raise
+    except ReleaseContractError:
+        raise CaptureContractError(
+            message,
+            workload=workload,
+            reason_code=reason_code,
+        ) from None
+    except Exception:
+        raise CaptureContractError(
+            message,
+            workload=workload,
+            reason_code="internal",
+        ) from None
 
 
 class AwsReleaseGateway:
@@ -325,45 +356,122 @@ class AwsReleaseGateway:
         return None, None, digest, None
 
     def capture_service(self, workload: str) -> ServiceSnapshot:
-        service = self._service(workload)
-        self._validate_service_identity(workload, service)
-        target, running_count, pending_count = self._service_target_and_counts(workload, service)
-        deployments = self._deployments(workload, service)
+        if workload not in {"web", "worker"}:
+            raise ReleaseContractError("capture workload differs")
+        capture_workload = cast(CaptureWorkload, workload)
+        with _capture_stage(
+            capture_workload,
+            "service_lookup",
+            f"cannot describe exact {workload} service",
+        ):
+            service = self._service(workload)
+        with _capture_stage(
+            capture_workload,
+            "service_identity",
+            f"{workload} service identity differs",
+        ):
+            self._validate_service_identity(workload, service)
+        with _capture_stage(
+            capture_workload,
+            "service_projection",
+            f"{workload} service projection is malformed",
+        ):
+            target, running_count, pending_count = self._service_target_and_counts(
+                workload,
+                service,
+            )
+        with _capture_stage(
+            capture_workload,
+            "primary_projection",
+            f"{workload} service deployments are malformed",
+        ):
+            deployments = self._deployments(workload, service)
         primary = [item for item in deployments if item.get("status") == "PRIMARY"]
         if len(primary) != 1:
-            raise ReleaseContractError(f"{workload} service has no unique primary deployment")
+            raise CaptureContractError(
+                f"{workload} service has no unique primary deployment",
+                workload=capture_workload,
+                reason_code="primary_cardinality",
+            )
         deployment = primary[0]
-        primary_target, primary_running, primary_pending, failed_tasks = (
-            self._deployment_target_and_counts(workload, deployment)
-        )
-        primary_id = self._deployment_id(workload, deployment)
-        if primary_target != target:
-            raise ReleaseContractError(f"{workload} captured service and PRIMARY targets differ")
-        if deployment.get("rolloutState") != "COMPLETED" or failed_tasks:
-            raise ReleaseContractError(f"{workload} captured PRIMARY is not terminal")
-        if (
-            running_count != target.desired_count
-            or pending_count != 0
-            or primary_running != target.desired_count
-            or primary_pending != 0
+        with _capture_stage(
+            capture_workload,
+            "primary_projection",
+            f"{workload} PRIMARY projection is malformed",
         ):
-            raise ReleaseContractError(f"{workload} captured terminal counts differ")
+            primary_target, primary_running, primary_pending, failed_tasks = (
+                self._deployment_target_and_counts(workload, deployment)
+            )
+        with _capture_stage(
+            capture_workload,
+            "primary_identity",
+            f"{workload} deployment ID is missing",
+        ):
+            primary_id = self._deployment_id(workload, deployment)
+        if primary_target != target:
+            raise CaptureContractError(
+                f"{workload} captured service and PRIMARY targets differ",
+                workload=capture_workload,
+                reason_code="target_mismatch",
+            )
+        if deployment.get("rolloutState") != "COMPLETED":
+            raise CaptureContractError(
+                f"{workload} captured PRIMARY is not terminal",
+                workload=capture_workload,
+                reason_code="primary_rollout_state",
+            )
+        if failed_tasks:
+            raise CaptureContractError(
+                f"{workload} captured PRIMARY is not terminal",
+                workload=capture_workload,
+                reason_code="primary_failed_tasks",
+            )
+        if running_count != target.desired_count:
+            raise CaptureContractError(
+                f"{workload} captured terminal counts differ",
+                workload=capture_workload,
+                reason_code="service_running_mismatch",
+            )
+        if pending_count != 0:
+            raise CaptureContractError(
+                f"{workload} captured terminal counts differ",
+                workload=capture_workload,
+                reason_code="service_pending_nonzero",
+            )
+        if primary_running != target.desired_count:
+            raise CaptureContractError(
+                f"{workload} captured terminal counts differ",
+                workload=capture_workload,
+                reason_code="primary_running_mismatch",
+            )
+        if primary_pending != 0:
+            raise CaptureContractError(
+                f"{workload} captured terminal counts differ",
+                workload=capture_workload,
+                reason_code="primary_pending_nonzero",
+            )
         task_definition_arn = target.task_definition_arn
-        version, source_sha, image_digest, identity_schema = self._identity(
-            task_definition_arn, workload
-        )
-        return ServiceSnapshot(
-            service_name=self.config.service_names[workload],
-            task_definition_arn=task_definition_arn,
-            desired_count=target.desired_count,
-            running_count=running_count,
-            pending_count=pending_count,
-            source_sha=source_sha,
-            image_digest=image_digest,
-            primary_deployment_id=primary_id,
-            version=version,
-            identity_schema=identity_schema,
-        )
+        with _capture_stage(
+            capture_workload,
+            "release_identity",
+            f"{workload} task release identity is malformed",
+        ):
+            version, source_sha, image_digest, identity_schema = self._identity(
+                task_definition_arn,
+                workload,
+            )
+            return ServiceSnapshot(
+                service_name=self.config.service_names[workload],
+                task_definition_arn=task_definition_arn,
+                desired_count=target.desired_count,
+                running_count=running_count,
+                pending_count=pending_count,
+                source_sha=source_sha,
+                image_digest=image_digest,
+                primary_deployment_id=primary_id,
+                version=version,
+                identity_schema=identity_schema,
+            )
 
     def source_task_definition(self, workload: str) -> dict[str, Any]:
         return self._task_definition(self.config.task_families[workload])
