@@ -1048,8 +1048,10 @@ Rules for editing:
         line-height: 1.15;
       }
 
+      /* Body text, not the muted grey: the label sits on the lavender tile,
+         where the dark theme's muted grey reads at about 3.9:1. */
       .stat-tile span {
-        color: var(--muted);
+        color: var(--body-text);
         font-size: 0.85rem;
       }
 
@@ -1446,8 +1448,10 @@ Rules for editing:
         grid-column: 2;
       }
 
+      /* Body text, not the muted grey: an open module's summary row turns
+         lavender, where the dark theme's muted grey does not hold 4.5:1. */
       .module-due {
-        color: var(--muted);
+        color: var(--body-text);
         font-family: var(--font-mono);
         font-size: 0.75rem;
         grid-row: span 2;
