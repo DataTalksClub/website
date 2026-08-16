@@ -231,8 +231,22 @@ def _write_attribution_evidence() -> None:
     )
 
 
+def _dark_mode_toggle(page: Page):
+    """Return the page's theme control, whichever shell drew it.
+
+    The adopted catalogue shell labels it "Toggle dark mode"; the design 5a course page
+    (issue #179) labels it by the mode it switches to.  Both are a single button with a
+    pressed state, which is what the assertions below actually depend on.
+    """
+
+    toggle = page.locator("button#dark-mode-toggle")
+    expect(toggle).to_have_count(1)
+    assert toggle.get_attribute("aria-label") or toggle.inner_text().strip()
+    return toggle
+
+
 def _capture_dark_mode(page: Page, path: Path) -> None:
-    dark_mode = page.get_by_role("button", name="Toggle dark mode")
+    dark_mode = _dark_mode_toggle(page)
     dark_mode.click()
     expect(page.locator("body.dark-mode")).to_have_count(1)
     expect(dark_mode).to_have_attribute("aria-pressed", "true")

@@ -181,7 +181,11 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(
         page.get_by_role("heading", name=REPRESENTATIVE_COURSE_TITLE, exact=True)
     ).to_be_visible()
-    expect(page.get_by_role("heading", name="Homework", exact=True)).to_be_visible()
+    # Design 5a (issue #179) replaced the separate Homework and Projects tables with one
+    # numbered module accordion, so the deployed contract is the modules band and a
+    # module that still names its homework.
+    expect(page.get_by_role("heading", name="The modules", exact=True)).to_be_visible()
+    expect(page.locator("details.module").first).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_count(1)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", f"https://datatalks.club{REPRESENTATIVE_COURSE_PATH}"
