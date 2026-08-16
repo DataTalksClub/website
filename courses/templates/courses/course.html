@@ -187,7 +187,7 @@
         gap: 1.25rem;
       }
 
-      .course-closing h2 {
+      .course-closing h3 {
         font-size: 1.15rem;
       }
 
@@ -578,7 +578,7 @@
           <div class="course-closing">
             {% if registration_campaign and not has_enrollment and not has_registration %}
               <div class="panel panel-lavender panel-outlined course-register-panel">
-                <h2>Register for {{ course.title }}</h2>
+                <h3>Register for {{ course.title }}</h3>
                 <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
                 <a class="cta cta-primary" href="{% url 'registration_campaign' registration_campaign.slug %}">
                   Register for the cohort
@@ -586,19 +586,19 @@
               </div>
             {% elif course.registration_url and not has_enrollment %}
               <div class="panel panel-lavender panel-outlined course-register-panel">
-                <h2>Register for {{ course.title }}</h2>
+                <h3>Register for {{ course.title }}</h3>
                 <p>Registration for this course is handled on its own page.</p>
                 <a class="cta cta-primary" href="{{ course.registration_url }}">Register</a>
               </div>
             {% elif has_registration and not has_enrollment %}
               <div class="panel panel-lavender panel-outlined course-register-panel">
-                <h2>You are registered</h2>
+                <h3>You are registered</h3>
                 <p>Watch your inbox for the schedule, and start on the modules whenever you like.</p>
               </div>
             {% endif %}
             {% if course.faq_document_url %}
               <div class="panel panel-lavender panel-outlined">
-                <h2>Questions before you start?</h2>
+                <h3>Questions before you start?</h3>
                 <p class="course-note">This course keeps its own frequently asked questions.</p>
                 <a
                   class="band-link"
@@ -609,7 +609,7 @@
               </div>
             {% endif %}
             <div class="panel panel-mint panel-outlined">
-              <h2>Deadlines and your calendar</h2>
+              <h3>Deadlines and your calendar</h3>
               <p class="course-note">
                 {% if is_authenticated %}
                   All deadlines are shown in your
