@@ -413,6 +413,84 @@
         gap: 1.25rem;
       }
 
+      /* The whole graph — nodes, labels and edges — is one SVG with a viewBox,
+         so it scales as a unit and cannot overflow a narrow screen.  Two
+         arrangements of the same data are in the markup: a landscape ring for
+         wide screens and a portrait ring for phones (display:none keeps the
+         hidden one out of the tab order).  Each is capped near its design
+         size so labels stay label-sized instead of scaling with the column.
+         The class names stay clear of the shared .graph-node pill primitives,
+         which /wiki/graph still draws from the partial. */
+      .graph-svg {
+        display: block;
+        height: auto;
+        margin-inline: auto;
+        width: 100%;
+      }
+
+      .graph-svg-narrow {
+        max-width: 24rem;
+      }
+
+      .graph-svg-wide {
+        display: none;
+        max-width: 44rem;
+      }
+
+      @media (min-width: 48rem) {
+        .graph-svg-narrow {
+          display: none;
+        }
+
+        .graph-svg-wide {
+          display: block;
+        }
+      }
+
+      .graph-svg-edge {
+        stroke: var(--graph-edge);
+        stroke-width: 2;
+      }
+
+      .graph-svg-node .graph-svg-shape {
+        fill: var(--lavender);
+        stroke: var(--indigo);
+        stroke-width: 2;
+      }
+
+      .graph-svg-node text {
+        fill: var(--ink);
+        font-weight: 600;
+      }
+
+      .graph-svg-hub .graph-svg-shape {
+        fill: var(--green);
+        stroke: var(--line);
+      }
+
+      .graph-svg-hub text {
+        fill: var(--on-green);
+        font-weight: 800;
+      }
+
+      .graph-svg-node:hover .graph-svg-shape {
+        stroke-width: 3.5;
+      }
+
+      /* SVG links get the page's focus outline where engines draw it, and a
+         thickened focus-coloured border where they do not. */
+      .graph-svg-node:focus-visible .graph-svg-shape {
+        stroke: var(--focus);
+        stroke-width: 4;
+      }
+
+      /* The homepage legend adds an edge key beside the shared hub/page swatches. */
+      .legend-swatch-line {
+        background: var(--graph-edge);
+        border-radius: 999px;
+        height: 0.2rem;
+        width: 1.1rem;
+      }
       /* --- closing band ------------------------------------------------- */
 
       .closing {
@@ -956,17 +1034,42 @@
           </div>
           <div class="wiki-grid">
             <div class="graph-frame">
-              <div class="graph-plot">
-                <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                  {% for node in wiki_graph.nodes %}
-                    <line x1="50" y1="50" x2="{{ node.left }}" y2="{{ node.top }}"/>
+              {% for layout in wiki_graph.layouts %}
+                <svg
+                  class="graph-svg graph-svg-{{ layout.kind }}"
+                  viewBox="0 0 {{ layout.width }} {{ layout.height }}"
+                  role="group"
+                  aria-label="{{ wiki_graph.hub.title }} and {{ wiki_graph.spokes|length }} of its {{ wiki_graph.connections }} linked wiki topics"
+                >
+                  <g aria-hidden="true">
+                    {% for edge in layout.edges %}
+                      <line class="graph-svg-edge" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"/>
+                    {% endfor %}
+                  </g>
+                  {% for node in layout.nodes %}
+                    <a class="graph-svg-node" href="{{ node.topic.public_path }}">
+                      <rect class="graph-svg-shape" x="{{ node.left }}" y="{{ node.top }}" width="{{ node.width }}" height="{{ node.height }}" rx="{{ node.radius }}"/>
+                      {% spaceless %}
+                        <text text-anchor="middle" font-size="{{ node.font_size }}">
+                          {% for line in node.lines %}
+                            <tspan x="{{ node.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                          {% endfor %}
+                        </text>
+                      {% endspaceless %}
+                    </a>
                   {% endfor %}
+                  <a class="graph-svg-node graph-svg-hub" href="{{ layout.hub.topic.public_path }}">
+                    <rect class="graph-svg-shape" x="{{ layout.hub.left }}" y="{{ layout.hub.top }}" width="{{ layout.hub.width }}" height="{{ layout.hub.height }}" rx="{{ layout.hub.radius }}"/>
+                    {% spaceless %}
+                      <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">
+                        {% for line in layout.hub.lines %}
+                          <tspan x="{{ layout.hub.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                        {% endfor %}
+                      </text>
+                    {% endspaceless %}
+                  </a>
                 </svg>
-                <a class="graph-node graph-node-hub" href="{{ wiki_graph.hub.public_path }}">{{ wiki_graph.hub.title }}</a>
-                {% for node in wiki_graph.nodes %}
-                  <a class="graph-node" href="{{ node.topic.public_path }}" style="left: {{ node.left }}%; top: {{ node.top }}%">{{ node.topic.title }}</a>
-                {% endfor %}
-              </div>
+              {% endfor %}
               <p class="graph-legend">
                 <span class="legend-key">
                   <span>
@@ -977,8 +1080,12 @@
                     <span class="legend-swatch legend-page"></span>
                     wiki page
                   </span>
+                  <span>
+                    <span class="legend-swatch-line"></span>
+                    connection
+                  </span>
                 </span>
-                <span>{{ counts.wiki }} topics · {{ wiki_graph.connections }} connections from {{ wiki_graph.hub.title }}</span>
+                <span>{{ wiki_graph.spokes|length }} of {{ wiki_graph.connections }} {{ wiki_graph.hub.title }} connections drawn · {{ counts.wiki }} topics in the wiki</span>
               </p>
             </div>
             <div class="topic-list">

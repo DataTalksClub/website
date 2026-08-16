@@ -402,3 +402,72 @@ class MainHomepageRoutingTests(TestCase):
                 self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
                 self.assertNotContains(response, "Traceback", status_code=404)
                 self.assertNotContains(response, 'rel="canonical"', status_code=404)
+
+
+class HomepageWikiGraphTests(TestCase):
+    """The wiki-graph section draws real data as one scalable SVG per width."""
+
+    def _rendered_layouts(self) -> dict[str, str]:
+        body = self.client.get(reverse("home")).content.decode()
+        chunks = {}
+        for kind in ("wide", "narrow"):
+            match = re.search(
+                rf'<svg\s+class="graph-svg graph-svg-{kind}".*?</svg>',
+                body,
+                re.DOTALL,
+            )
+            if match is None:
+                self.fail(f"homepage renders no {kind} wiki graph SVG")
+            chunks[kind] = match.group(0)
+        return chunks
+
+    def test_every_node_is_a_link_to_its_real_wiki_page(self) -> None:
+        from core.home_content import wiki_graph
+
+        graph = wiki_graph()
+        rendered = self._rendered_layouts()
+        for layout in graph.layouts:
+            svg = rendered[layout.kind]
+            hub_href = re.escape(graph.hub.public_path)
+            hub_anchor = re.search(
+                rf'<a class="graph-svg-node graph-svg-hub" href="{hub_href}">.*?</a>',
+                svg,
+                re.DOTALL,
+            )
+            if hub_anchor is None:
+                self.fail(f"{layout.kind}: hub is not a link")
+            self.assertIn(graph.hub.title, hub_anchor.group(0))
+            for node in layout.nodes:
+                with self.subTest(layout=layout.kind, topic=node.topic.slug):
+                    # The href is the topic's own public path, and it routes.
+                    self.assertEqual(resolve(node.topic.public_path).url_name, "public-wiki")
+                    href = re.escape(node.topic.public_path)
+                    anchor = re.search(
+                        rf'<a class="graph-svg-node" href="{href}">.*?</a>',
+                        svg,
+                        re.DOTALL,
+                    )
+                    if anchor is None:
+                        self.fail("node is not a link")
+                    for line in node.lines:
+                        self.assertIn(f">{line.text}</tspan>", anchor.group(0))
+
+    def test_rendered_edge_count_matches_the_validated_relation_data(self) -> None:
+        from core.home_content import wiki_graph
+
+        graph = wiki_graph()
+        rendered = self._rendered_layouts()
+        for layout in graph.layouts:
+            with self.subTest(layout=layout.kind):
+                self.assertEqual(
+                    len(re.findall(r'<line class="graph-svg-edge"', rendered[layout.kind])),
+                    len(layout.edges),
+                )
+                self.assertEqual(len(layout.edges), len(graph.spokes))
+        # The legend describes the drawing: the spokes drawn, out of the hub's
+        # real relation count, never the other way around.
+        body = self.client.get(reverse("home")).content.decode()
+        self.assertIn(
+            f"{len(graph.spokes)} of {graph.connections} {graph.hub.title} connections drawn",
+            body,
+        )
