@@ -1439,6 +1439,163 @@
         font-size: 0.85rem;
       }
 
+
+      /* ------------------------------------------------------------------ *
+       * Narrow layout.  The mobile mockup is not the desktop page reflowed:
+       * the hero drops its drawing, and the climb, catalogue and events read
+       * as dashed lists instead of cards.  Same markup, different shape.
+       * ------------------------------------------------------------------ */
+
+      @media (max-width: 47.99rem) {
+        .hero-figure,
+        .hero-fineprint {
+          display: none;
+        }
+
+        .hero-actions .cta {
+          width: 100%;
+        }
+
+        /* The climb reads as a numbered list: badge, then title over its line. */
+        .climb-card {
+          background: none;
+          border: 0;
+          border-bottom: 1.5px dashed var(--line-soft);
+          border-radius: 0;
+          box-shadow: none;
+          column-gap: 0.7rem;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          padding: 0 0 0.8rem;
+          row-gap: 0.1rem;
+        }
+
+        .climb-card .doodle {
+          display: none;
+        }
+
+        .climb-card .climb-step {
+          display: contents;
+        }
+
+        .climb-card .step-number {
+          grid-column: 1;
+          grid-row: 1 / span 2;
+        }
+
+        .climb-card h3 {
+          grid-column: 2;
+        }
+
+        .climb-card > p {
+          grid-column: 2;
+        }
+
+        .card-grid-3 {
+          gap: 0.9rem;
+        }
+
+        /* Events read as a dashed list of times and titles. */
+        .event-card {
+          background: none;
+          border: 0;
+          border-bottom: 1.5px dashed var(--line-soft);
+          border-radius: 0;
+          box-shadow: none;
+          gap: 0.15rem;
+          padding: 0 0 0.8rem;
+        }
+
+        .event-card .chip,
+        .event-card .event-speakers,
+        .event-card .event-details {
+          display: none;
+        }
+
+        .event-card h3 a {
+          color: var(--ink);
+          text-decoration: none;
+        }
+
+        /* A member story states its transition as one mono line. */
+        .story-transition {
+          font-family: var(--font-mono);
+          font-size: 0.8rem;
+          gap: 0.3rem;
+        }
+
+        .story-transition .chip {
+          background: none;
+          border: 0;
+          padding: 0;
+        }
+
+        .story-person {
+          border-top: 0;
+          padding-top: 0.3rem;
+        }
+
+        .story-elapsed {
+          background: none;
+          color: var(--muted);
+          font-style: normal;
+          padding: 0;
+        }
+
+        .story-person .story-context {
+          display: none;
+        }
+
+        /* The catalogue is a list of names, promises and when they next run. */
+        .catalog-scroller {
+          gap: 0;
+          grid-auto-columns: auto;
+          grid-auto-flow: row;
+          overflow-x: visible;
+          padding: 0;
+          margin-inline: 0;
+        }
+
+        .course-card {
+          background: none;
+          border: 0;
+          border-bottom: 1.5px dashed var(--line-soft);
+          border-radius: 0;
+          box-shadow: none;
+          column-gap: 0.75rem;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          padding: 0.7rem 0;
+          row-gap: 0.1rem;
+        }
+
+        .course-card h3 {
+          grid-column: 1;
+        }
+
+        .course-card .course-promise {
+          grid-column: 1;
+        }
+
+        .course-card .featured-badges {
+          align-self: center;
+          grid-column: 2;
+          grid-row: 1 / span 2;
+        }
+
+        .course-card .featured-badges .chip:not(.chip-green) {
+          display: none;
+        }
+
+        .course-card .course-foot {
+          display: none;
+        }
+
+        .scroller-controls {
+          display: none !important;
+        }
+      }
+
       /* --- responsive --------------------------------------------------- */
 
       @media (min-width: 40rem) {
@@ -1934,9 +2091,11 @@
                     <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
                     <span class="chip">{{ event.type }}</span>
                   </div>
-                  <h3>{{ event.title }}</h3>
+                  <h3>
+                    <a href="{{ event.public_path }}">{{ event.title }}</a>
+                  </h3>
                   {% if event.speakers %}
-                    <p>
+                    <p class="event-speakers">
                       With
                       {% for speaker in event.speakers %}
                         <a href="{{ speaker.public_path }}">{{ speaker.name }}</a>
@@ -1975,7 +2134,9 @@
               <div class="card">
                 <div class="latest-item">
                   <span class="latest-icon latest-icon-play" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" focusable="false"><path d="M9 6.5l9 5.5-9 5.5z"/></svg>
+                    <svg viewBox="0 0 24 24" focusable="false">
+                      <path d="M9 6.5l9 5.5-9 5.5z"/>
+                    </svg>
                   </span>
                   <div>
                     <h3>
