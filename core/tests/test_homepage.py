@@ -37,13 +37,12 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
-        self.assertContains(response, "AI Dev Tools Zoomcamp 2026")
-        self.assertContains(response, "August 31, 2026")
+        self.assertContains(response, "Starts August 31")
         self.assertContains(
             response,
             f'href="{reverse("course-cohort-ai-dev-tools-2026")}"',
         )
-        self.assertContains(response, "Enroll free")
+        self.assertContains(response, "View the syllabus")
         self.assertContains(response, "all courses →")
         self.assertEqual(
             len(re.findall(r"\sdata-featured-course(?=[\s>])", response.content.decode())),

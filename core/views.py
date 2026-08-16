@@ -12,6 +12,7 @@ from django.http import (
     JsonResponse,
 )
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.http import require_GET, require_safe
 
 from content.public_data import event_groups, ordered_podcasts, public_projection
@@ -68,6 +69,11 @@ def home(request: HttpRequest):
         {**event, "home_time": event_time_display(event["starts_at"])}
         for event in events.upcoming[:3]
     )
+    featured_course = review_projection()["course"]
+    try:
+        featured_cohort_path = reverse(f"course-cohort-{featured_course['cohort']['slug']}")
+    except NoReverseMatch:
+        featured_cohort_path = str(featured_course["public_path"])
     return render(
         request,
         "core/home.html",
@@ -75,7 +81,8 @@ def home(request: HttpRequest):
             "canonical_url": "https://datatalks.club/",
             "upcoming_events": upcoming,
             "recent_events": events.recent[:1],
-            "featured_course": review_projection()["course"],
+            "featured_course": featured_course,
+            "featured_cohort_path": featured_cohort_path,
             "featured_catalog_entry": next(
                 entry for entry in catalog if entry.family == FEATURED_FAMILY
             ),
