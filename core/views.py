@@ -20,7 +20,9 @@ from core.home_content import (
     FEATURED_FAMILY,
     MEMBER_STORIES,
     course_catalog,
+    event_time_display,
     published_display,
+    spelled_count,
     wiki_graph,
     wiki_topics,
 )
@@ -59,12 +61,16 @@ def home(request: HttpRequest):
     events = event_groups()
     catalog = course_catalog()
     article = projection["articles"][0]
+    upcoming = tuple(
+        {**event, "home_time": event_time_display(event["starts_at"])}
+        for event in events.upcoming[:3]
+    )
     return render(
         request,
         "core/home.html",
         {
             "canonical_url": "https://datatalks.club/",
-            "upcoming_events": events.upcoming[:3],
+            "upcoming_events": upcoming,
             "recent_events": events.recent[:1],
             "featured_course": review_projection()["course"],
             "featured_catalog_entry": next(
@@ -72,6 +78,7 @@ def home(request: HttpRequest):
             ),
             "catalog_courses": tuple(entry for entry in catalog if entry.family != FEATURED_FAMILY),
             "course_family_count": len(catalog),
+            "course_family_word": spelled_count(len(catalog)),
             "member_stories": MEMBER_STORIES,
             "article": article,
             "article_published": published_display(article["published"]),

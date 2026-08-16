@@ -9,8 +9,9 @@ constants, and they live here so a copy change never needs a template edit.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -223,6 +224,43 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
             )
         )
     return tuple(catalog)
+
+
+_SPELLED = (
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+)
+
+
+def spelled_count(value: int) -> str:
+    """Spell a small count the way the design writes it, and fall back to digits."""
+
+    if 0 <= value < len(_SPELLED):
+        return _SPELLED[value]
+    return str(value)
+
+
+def event_time_display(starts_at: str) -> str:
+    """Render an event start the way the design writes it: weekday, date, then time.
+
+    The shared ``display_time`` on the projection is what the events hub and the event
+    pages render; the homepage wants the weekday too, so it formats its own without
+    changing those surfaces.
+    """
+
+    local = datetime.fromisoformat(starts_at).astimezone(ZoneInfo("Europe/Berlin"))
+    return f"{local:%a}, {local:%b} {local.day}, {local:%Y} \u00b7 {local:%H:%M %Z}"
 
 
 def published_display(value: str) -> str:
