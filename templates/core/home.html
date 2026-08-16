@@ -1,144 +1,2040 @@
-{% extends "core/base.html" %}
-{% block title %}
-  Welcome to DataTalks.Club
-{% endblock %}
-{% block body_class %}
-  home-events-cmp-surface
-{% endblock %}
-{% block content %}
-  <section class="home-hero py-6 md:py-10">
-    <div class="max-w-3xl">
-      <h1 class="text-3xl font-semibold leading-tight tracking-normal sm:text-4xl md:text-5xl">
-        The place to talk about data
-      </h1>
-      <p class="mt-4 max-w-2xl text-base leading-7 app-text md:text-lg md:leading-8">
-        Global online community of data science professionals, ML engineers, and AI practitioners
-      </p>
-      <div class="home-hero-actions mt-7 flex flex-wrap gap-3">
-        <a class="primer-button primer-button-primary" href="{% url 'events' %}">
-          Explore upcoming events
-        </a>
-        <a class="primer-button primer-button-secondary" href="{% url 'course_list' %}">
-          Explore free courses
-        </a>
-        <a class="primer-button primer-button-secondary" href="{% url 'slack' %}">
-          Join our community
-        </a>
-      </div>
-    </div>
-    <ul class="mt-10 divide-y app-divide border-y app-border text-lg font-semibold">
-      <li class="py-4">Talk about data, machine learning, and engineering</li>
-      <li class="py-4">Attend weekly events and learn from free courses</li>
-      <li class="py-4">Ask career questions and discuss career options</li>
-    </ul>
-  </section>
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>DataTalks.Club — free courses for data and AI engineers</title>
+    {% canonical_link canonical_url %}
+    <meta
+      name="description"
+      content="Free, project-based courses where you build data pipelines and AI systems that run in production, with 130,000 people building alongside you."
+    >
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="DataTalks.Club — free courses for data and AI engineers">
+    <meta
+      property="og:description"
+      content="Free, project-based courses where you build data pipelines and AI systems that run in production, with 130,000 people building alongside you."
+    >
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="DataTalks.Club — free courses for data and AI engineers">
+    <meta
+      name="twitter:description"
+      content="Free, project-based courses where you build data pipelines and AI systems that run in production."
+    >
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Homepage design 5a (issue #179).  This page carries its own complete
+       * stylesheet: it deliberately loads none of the older site CSS.
+       * ------------------------------------------------------------------ */
 
-  <section class="mt-8 border-y app-border py-8" aria-labelledby="home-events-heading">
-    <div class="flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h2 id="home-events-heading" class="text-2xl font-semibold md:text-3xl">
-          Upcoming events
-        </h2>
-      </div>
-      <a class="app-link" href="{% url 'events' %}">See all events</a>
-    </div>
-    {% if upcoming_events %}
-      <div class="mt-5 divide-y app-divide border-y app-border">
-        {% for event in upcoming_events %}
-          {% include "public/_event.html" %}
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="mt-5 app-text">No upcoming events.</p>
-      {% for event in recent_events %}
-        <p class="mt-3">
-          <a class="app-link" href="{{ event.public_path }}">
-            Watch a recent event: {{ event.title }}
-          </a>
-        </p>
-      {% endfor %}
+      :root {
+        --cream: #fdfaf3;
+        --lavender: #eff1fc;
+        --mint: #eff5ea;
+        --card: #ffffff;
+        --ink: #1e2136;
+        --body-text: #4c5066;
+        --muted: #5c6076;
+        --line: #1e2136;
+        --line-soft: #d6d9e8;
+        --green: #2b7a35;
+        --green-bright: #3ea94b;
+        --green-deep: #41704e;
+        --indigo: #5a62c4;
+        --indigo-soft: #c9cdf2;
+        --shadow: rgba(30, 33, 54, 0.9);
+        --shadow-soft: rgba(30, 33, 54, 0.16);
+        --focus: #1e2136;
+        --page: var(--cream);
+        --font-sans: ui-rounded, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
+          "Helvetica Neue", Arial, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+          "Liberation Mono", monospace;
+        --shell: 76rem;
+      }
+
+      body.dark-mode {
+        --cream: #14172a;
+        --lavender: #191d33;
+        --mint: #15251d;
+        --card: #1e2338;
+        --ink: #f2f1ec;
+        --body-text: #c6cad9;
+        --muted: #a4a9bd;
+        --line: #454b6b;
+        --line-soft: #333855;
+        --green: #4cb85a;
+        --green-bright: #4cb85a;
+        --green-deep: #8fd39c;
+        --indigo: #a6adf0;
+        --indigo-soft: #3b4270;
+        --shadow: rgba(0, 0, 0, 0.7);
+        --shadow-soft: rgba(0, 0, 0, 0.45);
+        --focus: #f2f1ec;
+        --page: #14172a;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        background: var(--page);
+        color: var(--body-text);
+        font-family: var(--font-sans);
+        font-size: 1rem;
+        line-height: 1.6;
+        margin: 0;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p,
+      ul,
+      ol,
+      figure,
+      blockquote {
+        margin: 0;
+      }
+
+      ul,
+      ol {
+        list-style: none;
+        padding: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--ink);
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        line-height: 1.12;
+      }
+
+      img,
+      svg {
+        max-width: 100%;
+      }
+
+      a {
+        color: var(--indigo);
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+        border-radius: 0.25rem;
+      }
+
+      /* The skip link moves focus here; the landmark itself must not be outlined. */
+      #main-content:focus,
+      #main-content:focus-visible {
+        outline: 0;
+      }
+
+      .skip-link {
+        background: var(--ink);
+        border-radius: 0.375rem;
+        color: var(--cream);
+        left: 0.5rem;
+        padding: 0.65rem 0.9rem;
+        position: fixed;
+        text-decoration: none;
+        top: 0.5rem;
+        transform: translateY(-160%);
+        z-index: 200;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .sr-only {
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        height: 1px;
+        overflow: hidden;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+      }
+
+      .shell {
+        margin-inline: auto;
+        max-width: var(--shell);
+        padding-inline: 1rem;
+        width: 100%;
+      }
+
+      /* --- masthead ----------------------------------------------------- */
+
+      .masthead {
+        background: var(--cream);
+        border-bottom: 2px dashed var(--line-soft);
+      }
+
+      .masthead-inner {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        justify-content: space-between;
+        padding-block: 0.9rem;
+      }
+
+      .brand {
+        align-items: center;
+        color: var(--ink);
+        display: inline-flex;
+        flex-shrink: 0;
+        font-size: 1rem;
+        font-weight: 800;
+        gap: 0.4rem;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .brand-mark {
+        flex: none;
+        height: 1.7rem;
+        width: 1.7rem;
+      }
+
+      .doodle {
+        display: block;
+        height: auto;
+        width: 100%;
+      }
+
+      .masthead-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: flex-end;
+        /* Narrow screens read brand, theme, menu — the same order as the mockup. */
+        order: 2;
+      }
+
+      .site-navigation {
+        order: 3;
+      }
+
+      .masthead .pill-button,
+      .masthead .mobile-nav > summary,
+      .masthead .account-nav > summary {
+        font-size: 0.82rem;
+        padding-inline: 0.7rem;
+      }
+
+      .nav-link {
+        border-radius: 0.5rem;
+        color: var(--ink);
+        display: inline-flex;
+        align-items: center;
+        font-weight: 600;
+        min-height: 2.75rem;
+        padding: 0.25rem 0.5rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .nav-link:hover,
+      .nav-link[aria-current="page"] {
+        color: var(--indigo);
+      }
+
+      .pill-button {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 700;
+        gap: 0.45rem;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 1rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .pill-button .dot {
+        background: var(--ink);
+        border-radius: 999px;
+        height: 0.9rem;
+        width: 0.9rem;
+      }
+
+      .signup-button {
+        align-items: center;
+        background: var(--green);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        box-shadow: 0 3px 0 var(--shadow);
+        color: #ffffff;
+        display: inline-flex;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 1.15rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      /* The site-wide navigation contract: a toggle plus #site-navigation-links, opened
+         by core/site_navigation.js and always visible without JavaScript. */
+      .site-navigation {
+        position: relative;
+      }
+
+      .site-navigation-toggle {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 0.7rem;
+        white-space: nowrap;
+      }
+
+      .site-navigation-links {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
+        display: none;
+        gap: 0.1rem;
+        min-width: 12rem;
+        padding: 0.5rem;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.4rem);
+        z-index: 60;
+      }
+
+      .site-navigation-links.is-open {
+        display: grid;
+      }
+
+      .no-js .site-navigation-toggle {
+        display: none;
+      }
+
+      .no-js .site-navigation-links {
+        display: flex;
+        flex-wrap: wrap;
+        position: static;
+      }
+
+      /* Declared after the controls they hide so the cascade order is the width, not
+         the element type. */
+      .masthead .desktop-only {
+        display: none;
+      }
+
+      .account-nav {
+        position: relative;
+      }
+
+      .account-nav > summary {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font-weight: 700;
+        justify-content: center;
+        list-style: none;
+        min-height: 2.75rem;
+        padding: 0.3rem 1rem;
+      }
+
+      .account-nav > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .mobile-nav-panel {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
+        display: grid;
+        gap: 0.1rem;
+        padding: 0.5rem;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.5rem);
+        width: max-content;
+        min-width: 12rem;
+        z-index: 60;
+      }
+
+      /* --- bands -------------------------------------------------------- */
+
+      .band {
+        border-bottom: 2px dashed var(--line-soft);
+        padding-block: 3.25rem;
+      }
+
+      .band-cream {
+        background: var(--cream);
+      }
+
+      .band-lavender {
+        background: var(--lavender);
+      }
+
+      .band-mint {
+        background: var(--mint);
+      }
+
+      .band-ink {
+        background: var(--ink);
+        border-bottom: 0;
+      }
+
+      body.dark-mode .band-ink {
+        background: #0d0f1c;
+      }
+
+      .band-head {
+        align-items: flex-end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1.5rem;
+        justify-content: space-between;
+        margin-bottom: 1.75rem;
+      }
+
+      .band-head-secondary {
+        margin-top: 2.75rem;
+      }
+
+      .band-head h2 {
+        font-size: clamp(1.55rem, 3.4vw, 2.1rem);
+      }
+
+      .band-head p {
+        margin-top: 0.5rem;
+        max-width: 46rem;
+      }
+
+      .kicker {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .band-link {
+        color: var(--indigo);
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* --- hero --------------------------------------------------------- */
+
+      .hero-grid {
+        align-items: center;
+        display: grid;
+        gap: 2rem;
+      }
+
+      .hero h1 {
+        font-size: clamp(2.3rem, 5.6vw, 3.85rem);
+        letter-spacing: -0.03em;
+        max-width: 17ch;
+      }
+
+      .hero-lede {
+        font-size: clamp(1.02rem, 1.8vw, 1.18rem);
+        margin-top: 1.5rem;
+        max-width: 34rem;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 2rem;
+      }
+
+      .cta {
+        align-items: center;
+        border: 2px solid var(--line);
+        border-radius: 0.7rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow);
+        display: inline-flex;
+        font-size: 1.05rem;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 3.25rem;
+        padding: 0.65rem 1.5rem;
+        text-decoration: none;
+      }
+
+      .cta-primary {
+        background: var(--green);
+        color: #ffffff;
+      }
+
+      .cta-secondary {
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      .hero-fineprint {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin-top: 1.15rem;
+        max-width: 34rem;
+      }
+
+      .hero-figure {
+        display: grid;
+        gap: 0.85rem;
+        justify-items: center;
+      }
+
+      .hero-caption {
+        color: var(--indigo);
+        font-style: italic;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      /* --- cards -------------------------------------------------------- */
+
+      .card {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1.25rem;
+      }
+
+      .card-grid {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .chip {
+        align-items: center;
+        border: 1.5px solid var(--line-soft);
+        border-radius: 999px;
+        color: var(--ink);
+        display: inline-flex;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        padding: 0.2rem 0.6rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .chip-plain {
+        text-transform: none;
+      }
+
+      .chip-green {
+        border-color: var(--green);
+        color: var(--green);
+      }
+
+      .chip-live {
+        background: var(--green);
+        border-color: var(--line);
+        color: #ffffff;
+      }
+
+      .band-note {
+        color: var(--green-deep);
+        font-style: italic;
+        font-weight: 700;
+        margin-top: 1.5rem;
+        text-align: center;
+      }
+
+      /* --- the climb ---------------------------------------------------- */
+
+      .climb-card figure {
+        background: var(--lavender);
+        border-radius: 0.6rem;
+        padding: 0.5rem;
+      }
+
+      .climb-step {
+        align-items: center;
+        display: flex;
+        gap: 0.7rem;
+      }
+
+      .step-number {
+        align-items: center;
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        display: inline-flex;
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: 0.8rem;
+        font-weight: 700;
+        height: 2.1rem;
+        justify-content: center;
+        width: 2.1rem;
+      }
+
+      .step-number-2 {
+        background: var(--indigo-soft);
+      }
+
+      .step-number-3 {
+        background: var(--green);
+        color: #ffffff;
+      }
+
+      body.dark-mode .step-number-3 {
+        color: #14172a;
+      }
+
+      /* --- member stories ----------------------------------------------- */
+
+      .story-transition {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem;
+      }
+
+      .story-quote {
+        font-size: 1.02rem;
+      }
+
+      .story-person {
+        align-items: center;
+        border-top: 1.5px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 0.9rem;
+      }
+
+      .story-identity {
+        align-items: center;
+        display: flex;
+        gap: 0.7rem;
+      }
+
+      .avatar {
+        background: repeating-linear-gradient(
+          45deg,
+          var(--indigo-soft),
+          var(--indigo-soft) 3px,
+          var(--card) 3px,
+          var(--card) 6px
+        );
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        flex: none;
+        height: 2.6rem;
+        width: 2.6rem;
+      }
+
+      .story-elapsed {
+        background: var(--lavender);
+        border-radius: 999px;
+        color: var(--indigo);
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.2rem 0.7rem;
+      }
+
+      /* --- catalogue ---------------------------------------------------- */
+
+      .featured {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 1rem;
+        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
+        display: grid;
+        gap: 0;
+        overflow: hidden;
+      }
+
+      .featured-main {
+        display: grid;
+        gap: 0.9rem;
+        padding: 1.5rem;
+      }
+
+      .featured-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .featured-main h3 {
+        font-size: clamp(1.5rem, 3.2vw, 2rem);
+      }
+
+      .featured-promise {
+        color: var(--green-deep);
+        font-style: italic;
+        font-weight: 700;
+      }
+
+      .featured-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.4rem;
+      }
+
+      .featured-side {
+        background: var(--lavender);
+        border-top: 2px dashed var(--line-soft);
+        display: grid;
+        gap: 0.9rem;
+        padding: 1.5rem;
+      }
+
+      .spec {
+        display: grid;
+        gap: 0.15rem;
+      }
+
+      .spec dt {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .spec dd {
+        color: var(--ink);
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .catalog-scroller {
+        display: grid;
+        gap: 1.25rem;
+        grid-auto-columns: minmax(min(19rem, 100%), 1fr);
+        grid-auto-flow: column;
+        overflow-x: auto;
+        padding: 0.4rem 0.4rem 1rem;
+        margin-inline: -0.4rem;
+        scroll-snap-type: x proximity;
+      }
+
+      .catalog-scroller > * {
+        scroll-snap-align: start;
+      }
+
+      .scroller-controls {
+        display: none;
+        gap: 0.5rem;
+      }
+
+      html.js .scroller-controls {
+        display: flex;
+      }
+
+      .scroller-button {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 1.1rem;
+        height: 2.75rem;
+        justify-content: center;
+        width: 2.75rem;
+      }
+
+      .course-card h3 {
+        font-size: 1.22rem;
+      }
+
+      .course-promise {
+        color: var(--green-deep);
+        font-style: italic;
+        font-weight: 600;
+      }
+
+      .course-foot {
+        align-items: center;
+        border-top: 1.5px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 0.85rem;
+      }
+
+      .course-meta {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      /* --- promises ----------------------------------------------------- */
+
+      .promise-grid {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .promise {
+        display: grid;
+        gap: 0.3rem;
+        grid-template-columns: auto 1fr;
+        column-gap: 0.75rem;
+      }
+
+      .promise-mark {
+        background: var(--indigo-soft);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        grid-row: span 2;
+        height: 1.6rem;
+        margin-top: 0.2rem;
+        width: 1.6rem;
+      }
+
+      .promise h3 {
+        font-size: 1.05rem;
+      }
+
+      /* --- events ------------------------------------------------------- */
+
+      .event-card time {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      .event-top {
+        align-items: flex-start;
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+      }
+
+      .event-card h3 {
+        font-size: 1.15rem;
+      }
+
+      .event-details {
+        border-top: 1.5px dashed var(--line-soft);
+        margin-top: auto;
+        padding-top: 0.85rem;
+      }
+
+      /* --- latest ------------------------------------------------------- */
+
+      .latest-grid {
+        display: grid;
+        gap: 2rem;
+      }
+
+      .latest-item {
+        align-items: flex-start;
+        display: flex;
+        gap: 0.9rem;
+      }
+
+      .latest-icon {
+        align-items: center;
+        background: var(--indigo-soft);
+        border: 2px solid var(--line);
+        border-radius: 0.6rem;
+        display: flex;
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        height: 3rem;
+        justify-content: center;
+        width: 3rem;
+      }
+
+      .latest-icon-green {
+        background: var(--mint);
+      }
+
+      .latest-item h3 {
+        font-size: 1.1rem;
+      }
+
+      .latest-item h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .latest-item h3 a:hover {
+        text-decoration: underline;
+      }
+
+      .latest-meta {
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin-top: 0.3rem;
+      }
+
+      /* --- wiki graph --------------------------------------------------- */
+
+      .wiki-grid {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .graph-frame {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        padding: 1.25rem;
+      }
+
+      .graph-plot {
+        aspect-ratio: 1 / 1;
+        position: relative;
+      }
+
+      .graph-edges {
+        height: 100%;
+        left: 0;
+        position: absolute;
+        top: 0;
+        width: 100%;
+      }
+
+      .graph-node {
+        background: var(--lavender);
+        border: 2px solid var(--indigo);
+        border-radius: 999px;
+        color: var(--ink);
+        font-size: 0.78rem;
+        font-weight: 600;
+        left: 50%;
+        max-width: 40%;
+        padding: 0.25rem 0.6rem;
+        position: absolute;
+        text-align: center;
+        text-decoration: none;
+        top: 50%;
+        transform: translate(-50%, -50%);
+      }
+
+      .graph-node-hub {
+        background: var(--green);
+        border-color: var(--line);
+        color: #ffffff;
+        font-size: 0.95rem;
+        font-weight: 800;
+        padding: 0.45rem 1rem;
+      }
+
+      body.dark-mode .graph-node-hub {
+        color: #14172a;
+      }
+
+      .graph-legend {
+        align-items: center;
+        border-top: 1.5px dashed var(--line-soft);
+        color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        gap: 0.4rem 1.1rem;
+        justify-content: space-between;
+        margin-top: 1rem;
+        padding-top: 0.85rem;
+      }
+
+      .legend-key {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.9rem;
+      }
+
+      .legend-key span {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.35rem;
+      }
+
+      .legend-swatch {
+        border: 1.5px solid var(--line);
+        border-radius: 999px;
+        height: 0.7rem;
+        width: 0.7rem;
+      }
+
+      .legend-hub {
+        background: var(--green);
+      }
+
+      .legend-page {
+        background: var(--indigo-soft);
+      }
+
+      .topic-list {
+        display: grid;
+        gap: 0.7rem;
+      }
+
+      .topic {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.7rem;
+        display: block;
+        padding: 0.8rem 1rem;
+        text-decoration: none;
+      }
+
+      .topic strong {
+        color: var(--ink);
+        display: block;
+        font-size: 1rem;
+      }
+
+      .topic span {
+        color: var(--body-text);
+        font-size: 0.88rem;
+      }
+
+      /* --- closing band ------------------------------------------------- */
+
+      .closing {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: space-between;
+      }
+
+      .closing > div {
+        flex: 1 1 26rem;
+      }
+
+      .closing > .cta {
+        flex: none;
+      }
+
+      .closing h2 {
+        color: #ffffff;
+        font-size: clamp(1.35rem, 3vw, 1.95rem);
+      }
+
+      .closing p {
+        color: #d7d9e6;
+        margin-top: 0.5rem;
+      }
+
+      .closing-link {
+        color: #ffffff;
+        text-underline-offset: 0.2em;
+      }
+
+      .closing .cta-primary {
+        border-color: #ffffff;
+        box-shadow: none;
+      }
+
+      /* --- announcement / impersonation --------------------------------- */
+
+      .site-announcement,
+      .impersonation-banner {
+        background: var(--lavender);
+        border-bottom: 2px solid var(--line-soft);
+        color: var(--ink);
+      }
+
+      .site-announcement .shell,
+      .impersonation-banner .shell {
+        padding-block: 0.75rem;
+      }
+
+      .impersonation-return-button {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.3rem 0.8rem;
+      }
+
+      /* --- shared footer partial ---------------------------------------- */
+
+      .site-footer,
+      .site-footer *,
+      .analytics-preferences,
+      .analytics-preferences * {
+        box-sizing: border-box;
+      }
+
+      .site-footer {
+        background: var(--cream);
+        color: var(--muted);
+      }
+
+      .site-footer-inner {
+        display: grid;
+        gap: 0.25rem;
+        justify-items: center;
+        margin-inline: auto;
+        max-width: 56rem;
+        padding: 1.5rem 1.25rem;
+        width: 100%;
+      }
+
+      .site-footer-identity {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 0.75rem;
+        justify-content: center;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .site-footer-brand {
+        align-items: center;
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0 0.5rem;
+        justify-content: center;
+      }
+
+      .site-footer-brand .font-semibold {
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .site-footer-runtime {
+        align-items: center;
+        display: inline-flex;
+        flex: 0 1 auto;
+        gap: 0.5rem;
+        justify-content: center;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .site-footer-legal {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        justify-content: center;
+      }
+
+      .site-footer-legal-control {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        border-radius: 0.25rem;
+        color: var(--indigo);
+        display: inline-flex;
+        font: inherit;
+        justify-content: center;
+        line-height: 1.3;
+        margin: 0;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.5rem;
+        text-align: center;
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
+      }
+
+      .site-footer-preferences {
+        cursor: pointer;
+      }
+
+      .site-footer-separator {
+        color: var(--muted);
+        line-height: 1;
+      }
+
+      .footer-version {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .site-footer-github {
+        align-items: center;
+        border-radius: 0.25rem;
+        display: inline-flex;
+        height: 2.75rem;
+        justify-content: center;
+        min-width: 2.75rem;
+        width: 2.75rem;
+      }
+
+      .site-footer .site-footer-github,
+      .site-footer .site-footer-github:link,
+      .site-footer .site-footer-github:visited,
+      .site-footer .site-footer-github:hover,
+      .site-footer .site-footer-github:focus,
+      .site-footer .site-footer-github:active {
+        text-decoration: none;
+      }
+
+      /* The old icon font is gone with the old CSS; draw the mark instead. */
+      .site-footer-github i {
+        background-color: currentColor;
+        color: var(--ink);
+        display: block;
+        height: 1.35rem;
+        width: 1.35rem;
+        -webkit-mask: var(--github-mark) center / contain no-repeat;
+        mask: var(--github-mark) center / contain no-repeat;
+      }
+
+      :root {
+        --github-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z'/%3E%3C/svg%3E");
+      }
+
+      .analytics-preferences {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.75rem;
+        box-shadow: 0 1rem 2.5rem var(--shadow-soft);
+        color: var(--body-text);
+        inset: auto 1rem 1rem auto;
+        margin: 0;
+        max-height: calc(100vh - 2rem);
+        max-width: min(30rem, calc(100vw - 2rem));
+        overflow: auto;
+        padding: 0;
+        width: 100%;
+        z-index: 90;
+      }
+
+      .analytics-preferences:modal {
+        inset: 0;
+        margin: auto;
+      }
+
+      .analytics-preferences[open]:not(:modal) {
+        inset: auto;
+        margin: 1rem auto 0;
+        max-height: none;
+        position: static;
+        width: calc(100% - 2rem);
+      }
+
+      .analytics-preferences::backdrop {
+        background: rgba(15, 23, 42, 0.48);
+      }
+
+      .analytics-preferences-content {
+        display: grid;
+        gap: 0.9rem;
+        padding: 1.25rem;
+      }
+
+      .analytics-preferences-content h2 {
+        font-size: 1.35rem;
+      }
+
+      .analytics-preferences-eyebrow {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .analytics-preferences-status {
+        font-weight: 600;
+      }
+
+      .analytics-preferences-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+      }
+
+      .analytics-preferences-choice,
+      .analytics-preferences-close {
+        align-items: center;
+        border-radius: 0.5rem;
+        display: inline-flex;
+        font: inherit;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.85rem;
+      }
+
+      .analytics-preferences-choice {
+        border: 2px solid var(--line);
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .analytics-preferences-allow {
+        background: var(--green);
+        color: #ffffff;
+      }
+
+      .analytics-preferences-deny {
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      .analytics-preferences-close {
+        background: transparent;
+        border: 0;
+        color: var(--indigo);
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
+      }
+
+      .analytics-preferences-detail {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* --- responsive --------------------------------------------------- */
+
+      @media (min-width: 40rem) {
+        .shell {
+          padding-inline: 1.25rem;
+        }
+
+        .card-grid-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .latest-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 2.5rem;
+        }
+
+        .promise-grid {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .band {
+          padding-block: 4.5rem;
+        }
+
+        .card-grid-3 {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .hero-grid {
+          gap: 3rem;
+          grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+        }
+
+        .featured {
+          grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        }
+
+        .featured-side {
+          border-left: 2px dashed var(--line-soft);
+          border-top: 0;
+        }
+
+        .wiki-grid {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 1.75rem;
+        }
+      }
+
+      /* The full link row only fits once the viewport can hold it without wrapping. */
+      @media (min-width: 74rem) {
+        .masthead .site-navigation-links,
+        .masthead .site-navigation-links.is-open {
+          background: transparent;
+          border: 0;
+          box-shadow: none;
+          display: flex;
+          gap: 0.1rem;
+          min-width: 0;
+          padding: 0;
+          position: static;
+        }
+
+        .masthead .site-navigation-toggle,
+        .masthead .nav-auth {
+          display: none;
+        }
+
+        .masthead .site-navigation {
+          order: 2;
+        }
+
+        .masthead-actions {
+          order: 3;
+        }
+
+        .masthead .desktop-only {
+          display: inline-flex;
+        }
+
+        .masthead .nav-link {
+          padding-inline: 0.35rem;
+        }
+
+        .brand {
+          font-size: 1.25rem;
+        }
+
+        .brand-mark {
+          height: 2.1rem;
+          width: 2.1rem;
+        }
+
+        .masthead .pill-button,
+        .masthead .account-nav > summary {
+          font-size: 0.95rem;
+          padding-inline: 1rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+  >
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <script>
+      (function () {
+        try {
+          var body = document.body;
+          if (
+            body
+            && body.getAttribute('data-authenticated') !== 'true'
+            && localStorage.getItem('darkMode') === 'true'
+          ) {
+            body.classList.add('dark', 'dark-mode');
+            body.setAttribute('data-dark-mode', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    {% if user.is_authenticated %}
+      <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
     {% endif %}
-    <p class="mt-5 app-text">
-      Check <a class="app-link" href="{% url 'events' %}">events</a> for all past events. You can
-      also subscribe to
-      <a
-        class="app-link"
-        href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        our Google calendar<span class="sr-only"> (opens in a new tab)</span>
-      </a>
-      to get notified about all our events.
-    </p>
-  </section>
-
-  <section class="py-10" aria-labelledby="home-courses-heading">
-    <h2 id="home-courses-heading" class="text-2xl font-semibold md:text-3xl">
-      Courses
-    </h2>
-    <p class="mt-4 max-w-3xl leading-7 app-text">
-      Community-created courses with practical homework, projects, public leaderboards, and peer
-      review.
-    </p>
-    <div class="mt-6 divide-y app-divide border-y app-border" data-featured-courses>
-      <article class="grid gap-3 py-5" data-featured-course>
-        <div>
-          <p class="text-sm font-semibold uppercase tracking-wide app-muted">2026 cohort</p>
-          <h3 class="mt-2 text-xl font-semibold md:text-2xl">
-            {{ featured_course.title }}
-          </h3>
-          <p class="mt-2 max-w-3xl text-sm leading-6 app-text md:text-base">
-            {{ featured_course.cohort.description }}
-          </p>
-          <p class="mt-2 text-sm app-muted">
-            Starts {{ featured_course.cohort.start_display }}
-          </p>
+    {% if IS_IMPERSONATING %}
+      <div id="impersonation-banner" class="impersonation-banner">
+        <div class="shell">
+          <span>
+            You are logged in as
+            <strong>{{ request.user.email|default:request.user.username }}</strong>
+          </span>
+          <form method="post" action="{% url 'stop_impersonating' %}">
+            {% csrf_token %}
+            <button type="submit" class="impersonation-return-button">Return to admin account</button>
+          </form>
         </div>
-        <a
-          class="primer-button primer-button-secondary w-fit"
-          href="{% url 'course-cohort-ai-dev-tools-2026' %}"
-        >
-          View cohort →
+      </div>
+    {% endif %}
+    <header class="masthead">
+      <nav class="shell masthead-inner" aria-label="Primary navigation">
+        <a class="brand" href="{% url 'home' %}">
+          <svg class="brand-mark" viewBox="0 0 40 40" role="img" aria-hidden="true" focusable="false">
+            <path d="M20 3c9.4 0 17 6.5 17 14.5S29.4 32 20 32c-1.9 0-3.7-.3-5.4-.8L7 35l2.2-6.4C5.4 26 3 22 3 17.5 3 9.5 10.6 3 20 3Z" fill="#c9cdf2" stroke="#1e2136" stroke-width="2" stroke-linejoin="round"/>
+            <text x="20" y="22" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" font-weight="700" fill="#1e2136">DTC</text>
+          </svg>
+          <span>DataTalks.Club</span>
         </a>
-      </article>
-    </div>
-    <a class="mt-5 inline-block app-link" href="{% url 'course_list' %}">
-      Browse all courses →
-    </a>
-  </section>
+        <div class="site-navigation">
+          <button
+            class="site-navigation-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="site-navigation-links"
+          >
+            Menu
+          </button>
+          <div id="site-navigation-links" class="site-navigation-links">
+            <a class="nav-link" href="{% url 'events' %}">Events</a>
+            <a class="nav-link" href="{% url 'course_list' %}">Courses</a>
+            <a class="nav-link" href="{% url 'articles' %}">Blog</a>
+            <a class="nav-link" href="{% url 'podcast' %}">Podcast</a>
+            <a class="nav-link" href="{% url 'wiki-home' %}">Wiki</a>
+            <a class="nav-link" href="{% url 'books' %}">Books</a>
+            <a class="nav-link" href="{% url 'docs-home' %}">Docs</a>
+            <a class="nav-link" href="{% url 'faq-home' %}">FAQ</a>
+            {% if not user.is_authenticated %}
+              <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
+              <a class="nav-link nav-auth" href="{% url 'account_signup' %}">Sign up free</a>
+            {% endif %}
+          </div>
+        </div>
+        <div class="masthead-actions">
+          <button
+            id="dark-mode-toggle"
+            class="pill-button"
+            type="button"
+            aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
+            <span class="sr-only">&nbsp;mode</span>
+          </button>
+          {% if user.is_authenticated %}
+            <details class="account-nav">
+              <summary>Account</summary>
+              <div class="mobile-nav-panel">
+                <a class="nav-link" href="{% url 'course_list' %}">Courses</a>
+                <a class="nav-link" href="{% url 'account_settings' %}">Account settings</a>
+                {% if can_access_studio %}
+                  <a class="nav-link" href="{% url 'studio:home' %}">Studio</a>
+                {% endif %}
+                <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
+              </div>
+            </details>
+          {% else %}
+            <a class="nav-link desktop-only" href="{{ account_login_url }}">Log in</a>
+            <a class="signup-button desktop-only" href="{% url 'account_signup' %}">Sign up free</a>
+          {% endif %}
+        </div>
+      </nav>
+    </header>
+    {% if site_announcement %}
+      <aside class="site-announcement" aria-label="Site announcement">
+        <div class="shell">{{ site_announcement.message }}</div>
+      </aside>
+    {% endif %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream hero" aria-labelledby="hero-heading">
+        <div class="shell hero-grid">
+          <div>
+            <h1 id="hero-heading">Ship data pipelines and AI systems that actually run in production.</h1>
+            <p class="hero-lede">
+              Free, project-based courses where you build the real thing — orchestrated pipelines,
+              deployed models, agents that survive a restart — with 130,000 people building
+              alongside you.
+            </p>
+            <div class="hero-actions">
+              <a class="cta cta-primary" href="{% url 'account_signup' %}">Create your free account</a>
+              <a class="cta cta-secondary" href="#courses">Pick a course ↓</a>
+            </div>
+            <p class="hero-fineprint">
+              Takes 20 seconds. No card, no upsell. Courses, weekly events, homework and the Slack
+              come with the account.
+            </p>
+          </div>
+          <figure class="hero-figure">
+            {% include "core/_home_illustration.html" with variant="hero" %}
+            <figcaption class="hero-caption">everybody starts here — nobody stays here</figcaption>
+          </figure>
+        </div>
+      </section>
 
-  <section class="border-t app-border py-10" aria-labelledby="home-community-heading">
-    <h2 id="home-community-heading" class="text-2xl font-semibold md:text-3xl">
-      Latest podcast episodes
-    </h2>
-    <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
-      <a class="grid gap-1 py-4 app-link" href="{{ podcast.public_path }}">
-        <strong class="text-lg">{{ podcast.title }}</strong>
-        <span class="app-text">Listen to the latest episode</span>
-      </a>
-    </div>
-    <p class="mt-4 app-text">
-      Check the <a class="app-link" href="{% url 'podcast' %}">podcast</a> page for all past podcast
-      episodes.
-    </p>
+      <section class="band band-lavender" aria-labelledby="climb-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="climb-heading">The climb, as members describe it</h2>
+              <p>Three stages everyone recognises. The middle one is where the courses do their work.</p>
+            </div>
+            <p class="kicker">Nine weeks · then the rest of your career</p>
+          </div>
+          <div class="card-grid card-grid-3">
+            <article class="card climb-card">
+              {% include "core/_home_illustration.html" with variant="stuck" %}
+              <div class="climb-step">
+                <span class="step-number" aria-hidden="true">01</span>
+                <h3>Right now</h3>
+              </div>
+              <p>Job posts full of words you'd have to google. No portfolio you'd show anyone.</p>
+            </article>
+            <article class="card climb-card">
+              {% include "core/_home_illustration.html" with variant="learning" %}
+              <div class="climb-step">
+                <span class="step-number step-number-2" aria-hidden="true">02</span>
+                <h3>Nine weeks in</h3>
+              </div>
+              <p>An orchestrated pipeline running on a schedule, reviewed by classmates, on your GitHub.</p>
+            </article>
+            <article class="card climb-card">
+              {% include "core/_home_illustration.html" with variant="shipping" %}
+              <div class="climb-step">
+                <span class="step-number step-number-3" aria-hidden="true">03</span>
+                <h3>In production</h3>
+              </div>
+              <p>Deployed models, monitored agents, and the interview where you talk about your own system.</p>
+            </article>
+          </div>
+          <p class="band-note">…and then you're the one shipping it</p>
+        </div>
+      </section>
 
-    <h2 class="mt-10 text-2xl font-semibold md:text-3xl">Book of the week</h2>
-    <div class="mt-6 divide-y app-divide border-y app-border">
-      <a class="block py-4 app-link" href="{{ book.public_path }}">
-        <strong class="text-lg">{{ book.title }}</strong>
-      </a>
-    </div>
-    <p class="mt-4 app-text">
-      Check the <a class="app-link" href="{% url 'books' %}">book of the week</a> page for more
-      books!
-    </p>
+      {% if member_stories %}
+        <section class="band band-cream" aria-labelledby="stories-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="stories-heading">People who were exactly where you are</h2>
+                <p>Same courses, same Slack, no shortcuts. Here's what changed and how long it took.</p>
+              </div>
+              <a class="band-link" href="{% url 'articles' %}">more member stories →</a>
+            </div>
+            <div class="card-grid card-grid-3">
+              {% for story in member_stories %}
+                <figure class="card">
+                  <div class="story-transition">
+                    <span class="chip chip-plain">{{ story.before }}</span>
+                    <span aria-hidden="true">→</span>
+                    <span class="chip chip-plain chip-green">{{ story.after }}</span>
+                  </div>
+                  <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
+                  <figcaption class="story-person">
+                    <span class="story-identity">
+                      <span class="avatar" aria-hidden="true"></span>
+                      <span>
+                        <strong>{{ story.name }}</strong>
+                        <span class="latest-meta">{{ story.context }}</span>
+                      </span>
+                    </span>
+                    <span class="story-elapsed">{{ story.elapsed }}</span>
+                  </figcaption>
+                </figure>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
 
-    <h2 class="mt-10 text-2xl font-semibold md:text-3xl">Latest articles</h2>
-    <div class="mt-6 divide-y app-divide border-y app-border">
-      <a class="block py-4 app-link" href="{{ article.public_path }}">
-        <strong class="text-lg">{{ article.title }}</strong>
-      </a>
-    </div>
-  </section>
-{% endblock %}
+      <section class="band band-lavender" id="courses" aria-labelledby="courses-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="courses-heading">Pick what you want to build first</h2>
+              <p>
+                {{ course_family_count }} free zoomcamps, community-created: practical homework,
+                projects, public leaderboards and peer review.
+              </p>
+            </div>
+            <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
+          </div>
+          <div class="featured" data-featured-course>
+            <div class="featured-main">
+              <div class="featured-badges">
+                <span class="chip chip-live">● Live cohort</span>
+                <span class="chip">{{ featured_course.cohort.title }}</span>
+              </div>
+              <h3>{{ featured_course.title }}</h3>
+              <p class="featured-promise">you'll ship: {{ featured_catalog_entry.promise }}</p>
+              <p>{{ featured_course.cohort.description }}</p>
+              <div class="featured-actions">
+                <a class="cta cta-primary" href="{% url 'course-cohort-ai-dev-tools-2026' %}">Enroll free</a>
+                <a class="cta cta-secondary" href="{{ featured_course.public_path }}">View syllabus</a>
+              </div>
+            </div>
+            <dl class="featured-side">
+              <div class="spec">
+                <dt>Starts</dt>
+                <dd>{{ featured_course.cohort.start_display }}</dd>
+              </div>
+              <div class="spec">
+                <dt>Format</dt>
+                <dd>{{ featured_course.cohort.format }}</dd>
+              </div>
+              <div class="spec">
+                <dt>Price</dt>
+                <dd>{{ featured_course.cohort.price }}, forever</dd>
+              </div>
+              <div class="spec">
+                <dt>Includes</dt>
+                <dd>homework, leaderboard, peer review</dd>
+              </div>
+            </dl>
+          </div>
+          <div class="band-head band-head-secondary">
+            <div>
+              <h3>The rest of the catalog</h3>
+              <p>Start any of them self-paced today, or register to hold a seat in the next cohort.</p>
+            </div>
+            <div class="scroller-controls">
+              <button class="scroller-button" type="button" data-scroll="-1" aria-label="Scroll catalogue left">←</button>
+              <button class="scroller-button" type="button" data-scroll="1" aria-label="Scroll catalogue right">→</button>
+            </div>
+          </div>
+          <div
+            class="catalog-scroller"
+            id="catalog-scroller"
+            role="group"
+            aria-label="The rest of the catalogue"
+            tabindex="0"
+          >
+            {% for course in catalog_courses %}
+              <article class="card course-card">
+                <div class="featured-badges">
+                  <span class="chip">{{ course.label }}</span>
+                  <span class="chip chip-green">{{ course.cohort_label }}</span>
+                </div>
+                <h3>{{ course.title }}</h3>
+                <p class="course-promise">you'll ship: {{ course.promise }}</p>
+                <div class="course-foot">
+                  <span class="course-meta">
+                    {{ course.homework_count }} homework · {{ course.project_count }} projects
+                  </span>
+                  <a class="band-link" href="{{ course.public_path }}">Start now</a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-cream" aria-labelledby="promises-heading">
+        <div class="shell">
+          <h2 id="promises-heading" class="sr-only">How the courses work</h2>
+          <div class="promise-grid">
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Real homework, public leaderboard</h3>
+              <p>You build it weekly, not watch it.</p>
+            </div>
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Peer review</h3>
+              <p>Feedback from people one step ahead of you.</p>
+            </div>
+            <div class="promise">
+              <span class="promise-mark" aria-hidden="true"></span>
+              <h3>Weekly live events</h3>
+              <p>Practitioners on the thing you just broke.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-mint" aria-labelledby="events-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="events-heading">Something to attend this week</h2>
+              <p>
+                Free, live, recorded. Subscribe to
+                <a
+                  class="band-link"
+                  href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >our Google calendar<span class="sr-only"> (opens in a new tab)</span></a>
+                and stop tracking it.
+              </p>
+            </div>
+            <a class="band-link" href="{% url 'events' %}">see all events →</a>
+          </div>
+          {% if upcoming_events %}
+            <div class="card-grid card-grid-3">
+              {% for event in upcoming_events %}
+                <article class="card event-card">
+                  <div class="event-top">
+                    <time datetime="{{ event.starts_at }}">{{ event.display_time }}</time>
+                    <span class="chip">{{ event.type }}</span>
+                  </div>
+                  <h3>{{ event.title }}</h3>
+                  {% if event.speakers %}
+                    <p>
+                      With
+                      {% for speaker in event.speakers %}
+                        <a href="{{ speaker.public_path }}">{{ speaker.name }}</a>
+                        {% if not forloop.last %}
+                          <span aria-hidden="true">,</span>
+                        {% endif %}
+                      {% endfor %}
+                    </p>
+                  {% endif %}
+                  <p class="event-details">
+                    <a class="band-link" href="{{ event.public_path }}">Event details →</a>
+                  </p>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p>No upcoming events.</p>
+            {% for event in recent_events %}
+              <p>
+                <a class="band-link" href="{{ event.public_path }}">Watch a recent event: {{ event.title }}</a>
+              </p>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="band band-cream" aria-labelledby="latest-heading">
+        <div class="shell">
+          <h2 id="latest-heading" class="sr-only">Latest from the community</h2>
+          <div class="latest-grid">
+            <div>
+              <div class="band-head">
+                <h3>Latest podcast episode</h3>
+                <a class="band-link" href="{% url 'podcast' %}">all episodes →</a>
+              </div>
+              <div class="card">
+                <div class="latest-item">
+                  <span class="latest-icon" aria-hidden="true">▶</span>
+                  <div>
+                    <h3>
+                      <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
+                    </h3>
+                    <p class="latest-meta">
+                      Season {{ podcast.season }} · Episode {{ podcast.episode }}
+                      {% for guest in podcast.guest_profiles %}
+                        · with {{ guest.name }}
+                      {% endfor %}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div class="band-head">
+                <h3>Latest article</h3>
+                <a class="band-link" href="{% url 'articles' %}">read the blog →</a>
+              </div>
+              <div class="card">
+                <div class="latest-item">
+                  <span class="latest-icon latest-icon-green" aria-hidden="true">✎</span>
+                  <div>
+                    <h3>
+                      <a class="band-link" href="{{ article.public_path }}">{{ article.title }}</a>
+                    </h3>
+                    <p class="latest-meta">
+                      {{ article_published }}
+                      {% for author in article.author_profiles %}
+                        · {{ author.name }}
+                      {% endfor %}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-lavender" aria-labelledby="wiki-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="wiki-heading">The wiki, as a graph</h2>
+              <p>
+                {{ counts.wiki }} member-written topics wired to each other — start anywhere and
+                follow the edges into guides, comparisons, roadmaps and podcast episodes.
+              </p>
+            </div>
+            <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
+          </div>
+          <div class="wiki-grid">
+            <div class="graph-frame">
+              <div class="graph-plot">
+                <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                  {% for node in wiki_graph.nodes %}
+                    <line x1="50" y1="50" x2="{{ node.left }}" y2="{{ node.top }}" stroke="#b9bfd8" stroke-width="0.4" vector-effect="non-scaling-stroke"/>
+                  {% endfor %}
+                </svg>
+                <a class="graph-node graph-node-hub" href="{{ wiki_graph.hub.public_path }}">{{ wiki_graph.hub.title }}</a>
+                {% for node in wiki_graph.nodes %}
+                  <a class="graph-node" href="{{ node.topic.public_path }}" style="left: {{ node.left }}%; top: {{ node.top }}%">{{ node.topic.title }}</a>
+                {% endfor %}
+              </div>
+              <p class="graph-legend">
+                <span class="legend-key">
+                  <span>
+                    <span class="legend-swatch legend-hub"></span>
+                    topic hub
+                  </span>
+                  <span>
+                    <span class="legend-swatch legend-page"></span>
+                    wiki page
+                  </span>
+                </span>
+                <span>{{ counts.wiki }} topics · {{ wiki_graph.connections }} connections from {{ wiki_graph.hub.title }}</span>
+              </p>
+            </div>
+            <div class="topic-list">
+              {% for topic in wiki_topics %}
+                <a class="topic" href="{{ topic.public_path }}">
+                  <strong>{{ topic.title }}</strong>
+                  <span>{{ topic.summary }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-ink" aria-labelledby="closing-heading">
+        <div class="shell closing">
+          <div>
+            <h2 id="closing-heading">
+              One free account. {{ course_family_count }} courses. 130,000 people building with you.
+            </h2>
+            <p>
+              Homework, leaderboards, weekly events — and
+              <a class="closing-link" href="{% url 'slack' %}">the Slack</a>
+              whenever you want it.
+            </p>
+          </div>
+          <a class="cta cta-primary" href="{% url 'account_signup' %}">Create your free account</a>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_footer.html" %}
+    <script>
+      /* Page-local theme toggle: same storage key, cookie endpoint and body classes as
+         the shared shell, with the compact "Dark"/"Light" label this design uses. */
+      (function () {
+        var body = document.body;
+        var toggle = document.getElementById('dark-mode-toggle');
+        var label = document.getElementById('dark-mode-label');
+        if (!toggle) {
+          return;
+        }
+
+        function apply(isDark) {
+          body.classList.toggle('dark', isDark);
+          body.classList.toggle('dark-mode', isDark);
+          body.setAttribute('data-dark-mode', isDark ? 'true' : 'false');
+          toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+          if (label) {
+            label.textContent = isDark ? 'Light' : 'Dark';
+          }
+        }
+
+        var authenticated = body.getAttribute('data-authenticated') === 'true';
+        if (!authenticated) {
+          try {
+            var stored = localStorage.getItem('darkMode');
+            if (stored !== null) {
+              apply(stored === 'true');
+            }
+          } catch (e) {}
+        }
+
+        toggle.addEventListener('click', function () {
+          var next = body.getAttribute('data-dark-mode') !== 'true';
+          if (!authenticated) {
+            try {
+              localStorage.setItem('darkMode', next.toString());
+            } catch (e) {}
+            apply(next);
+            return;
+          }
+          var token = document.getElementById('csrf-token');
+          fetch(body.getAttribute('data-toggle-url'), {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': token ? token.value : '',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Dark mode toggle failed');
+              }
+              return response.json();
+            })
+            .then(function (data) {
+              apply(data.dark_mode);
+              try {
+                localStorage.setItem('darkMode', data.dark_mode.toString());
+              } catch (e) {}
+            });
+        });
+      })();
+    </script>
+    <script src="{% static 'core/site_navigation.js' %}"></script>
+    <script src="{% static 'core/accessibility.js' %}"></script>
+    <script src="{% static 'core/analytics_preferences.js' %}"></script>
+    <script>
+      (function () {
+        var scroller = document.getElementById('catalog-scroller');
+        if (!scroller) {
+          return;
+        }
+        Array.prototype.forEach.call(
+          document.querySelectorAll('[data-scroll]'),
+          function (button) {
+            button.addEventListener('click', function () {
+              var card = scroller.querySelector('.course-card');
+              var step = card ? card.getBoundingClientRect().width + 20 : 320;
+              var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+              scroller.scrollBy({
+                left: step * Number(button.getAttribute('data-scroll')),
+                behavior: calm ? 'auto' : 'smooth',
+              });
+            });
+          }
+        );
+      })();
+    </script>
+  </body>
+</html>
