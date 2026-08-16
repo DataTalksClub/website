@@ -263,6 +263,22 @@ def event_time_display(starts_at: str) -> str:
     return f"{local:%a}, {local:%b} {local.day}, {local:%Y} \u00b7 {local:%H:%M %Z}"
 
 
+# A comfortable prose reading pace; the design shows the result as "N min read".
+READING_WORDS_PER_MINUTE = 200
+
+
+def reading_minutes(article: dict[str, Any]) -> int:
+    """Estimate an article's reading time from its own projected text blocks."""
+
+    words = 0
+    for block in article.get("blocks", ()):
+        for key in ("text", "caption", "quote"):
+            value = block.get(key)
+            if isinstance(value, str):
+                words += len(value.split())
+    return max(1, round(words / READING_WORDS_PER_MINUTE))
+
+
 def published_display(value: str) -> str:
     """Render a projection ``YYYY-MM-DD`` publication date the way the design shows it."""
 

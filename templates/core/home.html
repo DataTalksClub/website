@@ -685,24 +685,33 @@
         font-size: 1.02rem;
       }
 
+      /* The design keeps the person and the elapsed pill on one row: the name and its
+         place stack against the avatar, and the pill holds the right edge. */
       .story-person {
         align-items: center;
         border-top: 1.5px dashed var(--line-soft);
         display: flex;
-        flex-wrap: wrap;
         gap: 0.7rem;
         justify-content: space-between;
         margin-top: auto;
-        padding-top: 0.9rem;
+        padding-top: 0.75rem;
       }
 
       .story-identity {
         align-items: center;
         display: flex;
         gap: 0.7rem;
+        min-width: 0;
+      }
+
+      .story-context {
+        color: var(--muted);
+        display: block;
+        font-size: 0.8rem;
       }
 
       .avatar {
+        align-self: flex-start;
         background: repeating-linear-gradient(
           45deg,
           var(--indigo-soft),
@@ -721,7 +730,9 @@
         background: var(--lavender);
         border-radius: 999px;
         color: var(--indigo);
-        font-size: 0.8rem;
+        flex: none;
+        font-size: 0.78rem;
+        font-style: italic;
         font-weight: 600;
         padding: 0.2rem 0.7rem;
       }
@@ -949,14 +960,27 @@
         background: var(--indigo-soft);
         border: 2px solid var(--line);
         border-radius: 0.6rem;
+        color: var(--green-deep);
         display: flex;
         flex: none;
         font-family: var(--font-mono);
-        font-size: 0.72rem;
+        font-size: 0.82rem;
         font-weight: 700;
-        height: 3rem;
+        height: 3.25rem;
         justify-content: center;
-        width: 3rem;
+        white-space: nowrap;
+        width: 3.25rem;
+      }
+
+      /* The episode opens with a play button, so it is a disc with a filled glyph. */
+      .latest-icon-play {
+        border-radius: 999px;
+      }
+
+      .latest-icon-play svg {
+        fill: var(--ink);
+        height: 1.7rem;
+        width: 1.7rem;
       }
 
       .latest-icon-green {
@@ -1426,9 +1450,15 @@
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
 
+        /* The design separates the two columns with the same dashed rule the bands use. */
         .latest-grid {
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 2.5rem;
+        }
+
+        .latest-grid > * + * {
+          border-left: 2px dashed var(--line-soft);
+          padding-left: 2.5rem;
         }
 
         .promise-grid {
@@ -1761,7 +1791,7 @@
                       <span class="avatar" aria-hidden="true"></span>
                       <span>
                         <strong>{{ story.name }}</strong>
-                        <span class="latest-meta">{{ story.context }}</span>
+                        <span class="story-context">{{ story.context }}</span>
                       </span>
                     </span>
                     <span class="story-elapsed">{{ story.elapsed }}</span>
@@ -1944,7 +1974,9 @@
               </div>
               <div class="card">
                 <div class="latest-item">
-                  <span class="latest-icon" aria-hidden="true">▶</span>
+                  <span class="latest-icon latest-icon-play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" focusable="false"><path d="M9 6.5l9 5.5-9 5.5z"/></svg>
+                  </span>
                   <div>
                     <h3>
                       <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
@@ -1966,16 +1998,13 @@
               </div>
               <div class="card">
                 <div class="latest-item">
-                  <span class="latest-icon latest-icon-green" aria-hidden="true">✎</span>
+                  <span class="latest-icon latest-icon-green" aria-hidden="true">{{ article_minutes }}m</span>
                   <div>
                     <h3>
                       <a class="band-link" href="{{ article.public_path }}">{{ article.title }}</a>
                     </h3>
                     <p class="latest-meta">
-                      {{ article_published }}
-                      {% for author in article.author_profiles %}
-                        · {{ author.name }}
-                      {% endfor %}
+                      {{ article_published }} · {{ article_minutes }} min read
                     </p>
                   </div>
                 </div>
