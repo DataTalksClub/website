@@ -17,7 +17,9 @@ from django.views.decorators.http import require_GET, require_safe
 from content.public_data import event_groups, ordered_podcasts, public_projection
 from content.review_projection import review_projection
 from core.home_content import (
+    FEATURED_BUILD_ITEMS,
     FEATURED_FAMILY,
+    FEATURED_GROUP_NOTE,
     MEMBER_STORIES,
     course_catalog,
     event_time_display,
@@ -77,6 +79,8 @@ def home(request: HttpRequest):
             "featured_catalog_entry": next(
                 entry for entry in catalog if entry.family == FEATURED_FAMILY
             ),
+            "featured_build_items": FEATURED_BUILD_ITEMS,
+            "featured_group_note": FEATURED_GROUP_NOTE,
             "catalog_courses": tuple(entry for entry in catalog if entry.family != FEATURED_FAMILY),
             "course_family_count": len(catalog),
             "course_family_word": spelled_count(len(catalog)),

@@ -652,6 +652,12 @@
         color: #ffffff;
       }
 
+      .chip-ink {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--cream);
+      }
+
       .band-note {
         color: var(--green-deep);
         font-style: italic;
@@ -767,20 +773,24 @@
 
       /* --- catalogue ---------------------------------------------------- */
 
+      /* The mockup's featured card: one white slab with a thick ink outline, the
+         story and CTA on the left, and a mint "what you'll build" panel on the
+         right with ink checkbox squares. */
       .featured {
         background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 1rem;
-        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
+        border: 3px solid var(--ink);
+        border-radius: 1.5rem;
+        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
         display: grid;
-        gap: 0;
-        overflow: hidden;
+        gap: 2rem;
+        grid-template-columns: minmax(0, 1.45fr) minmax(15rem, 1fr);
+        padding: 1.9rem 2.1rem;
       }
 
       .featured-main {
+        align-content: start;
         display: grid;
-        gap: 0.7rem;
-        padding: 1.15rem 1.25rem;
+        gap: 0.85rem;
       }
 
       .featured-badges {
@@ -790,17 +800,28 @@
       }
 
       .featured-main h3 {
-        font-size: clamp(1.35rem, 2.8vw, 1.7rem);
+        font-size: clamp(1.6rem, 3.2vw, 2.35rem);
+        line-height: 1.08;
+      }
+
+      .featured-subline {
+        color: var(--muted);
+        font-weight: 700;
       }
 
       .featured-main > p {
-        font-size: 0.9rem;
+        font-size: 0.95rem;
       }
 
-      .featured-promise {
-        color: var(--green-deep);
-        font-style: italic;
-        font-weight: 700;
+      .featured-desc {
+        max-width: 44ch;
+      }
+
+      .featured-meta {
+        border-top: 1.5px solid var(--line-soft);
+        color: var(--muted);
+        font-size: 0.88rem;
+        padding-top: 0.85rem;
       }
 
       .featured-actions {
@@ -808,45 +829,61 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
-        margin-top: 0.4rem;
+        margin-top: 0.5rem;
       }
 
-      .featured-side {
-        background: var(--lavender);
-        border-top: 2px dashed var(--line-soft);
+      .featured-build {
+        align-content: start;
+        background: var(--mint);
+        border-radius: 1.1rem;
         display: grid;
-        gap: 0;
-        padding: 1.15rem 1.25rem;
-      }
-
-      /* The mockup reads each fact as one line: the label on the left, the value
-         right-aligned against it, with a hairline between rows. */
-      .spec {
-        align-items: baseline;
-        border-bottom: 1.5px dashed var(--line-soft);
-        display: flex;
         gap: 0.75rem;
-        justify-content: space-between;
-        padding-block: 0.5rem;
+        padding: 1.35rem 1.5rem;
       }
 
-      .spec:last-of-type {
-        border-bottom: 0;
+      .featured-build h4 {
+        font-size: 1.08rem;
       }
 
-      .spec dt {
+      .featured-build ul {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .featured-build li {
+        align-items: flex-start;
+        display: flex;
+        font-size: 0.92rem;
+        gap: 0.6rem;
+        line-height: 1.45;
+      }
+
+      .build-check {
+        background: var(--ink);
+        border-radius: 0.4rem;
+        flex: none;
+        height: 1.2rem;
+        margin-top: 0.1rem;
+        position: relative;
+        width: 1.2rem;
+      }
+
+      .build-check::after {
+        border-bottom: 0.18rem solid var(--card);
+        border-left: 0.18rem solid var(--card);
+        content: "";
+        height: 0.5rem;
+        left: 0.28rem;
+        position: absolute;
+        top: 0.27rem;
+        transform: rotate(-45deg);
+        width: 0.85rem;
+      }
+
+      .build-note {
         color: var(--muted);
-        font-size: 0.68rem;
-        letter-spacing: 0.1em;
-        text-transform: uppercase;
-      }
-
-      .spec dd {
-        color: var(--ink);
         font-size: 0.88rem;
         font-weight: 700;
-        margin: 0;
-        text-align: right;
       }
 
       .catalog-scroller {
@@ -1661,11 +1698,6 @@
           grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
         }
 
-        .featured-side {
-          border-left: 2px dashed var(--line-soft);
-          border-top: 0;
-        }
-
         .wiki-grid {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 1.75rem;
@@ -1997,36 +2029,34 @@
           </div>
           <div class="featured" data-featured-course>
             <div class="featured-main">
-              <div class="featured-badges">
-                <span class="chip chip-live">● Live cohort</span>
-                <span class="chip">{{ featured_course.cohort.title }}</span>
-              </div>
+              <span class="chip chip-ink">New cohort</span>
               <h3>{{ featured_course.title }}</h3>
-              <p class="featured-promise">you'll ship: {{ featured_catalog_entry.promise }}</p>
-              <p>{{ featured_course.cohort.description }}</p>
+              <p class="featured-subline">
+                Starts {{ featured_course.cohort.start_display }} ·
+                {{ featured_course.cohort.format }} · homework + peer review
+              </p>
+              <p class="featured-desc">{{ featured_course.cohort.description }}</p>
+              <p class="featured-meta">
+                {{ featured_catalog_entry.homework_count }} homework assignments ·
+                {{ featured_catalog_entry.project_count }} projects · certificate of completion
+              </p>
               <div class="featured-actions">
-                <a class="cta cta-primary" href="{% url 'course-cohort-ai-dev-tools-2026' %}">Enroll free</a>
-                <a class="cta cta-secondary" href="{{ featured_course.public_path }}">View syllabus</a>
+                <a class="cta cta-primary" href="{{ featured_course.public_path }}">
+                  View the syllabus
+                </a>
               </div>
             </div>
-            <dl class="featured-side">
-              <div class="spec">
-                <dt>Starts</dt>
-                <dd>{{ featured_course.cohort.start_display }}</dd>
-              </div>
-              <div class="spec">
-                <dt>Format</dt>
-                <dd>{{ featured_course.cohort.format }}</dd>
-              </div>
-              <div class="spec">
-                <dt>Price</dt>
-                <dd>{{ featured_course.cohort.price }}, forever</dd>
-              </div>
-              <div class="spec">
-                <dt>Includes</dt>
-                <dd>homework, leaderboard, peer review</dd>
-              </div>
-            </dl>
+            <aside class="featured-build">
+              <h4>What you'll build</h4>
+              <ul>
+                {% for item in featured_build_items %}
+                  <li>
+                    <span class="build-check" aria-hidden="true"></span>{{ item|capfirst }}
+                  </li>
+                {% endfor %}
+              </ul>
+              <p class="build-note"><span aria-hidden="true">✱</span> {{ featured_group_note }}</p>
+            </aside>
           </div>
           <div class="band-head band-head-secondary">
             <div>

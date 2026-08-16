@@ -59,6 +59,15 @@ COURSE_FAMILIES: tuple[tuple[str, str, str, str], ...] = (
     ),
 )
 
+# What the featured cohort's mint panel promises you will build, and the note under it.
+FEATURED_BUILD_ITEMS: tuple[str, ...] = (
+    "multi-agent system that researches and writes",
+    "RAG evaluation with dashboards",
+    "agents with memory and tools",
+    "deployment with monitoring",
+)
+FEATURED_GROUP_NOTE = "small groups of 6–8 people"
+
 # The wiki hub the graph is drawn around, and the direct relations it is drawn to.  Every
 # slug is validated against the projection so a source change fails loudly instead of
 # rendering an edge that does not exist.
