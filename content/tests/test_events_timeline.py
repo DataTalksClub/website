@@ -245,3 +245,53 @@ class EventIndexDesignSystemTests(TestCase):
             past,
         )
         self.assertIn('<a class="filter-pill" href="/events">Upcoming events</a>', past)
+
+
+class EventKindsExplainerTests(TestCase):
+    """The explainer that gives the rows' kind pills their meaning.
+
+    A visitor's first question on this page is what a "podcast" event is as opposed
+    to a "webinar"; the answer has to stay on the page that asks it, on the upcoming
+    view and the past view alike.
+    """
+
+    EXPLANATIONS = (
+        ("webinar", "Webinars &ndash; events on Tuesday, with slides, mostly technical"),
+        (
+            "podcast",
+            "Live podcasts &ndash; events on Friday, a discussion without slides, "
+            "the recording is published as a podcast",
+        ),
+        ("workshop", "Workshop &ndash; hands-on tutorials about technical topics"),
+        (
+            "conference",
+            "Conference &ndash; bigger events with multiple talks, both webinar-type "
+            "talks and podcast-type talks",
+        ),
+    )
+
+    def collapsed_body(self, path: str) -> str:
+        body = self.client.get(path).content.decode()
+        return re.sub(r"\s+", " ", body)
+
+    def test_both_views_explain_every_kind_a_row_can_carry(self) -> None:
+        kinds = {event["type"] for event in public_projection()["events"]}
+        self.assertEqual(kinds, {kind for kind, _ in self.EXPLANATIONS})
+
+        for path in ("/events", "/events/past"):
+            with self.subTest(path=path):
+                body = self.collapsed_body(path)
+
+                self.assertIn('aria-label="Types of events"', body)
+                for kind, explanation in self.EXPLANATIONS:
+                    self.assertIn(f'<span class="status-pill">{kind}</span>', body)
+                    self.assertIn(explanation, body)
+
+    def test_the_explainer_is_built_from_the_shared_row_primitives(self) -> None:
+        body = self.collapsed_body("/events")
+
+        self.assertIn('<ul class="row-list event-types"', body)
+        self.assertIn('<li class="list-row">', body)
+        # No icon font: these pages load no external CSS, so the pill marks the row.
+        self.assertNotIn("fa-tv", body)
+        self.assertNotIn("fa-microphone-alt", body)

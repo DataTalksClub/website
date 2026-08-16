@@ -89,6 +89,21 @@
         margin-top: 1rem;
       }
 
+      /* --- wrapped entry point ------------------------------------------ */
+
+      /* This band holds nothing but its head, so the head keeps the band's own
+         padding instead of adding its usual gap to the section below it. */
+      .courses-wrapped .band-head {
+        margin-bottom: 0;
+      }
+
+      /* The action is the band's only control: it stays its own width and sits
+         on the middle of the heading block rather than stretching down it. */
+      .courses-wrapped-action {
+        align-self: center;
+        justify-self: start;
+      }
+
       /* --- active cohorts ----------------------------------------------- */
 
       .active-list {
@@ -510,6 +525,31 @@
           </div>
         </div>
       </section>
+      {% if SHOW_WRAPPED and wrapped_year %}
+        {% comment %}
+          The site's only entry point into Wrapped.  It sits between the hero and the
+          catalogue rather than inside a course section because the filter pills hide
+          those sections one at a time, and this route must survive every filter.
+        {% endcomment %}
+        <section class="band band-lavender courses-wrapped" aria-labelledby="wrapped-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="wrapped-heading">
+                  DataTalks.Club Wrapped {{ wrapped_year }}
+                </h2>
+                <p>
+                  Check out your year of learning in review: statistics, course
+                  progress, and your {{ wrapped_year }} leaderboard rank.
+                </p>
+              </div>
+              <a class="cta cta-secondary cta-compact courses-wrapped-action" href="{% url 'wrapped' wrapped_year %}">
+                View your {{ wrapped_year }} wrapped →
+              </a>
+            </div>
+          </div>
+        </section>
+      {% endif %}
       <div id="courses">
         {% if show_active_courses %}
           <section class="band band-cream" aria-labelledby="active-heading">

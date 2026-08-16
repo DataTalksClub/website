@@ -58,6 +58,27 @@
         max-width: 36em;
       }
 
+      /* The kinds explainer: the same dashed rows the events themselves use, each
+         led by the very status pill that marks that kind on an event row. */
+      .event-types-label {
+        display: block;
+        margin-top: 1.5rem;
+      }
+
+      .event-types {
+        margin-top: 0.5rem;
+      }
+
+      .event-types .list-row {
+        --row-cols: 7.5rem minmax(0, 1fr);
+      }
+
+      /* A grid item is stretched by default, which would pull the pill across its
+         whole column; the pill keeps the width of the word it carries. */
+      .event-types .status-pill {
+        justify-self: start;
+      }
+
       /* The mockup keeps the two view pills on the left and pushes the
          calendar link to the right edge of the same row. */
       .events-controls {
@@ -317,6 +338,42 @@
             Workshops, podcast recordings and open Q&amp;As with people doing the work.
             Free, live, recorded if you miss it.
           </p>
+          {% comment %}
+            Every row below carries its kind as a status pill, so the page says what
+            those four kinds are before the reader meets them.  It sits above the
+            view switcher because it introduces the vocabulary of both views.
+          {% endcomment %}
+          <p class="mono-label mono-label-indigo event-types-label">
+            types of events
+          </p>
+          <ul class="row-list event-types" aria-label="Types of events">
+            <li class="list-row">
+              <span class="status-pill">webinar</span>
+              <p>
+                Webinars &ndash; events on Tuesday, with slides, mostly technical
+              </p>
+            </li>
+            <li class="list-row">
+              <span class="status-pill">podcast</span>
+              <p>
+                Live podcasts &ndash; events on Friday, a discussion without slides,
+                the recording is published as a podcast
+              </p>
+            </li>
+            <li class="list-row">
+              <span class="status-pill">workshop</span>
+              <p>
+                Workshop &ndash; hands-on tutorials about technical topics
+              </p>
+            </li>
+            <li class="list-row">
+              <span class="status-pill">conference</span>
+              <p>
+                Conference &ndash; bigger events with multiple talks, both
+                webinar-type talks and podcast-type talks
+              </p>
+            </li>
+          </ul>
           <div class="events-controls">
             <nav class="filter-pills" aria-label="Event views">
               {% if is_past_events %}
