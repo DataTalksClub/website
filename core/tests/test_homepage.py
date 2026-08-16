@@ -193,9 +193,9 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Learn data skills. For free. Together.")
         self.assertContains(response, "No active courses right now.")
         self.assertNotContains(response, "Data Engineering Zoomcamp 2026")
-        self.assertContains(response, 'class="home-hero py-6 md:py-10"')
+        self.assertContains(response, 'class="band band-cream courses-hero"')
         self.assertContains(response, 'id="courses"')
-        self.assertContains(response, "Start now")
+        self.assertContains(response, "Active now — you can still join")
         self.assertNotContains(response, "data-course-row")
         self.assertNotContains(response, "md:grid-cols-2")
         self.assertNotContains(response, 'id="course-families-heading"')
@@ -204,6 +204,70 @@ class MainHomepageRoutingTests(TestCase):
             response,
             '<link rel="canonical" href="https://datatalks.club/courses">',
         )
+
+    def test_course_index_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
+        """Design 5a (issue #179) rebuilt /courses onto one inline stylesheet."""
+
+        body = self.client.get(reverse("course_list")).content.decode()
+
+        self.assertIn("<style>", body)
+        for retired in (
+            "/static/courses.css",
+            "/static/core/site_shell.css",
+            "/static/core/accessibility.css",
+            "tailwindcss",
+            "fontawesome",
+        ):
+            with self.subTest(asset=retired):
+                self.assertNotIn(retired, body)
+        self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
+        for leak in ("{#", "#}", "{%", "%}", "{{", "}}"):
+            with self.subTest(token=leak):
+                self.assertNotIn(leak, body)
+
+    def test_course_index_filter_pills_select_one_section_at_a_time(self) -> None:
+        """The segmented control is server-rendered links with an exposed state."""
+
+        today = timezone.localdate()
+        Course.objects.create(
+            title="Synthetic active course",
+            slug="synthetic-active-course",
+            description="A deterministic active course.",
+            start_date=today - timedelta(days=7),
+            end_date=today + timedelta(days=28),
+            visible=True,
+        )
+        Course.objects.create(
+            title="Synthetic registration course",
+            slug="synthetic-registration-course",
+            description="A deterministic registration course.",
+            start_date=today + timedelta(days=14),
+            end_date=today + timedelta(days=70),
+            registration_url="https://example.invalid/register",
+            visible=True,
+        )
+
+        everything = self.client.get(reverse("course_list"))
+        self.assertContains(
+            everything,
+            '<a class="filter-pill" href="/courses" aria-current="page">All courses</a>',
+            html=True,
+        )
+        self.assertContains(everything, "Open registration")
+
+        active_only = self.client.get(reverse("course_list"), {"filter": "active"})
+        self.assertContains(
+            active_only,
+            '<a class="filter-pill" href="/courses?filter=active" aria-current="page">Active</a>',
+            html=True,
+        )
+        self.assertContains(active_only, "Active now — you can still join")
+        self.assertNotContains(active_only, "Synthetic registration course")
+
+        unknown = self.client.get(reverse("course_list"), {"filter": "not-a-filter"})
+        self.assertEqual(unknown.status_code, 200)
+        self.assertContains(unknown, "Active now — you can still join")
+        self.assertContains(unknown, "Open registration")
 
     def test_course_discovery_with_database_courses_uses_copied_cmp_composition(self) -> None:
         today = timezone.localdate()
@@ -244,14 +308,17 @@ class MainHomepageRoutingTests(TestCase):
                 if template.origin is not None
             },
         )
+        # The hero's filter pills repeat the section names, so order is read from the
+        # catalogue itself rather than from the whole document.
         content = response.content.decode()
-        self.assertLess(content.index("Active courses"), content.index(active.title))
-        self.assertLess(content.index(active.title), content.index("Open registration"))
-        self.assertLess(content.index("Open registration"), content.index(registration.title))
-        self.assertLess(content.index(registration.title), content.index("Course archive"))
-        self.assertLess(content.index("Course archive"), content.index(archived.title))
-        self.assertContains(response, "Start now")
-        self.assertContains(response, "Registration open")
+        catalog = content[content.index('<div id="courses">') :]
+        active_heading = "Active now — you can still join"
+        self.assertLess(catalog.index(active_heading), catalog.index(active.title))
+        self.assertLess(catalog.index(active.title), catalog.index("Open registration"))
+        self.assertLess(catalog.index("Open registration"), catalog.index(registration.title))
+        self.assertLess(catalog.index(registration.title), catalog.index("Self-paced any time"))
+        self.assertLess(catalog.index("Self-paced any time"), catalog.index(archived.title))
+        self.assertContains(response, "registration open")
         self.assertNotContains(response, 'id="course-families-heading"')
         self.assertNotContains(response, "No active cohort coursework right now.")
         self.assertContains(

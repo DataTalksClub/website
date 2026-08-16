@@ -79,4 +79,5 @@ class CourseListOrderingTest(CourseListViewTestBase):
         content = response.content.decode()
 
         self.assertIn("Open registration", content)
-        self.assertIn("Registration open", content)
+        # Design 5a marks the state with a mono status pill, uppercased in CSS.
+        self.assertIn("registration open", content)

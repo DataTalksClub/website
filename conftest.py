@@ -76,7 +76,7 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         (re.compile(r"^/deliberate-missing$"), 404),
     ),
     "test_wiki_search_graph_and_removed_mount": ((re.compile(r"^/podwiki$"), 404),),
-    "test_no_database_course_catalog_uses_copied_cmp_empty_state": (
+    "test_no_database_course_catalog_uses_the_design_5a_empty_state": (
         (re.compile(r"^/courses/de-zoomcamp-2026$"), 404),
     ),
     "test_empty_optional_and_error_states_are_responsive": (

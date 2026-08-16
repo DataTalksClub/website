@@ -1,91 +1,736 @@
-{% extends 'base.html' %}
-{% load custom_filters %}
-{% block content %}
-    <section class="home-hero py-6 md:py-10">
-        <div class="max-w-3xl">
-            <h1 class="text-3xl font-semibold leading-tight tracking-normal sm:text-4xl md:text-5xl">
-                Learn data skills. For free. Together.
-            </h1>
-            <p class="mt-4 max-w-2xl text-base leading-7 app-text md:text-lg md:leading-8">
-                Community-created courses with practical homework, projects, public leaderboards, and peer review.
-            </p>
-        </div>
-    </section>
-    {% if SHOW_WRAPPED %}
-        <section class="mb-8 border-y app-border py-6">
-            <div class="max-w-3xl">
-                <h2 class="text-xl font-semibold md:text-2xl">DataTalks.Club Wrapped 2025</h2>
-                <p class="mt-2 text-base leading-7 app-text">
-                    Check out your year of learning in review: statistics, course progress, and your 2025 leaderboard rank.
-                </p>
-                <a href="{% url 'wrapped' 2025 %}"
-                   class="mt-4 inline-flex items-center font-medium app-link">
-                    View your 2025 wrapped <span class="ml-2" aria-hidden="true">&rarr;</span>
-                </a>
-            </div>
-        </section>
+{% load seo static custom_filters %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Courses — DataTalks.Club</title>
+    {% canonical_link canonical_url %}
+    <meta
+      name="description"
+      content="Free, community-created data and AI courses with practical homework, real projects, public leaderboards and peer review. Join a cohort or work through them self-paced."
+    >
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="Courses — DataTalks.Club">
+    <meta
+      property="og:description"
+      content="Free, community-created data and AI courses with practical homework, real projects, public leaderboards and peer review."
+    >
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="Courses — DataTalks.Club">
+    <meta
+      name="twitter:description"
+      content="Free, community-created data and AI courses with practical homework, real projects and peer review."
+    >
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Courses index, design 5a / mockup 6a (issue #179).  Like every
+       * rebuilt page it carries its complete stylesheet inline: the shared
+       * design system partial first, then this page's own layout.  It
+       * deliberately loads none of the older site CSS.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Courses-index rules.  Shared primitives (stat tiles, filter pills,
+       * status pills, list rows, panels) live in the partial above.
+       * ------------------------------------------------------------------ */
+
+      /* --- hero --------------------------------------------------------- */
+
+      .courses-hero-grid {
+        align-items: center;
+        display: grid;
+        gap: 2rem;
+      }
+
+      .courses-eyebrow {
+        display: block;
+        margin-bottom: 0.6rem;
+      }
+
+      .courses-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        max-width: 16ch;
+      }
+
+      .courses-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1rem;
+        max-width: 33rem;
+      }
+
+      .courses-hero .filter-pills {
+        margin-top: 1.5rem;
+      }
+
+      /* --- band heads --------------------------------------------------- */
+
+      /* The design puts a live dot beside the active band's heading, so that
+         head is a row rather than the shared stacked .band-head block. */
+      .live-head {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .band-note {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-top: 1rem;
+      }
+
+      /* --- active cohorts ----------------------------------------------- */
+
+      .active-list {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .active-card {
+        border-radius: 1.1rem;
+        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
+        font-size: 1rem;
+        gap: 1.25rem;
+        padding: 1.35rem;
+      }
+
+      .active-main {
+        align-content: start;
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .active-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .active-card h3 {
+        font-size: clamp(1.6rem, 3.2vw, 2.35rem);
+        letter-spacing: -0.02em;
+      }
+
+      .active-summary {
+        max-width: 34em;
+      }
+
+      .active-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        margin-top: 0.6rem;
+      }
+
+      .active-when {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      /* --- next assignment panel ---------------------------------------- */
+
+      .assignment-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .assignment-title {
+        color: var(--ink);
+        font-size: 1.05rem;
+        font-weight: 800;
+        line-height: 1.25;
+      }
+
+      .assignment-due {
+        font-size: 0.9rem;
+      }
+
+      /* --- open registration cards -------------------------------------- */
+
+      .course-card-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: space-between;
+      }
+
+      .course-card h3 {
+        font-size: 1.25rem;
+      }
+
+      .course-card h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .course-card h3 a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .course-card-foot {
+        align-items: center;
+        border-top: 1.5px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: space-between;
+        margin-top: auto;
+        padding-top: 0.85rem;
+      }
+
+      .course-card-registered {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* The register action holds the card's right edge whether or not the
+         count beside it could be published. */
+      .course-card-foot .cta {
+        margin-left: auto;
+      }
+
+      /* --- self-paced table --------------------------------------------- */
+
+      .self-paced-group + .self-paced-group {
+        margin-top: 2rem;
+      }
+
+      .self-paced-year {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
+        margin-bottom: 0.35rem;
+        text-transform: uppercase;
+      }
+
+      .course-row-title {
+        font-size: 1.05rem;
+      }
+
+      .course-row-title a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .course-row-title a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .course-row-length {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .course-row-promise {
+        font-size: 0.9rem;
+      }
+
+      .course-row-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      /* Row and card links become flex items, which blockifies them; keeping
+         the comfortable target height is a deliberate deviation from the
+         export, where these read as bare inline links. */
+      .row-action {
+        align-items: center;
+        display: inline-flex;
+        font-size: 0.9rem;
+        font-weight: 700;
+        min-height: 2.75rem;
+      }
+
+      /* --- narrow layout: reshape, not reflow ---------------------------- */
+
+      @media (max-width: 47.99rem) {
+        /* The active card is a single column here: the assignment panel reads
+           as the last block of the course it belongs to rather than a sidebar. */
+        .active-card {
+          padding: 1.1rem;
+        }
+
+        .courses-hero h1 {
+          max-width: none;
+        }
+
+        /* Four pills wrap into two comfortable rows instead of becoming a
+           four-line stack of full-width buttons. */
+        .courses-hero .filter-pills {
+          gap: 0.45rem;
+        }
+
+        .filter-pill {
+          padding-inline: 0.85rem;
+        }
+
+        /* The self-paced table stacks: title, promise, state, then its links,
+           left-aligned like everything else in the stack. */
+        .list-row .course-row-actions {
+          justify-content: flex-start;
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .courses-hero-grid {
+          grid-template-columns: 1.15fr 0.85fr;
+        }
+
+        /* Only a card that actually carries an assignment panel splits into
+           two columns; one without a next assignment keeps the full width. */
+        .active-card:has(.assignment-panel) {
+          align-items: start;
+          display: grid;
+          grid-template-columns: 1.5fr 1fr;
+        }
+
+        .course-row-actions {
+          justify-content: flex-end;
+        }
+      }
+    </style>
+  </head>
+  {% url 'home' as site_home_url %}
+  {% url 'events' as events_url %}
+  {% url 'articles' as articles_url %}
+  {% url 'podcast' as podcast_url %}
+  {% url 'wiki-home' as wiki_url %}
+  {% url 'books' as books_url %}
+  {% url 'docs-home' as docs_url %}
+  {% url 'faq-home' as faq_url %}
+  {% url 'studio:home' as studio_home_url %}
+  {% url 'account_signup' as account_signup_url %}
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  {% url 'account_settings' as account_settings_url %}
+  {% url 'socialaccount_connections' as account_connections_url %}
+  {% url 'account_logout' as account_logout_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
     {% endif %}
-    <div id="courses" class="border-t app-border pt-8">
-        <section>
-            <p class="text-sm font-semibold uppercase tracking-wide app-muted">Start now</p>
-            <h2 class="mt-2 text-2xl font-semibold md:text-3xl">Active courses</h2>
-            <p class="mt-1 text-sm app-muted">Courses listed here are open for participation and assignment submissions.</p>
-        </section>
-
-        {% if active_courses %}
-            <section class="mt-6 divide-y app-divide">
-                {% for course in active_courses %}
-                    {% include 'courses/_course_list_card.html' %}
-                {% endfor %}
-            </section>
-        {% else %}
-            <p class="mt-6 text-base app-text">No active courses right now.</p>
+  >
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <script>
+      (function () {
+        try {
+          var body = document.body;
+          if (
+            body
+            && body.getAttribute('data-authenticated') !== 'true'
+            && localStorage.getItem('darkMode') === 'true'
+          ) {
+            body.classList.add('dark', 'dark-mode');
+            body.setAttribute('data-dark-mode', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    {% if user.is_authenticated %}
+      <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+    {% endif %}
+    {% if IS_IMPERSONATING %}
+      <div id="impersonation-banner" class="impersonation-banner">
+        <div class="shell">
+          <span>
+            You are logged in as
+            <strong>{{ request.user.email|default:request.user.username }}</strong>
+          </span>
+          <form method="post" action="{% url 'stop_impersonating' %}">
+            {% csrf_token %}
+            <button type="submit" class="impersonation-return-button">Return to admin account</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+    <header class="masthead">
+      <nav class="shell masthead-inner" aria-label="Primary navigation">
+        <a class="brand" href="{{ site_home_url|default:'/' }}">
+          {# The mockup's mark traced 1:1: wobbled lavender bubble, ink outline, tail, DTC. #}
+          <svg class="brand-mark" viewBox="0 0 64 61" aria-hidden="true" focusable="false">
+            <path
+              d="M17 3.2C27 1.6 39 1.8 48 3.6C55.5 5.2 60.8 9.4 61.4 16C62 22.6 61.8 30 60.6 36.4C59.4 42.8 56 47.2 49.6 48.6C46.6 49.2 43.4 49.4 40.2 49C39.4 53.4 38.8 57.4 37.6 61C36.4 57.2 34.4 53.4 31.8 50.2C27 49.6 22.2 48.8 18.2 47.4C11.4 45 6.4 40.6 4.6 34.2C2.8 27.8 2.6 20.6 3.8 14.6C5 8.6 10 4.6 17 3.2Z"
+              fill="#b9bff0"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linejoin="round"
+            />
+            <text x="32" y="34">DTC</text>
+          </svg>
+          <span class="brand-name">
+            <span class="brand-light">Data</span>Talks.Club
+          </span>
+        </a>
+        <div class="site-navigation">
+          <button
+            class="site-navigation-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="site-navigation-links"
+          >
+            Menu
+          </button>
+          <div id="site-navigation-links" class="site-navigation-links">
+            {% if events_url %}
+              <a class="nav-link" href="{{ events_url }}">Events</a>
+            {% endif %}
+            <a class="nav-link" href="{% url 'course_list' %}" aria-current="page">Courses</a>
+            {% if articles_url %}
+              <a class="nav-link" href="{{ articles_url }}">Blog</a>
+            {% endif %}
+            {% if podcast_url %}
+              <a class="nav-link" href="{{ podcast_url }}">Podcast</a>
+            {% endif %}
+            {% if wiki_url %}
+              <a class="nav-link" href="{{ wiki_url }}">Wiki</a>
+            {% endif %}
+            {% if books_url %}
+              <a class="nav-link" href="{{ books_url }}">Books</a>
+            {% endif %}
+            {% if docs_url %}
+              <a class="nav-link" href="{{ docs_url }}">Docs</a>
+            {% endif %}
+            {% if faq_url %}
+              <a class="nav-link" href="{{ faq_url }}">FAQ</a>
+            {% endif %}
+          </div>
+        </div>
+        <div class="masthead-actions">
+          <button
+            id="dark-mode-toggle"
+            class="pill-button"
+            type="button"
+            aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
+            <span class="sr-only">&nbsp;mode</span>
+          </button>
+          {% if user.is_authenticated %}
+            {% comment %}
+              Same account-menu contract as the shared shell: the labelled summary and the
+              .user-menu-panel links every identity test drives.
+            {% endcomment %}
+            <details class="account-nav user-menu">
+              <summary
+                class="user-menu-toggle"
+                title="Account menu"
+                aria-label="Account menu"
+              >Account</summary>
+              <div class="mobile-nav-panel user-menu-panel">
+                <p class="user-menu-signed-in">Signed in as</p>
+                <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
+                  {{ user.email|default:user.username }}
+                </p>
+                <div class="user-menu-actions">
+                  <a class="nav-link user-menu-item" href="{% url 'course_list' %}">Courses</a>
+                  {% if account_settings_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
+                  {% endif %}
+                  {% if account_connections_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_connections_url }}">Login connections</a>
+                  {% endif %}
+                  {% if can_access_studio and studio_home_url %}
+                    <a class="nav-link user-menu-item" href="{{ studio_home_url }}">Studio</a>
+                  {% endif %}
+                  {% if account_logout_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_logout_url }}">Logout</a>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
+          {% else %}
+            {% comment %}
+              Rendered once, and visible at every width: a signed-out visitor must be able
+              to reach login without first opening the navigation menu.
+            {% endcomment %}
+            <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
+            {% if account_signup_url %}
+              <a class="signup-button" href="{{ account_signup_url }}">Sign up free</a>
+            {% endif %}
+          {% endif %}
+        </div>
+      </nav>
+    </header>
+    {% if site_announcement %}
+      <aside class="site-announcement" aria-label="Site announcement">
+        <div class="shell">{{ site_announcement.message }}</div>
+      </aside>
+    {% endif %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream courses-hero" aria-labelledby="courses-hero-heading">
+        <div class="shell courses-hero-grid">
+          <div>
+            <p class="mono-label mono-label-indigo courses-eyebrow">{{ catalog_eyebrow }}</p>
+            <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
+            <p class="courses-lede">
+              Community-created courses with practical homework, real projects, public
+              leaderboards and peer review. Cohorts if you want deadlines and classmates;
+              self-paced if you would rather not wait.
+            </p>
+            <div class="filter-pills" role="group" aria-label="Filter courses">
+              {% for course_filter in course_filters %}
+                {% if course_filter.is_current %}
+                  <a class="filter-pill" href="{{ course_filter.url }}" aria-current="page">{{ course_filter.label }}</a>
+                {% else %}
+                  <a class="filter-pill" href="{{ course_filter.url }}">{{ course_filter.label }}</a>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+          <div class="stat-tiles">
+            {% for stat in catalog_stats %}
+              <div class="stat-tile">
+                <strong>{{ stat.value }}</strong>
+                <span>{{ stat.label }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+      <div id="courses">
+        {% if show_active_courses %}
+          <section class="band band-cream" aria-labelledby="active-heading">
+            <div class="shell">
+              <div class="live-head">
+                <span class="status-dot status-dot-pulse" aria-hidden="true"></span>
+                <h2 id="active-heading">Active now — you can still join</h2>
+              </div>
+              {% if active_courses %}
+                <div class="active-list">
+                  {% for course in active_courses %}
+                    <article class="card active-card">
+                      <div class="active-main">
+                        <div class="active-badges">
+                          <span class="status-pill status-pill-live">
+                            <span class="status-dot" aria-hidden="true"></span>
+                            active
+                          </span>
+                          {% if course.index_enrolled_state %}
+                            <span class="status-pill">{{ course.index_enrolled_state }}</span>
+                          {% endif %}
+                        </div>
+                        <h3>{{ course.title }}</h3>
+                        {% if course.index_promise %}
+                          <p class="ship-line">you'll ship: {{ course.index_promise }}</p>
+                        {% endif %}
+                        <p class="active-summary">{{ course.home_outcome }}</p>
+                        <div class="active-actions">
+                          {% if course.is_enrolled %}
+                            <a class="cta cta-ink" href="{% url 'course' course.slug %}">Continue course →</a>
+                          {% else %}
+                            <a class="cta cta-ink" href="{% url 'course' course.slug %}">Open course →</a>
+                          {% endif %}
+                          {% if course.index_when %}
+                            <span class="active-when">{{ course.index_when }}</span>
+                          {% endif %}
+                          {% if course.github_repo_url %}
+                            <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>
+                          {% endif %}
+                        </div>
+                      </div>
+                      {% if course.home_current_assignment %}
+                        <div class="panel panel-mint panel-outlined assignment-panel">
+                          <span class="mono-label mono-label-green">{{ course.home_current_assignment_label }}</span>
+                          <span class="assignment-title">{{ course.home_current_assignment.label }}: {{ course.home_current_assignment.title }}</span>
+                          <span class="assignment-due">Due {{ course.home_current_assignment.due_date|user_datetime:request }}</span>
+                        </div>
+                      {% endif %}
+                    </article>
+                  {% endfor %}
+                </div>
+              {% else %}
+                <p class="band-note">No active courses right now.</p>
+              {% endif %}
+            </div>
+          </section>
         {% endif %}
-
-        {% if open_registration_courses %}
-            <section class="mt-10">
-                <p class="text-sm font-semibold uppercase tracking-wide app-muted">Enroll now</p>
-                <h2 class="mt-2 text-2xl font-semibold md:text-3xl">Open registration</h2>
-                <p class="mt-1 text-sm app-muted">These courses haven't started yet and are open for registration.</p>
-            </section>
-            <section class="mt-6 divide-y app-divide">
-                {% for course in open_registration_courses %}
-                    {% include 'courses/_course_list_card.html' with badge_label='Registration open' badge_class='app-badge-info' %}
-                {% endfor %}
-            </section>
-        {% endif %}
-
-        {% if archive_groups %}
-            <section class="mt-8 border-t app-border pt-8">
+        {% if show_open_registration and open_registration_courses %}
+          <section class="band band-lavender" aria-labelledby="open-heading">
+            <div class="shell">
+              <div class="band-head">
                 <div>
-                    <h2 class="text-xl font-semibold md:text-2xl">Course archive</h2>
-                    <p class="mt-1 text-sm app-muted">Past cohorts remain open for self check; late submissions are not possible.</p>
+                  <h2 id="open-heading">Open registration</h2>
+                  <p>
+                    These cohorts have not started yet. Register now and you get the schedule,
+                    the Slack channel and homework reminders.
+                  </p>
                 </div>
-                <div class="mt-5 space-y-7">
-                    {% for group in archive_groups %}
-                        <section>
-                            <h3 class="text-sm font-semibold uppercase tracking-wide app-muted">{{ group.year }}</h3>
-                            <div class="mt-2 divide-y app-divide">
-                                {% for course in group.courses %}
-                                    <a href="{% url 'course' course.slug %}"
-                                       class="group grid gap-2 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-                                        <div class="min-w-0">
-                                            <h4 class="text-lg font-semibold app-link md:text-xl">
-                                                {{ course.title }}
-                                                {% if course.is_enrolled %}
-                                                    <span class="ml-2 app-badge app-badge-upper app-badge-info">Enrolled</span>
-                                                {% endif %}
-                                            </h4>
-                                            <p class="mt-1 max-w-3xl text-sm leading-6 app-text">{{ course.home_outcome }}</p>
-                                        </div>
-                                        <span class="hidden shrink-0 app-link md:block" aria-hidden="true">&rarr;</span>
-                                    </a>
-                                {% endfor %}
-                            </div>
-                        </section>
-                    {% endfor %}
-                </div>
-            </section>
+              </div>
+              <div class="card-grid card-grid-2">
+                {% for course in open_registration_courses %}
+                  <article class="card course-card">
+                    <div class="course-card-head">
+                      <span class="status-pill status-pill-open">registration open</span>
+                      {% if course.index_dates %}
+                        <span class="mono-note">{{ course.index_dates }}</span>
+                      {% endif %}
+                    </div>
+                    <h3>
+                      <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+                    </h3>
+                    {% if course.index_promise %}
+                      <p class="ship-line">you'll ship: {{ course.index_promise }}</p>
+                    {% endif %}
+                    <p>{{ course.home_outcome }}</p>
+                    <div class="course-card-foot">
+                      {% if course.index_registered %}
+                        <span class="course-card-registered">{{ course.index_registered }} registered</span>
+                      {% endif %}
+                      {% if course.registration_campaign and not course.is_enrolled and not course.is_registered %}
+                        <a class="cta cta-primary cta-compact" href="{% url 'registration_campaign' course.registration_campaign.slug %}">Register</a>
+                      {% elif course.home_registration_open and not course.is_enrolled %}
+                        <a class="cta cta-primary cta-compact" href="{{ course.registration_url }}">Register</a>
+                      {% endif %}
+                    </div>
+                  </article>
+                {% endfor %}
+              </div>
+            </div>
+          </section>
         {% endif %}
-    </div>
-{% endblock %}
+        {% if show_self_paced and archive_groups %}
+          <section class="band band-cream" aria-labelledby="self-paced-heading">
+            <div class="shell">
+              <div class="band-head">
+                <div>
+                  <h2 id="self-paced-heading">Self-paced any time</h2>
+                  <p>
+                    Every past cohort stays open: videos, homework and solutions. Work through
+                    one whenever you like — only the deadlines and the classmates are gone.
+                  </p>
+                </div>
+              </div>
+              {% for group in archive_groups %}
+                <section class="self-paced-group" aria-labelledby="self-paced-{{ group.year|slugify }}">
+                  <h3 class="self-paced-year" id="self-paced-{{ group.year|slugify }}">{{ group.year }}</h3>
+                  <div class="row-list">
+                    {% for course in group.courses %}
+                      <div class="list-row" style="--row-cols: 1.6fr 1.4fr 1fr 0.8fr">
+                        <div>
+                          <h4 class="course-row-title">
+                            <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+                          </h4>
+                          {% if course.index_length %}
+                            <p class="course-row-length">{{ course.index_length }}</p>
+                          {% endif %}
+                        </div>
+                        <p class="course-row-promise">{{ course.index_promise|default:course.home_outcome }}</p>
+                        <div>
+                          {% if course.is_enrolled %}
+                            <span class="status-pill">enrolled</span>
+                          {% else %}
+                            <span class="status-pill status-pill-wait">self-paced only</span>
+                          {% endif %}
+                        </div>
+                        <div class="course-row-actions">
+                          {% if course.github_repo_url %}
+                            <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>
+                          {% endif %}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </section>
+              {% endfor %}
+            </div>
+          </section>
+        {% endif %}
+      </div>
+    </main>
+    {% include "core/_site_footer.html" %}
+    <script>
+      /* Page-local theme toggle: same storage key, cookie endpoint and body classes as
+         the shared shell, with the compact "Dark"/"Light" label this design uses. */
+      (function () {
+        var body = document.body;
+        var toggle = document.getElementById('dark-mode-toggle');
+        var label = document.getElementById('dark-mode-label');
+        if (!toggle) {
+          return;
+        }
+
+        function apply(isDark) {
+          body.classList.toggle('dark', isDark);
+          body.classList.toggle('dark-mode', isDark);
+          body.setAttribute('data-dark-mode', isDark ? 'true' : 'false');
+          toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+          if (label) {
+            label.textContent = isDark ? 'Light' : 'Dark';
+          }
+        }
+
+        var authenticated = body.getAttribute('data-authenticated') === 'true';
+        if (!authenticated) {
+          try {
+            var stored = localStorage.getItem('darkMode');
+            if (stored !== null) {
+              apply(stored === 'true');
+            }
+          } catch (e) {}
+        }
+
+        toggle.addEventListener('click', function () {
+          var next = body.getAttribute('data-dark-mode') !== 'true';
+          if (!authenticated) {
+            try {
+              localStorage.setItem('darkMode', next.toString());
+            } catch (e) {}
+            apply(next);
+            return;
+          }
+          var token = document.getElementById('csrf-token');
+          fetch(body.getAttribute('data-toggle-url'), {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': token ? token.value : '',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Dark mode toggle failed');
+              }
+              return response.json();
+            })
+            .then(function (data) {
+              apply(data.dark_mode);
+              try {
+                localStorage.setItem('darkMode', data.dark_mode.toString());
+              } catch (e) {}
+            });
+        });
+      })();
+    </script>
+    {% comment %}
+      Same timezone contract as the shared shell: the browser_timezone cookie for every
+      visitor, and one passive preference POST for a signed-in account without one.
+    {% endcomment %}
+    <script src="{% static 'timezone_preference.js' %}"></script>
+    <script src="{% static 'core/site_navigation.js' %}"></script>
+    <script src="{% static 'core/accessibility.js' %}"></script>
+    <script src="{% static 'core/analytics_preferences.js' %}"></script>
+  </body>
+</html>

@@ -310,7 +310,7 @@ distinct from the round `.chip`:
 | Variant | Surface | Use |
 | --- | --- | --- |
 | *(bare)* | cream, soft border, body text | quiet facts: "enrolled · week 9 of 10" |
-| `status-pill-live` | `--green-bright`, white text | a running cohort, a live event |
+| `status-pill-live` | `--green`, white text | a running cohort, a live event |
 | `status-pill-open` | `--lavender-deep`, ink text | registration open, next cohort dates, workshop kind |
 | `status-pill-wait` | `--sand`, olive text | waitlist, self-paced only, past events |
 | `status-pill-mint` | `--mint`, `--green-ship` text | podcast kind, season/episode marker |
@@ -514,9 +514,11 @@ The partial guarantees, and every page must preserve:
   2.75rem` — a deliberate deviation from the export.
 - **Contrast**: body and muted text pass 4.5:1 on every band in both themes;
   the new pairs were checked (olive on sand ≈ 5.5:1 light; `--green-ship` on
-  cream ≈ 6.3:1). White-on-`--green-bright` pills flip to dark text
-  (`#14172a`) in dark mode. State is never colour-only — pills and dots always
-  carry words.
+  cream ≈ 6.3:1). `--green-bright` is a **marker** colour — progress fill,
+  status dot — not a text surface: white on it is only 3:1, so the live status
+  pill takes `--green` (≈ 5.3:1 with white) exactly as `.cta-primary` and
+  `.chip-live` do. State is never colour-only — pills and dots always carry
+  words.
 - **Decorative artwork**: every illustration has `alt=""` (see below); every
   decorative inline SVG and dot has `aria-hidden="true"` and
   `focusable="false"`.

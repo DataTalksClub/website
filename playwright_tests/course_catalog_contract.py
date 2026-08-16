@@ -9,16 +9,18 @@ def assert_copied_course_catalog_link(
     path: str,
     title: str,
 ) -> Locator:
-    """Locate one copied-CMP course row without inventing its accessible name."""
+    """Locate one course in the catalogue by its own route and heading.
 
-    course_link = page.locator(f'main #courses a[href="{path}"]')
-    expect(course_link).to_have_count(1)
+    Design 5a (issue #179) gives the courses index three differently shaped surfaces —
+    the active cohort card, the open-registration card and the self-paced row — so the
+    contract is that the course is reachable at its own path and is announced by a
+    heading carrying its title, not that a particular card nests the two a fixed way.
+    """
+
+    course_link = page.locator(f'main #courses a[href="{path}"]').first
     expect(course_link).to_be_visible()
     expect(course_link).to_have_attribute("href", path)
-    title_heading = course_link.locator(
-        "xpath=ancestor::*[self::h3 or self::h4] | descendant::*[self::h3 or self::h4]"
-    )
+    title_heading = page.locator("main #courses").get_by_role("heading", name=title, exact=True)
     expect(title_heading).to_have_count(1)
     expect(title_heading).to_be_visible()
-    expect(title_heading).to_have_text(title)
     return course_link
