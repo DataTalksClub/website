@@ -598,13 +598,6 @@
         justify-items: center;
       }
 
-      .hero-caption {
-        color: var(--indigo);
-        font-style: italic;
-        font-weight: 600;
-        text-align: center;
-      }
-
       /* --- cards -------------------------------------------------------- */
 
       .card {
@@ -658,21 +651,7 @@
         color: var(--cream);
       }
 
-      .band-note {
-        color: var(--green-deep);
-        font-style: italic;
-        font-weight: 700;
-        margin-top: 1.5rem;
-        text-align: center;
-      }
-
       /* --- the climb ---------------------------------------------------- */
-
-      .climb-card figure {
-        background: var(--lavender);
-        border-radius: 0.6rem;
-        padding: 0.5rem;
-      }
 
       .climb-step {
         align-items: center;
@@ -870,15 +849,15 @@
       }
 
       .build-check::after {
-        border-bottom: 0.18rem solid var(--card);
-        border-left: 0.18rem solid var(--card);
+        border-bottom: 0.13rem solid var(--card);
+        border-left: 0.13rem solid var(--card);
         content: "";
-        height: 0.5rem;
-        left: 0.28rem;
+        height: 0.28rem;
+        left: 0.31rem;
         position: absolute;
-        top: 0.27rem;
+        top: 0.33rem;
         transform: rotate(-45deg);
-        width: 0.85rem;
+        width: 0.54rem;
       }
 
       .build-note {
@@ -1534,6 +1513,35 @@
         .climb-card .doodle {
           aspect-ratio: 667 / 300;
           grid-column: 1 / span 2;
+          margin-bottom: 0.6rem;
+        }
+
+        /* Absolute spoke coordinates cannot hold a long label inside a narrow frame —
+           "MLOps Roadmap" centred at 9% hangs off the left edge.  Narrow screens read
+           the graph as the hub followed by its relations instead. */
+        .graph-plot {
+          aspect-ratio: auto;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0.4rem;
+          justify-content: center;
+        }
+
+        .graph-edges {
+          display: none;
+        }
+
+        .graph-node {
+          /* The coordinates are inline styles, so they take a deliberate override. */
+          left: auto !important;
+          max-width: none;
+          position: static;
+          top: auto !important;
+          transform: none;
+        }
+
+        .graph-node-hub {
+          order: -1;
         }
 
         .climb-card .step-number {
@@ -1605,47 +1613,19 @@
 
         /* The catalogue is a list of names, promises and when they next run. */
         .catalog-scroller {
-          gap: 0;
-          grid-auto-columns: auto;
-          grid-auto-flow: row;
-          overflow-x: visible;
-          padding: 0;
-          margin-inline: 0;
+          grid-auto-columns: minmax(min(17rem, 82%), 1fr);
         }
 
-        .course-card {
-          background: none;
-          border: 0;
-          border-bottom: 1.5px dashed var(--line-soft);
-          border-radius: 0;
-          box-shadow: none;
-          column-gap: 0.75rem;
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
-          padding: 0.7rem 0;
-          row-gap: 0.1rem;
+        /* The featured card is the only card with a wider gutter than the rest; on a
+           narrow screen that reads as a mistake, so it takes the shared card inset. */
+        .featured {
+          border-radius: 1.1rem;
+          gap: 1.1rem;
+          padding: 1rem;
         }
 
-        .course-card h3 {
-          grid-column: 1;
-        }
-
-        .course-card .course-promise {
-          grid-column: 1;
-        }
-
-        .course-card .featured-badges {
-          align-self: center;
-          grid-column: 2;
-          grid-row: 1 / span 2;
-        }
-
-        .course-card .featured-badges .chip:not(.chip-green) {
-          display: none;
-        }
-
-        .scroller-controls {
-          display: none !important;
+        .featured-build {
+          padding: 0.9rem 1rem;
         }
       }
 
@@ -1931,10 +1911,9 @@
               come with the account.
             </p>
           </div>
-          <figure class="hero-figure">
+          <div class="hero-figure">
             {% include "core/_home_illustration.html" with variant="hero" %}
-            <figcaption class="hero-caption">everybody starts here — nobody stays here</figcaption>
-          </figure>
+          </div>
         </div>
       </section>
 
@@ -1973,7 +1952,6 @@
               <p>Deployed models, monitored agents, and the interview where you talk about your own system.</p>
             </article>
           </div>
-          <p class="band-note">…and then you're the one shipping it</p>
         </div>
       </section>
 
