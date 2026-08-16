@@ -71,7 +71,10 @@ ink band), which exist because those pairings must not flip with the theme.
 ### Extended tokens (introduced with the 6-series pages)
 
 Light values come from the mockup source; dark values follow the mockup's own
-dark mapping in `_docs/design/mockups/datatalks-homepage.source.css`.
+dark mapping in `_docs/design/mockups/datatalks-homepage.source.css`. The dark
+column reached the partial with the events index (mockup 6c), the first page to
+use these tokens; until then only the light values were defined, so a status
+pill kept its light surface while its text flipped with the theme.
 
 | Token | Light | Dark | Role |
 | --- | --- | --- | --- |
