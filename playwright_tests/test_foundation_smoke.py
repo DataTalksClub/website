@@ -15,6 +15,8 @@ FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
 HOME_HEADING = "Ship data pipelines and AI systems that actually run in production."
+# The podcast index carries the design 5a headline from mockup 6d (issue #179).
+PODCAST_HEADING = "Conversations with people who ship data"
 
 
 def _featured_event_path() -> str:
@@ -91,7 +93,7 @@ def test_public_home_and_hubs(
         ("Events", "/events", "Events"),
         ("Courses", "/courses", "Learn data skills. For free. Together."),
         ("Blog", "/blog", "Latest Articles"),
-        ("Podcast", "/podcast", "Podcast"),
+        ("Podcast", "/podcast", PODCAST_HEADING),
         ("Wiki", "/wiki", "DataTalks.Club Podcast Wiki"),
         ("Books", "/books", "Book of the Week"),
     ):
@@ -243,7 +245,7 @@ def test_podcast_latest_middle_and_oldest_seasons(
     for season, path in scenarios:
         response = page.goto(f"{origin}{path}")
         assert response is not None and response.status == 200
-        expect(page.get_by_role("heading", name="Podcast", exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", name=PODCAST_HEADING, exact=True)).to_be_visible()
         expect(page.locator("main h2")).to_have_count(1)
         expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
         current_season = page.get_by_role("navigation", name="Podcast seasons").locator(

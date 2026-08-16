@@ -35,6 +35,7 @@ from events.identity import (
 from events.services import public_registration_total
 
 from .faq_data import faq_courses
+from .podcast_content import episode_view, season_episodes
 from .public_data import (
     PROJECTION_ROOT,
     event_date_groups,
@@ -501,6 +502,8 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
         ),
         context={
             "season": selected_season,
+            "episodes": season_episodes(selected_season.episodes),
+            "episode_total": sum(len(available.episodes) for available in seasons),
             "season_links": tuple(
                 {
                     "number": available.number,
@@ -588,6 +591,7 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         description=episode["description"],
         context={
             "record": episode,
+            "episode": episode_view(episode),
             "og_type": "article",
             "og_image_url": _canonical(episode["image_path"]) if episode["image_path"] else "",
             "published_time": episode["published"],
