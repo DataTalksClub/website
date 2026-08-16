@@ -59,36 +59,58 @@
         --green: #2b7a35;
         --green-bright: #3ea94b;
         --green-deep: #41704e;
+        /* Green in its text role (chips, cohort dates).  In light it is the
+           same ink as the green fills; dark needs the two roles apart, so the
+           role gets its own token. */
+        --green-text: var(--green);
         --indigo: #5a62c4;
         --indigo-soft: #c9cdf2;
         --shadow: rgba(30, 33, 54, 0.9);
         --shadow-soft: rgba(30, 33, 54, 0.16);
         --focus: #1e2136;
+        /* Text sitting on a green fill, and the closing band's ground.  Both
+           exist so the dark theme can restate them without per-component
+           overrides; in light they resolve to the values the design always had. */
+        --on-green: #ffffff;
+        --band-ink-bg: var(--ink);
         --page: var(--cream);
         --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
           BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
       }
 
+      /* The dark palette is the designer's own: the decoded mockup source
+         (_docs/design/mockups/datatalks-homepage.source.css) carries a
+         [data-dtc-theme="dark"] substitution table, and these values follow
+         it -- navy grounds, periwinkle text, a deepened brand green under
+         near-white labels.  Two deliberate departures, because the mockup
+         darkens its inline-SVG artwork by remapping fills, which a token
+         table cannot see: the solid border ink is lightened from the
+         source's #3b4272 so outlined controls hold a 3:1 edge on their own
+         surface, and the dashed-rule alpha rises from .26 to .34 so the band
+         separators survive a phone screen. */
       body.dark-mode {
-        --cream: #14172a;
-        --lavender: #191d33;
-        --mint: #15251d;
-        --card: #1e2338;
-        --ink: #f2f1ec;
-        --body-text: #c6cad9;
-        --muted: #a4a9bd;
-        --line: #454b6b;
-        --line-soft: #333855;
-        --green: #4cb85a;
-        --green-bright: #4cb85a;
-        --green-deep: #8fd39c;
-        --indigo: #a6adf0;
-        --indigo-soft: #3b4270;
-        --shadow: rgba(0, 0, 0, 0.7);
-        --shadow-soft: rgba(0, 0, 0, 0.45);
-        --focus: #f2f1ec;
-        --page: #14172a;
+        --cream: #13162a;
+        --lavender: #232a52;
+        --mint: #17301f;
+        --card: #1b1f3a;
+        --ink: #eaeaf7;
+        --body-text: #aeb2d2;
+        --muted: #8286a8;
+        --line: #6a72ab;
+        --line-soft: rgba(169, 176, 242, 0.34);
+        --green: #2b8146;
+        --green-bright: #2b8146;
+        --green-deep: #93c7a5;
+        --green-text: #93c7a5;
+        --indigo: #a9b0f2;
+        --indigo-soft: #3c4372;
+        --shadow: rgba(6, 8, 22, 0.65);
+        --shadow-soft: rgba(6, 8, 22, 0.65);
+        --focus: #eaeaf7;
+        --on-green: #f3fff5;
+        --band-ink-bg: #0d0f20;
+        --page: #13162a;
       }
 
       *,
@@ -251,6 +273,17 @@
         width: 100%;
       }
 
+      /* The artwork was painted for the cream page: its lavender wash and
+         white paper read as a glowing plate on the dark ground.  The mockup
+         darkens its artwork by remapping SVG fills, which no token or filter
+         can do to a fixed WebP, so dark mode dims and slightly desaturates
+         the whole drawing instead — same artwork, lamp turned down — which
+         keeps the ink lines and the green shirts legible while the wash
+         settles into the ground. */
+      body.dark-mode .doodle {
+        filter: brightness(0.78) saturate(0.72);
+      }
+
       /* The three climb drawings are trimmed to their own ink and so vary in natural
          size; one box with a contained fit keeps the cards on a shared rhythm. */
       .climb-card .doodle {
@@ -328,7 +361,7 @@
         border: 2px solid var(--line);
         border-radius: 999px;
         box-shadow: 0 3px 0 var(--shadow);
-        color: #ffffff;
+        color: var(--on-green);
         display: inline-flex;
         font-weight: 700;
         justify-content: center;
@@ -488,12 +521,8 @@
       }
 
       .band-ink {
-        background: var(--ink);
+        background: var(--band-ink-bg);
         border-bottom: 0;
-      }
-
-      body.dark-mode .band-ink {
-        background: #0d0f1c;
       }
 
       /* Stacked by default; the action or kicker only moves onto the heading's own row
@@ -577,7 +606,7 @@
 
       .cta-primary {
         background: var(--green);
-        color: #ffffff;
+        color: var(--on-green);
       }
 
       .cta-secondary {
@@ -635,14 +664,14 @@
       }
 
       .chip-green {
-        border-color: var(--green);
-        color: var(--green);
+        border-color: var(--green-text);
+        color: var(--green-text);
       }
 
       .chip-live {
         background: var(--green);
         border-color: var(--line);
-        color: #ffffff;
+        color: var(--on-green);
       }
 
       .chip-ink {
@@ -678,11 +707,7 @@
 
       .step-number-3 {
         background: var(--green);
-        color: #ffffff;
-      }
-
-      body.dark-mode .step-number-3 {
-        color: #14172a;
+        color: var(--on-green);
       }
 
       /* --- member stories ----------------------------------------------- */
@@ -916,7 +941,7 @@
       }
 
       .course-cohort {
-        color: var(--green);
+        color: var(--green-text);
         font-size: 0.82rem;
         font-weight: 700;
       }
@@ -1096,14 +1121,10 @@
       .graph-node-hub {
         background: var(--green);
         border-color: var(--line);
-        color: #ffffff;
+        color: var(--on-green);
         font-size: 0.95rem;
         font-weight: 800;
         padding: 0.45rem 1rem;
-      }
-
-      body.dark-mode .graph-node-hub {
-        color: #14172a;
       }
 
       .graph-legend {
@@ -1454,7 +1475,7 @@
 
       .analytics-preferences-allow {
         background: var(--green);
-        color: #ffffff;
+        color: var(--on-green);
       }
 
       .analytics-preferences-deny {
