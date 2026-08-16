@@ -4,6 +4,13 @@ Design 5a is the visual language introduced by the homepage rebuild (issue #179)
 and carried by the 6-series pages: the courses index (6a), the course page (6b),
 the events index (6c) and the podcast index and episode (6d).
 
+The five public wiki surfaces — the hub, search results, the graph, the special
+pages and a wiki page — joined the system afterwards. They have **no mockup**:
+they are composed from the inventory below, and where they needed something the
+system did not have (a knowledge-graph node, long-form prose, a search row) the
+primitive was added to the partial and documented here rather than forked into a
+page.
+
 The system lives in one place:
 
 - **`templates/core/_design_system.html`** — the shared stylesheet partial.
@@ -91,6 +98,13 @@ pill kept its light surface while its text flipped with the theme.
 | `--on-bubble` | `#1e2136` | same | glyphs and digits on `--bubble` |
 | `--clay` | `#e0847a` | same | YouTube platform dot |
 | `--gold` | `#e2c67a` | same | RSS platform dot |
+| `--graph-edge` | `#b9bfd8` | same | the drawn edges of a knowledge graph |
+
+`--graph-edge` was the one hex the homepage still carried inline, as an SVG
+`stroke` attribute on each graph line. It became a token when `/wiki/graph`
+started drawing the same edges; the value is unchanged in both themes, because
+the line has to read on a light lavender band and on a dark navy one and this
+pale periwinkle does both.
 
 Only `--green-ship` restates itself for the dark theme, because it is the one
 extended token used as *text*: on the dark mint of a `.status-pill-mint` the
@@ -233,10 +247,12 @@ Markup shapes below are the contract; the CSS lives in the partial.
   ```
 
   Use it on pages that sit below an index: the course page carries
-  `Courses / <course title>` at the top of its hero band. Index pages
-  (`/courses`, `/events`, `/podcast`) and the homepage do not carry one — the
-  masthead already marks them with `aria-current="page"` and a lone "Home"
-  crumb duplicates the brand link. The podcast episode page keeps its
+  `Courses / <course title>` at the top of its hero band, and the four wiki
+  surfaces below `/wiki` carry `Wiki / Search`, `Wiki / Knowledge graph`,
+  `Wiki / Special pages[ / <category>]` and `Wiki / <topic>`. Index pages
+  (`/courses`, `/events`, `/podcast`, `/wiki`) and the homepage do not carry
+  one — the masthead already marks them with `aria-current="page"` and a lone
+  "Home" crumb duplicates the brand link. The podcast episode page keeps its
   `← all episodes` back-link instead; a page offers one way back, not two.
 
 ### Cards and chips
@@ -545,6 +561,76 @@ primitives are still the ones a page in this system uses when it does own a form
 ink border) — the tinted inset blocks: "what you'll build", "next assignment",
 "questions before you start?".
 
+### Knowledge graph (homepage wiki band, `/wiki/graph`)
+
+The homepage plots one wiki hub and its spokes; `/wiki/graph` plots a hub of its
+own and then lists every node the graph carries. Both read the same data, so
+both use these primitives — they live in the partial rather than in either page.
+
+```html
+<div class="graph-frame">
+  <div class="graph-plot">
+    <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+      <line x1="50" y1="50" x2="18" y2="19"/>
+    </svg>
+    <a class="graph-node graph-node-hub" href="…">MLOps</a>
+    <a class="graph-node" href="…" style="left: 18%; top: 19%">Feature Stores</a>
+  </div>
+  <p class="graph-legend">…</p>
+</div>
+```
+
+- **`.graph-node`** — one node: a lavender pill with an indigo edge. It carries
+  no position of its own, so the same node reads inside a plotted frame and
+  inside a flowing cloud. `.graph-node-hub` is the green centre.
+- **`.graph-plot`** — the landscape frame the spokes are positioned in
+  (`.graph-plot .graph-node` is the absolute placement). Below 48rem the plot
+  becomes a centred cloud with the hub first and the edges hidden: absolute
+  percentages cannot hold a long label in a narrow box.
+- **`.graph-cloud`** — a wrapping row of nodes, for a set too large to plot.
+  `/wiki/graph` draws one per node type.
+- **`.graph-edges line`** — styled from the partial (`--graph-edge`, a
+  non-scaling `0.4` stroke), never from an attribute in the page.
+- **`.graph-legend`** with `.legend-key` / `.legend-swatch` / `.legend-hub` /
+  `.legend-page` — the key and the count under a frame.
+- **`.topic-list`** / **`.topic`** — the bordered topic cards the homepage
+  stacks beside its plot.
+
+Positions are a layout constant (`core.home_content.WIKI_GRAPH_POSITIONS`);
+which node sits where is read from the graph's own edges, and a hub or a spoke
+the data cannot supply raises rather than rendering an invented edge.
+
+### Long-form prose (`.prose`)
+
+A page whose text arrives as typed blocks renders them inside `.prose`:
+
+```html
+<div class="prose">
+  <h2 id="purpose-of-aa-tests">Purpose of A/A Tests</h2>
+  <p class="prose-paragraph">…</p>
+  <p class="prose-item">…</p>
+</div>
+```
+
+Rhythm comes from `.prose > * + *`; `.prose-paragraph` keeps the source's own
+line breaks (`white-space: pre-line`), so its opening tag and its value stay on
+one line in the template. A list item arrives as its own block, so
+`.prose-item` draws a marker (`display: list-item`) instead of the page
+inventing a `<ul>` the source never marked. Headings keep the identifier the
+source gives them, which is what every in-page anchor lands on.
+
+### Search row
+
+```html
+<form class="search-row" action="…" method="get">
+  <label class="sr-only" for="wiki-query">Search the Wiki</label>
+  <input id="wiki-query" class="field-input" name="q" type="search" required>
+  <button class="cta cta-compact cta-primary" type="submit">Search</button>
+</form>
+```
+
+The field grows and the button keeps its size; both wrap on a narrow screen.
+
 ### Date rail (events index)
 
 ```html
@@ -557,6 +643,38 @@ ink border) — the tinted inset blocks: "what you'll build", "next assignment",
 
 A `--bubble` left rule with the date stacked beside each event card; typically
 the first cell of a `.list-row` (`--row-cols: 6.5rem minmax(0,1fr)`).
+
+## The wiki surfaces, as built
+
+There is no mockup for the wiki, so this is what the five pages settled on.
+Every fact on them is read from the wiki data; `content/wiki_content.py` is
+where that data becomes the shapes below, and it raises rather than render a
+count, a group or an edge the data does not carry.
+
+- **`/wiki`** — hero (topic count as the mono kicker, the title the page has
+  always carried, a lede, the search row), then a lavender band holding the
+  three ways in (graph, search, special pages) as `.row-list` rows, then the
+  A–Z catalogue as the same rows: title, summary, and a `.cta-compact` read
+  action. It is an index, so it carries no breadcrumb.
+- **`/wiki?q=…`** — the same search row, then the count as the results band's
+  own `h2` (`N results for “…”`), then one row per hit: a `.status-pill`
+  naming what the hit is (the index holds whole pages and sections inside
+  them), the title, and the section title underneath. No hits keeps the
+  original empty state verbatim.
+- **`/wiki/graph`** — the hero plots the wiki page with the most wiki
+  neighbours on the shared `.graph-frame`, with two `.stat-tile` totals beside
+  it, and then gives each node type its own band: heading, one-line
+  description, a mono count, and every node as a `.graph-cloud` of
+  `.graph-node`s. Each node keeps the identifier the graph gives it, so a
+  `#wiki:mlops` link into the page still lands, and a node the data has no
+  destination for stays a named `span`, never a link.
+- **`/wiki/special-pages[/<category>]`** — the categories are `.filter-pills`
+  as links with `aria-current="page"` on the current one; the pages themselves
+  are the hub's rows, so a reader meets one catalogue shape and not two.
+- **`/wiki/<topic>`** — one 48rem reading column: the trail back, a `Wiki`
+  mono kicker, the title, the summary, the page's relations as `.chip`s
+  (linked ones indigo, each prefixed with its relation type for screen
+  readers), and then the page itself in `.prose`.
 
 ## Responsive rules
 
