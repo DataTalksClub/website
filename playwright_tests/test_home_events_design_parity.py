@@ -22,7 +22,7 @@ DARK_SURFACE_BACKGROUND = "rgb(13, 17, 23)"
 # The homepage carries its own design-5a palette (issue #179); the events surfaces still
 # render on the adopted CMP shell.
 HOME_LIGHT_BACKGROUND = "rgb(253, 250, 243)"
-HOME_DARK_BACKGROUND = "rgb(20, 23, 42)"
+HOME_DARK_BACKGROUND = "rgb(19, 22, 42)"
 HOME_HEADING = "Ship data pipelines and AI systems that actually run in production."
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
