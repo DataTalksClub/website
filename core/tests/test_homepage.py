@@ -66,6 +66,15 @@ class MainHomepageRoutingTests(TestCase):
                 self.assertNotIn(retired, body)
         self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
 
+    def test_homepage_leaks_no_unrendered_template_syntax(self) -> None:
+        """A multi-line {# #} comment is not a comment, and reaches the reader as copy."""
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        for leak in ("{#", "#}", "{%", "%}", "{{", "}}"):
+            with self.subTest(token=leak):
+                self.assertNotIn(leak, body)
+
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))
 

@@ -358,10 +358,12 @@
         position: static;
       }
 
-      /* Declared after the controls they hide so the cascade order is the width, not
-         the element type. */
-      .masthead .desktop-only {
-        display: none;
+      /* The auth pair stays in the masthead at every width, so it gives up its padding
+         rather than its place once the row gets tight. */
+      .masthead .nav-auth,
+      .masthead .signup-button {
+        font-size: 0.82rem;
+        padding-inline: 0.6rem;
       }
 
       .account-nav {
@@ -401,6 +403,31 @@
         width: max-content;
         min-width: 12rem;
         z-index: 60;
+      }
+
+      .user-menu-signed-in {
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin: 0;
+        padding: 0.35rem 0.6rem 0;
+        text-transform: uppercase;
+      }
+
+      .user-menu-identity {
+        border-bottom: 2px dashed var(--line-soft);
+        margin: 0 0 0.35rem;
+        max-width: 14rem;
+        overflow: hidden;
+        padding: 0.1rem 0.6rem 0.5rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .user-menu-actions {
+        display: grid;
+        gap: 0.1rem;
       }
 
       /* --- bands -------------------------------------------------------- */
@@ -1414,8 +1441,7 @@
           position: static;
         }
 
-        .masthead .site-navigation-toggle,
-        .masthead .nav-auth {
+        .masthead .site-navigation-toggle {
           display: none;
         }
 
@@ -1427,8 +1453,10 @@
           order: 3;
         }
 
-        .masthead .desktop-only {
-          display: inline-flex;
+        .masthead .nav-auth,
+        .masthead .signup-button {
+          font-size: 0.95rem;
+          padding-inline: 1rem;
         }
 
         .masthead .nav-link {
@@ -1460,11 +1488,20 @@
       }
     </style>
   </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  {% url 'account_settings' as account_settings_url %}
+  {% url 'socialaccount_connections' as account_connections_url %}
+  {% url 'account_logout' as account_logout_url %}
   <body
     class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
     data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
     data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
     data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
   >
     <a class="skip-link" href="#main-content">Skip to content</a>
     <script>
@@ -1526,10 +1563,6 @@
             <a class="nav-link" href="{% url 'books' %}">Books</a>
             <a class="nav-link" href="{% url 'docs-home' %}">Docs</a>
             <a class="nav-link" href="{% url 'faq-home' %}">FAQ</a>
-            {% if not user.is_authenticated %}
-              <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
-              <a class="nav-link nav-auth" href="{% url 'account_signup' %}">Sign up free</a>
-            {% endif %}
           </div>
         </div>
         <div class="masthead-actions">
@@ -1544,20 +1577,45 @@
             <span class="sr-only">&nbsp;mode</span>
           </button>
           {% if user.is_authenticated %}
-            <details class="account-nav">
-              <summary>Account</summary>
-              <div class="mobile-nav-panel">
-                <a class="nav-link" href="{% url 'course_list' %}">Courses</a>
-                <a class="nav-link" href="{% url 'account_settings' %}">Account settings</a>
-                {% if can_access_studio %}
-                  <a class="nav-link" href="{% url 'studio:home' %}">Studio</a>
-                {% endif %}
-                <a class="nav-link" href="{% url 'account_logout' %}">Logout</a>
+            {% comment %}
+              Same account-menu contract as the shared shell: the labelled summary and the
+              .user-menu-panel links every identity test drives.
+            {% endcomment %}
+            <details class="account-nav user-menu">
+              <summary
+                class="user-menu-toggle"
+                title="Account menu"
+                aria-label="Account menu"
+              >Account</summary>
+              <div class="mobile-nav-panel user-menu-panel">
+                <p class="user-menu-signed-in">Signed in as</p>
+                <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
+                  {{ user.email|default:user.username }}
+                </p>
+                <div class="user-menu-actions">
+                  <a class="nav-link user-menu-item" href="{% url 'course_list' %}">Courses</a>
+                  {% if account_settings_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
+                  {% endif %}
+                  {% if account_connections_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_connections_url }}">Login connections</a>
+                  {% endif %}
+                  {% if can_access_studio %}
+                    <a class="nav-link user-menu-item" href="{% url 'studio:home' %}">Studio</a>
+                  {% endif %}
+                  {% if account_logout_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_logout_url }}">Logout</a>
+                  {% endif %}
+                </div>
               </div>
             </details>
           {% else %}
-            <a class="nav-link desktop-only" href="{{ account_login_url }}">Log in</a>
-            <a class="signup-button desktop-only" href="{% url 'account_signup' %}">Sign up free</a>
+            {% comment %}
+              Rendered once, and visible at every width: a signed-out visitor must be able
+              to reach login without first opening the navigation menu.
+            {% endcomment %}
+            <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
+            <a class="signup-button" href="{% url 'account_signup' %}">Sign up free</a>
           {% endif %}
         </div>
       </nav>
@@ -2011,6 +2069,11 @@
         });
       })();
     </script>
+    {% comment %}
+      Same timezone contract as the shared shell: the browser_timezone cookie for every
+      visitor, and one passive preference POST for a signed-in account without one.
+    {% endcomment %}
+    <script src="{% static 'timezone_preference.js' %}"></script>
     <script src="{% static 'core/site_navigation.js' %}"></script>
     <script src="{% static 'core/accessibility.js' %}"></script>
     <script src="{% static 'core/analytics_preferences.js' %}"></script>
