@@ -271,6 +271,14 @@ Rules for editing:
         width: auto;
       }
 
+      /* The bubble follows its token (the attribute's #b9bff0 is only the
+         no-CSS fallback): with the fill fixed light, dark mode drew its
+         near-white DTC glyph on the pale bubble at about 1.5:1.  On the dark
+         bubble the mark matches the play discs the token already paints. */
+      .brand-mark path {
+        fill: var(--bubble);
+      }
+
       .brand-mark text {
         fill: currentColor;
         dominant-baseline: auto;
