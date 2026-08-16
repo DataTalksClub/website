@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import uuid
 from copy import deepcopy
 from pathlib import Path
-from typing import ClassVar
+from typing import Any, ClassVar
 from unittest import mock
 
 from django.core.exceptions import ImproperlyConfigured
@@ -29,6 +30,25 @@ from events.identity import (
     serialize_event_identity,
 )
 from events.models import Event, EventAlias, EventPublicIdSequence
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def load_migration_function(relative_path: str, function_name: str) -> Any:
+    module_spec = importlib.util.spec_from_file_location(
+        f"loaded_{Path(relative_path).stem}", ROOT / relative_path
+    )
+    assert module_spec is not None and module_spec.loader is not None
+    module = importlib.util.module_from_spec(module_spec)
+    module_spec.loader.exec_module(module)
+    return getattr(module, function_name)
+
+
+class _HistoricalAppsStub:
+    def get_model(self, app_label: str, model_name: str) -> Any:
+        if (app_label, model_name) != ("events", "Event"):
+            raise AssertionError("unexpected historical model requested")
+        return Event
 
 
 class EventIdentityManifestTests(TestCase):
@@ -109,6 +129,41 @@ class EventIdentityManifestTests(TestCase):
         self.assertEqual(
             {event["public_path"] for event in projection["events"]},
             expected_paths,
+        )
+
+    def test_collation_divergent_public_ids_realign_to_the_manifest(self) -> None:
+        align = load_migration_function(
+            "events/migrations/0008_align_public_event_ids_to_manifest.py",
+            "align_public_ids_to_manifest",
+        )
+        manifest = load_identity_manifest()
+        expected = {str(item.id): item.public_id for item in manifest.events}
+
+        first, second = manifest.events[11], manifest.events[12]
+        Event.objects.filter(id=first.id).update(public_id=100_000)
+        Event.objects.filter(id=second.id).update(public_id=first.public_id)
+        Event.objects.filter(id=first.id).update(public_id=second.public_id)
+        with self.assertRaisesMessage(
+            ImproperlyConfigured,
+            "Public Event UUID/public-ID mapping is incomplete",
+        ):
+            public_projection()
+
+        align(_HistoricalAppsStub(), None)
+
+        self.assertEqual(
+            dict(Event.objects.values_list("id", "public_id")),
+            {uuid.UUID(key): value for key, value in expected.items()},
+        )
+        projection = public_projection()
+        self.assertEqual(
+            {event["public_path"] for event in projection["events"]},
+            {item.canonical_path for item in manifest.events},
+        )
+        align(_HistoricalAppsStub(), None)
+        self.assertEqual(
+            dict(Event.objects.values_list("id", "public_id")),
+            {uuid.UUID(key): value for key, value in expected.items()},
         )
 
     def test_manifest_import_replay_is_byte_stable_and_a_preflight_noop(self) -> None:
