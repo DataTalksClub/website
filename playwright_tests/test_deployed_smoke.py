@@ -294,8 +294,14 @@ def test_deployed_health_and_anonymous_admin_api_contracts(
 
     home = page.goto(origin)
     assert home is not None
-    static_href = page.locator('link[rel="stylesheet"][href^="/static/"]').first.get_attribute(
-        "href"
+    # The homepage carries its stylesheet inline and links none, so sample whichever
+    # static asset it does reference.  What this smoke proves is that /static/ is served
+    # and carries the development noindex header, not which element points at it.
+    static_href = page.evaluate(
+        """() => {
+            const node = document.querySelector('[src^="/static/"], link[href^="/static/"]');
+            return node ? node.getAttribute('src') || node.getAttribute('href') : null;
+        }"""
     )
     assert static_href is not None
     static_response = page.request.get(f"{origin}{static_href}", max_redirects=0)
