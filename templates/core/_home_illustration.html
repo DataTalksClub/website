@@ -2,17 +2,23 @@
 {% comment %}
 Homepage illustrations for design 5a.  The artwork is the drawing from the #179
 mockup, exported per illustration to core/static/core/illustrations/, so the page
-shows the designed picture rather than a redrawn approximation.  The flat page
-background is transparent in the asset, which lets one file sit on the cream hero
-band and on a white card without a visible plate.
+shows the designed picture rather than a redrawn approximation.
 
-The hero and the "right now" stage share one drawing on purpose: the hero states
-the problem and the first stage names it.
+The hero and the "right now" stage are the same scene, but they are two separate
+exports: the hero shows it large, and the climb card shows the smaller framing the
+design draws inside that card.  Each climb export is cropped strictly inside its
+card border and trimmed to the drawing, so the three vary in natural size and the
+stylesheet boxes them to one shape.
+
+Only the outer page background is transparent, which lets one file sit on the cream
+hero band and on a white card without a visible plate.
 
 Decorative only — the surrounding copy carries the meaning — so every image has an
 empty alt attribute.
 {% endcomment %}
-{% if variant == "learning" %}
+{% if variant == "hero" %}
+  {% static "core/illustrations/home-hero.webp" as doodle_src %}
+{% elif variant == "learning" %}
   {% static "core/illustrations/home-learning.webp" as doodle_src %}
 {% elif variant == "shipping" %}
   {% static "core/illustrations/home-shipping.webp" as doodle_src %}
@@ -23,7 +29,6 @@ empty alt attribute.
   class="doodle doodle-{{ variant }}"
   src="{{ doodle_src }}"
   alt=""
-  {% if variant == "hero" %}width="989" height="730"{% else %}width="670" height="463"{% endif %}
   decoding="async"
   {% if variant != "hero" %}loading="lazy"{% endif %}
 >

@@ -227,6 +227,13 @@
         width: 100%;
       }
 
+      /* The three climb drawings are trimmed to their own ink and so vary in natural
+         size; one box with a contained fit keeps the cards on a shared rhythm. */
+      .climb-card .doodle {
+        aspect-ratio: 667 / 432;
+        object-fit: contain;
+      }
+
       .masthead-actions {
         align-items: center;
         display: flex;
@@ -1447,7 +1454,6 @@
        * ------------------------------------------------------------------ */
 
       @media (max-width: 47.99rem) {
-        .hero-figure,
         .hero-fineprint {
           display: none;
         }
@@ -1470,17 +1476,18 @@
           row-gap: 0.1rem;
         }
 
-        .climb-card .doodle {
-          display: none;
-        }
-
         .climb-card .climb-step {
           display: contents;
         }
 
+        .climb-card .doodle {
+          aspect-ratio: 667 / 300;
+          grid-column: 1 / span 2;
+        }
+
         .climb-card .step-number {
           grid-column: 1;
-          grid-row: 1 / span 2;
+          grid-row: 2 / span 2;
         }
 
         .climb-card h3 {
