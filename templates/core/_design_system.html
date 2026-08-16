@@ -572,6 +572,51 @@ Rules for editing:
         text-underline-offset: 0.2em;
       }
 
+      /* Breadcrumb trail: the where-am-I line at the top of a detail page
+         (restored on the course page after the design 5a rebuild; the mockups
+         draw none, so the shape is this system's own).  Markup contract: a
+         nav.breadcrumbs with aria-label="Breadcrumb" holding an ol, one li per
+         level; every ancestor is a link and the current page sits on
+         li[aria-current="page"] as plain text, never a link.  The separator is
+         CSS-drawn with empty alternative text so it is never announced; engines
+         without the alt-text syntax fall back to the bare glyph.  Links keep
+         the 2.75rem target height the system guarantees. */
+      .breadcrumbs ol {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.92rem;
+      }
+
+      .breadcrumbs li {
+        align-items: center;
+        display: inline-flex;
+        min-width: 0;
+      }
+
+      .breadcrumbs a {
+        align-items: center;
+        color: var(--indigo);
+        display: inline-flex;
+        font-weight: 600;
+        min-height: 2.75rem;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .breadcrumbs li + li::before {
+        color: var(--muted);
+        content: "/";
+        content: "/" / "";
+        flex: none;
+        margin-inline: 0.65rem;
+      }
+
+      .breadcrumbs [aria-current="page"] {
+        color: var(--muted);
+        font-weight: 600;
+      }
+
       /* --- calls to action ---------------------------------------------- */
 
       .cta {

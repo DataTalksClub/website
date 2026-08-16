@@ -216,3 +216,45 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         self.course.start_date = None
         self.course.end_date = None
         self.course.save()
+
+
+class CoursePageBreadcrumbTests(CourseDetailViewTestBase):
+    """The trail the adopted shell drew, restored as the design 5a primitive."""
+
+    def breadcrumb_nav(self):
+        body = self.client.get(self.course_url()).content.decode()
+        trails = re.findall(
+            r'<nav class="shell breadcrumbs" aria-label="Breadcrumb">(.*?)</nav>',
+            body,
+            re.DOTALL,
+        )
+        self.assertEqual(len(trails), 1)
+        return body, trails[0]
+
+    def test_the_trail_is_an_ordered_list_from_the_index_to_this_course(self):
+        _body, trail = self.breadcrumb_nav()
+
+        self.assertIn("<ol>", trail)
+        self.assertNotIn("<ul>", trail)
+        crumbs = re.findall(r"<li[^>]*>(.*?)</li>", trail, re.DOTALL)
+        self.assertEqual(len(crumbs), 2)
+        self.assertIn(f'href="{reverse("course_list")}"', crumbs[0])
+        self.assertIn(">Courses<", crumbs[0])
+
+    def test_the_current_page_is_marked_and_is_not_a_link(self):
+        _body, trail = self.breadcrumb_nav()
+
+        current = re.search(r'<li aria-current="page">(.*?)</li>', trail, re.DOTALL)
+        self.assertIsNotNone(current)
+        self.assertIn(self.course.title, current.group(1))
+        self.assertNotIn("<a", current.group(1))
+
+    def test_separators_are_css_drawn_and_never_written_into_the_markup(self):
+        body, trail = self.breadcrumb_nav()
+
+        visible_text = re.sub(r"<[^>]+>", " ", trail)
+        self.assertNotIn("/", visible_text)
+        self.assertNotIn("aria-hidden", trail)
+        # The shared stylesheet draws the separator with empty alternative
+        # text, so assistive technology never announces it.
+        self.assertIn('content: "/" / ""', body)

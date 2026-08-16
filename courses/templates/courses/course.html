@@ -38,6 +38,14 @@
 
       /* --- hero --------------------------------------------------------- */
 
+      /* The breadcrumb links carry the system's 2.75rem target height, so the
+         row brings its own air; fold most of it into the band's top padding
+         and keep a small gap above the centred hero column. */
+      .course-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
       /* Mockup 6b is a single centred column: the cohort eyebrow, the title,
          the promise, the description, the actions and then the fact strip. */
       .course-hero-inner {
@@ -384,6 +392,20 @@
     {% endif %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream course-hero" aria-labelledby="course-heading">
+        {% comment %}
+          The trail the adopted shell used to draw, restored as a design 5a
+          primitive: the ancestor index is a link, the current page is text.
+        {% endcomment %}
+        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'course_list' %}">Courses</a>
+            </li>
+            <li aria-current="page">
+              {{ course.title }}
+            </li>
+          </ol>
+        </nav>
         <div class="shell course-hero-inner">
           {% if registration_campaign.edition_label %}
             <p class="mono-label mono-label-indigo">{{ registration_campaign.edition_label }}</p>
