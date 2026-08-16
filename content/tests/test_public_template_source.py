@@ -87,22 +87,34 @@ class PublicTemplateSourceTests(SimpleTestCase):
             with self.subTest(source=source):
                 self.assertTrue(readability_violations(source))
 
-    def test_collection_surfaces_use_divided_rows_instead_of_column_grids(self) -> None:
-        # The homepage left the divided-row composition with the design 5a rebuild
-        # (issue #179) and now owns its own card grid.  The events index and the
-        # podcast index left it with the same rebuild, on mockups 6c and 6d: their
-        # rows are design 5a `.row-list` rows, which draw the same dashed division
-        # from the shared partial instead of the adopted shell's utility classes.
-        # The wiki hub left it the same way and for the same reason: its catalogue,
-        # its exploration links and its search results are all `.row-list` rows now
-        # (see content/tests/test_wiki_design.py, which holds the wiki surfaces to
-        # the divided-row shape in the language they are actually written in).
-        paths = (REPOSITORY_ROOT / "templates/public/collection_hub.html",)
-        for path in paths:
-            with self.subTest(path=path.relative_to(REPOSITORY_ROOT)):
-                source = path.read_text(encoding="utf-8")
-                self.assertNotRegex(source, r"(?:sm|md|lg):grid-cols-")
-                self.assertIn("divide-y", source)
+    # `test_collection_surfaces_use_divided_rows_instead_of_column_grids` lived here
+    # and asserted the adopted shell's `divide-y` on the collection surfaces.  Every
+    # surface it named has since been rebuilt on design 5a (issue #179) — the
+    # homepage, the events and podcast indexes, then the wiki hub, and now the
+    # blog/books hub — and each draws its dashed division from the shared
+    # `.row-list`/`.list-row` primitives instead.  The contract it protected is the
+    # composition, not the class name, so it is kept in the language each surface is
+    # written in: `test_collection_hub_rows_stay_a_divided_list` below for the
+    # collection hub, and `content/tests/test_wiki_design.py` for the wiki surfaces.
+    # The test itself is gone rather than left iterating over an empty tuple, which
+    # would assert nothing while still reporting a pass.
+
+    def test_collection_hub_rows_stay_a_divided_list(self) -> None:
+        """The blog and books archives are one divided list, never a card grid.
+
+        The hub joined design 5a with issue #179, so the dashed division now
+        comes from the shared `.row-list`/`.list-row` primitives instead of the
+        adopted shell's `divide-y`.  The composition contract is unchanged: one
+        record per divided row, in one column.
+        """
+
+        source = (REPOSITORY_ROOT / "templates/public/collection_hub.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertNotRegex(source, r"(?:sm|md|lg):grid-cols-")
+        self.assertNotIn("card-grid", source)
+        self.assertIn('class="row-list collection-rows"', source)
+        self.assertIn('class="list-row record-row"', source)
 
     def test_event_icons_keep_text_alternatives_and_hide_decoration(self) -> None:
         source = (REPOSITORY_ROOT / "templates/public/_event_meta.html").read_text(encoding="utf-8")

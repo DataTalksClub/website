@@ -5,11 +5,15 @@ and carried by the 6-series pages: the courses index (6a), the course page (6b),
 the events index (6c) and the podcast index and episode (6d).
 
 The five public wiki surfaces — the hub, search results, the graph, the special
-pages and a wiki page — joined the system afterwards. They have **no mockup**:
-they are composed from the inventory below, and where they needed something the
-system did not have (a knowledge-graph node, long-form prose, a search row) the
-primitive was added to the partial and documented here rather than forked into a
-page.
+pages and a wiki page — joined the system afterwards, and so did the shared
+collection hub behind `/blog` and `/books`
+(`templates/public/collection_hub.html`). They have **no mockup**: they are
+composed from the inventory below, and where they needed something the system
+did not have (a knowledge-graph node, long-form prose, a search row, an inline
+mono literal) the primitive was added to the partial and documented here rather
+than forked into a page. When there is no drawing, the rules in this document
+are the whole brief — bands from the band table, primitives from the inventory,
+and nothing on the page that the catalogue does not hold.
 
 The system lives in one place:
 
@@ -432,6 +436,12 @@ course is sold.
 - **`.mono-label`** — uppercase mono eyebrow ("next assignment"); colour
   variants `.mono-label-green`, `.mono-label-indigo`.
 - **`.mono-note`** — small mono note (date ranges, "#214", submission counts).
+- **`.mono-code`** — an inline literal inside running copy: a Slack channel
+  name, a command, a file name (`#book-of-the-week` on the books hub). It sets
+  the run in the mono face at `0.92em` of the surrounding size and carries no
+  surface of its own, so it reads on every band. Put it on the `code` element
+  the content already deserves; it is a typographic mark, not a state marker
+  (that is `.status-pill`) and not a metadata line (that is `.mono-note`).
 
 ### Spec rows
 
