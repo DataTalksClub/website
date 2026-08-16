@@ -1,65 +1,407 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block breadcrumbs %}
-  <li>/ {{ record.title }}</li>
-{% endblock %}
-{% block content %}
-  <article class="mx-auto max-w-3xl">
-    <header class="flex flex-col gap-5 sm:flex-row sm:items-center">
-      <img
-        class="h-32 w-32 shrink-0 rounded-full border object-cover app-border"
-        src="{{ record.image_path }}"
-        alt="Portrait of {{ record.title }}"
-        width="128"
-        height="128"
-      >
-      <div>
-        <h1 class="text-4xl font-semibold leading-tight">{{ record.title }}</h1>
-      </div>
-    </header>
-    {% if record.summary %}
-      <p class="mt-6 text-lg leading-8 app-text">{{ record.summary }}</p>
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="{{ og_type|default:'profile' }}">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {% if og_image_url %}
+      <meta name="twitter:card" content="summary_large_image">
+    {% else %}
+      <meta name="twitter:card" content="summary">
     {% endif %}
-    <div class="mt-6">
-      {% include "public/_body.html" with blocks=record.blocks %}
-    </div>
-    {% if record.roles %}
-      <div class="mt-6 flex flex-wrap gap-2" aria-label="Community roles">
-        {% for role in record.roles %}
-          <span class="app-badge app-badge-info">{{ role|title }}</span>
-        {% endfor %}
-      </div>
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    {% if og_image_url %}
+      <meta property="og:image" content="{{ og_image_url }}">
     {% endif %}
-    {% if record.relationships %}
-      <section class="mt-8" aria-labelledby="person-contributions-heading">
-        <h2 id="person-contributions-heading" class="text-2xl font-semibold">Contributions</h2>
-        <ul class="mt-4 divide-y app-divide border-y app-border">
-          {% for relationship in record.relationships %}
-            <li class="py-3">
-              <span class="mr-2 text-sm uppercase app-muted">{{ relationship.role }}</span>
-              <a class="app-link" href="{{ relationship.public_path }}">{{ relationship.label }}</a>
-            </li>
-          {% endfor %}
-        </ul>
+    {% if og_image_url %}
+      <meta name="twitter:image" content="{{ og_image_url }}">
+    {% endif %}
+    {% if structured_data %}
+      <script type="application/ld+json">
+        {{ structured_data|safe }}
+      </script>
+    {% endif %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Person profile, design 5a (issue #179).  There is no mockup for this
+       * page, so it is composed from the system's own primitives: the hero
+       * identity, stat tiles for what the person has done, and one dashed
+       * .row-list per kind of work.  One inline stylesheet: the shared design
+       * system partial, then this page.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Profile page rules.  Stat tiles, chips, list rows, the date rail, the
+       * play disc, status pills and pill buttons are all shared primitives;
+       * what follows is the page's own layout around them.
+       * ------------------------------------------------------------------ */
+
+      /* One column, wide enough for a row's three cells and narrow enough for
+         the bio to read as prose. */
+      .person-shell {
+        max-width: 56rem;
+      }
+
+      .person-identity {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.25rem;
+      }
+
+      /* The portrait is the person, not decoration: it keeps the card surface
+         and the system's hard shadow rather than floating on the band. */
+      .person-portrait {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        flex: none;
+        height: 8rem;
+        object-fit: cover;
+        width: 8rem;
+      }
+
+      .person-identity-text {
+        min-width: 0;
+      }
+
+      .person-identity h1 {
+        font-size: clamp(1.9rem, 4vw, 2.8rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.35rem;
+      }
+
+      .person-roles {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
+
+      .person-summary {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1.5rem;
+        max-width: 44rem;
+      }
+
+      /* Four facts, not four slabs: the tiles keep the width of the hero column
+         they summarise rather than stretching across the whole shell. */
+      .person-stats {
+        margin-top: 1.5rem;
+        max-width: 34rem;
+      }
+
+      .person-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+      }
+
+      /* The arrow repeats what the link's own "(opens in a new tab)" already
+         says, so it is decoration and carries no name of its own. */
+      .person-links svg {
+        fill: currentColor;
+        flex: none;
+        height: 0.8rem;
+        width: 0.8rem;
+      }
+
+      /* The profile's own words, in the shared prose primitive, at the width the
+         design gives long copy. */
+      .person-bio {
+        max-width: 48rem;
+      }
+
+      /* One row per contribution.  The default row is title plus date; a
+         podcast row leads with the play disc the podcast index uses, and an
+         event row leads with the date rail the events index uses, so a piece of
+         work looks the same wherever the reader meets it. */
+      .person-rows .list-row {
+        --row-cols: minmax(0, 1fr) auto;
+        column-gap: 1.1rem;
+      }
+
+      .person-rows-podcast .list-row {
+        --row-cols: auto minmax(0, 1fr) auto;
+      }
+
+      .person-rows-events .list-row {
+        --row-cols: 6.5rem minmax(0, 1fr);
+        align-items: stretch;
+      }
+
+      .person-row-body {
+        display: grid;
+        gap: 0.3rem;
+        justify-items: start;
+        min-width: 0;
+      }
+
+      /* An event that has not happened yet says "upcoming" beside its kind: the
+         profile mixes past and future work in one list, so the state cannot rest
+         on the pill's colour alone. */
+      .person-row-marks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .person-row-title {
+        font-size: 1.05rem;
+      }
+
+      .person-row-title a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .person-row-title a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* An article's own one-line summary, kept to two lines so a row stays a
+         row: the article page carries the rest. */
+      .person-row-note {
+        display: -webkit-box;
+        font-size: 0.9rem;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+      }
+
+      .person-row-date {
+        white-space: nowrap;
+      }
+
+      .person-empty {
+        max-width: 44rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * Narrow layout.  The hero centres the portrait over the name, the date
+       * rail becomes one horizontal line above the event, and a row's date
+       * drops under the work instead of squeezing the title into two words.
+       * ------------------------------------------------------------------ */
+
+      @media (max-width: 47.99rem) {
+        .person-identity {
+          gap: 1rem;
+        }
+
+        .person-portrait {
+          height: 6.5rem;
+          width: 6.5rem;
+        }
+
+        .person-rows-podcast .list-row {
+          align-items: start;
+          column-gap: 0.85rem;
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .person-rows-podcast .person-row-date {
+          grid-column: 2;
+        }
+
+        .person-rows-events .when {
+          align-items: baseline;
+          column-gap: 0.55rem;
+          display: flex;
+          flex-wrap: wrap;
+          padding-top: 0;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream person-hero" aria-labelledby="person-heading">
+        <div class="shell person-shell">
+          <div class="person-identity">
+            {% comment %}
+              Every profile in the catalogue carries a portrait today, but a portrait
+              is a fact like any other: when there is none to serve, the row keeps the
+              system's striped stand-in disc, which claims no identity and is hidden
+              from assistive technology, rather than inventing a face or initials.
+            {% endcomment %}
+            {% if person.image_path %}
+              <img
+                class="person-portrait"
+                src="{{ person.image_path }}"
+                alt="Portrait of {{ person.name }}"
+                width="128"
+                height="128"
+                decoding="async"
+              >
+            {% else %}
+              <span class="avatar avatar-striped person-portrait" aria-hidden="true"></span>
+            {% endif %}
+            <div class="person-identity-text">
+              <p class="mono-label mono-label-indigo">profile</p>
+              <h1 id="person-heading">{{ person.name }}</h1>
+              {% if person.roles %}
+                <ul class="person-roles" aria-label="Community roles">
+                  {% for role in person.roles %}
+                    <li class="chip">{{ role|title }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+          </div>
+          {% if person.summary %}
+            <p class="person-summary">{{ person.summary }}</p>
+          {% endif %}
+          {% if person.groups %}
+            <div class="stat-tiles person-stats">
+              {% for group in person.groups %}
+                <div class="stat-tile">
+                  <strong>{{ group.count }}</strong>
+                  <span>{{ group.noun_label }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if person.links %}
+            <nav class="person-links" aria-label="Public profile links">
+              {% for link in person.links %}
+                <a
+                  class="pill-button"
+                  href="{{ link.url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ link.label }}
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M14 3v2h3.6l-7.3 7.3 1.4 1.4L19 6.4V10h2V3zM5 5h5V3H3v18h18v-7h-2v5H5z"/>
+                  </svg>
+                  <span class="sr-only">(opens in a new tab)</span>
+                </a>
+              {% endfor %}
+            </nav>
+          {% endif %}
+        </div>
       </section>
-    {% endif %}
-    {% if record.links %}
-      <nav class="mt-8 flex flex-wrap gap-3" aria-label="Public profile links">
-        {% for link in record.links %}
-          <a
-            class="primer-button primer-button-secondary"
-            href="{{ link.url }}"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {{ link.label }}
-            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-            <span class="sr-only">(opens in a new tab)</span>
-          </a>
-        {% endfor %}
-      </nav>
-    {% endif %}
-  </article>
-{% endblock %}
+
+      {% if person.blocks %}
+        <section class="band band-cream person-about" aria-labelledby="person-about-heading">
+          <div class="shell person-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="person-about-heading">About</h2>
+              </div>
+            </div>
+            <div class="prose person-bio">
+              {% include "public/_prose_body.html" with blocks=person.blocks %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      {% comment %}
+        One band per kind of work, each drawn with the primitive that kind already
+        uses elsewhere on the site.  A profile with no linked work says so instead
+        of showing an empty heading.
+      {% endcomment %}
+      {% for group in person.groups %}
+        <section class="band {{ group.band }} person-contributions" aria-labelledby="{{ group.anchor }}-heading">
+          <div class="shell person-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="{{ group.anchor }}-heading">{{ group.heading }}</h2>
+                <p>{{ group.count_label }} as {{ group.role_phrase }}.</p>
+              </div>
+            </div>
+            <div class="row-list person-rows person-rows-{{ group.key }}">
+              {% for item in group.items %}
+                <article class="list-row person-row">
+                  {% if item.mark == "date" %}
+                    <div class="when">
+                      <strong>
+                        <time datetime="{{ item.date }}">{{ item.date_display }}</time>
+                      </strong>
+                      <span class="when-day">{{ item.weekday }}</span>
+                    </div>
+                  {% elif item.mark == "play" %}
+                    <span class="play-disc" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" focusable="false">
+                        <path d="M9 6.5l9 5.5-9 5.5z"/>
+                      </svg>
+                    </span>
+                  {% endif %}
+                  <div class="person-row-body">
+                    <p class="mono-label">{{ item.role }}</p>
+                    <h3 class="person-row-title">
+                      <a href="{{ item.public_path }}">{{ item.title }}</a>
+                    </h3>
+                    {% if item.pill_label %}
+                      <div class="person-row-marks">
+                        <span class="status-pill {{ item.pill_variant }}">{{ item.pill_label }}</span>
+                        {% if item.state_label %}
+                          <span class="status-pill">{{ item.state_label }}</span>
+                        {% endif %}
+                      </div>
+                    {% endif %}
+                    {% if item.note %}
+                      <p class="person-row-note">{{ item.note }}</p>
+                    {% endif %}
+                  </div>
+                  {% if item.date_display and item.mark != "date" %}
+                    <p class="mono-note person-row-date">
+                      <time datetime="{{ item.date }}">{{ item.date_display }}</time>
+                    </p>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% empty %}
+        <section class="band band-cream" aria-labelledby="person-contributions-heading">
+          <div class="shell person-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="person-contributions-heading">Contributions</h2>
+              </div>
+            </div>
+            <p class="person-empty">
+              No podcast episode, event, article or book on DataTalks.Club lists
+              {{ person.name }} yet.
+            </p>
+          </div>
+        </section>
+      {% endfor %}
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

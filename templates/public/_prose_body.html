@@ -1,8 +1,10 @@
 {% comment %}
-  A wiki page's body, rendered from its own typed text blocks into the design 5a
-  `.prose` primitive.  It is a separate partial from public/_body.html because that
-  one styles its blocks with the utility classes of the older shell, which a page
-  carrying only the design system stylesheet cannot resolve.
+  Typed text blocks, rendered into the design 5a `.prose` primitive.  A wiki page's
+  body was the first (issue #179); a person's profile bio is the same shape and
+  renders through the same partial, which is why this is not named for either.
+  It is a separate partial from public/_body.html because that one styles its
+  blocks with the utility classes of the older shell, which a page carrying only
+  the design system stylesheet cannot resolve.
 
   Headings keep the identifier the source gives them, so every in-page anchor and
   every "#section" link into a wiki page still lands.  Paragraph text keeps its own
