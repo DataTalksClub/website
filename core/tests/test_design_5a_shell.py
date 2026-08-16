@@ -43,6 +43,8 @@ DESIGN_5A_TEMPLATES = (
     "public/wiki_graph.html",
     "public/wiki_special.html",
     "public/wiki_detail.html",
+    # One template behind two navigation entries: the blog hub and the books hub.
+    "public/collection_hub.html",
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -138,6 +140,10 @@ class DesignFiveAShellTests(TestCase):
             "wiki graph": reverse("wiki-graph"),
             "wiki special pages": reverse("wiki-special"),
             "wiki page": self.wiki_page["public_path"],
+            # Both collections the shared collection hub serves, because a page
+            # that branches on its collection can lose the shell in one branch.
+            "blog index": reverse("articles"),
+            "books index": reverse("books"),
         }
 
     def rendered_pages(self) -> dict[str, str]:
@@ -202,6 +208,8 @@ class DesignFiveAShellTests(TestCase):
             "wiki graph": "Wiki",
             "wiki special pages": "Wiki",
             "wiki page": "Wiki",
+            "blog index": "Blog",
+            "books index": "Books",
         }
 
         for name, body in self.rendered_pages().items():

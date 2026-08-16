@@ -1,58 +1,315 @@
-{% extends "core/base.html" %}
-{% load accessibility %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block content %}
-  <header class="max-w-3xl py-6">
-    {% if collection == "articles" %}
-      <h1 class="text-4xl font-semibold">Latest Articles</h1>
-    {% elif collection == "podcasts" %}
-      <h1 class="text-4xl font-semibold">Podcast</h1>
-      <p class="mt-4 text-lg leading-8 app-text">
-        Listen to conversations with data science experts, machine learning practitioners, and AI
-        researchers. Subscribe to stay updated with the latest episodes.
-      </p>
-      <p class="mt-4 app-text">
-        Register for upcoming podcast events in <a class="app-link" href="{% url 'events' %}">events</a>.
-      </p>
-    {% else %}
-      <h1 class="text-4xl font-semibold">Book of the Week</h1>
-      <p class="mt-4 text-lg leading-8 app-text">
-        Each week we have a book author coming to DataTalks.Club to answer your questions about
-        their book and, in general, about the topic of their book.
-      </p>
-      <h2 class="mt-8 text-2xl font-semibold">How it works</h2>
-      <ul class="mt-4 list-disc space-y-2 pl-6 app-text">
-        <li>
-          <a class="app-link" href="{% url 'slack' %}">Register on DataTalks.Club</a>
-        </li>
-        <li>
-          Join the <code>#book-of-the-week</code> channel in our Slack
-        </li>
-        <li>Ask as many questions as you'd like</li>
-        <li>The book authors answer questions from Monday till Thursday</li>
-        <li>On Friday, the authors decide who wins free copies of their book</li>
-      </ul>
-      <h2 class="mt-10 text-2xl font-semibold">Archive</h2>
+{% load seo static accessibility %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Collection hub, design 5a (issue #179).  One template behind the
+       * blog and the books archive, so every band below has to read for
+       * both.  Like the other rebuilt pages it carries its own complete
+       * stylesheet: the shared design system partial first, then only what
+       * this page adds, and it links no external CSS.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Collection-hub rules.  Everything visual is a shared primitive
+       * (.row-list/.list-row, .step-number, .status-pill, .mono-label,
+       * .mono-note, .mono-code); what follows is only this page's layout.
+       * ------------------------------------------------------------------ */
+
+      .collection-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        margin-top: 0.6rem;
+        max-width: 18ch;
+      }
+
+      .collection-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1rem;
+        max-width: 36rem;
+      }
+
+      .collection-lede + .collection-lede {
+        margin-top: 0.75rem;
+      }
+
+      /* "How it works": the numbered disc keeps its own column beside the step. */
+      .how-it-works .list-row {
+        --row-cols: auto minmax(0, 1fr);
+        column-gap: 1rem;
+      }
+
+      /* One archive row: the record on the left, its publication date as the
+         quiet mono mark on the right. */
+      .collection-rows .list-row {
+        --row-cols: minmax(0, 1fr) auto;
+        align-items: start;
+        column-gap: 1.5rem;
+      }
+
+      .record-body {
+        display: grid;
+        gap: 0.25rem;
+        justify-items: start;
+        min-width: 0;
+      }
+
+      .record-title {
+        font-size: 1.05rem;
+      }
+
+      .record-title a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .record-title a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .record-authors {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* The archive used to clamp its summaries to three lines; a book summary
+         runs to a full page, so the clamp stays and the record page carries
+         the rest. */
+      .record-summary {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        font-size: 0.9rem;
+        max-width: 46rem;
+        overflow: hidden;
+      }
+
+      .record-date {
+        padding-top: 0.2rem;
+      }
+
+      .collection-empty {
+        padding-block: 0.9rem;
+      }
+
+      /* Narrow: the archive row reshapes into an archive entry — the date
+         becomes the dateline above the title instead of a squeezed second
+         column — and the step keeps its disc beside it rather than stacking a
+         lone number on its own line. */
+      @media (max-width: 47.99rem) {
+        .collection-rows .record-date {
+          order: -1;
+          padding-top: 0;
+        }
+
+        .how-it-works .list-row {
+          align-items: start;
+          column-gap: 0.85rem;
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
     {% endif %}
-  </header>
-  <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
-    {% for record in records %}
-      <article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <div class="min-w-0">
-          <p class="text-sm app-muted">
-            Published
-            <time datetime="{{ record.published }}">{{ record.published|human_date }}</time>
-          </p>
-          <h2 class="mt-2 text-xl font-semibold">
-            <a class="app-link" href="{{ record.public_path }}">{{ record.title }}</a>
-          </h2>
-          {% if record.description %}
-            <p class="mt-2 line-clamp-3 max-w-3xl leading-6 app-text">{{ record.description }}</p>
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream collection-hero" aria-labelledby="collection-heading">
+        <div class="shell">
+          {% comment %}
+            The kicker counts what the page actually holds, from the records the
+            view passes; nothing here is a figure the page made up.
+          {% endcomment %}
+          {% if collection == "articles" %}
+            <p class="mono-label mono-label-indigo">
+              blog · {{ records|length }} articles
+            </p>
+          {% elif collection == "podcasts" %}
+            <p class="mono-label mono-label-indigo">
+              podcast · {{ records|length }} episodes
+            </p>
+          {% else %}
+            <p class="mono-label mono-label-indigo">
+              books · {{ records|length }} in the archive
+            </p>
+          {% endif %}
+          {% if collection == "articles" %}
+            <h1 id="collection-heading">Latest Articles</h1>
+          {% elif collection == "podcasts" %}
+            <h1 id="collection-heading">Podcast</h1>
+          {% else %}
+            <h1 id="collection-heading">Book of the Week</h1>
+          {% endif %}
+          {% if collection == "articles" %}
+            {% comment %}
+              The blog hub has never carried a visible lede.  Rather than write a
+              new claim about the writing, the hero shows the description this
+              same page already publishes in its head.
+            {% endcomment %}
+            <p class="collection-lede">{{ seo_description }}</p>
+          {% elif collection == "podcasts" %}
+            <p class="collection-lede">
+              Listen to conversations with data science experts, machine learning practitioners,
+              and AI researchers. Subscribe to stay updated with the latest episodes.
+            </p>
+            <p class="collection-lede">
+              Register for upcoming podcast events in
+              <a href="{% url 'events' %}">events</a>.
+            </p>
+          {% else %}
+            <p class="collection-lede">
+              Each week we have a book author coming to DataTalks.Club to answer your questions
+              about their book and, in general, about the topic of their book.
+            </p>
           {% endif %}
         </div>
-      </article>
-    {% endfor %}
-  </div>
-{% endblock %}
+      </section>
+
+      {% if collection == "books" %}
+        <section class="band band-lavender" aria-labelledby="how-it-works-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="how-it-works-heading">How it works</h2>
+              </div>
+            </div>
+            {% comment %}
+              A sequence, so it stays an ordered list; role="list" keeps those
+              semantics after the design system removes the markers, and the
+              drawn disc is decoration on top of them.
+            {% endcomment %}
+            <ol class="row-list how-it-works" role="list">
+              <li class="list-row">
+                <span class="step-number" aria-hidden="true">01</span>
+                <p>
+                  <a class="band-link" href="{% url 'slack' %}">Register on DataTalks.Club</a>
+                </p>
+              </li>
+              <li class="list-row">
+                <span class="step-number" aria-hidden="true">02</span>
+                <p>
+                  Join the
+                  <code class="mono-code">#book-of-the-week</code>
+                  channel in our Slack
+                </p>
+              </li>
+              <li class="list-row">
+                <span class="step-number" aria-hidden="true">03</span>
+                <p>Ask as many questions as you'd like</p>
+              </li>
+              <li class="list-row">
+                <span class="step-number" aria-hidden="true">04</span>
+                <p>The book authors answer questions from Monday till Thursday</p>
+              </li>
+              <li class="list-row">
+                <span class="step-number" aria-hidden="true">05</span>
+                <p>On Friday, the authors decide who wins free copies of their book</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="band band-cream" aria-labelledby="collection-list-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              {% if collection == "articles" %}
+                <h2 id="collection-list-heading">All articles</h2>
+              {% elif collection == "podcasts" %}
+                <h2 id="collection-list-heading">All episodes</h2>
+              {% else %}
+                <h2 id="collection-list-heading">Archive</h2>
+              {% endif %}
+            </div>
+          </div>
+          <div class="row-list collection-rows" data-collection-list>
+            {% for record in records %}
+              <article class="list-row record-row">
+                <div class="record-body">
+                  {% if record.archive %}
+                    <span class="status-pill">
+                      {{ record.archive|length }} question{{ record.archive|length|pluralize }}
+                    </span>
+                  {% endif %}
+                  <h3 class="record-title">
+                    <a href="{{ record.public_path }}">{{ record.title }}</a>
+                  </h3>
+                  {% if record.author_profiles %}
+                    <p class="record-authors">
+                      By
+                      {% for author in record.author_profiles %}
+                        <a href="{{ author.public_path }}">{{ author.name }}</a>
+                        {% if not forloop.last %}
+                          <span aria-hidden="true">,</span>
+                        {% endif %}
+                      {% endfor %}
+                    </p>
+                  {% endif %}
+                  {% if record.description %}
+                    <p class="record-summary">{{ record.description }}</p>
+                  {% endif %}
+                </div>
+                {% comment %}
+                  The mark is the calendar day, in both the machine attribute and
+                  the visible text: neither catalogue records a publication time,
+                  and the books catalogue's padded midnight is not one.
+                {% endcomment %}
+                <p class="mono-note record-date">
+                  Published
+                  <time datetime="{{ record.published|iso_day }}">
+                    {{ record.published|human_day }}
+                  </time>
+                </p>
+              </article>
+            {% empty %}
+              <p class="collection-empty">
+                {% if collection == "articles" %}
+                  No articles yet.
+                {% elif collection == "podcasts" %}
+                  No episodes yet.
+                {% else %}
+                  No books in the archive yet.
+                {% endif %}
+              </p>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>
