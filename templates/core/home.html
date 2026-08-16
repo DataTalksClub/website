@@ -775,7 +775,8 @@
 
       /* The mockup's featured card: one white slab with a thick ink outline, the
          story and CTA on the left, and a mint "what you'll build" panel on the
-         right with ink checkbox squares. */
+         right with ink checkbox squares.  Narrow screens stack the mint panel
+         under the story; the two-column floor is wider than a 320px viewport. */
       .featured {
         background: var(--card);
         border: 3px solid var(--ink);
@@ -783,7 +784,7 @@
         box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
         display: grid;
         gap: 2rem;
-        grid-template-columns: minmax(0, 1.45fr) minmax(15rem, 1fr);
+        grid-template-columns: minmax(0, 1fr);
         padding: 1.9rem 2.1rem;
       }
 
@@ -1690,7 +1691,7 @@
         }
 
         .featured {
-          grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+          grid-template-columns: minmax(0, 1.45fr) minmax(15rem, 1fr);
         }
 
         .wiki-grid {
