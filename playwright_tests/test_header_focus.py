@@ -1,6 +1,8 @@
 from pathlib import Path
 
 import pytest
+from django.contrib.auth import get_user_model
+from django.test import Client
 from playwright.sync_api import Page, expect
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-126")
@@ -121,3 +123,53 @@ def test_skip_link_remains_keyboard_visible_without_outlining_main_content(
     main_style = focus_style(main)
     assert main_style["outlineStyle"] == "none"
     assert main_style["outlineWidth"] == "0px"
+
+
+@pytest.mark.core
+@pytest.mark.parametrize("path", ("/", "/courses", "/events", "/podcast"))
+def test_account_menu_closes_on_escape_and_on_a_click_outside_it(
+    page: Page,
+    live_server,
+    path: str,
+) -> None:
+    """The account menu is a <details>, which only closes through its own summary.
+
+    courses/static/user_menu.js gives it the two closes a disclosure menu is
+    expected to have.  The design 5a rebuild dropped that script from every
+    rebuilt page (issue #179), so the menu opened and would not close.
+    """
+
+    user = get_user_model().objects.create_user(
+        username="menu-reader@example.invalid",
+        email="menu-reader@example.invalid",
+        password="test-password",
+    )
+    client = Client()
+    client.force_login(user)
+    page.context.add_cookies(
+        [
+            {
+                "name": "sessionid",
+                "value": client.cookies["sessionid"].value,
+                "url": live_server.url,
+            }
+        ]
+    )
+    page.set_viewport_size({"width": 1440, "height": 900})
+    response = page.goto(f"{live_server.url}{path}", wait_until="networkidle")
+    assert response is not None and response.status == 200
+
+    menu = page.locator("details.user-menu")
+    summary = menu.locator("summary")
+    expect(menu).to_have_count(1)
+
+    summary.click()
+    expect(menu).to_have_attribute("open", "")
+    page.keyboard.press("Escape")
+    expect(menu).not_to_have_attribute("open", "")
+    expect(summary).to_be_focused()
+
+    summary.click()
+    expect(menu).to_have_attribute("open", "")
+    page.locator("#main-content").click(position={"x": 5, "y": 5})
+    expect(menu).not_to_have_attribute("open", "")

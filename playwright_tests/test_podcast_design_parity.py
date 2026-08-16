@@ -115,7 +115,10 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     player = page.locator("a.player-frame")
     expect(player).to_have_count(1)
     expect(player).to_have_attribute("href", episode["links"]["youtube"])
-    expect(player).to_contain_text(episode["title"])
+    expect(player).to_have_attribute(
+        "aria-label",
+        f"Play {episode['title']} on YouTube",
+    )
     player.focus()
     focus = player.evaluate(
         """(node) => {
@@ -128,9 +131,10 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
         }"""
     )
     assert focus["focused"] is True, focus
-    # Every artwork is decorative here: the link names itself.
+    # The artwork carries the episode's identity, and the link carries its own name,
+    # so neither borrows the other's meaning.
     alts = page.locator("main img").evaluate_all("(nodes) => nodes.map((n) => n.alt)")
-    assert all(alt == "" for alt in alts), alts
+    assert alts == [f"Artwork for {episode['title']}"], alts
     expect(page.locator("#transcript-heading")).to_be_visible()
 
 

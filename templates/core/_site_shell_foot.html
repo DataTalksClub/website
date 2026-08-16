@@ -1,0 +1,89 @@
+{% load static %}
+{% comment %}
+  The design 5a shell's closing block: the shared footer and analytics dialog, the
+  page-local theme toggle, and the script set every page in the system runs.
+
+  It lives here, and is not copied into each page, because copying it is exactly how
+  a page silently loses a script (issue #179 lost user_menu.js from five pages that
+  way, leaving the account menu unable to close).  A page adds its own page-specific
+  scripts after this include, never inside it.
+{% endcomment %}
+{% include "core/_site_footer.html" %}
+<script>
+  /* Page-local theme toggle: same storage key, cookie endpoint and body classes as
+     the shared shell, with the compact "Dark"/"Light" label this design uses. */
+  (function () {
+    var body = document.body;
+    var toggle = document.getElementById('dark-mode-toggle');
+    var label = document.getElementById('dark-mode-label');
+    if (!toggle) {
+      return;
+    }
+
+    function apply(isDark) {
+      body.classList.toggle('dark', isDark);
+      body.classList.toggle('dark-mode', isDark);
+      body.setAttribute('data-dark-mode', isDark ? 'true' : 'false');
+      toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      if (label) {
+        label.textContent = isDark ? 'Light' : 'Dark';
+      }
+    }
+
+    var authenticated = body.getAttribute('data-authenticated') === 'true';
+    if (!authenticated) {
+      try {
+        var stored = localStorage.getItem('darkMode');
+        if (stored !== null) {
+          apply(stored === 'true');
+        }
+      } catch (e) {}
+    }
+
+    toggle.addEventListener('click', function () {
+      var next = body.getAttribute('data-dark-mode') !== 'true';
+      if (!authenticated) {
+        try {
+          localStorage.setItem('darkMode', next.toString());
+        } catch (e) {}
+        apply(next);
+        return;
+      }
+      var token = document.getElementById('csrf-token');
+      fetch(body.getAttribute('data-toggle-url'), {
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': token ? token.value : '',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Dark mode toggle failed');
+          }
+          return response.json();
+        })
+        .then(function (data) {
+          apply(data.dark_mode);
+          try {
+            localStorage.setItem('darkMode', data.dark_mode.toString());
+          } catch (e) {}
+        });
+    });
+  })();
+</script>
+{% comment %}
+  Same timezone contract as the shared shell: the browser_timezone cookie for every
+  visitor, and one passive preference POST for a signed-in account without one.
+{% endcomment %}
+<script src="{% static 'timezone_preference.js' %}"></script>
+{% comment %}
+  The account menu is a native <details> disclosure, so it opens without JavaScript
+  but only closes by re-activating its summary.  This script gives it the two closes
+  a disclosure menu is expected to have — Escape, and a click outside it — and
+  returns focus to the summary when Escape closed a menu that held it.
+{% endcomment %}
+<script src="{% static 'user_menu.js' %}"></script>
+<script src="{% static 'core/site_navigation.js' %}"></script>
+<script src="{% static 'core/accessibility.js' %}"></script>
+<script src="{% static 'core/analytics_preferences.js' %}"></script>

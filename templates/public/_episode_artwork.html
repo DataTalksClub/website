@@ -1,0 +1,15 @@
+{% comment %}
+  What fills the episode page's player frame: the episode's own artwork, or a visible
+  note when the catalogue has no image for it.  Both the linked and the unlinked frame
+  include this, so artwork never depends on there being a recording to open.
+{% endcomment %}
+{% if episode.media_available %}
+  <img
+    class="player-art"
+    src="{{ episode.image_path }}"
+    alt="Artwork for {{ episode.title }}"
+    decoding="async"
+  >
+{% else %}
+  <span class="player-art-missing mono-note">Artwork unavailable.</span>
+{% endif %}

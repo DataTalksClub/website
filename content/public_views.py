@@ -35,7 +35,7 @@ from events.identity import (
 from events.services import public_registration_total
 
 from .faq_data import faq_courses
-from .podcast_content import episode_view, season_episodes
+from .podcast_content import episode_view, listening_platform_phrase, season_episodes
 from .public_data import (
     PROJECTION_ROOT,
     event_date_groups,
@@ -485,6 +485,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
         return _no_store(HttpResponse("Page not found.", status=404))
 
     selected_season = seasons[season_index]
+    episodes = season_episodes(selected_season.episodes)
     newer_season = seasons[season_index - 1] if season_index > 0 else None
     older_season = seasons[season_index + 1] if season_index + 1 < len(seasons) else None
     canonical_path = _podcast_season_path(selected_number, latest=latest_season)
@@ -502,8 +503,9 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
         ),
         context={
             "season": selected_season,
-            "episodes": season_episodes(selected_season.episodes),
+            "episodes": episodes,
             "episode_total": sum(len(available.episodes) for available in seasons),
+            "listening_platforms": listening_platform_phrase(episodes),
             "season_links": tuple(
                 {
                     "number": available.number,

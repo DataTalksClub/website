@@ -1,0 +1,194 @@
+"""One shell for every design 5a page (issue #179).
+
+The pages rebuilt on design 5a each inline their own document rather than
+extending a base template, and for a while each also inlined its own copy of the
+masthead, the footer and the script block.  Copying a shell five times is how
+`/slack` left the primary navigation and `user_menu.js` left the script set
+without a single test going red: every page still passed its own contracts, and
+nothing compared the pages to each other.
+
+These tests do that comparison.  The shell now lives in
+``core/_site_shell_head.html`` and ``core/_site_shell_foot.html``; a page that
+forks it, drops an entry from it, or forgets to include it fails here.
+"""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+from typing import Any, Protocol, cast
+
+from django.template.loader import get_template
+from django.templatetags.static import static
+from django.test import TestCase
+from django.urls import reverse
+
+from content.public_data import public_projection
+from courses.models.course import Course
+
+# Every page built in the design 5a system, and the navigation entry each one is.
+# A new page in the system belongs in this list.
+DESIGN_5A_TEMPLATES = (
+    "core/home.html",
+    "courses/course_list.html",
+    "courses/course.html",
+    "public/events.html",
+    "public/podcast_hub.html",
+    "public/podcast_detail.html",
+)
+SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
+
+# The primary navigation, in the order the site has always offered it.  Slack is
+# the community's main gathering place and stays in the row on every page.
+EXPECTED_NAVIGATION = (
+    ("Events", "events"),
+    ("Courses", "course_list"),
+    ("Blog", "articles"),
+    ("Podcast", "podcast"),
+    ("Wiki", "wiki-home"),
+    ("Books", "books"),
+    ("Docs", "docs-home"),
+    ("FAQ", "faq-home"),
+    ("Slack", "slack"),
+)
+
+# The scripts every page in the system runs, in the order the shell loads them.
+EXPECTED_SCRIPTS = (
+    "timezone_preference.js",
+    "user_menu.js",
+    "core/site_navigation.js",
+    "core/accessibility.js",
+    "core/analytics_preferences.js",
+)
+
+
+class TemplateOrigin(Protocol):
+    name: str
+
+
+class ResolvedTemplate(Protocol):
+    origin: TemplateOrigin | None
+
+
+NAVIGATION_BLOCK = re.compile(r'<div id="site-navigation-links".*?>(.*?)</div>', re.S)
+NAVIGATION_LINK = re.compile(r"<a\b(?P<attributes>[^>]*)>(?P<label>.*?)</a>", re.S)
+SCRIPT_SOURCE = re.compile(r'<script src="([^"]+)"')
+
+
+def navigation_entries(body: str) -> list[tuple[str, str, bool]]:
+    """Return (label, href, is-current) for each primary navigation link."""
+
+    block = NAVIGATION_BLOCK.search(body)
+    assert block is not None, "the page has no #site-navigation-links row"
+    entries = []
+    for link in NAVIGATION_LINK.finditer(block.group(1)):
+        attributes = link.group("attributes")
+        href = re.search(r'href="([^"]+)"', attributes)
+        assert href is not None, attributes
+        entries.append(
+            (
+                " ".join(link.group("label").split()),
+                href.group(1),
+                'aria-current="page"' in attributes,
+            )
+        )
+    return entries
+
+
+class DesignFiveAShellTests(TestCase):
+    """Render every page in the system and compare their shells to each other."""
+
+    course: Course
+    episode: dict[str, Any]
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.course = Course.objects.create(
+            title="Shell parity course",
+            slug="shell-parity-course",
+            description="Fixture for the design 5a shell comparison.",
+            visible=True,
+        )
+        cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
+
+    def page_paths(self) -> dict[str, str]:
+        return {
+            "home": reverse("home"),
+            "courses index": reverse("course_list"),
+            "course page": reverse("course", kwargs={"course_slug": self.course.slug}),
+            "events index": reverse("events"),
+            "past events": reverse("events-past"),
+            "podcast index": reverse("podcast"),
+            "podcast episode": self.episode["public_path"],
+        }
+
+    def rendered_pages(self) -> dict[str, str]:
+        bodies = {}
+        for name, path in self.page_paths().items():
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200, name)
+            for partial in SHELL_PARTIALS:
+                self.assertTemplateUsed(response, partial, msg_prefix=name)
+            bodies[name] = response.content.decode()
+        return bodies
+
+    def test_every_design_5a_page_offers_the_same_navigation_entries(self) -> None:
+        expected = [(label, reverse(route)) for label, route in EXPECTED_NAVIGATION]
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                entries = navigation_entries(body)
+                self.assertEqual([(label, href) for label, href, _ in entries], expected)
+
+    def test_every_design_5a_page_reaches_the_community_slack(self) -> None:
+        """The regression that started this: four pages had no Slack link at all."""
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                slack = [href for label, href, _ in navigation_entries(body) if label == "Slack"]
+                self.assertEqual(slack, [reverse("slack")])
+
+    def test_every_design_5a_page_marks_only_the_entry_it_is(self) -> None:
+        expected_current = {
+            "home": None,
+            "courses index": "Courses",
+            "course page": "Courses",
+            "events index": "Events",
+            "past events": "Events",
+            "podcast index": "Podcast",
+            "podcast episode": "Podcast",
+        }
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                entries = navigation_entries(body)
+                current = [label for label, _href, is_current in entries if is_current]
+                self.assertEqual(
+                    current,
+                    [] if expected_current[name] is None else [expected_current[name]],
+                )
+
+    def test_every_design_5a_page_loads_the_same_script_set(self) -> None:
+        """user_menu.js closes the account menu, and left every page with the rebuild."""
+
+        expected = [static(source) for source in EXPECTED_SCRIPTS]
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                sources = SCRIPT_SOURCE.findall(body)
+                # A page may append its own scripts, never reorder or drop the shared set.
+                self.assertEqual(sources[: len(expected)], expected)
+
+    def test_no_design_5a_page_keeps_its_own_copy_of_the_shell(self) -> None:
+        """The shell is included, never inlined: that is what stops the next drift."""
+
+        for name in DESIGN_5A_TEMPLATES:
+            with self.subTest(template=name):
+                origin = cast(ResolvedTemplate, get_template(name)).origin
+                if origin is None:
+                    self.fail(f"template has no loader origin: {name}")
+                source = Path(origin.name).read_text(encoding="utf-8")
+                for partial in SHELL_PARTIALS:
+                    self.assertIn(f'{{% include "{partial}" %}}', source)
+                self.assertNotIn('<header class="masthead">', source)
+                self.assertNotIn("analytics_preferences.js", source)

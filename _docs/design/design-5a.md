@@ -9,6 +9,11 @@ The system lives in one place:
 - **`templates/core/_design_system.html`** — the shared stylesheet partial.
   Tokens, reset, masthead, bands, cards and every shared primitive, including
   the extended primitives the 6-series pages need.
+- **`templates/core/_site_shell_head.html`** and
+  **`templates/core/_site_shell_foot.html`** — the shared shell *markup*: the
+  skip link, dark-mode bootstrap, impersonation banner, masthead and
+  announcement; and the footer, theme toggle and script set. Every page in the
+  system includes both.
 - **`_docs/design/mockups/`** — the decoded mockup source. For the four
   6-series pages, `datatalks-pages.source.html` is the authoritative reference
   for markup shape and values; the PNG exports under `.tmp/design-mockups/`
@@ -285,8 +290,35 @@ Markup shapes below are the contract; the CSS lives in the partial.
 
 The masthead (`.masthead`, `.brand`, `.site-navigation`, `.masthead-actions`,
 `.nav-link`, `.nav-auth`, account menu) and the footer/analytics dialog are
-fully styled by the partial — copy the homepage's markup unchanged. The
-navigation contract (toggle + `#site-navigation-links`, opened by
+fully styled by the stylesheet partial, and their **markup is shared too**:
+
+```html
+<body …>
+  {% include "core/_site_shell_head.html" %}
+  <main id="main-content" tabindex="-1">
+    …the page…
+  </main>
+  {% include "core/_site_shell_foot.html" %}
+  …the page's own scripts, if it has any…
+</body>
+```
+
+Do not copy that markup into a page. The first five pages in the system each
+carried their own copy, and the copies drifted: `/slack` left the navigation on
+all five and `user_menu.js` left the script set on all five, so the account
+menu would not close on Escape or on an outside click (issue #179).
+`core/tests/test_design_5a_shell.py` now renders every page in the system and
+compares their navigation entries and script sets to each other.
+
+The navigation is **nine entries** — Events, Courses, Blog, Podcast, Wiki,
+Books, Docs, FAQ, Slack — the same row the rest of the site offers. The
+6-series mockups draw eight and put Slack in their own footer; this site's
+footer is shared with the pages still on the older shell, and a navigation row
+that loses an entry as the reader moves between pages is the worse trade. The
+current entry is set from `primary_navigation_current`
+(`core/context_processors.site_context`), so a page never marks it by hand.
+
+The navigation contract (toggle + `#site-navigation-links`, opened by
 `core/site_navigation.js`, always visible without JavaScript) must not be
 altered per page.
 
@@ -600,11 +632,15 @@ WebP**. The convention:
 1. Start from `templates/core/home.html`'s skeleton: `<!DOCTYPE html>`, the
    `no-js`/`js` class swap, meta/OG tags, one `<style>` whose first content is
    `{% include "core/_design_system.html" %}`, then page rules.
-2. Copy the masthead, footer include (`core/_site_footer.html`), skip link,
-   dark-mode bootstrap scripts and the script includes
-   (`timezone_preference.js`, `core/site_navigation.js`,
-   `core/accessibility.js`, `core/analytics_preferences.js`) unchanged. Set
-   `aria-current="page"` on the page's own nav link.
+2. Include `core/_site_shell_head.html` as the first thing in the body and
+   `core/_site_shell_foot.html` after `</main>`. They carry the skip link, the
+   dark-mode bootstrap, the masthead, the footer, the theme toggle and the
+   script set (`timezone_preference.js`, `user_menu.js`,
+   `core/site_navigation.js`, `core/accessibility.js`,
+   `core/analytics_preferences.js`). Do not copy any of it into the page, and
+   do not set `aria-current` by hand — the shell reads it from
+   `primary_navigation_current`. Add the page to `DESIGN_5A_TEMPLATES` in
+   `core/tests/test_design_5a_shell.py`.
 3. Compose the page as `section.band` elements with `.shell` inside; pick band
    colours from the band table; use `.band-head` for every section heading.
 4. Reach for the inventory before writing CSS: cards, chips, CTAs, status
