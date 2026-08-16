@@ -886,15 +886,22 @@
         font-weight: 700;
       }
 
+      /* The mockup's scroller shows cards only -- the strip still scrolls (and
+         keeps its arrow buttons and keyboard focus) but draws no scrollbar. */
       .catalog-scroller {
         display: grid;
         gap: 1.25rem;
         grid-auto-columns: minmax(min(19rem, 100%), 1fr);
         grid-auto-flow: column;
         overflow-x: auto;
-        padding: 0.4rem 0.4rem 1rem;
+        padding: 0.4rem 0.4rem 0.6rem;
         margin-inline: -0.4rem;
+        scrollbar-width: none;
         scroll-snap-type: x proximity;
+      }
+
+      .catalog-scroller::-webkit-scrollbar {
+        display: none;
       }
 
       .catalog-scroller > * {
@@ -928,27 +935,19 @@
         font-size: 1.05rem;
       }
 
+      .course-cohort {
+        color: var(--green);
+        font-size: 0.82rem;
+        font-weight: 700;
+      }
+
       .course-promise {
-        color: var(--green-deep);
-        font-size: 0.85rem;
-        font-style: italic;
-        font-weight: 600;
+        color: var(--body-text);
+        font-size: 0.88rem;
       }
 
-      .course-foot {
-        align-items: center;
-        border-top: 1.5px dashed var(--line-soft);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem 1rem;
-        justify-content: space-between;
+      .course-link {
         margin-top: auto;
-        padding-top: 0.6rem;
-      }
-
-      .course-meta {
-        color: var(--muted);
-        font-size: 0.72rem;
       }
 
       /* --- promises ----------------------------------------------------- */
@@ -1644,10 +1643,6 @@
           display: none;
         }
 
-        .course-card .course-foot {
-          display: none;
-        }
-
         .scroller-controls {
           display: none !important;
         }
@@ -2079,16 +2074,11 @@
               <article class="card course-card">
                 <div class="featured-badges">
                   <span class="chip">{{ course.label }}</span>
-                  <span class="chip chip-green">{{ course.cohort_label }}</span>
                 </div>
                 <h3>{{ course.title }}</h3>
-                <p class="course-promise">you'll ship: {{ course.promise }}</p>
-                <div class="course-foot">
-                  <span class="course-meta">
-                    {{ course.homework_count }} homework · {{ course.project_count }} projects
-                  </span>
-                  <a class="band-link" href="{{ course.public_path }}">Start now</a>
-                </div>
+                <p class="course-cohort">{{ course.cohort_label }}</p>
+                <p class="course-promise">{{ course.promise|capfirst }}</p>
+                <a class="band-link course-link" href="{{ course.public_path }}">View course →</a>
               </article>
             {% endfor %}
           </div>
