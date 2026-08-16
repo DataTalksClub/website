@@ -253,7 +253,8 @@
         color: var(--ink);
         display: inline-flex;
         align-items: center;
-        font-weight: 600;
+        font-size: 0.92rem;
+        font-weight: 500;
         min-height: 2.75rem;
         padding: 0.25rem 0.5rem;
         text-decoration: none;
@@ -366,6 +367,12 @@
         padding-inline: 0.6rem;
       }
 
+      /* The auth link reads as an action, not another destination. */
+      .masthead .nav-auth {
+        color: var(--indigo);
+        font-weight: 600;
+      }
+
       .account-nav {
         position: relative;
       }
@@ -458,11 +465,11 @@
         background: #0d0f1c;
       }
 
+      /* Stacked by default; the action or kicker only moves onto the heading's own row
+         once the row is wide enough to hold both without squeezing the heading. */
       .band-head {
-        align-items: baseline;
         display: grid;
         gap: 0.5rem 1.5rem;
-        grid-template-columns: minmax(0, 1fr) auto;
         margin-bottom: 1.5rem;
       }
 
@@ -479,7 +486,7 @@
       .band-head p {
         font-size: 0.9rem;
         margin-top: 0.4rem;
-        max-width: 46rem;
+        max-width: 58rem;
       }
 
       .kicker {
@@ -577,8 +584,9 @@
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-        padding: 1.25rem;
+        font-size: 0.9rem;
+        gap: 0.6rem;
+        padding: 1rem;
       }
 
       .card-grid {
@@ -732,8 +740,8 @@
 
       .featured-main {
         display: grid;
-        gap: 0.9rem;
-        padding: 1.5rem;
+        gap: 0.7rem;
+        padding: 1.15rem 1.25rem;
       }
 
       .featured-badges {
@@ -743,7 +751,11 @@
       }
 
       .featured-main h3 {
-        font-size: clamp(1.5rem, 3.2vw, 2rem);
+        font-size: clamp(1.35rem, 2.8vw, 1.7rem);
+      }
+
+      .featured-main > p {
+        font-size: 0.9rem;
       }
 
       .featured-promise {
@@ -764,27 +776,39 @@
         background: var(--lavender);
         border-top: 2px dashed var(--line-soft);
         display: grid;
-        gap: 0.9rem;
-        padding: 1.5rem;
+        gap: 0;
+        padding: 1.15rem 1.25rem;
       }
 
+      /* The mockup reads each fact as one line: the label on the left, the value
+         right-aligned against it, with a hairline between rows. */
       .spec {
-        display: grid;
-        gap: 0.15rem;
+        align-items: baseline;
+        border-bottom: 1.5px dashed var(--line-soft);
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+        padding-block: 0.5rem;
+      }
+
+      .spec:last-of-type {
+        border-bottom: 0;
       }
 
       .spec dt {
         color: var(--muted);
         font-family: var(--font-mono);
-        font-size: 0.72rem;
+        font-size: 0.68rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;
       }
 
       .spec dd {
         color: var(--ink);
+        font-size: 0.88rem;
         font-weight: 700;
         margin: 0;
+        text-align: right;
       }
 
       .catalog-scroller {
@@ -826,11 +850,12 @@
       }
 
       .course-card h3 {
-        font-size: 1.22rem;
+        font-size: 1.05rem;
       }
 
       .course-promise {
         color: var(--green-deep);
+        font-size: 0.85rem;
         font-style: italic;
         font-weight: 600;
       }
@@ -840,30 +865,31 @@
         border-top: 1.5px dashed var(--line-soft);
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 1rem;
+        gap: 0.4rem 1rem;
         justify-content: space-between;
         margin-top: auto;
-        padding-top: 0.85rem;
+        padding-top: 0.6rem;
       }
 
       .course-meta {
         color: var(--muted);
         font-family: var(--font-mono);
-        font-size: 0.78rem;
+        font-size: 0.72rem;
       }
 
       /* --- promises ----------------------------------------------------- */
 
       .promise-grid {
         display: grid;
-        gap: 1.25rem;
+        gap: 1rem;
       }
 
       .promise {
         display: grid;
-        gap: 0.3rem;
+        gap: 0.15rem;
         grid-template-columns: auto 1fr;
-        column-gap: 0.75rem;
+        column-gap: 0.6rem;
+        font-size: 0.85rem;
       }
 
       .promise-mark {
@@ -871,13 +897,13 @@
         border: 2px solid var(--line);
         border-radius: 999px;
         grid-row: span 2;
-        height: 1.6rem;
-        margin-top: 0.2rem;
-        width: 1.6rem;
+        height: 1.35rem;
+        margin-top: 0.15rem;
+        width: 1.35rem;
       }
 
       .promise h3 {
-        font-size: 1.05rem;
+        font-size: 0.95rem;
       }
 
       /* --- events ------------------------------------------------------- */
@@ -964,15 +990,17 @@
       }
 
       .graph-frame {
+        align-self: start;
         background: var(--card);
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        padding: 1.25rem;
+        padding: 1rem;
       }
 
+      /* The mockup draws the hub and its spokes in a landscape frame, not a square. */
       .graph-plot {
-        aspect-ratio: 1 / 1;
+        aspect-ratio: 1.45 / 1;
         position: relative;
       }
 
@@ -989,11 +1017,11 @@
         border: 2px solid var(--indigo);
         border-radius: 999px;
         color: var(--ink);
-        font-size: 0.78rem;
+        font-size: 0.74rem;
         font-weight: 600;
         left: 50%;
-        max-width: 40%;
-        padding: 0.25rem 0.6rem;
+        max-width: 44%;
+        padding: 0.22rem 0.6rem;
         position: absolute;
         text-align: center;
         text-decoration: none;
@@ -1057,7 +1085,7 @@
 
       .topic-list {
         display: grid;
-        gap: 0.7rem;
+        gap: 0.5rem;
       }
 
       .topic {
@@ -1065,19 +1093,26 @@
         border: 2px solid var(--line);
         border-radius: 0.7rem;
         display: block;
-        padding: 0.8rem 1rem;
+        padding: 0.55rem 0.85rem;
         text-decoration: none;
       }
 
       .topic strong {
         color: var(--ink);
         display: block;
-        font-size: 1rem;
+        font-size: 0.92rem;
       }
 
+      /* Summaries come from the wiki source and vary in length; the card shows the
+         opening of each one at a fixed height so the column keeps its rhythm. */
       .topic span {
         color: var(--body-text);
-        font-size: 0.88rem;
+        display: -webkit-box;
+        font-size: 0.8rem;
+        line-height: 1.45;
+        overflow: hidden;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 1;
       }
 
       /* --- closing band ------------------------------------------------- */
@@ -1100,11 +1135,12 @@
 
       .closing h2 {
         color: #ffffff;
-        font-size: clamp(1.35rem, 3vw, 1.95rem);
+        font-size: clamp(1.15rem, 2.4vw, 1.55rem);
       }
 
       .closing p {
         color: #d7d9e6;
+        font-size: 0.88rem;
         margin-top: 0.5rem;
       }
 
@@ -1429,8 +1465,9 @@
         }
       }
 
-      /* The full link row only fits once the viewport can hold it without wrapping. */
-      @media (min-width: 74rem) {
+      /* The full link row only fits once the viewport can hold it without wrapping.
+         The mockup shows it at its own 1142px width, so the switch sits below that. */
+      @media (min-width: 69rem) {
         .masthead .site-navigation-links,
         .masthead .site-navigation-links.is-open {
           background: transparent;
@@ -1457,16 +1494,21 @@
 
         .masthead .nav-auth,
         .masthead .signup-button {
-          font-size: 0.95rem;
-          padding-inline: 1rem;
+          font-size: 0.9rem;
+          padding-inline: 0.95rem;
         }
 
         .masthead .nav-link {
           padding-inline: 0.35rem;
         }
 
+        .band-head {
+          align-items: baseline;
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
         .brand {
-          font-size: 1.25rem;
+          font-size: 1.1rem;
         }
 
         .brand-mark {
@@ -1737,7 +1779,7 @@
             <div>
               <h2 id="courses-heading">Pick what you want to build first</h2>
               <p>
-                {{ course_family_count }} free zoomcamps, community-created: practical homework,
+                {{ course_family_word|capfirst }} free zoomcamps, community-created: practical homework,
                 projects, public leaderboards and peer review.
               </p>
             </div>
@@ -1859,7 +1901,7 @@
               {% for event in upcoming_events %}
                 <article class="card event-card">
                   <div class="event-top">
-                    <time datetime="{{ event.starts_at }}">{{ event.display_time }}</time>
+                    <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
                     <span class="chip">{{ event.type }}</span>
                   </div>
                   <h3>{{ event.title }}</h3>
@@ -1998,7 +2040,7 @@
         <div class="shell closing">
           <div>
             <h2 id="closing-heading">
-              One free account. {{ course_family_count }} courses. 130,000 people building with you.
+              One free account. {{ course_family_word|capfirst }} courses. 130,000 people building with you.
             </h2>
             <p>
               Homework, leaderboards, weekly events — and
