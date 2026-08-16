@@ -202,6 +202,37 @@ Markup shapes below are the contract; the CSS lives in the partial.
   0.14em`). The 6-series mono variant is `.mono-label.mono-label-indigo`.
 - **`.band-link`** — underlined indigo action link, `text-underline-offset:
   0.2em`.
+- **`.breadcrumbs`** — the breadcrumb trail on a detail page, restoring what
+  the adopted shell used to draw. The mockups draw no breadcrumb, so the shape
+  is this system's own: links take the `.band-link` treatment (indigo,
+  underlined) at the `0.92rem` meta size, the current page is `--muted`, and
+  the `/` separator is CSS-drawn with empty alternative text
+  (`content: "/" / ""`) so it is never announced. Links keep the system's
+  `2.75rem` minimum target height in both themes, which also satisfies the
+  target-spacing contract when the trail wraps on a phone. Markup contract: a
+  `nav` with an accessible name holding an `ol`, one `li` per level, every
+  ancestor a link, and the current page on `li[aria-current="page"]` as plain
+  text — never a link.
+
+  ```html
+  <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li>
+        <a href="…">Courses</a>
+      </li>
+      <li aria-current="page">
+        Machine Learning Zoomcamp
+      </li>
+    </ol>
+  </nav>
+  ```
+
+  Use it on pages that sit below an index: the course page carries
+  `Courses / <course title>` at the top of its hero band. Index pages
+  (`/courses`, `/events`, `/podcast`) and the homepage do not carry one — the
+  masthead already marks them with `aria-current="page"` and a lone "Home"
+  crumb duplicates the brand link. The podcast episode page keeps its
+  `← all episodes` back-link instead; a page offers one way back, not two.
 
 ### Cards and chips
 
