@@ -79,10 +79,18 @@ dark mapping in `_docs/design/mockups/datatalks-homepage.source.css`.
 | `--sand` | `#f3f0e8` | `#2a2740` | waitlist/past pills, readonly fields |
 | `--olive` | `#6b6034` | `#cbb98a` | text on `--sand` |
 | `--green-ship` | `#1f6b2c` | `#93c7a5` | "you'll ship" lines, mint-pill text |
-| `--bubble` | `#b9bff0` | `#3c4372` | brand bubble: play discs, date rail |
-| `--on-bubble` | `#1e2136` | `#e8e5dd` | glyphs and digits on `--bubble` |
+| `--bubble` | `#b9bff0` | same | brand bubble: play discs, date rail |
+| `--on-bubble` | `#1e2136` | same | glyphs and digits on `--bubble` |
 | `--clay` | `#e0847a` | same | YouTube platform dot |
 | `--gold` | `#e2c67a` | same | RSS platform dot |
+
+Only `--green-ship` restates itself for the dark theme, because it is the one
+extended token used as *text*: on the dark mint of a `.status-pill-mint` the
+light `#1f6b2c` reads at about 1.6:1. The rest are surfaces and marks that the
+dark grounds already carry — the bubble disc stays the pale periwinkle the
+homepage and the podcast index both draw, with its ink glyph. When a page first
+needs `--sand` or `--lavender-deep` as a *text* pairing in dark, move that token
+and its text partner together, never one of the pair alone.
 
 Mockup colours that deliberately map onto existing tokens rather than getting
 their own: the greys `#5b5f74`, `#7b7f95` and `#3a3e57` → `--muted` /
@@ -390,8 +398,14 @@ draw separators inside cells.
 Bubble-lavender disc with an ink glyph (`2.4rem`; `.play-disc-large` for
 `3.5rem`; `.play-disc-card` for the white disc inside the player). The episode
 page's video placeholder is `.player-frame` — a striped 16:9 slab with a
-`.play-disc.play-disc-card.play-disc-large` centred inside. `.avatar-striped`
-gives a guest without a portrait the same stripes.
+`.play-disc.play-disc-large` centred inside. `.avatar-striped` gives a guest
+without a portrait the same stripes.
+
+The mockup draws that centred disc white (`.play-disc-card`) because its frame
+is empty stripes. The real episode page fills the frame with the episode's own
+artwork and makes the whole frame the link to the recording, so it keeps the
+bubble disc: a white disc disappears on a light thumbnail. Use
+`.play-disc-card` only where the surface behind it is known.
 
 ### Timestamp / transcript rows
 
