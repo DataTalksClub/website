@@ -18,11 +18,11 @@ COPIED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/copied-files.t
 PATCHED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/integration-patched-files.tsv"
 PINNED_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc21560b8"
 PINNED_CSS_SHA256 = "282ed7b15df2502a8d4c2e9cd45ef1f8e92771835243d3cbc590f78db9ed5f8f"
-# The homepage left this contract with the design 5a rebuild (issue #179): it owns its own
-# inline stylesheet and none of the adopted CMP shell.  The events surfaces still use it.
+# The homepage left this contract with the design 5a rebuild (issue #179), and the events
+# index (/events and /events/past) left it with the design 5a mockup 6c rebuild: both own
+# their inline stylesheet and none of the adopted CMP shell.  The event detail page still
+# uses it, so the assertions that protect that page stay exactly as they were.
 SCOPED_TEMPLATES = (
-    REPOSITORY_ROOT / "templates/public/events.html",
-    REPOSITORY_ROOT / "templates/public/_event.html",
     REPOSITORY_ROOT / "templates/public/_event_meta.html",
     REPOSITORY_ROOT / "templates/public/event_detail.html",
 )
@@ -79,7 +79,7 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
         for path in SCOPED_TEMPLATES:
             source = path.read_text(encoding="utf-8")
             relative = path.relative_to(REPOSITORY_ROOT)
-            if path.name in {"events.html", "event_detail.html"}:
+            if path.name == "event_detail.html":
                 if not source.startswith('{% extends "core/base.html" %}'):
                     failures.append(f"{relative}: does not extend core/base.html")
             for forbidden in (
@@ -97,26 +97,19 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
         self.assertEqual(failures, [])
 
     def test_catalog_surfaces_keep_cmp_hero_and_divided_row_composition(self) -> None:
-        events = (REPOSITORY_ROOT / "templates/public/events.html").read_text(encoding="utf-8")
-        event_row = (REPOSITORY_ROOT / "templates/public/_event.html").read_text(encoding="utf-8")
         detail = (REPOSITORY_ROOT / "templates/public/event_detail.html").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn('class="home-hero ', events)
-        self.assertIn("divide-y app-divide", events)
-        self.assertIn('class="grid gap-3 py-5"', event_row)
         self.assertIn('class="max-w-3xl"', detail)
 
     def test_mobile_target_fix_covers_every_scoped_cmp_button(self) -> None:
-        events = (REPOSITORY_ROOT / "templates/public/events.html").read_text(encoding="utf-8")
         detail = (REPOSITORY_ROOT / "templates/public/event_detail.html").read_text(
             encoding="utf-8"
         )
         shell_css = TARGET_SHELL_CSS.read_text(encoding="utf-8")
 
-        for source in (events, detail):
-            self.assertIn("home-events-cmp-surface", source)
+        self.assertIn("home-events-cmp-surface", detail)
         target_rule = re.search(
             r"body\.home-events-cmp-surface main \.primer-button\s*\{(?P<body>[^}]*)\}",
             shell_css,

@@ -15,6 +15,9 @@ FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
 HOME_HEADING = "Ship data pipelines and AI systems that actually run in production."
+# The events index is a design 5a page (issue #179, mockup 6c) and leads with the
+# mockup's own headline; "Events" is now only the navigation label and the page title.
+EVENTS_HEADING = "Something happening every week"
 
 
 def _featured_event_path() -> str:
@@ -88,7 +91,7 @@ def test_public_home_and_hubs(
     _shot(page, f"home-{suffix}.png", full_page=True)
 
     for label, path, heading in (
-        ("Events", "/events", "Events"),
+        ("Events", "/events", EVENTS_HEADING),
         ("Courses", "/courses", "Learn data skills. For free. Together."),
         ("Blog", "/blog", "Latest Articles"),
         ("Podcast", "/podcast", "Podcast"),
@@ -358,7 +361,7 @@ def test_public_pages_remain_meaningful_without_javascript(
     try:
         for path, heading in (
             ("/", HOME_HEADING),
-            ("/events", "Events"),
+            ("/events", EVENTS_HEADING),
             (_featured_event_path(), FEATURED_EVENT_TITLE),
             (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_NAME),
             ("/wiki/search", "Search"),
