@@ -691,7 +691,9 @@ Breakpoints in use:
 The narrow principle: below 48rem a surface changes shape rather than merely
 squeezing. On the homepage the hero drops its drawing and fineprint, the climb
 and events become dashed lists, stories collapse their chips to one mono-style
-line, and the wiki graph becomes a centred chip cloud. New pages should make
+line, and the wiki graph swaps its landscape SVG ring for a portrait one
+(same data, labels wrapped to two lines, geometry computed in
+`core/home_content.py`). New pages should make
 the same kind of decision (e.g. the self-paced table stacks each row; the
 events row puts the date rail above the card) instead of letting a grid wrap
 arbitrarily. Shared narrow behaviour (card-grid gaps, the catalogue's narrower
