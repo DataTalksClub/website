@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from django import template
 from django.forms import BoundField
 from django.utils.dateparse import parse_date, parse_datetime
@@ -21,6 +23,40 @@ def human_date(value: object) -> str:
     if parsed is None:
         return str(value)
     return f"{parsed:%B} {parsed.day}, {parsed:%Y}"
+
+
+def _publication_day(value: object) -> date | None:
+    """Read the calendar day out of a publication date, in either stored shape.
+
+    ``human_date`` renders a clock reading whenever the value parses as a datetime,
+    and ``parse_datetime`` accepts a bare ``YYYY-MM-DD`` as midnight.  A publication
+    date has no time in it: the articles catalogue stores a day, and the books
+    catalogue stores that same day padded with ``T00:00:00``.  Surfaces that publish
+    the day read it through here, so they never show an hour the record does not
+    carry — and so the machine value and the visible text cannot disagree.
+    """
+
+    return parse_date(str(value)[:10])
+
+
+@register.filter
+def human_day(value: object) -> str:
+    """Render a publication date as the calendar day it is, and nothing more."""
+
+    parsed = _publication_day(value)
+    if parsed is None:
+        return str(value)
+    return f"{parsed:%B} {parsed.day}, {parsed:%Y}"
+
+
+@register.filter
+def iso_day(value: object) -> str:
+    """The machine-readable counterpart of ``human_day``, for ``<time datetime>``."""
+
+    parsed = _publication_day(value)
+    if parsed is None:
+        return str(value)
+    return f"{parsed:%Y-%m-%d}"
 
 
 @register.filter
