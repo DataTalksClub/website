@@ -9,6 +9,7 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import Client, SimpleTestCase, TestCase
 from django.utils.html import conditional_escape
 
+from content.podcast_content import episode_view, published_display, season_episodes
 from content.public_data import ordered_podcasts, podcast_seasons, public_projection
 from core.seo import validated_canonical_url
 
@@ -135,6 +136,53 @@ class PodcastOrderingTests(SimpleTestCase):
         ):
             with self.subTest(value=value):
                 self.assertEqual(validated_canonical_url(value), "")
+
+
+class PodcastPageCompositionTests(SimpleTestCase):
+    """The design 5a pages (issue #179) read every fact, or fail loudly."""
+
+    def test_every_catalogue_record_composes_without_invention(self) -> None:
+        records = public_projection()["podcasts"]
+        views = tuple(episode_view(record) for record in records)
+
+        self.assertEqual(len(views), len(records))
+        for view, record in zip(views, records, strict=True):
+            self.assertEqual(view.public_path, record["public_path"])
+            self.assertEqual(view.season_episode, f"Season {view.season} · Episode {view.episode}")
+            self.assertEqual(
+                [guest.name for guest in view.guests],
+                [guest["name"] for guest in record["guest_profiles"]],
+            )
+            self.assertEqual(
+                {link.url for link in view.platform_links}, set(record["links"].values())
+            )
+            self.assertIn(view.watch_url, set(record["links"].values()))
+        # Seventeen entries carry no publication date, and the pages simply omit it.
+        self.assertEqual(sum(1 for view in views if not view.published_display), 17)
+
+    def test_publication_dates_are_read_and_never_guessed(self) -> None:
+        self.assertEqual(published_display("2021-02-23"), "Feb 23, 2021")
+        self.assertEqual(published_display(""), "")
+        with self.assertRaisesRegex(ImproperlyConfigured, "publication date is invalid"):
+            published_display("23 February 2021")
+
+    def test_missing_or_invented_identity_fails_closed(self) -> None:
+        record = dict(ordered_podcasts()[0])
+        for field, value in (
+            ("title", ""),
+            ("description", "  "),
+            ("season", 0),
+            ("episode", "6"),
+        ):
+            with self.subTest(field=field):
+                with self.assertRaises(ImproperlyConfigured):
+                    episode_view({**record, field: value})
+        with self.assertRaisesRegex(ImproperlyConfigured, "canonical path is invalid"):
+            episode_view({**record, "public_path": "/podcast/renamed-by-hand"})
+        with self.assertRaisesRegex(ImproperlyConfigured, "https address"):
+            episode_view({**record, "links": {"youtube": "http://example.invalid/insecure"}})
+        with self.assertRaisesRegex(ImproperlyConfigured, "must not be empty"):
+            season_episodes(())
 
 
 class PodcastSeasonNavigationTests(TestCase):
@@ -268,7 +316,13 @@ class PodcastSeasonNavigationTests(TestCase):
                     f'aria-label="Season {season}, current season"',
                     count=1,
                 )
-                self.assertContains(response, 'aria-current="page"', count=2)
+                # The page carries its own stylesheet (design 5a, issue #179), so the
+                # attribute also appears inside CSS selectors; only the two markup
+                # markers count: the navigation's own link and the current season.
+                self.assertEqual(
+                    len(re.findall(r'\saria-current="page"', response.content.decode())),
+                    2,
+                )
                 self.assertEqual(
                     tuple(link["number"] for link in response.context["season_links"]),
                     tuple(range(24, 0, -1)),
@@ -471,6 +525,79 @@ class PodcastSeasonNavigationTests(TestCase):
             if guest["public_path"]:
                 self.assertContains(oldest, f'href="{guest["public_path"]}"')
         self.assertFalse(any(not item["description"] for item in public_projection()["podcasts"]))
+
+    def test_design_5a_pages_carry_one_inline_stylesheet_and_no_legacy_css(self) -> None:
+        """Mockup 6d (issue #179) rebuilt both surfaces on the shared design system."""
+
+        episode = ordered_podcasts()[0]
+        for path in ("/podcast", "/podcast?season=12", episode["public_path"]):
+            with self.subTest(path=path):
+                body = self.client.get(path).content.decode()
+                self.assertIn("<style>", body)
+                self.assertIn("--bubble:", body)
+                self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
+                for retired in (
+                    "/static/courses.css",
+                    "/static/core/site_shell.css",
+                    "/static/core/accessibility.css",
+                    "tailwindcss",
+                    "fontawesome",
+                ):
+                    self.assertNotIn(retired, body)
+                for leak in ("{#", "#}", "{%", "%}", "{{", "}}"):
+                    self.assertNotIn(leak, body)
+
+    def test_index_rows_use_the_shared_play_disc_and_row_list(self) -> None:
+        season = podcast_seasons()[0]
+        body = self.client.get("/podcast").content.decode()
+
+        self.assertEqual(body.count('class="row-list"'), 1)
+        self.assertEqual(body.count('class="play-disc"'), len(season.episodes))
+        self.assertEqual(body.count('class="list-row episode-row"'), len(season.episodes))
+        self.assertIn(f"podcast · season {season.number}", body)
+        # The catalogue has no duration and no global episode number; the design's
+        # "58 min" and "#214" therefore have no stand-in on the page.
+        self.assertNotIn(" min<", body)
+        self.assertNotIn("#214", body)
+
+    def test_episode_page_plays_and_lists_only_real_destinations(self) -> None:
+        episode = public_projection()["podcasts_by_slug"]["practical-llm-engineering-and-rag"]
+        response = self.client.get(episode["public_path"])
+        body = response.content.decode()
+
+        self.assertContains(response, 'class="status-pill status-pill-mint"')
+        self.assertContains(response, f"Season {episode['season']} · Episode {episode['episode']}")
+        self.assertContains(response, 'class="player-frame episode-player"')
+        self.assertContains(response, f'href="{episode["links"]["youtube"]}"')
+        self.assertContains(response, f'src="{episode["image_path"]}"')
+        for platform, label in (
+            ("apple", "Apple Podcasts"),
+            ("spotify", "Spotify"),
+            ("youtube", "YouTube"),
+            ("anchor", "Anchor"),
+        ):
+            self.assertContains(response, f'href="{episode["links"][platform]}"')
+            self.assertContains(response, label)
+        for guest in episode["guest_profiles"]:
+            self.assertContains(response, guest["name"])
+            self.assertContains(response, f'href="{guest["public_path"]}"')
+        self.assertContains(response, 'id="transcript-heading"')
+        self.assertEqual(
+            body.count('class="timestamp-row"'),
+            sum(1 for entry in episode["transcript"] if not entry.get("header")),
+        )
+        # Transcript provenance stays out of the reader's page.
+        self.assertNotContains(response, episode["transcript_provenance"]["source_url"])
+
+    def test_episode_without_a_transcript_renders_without_the_section(self) -> None:
+        silent = next(
+            item for item in public_projection()["podcasts"] if not item.get("transcript")
+        )
+        response = self.client.get(silent["public_path"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, silent["title"])
+        self.assertNotContains(response, 'id="transcript-heading"')
 
     def test_homepage_uses_the_same_latest_episode(self) -> None:
         latest = ordered_podcasts()[0]

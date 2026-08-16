@@ -7,6 +7,9 @@ from content.public_data import ordered_podcasts, podcast_seasons
 from playwright_tests.accessibility_support import assert_accessible_page
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-132")
+# The design 5a rebuild (issue #179) gave the index the mockup's own headline; the
+# season heading it navigates by is unchanged.
+PODCAST_HEADING = "Conversations with people who ship data"
 
 
 def _screenshot(page: Page, name: str, *, full_page: bool = True) -> None:
@@ -111,7 +114,7 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         _settle_analytics_preferences(page)
         expect(page.locator("main h1")).to_have_count(1)
         expect(page.locator("main h2")).to_have_count(1)
-        expect(page.get_by_role("heading", name="Podcast", exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", name=PODCAST_HEADING, exact=True)).to_be_visible()
         expect(page.get_by_role("heading", name=f"Season {season}", exact=True)).to_be_visible()
         expect(page.locator("main h3")).to_have_count(len(inventory[season].episodes))
         expect(page.locator("[data-podcast-season]")).to_have_count(1)
@@ -179,12 +182,12 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         assert_accessible_page(page, f"podcast-season-{season}-{suffix}")
         _screenshot(page, f"podcast-season-{season}-{suffix}-light.png")
 
-        page.get_by_role("button", name="Toggle dark mode").click()
+        page.locator("#dark-mode-toggle").click()
         expect(page.locator("body.dark-mode")).to_have_count(1)
         _assert_no_horizontal_overflow(page)
         assert_accessible_page(page, f"podcast-season-{season}-{suffix}-dark")
         _screenshot(page, f"podcast-season-{season}-{suffix}-dark.png")
-        page.get_by_role("button", name="Toggle dark mode").click()
+        page.locator("#dark-mode-toggle").click()
         expect(page.locator("body.dark-mode")).to_have_count(0)
 
     if suffix == "mobile":
@@ -224,7 +227,9 @@ def test_latest_middle_oldest_light_dark_and_keyboard_contract(
         )
         assert focus["focusVisible"] is True, focus
         assert focus["style"] == "solid" and focus["width"] >= 3, focus
-        assert focus["offset"] >= 3, focus
+        # Design 5a's global focus ring is 3px solid at a 2px offset
+        # (_docs/design/design-5a.md); the ring still clears the control it marks.
+        assert focus["offset"] >= 2, focus
         _screenshot(page, "podcast-season-12-mobile-focus.png")
 
     assert failed_requests == []

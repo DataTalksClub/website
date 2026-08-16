@@ -1,62 +1,486 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block breadcrumbs %}
-  <li>
-    <a class="app-link" href="{% url 'podcast' %}">Podcast</a>
-  </li>
-  <li class="ml-2">/ {{ record.title }}</li>
-{% endblock %}
-{% block content %}
-  <article class="mx-auto max-w-3xl">
-    <p class="text-sm app-muted">Season {{ record.season }} · Episode {{ record.episode }}</p>
-    <h1 class="mt-2 text-4xl font-semibold leading-tight">{{ record.title }}</h1>
-    {% if record.guest_profiles %}
-      <p class="mt-3 app-muted">
-        With
-        {% for guest in record.guest_profiles %}
-          {% if guest.public_path %}
-            <a class="app-link" href="{{ guest.public_path }}">{{ guest.name }}</a>
-          {% else %}
-            <span>{{ guest.name }}</span>
-          {% endif %}
-          {% if not forloop.last %}
-            <span aria-hidden="true">,</span>
-          {% endif %}
-        {% endfor %}
-      </p>
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="{{ og_type|default:'article' }}">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {% if og_image_url %}
+      <meta name="twitter:card" content="summary_large_image">
+    {% else %}
+      <meta name="twitter:card" content="summary">
     {% endif %}
-    {% include "public/_media.html" %}
-    <p class="mt-6 text-lg leading-8 app-text">{{ record.description }}</p>
-    {% if record.links %}
-      <div class="mt-5 flex flex-wrap gap-3">
-        {% for label, url in record.links.items %}
-          <a class="primer-button primer-button-secondary" href="{{ url }}" rel="noopener noreferrer">
-            {{ label|title }}
-          </a>
-        {% endfor %}
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    {% if og_image_url %}
+      <meta property="og:image" content="{{ og_image_url }}">
+    {% endif %}
+    {% if og_image_url %}
+      <meta name="twitter:image" content="{{ og_image_url }}">
+    {% endif %}
+    {% if published_time %}
+      <meta property="article:published_time" content="{{ published_time }}">
+    {% endif %}
+    {% if structured_data %}
+      <script type="application/ld+json">
+        {{ structured_data|safe }}
+      </script>
+    {% endif %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Podcast episode, design 5a mockup 6d (issue #179).  One inline
+       * stylesheet: the shared design system partial, then this page.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Episode page rules.  The player frame, play discs, timestamp rows,
+       * status pills and platform pills are all shared primitives.
+       * ------------------------------------------------------------------ */
+
+      /* The episode reads as one column, the width the design gives long prose. */
+      .episode-shell {
+        max-width: 52rem;
+      }
+
+      .episode-back {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+      }
+
+      .episode-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      /* The player frame is a real destination here: the episode artwork fills
+         the striped slab, and the disc sits on top of it.  The mockup's white
+         `.play-disc-card` was drawn against the empty striped placeholder; over
+         real artwork it can land on white, so the frame keeps the brand-bubble
+         disc the index rows and the homepage already use. */
+      .episode-player {
+        margin-top: 1.5rem;
+        overflow: hidden;
+        position: relative;
+        text-decoration: none;
+      }
+
+      .player-art {
+        height: 100%;
+        inset: 0;
+        object-fit: cover;
+        position: absolute;
+        width: 100%;
+      }
+
+      .episode-player .play-disc {
+        position: relative;
+      }
+
+      .guest-row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+        margin-top: 1.5rem;
+      }
+
+      .guest-identity {
+        margin-right: auto;
+        min-width: 0;
+      }
+
+      .guest-name {
+        color: var(--ink);
+        font-size: 1.05rem;
+        font-weight: 800;
+      }
+
+      .episode-description {
+        margin-top: 1.5rem;
+      }
+
+      .listen-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+      }
+
+      /* Transcript: shared timestamp rows, with the section headers the source
+         gives the conversation and the speaker as each row's mark. */
+      .transcript-section {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        letter-spacing: 0.06em;
+        margin-top: 1.5rem;
+        text-transform: uppercase;
+      }
+
+      .timestamp-mark {
+        max-width: 7rem;
+        min-width: 4.5rem;
+      }
+
+      .transcript-time {
+        color: var(--muted);
+        display: block;
+        font-size: 0.7rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Narrow: the speaker sits above their line instead of stealing half the
+           row, and the artwork keeps its shape. */
+        .timestamp-row {
+          grid-template-columns: minmax(0, 1fr);
+          row-gap: 0.15rem;
+        }
+
+        .timestamp-mark {
+          max-width: none;
+        }
+
+        .transcript-time {
+          display: inline;
+          margin-left: 0.4rem;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  {% url 'account_settings' as account_settings_url %}
+  {% url 'socialaccount_connections' as account_connections_url %}
+  {% url 'account_logout' as account_logout_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <script>
+      (function () {
+        try {
+          var body = document.body;
+          if (
+            body
+            && body.getAttribute('data-authenticated') !== 'true'
+            && localStorage.getItem('darkMode') === 'true'
+          ) {
+            body.classList.add('dark', 'dark-mode');
+            body.setAttribute('data-dark-mode', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    {% if user.is_authenticated %}
+      <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+    {% endif %}
+    {% if IS_IMPERSONATING %}
+      <div id="impersonation-banner" class="impersonation-banner">
+        <div class="shell">
+          <span>
+            You are logged in as
+            <strong>{{ request.user.email|default:request.user.username }}</strong>
+          </span>
+          <form method="post" action="{% url 'stop_impersonating' %}">
+            {% csrf_token %}
+            <button type="submit" class="impersonation-return-button">Return to admin account</button>
+          </form>
+        </div>
       </div>
     {% endif %}
-    {% if record.transcript %}
-      <section class="mt-10 border-t app-border pt-8" aria-labelledby="transcript-heading">
-        <h2 id="transcript-heading" class="text-2xl font-semibold">Transcript</h2>
-        {% for entry in record.transcript %}
-          {% if entry.header %}
-            <h3 class="mt-8 text-xl font-semibold">{{ entry.header }}</h3>
+    <header class="masthead">
+      <nav class="shell masthead-inner" aria-label="Primary navigation">
+        <a class="brand" href="{% url 'home' %}">
+          {# The mockup's mark traced 1:1: wobbled lavender bubble, ink outline, tail, DTC. #}
+          <svg class="brand-mark" viewBox="0 0 64 61" aria-hidden="true" focusable="false">
+            <path
+              d="M17 3.2C27 1.6 39 1.8 48 3.6C55.5 5.2 60.8 9.4 61.4 16C62 22.6 61.8 30 60.6 36.4C59.4 42.8 56 47.2 49.6 48.6C46.6 49.2 43.4 49.4 40.2 49C39.4 53.4 38.8 57.4 37.6 61C36.4 57.2 34.4 53.4 31.8 50.2C27 49.6 22.2 48.8 18.2 47.4C11.4 45 6.4 40.6 4.6 34.2C2.8 27.8 2.6 20.6 3.8 14.6C5 8.6 10 4.6 17 3.2Z"
+              fill="#b9bff0"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linejoin="round"
+            />
+            <text x="32" y="34">DTC</text>
+          </svg>
+          <span class="brand-name">
+            <span class="brand-light">Data</span>Talks.Club
+          </span>
+        </a>
+        <div class="site-navigation">
+          <button
+            class="site-navigation-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="site-navigation-links"
+          >
+            Menu
+          </button>
+          <div id="site-navigation-links" class="site-navigation-links">
+            <a class="nav-link" href="{% url 'events' %}">Events</a>
+            <a class="nav-link" href="{% url 'course_list' %}">Courses</a>
+            <a class="nav-link" href="{% url 'articles' %}">Blog</a>
+            <a
+              class="nav-link"
+              href="{% url 'podcast' %}"
+              aria-current="page"
+            >Podcast</a>
+            <a class="nav-link" href="{% url 'wiki-home' %}">Wiki</a>
+            <a class="nav-link" href="{% url 'books' %}">Books</a>
+            <a class="nav-link" href="{% url 'docs-home' %}">Docs</a>
+            <a class="nav-link" href="{% url 'faq-home' %}">FAQ</a>
+          </div>
+        </div>
+        <div class="masthead-actions">
+          <button
+            id="dark-mode-toggle"
+            class="pill-button"
+            type="button"
+            aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
+            <span class="sr-only">&nbsp;mode</span>
+          </button>
+          {% if user.is_authenticated %}
+            {% comment %}
+              Same account-menu contract as the shared shell: the labelled summary and the
+              .user-menu-panel links every identity test drives.
+            {% endcomment %}
+            <details class="account-nav user-menu">
+              <summary
+                class="user-menu-toggle"
+                title="Account menu"
+                aria-label="Account menu"
+              >Account</summary>
+              <div class="mobile-nav-panel user-menu-panel">
+                <p class="user-menu-signed-in">Signed in as</p>
+                <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
+                  {{ user.email|default:user.username }}
+                </p>
+                <div class="user-menu-actions">
+                  <a class="nav-link user-menu-item" href="{% url 'course_list' %}">Courses</a>
+                  {% if account_settings_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
+                  {% endif %}
+                  {% if account_connections_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_connections_url }}">Login connections</a>
+                  {% endif %}
+                  {% if can_access_studio %}
+                    <a class="nav-link user-menu-item" href="{% url 'studio:home' %}">Studio</a>
+                  {% endif %}
+                  {% if account_logout_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_logout_url }}">Logout</a>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
           {% else %}
-            <p class="mt-4 leading-7 app-text">
-              {% if entry.who %}
-                <strong>{{ entry.who }}:</strong>
+            {% comment %}
+              Rendered once, and visible at every width: a signed-out visitor must be able
+              to reach login without first opening the navigation menu.
+            {% endcomment %}
+            <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
+            <a class="signup-button" href="{% url 'account_signup' %}">Sign up free</a>
+          {% endif %}
+        </div>
+      </nav>
+    </header>
+    {% if site_announcement %}
+      <aside class="site-announcement" aria-label="Site announcement">
+        <div class="shell">{{ site_announcement.message }}</div>
+      </aside>
+    {% endif %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream episode-hero" aria-labelledby="episode-heading">
+        <div class="shell episode-shell">
+          <a class="band-link episode-back" href="{% url 'podcast' %}">← all episodes</a>
+          <p>
+            <span class="status-pill status-pill-mint">{{ episode.season_episode }}</span>
+          </p>
+          <h1 id="episode-heading">{{ episode.title }}</h1>
+          {% if episode.watch_url %}
+            <a
+              class="player-frame episode-player"
+              href="{{ episode.watch_url }}"
+              rel="noopener noreferrer"
+            >
+              {% if episode.media_available %}
+                <img
+                  class="player-art"
+                  src="{{ episode.image_path }}"
+                  alt=""
+                  decoding="async"
+                >
               {% endif %}
-              {{ entry.line }}
-              {% if entry.time %}
-                <span class="text-xs app-muted">({{ entry.time }})</span>
+              <span class="play-disc play-disc-large" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M9 6.5l9 5.5-9 5.5z"/>
+                </svg>
+              </span>
+              <span class="sr-only">Play {{ episode.title }} on {{ episode.watch_label }}</span>
+            </a>
+          {% else %}
+            <div class="player-frame episode-player" role="img" aria-label="Artwork unavailable">
+              <span class="play-disc play-disc-card play-disc-large" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M9 6.5l9 5.5-9 5.5z"/>
+                </svg>
+              </span>
+            </div>
+          {% endif %}
+          {% for guest in episode.guests %}
+            <div class="guest-row">
+              <span class="avatar avatar-striped" aria-hidden="true"></span>
+              <div class="guest-identity">
+                <p class="guest-name">{{ guest.name }}</p>
+                <p class="mono-label">guest</p>
+              </div>
+              {% if guest.public_path %}
+                <a class="band-link" href="{{ guest.public_path }}">Profile</a>
               {% endif %}
+            </div>
+          {% endfor %}
+          <p class="episode-description">{{ episode.description }}</p>
+          {% if episode.platform_links %}
+            <div class="listen-row">
+              {% for link in episode.platform_links %}
+                <a class="pill-button" href="{{ link.url }}" rel="noopener noreferrer">
+                  <span class="dot {{ link.dot }}" aria-hidden="true"></span>
+                  {{ link.label }}
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if episode.published %}
+            <p class="mono-note episode-published">
+              <time datetime="{{ episode.published }}">{{ episode.published_display }}</time>
             </p>
           {% endif %}
-        {% endfor %}
+        </div>
       </section>
-    {% endif %}
-  </article>
-{% endblock %}
+
+      {% if record.transcript %}
+        <section class="band band-cream" aria-labelledby="transcript-heading">
+          <div class="shell episode-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="transcript-heading">Transcript</h2>
+                <p>The conversation in full, as it was recorded.</p>
+              </div>
+            </div>
+            {% for entry in record.transcript %}
+              {% if entry.header %}
+                <h3 class="transcript-section">{{ entry.header }}</h3>
+              {% else %}
+                <div class="timestamp-row">
+                  <span class="timestamp-mark">
+                    {{ entry.who }}
+                    {% if entry.time %}
+                      <span class="transcript-time">{{ entry.time }}</span>
+                    {% endif %}
+                  </span>
+                  <p>{{ entry.line }}</p>
+                </div>
+              {% endif %}
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+    </main>
+    {% include "core/_site_footer.html" %}
+    <script>
+      /* Page-local theme toggle: same storage key, cookie endpoint and body classes as
+         the shared shell, with the compact "Dark"/"Light" label this design uses. */
+      (function () {
+        var body = document.body;
+        var toggle = document.getElementById('dark-mode-toggle');
+        var label = document.getElementById('dark-mode-label');
+        if (!toggle) {
+          return;
+        }
+
+        function apply(isDark) {
+          body.classList.toggle('dark', isDark);
+          body.classList.toggle('dark-mode', isDark);
+          body.setAttribute('data-dark-mode', isDark ? 'true' : 'false');
+          toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+          if (label) {
+            label.textContent = isDark ? 'Light' : 'Dark';
+          }
+        }
+
+        var authenticated = body.getAttribute('data-authenticated') === 'true';
+        if (!authenticated) {
+          try {
+            var stored = localStorage.getItem('darkMode');
+            if (stored !== null) {
+              apply(stored === 'true');
+            }
+          } catch (e) {}
+        }
+
+        toggle.addEventListener('click', function () {
+          var next = body.getAttribute('data-dark-mode') !== 'true';
+          if (!authenticated) {
+            try {
+              localStorage.setItem('darkMode', next.toString());
+            } catch (e) {}
+            apply(next);
+            return;
+          }
+          var token = document.getElementById('csrf-token');
+          fetch(body.getAttribute('data-toggle-url'), {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': token ? token.value : '',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Dark mode toggle failed');
+              }
+              return response.json();
+            })
+            .then(function (data) {
+              apply(data.dark_mode);
+              try {
+                localStorage.setItem('darkMode', data.dark_mode.toString());
+              } catch (e) {}
+            });
+        });
+      })();
+    </script>
+    {% comment %}
+      Same timezone contract as the shared shell: the browser_timezone cookie for every
+      visitor, and one passive preference POST for a signed-in account without one.
+    {% endcomment %}
+    <script src="{% static 'timezone_preference.js' %}"></script>
+    <script src="{% static 'core/site_navigation.js' %}"></script>
+    <script src="{% static 'core/accessibility.js' %}"></script>
+    <script src="{% static 'core/analytics_preferences.js' %}"></script>
+  </body>
+</html>
