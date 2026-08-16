@@ -216,9 +216,23 @@
       }
 
       .brand-mark {
+        display: block;
         flex: none;
-        height: 1.7rem;
-        width: 1.7rem;
+        height: 1.9rem;
+        width: auto;
+      }
+
+      .brand-mark text {
+        fill: currentColor;
+        dominant-baseline: auto;
+        font-family: var(--font-sans);
+        font-size: 19px;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+
+      .brand-light {
+        font-weight: 500;
       }
 
       .doodle {
@@ -1706,8 +1720,7 @@
         }
 
         .brand-mark {
-          height: 2.1rem;
-          width: 2.1rem;
+          height: 2.3rem;
         }
 
         .masthead .pill-button,
@@ -1777,14 +1790,18 @@
     <header class="masthead">
       <nav class="shell masthead-inner" aria-label="Primary navigation">
         <a class="brand" href="{% url 'home' %}">
-          <img
-            class="brand-mark"
-            src="{% static 'core/illustrations/brand-mark.svg' %}"
-            alt=""
-            width="40"
-            height="40"
-          >
-          <span>DataTalks.Club</span>
+          {# The mockup's mark traced 1:1: wobbled lavender bubble, ink outline, tail, DTC. #}
+          <svg class="brand-mark" viewBox="0 0 64 61" aria-hidden="true" focusable="false">
+            <path
+              d="M17 3.2C27 1.6 39 1.8 48 3.6C55.5 5.2 60.8 9.4 61.4 16C62 22.6 61.8 30 60.6 36.4C59.4 42.8 56 47.2 49.6 48.6C46.6 49.2 43.4 49.4 40.2 49C39.4 53.4 38.8 57.4 37.6 61C36.4 57.2 34.4 53.4 31.8 50.2C27 49.6 22.2 48.8 18.2 47.4C11.4 45 6.4 40.6 4.6 34.2C2.8 27.8 2.6 20.6 3.8 14.6C5 8.6 10 4.6 17 3.2Z"
+              fill="#b9bff0"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linejoin="round"
+            />
+            <text x="32" y="34">DTC</text>
+          </svg>
+          <span class="brand-name"><span class="brand-light">Data</span>Talks.Club</span>
         </a>
         <div class="site-navigation">
           <button
