@@ -34,6 +34,7 @@ from events.identity import (
 )
 from events.services import public_registration_total
 
+from . import wiki_content
 from .faq_data import faq_courses
 from .podcast_content import episode_view, listening_platform_phrase, season_episodes
 from .public_data import (
@@ -774,7 +775,6 @@ def wiki_search(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def wiki_graph(request: HttpRequest) -> HttpResponse:
-    nodes = public_projection()["wiki_graph"].get("nodes", [])
     return _render(
         request,
         "public/wiki_graph.html",
@@ -784,7 +784,12 @@ def wiki_graph(request: HttpRequest) -> HttpResponse:
             "Explore wiki topics, typed content pages, people, podcasts, and books across the "
             "DataTalks.Club podcast archive."
         ),
-        context={"nodes": nodes},
+        context={
+            "nodes": wiki_content.graph_nodes(),
+            "graph_groups": wiki_content.graph_groups(),
+            "graph_totals": wiki_content.graph_totals(),
+            "neighbourhood": wiki_content.busiest_neighbourhood(),
+        },
     )
 
 

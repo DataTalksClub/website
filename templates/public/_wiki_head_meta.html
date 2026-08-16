@@ -1,0 +1,35 @@
+{% load seo %}
+{% comment %}
+  The head metadata every wiki surface carries.  It lives here, and is not copied
+  into the five wiki pages, for the reason the shell partials exist (issue #179):
+  a copied head is how one page quietly loses its social card or its canonical.
+
+  Every wiki path is served with an og:image (content/public_views._render), so the
+  large-image Twitter card and both image tags are part of this contract; the wiki
+  page detail additionally supplies structured data.
+{% endcomment %}
+<title>{{ seo_title }}</title>
+{% canonical_link canonical_url %}
+<meta name="description" content="{{ seo_description }}">
+<meta property="og:type" content="{{ og_type|default:'website' }}">
+<meta property="og:site_name" content="DataTalks.Club">
+<meta property="og:title" content="{{ seo_title }}">
+<meta property="og:description" content="{{ seo_description }}">
+<meta property="og:url" content="{{ canonical_url }}">
+{% if og_image_url %}
+  <meta name="twitter:card" content="summary_large_image">
+{% else %}
+  <meta name="twitter:card" content="summary">
+{% endif %}
+<meta name="twitter:site" content="@DataTalksClub">
+<meta name="twitter:title" content="{{ seo_title }}">
+<meta name="twitter:description" content="{{ seo_description }}">
+{% if og_image_url %}
+  <meta property="og:image" content="{{ og_image_url }}">
+  <meta name="twitter:image" content="{{ og_image_url }}">
+{% endif %}
+{% if structured_data %}
+  <script type="application/ld+json">
+    {{ structured_data|safe }}
+  </script>
+{% endif %}

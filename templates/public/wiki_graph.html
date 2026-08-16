@@ -1,38 +1,177 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block breadcrumbs %}
-  <li>
-    <a class="app-link" href="{% url 'wiki-home' %}">Wiki</a>
-  </li>
-  <li class="ml-2">/ Knowledge graph</li>
-{% endblock %}
-{% block content %}
-  <h1 class="text-4xl font-semibold">Podcast Graph</h1>
-  <p class="mt-3 max-w-3xl leading-7 app-text">
-    Start from any page and explore what it connects to across the DataTalks.Club podcast archive.
-    The graph includes wiki topics and typed content pages. It also includes people, podcasts, and
-    books.
-  </p>
-  <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-    {% for node in nodes %}
-      {% if node.url %}
-        <a
-          id="{{ node.id }}"
-          class="rounded-md border app-border p-4 app-link"
-          href="{{ node.url }}"
-        >
-          {{ node.label|default:node.title }}
-        </a>
-      {% else %}
-        <span
-          id="{{ node.id }}"
-          class="rounded-md border app-border p-4 app-muted"
-        >
-          {{ node.label|default:node.title }}
-        </span>
-      {% endif %}
-    {% endfor %}
-  </div>
-{% endblock %}
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    {% include "public/_wiki_head_meta.html" %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Podcast graph, design 5a (issue #179).  The homepage already draws
+       * the wiki as a hub-and-spokes plot; this page draws the same graph in
+       * full, so it uses the same primitives (now shared in the partial): a
+       * plotted neighbourhood, then every node as a cloud of graph nodes,
+       * one band per node type.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Graph page rules.
+       * ------------------------------------------------------------------ */
+
+      .wiki-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .wiki-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        max-width: 20ch;
+      }
+
+      .graph-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1rem;
+        max-width: 40rem;
+      }
+
+      .graph-grid {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+      }
+
+      .graph-totals {
+        align-content: start;
+        gap: 0.75rem;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      /* The count belongs to the heading, not to the cloud below it. */
+      .group-count {
+        margin-top: 0.4rem;
+      }
+
+      /* Six node types in a row of bands: the dashed rule alone would not give
+         the page its rhythm, so the groups alternate ground the way the band
+         table does.  Both grounds are the band tokens themselves. */
+      .graph-group:nth-of-type(even) {
+        background: var(--lavender);
+      }
+
+      @media (min-width: 62rem) {
+        .graph-grid {
+          gap: 1.75rem;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream wiki-hero" aria-labelledby="graph-heading">
+        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'wiki-home' %}">Wiki</a>
+            </li>
+            <li aria-current="page">
+              Knowledge graph
+            </li>
+          </ol>
+        </nav>
+        <div class="shell">
+          <h1 id="graph-heading">Podcast Graph</h1>
+          <p class="graph-lede">
+            Start from any page and explore what it connects to across the DataTalks.Club podcast
+            archive. The graph includes wiki topics and typed content pages. It also includes
+            people, podcasts, and books.
+          </p>
+          <div class="graph-grid">
+            {% comment %}
+              The plotted neighbourhood is the wiki page with the most wiki neighbours and
+              the strongest of those connections; the hub, the spokes and their order all
+              come from the graph's own edges, and only the ring is a layout constant.
+            {% endcomment %}
+            <div class="graph-frame">
+              <div class="graph-plot">
+                <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                  {% for spoke in neighbourhood.spokes %}
+                    <line x1="50" y1="50" x2="{{ spoke.left }}" y2="{{ spoke.top }}"/>
+                  {% endfor %}
+                </svg>
+                <a class="graph-node graph-node-hub" href="{{ neighbourhood.url }}">{{ neighbourhood.title }}</a>
+                {% for spoke in neighbourhood.spokes %}
+                  <a class="graph-node" href="{{ spoke.url }}" style="left: {{ spoke.left }}%; top: {{ spoke.top }}%">{{ spoke.title }}</a>
+                {% endfor %}
+              </div>
+              <p class="graph-legend">
+                <span class="legend-key">
+                  <span>
+                    <span class="legend-swatch legend-hub"></span>
+                    topic hub
+                  </span>
+                  <span>
+                    <span class="legend-swatch legend-page"></span>
+                    wiki page
+                  </span>
+                </span>
+                <span>{{ neighbourhood.connections }} connections from {{ neighbourhood.title }}</span>
+              </p>
+            </div>
+            <div class="stat-tiles graph-totals">
+              {% for total in graph_totals %}
+                <div class="stat-tile">
+                  <strong>{{ total.value }}</strong>
+                  <span>{{ total.label }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {% for group in graph_groups %}
+        <section class="band band-cream graph-group" aria-labelledby="{{ group.heading_id }}">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="{{ group.heading_id }}">{{ group.title }}</h2>
+                <p>{{ group.description }}</p>
+              </div>
+              <p class="mono-note group-count">{{ group.count }} in the graph</p>
+            </div>
+            <div class="graph-cloud">
+              {% for node in group.nodes %}
+                {% if node.url %}
+                  <a class="graph-node" id="{{ node.id }}" href="{{ node.url }}">{{ node.label|default:node.title }}</a>
+                {% else %}
+                  <span class="graph-node" id="{{ node.id }}">{{ node.label|default:node.title }}</span>
+                {% endif %}
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endfor %}
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

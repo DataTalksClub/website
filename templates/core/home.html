@@ -411,127 +411,6 @@
         gap: 1.25rem;
       }
 
-      .graph-frame {
-        align-self: start;
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        padding: 1rem;
-      }
-
-      /* The mockup draws the hub and its spokes in a landscape frame, not a square. */
-      .graph-plot {
-        aspect-ratio: 1.45 / 1;
-        position: relative;
-      }
-
-      .graph-edges {
-        height: 100%;
-        left: 0;
-        position: absolute;
-        top: 0;
-        width: 100%;
-      }
-
-      .graph-node {
-        background: var(--lavender);
-        border: 2px solid var(--indigo);
-        border-radius: 999px;
-        color: var(--ink);
-        font-size: 0.74rem;
-        font-weight: 600;
-        left: 50%;
-        max-width: 44%;
-        padding: 0.22rem 0.6rem;
-        position: absolute;
-        text-align: center;
-        text-decoration: none;
-        top: 50%;
-        transform: translate(-50%, -50%);
-      }
-
-      .graph-node-hub {
-        background: var(--green);
-        border-color: var(--line);
-        color: var(--on-green);
-        font-size: 0.95rem;
-        font-weight: 800;
-        padding: 0.45rem 1rem;
-      }
-
-      .graph-legend {
-        align-items: center;
-        border-top: 1.5px dashed var(--line-soft);
-        color: var(--muted);
-        display: flex;
-        flex-wrap: wrap;
-        font-size: 0.74rem;
-        gap: 0.4rem 1.1rem;
-        justify-content: space-between;
-        margin-top: 1rem;
-        padding-top: 0.85rem;
-      }
-
-      .legend-key {
-        align-items: center;
-        display: inline-flex;
-        gap: 0.9rem;
-      }
-
-      .legend-key span {
-        align-items: center;
-        display: inline-flex;
-        gap: 0.35rem;
-      }
-
-      .legend-swatch {
-        border: 1.5px solid var(--line);
-        border-radius: 999px;
-        height: 0.7rem;
-        width: 0.7rem;
-      }
-
-      .legend-hub {
-        background: var(--green);
-      }
-
-      .legend-page {
-        background: var(--indigo-soft);
-      }
-
-      .topic-list {
-        display: grid;
-        gap: 0.5rem;
-      }
-
-      .topic {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.7rem;
-        display: block;
-        padding: 0.55rem 0.85rem;
-        text-decoration: none;
-      }
-
-      .topic strong {
-        color: var(--ink);
-        display: block;
-        font-size: 0.92rem;
-      }
-
-      /* Summaries come from the wiki source and vary in length; the card shows the
-         opening of each one at a fixed height so the column keeps its rhythm. */
-      .topic span {
-        color: var(--body-text);
-        display: -webkit-box;
-        font-size: 0.8rem;
-        line-height: 1.45;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 1;
-      }
-
       /* --- closing band ------------------------------------------------- */
 
       .closing {
@@ -607,34 +486,6 @@
         .climb-card .doodle {
           grid-column: 1 / span 2;
           margin-bottom: 0.6rem;
-        }
-
-        /* Absolute spoke coordinates cannot hold a long label inside a narrow frame —
-           "MLOps Roadmap" centred at 9% hangs off the left edge.  Narrow screens read
-           the graph as the hub followed by its relations instead. */
-        .graph-plot {
-          aspect-ratio: auto;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.4rem;
-          justify-content: center;
-        }
-
-        .graph-edges {
-          display: none;
-        }
-
-        .graph-node {
-          /* The coordinates are inline styles, so they take a deliberate override. */
-          left: auto !important;
-          max-width: none;
-          position: static;
-          top: auto !important;
-          transform: none;
-        }
-
-        .graph-node-hub {
-          order: -1;
         }
 
         .climb-card .step-number {
@@ -1106,7 +957,7 @@
               <div class="graph-plot">
                 <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
                   {% for node in wiki_graph.nodes %}
-                    <line x1="50" y1="50" x2="{{ node.left }}" y2="{{ node.top }}" stroke="#b9bfd8" stroke-width="0.4" vector-effect="non-scaling-stroke"/>
+                    <line x1="50" y1="50" x2="{{ node.left }}" y2="{{ node.top }}"/>
                   {% endfor %}
                 </svg>
                 <a class="graph-node graph-node-hub" href="{{ wiki_graph.hub.public_path }}">{{ wiki_graph.hub.title }}</a>

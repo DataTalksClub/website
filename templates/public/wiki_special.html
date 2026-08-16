@@ -1,38 +1,178 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block breadcrumbs %}
-  <li>
-    <a class="app-link" href="{% url 'wiki-home' %}">Wiki</a>
-  </li>
-  <li class="ml-2">
-    / Special pages
-    {% if category != 'all' %}
-      / {{ category }}
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    {% include "public/_wiki_head_meta.html" %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Wiki special pages, design 5a (issue #179).  The categories are the
+       * system's segmented control, rendered as links because each one is a
+       * real route; the pages themselves are the same divided rows the wiki
+       * hub uses, so a reader meets one catalogue shape, not two.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Special pages rules.
+       * ------------------------------------------------------------------ */
+
+      .wiki-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .wiki-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        max-width: 20ch;
+      }
+
+      .special-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1rem;
+        max-width: 40rem;
+      }
+
+      .special-categories {
+        margin-top: 1.5rem;
+      }
+
+      .topic-row {
+        --row-cols: minmax(0, 1fr) auto;
+      }
+
+      .topic-row h3 {
+        font-size: 1.05rem;
+      }
+
+      .topic-row h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .topic-row h3 a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .topic-summary {
+        font-size: 0.9rem;
+        margin-top: 0.3rem;
+      }
+
+      .special-empty {
+        max-width: 40rem;
+      }
+
+      /* Narrow: the read action drops under the summary as a compact button, the
+         same shape the wiki hub's catalogue takes. */
+      @media (max-width: 47.99rem) {
+        .topic-action {
+          justify-self: start;
+          margin-top: 0.5rem;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
     {% endif %}
-  </li>
-{% endblock %}
-{% block content %}
-  <h1 class="text-4xl font-semibold">Special pages</h1>
-  <p class="mt-3 app-text">
-    Browse the guides, comparisons, roadmaps, transitions, and how-tos in the wiki.
-  </p>
-  <nav class="mt-5 flex flex-wrap gap-3" aria-label="Special page categories">
-    <a class="app-link" href="{% url 'wiki-special' %}">All</a>
-    {% for slug, tag in categories.items %}
-      <a class="app-link" href="{% url 'wiki-special-category' slug %}">{{ slug|title }}</a>
-    {% endfor %}
-  </nav>
-  {% if records %}
-    <ul class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {% for record in records %}
-        <li>
-          <a class="app-link" href="{{ record.public_path }}">{{ record.title }}</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="mt-6 app-text">No pages found.</p>
-  {% endif %}
-{% endblock %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream wiki-hero" aria-labelledby="special-heading">
+        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'wiki-home' %}">Wiki</a>
+            </li>
+            {% if category == 'all' %}
+              <li aria-current="page">
+                Special pages
+              </li>
+            {% else %}
+              <li>
+                <a href="{% url 'wiki-special' %}">Special pages</a>
+              </li>
+              <li aria-current="page">
+                {{ category|title }}
+              </li>
+            {% endif %}
+          </ol>
+        </nav>
+        <div class="shell">
+          <h1 id="special-heading">Special pages</h1>
+          <p class="special-lede">
+            Browse the guides, comparisons, roadmaps, transitions, and how-tos in the wiki.
+          </p>
+          <nav class="filter-pills special-categories" aria-label="Special page categories">
+            {% if category == 'all' %}
+              <a class="filter-pill" href="{% url 'wiki-special' %}" aria-current="page">All</a>
+            {% else %}
+              <a class="filter-pill" href="{% url 'wiki-special' %}">All</a>
+            {% endif %}
+            {% for slug, tag in categories.items %}
+              {% if slug == category %}
+                <a class="filter-pill" href="{% url 'wiki-special-category' slug %}" aria-current="page">{{ slug|title }}</a>
+              {% else %}
+                <a class="filter-pill" href="{% url 'wiki-special-category' slug %}">{{ slug|title }}</a>
+              {% endif %}
+            {% endfor %}
+          </nav>
+        </div>
+      </section>
+
+      <section class="band band-cream" aria-labelledby="special-list-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="special-list-heading">
+                {% if category == 'all' %}
+                  Every special page
+                {% else %}
+                  {{ category|title }}
+                {% endif %}
+              </h2>
+            </div>
+            <p class="mono-note">{{ records|length }} pages</p>
+          </div>
+          {% if records %}
+            <div class="row-list">
+              {% for record in records %}
+                <article class="list-row topic-row">
+                  <div>
+                    <h3>
+                      <a href="{{ record.public_path }}">{{ record.title }}</a>
+                    </h3>
+                    <p class="topic-summary">{{ record.summary }}</p>
+                  </div>
+                  <a class="cta cta-compact cta-secondary topic-action" href="{{ record.public_path }}">
+                    Read topic
+                  </a>
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="special-empty">No pages found.</p>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

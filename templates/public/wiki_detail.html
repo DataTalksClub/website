@@ -1,47 +1,151 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block breadcrumbs %}
-  <li>
-    <a class="app-link" href="{% url 'wiki-home' %}">Wiki</a>
-  </li>
-  <li class="ml-2">/ {{ record.title }}</li>
-{% endblock %}
-{% block content %}
-  <article class="mx-auto max-w-3xl">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Wiki</p>
-    <h1 class="mt-2 text-4xl font-semibold leading-tight">{{ record.title }}</h1>
-    <p class="mt-4 text-lg leading-8 app-text">{{ record.summary }}</p>
-    {% if record.relations %}
-      <section class="mt-6" aria-label="Related concepts and sources">
-        <div class="flex flex-wrap gap-2">
-          {% for relation in record.relations %}
-            {% if relation.href %}
-              <a
-                class="app-badge app-badge-info app-link"
-                href="{{ relation.href }}"
-                data-relation-type="{{ relation.type }}"
-              >
-                <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
-              </a>
-            {% else %}
-              <span
-                class="app-badge app-badge-neutral"
-                data-relation-type="{{ relation.type }}"
-              >
-                <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
-              </span>
-            {% endif %}
-          {% endfor %}
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    {% include "public/_wiki_head_meta.html" %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Wiki page, design 5a (issue #179).  One reading column: the trail
+       * back to the wiki, the topic, what it relates to, and then the page
+       * itself in the system's shared `.prose` primitive.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Wiki page rules.
+       * ------------------------------------------------------------------ */
+
+      /* The reading column: the width the design gives long prose. */
+      .wiki-shell {
+        max-width: 48rem;
+      }
+
+      .wiki-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .wiki-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .wiki-summary {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1rem;
+      }
+
+      .relations {
+        margin-top: 1.5rem;
+      }
+
+      .relation-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* A relation the wiki can follow reads as a link; one it only names keeps
+         the quiet chip.  Both keep the source's own capitalisation. */
+      a.relation {
+        border-color: var(--indigo);
+        color: var(--indigo);
+        text-decoration: none;
+      }
+
+      a.relation:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .relation-plain {
+        color: var(--muted);
+      }
+
+      .wiki-prose {
+        max-width: 48rem;
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream wiki-hero" aria-labelledby="wiki-page-heading">
+        <nav class="shell breadcrumbs wiki-shell" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'wiki-home' %}">Wiki</a>
+            </li>
+            <li aria-current="page">
+              {{ record.title }}
+            </li>
+          </ol>
+        </nav>
+        <div class="shell wiki-shell">
+          <p class="mono-label mono-label-indigo">Wiki</p>
+          <h1 id="wiki-page-heading">{{ record.title }}</h1>
+          <p class="wiki-summary">{{ record.summary }}</p>
+          {% if record.relations %}
+            <section class="relations" aria-label="Related concepts and sources">
+              <div class="relation-list">
+                {% for relation in record.relations %}
+                  {% if relation.href %}
+                    <a
+                      class="chip chip-plain relation"
+                      href="{{ relation.href }}"
+                      data-relation-type="{{ relation.type }}"
+                    >
+                      <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
+                    </a>
+                  {% else %}
+                    <span
+                      class="chip chip-plain relation-plain"
+                      data-relation-type="{{ relation.type }}"
+                    >
+                      <span class="sr-only">{{ relation.type }}: </span>{{ relation.label }}
+                    </span>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </section>
+          {% endif %}
         </div>
       </section>
-    {% endif %}
-    {% for fragment in record.unresolved_fragment_ids %}
-      <span id="{{ fragment }}"></span>
-    {% endfor %}
-    <div class="mt-8">
-      {% include "public/_body.html" with blocks=record.blocks %}
-    </div>
-  </article>
-{% endblock %}
+
+      <section class="band band-cream">
+        <div class="shell wiki-shell">
+          {% comment %}
+            Anchors the source links to but never defines a heading for: they keep
+            landing on this page instead of nowhere.
+          {% endcomment %}
+          {% for fragment in record.unresolved_fragment_ids %}
+            <span id="{{ fragment }}"></span>
+          {% endfor %}
+          <div class="prose wiki-prose">
+            {% include "public/_wiki_body.html" with blocks=record.blocks %}
+          </div>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

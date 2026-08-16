@@ -114,10 +114,18 @@ def test_public_home_and_hubs(
             _shot(page, f"{label.casefold()}-hub-{suffix}.png")
 
         if label == "Wiki":
-            expect(page.locator('nav[aria-label="Wiki exploration"]')).to_have_css(
-                "flex-direction",
-                "column",
-            )
+            # The three ways into the wiki stay one stacked list at every width.
+            # The design 5a rebuild (issue #179) draws them as the system's
+            # divided rows, which are a grid rather than a flex column, so the
+            # contract is the stacking itself: three rows, each below the last.
+            exploration = page.locator('nav[aria-label="Wiki exploration"] a')
+            expect(exploration).to_have_count(3)
+            offsets = [
+                exploration.nth(index).evaluate("node => node.getBoundingClientRect().top")
+                for index in range(3)
+            ]
+            assert offsets == sorted(offsets), offsets
+            assert len(set(offsets)) == 3, offsets
 
 
 @pytest.mark.core
