@@ -8,7 +8,10 @@ supply a fact fails loudly instead of rendering an invented one.
 
 Deliberate omissions, because the catalogue has no such field: an episode
 duration, a global episode number, and a show-level subscription address.  The
-mockup shows all three; the pages leave them out rather than guess.
+mockup shows all three; the pages leave them out rather than guess.  There is no
+podcast feed anywhere in this repository either, so the index points a reader who
+wants to subscribe at the platforms the episodes themselves link to, named from
+the records rather than hard-coded (:func:`listening_platform_phrase`).
 """
 
 from __future__ import annotations
@@ -173,6 +176,30 @@ def episode_view(record: dict[str, Any]) -> Episode:
         watch_url=watch_url,
         watch_label=watch_label,
     )
+
+
+def listening_platform_phrase(episodes: tuple[Episode, ...]) -> str:
+    """Name the platforms every one of these episodes can be followed on.
+
+    The catalogue has no show-level feed address, so the index cannot offer a
+    subscribe button and must not invent one.  What it can say truthfully is where
+    the episodes themselves lead, and a platform earns its place in that sentence
+    only when every episode on the page carries it.
+    """
+
+    if not episodes:
+        return ""
+    shared = set.intersection(
+        *({link.label for link in episode.platform_links} for episode in episodes)
+    )
+    labels = [
+        PLATFORM_LABELS[key][0] for key in PLATFORM_ORDER if PLATFORM_LABELS[key][0] in shared
+    ]
+    if not labels:
+        return ""
+    if len(labels) == 1:
+        return labels[0]
+    return f"{', '.join(labels[:-1])} and {labels[-1]}"
 
 
 def season_episodes(records: tuple[dict[str, Any], ...]) -> tuple[Episode, ...]:

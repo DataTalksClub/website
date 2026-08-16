@@ -92,6 +92,15 @@
         position: relative;
       }
 
+      /* Said out loud, not implied by an empty frame: an episode whose catalogue entry
+         carries no image still says so, under the disc rather than behind it. */
+      .player-art-missing {
+        bottom: 0.9rem;
+        color: var(--ink);
+        position: absolute;
+        text-align: center;
+      }
+
       .guest-row {
         align-items: center;
         display: flex;
@@ -184,34 +193,29 @@
             <span class="status-pill status-pill-mint">{{ episode.season_episode }}</span>
           </p>
           <h1 id="episode-heading">{{ episode.title }}</h1>
+          {% comment %}
+            Artwork and a listening link are independent facts, so the frame draws its
+            artwork either way and only becomes a link when there is something to open.
+            The link names itself with its own label, so the artwork keeps the episode's
+            identity in its alt instead of being folded into the link's name.
+          {% endcomment %}
           {% if episode.watch_url %}
             <a
               class="player-frame episode-player"
               href="{{ episode.watch_url }}"
               rel="noopener noreferrer"
+              aria-label="Play {{ episode.title }} on {{ episode.watch_label }}"
             >
-              {% if episode.media_available %}
-                <img
-                  class="player-art"
-                  src="{{ episode.image_path }}"
-                  alt=""
-                  decoding="async"
-                >
-              {% endif %}
+              {% include "public/_episode_artwork.html" %}
               <span class="play-disc play-disc-large" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                   <path d="M9 6.5l9 5.5-9 5.5z"/>
                 </svg>
               </span>
-              <span class="sr-only">Play {{ episode.title }} on {{ episode.watch_label }}</span>
             </a>
           {% else %}
-            <div class="player-frame episode-player" role="img" aria-label="Artwork unavailable">
-              <span class="play-disc play-disc-card play-disc-large" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M9 6.5l9 5.5-9 5.5z"/>
-                </svg>
-              </span>
+            <div class="player-frame episode-player">
+              {% include "public/_episode_artwork.html" %}
             </div>
           {% endif %}
           {% for guest in episode.guests %}

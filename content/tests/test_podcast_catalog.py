@@ -2,17 +2,25 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 from unittest.mock import patch
 from xml.etree import ElementTree
 
 from django.core.exceptions import ImproperlyConfigured
+from django.template.loader import render_to_string
 from django.test import Client, SimpleTestCase, TestCase
 from django.utils.html import conditional_escape
 
-from content.podcast_content import episode_view, published_display, season_episodes
+from content.podcast_content import (
+    episode_view,
+    listening_platform_phrase,
+    published_display,
+    season_episodes,
+)
 from content.public_data import ordered_podcasts, podcast_seasons, public_projection
 from core.seo import validated_canonical_url
 
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 
@@ -159,6 +167,73 @@ class PodcastPageCompositionTests(SimpleTestCase):
             self.assertIn(view.watch_url, set(record["links"].values()))
         # Seventeen entries carry no publication date, and the pages simply omit it.
         self.assertEqual(sum(1 for view in views if not view.published_display), 17)
+
+    def test_the_subscribe_sentence_names_only_platforms_every_episode_carries(self) -> None:
+        """There is no show feed to link, so the copy points at what does exist."""
+
+        season = podcast_seasons()[0]
+        episodes = season_episodes(season.episodes)
+
+        phrase = listening_platform_phrase(episodes)
+
+        for label in phrase.replace(" and ", ", ").split(", "):
+            for episode in episodes:
+                self.assertIn(label, [link.label for link in episode.platform_links])
+        self.assertNotIn("RSS", phrase)
+        self.assertNotIn("feed", phrase.casefold())
+
+    def test_the_subscribe_sentence_disappears_rather_than_naming_a_guess(self) -> None:
+        record = dict(ordered_podcasts()[0])
+        record["links"] = {}
+
+        self.assertEqual(listening_platform_phrase(()), "")
+        self.assertEqual(listening_platform_phrase((episode_view(record),)), "")
+
+    def test_the_subscribe_sentence_reads_as_a_sentence(self) -> None:
+        first, second = (dict(record) for record in ordered_podcasts()[:2])
+        first["links"] = {"spotify": "https://open.spotify.com/episode/one"}
+        second["links"] = {
+            "spotify": "https://open.spotify.com/episode/two",
+            "youtube": "https://www.youtube.com/watch?v=two",
+        }
+
+        self.assertEqual(listening_platform_phrase((episode_view(first),)), "Spotify")
+        self.assertEqual(
+            listening_platform_phrase((episode_view(second),)),
+            "Spotify and YouTube",
+        )
+        # A platform only one of the two carries is not offered to either.
+        self.assertEqual(
+            listening_platform_phrase((episode_view(first), episode_view(second))),
+            "Spotify",
+        )
+
+    def test_episode_artwork_is_named_and_never_depends_on_a_listening_link(self) -> None:
+        """Artwork and a listening link are independent facts (issue #179)."""
+
+        record = dict(ordered_podcasts()[0])
+        record["links"] = {}
+        unplayable = episode_view(record)
+        self.assertEqual(unplayable.watch_url, "")
+        self.assertTrue(unplayable.media_available)
+
+        artwork = render_to_string("public/_episode_artwork.html", {"episode": unplayable})
+        self.assertIn(f'alt="Artwork for {conditional_escape(unplayable.title)}"', artwork)
+        self.assertIn(f'src="{unplayable.image_path}"', artwork)
+
+        record["media_available"] = False
+        record["image_path"] = ""
+        missing = render_to_string(
+            "public/_episode_artwork.html", {"episode": episode_view(record)}
+        )
+        self.assertIn("Artwork unavailable.", missing)
+        self.assertNotIn("<img", missing)
+
+        # Both frames — the linked one and the plain one — draw the same artwork.
+        source = (REPOSITORY_ROOT / "templates/public/podcast_detail.html").read_text(
+            encoding="utf-8"
+        )
+        self.assertEqual(source.count('{% include "public/_episode_artwork.html" %}'), 2)
 
     def test_publication_dates_are_read_and_never_guessed(self) -> None:
         self.assertEqual(published_display("2021-02-23"), "Feb 23, 2021")

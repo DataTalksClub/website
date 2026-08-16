@@ -53,6 +53,13 @@
         max-width: 36rem;
       }
 
+      .podcast-subscribe {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin-top: 0.75rem;
+        max-width: 36rem;
+      }
+
       /* One episode row: the play disc, the episode itself, and the date as the
          quiet right-hand mark the mockup gives the episode number. */
       .episode-row {
@@ -151,6 +158,16 @@
             Every week a practitioner talks through what actually worked, and what broke.
             {{ episode_total }} episodes so far, and every one of them is free to listen to.
           </p>
+          {% comment %}
+            There is no show-level feed address in the catalogue, so this names the
+            platforms the episodes themselves lead to rather than inventing one.
+          {% endcomment %}
+          {% if listening_platforms %}
+            <p class="podcast-subscribe">
+              Subscribe to stay updated with the latest episodes. Every episode page links
+              out to {{ listening_platforms }} — follow the show wherever you already listen.
+            </p>
+          {% endif %}
         </div>
       </section>
 
