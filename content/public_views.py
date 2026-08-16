@@ -36,6 +36,7 @@ from events.services import public_registration_total
 
 from . import wiki_content
 from .faq_data import faq_courses
+from .person_content import person_view
 from .podcast_content import episode_view, listening_platform_phrase, season_episodes
 from .public_data import (
     PROJECTION_ROOT,
@@ -678,6 +679,7 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=person["summary"] or f"{person['title']} — DataTalks.Club",
         context={
             "record": person,
+            "person": person_view(person),
             "og_type": "profile",
             "og_image_url": _canonical(person["image_path"]) if person["image_path"] else "",
             "structured_data": _json_ld(
