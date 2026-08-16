@@ -281,9 +281,10 @@ def _runtime_event_identity_snapshot() -> tuple[tuple[str, int, str], ...]:
             raise
         if isinstance(exc, RuntimeError) and "Database access not allowed" not in str(exc):
             raise
-        if isinstance(exc, (AssertionError, RuntimeError)):
-            return _manifest_event_identity_snapshot()
-        raise ImproperlyConfigured("Public Event UUID/public-ID mapping is unavailable.") from exc
+        # A runtime without a usable database (query-forbidden tests, the DB-less liveness
+        # container whose SQLite scratch directory is absent) serves the build-time manifest
+        # identities instead of failing every public page.
+        return _manifest_event_identity_snapshot()
 
 
 def _apply_runtime_event_public_paths(
