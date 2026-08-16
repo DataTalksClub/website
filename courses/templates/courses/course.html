@@ -704,6 +704,18 @@
                 <p>Watch your inbox for the schedule, and start on the modules whenever you like.</p>
               </div>
             {% endif %}
+            {% if course.faq_document_url %}
+              <div class="panel panel-lavender panel-outlined">
+                <h2>Questions before you start?</h2>
+                <p class="course-note">This course keeps its own frequently asked questions.</p>
+                <a
+                  class="band-link"
+                  href="{{ course.faq_document_url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >Course FAQ →</a>
+              </div>
+            {% endif %}
             <div class="panel panel-mint panel-outlined">
               <h2>Deadlines and your calendar</h2>
               <p class="course-note">

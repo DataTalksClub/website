@@ -190,6 +190,18 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
             ),
         )
 
+    def test_the_faq_panel_appears_only_for_a_course_that_has_one(self):
+        response = self.client.get(self.course_url())
+        self.assertNotContains(response, "Questions before you start?")
+
+        self.course.faq_document_url = "https://example.invalid/course-faq"
+        self.course.save(update_fields=["faq_document_url"])
+
+        response = self.client.get(self.course_url())
+
+        self.assertContains(response, "Questions before you start?")
+        self.assertContains(response, 'href="https://example.invalid/course-faq"')
+
     def test_the_fact_strip_is_absent_when_the_course_has_no_facts(self):
         self.homeworks_queryset_cleanup()
 
