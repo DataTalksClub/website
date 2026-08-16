@@ -74,9 +74,8 @@ def test_public_home_and_hubs(
     featured_course = page.locator("[data-featured-course]")
     expect(featured_course).to_have_count(1)
     expect(featured_course.get_by_role("heading", name="AI Dev Tools Zoomcamp")).to_be_visible()
-    expect(featured_course.get_by_text("AI Dev Tools Zoomcamp 2026", exact=True)).to_be_visible()
-    expect(featured_course.get_by_text("August 31, 2026", exact=True)).to_be_visible()
-    expect(featured_course.get_by_role("link", name="Enroll free")).to_have_attribute(
+    expect(featured_course.get_by_text("Starts August 31, 2026")).to_be_visible()
+    expect(featured_course.get_by_role("link", name="View the syllabus")).to_have_attribute(
         "href",
         "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
     )
