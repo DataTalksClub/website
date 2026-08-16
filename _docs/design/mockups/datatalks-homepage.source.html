@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="5290ffb9-ad7e-494b-a96e-a9b904d520a6"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics=""><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><style>/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("a902d9a8-1533-4462-bdf4-0383b3f8cac4") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("e33637b1-e3a1-4f0a-baca-e16190fe280c") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("f1030b8e-39dd-4f7d-a467-6873a6db7ed6") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("4d1ab5ab-aa32-424b-9673-55c6820dd840") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("32ac50fa-cc9b-4374-92ff-1adbe025bc7e") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("f4078618-5047-4951-84ab-01629602d84d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("a902d9a8-1533-4462-bdf4-0383b3f8cac4") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("e33637b1-e3a1-4f0a-baca-e16190fe280c") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("f1030b8e-39dd-4f7d-a467-6873a6db7ed6") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("4d1ab5ab-aa32-424b-9673-55c6820dd840") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("32ac50fa-cc9b-4374-92ff-1adbe025bc7e") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("f4078618-5047-4951-84ab-01629602d84d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a902d9a8-1533-4462-bdf4-0383b3f8cac4") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("e33637b1-e3a1-4f0a-baca-e16190fe280c") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("f1030b8e-39dd-4f7d-a467-6873a6db7ed6") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("4d1ab5ab-aa32-424b-9673-55c6820dd840") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("32ac50fa-cc9b-4374-92ff-1adbe025bc7e") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("f4078618-5047-4951-84ab-01629602d84d") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("5b46c47d-bd29-4725-97fc-f1425ccfd0db") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("5dddb539-6d3c-43e8-b0b5-81db485c3006") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("6947abaa-b70f-4f6c-83d4-8f925710bc68") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("8c990160-27c8-43bb-93d2-6e3b68ed90a6") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("3e8c7209-ba72-41fe-9088-8529e76f572c") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("2e1bc37c-1f58-4bb1-9524-c1810f7743eb") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("e3aeabd2-37db-4e66-a9c5-137aa998691a") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("5e74dc96-14f7-4c2c-a6e6-205092b39713") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("4a2402cb-6f86-482d-8bf3-cb4726159896") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("a76780fc-da93-4d73-b06c-66a74e67ad8f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("2e1bc37c-1f58-4bb1-9524-c1810f7743eb") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("e3aeabd2-37db-4e66-a9c5-137aa998691a") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("5e74dc96-14f7-4c2c-a6e6-205092b39713") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("4a2402cb-6f86-482d-8bf3-cb4726159896") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("a76780fc-da93-4d73-b06c-66a74e67ad8f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("2e1bc37c-1f58-4bb1-9524-c1810f7743eb") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("e3aeabd2-37db-4e66-a9c5-137aa998691a") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("5e74dc96-14f7-4c2c-a6e6-205092b39713") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("4a2402cb-6f86-482d-8bf3-cb4726159896") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("a76780fc-da93-4d73-b06c-66a74e67ad8f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("2e1bc37c-1f58-4bb1-9524-c1810f7743eb") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("e3aeabd2-37db-4e66-a9c5-137aa998691a") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("5e74dc96-14f7-4c2c-a6e6-205092b39713") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("4a2402cb-6f86-482d-8bf3-cb4726159896") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("a76780fc-da93-4d73-b06c-66a74e67ad8f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("2e1bc37c-1f58-4bb1-9524-c1810f7743eb") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("e3aeabd2-37db-4e66-a9c5-137aa998691a") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("5e74dc96-14f7-4c2c-a6e6-205092b39713") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("4a2402cb-6f86-482d-8bf3-cb4726159896") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("a76780fc-da93-4d73-b06c-66a74e67ad8f") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("0cc2fafa-2436-4061-bc69-fd6eaedb60a2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("0d94dcdc-ea77-4e26-a4bc-ab8c9d659d83") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("7ecb7962-180a-4f15-b9d1-b90b6e7c1570") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("0701ab4e-6cb4-4146-921b-c111159da370") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("89ad75fc-7e58-4bab-9ca5-047126394b54") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("eafb6c7e-42cd-4ed4-8d65-da2fb72e0c7b") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("0cc2fafa-2436-4061-bc69-fd6eaedb60a2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("0d94dcdc-ea77-4e26-a4bc-ab8c9d659d83") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("7ecb7962-180a-4f15-b9d1-b90b6e7c1570") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("0701ab4e-6cb4-4146-921b-c111159da370") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("89ad75fc-7e58-4bab-9ca5-047126394b54") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("eafb6c7e-42cd-4ed4-8d65-da2fb72e0c7b") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("0cc2fafa-2436-4061-bc69-fd6eaedb60a2") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("0d94dcdc-ea77-4e26-a4bc-ab8c9d659d83") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("7ecb7962-180a-4f15-b9d1-b90b6e7c1570") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("0701ab4e-6cb4-4146-921b-c111159da370") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("89ad75fc-7e58-4bab-9ca5-047126394b54") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Source Serif 4';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("eafb6c7e-42cd-4ed4-8d65-da2fb72e0c7b") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style><style>
+body{margin:0;background:#e8e6f4;font-family:Nunito,system-ui,sans-serif}
+a{color:#5a62c4}a:hover{color:#3b43a2}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:700 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1e2136;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:700 13px/1.2 Nunito,sans-serif;color:#1e2136}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:700 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(30,33,54,.1);color:#1e2136;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 Nunito,sans-serif;color:rgba(30,33,54,.6)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(30,33,54,.1);border-radius:10px;box-shadow:0 2px 8px rgba(30,33,54,.08);overflow:hidden}
+.dv-opt:target .dv-oid{background:#5a62c4;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 Nunito,sans-serif;color:rgba(30,33,54,.55)}
+@keyframes dvblob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-7px) rotate(1deg)}}
+@keyframes dvpulse{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes dvmarq{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+[data-dtc-theme="dark"]{background:#13162a!important;color:#eaeaf7!important}
+[data-dtc-theme="dark"] [style*="background: rgb(253, 250, 243)"],[data-dtc-theme="dark"] [style*="background:rgb(253,250,243)"],[data-dtc-theme="dark"] [style*="background:#fdfaf3"]{background-color:#13162a!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(255, 255, 255)"],[data-dtc-theme="dark"] [style*="background:rgb(255,255,255)"],[data-dtc-theme="dark"] [style*="background:#ffffff"]{background-color:#1b1f3a!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(239, 241, 252)"],[data-dtc-theme="dark"] [style*="background:rgb(239,241,252)"],[data-dtc-theme="dark"] [style*="background:#eff1fc"]{background-color:#232a52!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(239, 245, 234)"],[data-dtc-theme="dark"] [style*="background:rgb(239,245,234)"],[data-dtc-theme="dark"] [style*="background:#eff5ea"]{background-color:#17301f!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(243, 240, 232)"],[data-dtc-theme="dark"] [style*="background:rgb(243,240,232)"],[data-dtc-theme="dark"] [style*="background:#f3f0e8"]{background-color:#2a2740!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(223, 226, 247)"],[data-dtc-theme="dark"] [style*="background:rgb(223,226,247)"],[data-dtc-theme="dark"] [style*="background:#dfe2f7"]{background-color:#2d3565!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(216, 242, 220)"],[data-dtc-theme="dark"] [style*="background:rgb(216,242,220)"],[data-dtc-theme="dark"] [style*="background:#d8f2dc"]{background-color:#1d3d27!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(30, 33, 54)"],[data-dtc-theme="dark"] [style*="background:rgb(30,33,54)"],[data-dtc-theme="dark"] [style*="background:#1e2136"]{background-color:#0d0f20!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(62, 169, 75)"],[data-dtc-theme="dark"] [style*="background:rgb(62,169,75)"],[data-dtc-theme="dark"] [style*="background:#3ea94b"]{background-color:#2b8146!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(244, 245, 253)"],[data-dtc-theme="dark"] [style*="background:rgb(244,245,253)"],[data-dtc-theme="dark"] [style*="background:#f4f5fd"]{background-color:#232a52!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(185, 191, 240)"],[data-dtc-theme="dark"] [style*="background:rgb(185,191,240)"],[data-dtc-theme="dark"] [style*="background:#b9bff0"]{background-color:#2d3565!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="background: rgb(246, 244, 238)"],[data-dtc-theme="dark"] [style*="background:rgb(246,244,238)"],[data-dtc-theme="dark"] [style*="background:#f6f4ee"]{background-color:#2a2740!important;background-image:none!important}
+[data-dtc-theme="dark"] [style*="color: rgb(30, 33, 54)"],[data-dtc-theme="dark"] [style*="color:rgb(30,33,54)"],[data-dtc-theme="dark"] [style*="color:#1e2136"]{color:#eaeaf7!important}
+[data-dtc-theme="dark"] [style*="color: rgb(76, 80, 102)"],[data-dtc-theme="dark"] [style*="color:rgb(76,80,102)"],[data-dtc-theme="dark"] [style*="color:#4c5066"]{color:#aeb2d2!important}
+[data-dtc-theme="dark"] [style*="color: rgb(58, 62, 87)"],[data-dtc-theme="dark"] [style*="color:rgb(58,62,87)"],[data-dtc-theme="dark"] [style*="color:#3a3e57"]{color:#aeb2d2!important}
+[data-dtc-theme="dark"] [style*="color: rgb(91, 95, 116)"],[data-dtc-theme="dark"] [style*="color:rgb(91,95,116)"],[data-dtc-theme="dark"] [style*="color:#5b5f74"]{color:#aeb2d2!important}
+[data-dtc-theme="dark"] [style*="color: rgb(123, 127, 149)"],[data-dtc-theme="dark"] [style*="color:rgb(123,127,149)"],[data-dtc-theme="dark"] [style*="color:#7b7f95"]{color:#8286a8!important}
+[data-dtc-theme="dark"] [style*="color: rgb(165, 169, 186)"],[data-dtc-theme="dark"] [style*="color:rgb(165,169,186)"],[data-dtc-theme="dark"] [style*="color:#a5a9ba"]{color:#8286a8!important}
+[data-dtc-theme="dark"] [style*="color: rgb(90, 98, 196)"],[data-dtc-theme="dark"] [style*="color:rgb(90,98,196)"],[data-dtc-theme="dark"] [style*="color:#5a62c4"]{color:#a9b0f2!important}
+[data-dtc-theme="dark"] [style*="color: rgb(44, 48, 84)"],[data-dtc-theme="dark"] [style*="color:rgb(44,48,84)"],[data-dtc-theme="dark"] [style*="color:#2c3054"]{color:#a9b0f2!important}
+[data-dtc-theme="dark"] [style*="color: rgb(65, 112, 78)"],[data-dtc-theme="dark"] [style*="color:rgb(65,112,78)"],[data-dtc-theme="dark"] [style*="color:#41704e"]{color:#93c7a5!important}
+[data-dtc-theme="dark"] [style*="color: rgb(31, 107, 44)"],[data-dtc-theme="dark"] [style*="color:rgb(31,107,44)"],[data-dtc-theme="dark"] [style*="color:#1f6b2c"]{color:#93c7a5!important}
+[data-dtc-theme="dark"] [style*="color: rgb(107, 96, 52)"],[data-dtc-theme="dark"] [style*="color:rgb(107,96,52)"],[data-dtc-theme="dark"] [style*="color:#6b6034"]{color:#cbb98a!important}
+[data-dtc-theme="dark"] [style*="color: rgb(253, 250, 243)"],[data-dtc-theme="dark"] [style*="color:rgb(253,250,243)"],[data-dtc-theme="dark"] [style*="color:#fdfaf3"]{color:#eaeaf7!important}
+[data-dtc-theme="dark"] [style*="color: rgb(255, 255, 255)"],[data-dtc-theme="dark"] [style*="color:rgb(255,255,255)"],[data-dtc-theme="dark"] [style*="color:#ffffff"]{color:#f3fff5!important}
+[data-dtc-theme="dark"] [style*="color: rgb(107, 96, 85)"],[data-dtc-theme="dark"] [style*="color:rgb(107,96,85)"],[data-dtc-theme="dark"] [style*="color:#6b6055"]{color:#aeb2d2!important}
+[data-dtc-theme="dark"] [style*="color: rgb(184, 190, 224)"],[data-dtc-theme="dark"] [style*="color:rgb(184,190,224)"],[data-dtc-theme="dark"] [style*="color:#b8bee0"]{color:#aeb2d2!important}
+[data-dtc-theme="dark"] [style*="color: rgb(223, 226, 247)"],[data-dtc-theme="dark"] [style*="color:rgb(223,226,247)"],[data-dtc-theme="dark"] [style*="color:#dfe2f7"]{color:#eaeaf7!important}
+[data-dtc-theme="dark"] [style*="solid rgb(30, 33, 54)"],[data-dtc-theme="dark"] [style*="solid rgb(185, 191, 240)"]{border-color:#3b4272!important}
+[data-dtc-theme="dark"] [style*="dashed"]{border-color:rgba(169,176,242,.26)!important}
+[data-dtc-theme="dark"] [style*="box-shadow"]{box-shadow:4px 4px 0 rgba(6,8,22,.65)!important}
+[data-dtc-theme="dark"] [style*="repeating-linear-gradient"]{background-image:repeating-linear-gradient(135deg,#232a52 0 8px,#2d3565 8px 16px)!important;background-color:#232a52!important}
+[data-dtc-theme="dark"] input,[data-dtc-theme="dark"] select,[data-dtc-theme="dark"] textarea{background-color:#1b1f3a!important;color:#eaeaf7!important;border-color:#3b4272!important}
+[data-dtc-theme="dark"] a{color:#a9b0f2}
+[data-dtc-theme="dark"] img{filter:brightness(.92) saturate(1.02)}
+[data-dtc-theme="dark"] [fill="#b9bff0"]{fill:#2d3565}
+[data-dtc-theme="dark"] [fill="#3ea94b"]{fill:#3f9457}
+[data-dtc-theme="dark"] [stroke="#1e2136"]{stroke:#a9b0f2}
+[data-dtc-theme="dark"] [stroke="#8f96d8"]{stroke:#a9b0f2}
+[data-dtc-theme="dark"] text[fill="#1e2136"]{fill:#eaeaf7}
+[data-dtc-theme="dark"] [fill="#cfe0d3"]{fill:#1d3d27}
+[data-dtc-theme="dark"] [style*="background: rgb(185, 191, 240)"],[data-dtc-theme="dark"] [style*="background:rgb(185,191,240)"],[data-dtc-theme="dark"] [style*="background:#b9bff0"]{background-color:#3c4372!important;color:#e8e5dd!important}
+[data-dtc-theme="dark"] [style*="repeating-linear-gradient"]{background-image:repeating-linear-gradient(135deg,#232838 0 8px,#2b3147 8px 16px)!important;background-color:#232838!important}
+[data-dtc-theme="dark"] [style*="color: rgb(107, 96, 85)"],[data-dtc-theme="dark"] [style*="color:#6b6055"]{color:#a5a29b!important}
+
+</style></helmet>
+
+
+<section class="dv-turn" id="t5">
+<div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname"><a class="dv-oid" href="#4a">4a</a> + <a class="dv-oid" href="#4b">4b</a> combined into the full page — transformation hero &amp; arc, then the “you'll ship” course picker, then everything from <a class="dv-oid" href="#3a">3a</a></span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="5a">
+<div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Full homepage · arc hero + course picker + events, podcast, book, footer (desktop)</div>
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div data-dtc-theme="{{ theme5 }}" style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 40px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><svg sc-camel-view-box="0 0 44 50" style="width:32px;height:auto;flex:none;display:block;overflow:visible"><path d="M20 33 L30 43 L34 25 Z" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6" stroke-linejoin="round"></path><ellipse cx="22" cy="20" rx="21" ry="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6"></ellipse><text x="22" y="25.5" text-anchor="middle" fill="#1e2136" style="font:800 15px Nunito,sans-serif;letter-spacing:-0.4px">DTC</text></svg><span style="font:800 18px Nunito,sans-serif;letter-spacing:-.02em;margin-bottom:5px">DataTalks.Club</span></div>
+<nav style="display:flex;gap:17px;font-size:14.5px;font-weight:600"><sc-for list="{{ nav }}" as="n" hint-placeholder-count="8"><a href="#5a" style="color:#1e2136;text-decoration:none">{{ n }}</a></sc-for></nav>
+<div style="display:flex;gap:10px;align-items:center;flex:none"><button sc-camel-on-click="{{ toggleTheme5 }}" title="Toggle dark mode" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:2px solid #1e2136;border-radius:999px;background:#fff;color:#1e2136;font:700 13px Nunito,sans-serif;cursor:pointer"><span style="display:block;width:12px;height:12px;border-radius:50%;border:2px solid #1e2136;background:{{ themeDot5 }}"></span>{{ themeLabel5 }}</button><a href="#5a" style="font-size:14.5px;font-weight:700;color:#5a62c4;text-decoration:none">Log in</a><a href="#5a" style="padding:9px 17px;border-radius:999px;background:#3ea94b;border:2px solid #1e2136;color:#fff;font-size:14px;font-weight:800;text-decoration:none;box-shadow:3px 3px 0 #1e2136">Sign up free</a></div>
+</header>
+
+<div style="padding:46px 40px 36px">
+<div style="display:grid;grid-template-columns:1.08fr .92fr;gap:34px;align-items:center">
+<div>
+<h1 style="margin:0 0 16px;font:800 58px/1.03 Nunito,sans-serif;letter-spacing:-.032em;text-wrap:balance">Ship data pipelines and AI systems that actually run in production.</h1>
+<p style="margin:0 0 22px;font-size:18.5px;line-height:1.6;color:#4c5066;max-width:32em;text-wrap:pretty">Free, project-based courses where you build the real thing — orchestrated pipelines, deployed models, agents that survive a restart — with 130,000 people building alongside you.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+<button sc-camel-on-click="{{ joinI }}" style="padding:16px 26px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 16.5px Nunito,sans-serif;cursor:pointer;box-shadow:5px 5px 0 #1e2136">{{ ctaI }}</button>
+<a href="#5a" style="padding:15px 22px;border:2px solid #1e2136;border-radius:12px;background:#fff;color:#1e2136;font:700 16px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">Pick a course ↓</a>
+</div>
+<p style="margin:0;font-size:14.5px;color:#7b7f95">{{ noteI }} · Courses, weekly events, homework and the Slack come with the account.</p>
+</div>
+<div style="position:relative">
+<div style="position:absolute;inset:auto 6% 12% 6%;height:70%;border-radius:50% 46% 54% 48%;background:#dfe2f7"></div>
+<img src="5459f3a4-4937-477a-b8c9-74a39f576996" alt="Overwhelmed by job-post jargon" style="position:relative;display:block;width:100%;max-width:480px;margin:0 auto;height:auto">
+<p style="position:relative;margin:6px 0 0;font:italic 700 16px Nunito,sans-serif;color:#5a62c4;text-align:center">everybody starts here — nobody stays here</p>
+</div>
+</div>
+</div>
+
+<div style="padding:34px 40px 40px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:4px">
+<h2 style="margin:0;font:800 32px Nunito,sans-serif;letter-spacing:-.025em">The climb, as members describe it</h2>
+<span style="font:500 12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#5a62c4">nine weeks · then the rest of your career</span>
+</div>
+<p style="margin:0 0 22px;font-size:15.5px;color:#5b5f74">Three stages everyone recognises. The middle one is where the courses do their work.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:20px;overflow:hidden;box-shadow:6px 6px 0 rgba(30,33,54,.14);display:flex;flex-direction:column">
+<div style="height:196px;background:#f4f5fd;border-bottom:2px solid #1e2136;display:flex;align-items:center;justify-content:center;padding:12px">
+<img src="5459f3a4-4937-477a-b8c9-74a39f576996" alt="" style="max-width:100%;max-height:100%;width:auto;height:auto;display:block">
+</div>
+<div style="padding:18px 18px 20px;display:flex;gap:13px;align-items:flex-start">
+<span style="flex:none;width:34px;height:34px;border-radius:50%;background:#fdfaf3;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center;font:800 13px Nunito,sans-serif;color:#1e2136">01</span>
+<div><div style="font:800 20px Nunito,sans-serif;margin-bottom:4px">{{ arc1t }}</div><div style="font-size:15px;line-height:1.5;color:#5b5f74">{{ arc1d }}</div></div>
+</div>
+</div>
+<div style="background:#fff;border:2px solid #1e2136;border-radius:20px;overflow:hidden;box-shadow:6px 6px 0 rgba(30,33,54,.14);display:flex;flex-direction:column">
+<div style="height:196px;background:#f4f5fd;border-bottom:2px solid #1e2136;display:flex;align-items:center;justify-content:center;padding:12px">
+<img src="99e7d322-6269-411c-963d-74cd28bda0d9" alt="" style="max-width:100%;max-height:100%;width:auto;height:auto;display:block">
+</div>
+<div style="padding:18px 18px 20px;display:flex;gap:13px;align-items:flex-start">
+<span style="flex:none;width:34px;height:34px;border-radius:50%;background:#b9bff0;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center;font:800 13px Nunito,sans-serif;color:#1e2136">02</span>
+<div><div style="font:800 20px Nunito,sans-serif;margin-bottom:4px">{{ arc2t }}</div><div style="font-size:15px;line-height:1.5;color:#5b5f74">{{ arc2d }}</div></div>
+</div>
+</div>
+<div style="background:#fff;border:2px solid #1e2136;border-radius:20px;overflow:hidden;box-shadow:6px 6px 0 rgba(30,33,54,.14);display:flex;flex-direction:column">
+<div style="height:196px;background:#f4f5fd;border-bottom:2px solid #1e2136;display:flex;align-items:center;justify-content:center;padding:12px">
+<img src="73a4563d-3f49-40e1-a3be-2a9016842c86" alt="" style="max-width:100%;max-height:100%;width:auto;height:auto;display:block">
+</div>
+<div style="padding:18px 18px 20px;display:flex;gap:13px;align-items:flex-start">
+<span style="flex:none;width:34px;height:34px;border-radius:50%;background:#3ea94b;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center;font:800 13px Nunito,sans-serif;color:#1e2136">03</span>
+<div><div style="font:800 20px Nunito,sans-serif;margin-bottom:4px">{{ arc3t }}</div><div style="font-size:15px;line-height:1.5;color:#5b5f74">{{ arc3d }}</div></div>
+</div>
+</div>
+</div>
+<p style="margin:18px 0 0;font:italic 700 17px Nunito,sans-serif;color:#41704e;text-align:center">…and then you're the one shipping it</p>
+</div>
+
+<div style="padding:38px 40px 42px;background:#fdfaf3;border-top:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:4px">
+<h2 style="margin:0;font:800 32px Nunito,sans-serif;letter-spacing:-.025em">People who were exactly where you are</h2>
+<a href="#5a" style="font-weight:700;font-size:15px;white-space:nowrap">more member stories →</a>
+</div>
+<p style="margin:0 0 22px;font-size:15.5px;color:#5b5f74">Same courses, same Slack, no shortcuts. Here's what changed and how long it took.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
+<sc-for list="{{ stories }}" as="s" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:18px;padding:20px;box-shadow:6px 6px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:12px">
+<div style="display:flex;align-items:center;gap:8px;font:500 11px 'JetBrains Mono',monospace;color:#7b7f95">
+<span style="padding:4px 9px;border:1.5px solid rgba(30,33,54,.3);border-radius:999px;background:#f3f0e8;white-space:nowrap">{{ s.before }}</span>
+<span style="color:#3ea94b;font-size:14px">→</span>
+<span style="padding:4px 9px;border:1.5px solid #1e2136;border-radius:999px;background:#eff5ea;color:#1f6b2c;font-weight:700;white-space:nowrap">{{ s.after }}</span>
+</div>
+<p style="margin:0;font-size:16.5px;line-height:1.55;color:#3a3e57;text-wrap:pretty">“{{ s.quote }}”</p>
+<div style="margin-top:auto;padding-top:12px;border-top:1px dashed rgba(30,33,54,.25);display:flex;align-items:center;gap:11px">
+<span style="flex:none;width:40px;height:40px;border-radius:50%;border:2px solid #1e2136;background-image:repeating-linear-gradient(135deg,#eff1fc 0 6px,#dfe2f7 6px 12px)"></span>
+<div style="min-width:0"><div style="font:800 15.5px Nunito,sans-serif">{{ s.name }}</div><div style="font-size:13px;color:#7b7f95">{{ s.meta }}</div></div>
+<span style="flex:none;margin-left:auto;padding:4px 9px;border-radius:999px;background:#eff1fc;font:italic 600 12.5px Nunito,sans-serif;color:#5a62c4;white-space:nowrap">{{ s.span }}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="padding:36px 40px 40px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:6px">
+<h2 style="margin:0;font:800 32px Nunito,sans-serif;letter-spacing:-.025em">Pick what you want to build first</h2>
+<a href="#5a" style="font-weight:700;font-size:15px;white-space:nowrap">all courses →</a>
+</div>
+<p style="margin:0 0 20px;font-size:15.5px;color:#5b5f74">Six free zoomcamps, community-created: practical homework, projects, public leaderboards and peer review.</p>
+
+<div style="background:#fff;border:2px solid #1e2136;border-radius:20px;box-shadow:7px 7px 0 rgba(30,33,54,.16);display:grid;grid-template-columns:1.55fr 1fr;overflow:hidden">
+<div style="padding:24px 26px">
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+<span style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1.5px solid #1e2136;border-radius:7px;background:#3ea94b;color:#fff;font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:50%;background:#fff;animation:dvpulse 2.2s infinite"></span>live cohort</span>
+<span style="padding:5px 11px;border:1.5px solid rgba(30,33,54,.35);border-radius:7px;background:#fdfaf3;font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#4c5066">2026 cohort · ai dev tools</span>
+</div>
+<h3 style="margin:0 0 8px;font:800 32px/1.08 Nunito,sans-serif;letter-spacing:-.025em">AI Dev Tools Zoomcamp</h3>
+<p style="margin:0 0 10px;font:italic 600 16px Nunito,sans-serif;color:#41704e">you'll ship: a deployed full-stack app built with AI assistance</p>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#4c5066;max-width:34em">Four modules: turn a vague idea into a specification and a groomed backlog, then build, deploy and observe the real thing — with a channel full of classmates doing it the same week.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+<a href="#5a" style="padding:14px 22px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 16px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #1e2136">Enroll free</a>
+<a href="#5a" style="padding:13px 18px;border:2px solid #1e2136;border-radius:12px;background:#fff;color:#1e2136;font:700 15.5px Nunito,sans-serif;text-decoration:none">View syllabus</a>
+<span style="font-size:14px;color:#5b5f74">registration closes Sun, Aug 30</span>
+</div>
+</div>
+<div style="padding:22px 24px;background:#eff1fc;border-left:2px dashed rgba(30,33,54,.28);display:flex;flex-direction:column;gap:10px">
+<sc-for list="{{ liveFacts }}" as="f" hint-placeholder-count="4">
+<div style="display:flex;justify-content:space-between;gap:12px;padding-bottom:8px;border-bottom:1px dashed rgba(30,33,54,.28)"><span style="font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#7b7f95">{{ f.k }}</span><span style="font:800 14.5px Nunito,sans-serif;text-align:right">{{ f.v }}</span></div>
+</sc-for>
+<img src="bef1694a-6d1b-4dc3-9b3e-8fed2f41e5a4" alt="Presenting a chart" style="width:112px;align-self:center;margin-top:auto">
+</div>
+</div>
+
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:28px 0 14px">
+<div>
+<h3 style="margin:0;font:800 20px Nunito,sans-serif">The rest of the catalog</h3>
+<p style="margin:4px 0 0;font-size:14.5px;color:#5b5f74">Start any of them self-paced today, or register to hold a seat in the next cohort.</p>
+</div>
+<div style="display:flex;gap:8px;flex:none">
+<button sc-camel-on-click="{{ prev5 }}" style="width:40px;height:40px;border:2px solid #1e2136;border-radius:10px;background:#fff;color:#1e2136;font:800 16px Nunito,sans-serif;cursor:pointer;box-shadow:3px 3px 0 rgba(30,33,54,.16)">←</button>
+<button sc-camel-on-click="{{ next5 }}" style="width:40px;height:40px;border:2px solid #1e2136;border-radius:10px;background:#fff;color:#1e2136;font:800 16px Nunito,sans-serif;cursor:pointer;box-shadow:3px 3px 0 rgba(30,33,54,.16)">→</button>
+</div>
+</div>
+<div style="overflow:hidden;padding:4px 8px 10px 0;margin:0 -4px">
+<div style="display:flex;gap:16px;transition:transform .35s cubic-bezier(.4,0,.2,1);transform:{{ trackX }}">
+<sc-for list="{{ upcoming }}" as="c" hint-placeholder-count="5">
+<div style="flex:none;box-sizing:border-box;width:330px;background:#fff;border:2px solid #1e2136;border-radius:16px;padding:18px;box-shadow:5px 5px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+<span style="padding:4px 9px;border:1.5px solid rgba(30,33,54,.3);border-radius:7px;background:#fdfaf3;font:500 10px 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#4c5066">{{ c.tag }}</span>
+<span style="padding:4px 9px;border:1.5px solid #1e2136;border-radius:7px;background:{{ c.cohortBg }};color:{{ c.cohortFg }};font:700 10px 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap">{{ c.cohortLabel }}</span>
+</div>
+<h4 style="margin:0;font:800 20px/1.18 Nunito,sans-serif">{{ c.title }}</h4>
+<p style="margin:0;font:italic 600 14.5px Nunito,sans-serif;color:#41704e">you'll ship: {{ c.artifact }}</p>
+<div style="margin-top:auto;padding-top:11px;border-top:1px dashed rgba(30,33,54,.25);display:flex;align-items:center;justify-content:space-between;gap:10px">
+<span style="font:500 12.5px 'JetBrains Mono',monospace;color:#5b5f74">{{ c.weeks }}</span>
+<span style="display:flex;gap:12px;align-items:center;white-space:nowrap"><a href="#5a" style="font-weight:700;font-size:14px">{{ c.action }}</a><a href="#5a" style="font-size:13.5px;color:#5b5f74">{{ c.secondary }}</a></span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="padding:36px 40px">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+<sc-for list="{{ proof }}" as="p" hint-placeholder-count="3">
+<div style="display:flex;gap:12px;align-items:flex-start"><span style="flex:none;width:24px;height:24px;border-radius:50% 44% 55% 46%;background:#b9bff0;border:2px solid #1e2136"></span><div><div style="font:800 16px Nunito,sans-serif">{{ p.t }}</div><div style="font-size:14px;line-height:1.45;color:#5b5f74">{{ p.d }}</div></div></div>
+</sc-for>
+</div>
+</div>
+
+
+
+
+
+<div style="padding:34px 40px 40px;background:#eff5ea;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+<h2 style="margin:0;font:800 30px Nunito,sans-serif;letter-spacing:-.02em">Something to attend this week</h2>
+<a href="#5a" style="font-weight:700;font-size:15px;white-space:nowrap">see all events →</a>
+</div>
+<p style="margin:0 0 18px;font-size:15.5px;color:#5b5f74">Free, live, recorded. Subscribe to the Google calendar and stop tracking it.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<sc-for list="{{ events }}" as="e" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;padding:16px;box-shadow:5px 5px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span style="font:500 12px 'JetBrains Mono',monospace;color:#5a62c4">{{ e.date }} · {{ e.time }}</span><span style="font:700 11.5px Nunito,sans-serif;padding:3px 9px;border-radius:999px;background:#dfe2f7;color:#2c3054;text-transform:uppercase;letter-spacing:.04em">{{ e.kind }}</span></div>
+<h3 style="margin:0;font:800 18px/1.25 Nunito,sans-serif">{{ e.title }}</h3>
+<p style="margin:0;font-size:14.5px;color:#5b5f74">With <a href="#5a" style="font-weight:700">{{ e.host }}</a></p>
+<a href="#5a" style="margin-top:auto;padding-top:10px;border-top:1px dashed rgba(30,33,54,.25);font-weight:700;font-size:14px">Event details →</a>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:2px dashed rgba(30,33,54,.28)">
+<div style="padding:32px 40px;border-right:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px"><h2 style="margin:0;font:800 24px Nunito,sans-serif">Latest podcast episode</h2><a href="#5a" style="font-weight:700;font-size:14px">all episodes →</a></div>
+<div style="display:flex;gap:14px;align-items:center;background:#fff;border:2px solid #1e2136;border-radius:14px;padding:16px;box-shadow:5px 5px 0 rgba(30,33,54,.12)">
+<span style="flex:none;width:52px;height:52px;border-radius:50%;background:#b9bff0;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center"><span style="display:block;width:0;height:0;border-left:15px solid #1e2136;border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px"></span></span>
+<div><h3 style="margin:0 0 3px;font:800 18px/1.25 Nunito,sans-serif">How to Build AI That Actually Ships in Production</h3><p style="margin:0;font-size:14px;color:#7b7f95">Episode 214 · 58 min · with Alexey Grigorev</p></div>
+</div>
+</div>
+<div style="padding:32px 40px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px"><h2 style="margin:0;font:800 24px Nunito,sans-serif">Latest article</h2><a href="#5a" style="font-weight:700;font-size:14px">read the blog →</a></div>
+<a href="#5a" style="display:flex;gap:14px;align-items:center;background:#fff;border:2px solid #1e2136;border-radius:14px;padding:16px;box-shadow:5px 5px 0 rgba(30,33,54,.12);text-decoration:none">
+<span style="flex:none;width:52px;height:52px;border-radius:12px;background:#eff5ea;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center;font:800 13px 'JetBrains Mono',monospace;color:#1f6b2c">130k</span>
+<span><span style="display:block;font:800 18px/1.25 Nunito,sans-serif;color:#1e2136;margin-bottom:3px">Sponsor DataTalks.Club: Reach 130,000+ Data and AI Professionals</span><span style="display:block;font-size:14px;color:#7b7f95">Aug 12, 2026 · 4 min read</span></span>
+</a>
+</div>
+</div>
+
+<div style="padding:34px 40px 40px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:4px">
+<h2 style="margin:0;font:800 30px Nunito,sans-serif;letter-spacing:-.02em">The wiki, as a graph</h2>
+<a href="#5a" style="font-weight:700;font-size:15px;white-space:nowrap">browse 282 topics A–Z →</a>
+</div>
+<p style="margin:0 0 18px;font-size:15.5px;color:#5b5f74">282 member-written topics wired to each other — start anywhere and follow the edges into guides, comparisons, roadmaps and podcast episodes.</p>
+<div style="display:grid;grid-template-columns:1.45fr 1fr;gap:18px;align-items:stretch">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:18px;padding:16px;box-shadow:6px 6px 0 rgba(30,33,54,.12)">
+<svg sc-camel-view-box="0 0 596 348" style="width:100%;height:auto;display:block" fill="none">
+<g stroke="#1e2136" stroke-opacity=".28" stroke-width="1.8" stroke-linecap="round"><path d="M300 176 Q 210 127 96 57"></path><path d="M300 176 Q 315 98 305 39"></path><path d="M300 176 Q 418 109 512 61"></path><path d="M300 176 Q 203 186 82 175"></path><path d="M300 176 Q 421 165 518 173"></path><path d="M300 176 Q 185 245 93 293"></path><path d="M300 176 Q 287 255 297 313"></path><path d="M300 176 Q 390 226 504 295"></path></g>
+<g fill="#8f96d8" opacity=".5"><circle cx="200" cy="96" r="4"></circle><circle cx="392" cy="112" r="4"></circle><circle cx="178" cy="238" r="4"></circle><circle cx="404" cy="230" r="4"></circle><circle cx="300" cy="252" r="3.5"></circle><circle cx="300" cy="92" r="3.5"></circle></g>
+<g><rect x="33" y="44" width="132" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="30" y="40" width="132" height="34" rx="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.2"></rect><text x="96" y="62" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">Feature Stores</text></g><g><rect x="249" y="26" width="118" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="246" y="22" width="118" height="34" rx="17" fill="#cfe0d3" stroke="#1e2136" stroke-width="2.2"></rect><text x="305" y="44" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">Orchestration</text></g><g><rect x="447" y="48" width="136" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="444" y="44" width="136" height="34" rx="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.2"></rect><text x="512" y="66" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">Model Monitoring</text></g><g><rect x="15" y="162" width="140" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="12" y="158" width="140" height="34" rx="17" fill="#cfe0d3" stroke="#1e2136" stroke-width="2.2"></rect><text x="82" y="180" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">Data Engineering</text></g><g><rect x="455" y="160" width="132" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="452" y="156" width="132" height="34" rx="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.2"></rect><text x="518" y="178" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">Vector Databases</text></g><g><rect x="27" y="280" width="138" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="24" y="276" width="138" height="34" rx="17" fill="#cfe0d3" stroke="#1e2136" stroke-width="2.2"></rect><text x="93" y="298" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">Experimentation</text></g><g><rect x="255" y="300" width="90" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="252" y="296" width="90" height="34" rx="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.2"></rect><text x="297" y="318" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">RAG</text></g><g><rect x="459" y="282" width="96" height="34" rx="17" fill="rgba(30,33,54,.14)"></rect><rect x="456" y="278" width="96" height="34" rx="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.2"></rect><text x="504" y="300" text-anchor="middle" fill="#1e2136" style="font:700 13px Nunito,sans-serif">LLMs</text></g>
+<g><rect x="243" y="157" width="122" height="48" rx="24" fill="rgba(30,33,54,.2)"></rect><rect x="239" y="152" width="122" height="48" rx="24" fill="#3ea94b" stroke="#1e2136" stroke-width="2.6"></rect><text x="300" y="182" text-anchor="middle" fill="#fff" style="font:800 18px Nunito,sans-serif">MLOps</text></g>
+</svg>
+<div style="display:flex;gap:14px;flex-wrap:wrap;padding-top:10px;margin-top:8px;border-top:1px dashed rgba(30,33,54,.25);font:500 12px 'JetBrains Mono',monospace;color:#5b5f74">
+<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#3ea94b;border:1.5px solid #1e2136"></span>topic hub</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#b9bff0;border:1.5px solid #1e2136"></span>wiki page</span>
+<span style="display:flex;align-items:center;gap:6px"><span style="width:10px;height:10px;border-radius:50%;background:#c9d6cc;border:1.5px solid #1e2136"></span>guide / how-to</span>
+<span style="margin-left:auto">282 topics · 90 connections from MLOps</span>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<sc-for list="{{ wikiTopics }}" as="w" hint-placeholder-count="6">
+<a href="#5a" style="display:block;background:#fff;border:2px solid #1e2136;border-radius:12px;padding:11px 13px;text-decoration:none;box-shadow:4px 4px 0 rgba(30,33,54,.12)">
+<div style="font:800 14.5px Nunito,sans-serif;color:#1e2136;margin-bottom:2px">{{ w.t }}</div>
+<div style="font-size:12.5px;line-height:1.4;color:#5b5f74">{{ w.d }}</div>
+</a>
+</sc-for>
+</div>
+</div>
+</div>
+
+
+
+<div style="padding:34px 40px;background:#1e2136;color:#dfe2f7;display:flex;align-items:center;justify-content:space-between;gap:24px">
+<div><h2 style="margin:0 0 6px;font:800 26px Nunito,sans-serif;color:#fdfaf3;letter-spacing:-.02em">One free account. Six courses. 130,000 people building with you.</h2><p style="margin:0;font-size:15.5px;color:#b8bee0">Homework, leaderboards, weekly events — and the Slack whenever you want it.</p></div>
+<button sc-camel-on-click="{{ joinI }}" style="flex:none;padding:16px 26px;border:2px solid #b9bff0;border-radius:12px;background:#3ea94b;color:#fff;font:800 16.5px Nunito,sans-serif;cursor:pointer">{{ ctaI }}</button>
+</div>
+<footer style="padding:24px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:14px;color:#7b7f95;flex-wrap:wrap">
+<span style="display:flex;gap:10px;align-items:baseline"><strong style="font:800 15px Nunito,sans-serif;color:#1e2136">DataTalks.Club</strong> Free courses to learn data.</span>
+<span style="display:flex;gap:14px;flex-wrap:wrap"><a href="#5a">GitHub</a><a href="#5a">Terms of Service</a><a href="#5a">Privacy Policy</a><a href="#5a">Analytics preferences</a><a href="#5a">Impressum</a></span>
+<span style="font:500 11.5px 'JetBrains Mono',monospace;color:#a5a9ba">version 20260814-115055-57a5367</span>
+</footer>
+</div>
+</div>
+
+<div class="dv-card" style="width:392px;border-color:#1e2136">
+<div data-dtc-theme="{{ theme5 }}" style="background:#fdfaf3;color:#1e2136">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:2px dashed rgba(30,33,54,.28)"><span style="display:flex;align-items:center;gap:6px"><svg sc-camel-view-box="0 0 44 50" style="width:28px;height:auto;flex:none;display:block;overflow:visible"><path d="M20 33 L30 43 L34 25 Z" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6" stroke-linejoin="round"></path><ellipse cx="22" cy="20" rx="21" ry="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6"></ellipse><text x="22" y="25.5" text-anchor="middle" fill="#1e2136" style="font:800 15px Nunito,sans-serif;letter-spacing:-0.4px">DTC</text></svg><span style="font:800 16px Nunito,sans-serif;margin-bottom:4px">DataTalks.Club</span></span><span style="display:flex;gap:8px;align-items:center"><button sc-camel-on-click="{{ toggleTheme5 }}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:2px solid #1e2136;border-radius:999px;background:#fff;color:#1e2136;font:700 12px Nunito,sans-serif;cursor:pointer"><span style="display:block;width:10px;height:10px;border-radius:50%;border:2px solid #1e2136;background:{{ themeDot5 }}"></span>{{ themeLabel5 }}</button><span style="font:700 13px Nunito,sans-serif;padding:6px 12px;border:2px solid #1e2136;border-radius:999px">Menu</span></span></div>
+<div style="padding:22px 18px 18px">
+<h1 style="margin:0 0 12px;font:800 34px/1.05 Nunito,sans-serif;letter-spacing:-.03em">Ship data and AI systems that run in production.</h1>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#4c5066">Free project-based courses, 130,000 people building alongside you.</p>
+<button sc-camel-on-click="{{ joinI }}" style="width:100%;padding:15px;border:2px solid #1e2136;border-radius:14px;background:#3ea94b;color:#fff;font:800 16.5px Nunito,sans-serif;cursor:pointer;box-shadow:4px 4px 0 #1e2136">{{ ctaI }}</button>
+<a href="#5a" style="display:block;text-align:center;margin-top:10px;padding:14px;border:2px solid #1e2136;border-radius:14px;background:#fff;color:#1e2136;font:700 16px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">Pick a course ↓</a>
+</div>
+<div style="padding:18px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28)">
+<sc-for list="{{ arc }}" as="a" hint-placeholder-count="3">
+<div style="padding:10px 0;border-bottom:1px dashed rgba(30,33,54,.28)"><div style="display:flex;gap:11px;align-items:flex-start"><span style="flex:none;width:26px;height:26px;border-radius:50% 44% 55% 46%;background:{{ a.dot }};border:2px solid #1e2136;display:flex;align-items:center;justify-content:center;font:800 11px Nunito,sans-serif">{{ a.n }}</span><div><div style="font:800 15px Nunito,sans-serif">{{ a.t }}</div><div style="font-size:13.5px;line-height:1.4;color:#5b5f74">{{ a.d }}</div></div></div></div>
+</sc-for>
+<p style="margin:12px 0 0;font:italic 700 14px Nunito,sans-serif;color:#41704e;text-align:center">…and then you're the one shipping it</p>
+</div>
+<div style="padding:18px">
+<h2 style="margin:0 0 4px;font:800 21px Nunito,sans-serif">Running now</h2>
+<p style="margin:0 0 12px;font-size:13.5px;color:#7b7f95">Live cohort — join this one.</p>
+<sc-for list="{{ running }}" as="c" hint-placeholder-count="2">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:4px 4px 0 rgba(30,33,54,.12)">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px"><span style="font:500 11px 'JetBrains Mono',monospace;color:#5a62c4;text-transform:uppercase">{{ c.tag }}</span><span style="font:700 11px Nunito,sans-serif;padding:2px 8px;border-radius:999px;background:{{ c.pillBg }};color:{{ c.pillFg }}">{{ c.status }}</span></div>
+<div style="font:800 17px/1.2 Nunito,sans-serif;margin-bottom:4px">{{ c.title }}</div>
+<div style="font:italic 600 11.8px Nunito,sans-serif;color:#41704e">you'll ship: {{ c.artifact }}</div>
+</div>
+</sc-for>
+<h2 style="margin:16px 0 4px;font:800 19px Nunito,sans-serif">Next cohorts</h2>
+<p style="margin:0 0 10px;font-size:13.5px;color:#7b7f95">Or start any of them self-paced today.</p>
+<sc-for list="{{ upcoming }}" as="c" hint-placeholder-count="5">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px dashed rgba(30,33,54,.28)">
+<div><div style="font:800 15px Nunito,sans-serif">{{ c.title }}</div><div style="font-size:12.5px;color:#7b7f95">{{ c.artifact }}</div></div>
+<span style="flex:none;font:700 12px Nunito,sans-serif;padding:4px 10px;border:1.5px solid #1e2136;border-radius:999px;background:{{ c.cohortBg }};color:{{ c.cohortFg }};white-space:nowrap">{{ c.cohort }}</span>
+</div>
+</sc-for>
+</div>
+<div style="padding:18px;border-top:2px dashed rgba(30,33,54,.28)">
+<h2 style="margin:0 0 12px;font:800 21px Nunito,sans-serif">People who were where you are</h2>
+<sc-for list="{{ stories }}" as="s" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;padding:14px;margin-bottom:10px;box-shadow:4px 4px 0 rgba(30,33,54,.12)">
+<div style="display:flex;align-items:center;gap:8px;font:500 11px 'JetBrains Mono',monospace;color:#7b7f95;margin-bottom:8px"><span>{{ s.before }}</span><span style="color:#3ea94b">→</span><span style="color:#1f6b2c;font-weight:700">{{ s.after }}</span></div>
+<p style="margin:0 0 8px;font-size:14.5px;line-height:1.5;color:#3a3e57">“{{ s.quote }}”</p>
+<div style="display:flex;align-items:center;gap:9px"><span style="flex:none;width:32px;height:32px;border-radius:50%;border:2px solid #1e2136;background-image:repeating-linear-gradient(135deg,#eff1fc 0 6px,#dfe2f7 6px 12px)"></span><div><div style="font:800 14px Nunito,sans-serif">{{ s.name }}</div><div style="font-size:12.5px;color:#7b7f95">{{ s.span }}</div></div></div>
+</div>
+</sc-for>
+</div>
+<div style="padding:18px;background:#eff5ea;border-top:2px dashed rgba(30,33,54,.28)">
+<h2 style="margin:0 0 12px;font:800 21px Nunito,sans-serif">This week</h2>
+<sc-for list="{{ events }}" as="e" hint-placeholder-count="3">
+<div style="padding:10px 0;border-bottom:1px dashed rgba(30,33,54,.28)"><div style="font:500 11.5px 'JetBrains Mono',monospace;color:#5a62c4;margin-bottom:4px">{{ e.date }} · {{ e.time }}</div><div style="font:800 15px/1.25 Nunito,sans-serif">{{ e.title }}</div></div>
+</sc-for>
+</div>
+<footer style="padding:16px 18px;font-size:13px;color:#7b7f95">DataTalks.Club — free courses to learn data.</footer>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: “rewrite <a class="dv-oid" href="#5a">5a</a>'s hero copy three ways” · “add member photos / real project screenshots” · “design the signup modal and the logged-in course page”</p>
+</section>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Two transformation-first openings for <a class="dv-oid" href="#3a">3a</a> — courses up front, “create your free account” as the primary CTA, Slack demoted to a secondary link (rest of the page continues as <a class="dv-oid" href="#3a">3a</a>)</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Before → After — the hero shows the arc: today, in the cohort, in production. Courses immediately below.</div>
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 40px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><span style="display:block;width:26px;height:26px;border-radius:50% 45% 52% 48%;background:#b9bff0;border:2px solid #1e2136"></span><span style="font:800 18px Nunito,sans-serif;letter-spacing:-.02em;margin-bottom:5px">DataTalks.Club</span></div>
+<nav style="display:flex;gap:17px;font-size:14.5px;font-weight:600"><sc-for list="{{ nav }}" as="n" hint-placeholder-count="8"><a href="#4a" style="color:#1e2136;text-decoration:none">{{ n }}</a></sc-for></nav>
+<div style="display:flex;gap:10px;align-items:center;flex:none">
+<a href="#4a" style="font-size:14.5px;font-weight:700;color:#5a62c4;text-decoration:none">Log in</a>
+<a href="#4a" style="padding:9px 17px;border-radius:999px;background:#3ea94b;border:2px solid #1e2136;color:#fff;font-size:14px;font-weight:800;text-decoration:none;box-shadow:3px 3px 0 #1e2136">Sign up free</a>
+</div>
+</header>
+
+<div style="padding:46px 40px 34px">
+<p style="margin:0 0 10px;font:italic 600 19.2px Nunito,sans-serif;color:#5a62c4;transform:rotate(-1.2deg)">from “I don't know where to start” to →</p>
+<div style="display:grid;grid-template-columns:1.08fr .92fr;gap:34px;align-items:center">
+<div>
+<h1 style="margin:0 0 16px;font:800 58px/1.03 Nunito,sans-serif;letter-spacing:-.032em;text-wrap:balance">Ship data pipelines and AI systems that actually run in production.</h1>
+<p style="margin:0 0 22px;font-size:18.5px;line-height:1.6;color:#4c5066;max-width:32em;text-wrap:pretty">Free, project-based courses where you build the real thing — orchestrated pipelines, deployed models, agents that survive a restart — with 130,000 people building alongside you.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+<button sc-camel-on-click="{{ joinG }}" style="padding:16px 26px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 16.5px Nunito,sans-serif;cursor:pointer;box-shadow:5px 5px 0 #1e2136">{{ ctaG }}</button>
+<a href="#4a" style="padding:15px 22px;border:2px solid #1e2136;border-radius:12px;background:#fff;color:#1e2136;font:700 16px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">See the 6 courses</a>
+</div>
+<p style="margin:0;font-size:14.5px;color:#7b7f95">{{ noteG }} · Slack, events and homework come with the account.</p>
+</div>
+<div style="position:relative;background:#eff1fc;border:2px solid #1e2136;border-radius:20px;padding:20px;box-shadow:6px 6px 0 rgba(30,33,54,.14)">
+<p style="margin:0 0 14px;font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#5a62c4">the climb, as members describe it</p>
+<div style="display:flex;flex-direction:column;gap:0">
+<sc-for list="{{ arc }}" as="a" hint-placeholder-count="3">
+<div style="display:flex;gap:13px;align-items:center;padding:12px 0;border-bottom:1px dashed rgba(30,33,54,.28)">
+<span style="flex:none;width:30px;height:30px;border-radius:50% 44% 55% 46%;background:{{ a.dot }};border:2px solid #1e2136;display:flex;align-items:center;justify-content:center;font:800 12px Nunito,sans-serif;color:#1e2136">{{ a.n }}</span>
+<div style="flex:1;min-width:0"><div style="font:800 16px Nunito,sans-serif">{{ a.t }}</div><div style="font-size:14.5px;line-height:1.45;color:#5b5f74">{{ a.d }}</div></div>
+</div>
+</sc-for>
+</div>
+<p style="margin:14px 0 0;font:italic 700 15px Nunito,sans-serif;color:#41704e;text-align:right">…and then you're the one shipping it</p>
+</div>
+</div>
+</div>
+
+<div style="padding:34px 40px 40px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+<h2 style="margin:0;font:800 30px Nunito,sans-serif;letter-spacing:-.02em">Start with the thing you want to be able to do</h2>
+<a href="#4a" style="font-weight:700;font-size:15px;white-space:nowrap">all courses →</a>
+</div>
+<p style="margin:0 0 20px;font-size:15.5px;color:#5b5f74">Six free zoomcamps. Real homework, public leaderboards, peer review, and a channel full of classmates.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<sc-for list="{{ allCourses }}" as="c" hint-placeholder-count="6">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;padding:17px;box-shadow:5px 5px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font:500 11.5px 'JetBrains Mono',monospace;color:#5a62c4;text-transform:uppercase;letter-spacing:.05em">{{ c.tag }}</span><span style="font:700 11.5px Nunito,sans-serif;padding:3px 9px;border-radius:999px;background:{{ c.pillBg }};color:{{ c.pillFg }};white-space:nowrap">{{ c.status }}</span></div>
+<h3 style="margin:0;font:800 19px/1.2 Nunito,sans-serif">{{ c.title }}</h3>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#5b5f74">{{ c.build }}</p>
+<div style="margin-top:auto;padding-top:10px;border-top:1px dashed rgba(30,33,54,.25);display:flex;justify-content:space-between;font-size:13.5px;color:#7b7f95"><span>{{ c.weeks }}</span><a href="#4a" style="font-weight:700">enroll →</a></div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="padding:22px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:15px;color:#5b5f74">
+<span>Free account gets you: every course, weekly events, homework leaderboards — and the Slack if you want it.</span>
+<a href="#4a" style="font-weight:700">rest of the page as in 3a ↓</a>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="4b">
+<div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Pick your build — the hero <em>is</em> the course picker; headline promises the artifact, signup rides along.</div>
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 40px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><span style="display:block;width:26px;height:26px;border-radius:50% 45% 52% 48%;background:#b9bff0;border:2px solid #1e2136"></span><span style="font:800 18px Nunito,sans-serif;letter-spacing:-.02em;margin-bottom:5px">DataTalks.Club</span></div>
+<nav style="display:flex;gap:17px;font-size:14.5px;font-weight:600"><sc-for list="{{ nav }}" as="n" hint-placeholder-count="8"><a href="#4b" style="color:#1e2136;text-decoration:none">{{ n }}</a></sc-for></nav>
+<div style="display:flex;gap:10px;align-items:center;flex:none"><a href="#4b" style="font-size:14.5px;font-weight:700;color:#5a62c4;text-decoration:none">Log in</a><a href="#4b" style="padding:9px 17px;border-radius:999px;background:#3ea94b;border:2px solid #1e2136;color:#fff;font-size:14px;font-weight:800;text-decoration:none;box-shadow:3px 3px 0 #1e2136">Sign up free</a></div>
+</header>
+
+<div style="padding:44px 40px 26px;text-align:center;position:relative">
+<p style="margin:0 0 10px;font:500 12.5px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#5a62c4">free · project-based · 130,000 builders</p>
+<h1 style="margin:0 auto 12px;max-width:22em;font:800 62px/1.02 Nunito,sans-serif;letter-spacing:-.035em;text-wrap:balance">In nine weeks you'll have something running in production.</h1>
+<p style="margin:0 auto 6px;font:italic 600 20.7px Nunito,sans-serif;color:#5a62c4;transform:rotate(-.8deg)">pick what you want to build first</p>
+<div style="display:flex;justify-content:center;gap:8px;margin:18px 0 22px;flex-wrap:wrap">
+<sc-for list="{{ tracks }}" as="t" hint-placeholder-count="5"><button sc-camel-on-click="{{ t.pick }}" style="padding:9px 16px;border:2px solid #1e2136;border-radius:999px;background:{{ t.bg }};color:{{ t.fg }};font:700 14.5px Nunito,sans-serif;cursor:pointer">{{ t.label }}</button></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;text-align:left">
+<sc-for list="{{ pickedCourses }}" as="c" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:18px;padding:19px;box-shadow:6px 6px 0 #dfe2f7;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><span style="font:500 11.5px 'JetBrains Mono',monospace;color:#5a62c4;text-transform:uppercase;letter-spacing:.05em">{{ c.tag }}</span><span style="font:700 11.5px Nunito,sans-serif;padding:3px 9px;border-radius:999px;background:{{ c.pillBg }};color:{{ c.pillFg }};white-space:nowrap">{{ c.status }}</span></div>
+<h3 style="margin:0;font:800 21px/1.18 Nunito,sans-serif">{{ c.title }}</h3>
+<p style="margin:0;font:italic 600 13.3px Nunito,sans-serif;color:#41704e">you'll ship: {{ c.artifact }}</p>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#5b5f74">{{ c.build }}</p>
+<div style="margin-top:auto;padding-top:10px;border-top:1px dashed rgba(30,33,54,.25);display:flex;justify-content:space-between;align-items:center;font-size:13.5px;color:#7b7f95"><span>{{ c.weeks }}</span><a href="#4b" style="font-weight:700;color:#1e2136">enroll free →</a></div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px">
+<img src="bef1694a-6d1b-4dc3-9b3e-8fed2f41e5a4" alt="Presenting a chart" style="width:96px">
+<div style="text-align:left"><div style="font:800 17px Nunito,sans-serif">Every course is free, forever</div><div style="font-size:14.5px;color:#5b5f74">One free account unlocks all six, plus weekly events and homework leaderboards.</div></div>
+<button sc-camel-on-click="{{ joinH }}" style="padding:15px 24px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 16px Nunito,sans-serif;cursor:pointer;box-shadow:5px 5px 0 #1e2136">{{ ctaH }}</button>
+</div>
+</div>
+
+<div style="margin:14px 40px 34px;padding:24px 26px;background:#eff1fc;border:2px solid #1e2136;border-radius:20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px">
+<sc-for list="{{ proof }}" as="p" hint-placeholder-count="3">
+<div style="display:flex;gap:12px;align-items:flex-start">
+<span style="flex:none;width:24px;height:24px;border-radius:50% 44% 55% 46%;background:#b9bff0;border:2px solid #1e2136"></span>
+<div><div style="font:800 16px Nunito,sans-serif">{{ p.t }}</div><div style="font-size:14px;line-height:1.45;color:#5b5f74">{{ p.d }}</div></div>
+</div>
+</sc-for>
+</div>
+<div style="padding:0 40px 34px"><div style="padding:20px 24px;background:#eff5ea;border:2px solid #1e2136;border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:20px"><p style="margin:0;font-size:16.5px;line-height:1.5;max-width:44em">“I came for the pipeline homework. Two cohorts later I was on call for a system I built myself — and answering the questions I used to ask.” <span style="font:italic 600 14.1px Nunito,sans-serif;color:#3ea94b">— Tolu, data engineer</span></p><a href="#4b" style="flex:none;font-weight:700;font-size:15px">more member stories →</a></div></div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: “merge <a class="dv-oid" href="#4a">4a</a>'s arc panel into <a class="dv-oid" href="#4b">4b</a>” · “build the full page from <a class="dv-oid" href="#4b">4b</a>” · “make the signup a one-field inline form instead of a button”</p>
+</section>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname"><a class="dv-oid" href="#2a">2a</a> carrying every section from the new site — events, courses, podcast, book of the week, articles, full nav &amp; footer (desktop + mobile)</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Full homepage · real content from web.dtcdev.click, taped-in styling</div>
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 40px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><span style="display:block;width:26px;height:26px;border-radius:50% 45% 52% 48%;background:#b9bff0;border:2px solid #1e2136"></span><span style="font:800 18px Nunito,sans-serif;letter-spacing:-.02em;margin-bottom:5px">DataTalks.Club</span></div>
+<nav style="display:flex;gap:17px;font-size:14.5px;font-weight:600">
+<sc-for list="{{ nav }}" as="n" hint-placeholder-count="8"><a href="#3a" style="color:#1e2136;text-decoration:none">{{ n }}</a></sc-for>
+</nav>
+<div style="display:flex;gap:10px;align-items:center;flex:none">
+<a href="#3a" style="font-size:14.5px;font-weight:700;color:#5a62c4;text-decoration:none">Login</a>
+<a href="#3a" style="padding:9px 17px;border-radius:999px;background:#fff;border:2px solid #1e2136;color:#1e2136;font-size:14px;font-weight:700;text-decoration:none;box-shadow:3px 3px 0 #b9bff0">Slack</a>
+</div>
+</header>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;padding:48px 40px 42px;align-items:center">
+<div>
+<p style="margin:0 0 12px;font:italic 600 19.2px Nunito,sans-serif;color:#5a62c4;transform:rotate(-1.5deg)">pull up a chair —</p>
+<h1 style="margin:0 0 16px;font:800 56px/1.05 Nunito,sans-serif;letter-spacing:-.03em;text-wrap:balance">The place to talk about data</h1>
+<p style="margin:0 0 22px;font-size:18.5px;line-height:1.6;color:#4c5066;max-width:31em;text-wrap:pretty">A global online community of data science professionals, ML engineers and AI practitioners. Free courses, weekly events, and a Slack where nobody has to figure it out alone.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:24px">
+<a href="#3a" style="padding:14px 22px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 15.5px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #1e2136">Explore upcoming events</a>
+<a href="#3a" style="padding:14px 20px;border:2px solid #1e2136;border-radius:12px;background:#fff;color:#1e2136;font:700 15.5px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">Explore free courses</a>
+<a href="#3a" style="padding:14px 20px;border-radius:12px;color:#1e2136;font:700 15.5px Nunito,sans-serif;text-decoration:underline;text-underline-offset:4px">Join our community</a>
+</div>
+<div style="display:flex;flex-direction:column;gap:2px;border-top:1px dashed rgba(30,33,54,.28)">
+<sc-for list="{{ pitches }}" as="p" hint-placeholder-count="3">
+<div style="display:flex;gap:11px;align-items:center;padding:12px 0;border-bottom:1px dashed rgba(30,33,54,.28)">
+<span style="flex:none;width:20px;height:20px;border-radius:50% 44% 55% 46%;background:#b9bff0;border:2px solid #1e2136"></span>
+<span style="font:700 16px Nunito,sans-serif">{{ p }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="position:relative;height:500px">
+<div style="position:absolute;left:0;top:0;width:290px;background:#fff;border:2px solid #1e2136;border-radius:8px;padding:12px;box-shadow:5px 5px 0 rgba(30,33,54,.14);transform:rotate(-2.2deg)">
+<div style="position:absolute;left:50%;top:-11px;width:74px;height:20px;transform:translateX(-50%) rotate(-2deg);background:rgba(185,191,240,.75);border:1px solid rgba(30,33,54,.18)"></div>
+<img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="Two people talking about DTC" style="width:100%;display:block;border-radius:4px;background:#eff1fc">
+<p style="margin:8px 2px 0;font:italic 600 14.1px Nunito,sans-serif;color:#3a3e57">day one in #general</p>
+</div>
+<div style="position:absolute;right:0;top:6%;width:230px;background:#eff5ea;border:2px solid #1e2136;border-radius:8px;padding:14px;box-shadow:5px 5px 0 rgba(30,33,54,.14);transform:rotate(2.4deg)">
+<p style="margin:0;font-size:14.5px;line-height:1.5">“Started the zoomcamp with zero pipelines shipped. Now I run the data team.”</p>
+<p style="margin:7px 0 0;font:italic 600 13.3px Nunito,sans-serif;color:#41704e">— Tolu</p>
+</div>
+<div style="position:absolute;right:6%;bottom:0;width:210px;background:#fff;border:2px solid #1e2136;border-radius:8px;padding:10px;box-shadow:5px 5px 0 rgba(30,33,54,.14);transform:rotate(1.6deg)">
+<img src="bef1694a-6d1b-4dc3-9b3e-8fed2f41e5a4" alt="Presenting a chart" style="width:100%;display:block;border-radius:4px;background:#eff1fc">
+<p style="margin:6px 2px 0;font:italic 600 13.3px Nunito,sans-serif;color:#3a3e57">…six months later</p>
+</div>
+<svg sc-camel-view-box="0 0 120 90" style="position:absolute;left:8%;bottom:12%;width:100px;color:#5a62c4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 82 C 30 78, 62 60, 84 22"></path><path d="M74 24 L 86 18 L 88 32"></path></svg>
+</div>
+</div>
+
+<div style="padding:40px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px">
+<div><h2 style="margin:0;font:800 30px Nunito,sans-serif;letter-spacing:-.02em">Upcoming events</h2><p style="margin:5px 0 0;font-size:15.5px;color:#5b5f74">Every week, free, recorded. Subscribe to the Google calendar and forget about it.</p></div>
+<a href="#3a" style="font-weight:700;font-size:15px;white-space:nowrap">see all events →</a>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<sc-for list="{{ events }}" as="e" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;padding:16px;box-shadow:5px 5px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<span style="font:500 12px 'JetBrains Mono',monospace;color:#5a62c4">{{ e.date }} · {{ e.time }}</span>
+<span style="font:700 11.5px Nunito,sans-serif;padding:3px 9px;border-radius:999px;background:#dfe2f7;color:#2c3054;text-transform:uppercase;letter-spacing:.04em">{{ e.kind }}</span>
+</div>
+<h3 style="margin:0;font:800 18px/1.25 Nunito,sans-serif">{{ e.title }}</h3>
+<p style="margin:0;font-size:14.5px;color:#5b5f74">With <a href="#3a" style="font-weight:700">{{ e.host }}</a></p>
+<a href="#3a" style="margin-top:auto;padding-top:10px;border-top:1px dashed rgba(30,33,54,.25);font-weight:700;font-size:14px">Event details →</a>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="padding:40px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+<h2 style="margin:0;font:800 30px Nunito,sans-serif;letter-spacing:-.02em">Courses</h2>
+<a href="#3a" style="font-weight:700;font-size:15px">browse all courses →</a>
+</div>
+<p style="margin:0 0 20px;font-size:15.5px;color:#5b5f74">Community-created, with practical homework, projects, public leaderboards and peer review. All free.</p>
+<div style="display:grid;grid-template-columns:1.25fr 1fr;gap:18px;align-items:stretch">
+<div style="position:relative;background:#fff;border:2px solid #1e2136;border-radius:18px;padding:24px;box-shadow:6px 6px 0 #dfe2f7">
+<span style="position:absolute;right:-8px;top:-14px;font:700 12px Nunito,sans-serif;padding:5px 12px;background:#3ea94b;color:#fff;border:2px solid #1e2136;border-radius:999px;transform:rotate(3deg)">enrolling now</span>
+<p style="margin:0 0 6px;font:500 12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#5a62c4">2026 cohort</p>
+<h3 style="margin:0 0 10px;font:800 30px/1.1 Nunito,sans-serif;letter-spacing:-.02em">AI Dev Tools Zoomcamp</h3>
+<p style="margin:0 0 14px;font-size:16.5px;line-height:1.55;color:#4c5066;max-width:34em">Over four modules, you turn a vague idea into a specification and a groomed backlog, then build and deploy a full-stack application with AI assistance.</p>
+<p style="margin:0 0 16px;font:italic 600 14.8px Nunito,sans-serif;color:#5a62c4">starts August 31, 2026 — free, like all of them</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+<a href="#3a" style="padding:13px 22px;border:2px solid #1e2136;border-radius:12px;background:#1e2136;color:#fdfaf3;font:800 15.5px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">View cohort →</a>
+<span style="font-size:14px;color:#7b7f95">4 modules · homework · peer review · leaderboard</span>
+</div>
+</div>
+<div style="background:#eff1fc;border:2px solid #1e2136;border-radius:18px;padding:20px;display:flex;flex-direction:column;gap:12px">
+<p style="margin:0;font:500 12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#5a62c4">also open, self-paced</p>
+<sc-for list="{{ otherCourses }}" as="c" hint-placeholder-count="4">
+<div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding-bottom:9px;border-bottom:1px dashed rgba(30,33,54,.28)">
+<a href="#3a" style="font:700 15.5px Nunito,sans-serif;color:#1e2136;text-decoration:none">{{ c.title }}</a>
+<span style="font:500 12px 'JetBrains Mono',monospace;color:#7b7f95;white-space:nowrap">{{ c.meta }}</span>
+</div>
+</sc-for>
+<img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="Climbing stairs" style="width:110px;align-self:center;margin-top:auto">
+</div>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1.1fr 1fr;gap:0;border-top:2px dashed rgba(30,33,54,.28)">
+<div style="padding:34px 40px;border-right:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px"><h2 style="margin:0;font:800 24px Nunito,sans-serif">Latest podcast episode</h2><a href="#3a" style="font-weight:700;font-size:14px">all episodes →</a></div>
+<div style="display:flex;gap:14px;align-items:center;background:#fff;border:2px solid #1e2136;border-radius:14px;padding:16px;box-shadow:5px 5px 0 rgba(30,33,54,.12)">
+<span style="flex:none;width:52px;height:52px;border-radius:50%;background:#b9bff0;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center"><span style="display:block;width:0;height:0;border-left:15px solid #1e2136;border-top:9px solid transparent;border-bottom:9px solid transparent;margin-left:4px"></span></span>
+<div><h3 style="margin:0 0 3px;font:800 18px/1.25 Nunito,sans-serif">How to Build AI That Actually Ships in Production</h3><p style="margin:0;font-size:14px;color:#7b7f95">Listen to the latest episode</p></div>
+</div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 12px"><h2 style="margin:0;font:800 24px Nunito,sans-serif">Latest articles</h2><a href="#3a" style="font-weight:700;font-size:14px">blog →</a></div>
+<a href="#3a" style="display:block;padding:14px 0;border-top:1px dashed rgba(30,33,54,.28);border-bottom:1px dashed rgba(30,33,54,.28);font:700 16.5px Nunito,sans-serif;color:#1e2136;text-decoration:none">Sponsor DataTalks.Club: Reach 130,000+ Data and AI Professionals →</a>
+</div>
+<div style="padding:34px 40px;background:#eff5ea">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px"><h2 style="margin:0;font:800 24px Nunito,sans-serif">Book of the week</h2><a href="#3a" style="font-weight:700;font-size:14px">more books →</a></div>
+<div style="display:flex;gap:16px;align-items:flex-start">
+<div style="flex:none;width:104px;height:146px;border:2px solid #1e2136;border-radius:4px;background-image:repeating-linear-gradient(135deg,#fdfaf3 0 8px,#eae4d6 8px 16px);box-shadow:5px 5px 0 rgba(30,33,54,.14);display:flex;align-items:flex-end;padding:7px"><span style="font:11px 'JetBrains Mono',monospace;color:#6b6055">book cover</span></div>
+<div>
+<h3 style="margin:0 0 6px;font:800 19px/1.25 Nunito,sans-serif">Software Development at Rocket Speed</h3>
+<p style="margin:0 0 12px;font-size:14.5px;line-height:1.5;color:#5b5f74">Read along with the club, ask the author your questions in Slack, win a copy.</p>
+<a href="#3a" style="padding:10px 16px;border:2px solid #1e2136;border-radius:10px;background:#fff;font:700 14px Nunito,sans-serif;color:#1e2136;text-decoration:none;box-shadow:3px 3px 0 #b9bff0">Join the discussion</a>
+</div>
+</div>
+</div>
+</div>
+
+<div style="padding:34px 40px;background:#1e2136;color:#dfe2f7;display:flex;align-items:center;justify-content:space-between;gap:24px">
+<div><h2 style="margin:0 0 6px;font:800 26px Nunito,sans-serif;color:#fdfaf3;letter-spacing:-.02em">130,000+ people are already in the Slack</h2><p style="margin:0;font-size:15.5px;color:#b8bee0">Free courses to learn data. Weekly events. Career questions welcome, beginner questions especially.</p></div>
+<div style="display:flex;gap:10px;align-items:center;flex:none">
+<input value="{{ emailD }}" sc-camel-on-change="{{ setEmailD }}" placeholder="you@anywhere.com" style="width:230px;padding:14px 16px;border:2px solid #b9bff0;border-radius:12px;background:#fdfaf3;font:400 15.5px Nunito,sans-serif;color:#1e2136;outline:none">
+<button sc-camel-on-click="{{ joinD }}" style="padding:14px 22px;border:2px solid #b9bff0;border-radius:12px;background:#3ea94b;color:#fff;font:800 15.5px Nunito,sans-serif;cursor:pointer">{{ ctaD }}</button>
+</div>
+</div>
+<footer style="padding:24px 40px;display:flex;align-items:center;justify-content:space-between;gap:20px;font-size:14px;color:#7b7f95;flex-wrap:wrap">
+<span style="display:flex;gap:10px;align-items:baseline"><strong style="font:800 15px Nunito,sans-serif;color:#1e2136">DataTalks.Club</strong> Free courses to learn data.</span>
+<span style="display:flex;gap:14px;flex-wrap:wrap"><a href="#3a">GitHub</a><a href="#3a">Terms of Service</a><a href="#3a">Privacy Policy</a><a href="#3a">Analytics preferences</a><a href="#3a">Impressum</a></span>
+<span style="font:500 11.5px 'JetBrains Mono',monospace;color:#a5a9ba">version 20260814-115055-57a5367</span>
+</footer>
+</div>
+</div>
+
+<div class="dv-card" style="width:392px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:2px dashed rgba(30,33,54,.28)"><span style="display:flex;align-items:center;gap:6px"><span style="display:block;width:22px;height:22px;border-radius:50% 45% 52% 48%;background:#b9bff0;border:2px solid #1e2136"></span><span style="font:800 16px Nunito,sans-serif;margin-bottom:4px">DataTalks.Club</span></span><span style="font:700 13px Nunito,sans-serif;padding:6px 12px;border:2px solid #1e2136;border-radius:999px">Menu</span></div>
+<div style="padding:24px 18px 20px">
+<p style="margin:0 0 8px;font:italic 600 17px Nunito,sans-serif;color:#5a62c4">pull up a chair —</p>
+<h1 style="margin:0 0 12px;font:800 36px/1.05 Nunito,sans-serif;letter-spacing:-.03em">The place to talk about data</h1>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#4c5066">A global community of data, ML and AI practitioners. Free courses, weekly events, a Slack that answers.</p>
+<div style="position:relative;margin:0 0 16px"><img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="" style="width:210px;display:block;margin:0 auto;background:#eff1fc;border:2px solid #1e2136;border-radius:8px;padding:8px;box-shadow:4px 4px 0 rgba(30,33,54,.14);transform:rotate(-1.6deg)"></div>
+<a href="#3a" style="display:block;text-align:center;padding:15px;border:2px solid #1e2136;border-radius:14px;background:#3ea94b;color:#fff;font:800 16.5px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #1e2136">Explore upcoming events</a>
+<a href="#3a" style="display:block;text-align:center;margin-top:10px;padding:14px;border:2px solid #1e2136;border-radius:14px;background:#fff;color:#1e2136;font:700 16px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">Explore free courses</a>
+</div>
+<div style="padding:18px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px"><h2 style="margin:0;font:800 20px Nunito,sans-serif">Upcoming events</h2><a href="#3a" style="font-size:13.5px;font-weight:700">all →</a></div>
+<sc-for list="{{ events }}" as="e" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:12px;padding:13px;margin-bottom:10px;box-shadow:4px 4px 0 rgba(30,33,54,.12)">
+<div style="font:500 11.5px 'JetBrains Mono',monospace;color:#5a62c4;margin-bottom:5px">{{ e.date }} · {{ e.time }} · {{ e.kind }}</div>
+<div style="font:800 15.5px/1.25 Nunito,sans-serif;margin-bottom:4px">{{ e.title }}</div>
+<div style="font-size:13.5px;color:#5b5f74">With {{ e.host }}</div>
+</div>
+</sc-for>
+</div>
+<div style="padding:18px">
+<p style="margin:0 0 4px;font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#5a62c4">2026 cohort</p>
+<h3 style="margin:0 0 8px;font:800 22px/1.15 Nunito,sans-serif">AI Dev Tools Zoomcamp</h3>
+<p style="margin:0 0 10px;font-size:15px;line-height:1.5;color:#4c5066">Turn a vague idea into a spec and a backlog, then build and deploy a full-stack app with AI assistance.</p>
+<p style="margin:0 0 12px;font:italic 600 13.3px Nunito,sans-serif;color:#5a62c4">starts August 31, 2026</p>
+<a href="#3a" style="display:block;text-align:center;padding:13px;border:2px solid #1e2136;border-radius:12px;background:#1e2136;color:#fdfaf3;font:800 15.5px Nunito,sans-serif;text-decoration:none">View cohort →</a>
+</div>
+<div style="padding:18px;background:#eff5ea;border-top:2px dashed rgba(30,33,54,.28)">
+<h2 style="margin:0 0 10px;font:800 20px Nunito,sans-serif">This week in the club</h2>
+<div style="font:700 15.5px Nunito,sans-serif;margin-bottom:3px">🎧 How to Build AI That Actually Ships in Production</div>
+<div style="font-size:13.5px;color:#5b5f74;margin-bottom:12px">latest podcast episode</div>
+<div style="font:700 15.5px Nunito,sans-serif;margin-bottom:3px">The wiki — 282 topics, member-written</div>
+<div style="font-size:13.5px;color:#5b5f74">RAG · MLOps · feature stores · vector databases</div>
+</div>
+<footer style="padding:16px 18px;font-size:13px;color:#7b7f95;border-top:2px dashed rgba(30,33,54,.28)">DataTalks.Club — free courses to learn data.</footer>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: “rewrite <a class="dv-oid" href="#3a">3a</a>'s copy warmer / punchier” · “add the wiki + FAQ into a resources strip” · “show the events section as a calendar list instead of cards”</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Variations on <a class="dv-oid" href="#1a">1a</a> — same cozy sketchbook DNA, three different visual &amp; copy temperaments (desktop; mobile follows once you pick)</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Taped-in — collage of notes and tape, doodle arrows, invitation-style copy. Coziest.</div>
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;padding:18px 44px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:9px"><span style="display:block;width:26px;height:26px;border-radius:50% 45% 52% 48%;background:#b9bff0;border:2px solid #1e2136"></span><span style="font:800 19px Nunito,sans-serif;letter-spacing:-.02em">DataTalks.Club</span></div>
+<nav style="display:flex;gap:24px;font-size:15px;font-weight:600"><a href="#2a" style="color:#1e2136;text-decoration:none">Courses</a><a href="#2a" style="color:#1e2136;text-decoration:none">Events</a><a href="#2a" style="color:#1e2136;text-decoration:none">Podcast</a><a href="#2a" style="color:#1e2136;text-decoration:none">Articles</a></nav>
+<a href="#2a" style="padding:10px 20px;border-radius:999px;background:#fff;border:2px solid #1e2136;color:#1e2136;font-size:14.5px;font-weight:700;text-decoration:none;box-shadow:3px 3px 0 #b9bff0">Join the Slack</a>
+</header>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:36px;padding:52px 44px 46px;align-items:center">
+<div>
+<p style="margin:0 0 14px;font:italic 600 20px Nunito,sans-serif;color:#5a62c4;transform:rotate(-1.5deg)">pull up a chair —</p>
+<h1 style="margin:0 0 20px;font:800 56px/1.05 Nunito,sans-serif;letter-spacing:-.03em;text-wrap:balance">There's a room full of people learning the same thing you are.</h1>
+<p style="margin:0 0 26px;font-size:18.5px;line-height:1.6;color:#4c5066;max-width:31em;text-wrap:pretty">It's a Slack, six free courses, and a habit of answering each other's questions. No tuition, no gatekeeping, no pretending anybody arrived knowing this.</p>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<input value="{{ emailD }}" sc-camel-on-change="{{ setEmailD }}" placeholder="you@anywhere.com" style="flex:1;min-width:220px;padding:15px 17px;border:2px solid #1e2136;border-radius:12px;background:#fff;font:400 16px Nunito,sans-serif;outline:none">
+<button sc-camel-on-click="{{ joinD }}" style="padding:15px 24px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 16px Nunito,sans-serif;cursor:pointer;box-shadow:4px 4px 0 #1e2136">{{ ctaD }}</button>
+</div>
+<p style="margin:11px 2px 0;font-size:14px;color:#7b7f95">{{ noteD }}</p>
+</div>
+<div style="position:relative;height:500px">
+<div style="position:absolute;left:0;top:0;width:290px;background:#fff;border:2px solid #1e2136;border-radius:8px;padding:12px;box-shadow:5px 5px 0 rgba(30,33,54,.14);transform:rotate(-2.2deg)">
+<div style="position:absolute;left:50%;top:-11px;width:74px;height:20px;transform:translateX(-50%) rotate(-2deg);background:rgba(185,191,240,.75);border:1px solid rgba(30,33,54,.18)"></div>
+<img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="Two people talking about DTC" style="width:100%;display:block;border-radius:4px;background:#eff1fc">
+<p style="margin:8px 2px 0;font:italic 600 14.1px Nunito,sans-serif;color:#3a3e57">day one in #general</p>
+</div>
+<div style="position:absolute;right:0;top:6%;width:230px;background:#eff5ea;border:2px solid #1e2136;border-radius:8px;padding:14px;box-shadow:5px 5px 0 rgba(30,33,54,.14);transform:rotate(2.4deg)">
+<p style="margin:0;font-size:14.5px;line-height:1.5">“Started the zoomcamp with zero pipelines shipped. Now I run the data team.”</p>
+<p style="margin:7px 0 0;font:italic 600 13.3px Nunito,sans-serif;color:#41704e">— Tolu</p>
+</div>
+<div style="position:absolute;right:6%;bottom:0;width:210px;background:#fff;border:2px solid #1e2136;border-radius:8px;padding:10px;box-shadow:5px 5px 0 rgba(30,33,54,.14);transform:rotate(1.6deg)">
+<img src="bef1694a-6d1b-4dc3-9b3e-8fed2f41e5a4" alt="Presenting a chart" style="width:100%;display:block;border-radius:4px;background:#eff1fc">
+<p style="margin:6px 2px 0;font:italic 600 13.3px Nunito,sans-serif;color:#3a3e57">…six months later</p>
+</div>
+<svg sc-camel-view-box="0 0 120 90" style="position:absolute;left:8%;bottom:12%;width:100px;color:#5a62c4" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 82 C 30 78, 62 60, 84 22"></path><path d="M74 24 L 86 18 L 88 32"></path></svg>
+</div>
+</div>
+<div style="padding:42px 44px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<h2 style="margin:0 0 4px;font:800 32px Nunito,sans-serif;letter-spacing:-.02em">Six free courses, whenever you're ready</h2>
+<p style="margin:0 0 22px;font-size:16px;color:#5b5f74">Cohorts if you like deadlines, self-paced if you don't.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<sc-for list="{{ courses }}" as="c" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;padding:18px;box-shadow:5px 5px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font:500 12px 'JetBrains Mono',monospace;color:#5a62c4;text-transform:uppercase;letter-spacing:.05em">{{ c.tag }}</span><span style="font:700 12px Nunito,sans-serif;padding:3px 9px;border-radius:999px;background:{{ c.pillBg }};color:{{ c.pillFg }}">{{ c.status }}</span></div>
+<h3 style="margin:0;font:800 20px/1.2 Nunito,sans-serif">{{ c.title }}</h3>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#5b5f74">{{ c.blurb }}</p>
+<div style="margin-top:auto;padding-top:10px;border-top:1px dashed rgba(30,33,54,.25);display:flex;justify-content:space-between;font-size:13.5px;color:#7b7f95"><span>{{ c.weeks }}</span><a href="#2a" style="font-weight:700">details →</a></div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="padding:44px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+<sc-for list="{{ perks }}" as="p" hint-placeholder-count="4">
+<div style="background:#fdfaf3;border:2px solid #1e2136;border-radius:14px;padding:16px;box-shadow:4px 4px 0 #dfe2f7">
+<span style="display:block;width:24px;height:24px;margin-bottom:10px;border-radius:50% 44% 55% 46%;background:#b9bff0;border:2px solid #1e2136"></span>
+<div style="font:800 16px Nunito,sans-serif">{{ p.t }}</div><div style="font-size:14px;line-height:1.45;color:#5b5f74">{{ p.d }}</div>
+</div>
+</sc-for>
+</div>
+<footer style="display:flex;justify-content:space-between;padding:24px 44px;border-top:2px dashed rgba(30,33,54,.28);font-size:14px;color:#7b7f95"><span>DataTalks.Club — a community of people who like data</span><span style="display:flex;gap:16px"><a href="#2a">Slack</a><a href="#2a">YouTube</a><a href="#2a">Newsletter</a></span></footer>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Big Wash — the watercolour blob becomes the whole hero, huge type, short punchy lines.</div>
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<div style="position:relative;overflow:hidden;background:radial-gradient(120% 90% at 50% 0%,#cdd2f5 0%,#dfe2f7 45%,#fdfaf3 100%)">
+<header style="position:relative;display:flex;align-items:center;justify-content:space-between;padding:20px 44px">
+<div style="display:flex;align-items:center;gap:9px"><span style="display:block;width:26px;height:26px;border-radius:50% 45% 52% 48%;background:#fff;border:2px solid #1e2136"></span><span style="font:800 19px Nunito,sans-serif;letter-spacing:-.02em">DataTalks.Club</span></div>
+<nav style="display:flex;gap:24px;font-size:15px;font-weight:600"><a href="#2b" style="color:#1e2136;text-decoration:none">Courses</a><a href="#2b" style="color:#1e2136;text-decoration:none">Events</a><a href="#2b" style="color:#1e2136;text-decoration:none">Podcast</a><a href="#2b" style="color:#1e2136;text-decoration:none">Articles</a></nav>
+<a href="#2b" style="padding:10px 20px;border-radius:999px;background:#1e2136;color:#fdfaf3;font-size:14.5px;font-weight:700;text-decoration:none">Join the Slack</a>
+</header>
+<div style="position:relative;padding:44px 44px 0;text-align:center">
+<p style="margin:0 0 10px;font:500 13px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#4a4f7d">free forever · 130,000 of us</p>
+<h1 style="margin:0 auto 14px;max-width:15em;font:900 82px/.95 Nunito,sans-serif;letter-spacing:-.045em;text-wrap:balance">Learn it together.</h1>
+<p style="margin:0 auto 8px;font:italic 600 23.7px Nunito,sans-serif;color:#4a4f7d;transform:rotate(-.8deg)">the hardest part is joining</p>
+<p style="margin:16px auto 26px;max-width:26em;font-size:19px;line-height:1.55;color:#3a3e57">Free cohort courses in data engineering, ML and LLMs. A Slack that answers. Somewhere to be a beginner without apologising.</p>
+<button sc-camel-on-click="{{ joinE }}" style="padding:17px 32px;border:2px solid #1e2136;border-radius:999px;background:#3ea94b;color:#fff;font:800 18px Nunito,sans-serif;cursor:pointer;box-shadow:5px 5px 0 #1e2136">{{ ctaE }}</button>
+<p style="margin:12px 0 0;font-size:14px;color:#5b5f74">Takes 20 seconds. Lurking is completely allowed.</p>
+<div style="display:flex;justify-content:center;align-items:flex-end;gap:20px;margin:26px 0 -6px">
+<img src="bef1694a-6d1b-4dc3-9b3e-8fed2f41e5a4" alt="Presenting a chart" style="width:170px">
+<img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="Two people talking" style="width:230px;animation:dvblob 9s ease-in-out infinite">
+<img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="Climbing stairs" style="width:170px">
+</div>
+</div>
+</div>
+<div style="padding:14px 0;background:#1e2136;color:#dfe2f7;overflow:hidden;white-space:nowrap"><div style="display:inline-flex;gap:34px;font:500 14px 'JetBrains Mono',monospace;animation:dvmarq 32s linear infinite">{{ tickerA }}{{ tickerA }}</div></div>
+<div style="padding:46px 44px">
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<sc-for list="{{ courses }}" as="c" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:9px;box-shadow:6px 6px 0 #dfe2f7">
+<span style="font:500 12px 'JetBrains Mono',monospace;color:#5a62c4;text-transform:uppercase;letter-spacing:.05em">{{ c.tag }}</span>
+<h3 style="margin:0;font:800 21px/1.2 Nunito,sans-serif">{{ c.title }}</h3>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#5b5f74">{{ c.blurb }}</p>
+<div style="margin-top:auto;padding-top:10px;display:flex;justify-content:space-between;font-size:13.5px;color:#7b7f95"><span>{{ c.weeks }}</span><span style="font-weight:700;color:#1e2136">{{ c.status }}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="margin:0 44px 46px;padding:34px;background:#eff1fc;border:2px solid #1e2136;border-radius:24px;display:grid;grid-template-columns:repeat(4,1fr);gap:22px;text-align:center">
+<sc-for list="{{ statsB }}" as="s" hint-placeholder-count="4"><div><div style="font:900 34px Nunito,sans-serif;letter-spacing:-.02em;color:#2c3054">{{ s.n }}</div><div style="font-size:14px;color:#5b5f74">{{ s.l }}</div></div></sc-for>
+</div>
+<footer style="display:flex;justify-content:space-between;padding:24px 44px;border-top:2px solid #1e2136;font-size:14px;color:#7b7f95"><span>DataTalks.Club</span><span style="display:flex;gap:16px"><a href="#2b">Slack</a><a href="#2b">YouTube</a><a href="#2b">Newsletter</a></span></footer>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2c">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Club Zine — ruled columns, serif + mono, written like a letter from the community.</div>
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:flex-end;justify-content:space-between;padding:22px 44px 14px;border-bottom:3px double #1e2136">
+<div><div style="font:700 26px 'Source Serif 4',serif;letter-spacing:-.02em">DataTalks.Club</div><div style="font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#5a62c4">est. 2020 · issue no. 214 · free entry</div></div>
+<nav style="display:flex;gap:22px;font:500 13px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em"><a href="#2c" style="color:#1e2136;text-decoration:none">Courses</a><a href="#2c" style="color:#1e2136;text-decoration:none">Events</a><a href="#2c" style="color:#1e2136;text-decoration:none">Podcast</a><a href="#2c" style="color:#1e2136;text-decoration:none">Slack</a></nav>
+</header>
+<div style="display:grid;grid-template-columns:1.35fr 1fr;gap:0;border-bottom:1px solid rgba(30,33,54,.2)">
+<div style="padding:44px;border-right:1px solid rgba(30,33,54,.2)">
+<h1 style="margin:0 0 18px;font:400 54px/1.04 'Source Serif 4',serif;letter-spacing:-.02em;text-wrap:balance">Dear future data engineer,</h1>
+<div style="columns:2;column-gap:30px;column-rule:1px solid rgba(30,33,54,.15);font-size:16.5px;line-height:1.65;color:#3a3e57">
+<p style="margin:0 0 12px"><span style="float:left;font:700 52px/.82 'Source Serif 4',serif;padding:4px 8px 0 0;color:#5a62c4">W</span>e were all where you are: a tab open on a job description, half the words unfamiliar, no idea who to ask. So we built the place we needed — a Slack of 130,000 people and six courses that cost nothing.</p>
+<p style="margin:0 0 12px">You will not be the least experienced person here for long, and nobody keeps score anyway. Ask the obvious question. Somebody will thank you for asking it.</p>
+<p style="margin:0">Come for the zoomcamp. Stay because it turns out learning in company is simply better.</p>
+</div>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:24px;padding-top:22px;border-top:1px solid rgba(30,33,54,.2)">
+<input value="{{ emailF }}" sc-camel-on-change="{{ setEmailF }}" placeholder="your email" style="flex:1;min-width:220px;padding:14px 16px;border:1.5px solid #1e2136;border-radius:0;background:#fff;font:400 16px Nunito,sans-serif;outline:none">
+<button sc-camel-on-click="{{ joinF }}" style="padding:14px 26px;border:1.5px solid #1e2136;background:#1e2136;color:#fdfaf3;font:700 16px Nunito,sans-serif;cursor:pointer">{{ ctaF }}</button>
+</div>
+<p style="margin:10px 0 0;font:500 12.5px 'JetBrains Mono',monospace;color:#7b7f95">{{ noteF }}</p>
+</div>
+<div style="padding:34px 30px;background:#eff1fc;display:flex;flex-direction:column;gap:18px">
+<img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="Two people talking about DTC" style="width:200px;align-self:center">
+<div style="border-top:1px solid rgba(30,33,54,.2);padding-top:14px">
+<div style="font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#5a62c4;margin-bottom:10px">In this issue</div>
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="4"><div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px dotted rgba(30,33,54,.28)"><span style="font:500 12px 'JetBrains Mono',monospace;color:#7b7f95">{{ s.n }}</span><div><div style="font:700 15.5px Nunito,sans-serif">{{ s.t }}</div><div style="font-size:13.5px;color:#5b5f74">{{ s.d }}</div></div></div></sc-for>
+</div>
+</div>
+</div>
+<div style="padding:38px 44px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:3px double #1e2136;padding-bottom:8px;margin-bottom:20px"><h2 style="margin:0;font:400 30px 'Source Serif 4',serif">The curriculum, free of charge</h2><span style="font:500 12px 'JetBrains Mono',monospace;color:#7b7f95">six zoomcamps</span></div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid rgba(30,33,54,.15)">
+<sc-for list="{{ courses }}" as="c" hint-placeholder-count="3">
+<div style="padding:20px;border-right:1px solid rgba(30,33,54,.15);display:flex;flex-direction:column;gap:8px">
+<span style="font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5a62c4">{{ c.tag }}</span>
+<h3 style="margin:0;font:600 20px/1.2 'Source Serif 4',serif">{{ c.title }}</h3>
+<p style="margin:0;font-size:14.5px;line-height:1.55;color:#5b5f74">{{ c.blurb }}</p>
+<div style="margin-top:auto;padding-top:10px;font:500 12.5px 'JetBrains Mono',monospace;color:#7b7f95">{{ c.weeks }} · {{ c.status }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid rgba(30,33,54,.2)">
+<div style="padding:34px 44px;border-right:1px solid rgba(30,33,54,.2)">
+<p style="margin:0 0 12px;font:400 24px/1.5 'Source Serif 4',serif">“Six months after the zoomcamp I was the one giving the talk.”</p>
+<p style="margin:0;font:500 12.5px 'JetBrains Mono',monospace;color:#7b7f95">Priya · ML engineer, cohort of 2024</p>
+</div>
+<div style="padding:34px 44px;display:flex;align-items:center;gap:20px;background:#eff1fc">
+<img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="Climbing stairs" style="width:120px">
+<div><div style="font:700 20px Nunito,sans-serif;margin-bottom:6px">Where it ends is up to you</div><a href="#2c" style="font:500 13px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em">join the slack →</a></div>
+</div>
+</div>
+<footer style="display:flex;justify-content:space-between;padding:22px 44px;border-top:3px double #1e2136;font:500 12.5px 'JetBrains Mono',monospace;color:#7b7f95"><span>DataTalks.Club · a community of people who like data</span><span style="display:flex;gap:16px"><a href="#2c">Slack</a><a href="#2c">YouTube</a><a href="#2c">Newsletter</a></span></footer>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: “build <a class="dv-oid" href="#2a">2a</a> out mobile-first” · “<a class="dv-oid" href="#2b">2b</a> hero with <a class="dv-oid" href="#2c">2c</a>'s letter copy” · “fewer illustrations, more real screenshots”</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Homepage for a first-time visitor — three cozy directions built on the stick-figure &amp; watercolour DNA</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Sketchbook — cream paper, wobbly ink frames, handwritten asides. Warmest, most personal copy.</div>
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<div style="display:flex;align-items:center;justify-content:center;gap:10px;padding:9px 20px;background:#dfe2f7;font-size:13.5px;font-weight:600;color:#2c3054"><span style="width:7px;height:7px;border-radius:50%;background:#3ea94b;animation:dvpulse 2.2s infinite"></span>Next cohort opens 31 August · free, as always<a href="#1a" style="color:#2c3054">save your seat →</a></div>
+<header style="display:flex;align-items:center;justify-content:space-between;padding:18px 44px;border-bottom:2px solid #1e2136">
+<div style="display:flex;align-items:center;gap:9px"><span style="display:block;width:26px;height:26px;border-radius:50% 45% 52% 48%;background:#b9bff0;border:2px solid #1e2136"></span><span style="font:800 19px Nunito,sans-serif;letter-spacing:-.02em">DataTalks.Club</span></div>
+<nav style="display:flex;gap:24px;font-size:15px;font-weight:600">
+<a href="#1a" style="color:#1e2136;text-decoration:none">Courses</a><a href="#1a" style="color:#1e2136;text-decoration:none">Events</a><a href="#1a" style="color:#1e2136;text-decoration:none">Podcast</a><a href="#1a" style="color:#1e2136;text-decoration:none">Articles</a><a href="#1a" style="color:#1e2136;text-decoration:none">Books</a></nav>
+<a href="#1a" style="padding:10px 20px;border-radius:999px;background:#1e2136;color:#fdfaf3;font-size:14.5px;font-weight:700;text-decoration:none;box-shadow:3px 3px 0 #b9bff0">Join the Slack</a>
+</header>
+
+<div style="display:grid;grid-template-columns:1.06fr .94fr;gap:40px;padding:56px 44px 48px;align-items:center">
+<div>
+<p style="margin:0 0 14px;font:500 14px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5a62c4">130,000 people · 0 tuition</p>
+<h1 style="margin:0 0 8px;font:800 60px/1.03 Nunito,sans-serif;letter-spacing:-.03em;text-wrap:balance">Nobody learns data alone here.</h1>
+<p style="margin:0 0 22px;font:italic 600 19.2px Nunito,sans-serif;color:#5a62c4;transform:rotate(-1deg)">…and nobody pays, either.</p>
+<p style="margin:0 0 28px;font-size:18.5px;line-height:1.6;color:#4c5066;max-width:31em;text-wrap:pretty">Free cohort courses in data engineering, ML and LLMs — taught by people doing the job, learned alongside thousands of others in Slack. You bring the curiosity. The community brings the reviews, the nudges and the job leads.</p>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<input value="{{ emailA }}" sc-camel-on-change="{{ setEmailA }}" placeholder="you@anywhere.com" style="flex:1;min-width:230px;padding:15px 17px;border:2px solid #1e2136;border-radius:12px;background:#fff;font:400 16px Nunito,sans-serif;color:#1e2136;outline:none">
+<button sc-camel-on-click="{{ joinA }}" style="padding:15px 25px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 16px Nunito,sans-serif;cursor:pointer;box-shadow:4px 4px 0 #1e2136">{{ ctaA }}</button>
+</div>
+<p style="margin:12px 2px 0;font-size:14px;color:#7b7f95">{{ noteA }}</p>
+</div>
+<div style="position:relative;padding:8px">
+<div style="position:absolute;left:16px;top:10px;width:280px;height:280px;border-radius:48% 52% 45% 55%;background:#d6daf7;filter:blur(2px)"></div>
+<img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="Two people talking about DTC" style="position:relative;width:300px;display:block;margin:0 auto;animation:dvblob 7s ease-in-out infinite">
+<div style="position:relative;margin:6px 0 0 auto;max-width:330px;background:#fff;border:2px solid #1e2136;border-radius:16px;padding:14px 16px;box-shadow:4px 4px 0 #b9bff0;transform:rotate(1.2deg)">
+<p style="margin:0;font-size:15px;line-height:1.5;color:#3a3e57">“I asked one question in #course-data-engineering at 11pm. Four people answered before midnight. I've been here three years.”</p>
+<p style="margin:8px 0 0;font:italic 600 14.8px Nunito,sans-serif;color:#5a62c4">— Ana, analytics engineer</p>
+</div>
+</div>
+</div>
+
+<div style="padding:44px;background:#eff1fc;border-top:2px solid #1e2136;border-bottom:2px solid #1e2136">
+<div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px">
+<div><h2 style="margin:0;font:800 34px Nunito,sans-serif;letter-spacing:-.02em">Pick where you want to get better</h2><p style="margin:6px 0 0;font-size:16px;color:#5b5f74">Every course is free, project-based, and run in a live cohort with a Slack channel of classmates.</p></div>
+<a href="#1a" style="font-weight:700;font-size:15px;white-space:nowrap">all courses →</a>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+<sc-for list="{{ tracks }}" as="t" hint-placeholder-count="4"><button sc-camel-on-click="{{ t.pick }}" style="padding:9px 16px;border:2px solid #1e2136;border-radius:999px;background:{{ t.bg }};color:{{ t.fg }};font:700 14.5px Nunito,sans-serif;cursor:pointer">{{ t.label }}</button></sc-for>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+<sc-for list="{{ courses }}" as="c" hint-placeholder-count="3">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:18px;padding:18px;box-shadow:5px 5px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font:500 12px 'JetBrains Mono',monospace;color:#5a62c4;text-transform:uppercase;letter-spacing:.05em">{{ c.tag }}</span><span style="font:700 12px Nunito,sans-serif;padding:3px 9px;border-radius:999px;background:{{ c.pillBg }};color:{{ c.pillFg }}">{{ c.status }}</span></div>
+<h3 style="margin:0;font:800 21px/1.2 Nunito,sans-serif;letter-spacing:-.01em">{{ c.title }}</h3>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#5b5f74">{{ c.blurb }}</p>
+<div style="margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:1px dashed rgba(30,33,54,.25);font-size:13.5px;color:#7b7f95"><span>{{ c.weeks }}</span><a href="#1a" style="font-weight:700">details →</a></div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:.9fr 1.1fr;gap:40px;padding:52px 44px;align-items:center">
+<div style="position:relative"><div style="position:absolute;inset:14px 40px 30px 20px;border-radius:50% 46% 54% 48%;background:#d6daf7"></div><img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="Climbing the stairs" style="position:relative;width:270px;display:block;margin:0 auto"></div>
+<div>
+<p style="margin:0 0 10px;font:italic 600 17.8px Nunito,sans-serif;color:#5a62c4;transform:rotate(-1deg)">it starts with one channel</p>
+<h2 style="margin:0 0 16px;font:800 36px/1.1 Nunito,sans-serif;letter-spacing:-.025em">The community is the part people stay for</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<sc-for list="{{ perks }}" as="p" hint-placeholder-count="4">
+<div style="display:flex;gap:11px;align-items:flex-start;background:#fdfaf3;border:2px solid #1e2136;border-radius:14px;padding:13px 14px">
+<span style="flex:none;width:26px;height:26px;border-radius:50% 44% 55% 46%;background:#b9bff0;border:2px solid #1e2136"></span>
+<div><div style="font:800 15.5px Nunito,sans-serif">{{ p.t }}</div><div style="font-size:13.5px;line-height:1.45;color:#5b5f74">{{ p.d }}</div></div>
+</div>
+</sc-for>
+</div>
+<a href="#1a" style="display:inline-block;margin-top:20px;padding:13px 22px;border:2px solid #1e2136;border-radius:12px;background:#1e2136;color:#fdfaf3;font-weight:800;font-size:15.5px;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">Say hi in Slack — it's free</a>
+</div>
+</div>
+
+<div style="padding:16px 0;background:#1e2136;color:#dfe2f7;overflow:hidden;white-space:nowrap"><div style="display:inline-flex;gap:34px;font:500 14px 'JetBrains Mono',monospace;animation:dvmarq 32s linear infinite">{{ tickerA }}{{ tickerA }}</div></div>
+<footer style="display:flex;justify-content:space-between;align-items:center;padding:26px 44px;background:#fdfaf3;font-size:14px;color:#7b7f95"><span>DataTalks.Club — a community of people who like data</span><span style="display:flex;gap:16px"><a href="#1a">Slack</a><a href="#1a">YouTube</a><a href="#1a">Newsletter</a></span></footer>
+</div>
+</div>
+
+<div class="dv-card" style="width:392px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:2px solid #1e2136"><span style="display:flex;align-items:center;gap:6px"><span style="display:block;width:22px;height:22px;border-radius:50% 45% 52% 48%;background:#b9bff0;border:2px solid #1e2136"></span><span style="font:800 16px Nunito,sans-serif;margin-bottom:4px">DataTalks.Club</span></span><span style="font:700 13px Nunito,sans-serif;padding:6px 12px;border:2px solid #1e2136;border-radius:999px">Menu</span></div>
+<div style="padding:26px 18px 22px">
+<p style="margin:0 0 8px;font:500 12px 'JetBrains Mono',monospace;color:#5a62c4;text-transform:uppercase">free · 130k members</p>
+<h1 style="margin:0 0 6px;font:800 36px/1.05 Nunito,sans-serif;letter-spacing:-.03em">Nobody learns data alone here.</h1>
+<p style="margin:0 0 14px;font:italic 600 16.3px Nunito,sans-serif;color:#5a62c4">…and nobody pays, either.</p>
+<div style="position:relative;margin:0 0 16px"><div style="position:absolute;left:40px;top:6px;width:200px;height:200px;border-radius:48% 52% 45% 55%;background:#d6daf7"></div><img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="" style="position:relative;width:220px;display:block;margin:0 auto"></div>
+<p style="margin:0 0 18px;font-size:16px;line-height:1.55;color:#4c5066">Free cohort courses in data engineering, ML and LLMs — plus a Slack that answers at 11pm.</p>
+<button sc-camel-on-click="{{ joinA }}" style="width:100%;padding:16px;border:2px solid #1e2136;border-radius:14px;background:#3ea94b;color:#fff;font:800 17px Nunito,sans-serif;cursor:pointer;box-shadow:4px 4px 0 #1e2136">Join the next cohort</button>
+<a href="#1a" style="display:block;text-align:center;margin-top:14px;font-weight:700;font-size:15px">or browse the 6 courses →</a>
+</div>
+<div style="padding:18px;background:#eff1fc;border-top:2px solid #1e2136">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:16px;padding:14px;box-shadow:4px 4px 0 #b9bff0"><p style="margin:0;font-size:14.5px;line-height:1.5;color:#3a3e57">“I asked one question at 11pm. Four people answered before midnight.”</p><p style="margin:6px 0 0;font:italic 600 13.3px Nunito,sans-serif;color:#5a62c4">— Ana</p></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Night Study — deep ink background, chalk-bright type, bolder “sky is the limit” copy.</div>
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div class="dv-card" style="width:1140px;border-color:#12142a">
+<div style="background:#171a30;color:#eceefb">
+<header style="display:flex;align-items:center;justify-content:space-between;padding:20px 44px;border-bottom:1px solid rgba(236,238,251,.14)">
+<div style="display:flex;align-items:center;gap:9px"><span style="display:block;width:26px;height:26px;border-radius:50% 45% 52% 48%;background:#9aa2ec"></span><span style="font:800 19px Nunito,sans-serif;letter-spacing:-.02em">DataTalks.Club</span></div>
+<nav style="display:flex;gap:24px;font-size:15px;font-weight:600;color:#b8bee0"><a href="#1b" style="color:#b8bee0;text-decoration:none">Courses</a><a href="#1b" style="color:#b8bee0;text-decoration:none">Events</a><a href="#1b" style="color:#b8bee0;text-decoration:none">Podcast</a><a href="#1b" style="color:#b8bee0;text-decoration:none">Articles</a></nav>
+<a href="#1b" style="padding:10px 20px;border-radius:999px;background:#9aa2ec;color:#171a30;font-size:14.5px;font-weight:800;text-decoration:none">Join the Slack</a>
+</header>
+<div style="padding:60px 44px 50px;text-align:center;position:relative;overflow:hidden">
+<div style="position:absolute;left:50%;top:-90px;width:560px;height:420px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(154,162,236,.32),rgba(154,162,236,0) 70%)"></div>
+<p style="position:relative;margin:0 0 16px;font:500 13.5px 'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#9aa2ec">free courses · live cohorts · 130k members</p>
+<h1 style="position:relative;margin:0 auto 18px;max-width:19em;font:900 68px/1 Nunito,sans-serif;letter-spacing:-.035em;text-wrap:balance">Two years from now, you'll be the one answering.</h1>
+<p style="position:relative;margin:0 auto 30px;max-width:34em;font-size:19.5px;line-height:1.6;color:#b8bee0;text-wrap:pretty">Everyone in here started confused. Free zoomcamps give you the projects, the community gives you the momentum, and the ceiling is wherever you decide to stop.</p>
+<div style="position:relative;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+<button sc-camel-on-click="{{ joinB }}" style="padding:16px 30px;border:0;border-radius:14px;background:#3ea94b;color:#fff;font:800 17px Nunito,sans-serif;cursor:pointer">{{ ctaB }}</button>
+<a href="#1b" style="padding:16px 28px;border:1.5px solid rgba(236,238,251,.35);border-radius:14px;color:#eceefb;font:700 17px Nunito,sans-serif;text-decoration:none">Watch a lesson first</a>
+</div>
+<div style="position:relative;display:flex;justify-content:center;gap:44px;margin-top:44px">
+<img src="bef1694a-6d1b-4dc3-9b3e-8fed2f41e5a4" alt="Presenting a chart" style="width:180px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.35))">
+<img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="Climbing stairs" style="width:180px;animation:dvblob 8s ease-in-out infinite;filter:drop-shadow(0 12px 24px rgba(0,0,0,.35))">
+<img src="e3f84057-3954-4997-84a2-67742b23c89c" alt="Two people talking" style="width:180px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.35))">
+</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(236,238,251,.14);border-bottom:1px solid rgba(236,238,251,.14)">
+<sc-for list="{{ statsB }}" as="s" hint-placeholder-count="4"><div style="padding:26px 22px;border-right:1px solid rgba(236,238,251,.1)"><div style="font:900 32px Nunito,sans-serif;color:#9aa2ec;letter-spacing:-.02em">{{ s.n }}</div><div style="margin-top:4px;font-size:14px;color:#b8bee0">{{ s.l }}</div></div></sc-for>
+</div>
+<div style="padding:50px 44px">
+<h2 style="margin:0 0 6px;font:900 34px Nunito,sans-serif;letter-spacing:-.025em">Start with one. Finish it with a few thousand friends.</h2>
+<p style="margin:0 0 24px;font-size:16.5px;color:#b8bee0">Six zoomcamps. Nine weeks each, give or take. No fee, no upsell, no certificate paywall.</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+<sc-for list="{{ courses }}" as="c" hint-placeholder-count="3">
+<div style="background:#1f2340;border:1px solid rgba(236,238,251,.14);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:9px">
+<span style="font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#9aa2ec">{{ c.tag }}</span>
+<h3 style="margin:0;font:800 20px/1.2 Nunito,sans-serif">{{ c.title }}</h3>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#b8bee0">{{ c.blurb }}</p>
+<div style="margin-top:auto;padding-top:10px;display:flex;justify-content:space-between;font-size:13.5px;color:#8b91b5"><span>{{ c.weeks }}</span><span>{{ c.status }}</span></div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="padding:46px 44px;background:#12142a;text-align:center">
+<p style="margin:0 auto 22px;max-width:24em;font:400 27px/1.45 'Source Serif 4',serif;color:#eceefb">“I joined for the data engineering zoomcamp. I stayed because it's the only place where senior people answer beginners like it's normal.”</p>
+<p style="margin:0;font-size:14.5px;color:#8b91b5">Marek · data engineer, three cohorts in</p>
+</div>
+<footer style="display:flex;justify-content:space-between;padding:26px 44px;font-size:14px;color:#8b91b5;border-top:1px solid rgba(236,238,251,.12)"><span>DataTalks.Club</span><span style="display:flex;gap:16px"><a href="#1b" style="color:#9aa2ec">Slack</a><a href="#1b" style="color:#9aa2ec">YouTube</a><a href="#1b" style="color:#9aa2ec">Newsletter</a></span></footer>
+</div>
+</div>
+<div class="dv-card" style="width:392px;border-color:#12142a">
+<div style="background:#171a30;color:#eceefb;padding:0 0 20px">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(236,238,251,.14)"><span style="font:800 16px Nunito,sans-serif;margin-bottom:4px">DataTalks.Club</span><span style="font-size:13px;font-weight:700;color:#9aa2ec">Menu</span></div>
+<div style="padding:26px 18px;text-align:center;position:relative;overflow:hidden">
+<div style="position:absolute;left:50%;top:-60px;width:340px;height:300px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(154,162,236,.3),rgba(154,162,236,0) 70%)"></div>
+<p style="position:relative;margin:0 0 12px;font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.12em;text-transform:uppercase;color:#9aa2ec">free · live cohorts</p>
+<h1 style="position:relative;margin:0 0 14px;font:900 40px/1.02 Nunito,sans-serif;letter-spacing:-.035em">Two years from now, you'll be the one answering.</h1>
+<img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="" style="position:relative;width:190px;margin:4px 0 16px">
+<p style="position:relative;margin:0 0 20px;font-size:16px;line-height:1.55;color:#b8bee0">Everyone in here started confused. The ceiling is wherever you stop.</p>
+<button sc-camel-on-click="{{ joinB }}" style="position:relative;width:100%;padding:16px;border:0;border-radius:14px;background:#3ea94b;color:#fff;font:800 17px Nunito,sans-serif;cursor:pointer">{{ ctaB }}</button>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:rgba(236,238,251,.14)">
+<sc-for list="{{ statsB }}" as="s" hint-placeholder-count="4"><div style="background:#171a30;padding:16px 18px"><div style="font:900 24px Nunito,sans-serif;color:#9aa2ec">{{ s.n }}</div><div style="font-size:13px;color:#b8bee0">{{ s.l }}</div></div></sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>The Staircase — notebook grid, serif headline, the journey itself as the layout. Copy is a story, step by step.</div>
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div class="dv-card" style="width:1140px">
+<div style="background:#fcfcfe;color:#1e2136;background-image:linear-gradient(rgba(154,162,236,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(154,162,236,.14) 1px,transparent 1px);background-size:28px 28px">
+<header style="display:flex;align-items:center;justify-content:space-between;padding:20px 44px;background:#fcfcfe;border-bottom:1px solid rgba(30,33,54,.12)">
+<div style="display:flex;align-items:center;gap:9px"><span style="display:block;width:24px;height:24px;border-radius:50% 45% 52% 48%;background:#b9bff0"></span><span style="font:700 19px 'Source Serif 4',serif">DataTalks.Club</span></div>
+<nav style="display:flex;gap:24px;font-size:15px;color:#4c5066"><a href="#1c" style="color:#4c5066;text-decoration:none">Courses</a><a href="#1c" style="color:#4c5066;text-decoration:none">Events</a><a href="#1c" style="color:#4c5066;text-decoration:none">Podcast</a><a href="#1c" style="color:#4c5066;text-decoration:none">Articles</a></nav>
+<a href="#1c" style="padding:9px 18px;border-radius:8px;background:#5a62c4;color:#fff;font-size:14.5px;font-weight:700;text-decoration:none">Join the Slack</a>
+</header>
+<div style="display:grid;grid-template-columns:1fr .8fr;gap:32px;padding:58px 44px 44px;align-items:center">
+<div>
+<p style="margin:0 0 16px;font:500 13px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#5a62c4">step 0 — you're here</p>
+<h1 style="margin:0 0 20px;font:400 60px/1.04 'Source Serif 4',serif;letter-spacing:-.02em;text-wrap:balance">Every data career you admire started with someone lost on step one.</h1>
+<p style="margin:0 0 26px;font-size:19px;line-height:1.6;color:#4c5066;max-width:32em;text-wrap:pretty">DataTalks.Club is 130,000 people climbing at different heights, in public. Free courses for the technique, a Slack for the days it doesn't click, and a stage when you're ready to teach it back.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+<input value="{{ emailC }}" sc-camel-on-change="{{ setEmailC }}" placeholder="your email" style="flex:1;min-width:220px;padding:14px 16px;border:1px solid rgba(30,33,54,.25);border-radius:10px;background:#fff;font:400 16px Nunito,sans-serif;outline:none">
+<button sc-camel-on-click="{{ joinC }}" style="padding:14px 24px;border:0;border-radius:10px;background:#1e2136;color:#fff;font:700 16px Nunito,sans-serif;cursor:pointer">{{ ctaC }}</button>
+</div>
+<p style="margin:10px 0 0;font-size:14px;color:#7b7f95">{{ noteC }}</p>
+</div>
+<div style="position:relative"><div style="position:absolute;inset:20px 30px 40px 20px;border-radius:50% 46% 54% 48%;background:#dfe2f7"></div><img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="Climbing stairs" style="position:relative;width:280px;display:block;margin:0 auto"></div>
+</div>
+<div style="padding:44px;background:#fcfcfe;border-top:1px solid rgba(30,33,54,.12)">
+<h2 style="margin:0 0 4px;font:400 34px 'Source Serif 4',serif;letter-spacing:-.015em">The climb, roughly</h2>
+<p style="margin:0 0 28px;font-size:16px;color:#5b5f74">Nobody does these in order. Most people loop.</p>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;align-items:end">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+<div style="padding:0 12px">
+<div style="height:{{ s.h }};border-left:1px solid rgba(90,98,196,.35);border-top:2px solid #5a62c4;background:linear-gradient(180deg,rgba(154,162,236,.16),rgba(154,162,236,0));display:flex;align-items:flex-start;padding:14px 0 0 14px"><span style="font:500 12px 'JetBrains Mono',monospace;color:#5a62c4">{{ s.n }}</span></div>
+<h3 style="margin:14px 0 6px;font:700 19px Nunito,sans-serif">{{ s.t }}</h3>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#5b5f74">{{ s.d }}</p>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1.1fr .9fr;gap:36px;padding:48px 44px;align-items:center;border-top:1px solid rgba(30,33,54,.12)">
+<div>
+<h2 style="margin:0 0 14px;font:400 32px/1.15 'Source Serif 4',serif">What free actually gets you</h2>
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ perks }}" as="p" hint-placeholder-count="4">
+<div style="display:flex;gap:14px;padding:14px 0;border-bottom:1px solid rgba(30,33,54,.1)">
+<span style="flex:none;width:10px;height:10px;margin-top:7px;border-radius:50%;background:#3ea94b"></span>
+<div><div style="font:700 16.5px Nunito,sans-serif">{{ p.t }}</div><div style="font-size:14.5px;line-height:1.5;color:#5b5f74">{{ p.d }}</div></div>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="background:#eff1fc;border-radius:18px;padding:26px;text-align:center">
+<img src="bef1694a-6d1b-4dc3-9b3e-8fed2f41e5a4" alt="Presenting" style="width:150px;margin:0 0 12px">
+<p style="margin:0 0 18px;font:400 21px/1.45 'Source Serif 4',serif;color:#2c3054">“Six months after the zoomcamp I was giving the talk.”</p>
+<a href="#1c" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#5a62c4;color:#fff;font-weight:700;font-size:15px;text-decoration:none">Come climb with us</a>
+</div>
+</div>
+<footer style="display:flex;justify-content:space-between;padding:24px 44px;background:#fcfcfe;border-top:1px solid rgba(30,33,54,.12);font-size:14px;color:#7b7f95"><span>DataTalks.Club</span><span style="display:flex;gap:16px"><a href="#1c">Slack</a><a href="#1c">Newsletter</a><a href="#1c">Podcast</a></span></footer>
+</div>
+</div>
+<div class="dv-card" style="width:392px">
+<div style="background:#fcfcfe;color:#1e2136">
+<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(30,33,54,.12)"><span style="font:700 17px 'Source Serif 4',serif">DataTalks.Club</span><span style="font-size:13px;font-weight:700;color:#5a62c4">Menu</span></div>
+<div style="padding:24px 18px;background-image:linear-gradient(rgba(154,162,236,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(154,162,236,.14) 1px,transparent 1px);background-size:24px 24px">
+<p style="margin:0 0 12px;font:500 11.5px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:#5a62c4">step 0 — you're here</p>
+<h1 style="margin:0 0 14px;font:400 36px/1.08 'Source Serif 4',serif;letter-spacing:-.02em">Every data career you admire started on step one.</h1>
+<img src="bcb4c5dd-8f92-491c-9814-4e4265730af4" alt="" style="width:200px;display:block;margin:0 auto 14px">
+<p style="margin:0 0 18px;font-size:16px;line-height:1.55;color:#4c5066">130,000 people climbing in public. Free courses, a Slack for the hard days.</p>
+<button sc-camel-on-click="{{ joinC }}" style="width:100%;padding:15px;border:0;border-radius:12px;background:#1e2136;color:#fff;font:700 16.5px Nunito,sans-serif;cursor:pointer">{{ ctaC }}</button>
+</div>
+<div style="padding:18px;background:#eff1fc">
+<sc-for list="{{ steps }}" as="s" hint-placeholder-count="4">
+<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(30,33,54,.08)"><span style="font:500 12px 'JetBrains Mono',monospace;color:#5a62c4;padding-top:3px">{{ s.n }}</span><div><div style="font:700 15.5px Nunito,sans-serif">{{ s.t }}</div><div style="font-size:13.5px;color:#5b5f74">{{ s.d }}</div></div></div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: “take <a class="dv-oid" href="#1a">1a</a> but with the staircase section from <a class="dv-oid" href="#1c">1c</a>” · “more illustration, bigger blobs in <a class="dv-oid" href="#1a">1a</a>” · “push <a class="dv-oid" href="#1b">1b</a>'s copy even bolder”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;accent&quot;:{&quot;editor&quot;:&quot;color&quot;,&quot;default&quot;:&quot;#3ea94b&quot;,&quot;options&quot;:[&quot;#3ea94b&quot;,&quot;#5a62c4&quot;,&quot;#b4472a&quot;,&quot;#1e2136&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Theme&quot;}}">
+const COURSES = {
+  all: [
+    {tag:"data engineering",title:"Data Engineering Zoomcamp",blurb:"Build a batch + streaming pipeline end to end. The one most people start with.",weeks:"9 weeks · Jan",status:"Waitlist",pillBg:"#dfe2f7",pillFg:"#2c3054"},
+    {tag:"mlops",title:"MLOps Zoomcamp",blurb:"Take a notebook model all the way to a monitored service in production.",weeks:"9 weeks · May",status:"Waitlist",pillBg:"#dfe2f7",pillFg:"#2c3054"},
+    {tag:"llms",title:"AI Dev Tools Zoomcamp",blurb:"Ship real features with coding agents and LLM tooling. Newest cohort.",weeks:"6 weeks · 31 Aug",status:"Open now",pillBg:"#d8f2dc",pillFg:"#1f6b2c"},
+    {tag:"llms",title:"LLM Zoomcamp",blurb:"RAG, evaluation and search — build an assistant over your own docs.",weeks:"8 weeks · Jun",status:"Self-paced",pillBg:"#f2efe2",pillFg:"#6b6034"},
+    {tag:"machine learning",title:"ML Zoomcamp",blurb:"Regression to deep learning, with two projects peers actually review.",weeks:"11 weeks · Sep",status:"Open soon",pillBg:"#d8f2dc",pillFg:"#1f6b2c"},
+    {tag:"stratascratch",title:"Data Analysis Bootcamp",blurb:"SQL, dashboards and the storytelling half nobody teaches.",weeks:"7 weeks · Oct",status:"Self-paced",pillBg:"#f2efe2",pillFg:"#6b6034"}
+  ]
+};
+const BUILDS = {
+  "Data Engineering Zoomcamp": ["a batch + streaming pipeline on a schedule", "Ingest, orchestrate, warehouse and transform — the pipeline runs itself when you're done."],
+  "MLOps Zoomcamp": ["a monitored model serving live traffic", "Take a notebook model to a deployed, tracked, monitored service."],
+  "AI Dev Tools Zoomcamp": ["a deployed full-stack app built with AI", "Turn a vague idea into a spec and a groomed backlog, then build and ship it."],
+  "LLM Zoomcamp": ["a RAG assistant over your own docs", "Search, retrieval, evaluation — an assistant you can defend in review."],
+  "ML Zoomcamp": ["two ML projects your peers review", "Regression through deep learning, with deployment at the end."],
+  "Data Analysis Bootcamp": ["a dashboard and the story behind it", "SQL, analysis and the storytelling half nobody teaches."]
+};
+COURSES.all.forEach(c => { const b = BUILDS[c.title]; if (b) { c.artifact = b[0]; c.build = b[1]; } });
+class Component extends DCLogic {
+  state = {emailA:"", emailC:"", ctaA:"Get the next cohort", ctaC:"Start climbing", ctaB:"Join the next cohort — free",
+    noteA:"One email when a cohort opens. Nothing else, ever.", noteC:"No spam. Unsubscribe in one click.", track:"all"};
+  filtered() {
+    const t = this.state.track;
+    return t === "all" ? COURSES.all : COURSES.all.filter(c => c.tag.includes(t));
+  }
+  renderVals() {
+    const tracks = [["all","Everything"],["data engineering","Data engineering"],["mlops","MLOps"],["llms","LLMs & AI"],["machine learning","Machine learning"]]
+      .map(([k,label]) => ({label, bg: this.state.track===k ? "#1e2136" : "#fff", fg: this.state.track===k ? "#fdfaf3" : "#1e2136", pick: () => this.setState({track:k})}));
+    const done = (k,n,c) => this.setState({[k]: "You're in ✓", [n]: c});
+    return {
+      tracks, courses: this.filtered().slice(0,3),
+      emailA: this.state.emailA, emailC: this.state.emailC,
+      setEmailA: e => this.setState({emailA:e.target.value}),
+      setEmailC: e => this.setState({emailC:e.target.value}),
+      ctaA: this.state.ctaA, ctaB: this.state.ctaB, ctaC: this.state.ctaC,
+      noteA: this.state.noteA, noteC: this.state.noteC,
+      emailD: this.state.emailD || "", emailF: this.state.emailF || "",
+      setEmailD: e => this.setState({emailD:e.target.value}),
+      setEmailF: e => this.setState({emailF:e.target.value}),
+      ctaD: this.state.ctaD || "Save me a chair",
+      noteD: this.state.noteD || "One email when a cohort opens. That's the whole deal.",
+      ctaE: this.state.ctaE || "Join the club — free",
+      ctaF: this.state.ctaF || "Send me the next cohort",
+      noteF: this.state.noteF || "No spam. Unsubscribe in one click.",
+      joinD: () => this.setState({ctaD:"Chair saved ✓", noteD:"Slack invite on its way. Start in #general — everyone does."}),
+      joinE: () => this.setState({ctaE:"You're in ✓"}),
+      joinF: () => this.setState({ctaF:"Signed up ✓", noteF:"Welcome. First letter arrives tomorrow."}),
+      joinA: () => done("ctaA","noteA","See you on 31 August. Check your inbox for the Slack invite."),
+      joinC: () => done("ctaC","noteC","Welcome to step one. Your first email lands tomorrow."),
+      joinB: () => this.setState({ctaB:"You're in ✓ — check your inbox"}),
+      statsB: [{n:"130k+",l:"members in Slack"},{n:"6",l:"free zoomcamps"},{n:"0 €",l:"forever, for all of them"},{n:"250+",l:"talks and podcast episodes"}],
+      perks: [
+        {t:"Channels per course",d:"Ask at 2am, wake up to three answers."},
+        {t:"Peer project reviews",d:"Real feedback from people one step ahead."},
+        {t:"Weekly events",d:"Practitioners, live, then the recording."},
+        {t:"Jobs & referrals",d:"Members post roles before recruiters do."}
+      ],
+      steps: [
+        {n:"01",t:"Join Slack",d:"Say hi. Lurk if you'd rather.",h:"56px"},
+        {n:"02",t:"Take a zoomcamp",d:"Free, cohort-paced, project-based.",h:"104px"},
+        {n:"03",t:"Ship a project",d:"Reviewed by peers, shown in public.",h:"152px"},
+        {n:"04",t:"Teach it back",d:"Answer, speak, mentor the next cohort.",h:"200px"}
+      ],
+      allCourses: COURSES.all, pickedCourses: this.filtered().slice(0,3),
+      tracks5: [["all","Everything"],["data engineering","Pipelines"],["mlops","Models in production"],["llms","LLMs & agents"],["machine learning","ML fundamentals"]]
+        .map(([k,label]) => ({label, bg: (this.state.track5||"all")===k ? "#1e2136" : "#fff", fg: (this.state.track5||"all")===k ? "#fdfaf3" : "#1e2136", pick: () => this.setState({track5:k})})),
+      picked5: (() => { const t = this.state.track5 || "all"; return t === "all" ? COURSES.all : COURSES.all.filter(c => c.tag.includes(t)); })(),
+      theme5: this.state.theme5 || "light",
+      themeLabel5: (this.state.theme5 === "dark") ? "Light" : "Dark",
+      themeDot5: (this.state.theme5 === "dark") ? "#fdfaf3" : "#1e2136",
+      toggleTheme5: () => this.setState(st => ({theme5: st.theme5 === "dark" ? "light" : "dark"})),
+      wikiTopics: [
+        {t:"Retrieval-Augmented Generation", d:"Retrieval, context design, citation, system boundaries."},
+        {t:"MLOps", d:"The operating discipline for production ML systems."},
+        {t:"Data Engineering", d:"Pipelines, platforms, data quality, role boundaries."},
+        {t:"Vector Databases", d:"Storage, indexing and nearest-neighbour retrieval."},
+        {t:"Feature Stores", d:"Online-offline consistency, reuse, materialization."},
+        {t:"Experimentation", d:"Reducing product and ML uncertainty before rollout."}
+      ],
+      liveFacts: [
+        {k:"starts", v:"Mon, August 31, 2026"},
+        {k:"length", v:"6 weeks · 4 modules"},
+        {k:"price", v:"free, forever"},
+        {k:"includes", v:"homework, leaderboard, peer review"}
+      ],
+      trackX: `translateX(-${(this.state.slide5 || 0) * 346}px)`,
+      prev5: () => this.setState(st => ({slide5: Math.max(0, (st.slide5 || 0) - 1)})),
+      next5: () => this.setState(st => ({slide5: Math.min(2, (st.slide5 || 0) + 1)})),
+      running: COURSES.all.filter(c => c.title === "AI Dev Tools Zoomcamp").map(c => ({...c, status: "starts Aug 31", weeks: "6 weeks · 2026 cohort", pillBg: "#d8f2dc", pillFg: "#1f6b2c"})),
+      upcoming: [
+        // secondary omitted where the primary action already is "start now"
+        {title:"Data Engineering Zoomcamp", tag:"data engineering", weeks:"9 weeks", artifact:"a batch + streaming pipeline on a schedule", cohort:"Jan 2027", cohortLabel:"next cohort · mon 11 jan 2027", cohortBg:"#dfe2f7", cohortFg:"#2c3054", action:"Register", secondary:"start now"},
+        {title:"LLM Zoomcamp", tag:"llms", weeks:"8 weeks", artifact:"a RAG assistant over your own docs", cohort:"May 2027", cohortLabel:"next cohort · mon 10 may 2027", cohortBg:"#dfe2f7", cohortFg:"#2c3054", action:"Register", secondary:"start now"},
+        {title:"Machine Learning Zoomcamp", tag:"machine learning", weeks:"11 weeks", artifact:"two projects your peers review", cohort:"Sep 2027", cohortLabel:"next cohort · mon 13 sep 2027", cohortBg:"#dfe2f7", cohortFg:"#2c3054", action:"Register", secondary:"start now"},
+        {title:"MLOps Zoomcamp", tag:"mlops", weeks:"9 weeks", artifact:"a monitored model serving live traffic", cohort:"no run planned", cohortLabel:"waitlist · no run planned", cohortBg:"#f3f0e8", cohortFg:"#6b6034", action:"Join waitlist", secondary:"start now"},
+        {title:"Data Analysis Bootcamp", tag:"analytics", weeks:"7 weeks", artifact:"a dashboard and the story behind it", cohort:"self-paced only", cohortLabel:"self-paced only", cohortBg:"#f3f0e8", cohortFg:"#6b6034", action:"Start now", secondary:""}
+      ],
+      stories: [
+        {before:"QA analyst", after:"Data engineer", quote:"I finished the pipeline homework, put it on GitHub, and used it as my whole portfolio. Three interviews later I had the job — and my current stack is the one from the course.", name:"Tolu A.", meta:"Lagos · DE Zoomcamp", span:"11 months"},
+        {before:"Excel reports", after:"ML in prod", quote:"Deploying a model terrified me. The MLOps homework made me do it eight times, and the Slack caught every mistake before my team ever saw it.", name:"Marta S.", meta:"Kraków · MLOps Zoomcamp", span:"7 months"},
+        {before:"Backend dev", after:"Shipping agents", quote:"I built an agent that survives restarts, and now I run the AI features at my company. Two years ago I was the person asking what RAG meant.", name:"Nikhil R.", meta:"Bengaluru · LLM Zoomcamp", span:"2 years"}
+      ],
+      ctaI: this.state.ctaI || "Create your free account",
+      noteI: this.state.noteI || "Takes 20 seconds. No card, no upsell.",
+      joinI: () => this.setState({ctaI:"Account created ✓", noteI:"Pick a course and your first homework is waiting."}),
+      ctaG: this.state.ctaG || "Create your free account",
+      noteG: this.state.noteG || "Takes 20 seconds. No card, no upsell.",
+      ctaH: this.state.ctaH || "Create free account",
+      joinG: () => this.setState({ctaG:"Account created ✓", noteG:"Pick a course and your first homework is waiting."}),
+      joinH: () => this.setState({ctaH:"You're in ✓"}),
+      arc1t: "Right now", arc1d: "Job posts full of words you'd have to google. No portfolio you'd show anyone.",
+      arc2t: "Nine weeks in", arc2d: "An orchestrated pipeline running on a schedule, reviewed by classmates, on your GitHub.",
+      arc3t: "In production", arc3d: "Deployed models, monitored agents, and the interview where you talk about your own system.",
+      arc: [
+        {n:"01", dot:"#fdfaf3", t:"Right now", d:"Job posts full of words you'd have to google. No portfolio you'd show anyone.", img:"assets/arc-1.png", w:"104px"},
+        {n:"02", dot:"#b9bff0", t:"Nine weeks in", d:"An orchestrated pipeline running on a schedule, reviewed by classmates, on your GitHub.", img:"assets/arc-2.png", w:"150px"},
+        {n:"03", dot:"#3ea94b", t:"In production", d:"Deployed models, monitored agents, and the interview where you talk about your own system.", img:"assets/arc-3.png", w:"150px"}
+      ],
+      proof: [
+        {t:"Real homework, public leaderboard", d:"You build it weekly, not watch it."},
+        {t:"Peer review", d:"Feedback from people one step ahead of you."},
+        {t:"Weekly live events", d:"Practitioners on the thing you just broke."}
+      ],
+      nav: ["Events","Courses","Blog","Podcast","Wiki","Books","Docs","FAQ"],
+      pitches: ["Talk about data, machine learning, and engineering","Attend weekly events and learn from free courses","Ask career questions and discuss career options"],
+      events: [
+        {date:"Mon, Aug 17, 2026", time:"14:00 CEST", kind:"Workshop", title:"Coding Agent Capabilities: MCP, Skills, Plugins, and Custom Agents", host:"Alexey Grigorev"},
+        {date:"Tue, Aug 18, 2026", time:"14:00 CEST", kind:"Workshop", title:"DevOps and Observability for AI-Built Apps", host:"Alexey Grigorev"},
+        {date:"Tue, Aug 18, 2026", time:"17:00 CEST", kind:"Workshop", title:"Running Durable Agents in Production", host:"Nicholas Lotz"}
+      ],
+      otherCourses: [
+        {title:"Data Engineering Zoomcamp", meta:"self-paced"},
+        {title:"MLOps Zoomcamp", meta:"self-paced"},
+        {title:"Machine Learning Zoomcamp", meta:"self-paced"},
+        {title:"LLM Zoomcamp", meta:"self-paced"},
+        {title:"Data Analysis Bootcamp", meta:"self-paced"}
+      ],
+      tickerA: "· free forever · 130,000 members · data engineering · mlops · llm zoomcamp · weekly events · open-source course material · peer reviews · podcast · book of the week "
+    };
+  }
+}
+</script>
+
+
+</body></html>

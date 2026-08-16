@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="e4c0813c-c0d7-40d5-81ed-2cb9302ba922"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics=""><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin=""><style>/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("e603dc30-10cd-44a4-b8af-944da800efef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("3f8ca2a5-69fd-4b61-8312-dc67c2579cd1") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("157a25bb-f13e-4b76-92f1-3e7045af2e5b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("949ac179-cc5c-480a-9f41-dd675aa36a57") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("212a8eac-3f5c-4c47-b8e1-45505fa21ef7") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("8b5aa658-7c44-4bb5-8daf-74e83922d6d2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("e603dc30-10cd-44a4-b8af-944da800efef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("3f8ca2a5-69fd-4b61-8312-dc67c2579cd1") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("157a25bb-f13e-4b76-92f1-3e7045af2e5b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("949ac179-cc5c-480a-9f41-dd675aa36a57") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("212a8eac-3f5c-4c47-b8e1-45505fa21ef7") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("8b5aa658-7c44-4bb5-8daf-74e83922d6d2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("e603dc30-10cd-44a4-b8af-944da800efef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("3f8ca2a5-69fd-4b61-8312-dc67c2579cd1") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("157a25bb-f13e-4b76-92f1-3e7045af2e5b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("949ac179-cc5c-480a-9f41-dd675aa36a57") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("212a8eac-3f5c-4c47-b8e1-45505fa21ef7") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("8b5aa658-7c44-4bb5-8daf-74e83922d6d2") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("8ab0344a-2ab9-4966-8616-790f79cdbaa4") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("dc85d697-f60a-44f6-8dbe-7ed1b3180d88") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("50840c10-0dfa-4be0-bf95-4a10d185c234") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("7ecb89b9-aead-43ab-a9aa-a4ed5dcf698c") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url("8a847393-be4b-48d6-b72e-e05b6f8ec473") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("8ab0344a-2ab9-4966-8616-790f79cdbaa4") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("dc85d697-f60a-44f6-8dbe-7ed1b3180d88") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("50840c10-0dfa-4be0-bf95-4a10d185c234") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("7ecb89b9-aead-43ab-a9aa-a4ed5dcf698c") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: italic;
+  font-weight: 700;
+  font-display: swap;
+  src: url("8a847393-be4b-48d6-b72e-e05b6f8ec473") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("82791c9e-d69d-4347-935e-e0cafbadb4ef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("7afb14c9-a356-4a9d-93bc-2b0c74a01344") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("7f4fa43e-82d9-4dec-bdfd-c4e16109deb4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("196f141f-9233-45f7-bdcd-2e4af31cc6ff") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("4eed7ecf-0fe5-403a-919a-780a7a6bc724") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("82791c9e-d69d-4347-935e-e0cafbadb4ef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("7afb14c9-a356-4a9d-93bc-2b0c74a01344") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("7f4fa43e-82d9-4dec-bdfd-c4e16109deb4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("196f141f-9233-45f7-bdcd-2e4af31cc6ff") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("4eed7ecf-0fe5-403a-919a-780a7a6bc724") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("82791c9e-d69d-4347-935e-e0cafbadb4ef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("7afb14c9-a356-4a9d-93bc-2b0c74a01344") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("7f4fa43e-82d9-4dec-bdfd-c4e16109deb4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("196f141f-9233-45f7-bdcd-2e4af31cc6ff") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("4eed7ecf-0fe5-403a-919a-780a7a6bc724") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("82791c9e-d69d-4347-935e-e0cafbadb4ef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("7afb14c9-a356-4a9d-93bc-2b0c74a01344") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("7f4fa43e-82d9-4dec-bdfd-c4e16109deb4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("196f141f-9233-45f7-bdcd-2e4af31cc6ff") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("4eed7ecf-0fe5-403a-919a-780a7a6bc724") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("82791c9e-d69d-4347-935e-e0cafbadb4ef") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("7afb14c9-a356-4a9d-93bc-2b0c74a01344") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("7f4fa43e-82d9-4dec-bdfd-c4e16109deb4") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("196f141f-9233-45f7-bdcd-2e4af31cc6ff") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Nunito';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url("4eed7ecf-0fe5-403a-919a-780a7a6bc724") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style><style>
+body{margin:0;background:#e8e6f4;font-family:Nunito,system-ui,sans-serif}
+a{color:#5a62c4}a:hover{color:#3b43a2}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:700 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1e2136;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:700 13px/1.2 Nunito,sans-serif;color:#1e2136}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:700 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(30,33,54,.1);color:#1e2136;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11.5px/1.3 Nunito,sans-serif;color:rgba(30,33,54,.6)}
+.dv-card{max-width:100%;background:#fff;border:1px solid rgba(30,33,54,.1);border-radius:10px;box-shadow:0 2px 8px rgba(30,33,54,.08);overflow:hidden}
+.dv-opt:target .dv-oid{background:#5a62c4;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 Nunito,sans-serif;color:rgba(30,33,54,.55)}
+@keyframes dvpulse{0%,100%{opacity:.3}50%{opacity:1}}
+</style></helmet>
+
+
+<section class="dv-turn" id="t6">
+<div class="dv-thd"><a class="dv-tid" href="#t6">6</a><span class="dv-tname">The other pages, in the same cozy system as the homepage (5a) — nav, ink borders, periwinkle blobs, “you'll ship” framing</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="6a">
+<div class="dv-olabel"><a class="dv-oid" href="#6a">6a</a>Courses index — active cohort, open registration, self-paced, waitlist</div>
+<div class="dv-card" style="width:1140px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 40px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><svg sc-camel-view-box="0 0 44 50" style="width:32px;height:auto;flex:none;display:block;overflow:visible"><path d="M20 33 L30 43 L34 25 Z" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6" stroke-linejoin="round"></path><ellipse cx="22" cy="20" rx="21" ry="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6"></ellipse><text x="22" y="25.5" text-anchor="middle" fill="#1e2136" style="font:800 15px Nunito,sans-serif;letter-spacing:-0.4px">DTC</text></svg><span style="font:800 18px Nunito,sans-serif;letter-spacing:-.02em;margin-bottom:5px">DataTalks.Club</span></div>
+<nav style="display:flex;gap:17px;font-size:14.5px;font-weight:600"><sc-for list="{{ nav }}" as="n" hint-placeholder-count="8"><a href="#6a" style="color:#1e2136;text-decoration:none">{{ n }}</a></sc-for></nav>
+<div style="display:flex;gap:10px;align-items:center;flex:none"><a href="#6a" style="font-size:14.5px;font-weight:700;color:#5a62c4;text-decoration:none">Log in</a><a href="#6a" style="padding:9px 17px;border-radius:999px;background:#3ea94b;border:2px solid #1e2136;color:#fff;font-size:14px;font-weight:800;text-decoration:none;box-shadow:3px 3px 0 #1e2136">Sign up free</a></div>
+</header>
+
+<div style="display:grid;grid-template-columns:1.15fr .85fr;gap:32px;padding:40px 40px 30px;align-items:center">
+<div>
+<p style="margin:0 0 10px;font:500 12.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#5a62c4">six courses · zero tuition</p>
+<h1 style="margin:0 0 14px;font:800 50px/1.05 Nunito,sans-serif;letter-spacing:-.03em">Learn data skills. For free. Together.</h1>
+<p style="margin:0 0 20px;font-size:18px;line-height:1.6;color:#4c5066;max-width:32em">Community-created courses with practical homework, real projects, public leaderboards and peer review. Cohorts if you want deadlines and classmates; self-paced if you'd rather not wait.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<sc-for list="{{ filters }}" as="f" hint-placeholder-count="4"><button sc-camel-on-click="{{ f.pick }}" style="padding:9px 15px;border:2px solid #1e2136;border-radius:999px;background:{{ f.bg }};color:{{ f.fg }};font:700 14px Nunito,sans-serif;cursor:pointer">{{ f.label }}</button></sc-for>
+</div>
+</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+<sc-for list="{{ catalogStats }}" as="s" hint-placeholder-count="4">
+<div style="background:#eff1fc;border:2px solid #1e2136;border-radius:14px;padding:14px;box-shadow:4px 4px 0 rgba(30,33,54,.12)"><div style="font:900 26px Nunito,sans-serif;letter-spacing:-.02em">{{ s.n }}</div><div style="font-size:13.5px;color:#5b5f74">{{ s.l }}</div></div>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{ showActive }}" hint-placeholder-val="{{ true }}">
+<div style="padding:0 40px 34px">
+<div style="display:flex;align-items:center;gap:10px;margin:8px 0 12px"><span style="width:9px;height:9px;border-radius:50%;background:#3ea94b;animation:dvpulse 2.2s infinite"></span><h2 style="margin:0;font:800 22px Nunito,sans-serif">Active now — you can still join</h2></div>
+<div style="background:#fff;border:2px solid #1e2136;border-radius:20px;padding:22px;box-shadow:7px 7px 0 rgba(30,33,54,.16);display:grid;grid-template-columns:1.5fr 1fr;gap:22px">
+<div>
+<div style="display:flex;gap:8px;margin-bottom:10px">
+<span style="display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border:1.5px solid #1e2136;border-radius:7px;background:#3ea94b;color:#fff;font:700 10.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase"><span style="width:7px;height:7px;border-radius:50%;background:#fff"></span>active</span>
+<span style="padding:5px 11px;border:1.5px solid rgba(30,33,54,.35);border-radius:7px;background:#fdfaf3;font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#4c5066">enrolled · week 9 of 10</span>
+</div>
+<h3 style="margin:0 0 6px;font:800 30px/1.08 Nunito,sans-serif;letter-spacing:-.02em">LLM Zoomcamp 2026</h3>
+<p style="margin:0 0 8px;font:italic 700 15px Nunito,sans-serif;color:#1f6b2c">you'll ship: a RAG assistant you can defend in review</p>
+<p style="margin:0 0 14px;font-size:16px;line-height:1.55;color:#4c5066;max-width:34em">Practical LLM applications with search, retrieval, RAG, evaluation, monitoring and production workflows for AI systems.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+<a href="#6a" style="padding:13px 20px;border:2px solid #1e2136;border-radius:12px;background:#1e2136;color:#fdfaf3;font:800 15px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">Continue course →</a>
+<span style="font-size:14px;color:#5b5f74">Jun 8 – Aug 17, 2026 · 10 weeks</span>
+<a href="#6a" style="font-size:14px;font-weight:700">GitHub</a>
+</div>
+</div>
+<div style="background:#eff5ea;border:2px solid #1e2136;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px">
+<span style="font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#1f6b2c">next assignment</span>
+<div style="font:800 17px/1.25 Nunito,sans-serif">Project: attempt 2</div>
+<div style="font-size:14px;color:#4c5066">Due Tue, 18 August 2026 · 01:00 CEST</div>
+<div style="margin-top:6px;height:10px;border:2px solid #1e2136;border-radius:999px;background:#fff;overflow:hidden"><div style="width:78%;height:100%;background:#3ea94b"></div></div>
+<div style="font:500 12.5px 'JetBrains Mono',monospace;color:#5b5f74">7 of 9 homeworks submitted</div>
+<a href="#6a" style="margin-top:auto;font-weight:700;font-size:14px">Open leaderboard →</a>
+</div>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showOpen }}" hint-placeholder-val="{{ true }}">
+<div style="padding:32px 40px 36px;background:#eff1fc;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<h2 style="margin:0 0 4px;font:800 22px Nunito,sans-serif">Open registration</h2>
+<p style="margin:0 0 16px;font-size:15px;color:#5b5f74">Haven't started yet — register now and you'll get the schedule, the Slack channel and homework reminders.</p>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<sc-for list="{{ openCourses }}" as="c" hint-placeholder-count="2">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:16px;padding:18px;box-shadow:5px 5px 0 rgba(30,33,54,.12);display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+<span style="padding:4px 9px;border:1.5px solid #1e2136;border-radius:7px;background:#dfe2f7;color:#2c3054;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase">registration open</span>
+<span style="font:500 12px 'JetBrains Mono',monospace;color:#5b5f74">{{ c.dates }}</span>
+</div>
+<h3 style="margin:0;font:800 22px/1.15 Nunito,sans-serif">{{ c.title }}</h3>
+<p style="margin:0;font:italic 700 14.5px Nunito,sans-serif;color:#1f6b2c">you'll ship: {{ c.artifact }}</p>
+<p style="margin:0;font-size:14.5px;line-height:1.5;color:#5b5f74">{{ c.blurb }}</p>
+<div style="margin-top:auto;padding-top:11px;border-top:1px dashed rgba(30,33,54,.25);display:flex;align-items:center;justify-content:space-between;gap:10px">
+<span style="font-size:13.5px;color:#7b7f95">{{ c.registered }}</span>
+<a href="#6b" style="padding:10px 16px;border:2px solid #1e2136;border-radius:10px;background:#3ea94b;color:#fff;font:800 14px Nunito,sans-serif;text-decoration:none;box-shadow:3px 3px 0 #1e2136">Register</a>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ showSelf }}" hint-placeholder-val="{{ true }}">
+<div style="padding:32px 40px 38px">
+<h2 style="margin:0 0 4px;font:800 22px Nunito,sans-serif">Self-paced any time</h2>
+<p style="margin:0 0 14px;font-size:15px;color:#5b5f74">All material stays open — videos, homework and solutions. Cohort dates only add deadlines and company.</p>
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ selfPaced }}" as="c" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:1.6fr 1.4fr 1fr .8fr;gap:14px;align-items:center;padding:14px 0;border-bottom:1px dashed rgba(30,33,54,.28)">
+<div><div style="font:800 17px Nunito,sans-serif">{{ c.title }}</div><div style="font-size:13px;color:#7b7f95">{{ c.weeks }}</div></div>
+<div style="font-size:14px;color:#5b5f74">{{ c.artifact }}</div>
+<div><span style="padding:4px 10px;border:1.5px solid #1e2136;border-radius:7px;background:{{ c.pillBg }};color:{{ c.pillFg }};font:700 10px 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;white-space:nowrap">{{ c.pill }}</span></div>
+<div style="display:flex;gap:12px;justify-content:flex-end;white-space:nowrap"><a href="#6b" style="font-weight:700;font-size:14px">{{ c.action }}</a><a href="#6a" style="font-size:13.5px;color:#5b5f74">{{ c.secondary }}</a></div>
+</div>
+</sc-for>
+</div>
+<p style="margin:14px 0 0;font-size:14px;color:#7b7f95">MLOps Zoomcamp has no run scheduled yet. Join the waitlist and you'll hear first.</p>
+</div>
+</sc-if>
+<footer style="padding:22px 40px;border-top:2px dashed rgba(30,33,54,.28);display:flex;justify-content:space-between;font-size:14px;color:#7b7f95"><span>DataTalks.Club — free courses to learn data.</span><span style="display:flex;gap:14px"><a href="#6a">Slack</a><a href="#6a">GitHub</a><a href="#6a">Newsletter</a></span></footer>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="6b">
+<div class="dv-olabel"><a class="dv-oid" href="#6b">6b</a>Course page — single column, collapsible modules, centred registration form</div>
+<div class="dv-card" style="width:860px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 34px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><svg sc-camel-view-box="0 0 44 50" style="width:32px;height:auto;flex:none;display:block;overflow:visible"><path d="M20 33 L30 43 L34 25 Z" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6" stroke-linejoin="round"></path><ellipse cx="22" cy="20" rx="21" ry="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6"></ellipse><text x="22" y="25.5" text-anchor="middle" fill="#1e2136" style="font:800 15px Nunito,sans-serif;letter-spacing:-0.4px">DTC</text></svg><span style="font:800 18px Nunito,sans-serif;letter-spacing:-.02em;margin-bottom:5px">DataTalks.Club</span></div>
+<nav style="display:flex;gap:15px;font-size:14px;font-weight:600"><sc-for list="{{ nav }}" as="n" hint-placeholder-count="8"><a href="#6b" style="color:#1e2136;text-decoration:none">{{ n }}</a></sc-for></nav>
+<div style="display:flex;gap:10px;align-items:center;flex:none"><span style="font-size:13.5px;color:#5b5f74">alexey@datatalks.club</span><a href="#6b" style="padding:8px 14px;border-radius:999px;background:#fff;border:2px solid #1e2136;color:#1e2136;font-size:13.5px;font-weight:700;text-decoration:none">Account</a></div>
+</header>
+<div style="padding:34px 34px 26px;text-align:center">
+<p style="margin:0 0 8px;font:500 12px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:#5a62c4">machine learning · 2026 cohort</p>
+<h1 style="margin:0 auto 10px;max-width:20em;font:800 46px/1.04 Nunito,sans-serif;letter-spacing:-.03em">Machine Learning Zoomcamp</h1>
+<p style="margin:0 0 10px;font:italic 700 17px Nunito,sans-serif;color:#1f6b2c">you'll ship: two reviewed projects and a deployed model</p>
+<p style="margin:0 auto 20px;max-width:40em;font-size:16.5px;line-height:1.6;color:#4c5066">A hands-on path through machine learning engineering: regression, classification, trees, deep learning, serverless inference, Kubernetes and a capstone project. Homework deadlines are on Mondays.</p>
+<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+<a href="#6b" style="padding:14px 22px;border:2px solid #1e2136;border-radius:12px;background:#fff;color:#1e2136;font:800 15.5px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #b9bff0">▶ Start course now</a>
+<a href="#6b" style="padding:14px 22px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 15.5px Nunito,sans-serif;text-decoration:none;box-shadow:4px 4px 0 #1e2136">Register for the cohort ↓</a>
+</div>
+<p style="margin:12px 0 0;font-size:13.5px;color:#5b5f74">The course is already open — 643 people have registered for the 2026 cohort.</p>
+</div>
+<div style="display:flex;gap:0;justify-content:center;flex-wrap:wrap;padding:16px 34px;border-top:2px dashed rgba(30,33,54,.28);border-bottom:2px dashed rgba(30,33,54,.28)">
+<sc-for list="{{ courseFacts }}" as="f" hint-placeholder-count="5">
+<div style="flex:1;min-width:130px;text-align:center;padding:0 10px"><div style="font:500 10.5px 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#7b7f95">{{ f.k }}</div><div style="font:800 15.5px Nunito,sans-serif">{{ f.v }}</div></div>
+</sc-for>
+</div>
+<div style="padding:30px 34px 10px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px"><h2 style="margin:0;font:800 24px Nunito,sans-serif">The modules</h2><span style="font-size:13.5px;color:#7b7f95">tap a module to see what's inside</span></div>
+<div style="display:flex;flex-direction:column;gap:9px">
+<sc-for list="{{ modules }}" as="m" hint-placeholder-count="6">
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;box-shadow:4px 4px 0 rgba(30,33,54,.1);overflow:hidden">
+<button sc-camel-on-click="{{ m.toggle }}" style="width:100%;display:flex;gap:12px;align-items:center;padding:13px 15px;border:0;background:{{ m.headBg }};font-family:Nunito,sans-serif;cursor:pointer;text-align:left">
+<span style="flex:none;width:30px;height:30px;border-radius:50%;background:#b9bff0;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center;font:800 12px Nunito,sans-serif;color:#1e2136">{{ m.n }}</span>
+<span style="flex:1"><span style="display:block;font:800 16px Nunito,sans-serif;color:#1e2136">{{ m.t }}</span><span style="display:block;font-size:13.5px;color:#5b5f74">{{ m.d }}</span></span>
+<span style="flex:none;font:500 12px 'JetBrains Mono',monospace;color:#7b7f95">{{ m.due }}</span>
+<span style="flex:none;font:800 15px Nunito,sans-serif;color:#5a62c4;width:16px;text-align:center">{{ m.chev }}</span>
+</button>
+<sc-if value="{{ m.open }}" hint-placeholder-val="{{ false }}">
+<div style="padding:0 15px 14px 57px;border-top:1px dashed rgba(30,33,54,.25)">
+<sc-for list="{{ m.items }}" as="it" hint-placeholder-count="3">
+<div style="display:flex;gap:10px;align-items:baseline;padding:9px 0;border-bottom:1px dashed rgba(30,33,54,.18)"><span style="flex:none;font:500 11px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#5a62c4;width:64px">{{ it.k }}</span><span style="font-size:14.5px;line-height:1.5;color:#3a3e57">{{ it.v }}</span></div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="padding:30px 34px 40px">
+<div style="max-width:560px;margin:0 auto;background:#fff;border:2px solid #1e2136;border-radius:20px;padding:24px;box-shadow:7px 7px 0 rgba(30,33,54,.16)">
+<h2 style="margin:0 0 4px;font:800 26px Nunito,sans-serif;letter-spacing:-.02em;text-align:center">Register</h2>
+<p style="margin:0 0 18px;font-size:14px;color:#5b5f74;text-align:center">2026 cohort starts Mon, Sep 14, 2026 · free, no card</p>
+<div style="display:flex;flex-direction:column;gap:13px">
+<label style="display:block"><span style="display:block;font:700 13px Nunito,sans-serif;margin-bottom:5px">Email</span><input value="alexey@datatalks.club" sc-camel-on-change="{{ noop }}" style="width:100%;box-sizing:border-box;padding:12px 13px;border:2px solid #1e2136;border-radius:10px;background:#f6f4ee;font:400 15px Nunito,sans-serif;color:#5b5f74;outline:none"><span style="display:block;font-size:12.5px;color:#7b7f95;margin-top:5px">Using your account email · <a href="#6b">log out</a> to use another</span></label>
+<label style="display:block"><span style="display:block;font:700 13px Nunito,sans-serif;margin-bottom:5px">Name</span><input value="{{ regName }}" sc-camel-on-change="{{ setRegName }}" style="width:100%;box-sizing:border-box;padding:12px 13px;border:2px solid #1e2136;border-radius:10px;background:#fff;font:400 15px Nunito,sans-serif;outline:none"></label>
+<label style="display:block"><span style="display:block;font:700 13px Nunito,sans-serif;margin-bottom:5px">Company <span style="font-weight:400;color:#7b7f95">(optional)</span></span><input value="{{ regCompany }}" sc-camel-on-change="{{ setRegCompany }}" placeholder="Where you work now" style="width:100%;box-sizing:border-box;padding:12px 13px;border:2px solid #1e2136;border-radius:10px;background:#fff;font:400 15px Nunito,sans-serif;outline:none"></label>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+<label style="display:block"><span style="display:block;font:700 13px Nunito,sans-serif;margin-bottom:5px">Country</span><sc-raw-select style="width:100%;box-sizing:border-box;padding:12px 11px;border:2px solid #1e2136;border-radius:10px;background:#fff;font:400 14.5px Nunito,sans-serif"><option>Germany</option><option>Nigeria</option><option>India</option><option>Poland</option></sc-raw-select></label>
+<label style="display:block"><span style="display:block;font:700 13px Nunito,sans-serif;margin-bottom:5px">Role</span><sc-raw-select style="width:100%;box-sizing:border-box;padding:12px 11px;border:2px solid #1e2136;border-radius:10px;background:#fff;font:400 14.5px Nunito,sans-serif"><option>Data Scientist</option><option>Data Engineer</option><option>Analyst</option><option>Student</option></sc-raw-select></label>
+</div>
+<label style="display:block"><span style="display:block;font:700 13px Nunito,sans-serif;margin-bottom:5px">Anything you'd like to add?</span><textarea placeholder="What you're hoping to build" style="width:100%;box-sizing:border-box;min-height:76px;padding:12px 13px;border:2px solid #1e2136;border-radius:10px;background:#fff;font:400 15px Nunito,sans-serif;resize:vertical;outline:none"></textarea></label>
+<label style="display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#3a3e57"><input type="checkbox" style="margin-top:2px;width:18px;height:18px;accent-color:#3ea94b">Add me to the newsletter and send course updates.</label>
+<button sc-camel-on-click="{{ register }}" style="width:100%;padding:15px;border:2px solid #1e2136;border-radius:12px;background:#3ea94b;color:#fff;font:800 16px Nunito,sans-serif;cursor:pointer;box-shadow:4px 4px 0 #1e2136">{{ regCta }}</button>
+<p style="margin:0;font-size:13px;color:#7b7f95;text-align:center">{{ regNote }}</p>
+</div>
+</div>
+<div style="max-width:560px;margin:18px auto 0;display:flex;gap:14px;align-items:center;padding:14px 16px;background:#eff1fc;border:2px solid #1e2136;border-radius:16px">
+<img src="dcac8a30-cec2-4360-a397-bc655e2ee9bd" alt="Presenting a chart" style="width:86px;flex:none">
+<div><div style="font:800 15.5px Nunito,sans-serif;margin-bottom:3px">Questions before you start?</div><div style="font-size:14px;line-height:1.45;color:#5b5f74">Ask in <a href="#6b">#course-ml-zoomcamp</a>, read the <a href="#6b">FAQ</a>, or browse <a href="#6b">last cohort's projects</a>.</div></div>
+</div>
+</div>
+<footer style="padding:20px 34px;border-top:2px dashed rgba(30,33,54,.28);display:flex;justify-content:space-between;font-size:13.5px;color:#7b7f95"><span>DataTalks.Club</span><span style="display:flex;gap:14px"><a href="#6b">Slack</a><a href="#6b">FAQ</a><a href="#6b">GitHub</a></span></footer>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="6c">
+<div class="dv-olabel"><a class="dv-oid" href="#6c">6c</a>Events — narrower page, same day-of-week timeline rail</div>
+<div class="dv-card" style="width:820px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:16px 34px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><svg sc-camel-view-box="0 0 44 50" style="width:32px;height:auto;flex:none;display:block;overflow:visible"><path d="M20 33 L30 43 L34 25 Z" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6" stroke-linejoin="round"></path><ellipse cx="22" cy="20" rx="21" ry="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6"></ellipse><text x="22" y="25.5" text-anchor="middle" fill="#1e2136" style="font:800 15px Nunito,sans-serif;letter-spacing:-0.4px">DTC</text></svg><span style="font:800 18px Nunito,sans-serif;letter-spacing:-.02em;margin-bottom:5px">DataTalks.Club</span></div>
+<nav style="display:flex;gap:15px;font-size:14px;font-weight:600"><sc-for list="{{ nav }}" as="n" hint-placeholder-count="8"><a href="#6c" style="color:#1e2136;text-decoration:none">{{ n }}</a></sc-for></nav>
+<a href="#6c" style="padding:8px 15px;border-radius:999px;background:#3ea94b;border:2px solid #1e2136;color:#fff;font-size:13.5px;font-weight:800;text-decoration:none;box-shadow:3px 3px 0 #1e2136">Sign up free</a>
+</header>
+<div style="padding:30px 34px 18px">
+<h1 style="margin:0 0 10px;font:800 40px/1.05 Nunito,sans-serif;letter-spacing:-.03em">Something happening every week</h1>
+<p style="margin:0 0 16px;font-size:16.5px;line-height:1.6;color:#4c5066;max-width:36em">Workshops, podcast recordings and open Q&amp;As with people doing the work. Free, live, recorded if you miss it.</p>
+<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+<sc-for list="{{ eventTabs }}" as="t" hint-placeholder-count="2"><button sc-camel-on-click="{{ t.pick }}" style="padding:9px 15px;border:2px solid #1e2136;border-radius:999px;background:{{ t.bg }};color:{{ t.fg }};font:700 14px Nunito,sans-serif;cursor:pointer">{{ t.label }}</button></sc-for>
+<a href="#6c" style="margin-left:auto;font-weight:700;font-size:14px">Google calendar →</a>
+</div>
+</div>
+<div style="padding:2px 34px 30px">
+<sc-for list="{{ shownEvents }}" as="e" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:stretch;padding:12px 0;border-top:1px dashed rgba(30,33,54,.28)">
+<div style="padding-top:5px;border-left:4px solid #b9bff0;padding-left:10px"><div style="font:800 14.5px Nunito,sans-serif">{{ e.d }}</div><div style="font:500 11.5px 'JetBrains Mono',monospace;color:#7b7f95;text-transform:uppercase;letter-spacing:.05em">{{ e.dow }}</div><div style="font:500 11.5px 'JetBrains Mono',monospace;color:#5a62c4;margin-top:3px">{{ e.time }}</div></div>
+<div style="background:#fff;border:2px solid #1e2136;border-radius:14px;padding:14px 16px;box-shadow:4px 4px 0 rgba(30,33,54,.12);display:flex;gap:14px;align-items:center">
+<div style="flex:1;min-width:0">
+<span style="display:inline-block;margin-bottom:5px;padding:3px 8px;border:1.5px solid #1e2136;border-radius:7px;background:{{ e.kindBg }};color:{{ e.kindFg }};font:700 9.5px 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase">{{ e.kind }}</span>
+<h3 style="margin:0 0 3px;font:800 18px/1.2 Nunito,sans-serif">{{ e.title }}</h3>
+<p style="margin:0;font-size:14px;color:#5b5f74">With <a href="#6c" style="font-weight:700">{{ e.host }}</a> · {{ e.sub }}</p>
+</div>
+<a href="#6c" style="flex:none;padding:10px 15px;border:2px solid #1e2136;border-radius:11px;background:{{ e.ctaBg }};color:{{ e.ctaFg }};font:800 13.5px Nunito,sans-serif;text-decoration:none;box-shadow:3px 3px 0 rgba(30,33,54,.18)">{{ e.cta }}</a>
+</div>
+</div>
+</sc-for>
+</div>
+<footer style="padding:20px 34px;border-top:2px dashed rgba(30,33,54,.28);display:flex;justify-content:space-between;font-size:13.5px;color:#7b7f95"><span>DataTalks.Club</span><span style="display:flex;gap:14px"><a href="#6c">Slack</a><a href="#6c">YouTube</a><a href="#6c">Newsletter</a></span></footer>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="6d">
+<div class="dv-olabel"><a class="dv-oid" href="#6d">6d</a>Podcast index and episode page</div>
+<div style="display:flex;gap:20px;align-items:flex-start">
+<div class="dv-card" style="width:660px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<header style="display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 28px;border-bottom:2px dashed rgba(30,33,54,.28)">
+<div style="display:flex;align-items:center;gap:6px;flex:none"><svg sc-camel-view-box="0 0 44 50" style="width:28px;height:auto;flex:none;display:block;overflow:visible"><path d="M20 33 L30 43 L34 25 Z" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6" stroke-linejoin="round"></path><ellipse cx="22" cy="20" rx="21" ry="17" fill="#b9bff0" stroke="#1e2136" stroke-width="2.6"></ellipse><text x="22" y="25.5" text-anchor="middle" fill="#1e2136" style="font:800 15px Nunito,sans-serif;letter-spacing:-0.4px">DTC</text></svg><span style="font:800 16px Nunito,sans-serif;margin-bottom:4px">DataTalks.Club</span></div>
+<span style="font:500 12px 'JetBrains Mono',monospace;color:#7b7f95">podcast · season 24</span>
+</header>
+<div style="padding:26px 28px 20px">
+<h1 style="margin:0 0 10px;font:800 38px/1.06 Nunito,sans-serif;letter-spacing:-.03em">Conversations with people who ship data</h1>
+<p style="margin:0 0 16px;font-size:16px;line-height:1.55;color:#4c5066">Every week, a practitioner talks through what actually worked — and what broke. 214 episodes so far.</p>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<sc-for list="{{ platforms }}" as="p" hint-placeholder-count="4"><a href="#6d" style="display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border:2px solid #1e2136;border-radius:999px;background:#fff;font:700 13.5px Nunito,sans-serif;color:#1e2136;text-decoration:none;box-shadow:3px 3px 0 #b9bff0"><span style="width:10px;height:10px;border-radius:50%;background:{{ p.c }};border:1.5px solid #1e2136"></span>{{ p.n }}</a></sc-for>
+</div>
+</div>
+<div style="padding:0 28px 26px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin:10px 0 12px"><h2 style="margin:0;font:800 20px Nunito,sans-serif">Season 24</h2><a href="#6d" style="font-size:13.5px;font-weight:700">all seasons →</a></div>
+<div style="display:flex;flex-direction:column;gap:2px">
+<sc-for list="{{ episodes }}" as="ep" hint-placeholder-count="5">
+<a href="#6d" style="display:flex;gap:13px;align-items:center;padding:12px 0;border-bottom:1px dashed rgba(30,33,54,.28);text-decoration:none">
+<span style="flex:none;width:38px;height:38px;border-radius:50%;background:#b9bff0;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center"><span style="display:block;width:0;height:0;border-left:11px solid #1e2136;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px"></span></span>
+<span style="flex:1"><span style="display:block;font:800 15.5px/1.25 Nunito,sans-serif;color:#1e2136">{{ ep.t }}</span><span style="display:block;font-size:13px;color:#5b5f74">with {{ ep.g }} · {{ ep.len }}</span></span>
+<span style="flex:none;font:500 11.5px 'JetBrains Mono',monospace;color:#7b7f95">#{{ ep.n }}</span>
+</a>
+</sc-for>
+</div>
+</div>
+<footer style="padding:18px 28px;border-top:2px dashed rgba(30,33,54,.28);font-size:13.5px;color:#7b7f95">Register for upcoming recordings on the <a href="#6c">events page</a>.</footer>
+</div>
+</div>
+
+<div class="dv-card" style="width:460px;border-color:#1e2136">
+<div style="background:#fdfaf3;color:#1e2136">
+<div style="padding:20px 24px 0"><span style="display:inline-block;padding:4px 10px;border:1.5px solid #1e2136;border-radius:7px;background:#eff5ea;font:700 10px 'JetBrains Mono',monospace;letter-spacing:.09em;text-transform:uppercase;color:#1f6b2c">season 24 · episode 9</span>
+<h1 style="margin:10px 0 12px;font:800 28px/1.12 Nunito,sans-serif;letter-spacing:-.025em">Engineering Your Own AI Assistant</h1></div>
+<div style="margin:0 24px;height:200px;border:2px solid #1e2136;border-radius:14px;background-image:repeating-linear-gradient(135deg,#eff1fc 0 10px,#dfe2f7 10px 20px);box-shadow:5px 5px 0 rgba(30,33,54,.14);display:flex;align-items:center;justify-content:center">
+<span style="width:56px;height:56px;border-radius:50%;background:#fff;border:2px solid #1e2136;display:flex;align-items:center;justify-content:center"><span style="display:block;width:0;height:0;border-left:17px solid #1e2136;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:5px"></span></span>
+</div>
+<div style="padding:16px 24px 0;display:flex;gap:12px;align-items:center">
+<span style="flex:none;width:52px;height:52px;border-radius:50%;border:2px solid #1e2136;background-image:repeating-linear-gradient(135deg,#eff1fc 0 6px,#dfe2f7 6px 12px)"></span>
+<div><div style="font:800 16px Nunito,sans-serif">Paul Iusztin</div><div style="font-size:13.5px;color:#5b5f74">Senior ML/AI engineer · guest</div></div>
+<a href="#6d" style="margin-left:auto;font-size:13.5px;font-weight:700">LinkedIn</a>
+</div>
+<div style="padding:18px 24px 0;display:flex;gap:8px">
+<sc-for list="{{ epTabs }}" as="t" hint-placeholder-count="3"><button sc-camel-on-click="{{ t.pick }}" style="padding:8px 14px;border:2px solid #1e2136;border-radius:999px;background:{{ t.bg }};color:{{ t.fg }};font:700 13px Nunito,sans-serif;cursor:pointer">{{ t.label }}</button></sc-for>
+</div>
+<div style="padding:14px 24px 22px">
+<sc-for list="{{ epContent }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px dashed rgba(30,33,54,.28)"><span style="flex:none;font:500 12px 'JetBrains Mono',monospace;color:#5a62c4">{{ r.k }}</span><span style="font-size:14.5px;line-height:1.5;color:#3a3e57">{{ r.v }}</span></div>
+</sc-for>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: “add the wiki topic page and the article/blog page” · “show 6b in the logged-in enrolled state” · “dark mode for these pages too”</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1260}}">
+const MODULES = [
+  {n:"01", t:"Introduction to Machine Learning", d:"Problem framing, CRISP-DM, first model.", due:"due Sep 22", items:[
+    {k:"video", v:"5 lessons · 1h 40m total"},
+    {k:"homework", v:"Predict car prices from a public dataset."},
+    {k:"reading", v:"CRISP-DM, and why the modelling step is the small part."}
+  ]},
+  {n:"02", t:"Regression", d:"Linear regression from scratch, feature engineering.", due:"due Sep 29", items:[
+    {k:"video", v:"7 lessons · 2h 10m total"},
+    {k:"homework", v:"Build and evaluate a regression baseline you can defend."},
+    {k:"peer review", v:"Review two classmates' notebooks."}
+  ]},
+  {n:"03", t:"Classification", d:"Logistic regression, risk and evaluation.", due:"due Oct 6", items:[
+    {k:"video", v:"6 lessons · 1h 55m total"},
+    {k:"homework", v:"Churn prediction with proper validation."},
+    {k:"extra", v:"Office hours recording: metrics that mislead."}
+  ]},
+  {n:"04", t:"Trees and ensembles", d:"Random forests, XGBoost, tuning.", due:"due Oct 20", items:[
+    {k:"video", v:"6 lessons · 2h total"},
+    {k:"homework", v:"Beat your own linear baseline, and explain why it won."}
+  ]},
+  {n:"05", t:"Deployment", d:"Flask, Docker, serverless inference, Kubernetes.", due:"due Nov 10", items:[
+    {k:"video", v:"8 lessons · 2h 30m total"},
+    {k:"homework", v:"Serve your model behind an API in a container."},
+    {k:"stretch", v:"Deploy to Kubernetes and watch it survive a restart."}
+  ]},
+  {n:"06", t:"Capstone project", d:"Build, deploy, and review two peers' projects.", due:"due Jan 25", items:[
+    {k:"project", v:"Your own end-to-end system, from data to deployment."},
+    {k:"peer review", v:"Three reviews given, three received."},
+    {k:"outcome", v:"A repo you can put in front of an interviewer."}
+  ]}
+];
+class Component extends DCLogic {
+  state = {filter:"all", tab:"upcoming", epTab:"Show notes", regName:"Alexey Grigorev", regCta:"Register for the cohort", regNote:"Free. You can unregister any time."};
+  renderVals() {
+    const chips = (list, key) => list.map(([k,label]) => ({label, bg: this.state[key]===k ? "#1e2136" : "#fff", fg: this.state[key]===k ? "#fdfaf3" : "#1e2136", pick: () => this.setState({[key]:k})}));
+    const upcoming = [
+      {d:"Aug 17, 2026", dow:"Monday", time:"14:00 CEST", kind:"Workshop", kindBg:"#dfe2f7", kindFg:"#2c3054", title:"Coding Agent Capabilities: MCP, Skills, Plugins, and Custom Agents", host:"Alexey Grigorev", sub:"90 min · live coding", cta:"Register", ctaBg:"#3ea94b", ctaFg:"#fff"},
+      {d:"Aug 18, 2026", dow:"Tuesday", time:"14:00 CEST", kind:"Workshop", kindBg:"#dfe2f7", kindFg:"#2c3054", title:"DevOps and Observability for AI-Built Apps", host:"Alexey Grigorev", sub:"75 min · demo + Q&A", cta:"Register", ctaBg:"#3ea94b", ctaFg:"#fff"},
+      {d:"Aug 18, 2026", dow:"Tuesday", time:"17:00 CEST", kind:"Workshop", kindBg:"#dfe2f7", kindFg:"#2c3054", title:"Running Durable Agents in Production", host:"Nicholas Lotz", sub:"60 min · architecture walkthrough", cta:"Register", ctaBg:"#3ea94b", ctaFg:"#fff"},
+      {d:"Aug 25, 2026", dow:"Tuesday", time:"16:00 CEST", kind:"Podcast", kindBg:"#eff5ea", kindFg:"#1f6b2c", title:"From GenAI Pilots to Production", host:"Nikita Kozodoi", sub:"live recording · questions welcome", cta:"Add to calendar", ctaBg:"#fff", ctaFg:"#1e2136"}
+    ];
+    const past = [
+      {d:"Aug 11, 2026", dow:"Tuesday", time:"14:00 CEST", kind:"Workshop", kindBg:"#f3f0e8", kindFg:"#6b6034", title:"Evaluating RAG Systems Without Fooling Yourself", host:"Marta S.", sub:"recording · 62 min", cta:"Watch", ctaBg:"#fff", ctaFg:"#1e2136"},
+      {d:"Aug 4, 2026", dow:"Tuesday", time:"15:00 CEST", kind:"Podcast", kindBg:"#f3f0e8", kindFg:"#6b6034", title:"How to Build AI That Actually Ships in Production", host:"Aleksandr Kim", sub:"recording · 58 min", cta:"Listen", ctaBg:"#fff", ctaFg:"#1e2136"},
+      {d:"Jul 28, 2026", dow:"Tuesday", time:"14:00 CEST", kind:"Workshop", kindBg:"#f3f0e8", kindFg:"#6b6034", title:"Orchestration Patterns That Survive On-Call", host:"Tolu A.", sub:"recording · 70 min", cta:"Watch", ctaBg:"#fff", ctaFg:"#1e2136"}
+    ];
+    const notes = {
+      "Show notes": [
+        {k:"00:00", v:"Why Paul built his own assistant instead of buying one."},
+        {k:"12:30", v:"Retrieval design: what to index and what to throw away."},
+        {k:"28:10", v:"Evaluation harness, and the metrics that actually moved."},
+        {k:"41:55", v:"Cost, latency and the parts he would not build again."}
+      ],
+      "Timestamps": [
+        {k:"00:00", v:"Intro"}, {k:"05:20", v:"Architecture overview"}, {k:"19:40", v:"Retrieval and context"}, {k:"33:05", v:"Evaluation"}, {k:"47:15", v:"Lessons and Q&A"}
+      ],
+      "Transcript": [
+        {k:"Alexey", v:"Let's start with the boring question — why build it yourself?"},
+        {k:"Paul", v:"Because the failure modes are the interesting part, and you only see them if you own the whole path."},
+        {k:"Alexey", v:"What broke first?"},
+        {k:"Paul", v:"Retrieval. Always retrieval."}
+      ]
+    };
+    return {
+      nav: ["Events","Courses","Blog","Podcast","Wiki","Books","Docs","FAQ"],
+      showActive: this.state.filter === "all" || this.state.filter === "active",
+      showOpen: this.state.filter === "all" || this.state.filter === "open",
+      showSelf: this.state.filter === "all" || this.state.filter === "self",
+      filters: chips([["all","All courses"],["active","Active"],["open","Open registration"],["self","Self-paced"]], "filter"),
+      catalogStats: [{n:"6",l:"free courses"},{n:"130k+",l:"members in Slack"},{n:"0 €",l:"forever"},{n:"9–19",l:"weeks per cohort"}],
+      openCourses: [
+        {title:"Machine Learning Zoomcamp 2026", dates:"Sep 14 – Jan 25", artifact:"two reviewed projects + a deployed model", blurb:"Regression, classification, trees, deep learning, serverless inference and Kubernetes.", registered:"643 registered"},
+        {title:"AI Dev Tools Zoomcamp 2026", dates:"starts Aug 31", artifact:"a deployed full-stack app built with AI", blurb:"Prompting, agents, testing, code review and shipping production-quality software faster.", registered:"1,208 registered"}
+      ],
+      selfPaced: [
+        {title:"Data Engineering Zoomcamp", weeks:"9 weeks", artifact:"a batch + streaming pipeline on a schedule", pill:"next cohort · mon 11 jan 2027", pillBg:"#dfe2f7", pillFg:"#2c3054", action:"Register", secondary:"start now"},
+        {title:"LLM Zoomcamp", weeks:"10 weeks", artifact:"a RAG assistant over your own docs", pill:"next cohort · mon 10 may 2027", pillBg:"#dfe2f7", pillFg:"#2c3054", action:"Register", secondary:"start now"},
+        {title:"MLOps Zoomcamp", weeks:"9 weeks", artifact:"a monitored model serving live traffic", pill:"waitlist · no run planned", pillBg:"#f3f0e8", pillFg:"#6b6034", action:"Join waitlist", secondary:"start now"},
+        {title:"Data Analysis Bootcamp", weeks:"7 weeks", artifact:"a dashboard and the story behind it", pill:"self-paced only", pillBg:"#f3f0e8", pillFg:"#6b6034", action:"Start now", secondary:""}
+      ],
+      courseFacts: [
+        {k:"starts", v:"Mon, Sep 14, 2026"}, {k:"length", v:"19 weeks"}, {k:"price", v:"free, forever"}, {k:"deadlines", v:"Mondays, 01:00 CEST"}, {k:"registered", v:"643 people"}
+      ],
+      modules: MODULES.map((m, idx) => {
+        const open = (this.state.openModule ?? 0) === idx;
+        return {...m, open, chev: open ? "–" : "+", headBg: open ? "#eff1fc" : "#fff",
+          toggle: () => this.setState(st => ({openModule: (st.openModule ?? 0) === idx ? -1 : idx}))};
+      }),
+      regCompany: this.state.regCompany || "",
+      setRegCompany: e => this.setState({regCompany:e.target.value}),
+      eventTabs: [{label:"Upcoming events", bg: this.state.tab==="upcoming"?"#1e2136":"#fff", fg: this.state.tab==="upcoming"?"#fdfaf3":"#1e2136", pick: () => this.setState({tab:"upcoming"})},
+                  {label:"Past events", bg: this.state.tab==="past"?"#1e2136":"#fff", fg: this.state.tab==="past"?"#fdfaf3":"#1e2136", pick: () => this.setState({tab:"past"})}],
+      shownEvents: this.state.tab === "past" ? past : upcoming,
+      platforms: [{n:"Apple Podcasts", c:"#b9bff0"},{n:"Spotify", c:"#3ea94b"},{n:"YouTube", c:"#e0847a"},{n:"RSS", c:"#e2c67a"}],
+      episodes: [
+        {n:"214", t:"Engineering Your Own AI Assistant", g:"Paul Iusztin", len:"58 min"},
+        {n:"213", t:"Thriving in the AI Era with Human Skills", g:"Maryam Ramezani-Bartsch", len:"49 min"},
+        {n:"212", t:"Building a Career in AI: From Real Estate to AI Engineering", g:"Gustaf Gyllensporre", len:"61 min"},
+        {n:"211", t:"How to Build AI That Actually Ships in Production", g:"Aleksandr Kim", len:"58 min"},
+        {n:"210", t:"AI Adoption in Enterprise Beyond Writing Code", g:"Ivan Bilan", len:"54 min"},
+        {n:"209", t:"From GenAI Pilots to Production", g:"Nikita Kozodoi", len:"47 min"}
+      ],
+      epTabs: ["Show notes","Timestamps","Transcript"].map(label => ({label, bg: this.state.epTab===label?"#1e2136":"#fff", fg: this.state.epTab===label?"#fdfaf3":"#1e2136", pick: () => this.setState({epTab:label})})),
+      epContent: notes[this.state.epTab] || notes["Show notes"],
+      regName: this.state.regName,
+      setRegName: e => this.setState({regName:e.target.value}),
+      noop: () => {},
+      regCta: this.state.regCta, regNote: this.state.regNote,
+      register: () => this.setState({regCta:"You're registered ✓", regNote:"Check your inbox for the schedule and the Slack channel."})
+    };
+  }
+}
+</script>
+
+
+</body></html>
