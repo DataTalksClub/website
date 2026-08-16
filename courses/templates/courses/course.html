@@ -140,12 +140,18 @@
         font-weight: 700;
       }
 
-      /* The countdown text is written by time_left.js; its three tones are
-         token-driven here so they survive both themes.  The words always say
-         the state, so the colour is reinforcement only. */
+      /* The countdown text is written by time_left.js, so it sits beside the
+         deadline it counts down to and simply does not appear without
+         JavaScript.  Its three tones are token-driven here so they survive both
+         themes; the words always say the state, so colour only reinforces. */
       .time-left {
+        display: block;
         font-family: var(--font-mono);
         font-size: 0.78rem;
+      }
+
+      .time-left:empty {
+        display: none;
       }
 
       .time-left--normal {
@@ -524,19 +530,20 @@
                       </span>
                     </summary>
                     <dl class="module-body">
-                      <div class="module-fact">
-                        <dt>deadline</dt>
-                        <dd>{{ module.item.due_date|user_datetime:request }}</dd>
-                      </div>
                       {% if module.item.is_scored %}
+                        <div class="module-fact">
+                          <dt>deadline</dt>
+                          <dd>{{ module.item.due_date|user_datetime:request }}</dd>
+                        </div>
                         <div class="module-fact">
                           <dt>state</dt>
                           <dd>Already scored</dd>
                         </div>
                       {% else %}
                         <div class="module-fact">
-                          <dt>time left</dt>
+                          <dt>deadline</dt>
                           <dd>
+                            {{ module.item.due_date|user_datetime:request }}
                             <span
                               class="time-left"
                               data-deadline="{{ module.item.due_date|date:"c" }}"
@@ -591,11 +598,8 @@
                       {% if module.item.state == 'PR' and module.item.submitted %}
                         <div class="module-fact">
                           <dt>peer review</dt>
-                          <dd>{{ module.item.peer_review_due_date|user_datetime:request }}</dd>
-                        </div>
-                        <div class="module-fact">
-                          <dt>time left</dt>
                           <dd>
+                            {{ module.item.peer_review_due_date|user_datetime:request }}
                             <span
                               class="time-left"
                               data-deadline="{{ module.item.peer_review_due_date|date:"c" }}"
@@ -615,11 +619,8 @@
                       {% else %}
                         <div class="module-fact">
                           <dt>submission</dt>
-                          <dd>{{ module.item.submission_due_date|user_datetime:request }}</dd>
-                        </div>
-                        <div class="module-fact">
-                          <dt>time left</dt>
                           <dd>
+                            {{ module.item.submission_due_date|user_datetime:request }}
                             <span
                               class="time-left"
                               data-deadline="{{ module.item.submission_due_date|date:"c" }}"
