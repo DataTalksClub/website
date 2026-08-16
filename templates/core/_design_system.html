@@ -68,6 +68,9 @@ Rules for editing:
         --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
           BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
+        /* The long-form reading measure: about 70 characters of `.prose` body
+           text, the width a page of prose is set to. */
+        --measure: 38rem;
         /* Extended tokens introduced with the 6-series pages (courses, course
            detail, events, podcast).  The mono face carries machine-flavoured
            metadata: status pills, spec labels, timestamps and due dates.  The
@@ -1982,6 +1985,182 @@ Rules for editing:
         font-size: 0.92rem;
         min-height: 2.75rem;
         padding: 0.45rem 1.1rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * Long-form prose, continued.  The rules above are the shared body
+       * treatment the wiki pages introduced; these extend the same primitive
+       * for a page that is *read* end to end (the blog article page, issue
+       * #179) and for the elements a richer body can carry.
+       *
+       * `.prose-reading` is the modifier a reading page adds: the measure and
+       * the slightly larger body on a longer leading.  Everything else here is
+       * additive — deeper headings, real lists, quotes, code, figures, rules
+       * and tables — so a page that only carries headings, paragraphs and
+       * `.prose-item` blocks renders exactly as it did before.
+       * ------------------------------------------------------------------ */
+
+      /* A page whose body is the point of the page: hold it to the reading
+         measure and give it the reading size.  Override `--measure` on the
+         element itself if a page needs a different column. */
+      .prose-reading {
+        font-size: 1.05rem;
+        line-height: 1.75;
+        max-width: var(--measure);
+        overflow-wrap: break-word;
+      }
+
+      /* Headings keep the identifier the source gives them, and those
+         identifiers are what in-page anchors land on; the scroll stop leaves
+         the landed heading room. */
+      .prose h2,
+      .prose h3,
+      .prose h4,
+      .prose h5,
+      .prose h6 {
+        scroll-margin-top: 1.5rem;
+      }
+
+      /* Below h3 the shared rule stops; h4 continues the ladder and h5/h6 stop
+         shrinking and go uppercase instead, so a deep source heading still
+         reads as a heading rather than as body copy. */
+      .prose h4 {
+        font-size: 1.05rem;
+      }
+
+      .prose h5,
+      .prose h6 {
+        color: var(--ink);
+        font-size: 0.9rem;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .prose > * + h4,
+      .prose > * + h5,
+      .prose > * + h6 {
+        margin-top: 1.5rem;
+      }
+
+      .prose > h4 + *,
+      .prose > h5 + *,
+      .prose > h6 + * {
+        margin-top: 0.75rem;
+      }
+
+      /* Where a body's blocks really are a list — consecutive list items the
+         source marked — a page may group them into one real list instead of
+         drawing loose `.prose-item` markers.  Same marker, same indent, same
+         rhythm; the reader of a screen reader also hears how many items. */
+      .prose ul,
+      .prose ol {
+        padding-left: 1.25rem;
+      }
+
+      .prose ul {
+        list-style: disc;
+      }
+
+      .prose ol {
+        list-style: decimal;
+      }
+
+      .prose li + li {
+        margin-top: 0.4rem;
+      }
+
+      .prose strong,
+      .prose b {
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .prose blockquote {
+        border-left: 4px solid var(--bubble);
+        color: var(--ink);
+        font-style: italic;
+        padding: 0.15rem 0 0.15rem 1.1rem;
+      }
+
+      .prose code {
+        background: var(--lavender);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.45rem;
+        font-family: var(--font-mono);
+        font-size: 0.85em;
+        padding: 0.1rem 0.3rem;
+      }
+
+      /* A code block scrolls inside its own frame; the page never does. */
+      .prose pre {
+        background: var(--lavender);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        margin: 0;
+        overflow-x: auto;
+        padding: 1rem 1.1rem;
+      }
+
+      .prose pre code {
+        background: none;
+        border: 0;
+        border-radius: 0;
+        padding: 0;
+      }
+
+      /* An illustration never outgrows the reading column. */
+      .prose img {
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        display: block;
+        height: auto;
+        width: 100%;
+      }
+
+      .prose figcaption,
+      .prose-caption {
+        color: var(--muted);
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+      }
+
+      .prose hr {
+        border: 0;
+        border-top: 2px dashed var(--line-soft);
+        margin-block: 2rem;
+      }
+
+      /* Wrap a table in `.prose-scroll` so a wide one scrolls by itself. */
+      .prose-scroll {
+        overflow-x: auto;
+      }
+
+      .prose table {
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        min-width: 100%;
+      }
+
+      .prose th,
+      .prose td {
+        border-bottom: 1.5px dashed var(--line-soft);
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+      }
+
+      .prose th {
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      /* The standfirst above a long-form body: one size up from the reading
+         prose, and held to the same measure. */
+      .prose-lede {
+        color: var(--body-text);
+        font-size: clamp(1.05rem, 2vw, 1.2rem);
+        line-height: 1.5;
+        max-width: var(--measure);
       }
 
       /* ------------------------------------------------------------------ *

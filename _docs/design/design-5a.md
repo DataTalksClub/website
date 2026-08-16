@@ -11,6 +11,13 @@ system did not have (a knowledge-graph node, long-form prose, a search row) the
 primitive was added to the partial and documented here rather than forked into a
 page.
 
+The blog article page joined next, also without a mockup. It is the first page
+whose whole purpose is reading, so it extended the wiki pages' `.prose`
+primitive rather than forking one: a reading modifier that holds the body to a
+measure, and the elements a richer body carries (deeper headings, real lists,
+quotes, code, figures, captions, rules and tables). Every other body of imported
+text — books next — renders through that same primitive.
+
 The system lives in one place:
 
 - **`templates/core/_design_system.html`** — the shared stylesheet partial.
@@ -148,6 +155,10 @@ The scale in use (16px root; computed size at a 1440px viewport in brackets):
 | Stat number | `1.6rem` | `.stat-tile strong` |
 | Body | `1rem / 1.6`, weight 500 | the base |
 | Lede | `clamp(0.95rem, 1.5vw, 1.05rem)` | hero/lede paragraphs |
+| Prose h2 / h3 | `1.35rem` / `1.1rem` | headings inside `.prose` |
+| Prose h4 / h5 / h6 | `1.05rem` / `0.9rem` uppercase | deeper source headings inside `.prose` |
+| Reading body | `1.05rem / 1.75` | `.prose-reading` — a page that is read end to end |
+| Prose lede | `clamp(1.05rem, 2vw, 1.2rem)` | `.prose-lede`, the standfirst above a body |
 | Meta | `0.85–0.92rem` | sublines, notes, fineprint |
 | Chip / kicker | `0.72rem` | uppercase, letter-spaced |
 | Status pill / mono label | `0.66rem` | mono, uppercase, `letter-spacing: 0.09–0.1em` |
@@ -155,6 +166,13 @@ The scale in use (16px root; computed size at a 1440px viewport in brackets):
 Headings are weight 800 with `letter-spacing: -0.015em` and `line-height 1.12`
 (tighter on the biggest sizes). The homepage was verified to sit within ~10% of
 the export's heading and body sizes; that tolerance is the accepted state.
+
+The prose rows apply **only inside `.prose`**; a card, a row or a band heading
+keeps the sizes above. `.prose-reading` is the system's one deliberate step
+outside the mockups' scale, added with the article page: a page read end to end
+wants a slightly larger body on a longer leading. A body's own headings stay
+below the band `h2` so a section of prose never competes with the heading of
+the band it sits in.
 
 ## Spacing, radius, borders, shadows
 
@@ -164,6 +182,11 @@ the export's heading and body sizes; that tolerance is the accepted state.
 - **Band padding**: `padding-block: 2.25rem`, growing to `2.9rem` at ≥62rem.
 - **Shell**: `.shell` centres content at `max-width: var(--shell)` = `76rem`
   with `padding-inline: 1rem` (`1.25rem` at ≥40rem).
+- **Measure**: `--measure` = `38rem` is the reading measure — about 70
+  characters of prose body text. `.prose-reading` and `.prose-lede` are held to
+  it; a page that wants its whole column at the measure sets its shell to
+  `calc(var(--measure) + 2.5rem)` so the shell's own padding still fits (the
+  article page does exactly that).
 - **Radius scale**: `0.45rem` status pills · `0.5–0.7rem` small controls and
   CTAs · `0.9rem` cards, modules, player frame · `1.1rem` inset panels ·
   `1.5rem` the featured slab · `999px` pills, discs, avatars.
@@ -247,8 +270,9 @@ Markup shapes below are the contract; the CSS lives in the partial.
   ```
 
   Use it on pages that sit below an index: the course page carries
-  `Courses / <course title>` at the top of its hero band, and the four wiki
-  surfaces below `/wiki` carry `Wiki / Search`, `Wiki / Knowledge graph`,
+  `Courses / <course title>` at the top of its hero band, the blog article page
+  carries `Blog / <article title>`, and the four wiki surfaces below `/wiki`
+  carry `Wiki / Search`, `Wiki / Knowledge graph`,
   `Wiki / Special pages[ / <category>]` and `Wiki / <topic>`. Index pages
   (`/courses`, `/events`, `/podcast`, `/wiki`) and the homepage do not carry
   one — the masthead already marks them with `aria-current="page"` and a lone
@@ -618,6 +642,41 @@ one line in the template. A list item arrives as its own block, so
 `.prose-item` draws a marker (`display: list-item`) instead of the page
 inventing a `<ul>` the source never marked. Headings keep the identifier the
 source gives them, which is what every in-page anchor lands on.
+
+#### Reading pages, and the rest of a body's elements
+
+The blog article page extended the same primitive rather than forking one
+(issue #179). Two additions:
+
+- **`.prose-reading`** — the modifier a page adds when its body *is* the page:
+  the reading measure (`max-width: var(--measure)`, `--measure` = `38rem`,
+  about 70 characters) at `1.05rem/1.75`, with `overflow-wrap` so a long URL
+  breaks instead of widening the column. Without it `.prose` keeps the body
+  size of the page around it, exactly as the wiki pages have it. Pair it with
+  **`.prose-lede`** for the standfirst above the body: one size up, same
+  measure.
+- **the elements a richer body can carry** — `h4`–`h6` continuing the heading
+  ladder (below `h4` the size stops shrinking and the label goes uppercase, so
+  a deep source heading still reads as one); real `ul`/`ol`/`li` drawing the
+  same marker, indent and rhythm as `.prose-item`, for the case where the blocks
+  really are a list (a page may group *consecutive* source list items into one
+  real list, which also tells a screen reader how many items there are);
+  `--ink` strong; a `--bubble`-ruled italic `blockquote`; inline `code` and a
+  `pre` block that **scrolls inside its own frame** so the page never scrolls
+  sideways; `img` bounded to the column with the system's border and radius;
+  `figcaption` (also available as `.prose-caption`) in `--muted` at the meta
+  size; a dashed `hr`; and table cells on dashed rules — wrap a table in
+  `.prose-scroll` so a wide one scrolls by itself.
+
+Headings inside `.prose` also get `scroll-margin-top`, so an anchored heading
+does not land against the top of the viewport.
+
+Turning a *projected* body (`kind`/`text` blocks) into this markup is
+`content.article_content.prose_sections` plus
+`templates/public/_prose_blocks.html`: headings keep their fragment id, a run
+of list items becomes one real list, and any other kind keeps its text as a
+paragraph, so a block kind the projection grows later is rendered rather than
+dropped.
 
 ### Search row
 
