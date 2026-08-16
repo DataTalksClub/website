@@ -16,10 +16,13 @@ class CourseHomeworkDisplayTest(CourseDetailViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Already scored")
+        # Design 5a (issue #179) replaced the copied badge with the design system's
+        # status pill; the state is still carried by the word, not by colour alone.
         self.assertContains(
             response,
-            'class="app-badge app-badge-upper app-badge-info">Scored',
+            'class="status-pill status-pill-mint">Scored',
         )
+        self.assertNotContains(response, "app-badge")
         self.assertNotContains(response, "Scored:")
         self.assertNotContains(
             response,

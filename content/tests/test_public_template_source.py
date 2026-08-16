@@ -17,6 +17,9 @@ PUBLIC_TEMPLATE_PATHS = (
     # The courses index left the adopted shell with the design 5a rebuild (issue #179)
     # and is now a public page in its own right.
     REPOSITORY_ROOT / "courses/templates/courses/course_list.html",
+    # The course page joined the design 5a system with issue #179 and now carries its
+    # own stylesheet and markup, so it answers to the same readability contract.
+    REPOSITORY_ROOT / "courses/templates/courses/course.html",
     *(sorted((REPOSITORY_ROOT / "templates/public").glob("*.html"))),
     *(sorted((REPOSITORY_ROOT / "templates/review").glob("*.html"))),
 )

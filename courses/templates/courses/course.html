@@ -1,219 +1,820 @@
-{% extends 'base.html' %}
-{% load tz %}
-{% load custom_filters %}
+{% load seo static custom_filters %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ course.title }} — DataTalks.Club</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ course.home_outcome|striptags|truncatechars:180 }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ course.title }} — DataTalks.Club">
+    <meta property="og:description" content="{{ course.home_outcome|striptags|truncatechars:180 }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ course.title }} — DataTalks.Club">
+    <meta name="twitter:description" content="{{ course.home_outcome|striptags|truncatechars:180 }}">
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Course page, design 5a mockup 6b (issue #179).  Like the homepage,
+       * this page carries its own complete stylesheet: the shared design
+       * system partial first, then the rules that shape this page only.  It
+       * deliberately loads none of the older site CSS.
+       * ------------------------------------------------------------------ */
 
-{% block breadcrumbs %}
-  <li><a href="{% url 'course' course.slug %}">{{ course.title }}</a></li>
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section>
-  <div class="max-w-3xl">
-    <h1 class="text-3xl font-semibold leading-tight tracking-normal md:text-4xl">
-      {{ course.title }}
-    </h1>
-    <div class="mt-3 text-base leading-7 app-text md:text-lg">
-      {{ course.description | urlize_target_blank }}
-    </div>
-  </div>
+      /* ------------------------------------------------------------------ *
+       * Course-page-specific rules.  Every shared primitive this page uses —
+       * .module, .spec-strip, .status-pill, .progress, .ship-line, .panel,
+       * .cta, .field — lives in the partial above.
+       * ------------------------------------------------------------------ */
 
-  <div class="course-actions mt-5 flex flex-wrap gap-2 md:mt-7">
-    {% if registration_campaign and not has_enrollment and not has_registration %}
-      <a href="{% url 'registration_campaign' registration_campaign.slug %}" class="primer-button primer-button-secondary course-register-button whitespace-nowrap">
-        <i class="fas fa-user-plus"></i> Register
-      </a>
-    {% elif course.registration_url and not has_enrollment %}
-      <a href="{{ course.registration_url }}" class="primer-button primer-button-secondary course-register-button whitespace-nowrap">
-        <i class="fas fa-user-plus"></i> Register
-      </a>
+      /* --- hero --------------------------------------------------------- */
+
+      /* Mockup 6b is a single centred column: the cohort eyebrow, the title,
+         the promise, the description, the actions and then the fact strip. */
+      .course-hero-inner {
+        display: grid;
+        gap: 0.85rem;
+        justify-items: center;
+        text-align: center;
+      }
+
+      .course-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        max-width: 20ch;
+      }
+
+      .course-hero .ship-line {
+        max-width: 40ch;
+      }
+
+      .course-lede {
+        color: var(--body-text);
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        max-width: 46rem;
+      }
+
+      .course-lede p {
+        margin-bottom: 0.75rem;
+      }
+
+      .course-lede p:last-child {
+        margin-bottom: 0;
+      }
+
+      .course-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 0.4rem;
+      }
+
+      .course-fineprint {
+        color: var(--muted);
+        font-size: 0.92rem;
+        max-width: 40rem;
+      }
+
+      /* The fact strip is a dl, so its dd needs its default margin removed. */
+      .course-specs {
+        margin-top: 1.4rem;
+        width: 100%;
+      }
+
+      .course-specs dd {
+        margin: 0;
+      }
+
+      /* --- the signed-in learner's own panel ---------------------------- */
+
+      /* Everything about *this* learner — score, how much has been handed in,
+         the certificate and the course profile — sits in one mint panel under
+         the facts, so the marketing hero above it stays the same for everyone. */
+      .course-learner {
+        margin-top: 1.5rem;
+        text-align: left;
+        width: 100%;
+      }
+
+      .course-learner-head {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        justify-content: space-between;
+      }
+
+      .course-learner h2 {
+        font-size: 1.15rem;
+      }
+
+      .course-score {
+        align-items: baseline;
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .course-score strong {
+        font-size: 1.6rem;
+      }
+
+      .course-learner-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      /* --- modules ------------------------------------------------------ */
+
+      .module-open-link {
+        font-weight: 700;
+      }
+
+      /* The countdown text is written by time_left.js, so it sits beside the
+         deadline it counts down to and simply does not appear without
+         JavaScript.  Its three tones are token-driven here so they survive both
+         themes; the words always say the state, so colour only reinforces. */
+      .time-left {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      .time-left:empty {
+        display: none;
+      }
+
+      .time-left--normal {
+        color: var(--muted);
+      }
+
+      .time-left--warning {
+        color: var(--olive);
+        font-weight: 700;
+      }
+
+      .time-left--overdue {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .module-empty {
+        text-align: center;
+      }
+
+      /* --- closing panels ----------------------------------------------- */
+
+      .course-closing {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .course-closing h2 {
+        font-size: 1.15rem;
+      }
+
+      .course-register-panel {
+        justify-items: start;
+      }
+
+      .course-note {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .course-operator {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+      }
+
+      /* --- narrow layout ------------------------------------------------ */
+
+      /* Reshape rather than reflow: the hero stops centring so long titles and
+         descriptions read as a normal column, and every action becomes a
+         full-width row instead of a wrapped grid of half-width buttons. */
+      @media (max-width: 47.99rem) {
+        .course-hero-inner {
+          justify-items: stretch;
+          text-align: left;
+        }
+
+        .course-hero h1 {
+          max-width: none;
+        }
+
+        .course-actions {
+          display: grid;
+          justify-content: stretch;
+        }
+
+        .course-specs {
+          text-align: left;
+        }
+
+        .course-learner-links {
+          display: grid;
+        }
+      }
+
+      /* Two panels sit side by side; a single panel (an enrolled learner has no
+         register panel) keeps the full column instead of half an empty row. */
+      @media (min-width: 62rem) {
+        .course-closing {
+          grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+        }
+      }
+    </style>
+  </head>
+  {% url 'account_settings' as account_settings_url %}
+  {% url 'socialaccount_connections' as account_connections_url %}
+  {% url 'account_logout' as account_logout_url %}
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
     {% endif %}
-    {% if course.github_repo_url %}
-      <a href="{{ course.github_repo_url }}"
-         target="_blank"
-         rel="noopener noreferrer"
-         class="primer-button primer-button-secondary whitespace-nowrap">
-        <i class="fab fa-github" aria-hidden="true"></i> GitHub
-      </a>
+  >
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <script>
+      (function () {
+        try {
+          var body = document.body;
+          if (
+            body
+            && body.getAttribute('data-authenticated') !== 'true'
+            && localStorage.getItem('darkMode') === 'true'
+          ) {
+            body.classList.add('dark', 'dark-mode');
+            body.setAttribute('data-dark-mode', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    {% if user.is_authenticated %}
+      <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
     {% endif %}
-    {% if course.first_homework_scored %}
-      <a href="{% url 'leaderboard' course.slug %}" class="primer-button primer-button-secondary whitespace-nowrap">
-        <i class="fas fa-trophy"></i> Course leaderboard
-      </a>
-    {% endif %}
-    {% if course.first_homework_scored %}
-      <a href="{% url 'dashboard' course.slug %}" class="primer-button primer-button-secondary whitespace-nowrap">
-        <i class="fas fa-chart-bar"></i> Course dashboard
-      </a>
-    {% endif %}
-    {% if is_authenticated and has_enrollment %}
-      <a href="{% url 'enrollment' course.slug %}" class="primer-button primer-button-secondary whitespace-nowrap">
-        <i class="fas fa-user-edit"></i> Edit course profile
-      </a>
-    {% endif %}
-    {% if is_authenticated and certificate_url %}
-      <a href="{{ certificate_url }}" target="_blank" class="primer-button primer-button-secondary whitespace-nowrap">
-        Download Certificate
-      </a>
-    {% endif %}
-  </div>
-
-  {% if can_access_course_studio %}
-    <div class="mt-6">
-      <a href="{% url 'studio_courses_course' course.slug %}" class="inline-flex items-center text-sm font-medium app-link">
-        <i class="fas fa-cog mr-2"></i> Manage course in Studio
-      </a>
-    </div>
-  {% endif %}
-
-  {% if is_authenticated and course.first_homework_scored %}
-    <div class="mt-6 flex items-baseline gap-2 text-sm">
-      <span class="app-muted">Total score</span>
-      <span class="text-base font-semibold app-heading">{{ total_score|default:"N/A" }}</span>
-    </div>
-  {% endif %}
-</section>
-
-{% if homeworks %}
-  <section class="mt-8">
-    <div class="mb-4">
-      <h2 class="text-2xl font-semibold">Homework</h2>
-    </div>
-
-    <div class="hidden border-b app-border pb-2 text-xs font-semibold uppercase app-muted md:grid md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:gap-3">
-      <div>Homework</div>
-      <div>Deadline</div>
-      <div class="text-right">Status</div>
-    </div>
-
-    <div class="divide-y app-divide">
-      {% for hw in homeworks %}
-        <div class="grid gap-2 py-4 md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:items-center md:gap-3">
-          <div class="flex min-w-0 items-start gap-3">
-            <i class="far fa-file-alt mt-1 hidden app-muted md:inline"></i>
-            <div class="min-w-0">
-              {% if hw.state == 'CL' %}
-                <div class="font-semibold app-heading">{{ hw.title }}</div>
-              {% else %}
-                <a href="{% url 'homework' course.slug hw.slug %}" class="font-semibold app-link">
-                  {{ hw.title }}
-                </a>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="text-sm app-text">
-            <i class="far fa-calendar-alt mr-2 hidden app-muted md:inline"></i>
-            {% if hw.is_scored %}
-              <span class="md:whitespace-nowrap">{{ hw.due_date|user_datetime:request }}</span>
-              <div class="mt-1 text-xs app-muted">Already scored</div>
-            {% else %}
-              <span class="md:whitespace-nowrap">{{ hw.due_date|user_datetime:request }}</span>
-              <div class="time-left mt-1 text-xs app-muted" data-deadline="{{ hw.due_date | date:"c" }}" data-past-tone="muted"></div>
-            {% endif %}
-          </div>
-
-          <div class="md:text-right">
-            {% if hw.state == 'CL' %}
-              <span class="app-badge app-badge-upper app-badge-neutral">Closed</span>
-            {% elif hw.is_scored and hw.submitted %}
-              <span class="app-badge app-badge-upper app-badge-success">Scored ({{ hw.score }})</span>
-            {% elif hw.is_scored %}
-              <span class="app-badge app-badge-upper app-badge-info">Scored</span>
-            {% elif not hw.is_scored and hw.submitted %}
-              <span class="app-badge app-badge-upper app-badge-success">Submitted</span>
-            {% else %}
-              <span class="app-badge app-badge-upper app-badge-warning">Open</span>
-            {% endif %}
-          </div>
+    {% if IS_IMPERSONATING %}
+      <div id="impersonation-banner" class="impersonation-banner">
+        <div class="shell">
+          <span>
+            You are logged in as
+            <strong>{{ request.user.email|default:request.user.username }}</strong>
+          </span>
+          <form method="post" action="{% url 'stop_impersonating' %}">
+            {% csrf_token %}
+            <button type="submit" class="impersonation-return-button">Return to admin account</button>
+          </form>
         </div>
-      {% endfor %}
-    </div>
-  </section>
-{% endif %}
-
-{% if projects %}
-  <section class="mt-8">
-    <div class="mb-4">
-      <h2 class="text-2xl font-semibold">Projects</h2>
-    </div>
-
-    <div class="hidden border-b app-border pb-2 text-xs font-semibold uppercase app-muted md:grid md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:gap-3">
-      <div>Project</div>
-      <div>Deadline</div>
-      <div class="text-right">Status</div>
-    </div>
-
-    <div class="divide-y app-divide">
-      {% for project in projects %}
-        <div class="grid gap-2 py-4 md:grid-cols-[minmax(0,1fr)_16rem_8rem] md:items-center md:gap-3">
-          <div class="flex min-w-0 items-start gap-3">
-            <i class="far fa-folder mt-1 hidden app-muted md:inline"></i>
-            <div class="min-w-0">
-              {% if project.state == 'CS' %}
-                <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}" class="font-semibold app-link">{{ project.title }}</a>
-              {% elif project.state == 'PR' %}
-                <a href="{% url 'projects_eval' course.slug project.slug %}" class="font-semibold app-link">{{ project.title }}</a>
-              {% elif project.state == 'CO' %}
-                <a href="{% url 'project_results' course.slug project.slug %}" class="font-semibold app-link">{{ project.title }}</a>
-              {% else %}
-                <div class="font-semibold app-heading">{{ project.title }}</div>
-              {% endif %}
-            </div>
-          </div>
-
-          <div class="text-sm app-text">
-            <i class="far fa-calendar-alt mr-2 hidden app-muted md:inline"></i>
-            {% if project.state == 'PR' and project.submitted %}
-              <span class="md:whitespace-nowrap">{{ project.peer_review_due_date|user_datetime:request }}</span>
-              <div class="time-left mt-1 text-xs app-muted" data-deadline="{{ project.peer_review_due_date | date:"c" }}" data-past-tone="muted"></div>
-            {% elif project.state == 'CO' %}
-              <span class="md:whitespace-nowrap">{{ project.peer_review_due_date|user_datetime:request }}</span>
-              <div class="mt-1 text-xs app-muted">Completed</div>
-            {% else %}
-              <span class="md:whitespace-nowrap">{{ project.submission_due_date|user_datetime:request }}</span>
-              <div class="time-left mt-1 text-xs app-muted" data-deadline="{{ project.submission_due_date | date:"c" }}" data-past-tone="muted"></div>
-            {% endif %}
-          </div>
-
-          <div class="md:text-right">
-            {% if project.badge_css_class == 'bg-success' or project.badge_css_class == 'bg-info' %}
-              <span class="app-badge app-badge-upper app-badge-success">{{ project.badge_state_name }}</span>
-            {% elif project.badge_css_class == 'bg-warning' %}
-              <span class="app-badge app-badge-upper app-badge-warning">{{ project.badge_state_name }}</span>
-            {% elif project.badge_css_class == 'bg-danger' %}
-              <span class="app-badge app-badge-upper app-badge-danger">{{ project.badge_state_name }}</span>
-            {% else %}
-              <span class="app-badge app-badge-upper app-badge-neutral">{{ project.badge_state_name }}</span>
-            {% endif %}
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-
-    {% if has_completed_projects %}
-      <div class="mt-7 text-center">
-        <a href="{% url 'list_all_project_submissions' course.slug %}" class="inline-flex items-center font-medium app-link">
-          See all submitted projects <span class="ml-2" aria-hidden="true">&rarr;</span>
-        </a>
       </div>
     {% endif %}
-  </section>
-{% endif %}
+    <header class="masthead">
+      <nav class="shell masthead-inner" aria-label="Primary navigation">
+        <a class="brand" href="{% url 'home' %}">
+          {# The mockup's mark traced 1:1: wobbled lavender bubble, ink outline, tail, DTC. #}
+          <svg class="brand-mark" viewBox="0 0 64 61" aria-hidden="true" focusable="false">
+            <path
+              d="M17 3.2C27 1.6 39 1.8 48 3.6C55.5 5.2 60.8 9.4 61.4 16C62 22.6 61.8 30 60.6 36.4C59.4 42.8 56 47.2 49.6 48.6C46.6 49.2 43.4 49.4 40.2 49C39.4 53.4 38.8 57.4 37.6 61C36.4 57.2 34.4 53.4 31.8 50.2C27 49.6 22.2 48.8 18.2 47.4C11.4 45 6.4 40.6 4.6 34.2C2.8 27.8 2.6 20.6 3.8 14.6C5 8.6 10 4.6 17 3.2Z"
+              fill="#b9bff0"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linejoin="round"
+            />
+            <text x="32" y="34">DTC</text>
+          </svg>
+          <span class="brand-name">
+            <span class="brand-light">Data</span>Talks.Club
+          </span>
+        </a>
+        <div class="site-navigation">
+          <button
+            class="site-navigation-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="site-navigation-links"
+          >
+            Menu
+          </button>
+          <div id="site-navigation-links" class="site-navigation-links">
+            <a class="nav-link" href="{% url 'events' %}">Events</a>
+            <a class="nav-link" href="{% url 'course_list' %}" aria-current="page">Courses</a>
+            <a class="nav-link" href="{% url 'articles' %}">Blog</a>
+            <a class="nav-link" href="{% url 'podcast' %}">Podcast</a>
+            <a class="nav-link" href="{% url 'wiki-home' %}">Wiki</a>
+            <a class="nav-link" href="{% url 'books' %}">Books</a>
+            <a class="nav-link" href="{% url 'docs-home' %}">Docs</a>
+            <a class="nav-link" href="{% url 'faq-home' %}">FAQ</a>
+          </div>
+        </div>
+        <div class="masthead-actions">
+          <button
+            id="dark-mode-toggle"
+            class="pill-button"
+            type="button"
+            aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
+            <span class="sr-only">&nbsp;mode</span>
+          </button>
+          {% if user.is_authenticated %}
+            {% comment %}
+              Same account-menu contract as the shared shell: the labelled summary and the
+              .user-menu-panel links every identity test drives.
+            {% endcomment %}
+            <details class="account-nav user-menu">
+              <summary
+                class="user-menu-toggle"
+                title="Account menu"
+                aria-label="Account menu"
+              >Account</summary>
+              <div class="mobile-nav-panel user-menu-panel">
+                <p class="user-menu-signed-in">Signed in as</p>
+                <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
+                  {{ user.email|default:user.username }}
+                </p>
+                <div class="user-menu-actions">
+                  <a class="nav-link user-menu-item" href="{% url 'course_list' %}">Courses</a>
+                  {% if account_settings_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
+                  {% endif %}
+                  {% if account_connections_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_connections_url }}">Login connections</a>
+                  {% endif %}
+                  {% if can_access_studio %}
+                    <a class="nav-link user-menu-item" href="{% url 'studio:home' %}">Studio</a>
+                  {% endif %}
+                  {% if account_logout_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_logout_url }}">Logout</a>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
+          {% else %}
+            {% comment %}
+              Rendered once, and visible at every width: a signed-out visitor must be able
+              to reach login without first opening the navigation menu.
+            {% endcomment %}
+            <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
+            <a class="signup-button" href="{% url 'account_signup' %}">Sign up free</a>
+          {% endif %}
+        </div>
+      </nav>
+    </header>
+    {% if site_announcement %}
+      <aside class="site-announcement" aria-label="Site announcement">
+        <div class="shell">{{ site_announcement.message }}</div>
+      </aside>
+    {% endif %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream course-hero" aria-labelledby="course-heading">
+        <div class="shell course-hero-inner">
+          {% if registration_campaign.edition_label %}
+            <p class="mono-label mono-label-indigo">{{ registration_campaign.edition_label }}</p>
+          {% else %}
+            <p class="mono-label mono-label-indigo">{{ course.home_year }}</p>
+          {% endif %}
+          <h1 id="course-heading">{{ course.title }}</h1>
+          {% if course_ship_line %}
+            <p class="ship-line">you'll ship: {{ course_ship_line }}</p>
+          {% endif %}
+          <div class="course-lede">{{ course.home_outcome|urlize_target_blank }}</div>
+          <div class="course-actions">
+            {% if registration_campaign and not has_enrollment and not has_registration %}
+              <a class="cta cta-primary" href="{% url 'registration_campaign' registration_campaign.slug %}">
+                Register for the cohort
+              </a>
+            {% elif course.registration_url and not has_enrollment %}
+              <a class="cta cta-primary" href="{{ course.registration_url }}">Register</a>
+            {% endif %}
+            {% if course.github_repo_url %}
+              <a
+                class="cta cta-secondary cta-lift"
+                href="{{ course.github_repo_url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Course materials on GitHub
+              </a>
+            {% endif %}
+            {% if course.first_homework_scored %}
+              <a class="cta cta-secondary" href="{% url 'leaderboard' course.slug %}">Course leaderboard</a>
+            {% endif %}
+            {% if course.first_homework_scored %}
+              <a class="cta cta-secondary" href="{% url 'dashboard' course.slug %}">Course dashboard</a>
+            {% endif %}
+          </div>
+          {% if signup_count %}
+            <p class="course-fineprint">
+              The course is already open — {{ signup_count }} people have signed up for this cohort.
+            </p>
+          {% endif %}
+          {% if course_specs %}
+            <dl class="spec-strip course-specs">
+              {% for spec in course_specs %}
+                <div class="spec">
+                  <dt class="mono-label">{{ spec.label }}</dt>
+                  <dd>
+                    <strong>{{ spec.value }}</strong>
+                  </dd>
+                </div>
+              {% endfor %}
+            </dl>
+          {% endif %}
+          {% if is_authenticated %}
+            <aside
+              class="panel panel-mint panel-outlined course-learner"
+              aria-labelledby="learner-heading"
+            >
+              <div class="course-learner-head">
+                <h2 id="learner-heading">Your work in this course</h2>
+                {% if has_enrollment %}
+                  <span class="status-pill">enrolled</span>
+                {% else %}
+                  <span class="status-pill status-pill-wait">not enrolled</span>
+                {% endif %}
+              </div>
+              {% if course.first_homework_scored %}
+                <p class="course-score">
+                  <span class="mono-label">Total score</span>
+                  <strong>{{ total_score|default:"N/A" }}</strong>
+                </p>
+              {% endif %}
+              {% if submission_progress %}
+                <div
+                  class="progress"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="{{ submission_progress.total }}"
+                  aria-valuenow="{{ submission_progress.submitted }}"
+                  aria-label="Modules you have submitted"
+                >
+                  <div class="progress-fill" style="width: {{ submission_progress.percent }}%"></div>
+                </div>
+                <p class="mono-note">
+                  {{ submission_progress.submitted }} of {{ submission_progress.total }} modules submitted
+                </p>
+              {% endif %}
+              <div class="course-learner-links">
+                {% if has_enrollment %}
+                  <a class="cta cta-compact cta-secondary" href="{% url 'enrollment' course.slug %}">
+                    Edit course profile
+                  </a>
+                {% endif %}
+                {% if certificate_url %}
+                  <a
+                    class="cta cta-compact cta-secondary"
+                    href="{{ certificate_url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Download Certificate
+                  </a>
+                {% endif %}
+              </div>
+            </aside>
+          {% endif %}
+        </div>
+      </section>
 
-{% if not homeworks and not projects %}
-  <div class="mt-10 rounded-md border app-alert-info p-5 app-heading" role="alert">
-    There are no homeworks or projects available for this course yet. Come back later.
-  </div>
-{% endif %}
+      <section class="band band-lavender" aria-labelledby="modules-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="modules-heading">The modules</h2>
+              <p>Open a module for its deadline, your status and the page you hand work in on.</p>
+            </div>
+          </div>
+          {% if course_modules %}
+            <div class="module-list">
+              {% for module in course_modules %}
+                {% if forloop.first %}
+                  <details class="module" open>
+                {% else %}
+                  <details class="module">
+                {% endif %}
+                  {% if module.kind == "homework" %}
+                    <summary>
+                      <span class="module-number" aria-hidden="true">{{ module.number }}</span>
+                      <span class="module-title">{{ module.item.title }}</span>
+                      <span class="module-due">due {{ module.item.due_date|user_date_short:request }}</span>
+                      <span class="module-marker" aria-hidden="true"></span>
+                      <span class="module-summary">
+                        {% if module.item.state == 'CL' %}
+                          <span class="status-pill status-pill-wait">Closed</span>
+                        {% elif module.item.is_scored and module.item.submitted %}
+                          <span class="status-pill status-pill-live">Scored ({{ module.item.score }})</span>
+                        {% elif module.item.is_scored %}
+                          <span class="status-pill status-pill-mint">Scored</span>
+                        {% elif module.item.submitted %}
+                          <span class="status-pill status-pill-live">Submitted</span>
+                        {% else %}
+                          <span class="status-pill status-pill-open">Open</span>
+                        {% endif %}
+                      </span>
+                    </summary>
+                    <dl class="module-body">
+                      {% if module.item.is_scored %}
+                        <div class="module-fact">
+                          <dt>deadline</dt>
+                          <dd>{{ module.item.due_date|user_datetime:request }}</dd>
+                        </div>
+                        <div class="module-fact">
+                          <dt>state</dt>
+                          <dd>Already scored</dd>
+                        </div>
+                      {% else %}
+                        <div class="module-fact">
+                          <dt>deadline</dt>
+                          <dd>
+                            {{ module.item.due_date|user_datetime:request }}
+                            <span
+                              class="time-left"
+                              data-deadline="{{ module.item.due_date|date:"c" }}"
+                              data-past-tone="muted"
+                            ></span>
+                          </dd>
+                        </div>
+                      {% endif %}
+                      {% if module.item.state != 'CL' %}
+                        <div class="module-fact">
+                          <dt>homework</dt>
+                          <dd>
+                            <a
+                              class="band-link module-open-link"
+                              href="{% url 'homework' course.slug module.item.slug %}"
+                            >Open {{ module.item.title }} →</a>
+                          </dd>
+                        </div>
+                      {% endif %}
+                    </dl>
+                  {% else %}
+                    <summary>
+                      <span class="module-number" aria-hidden="true">{{ module.number }}</span>
+                      <span class="module-title">{{ module.item.title }}</span>
+                      {% if module.item.state == 'PR' and module.item.submitted %}
+                        <span class="module-due">
+                          due {{ module.item.peer_review_due_date|user_date_short:request }}
+                        </span>
+                      {% elif module.item.state == 'CO' %}
+                        <span class="module-due">
+                          due {{ module.item.peer_review_due_date|user_date_short:request }}
+                        </span>
+                      {% else %}
+                        <span class="module-due">
+                          due {{ module.item.submission_due_date|user_date_short:request }}
+                        </span>
+                      {% endif %}
+                      <span class="module-marker" aria-hidden="true"></span>
+                      <span class="module-summary">
+                        {% if module.item.badge_css_class == 'bg-success' or module.item.badge_css_class == 'bg-info' %}
+                          <span class="status-pill status-pill-live">{{ module.item.badge_state_name }}</span>
+                        {% elif module.item.badge_css_class == 'bg-warning' %}
+                          <span class="status-pill status-pill-open">{{ module.item.badge_state_name }}</span>
+                        {% elif module.item.badge_css_class == 'bg-danger' %}
+                          <span class="status-pill status-pill-wait">{{ module.item.badge_state_name }}</span>
+                        {% else %}
+                          <span class="status-pill">{{ module.item.badge_state_name }}</span>
+                        {% endif %}
+                      </span>
+                    </summary>
+                    <dl class="module-body">
+                      {% if module.item.state == 'PR' and module.item.submitted %}
+                        <div class="module-fact">
+                          <dt>peer review</dt>
+                          <dd>
+                            {{ module.item.peer_review_due_date|user_datetime:request }}
+                            <span
+                              class="time-left"
+                              data-deadline="{{ module.item.peer_review_due_date|date:"c" }}"
+                              data-past-tone="muted"
+                            ></span>
+                          </dd>
+                        </div>
+                      {% elif module.item.state == 'CO' %}
+                        <div class="module-fact">
+                          <dt>peer review</dt>
+                          <dd>{{ module.item.peer_review_due_date|user_datetime:request }}</dd>
+                        </div>
+                        <div class="module-fact">
+                          <dt>state</dt>
+                          <dd>Completed</dd>
+                        </div>
+                      {% else %}
+                        <div class="module-fact">
+                          <dt>submission</dt>
+                          <dd>
+                            {{ module.item.submission_due_date|user_datetime:request }}
+                            <span
+                              class="time-left"
+                              data-deadline="{{ module.item.submission_due_date|date:"c" }}"
+                              data-past-tone="muted"
+                            ></span>
+                          </dd>
+                        </div>
+                      {% endif %}
+                      {% if module.item.state == 'CS' %}
+                        <div class="module-fact">
+                          <dt>project</dt>
+                          <dd>
+                            <a
+                              class="band-link module-open-link"
+                              href="{% url 'project' course_slug=course.slug project_slug=module.item.slug %}"
+                            >Open {{ module.item.title }} →</a>
+                          </dd>
+                        </div>
+                      {% elif module.item.state == 'PR' %}
+                        <div class="module-fact">
+                          <dt>project</dt>
+                          <dd>
+                            <a
+                              class="band-link module-open-link"
+                              href="{% url 'projects_eval' course.slug module.item.slug %}"
+                            >Open {{ module.item.title }} →</a>
+                          </dd>
+                        </div>
+                      {% elif module.item.state == 'CO' %}
+                        <div class="module-fact">
+                          <dt>project</dt>
+                          <dd>
+                            <a
+                              class="band-link module-open-link"
+                              href="{% url 'project_results' course.slug module.item.slug %}"
+                            >Open {{ module.item.title }} →</a>
+                          </dd>
+                        </div>
+                      {% endif %}
+                    </dl>
+                  {% endif %}
+                </details>
+              {% endfor %}
+            </div>
+            {% if has_completed_projects %}
+              <p class="course-note module-empty">
+                <a class="band-link" href="{% url 'list_all_project_submissions' course.slug %}">
+                  See all submitted projects →
+                </a>
+              </p>
+            {% endif %}
+          {% else %}
+            <div class="panel panel-lavender panel-outlined module-empty" role="alert">
+              <p>There are no homeworks or projects available for this course yet. Come back later.</p>
+            </div>
+          {% endif %}
+        </div>
+      </section>
 
-<div class="mt-8 text-sm app-muted">
-  {% if is_authenticated %}
-    All deadlines are shown in your
-    <a href="{% url 'account_settings' %}#display-preferences-section"
-       class="app-link">account timezone</a>.
-  {% else %}
-    All deadlines are shown in your timezone.
-  {% endif %}
-  <a href="{% url 'course_calendar' course.slug %}" class="app-link">Calendar feed</a>
-</div>
-{% endblock %}
+      <section class="band band-cream" aria-labelledby="next-heading">
+        <div class="shell">
+          <h2 id="next-heading" class="sr-only">Registration and deadlines</h2>
+          <div class="course-closing">
+            {% if registration_campaign and not has_enrollment and not has_registration %}
+              <div class="panel panel-lavender panel-outlined course-register-panel">
+                <h2>Register for {{ course.title }}</h2>
+                <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
+                <a class="cta cta-primary" href="{% url 'registration_campaign' registration_campaign.slug %}">
+                  Register for the cohort
+                </a>
+              </div>
+            {% elif course.registration_url and not has_enrollment %}
+              <div class="panel panel-lavender panel-outlined course-register-panel">
+                <h2>Register for {{ course.title }}</h2>
+                <p>Registration for this course is handled on its own page.</p>
+                <a class="cta cta-primary" href="{{ course.registration_url }}">Register</a>
+              </div>
+            {% elif has_registration and not has_enrollment %}
+              <div class="panel panel-lavender panel-outlined course-register-panel">
+                <h2>You are registered</h2>
+                <p>Watch your inbox for the schedule, and start on the modules whenever you like.</p>
+              </div>
+            {% endif %}
+            {% if course.faq_document_url %}
+              <div class="panel panel-lavender panel-outlined">
+                <h2>Questions before you start?</h2>
+                <p class="course-note">This course keeps its own frequently asked questions.</p>
+                <a
+                  class="band-link"
+                  href="{{ course.faq_document_url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >Course FAQ →</a>
+              </div>
+            {% endif %}
+            <div class="panel panel-mint panel-outlined">
+              <h2>Deadlines and your calendar</h2>
+              <p class="course-note">
+                {% if is_authenticated %}
+                  All deadlines are shown in your
+                  <a class="band-link" href="{{ account_settings_url }}#display-preferences-section">account timezone</a>.
+                {% else %}
+                  All deadlines are shown in your timezone.
+                {% endif %}
+              </p>
+              <a class="band-link" href="{% url 'course_calendar' course.slug %}">Calendar feed</a>
+            </div>
+          </div>
+          {% if can_access_course_studio %}
+            <p class="course-operator">
+              <a class="band-link" href="{% url 'studio_courses_course' course.slug %}">
+                Manage course in Studio →
+              </a>
+            </p>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_footer.html" %}
+    <script>
+      /* Page-local theme toggle: same storage key, cookie endpoint and body classes as
+         the shared shell, with the compact "Dark"/"Light" label this design uses. */
+      (function () {
+        var body = document.body;
+        var toggle = document.getElementById('dark-mode-toggle');
+        var label = document.getElementById('dark-mode-label');
+        if (!toggle) {
+          return;
+        }
+
+        function apply(isDark) {
+          body.classList.toggle('dark', isDark);
+          body.classList.toggle('dark-mode', isDark);
+          body.setAttribute('data-dark-mode', isDark ? 'true' : 'false');
+          toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+          if (label) {
+            label.textContent = isDark ? 'Light' : 'Dark';
+          }
+        }
+
+        var authenticated = body.getAttribute('data-authenticated') === 'true';
+        if (!authenticated) {
+          try {
+            var stored = localStorage.getItem('darkMode');
+            if (stored !== null) {
+              apply(stored === 'true');
+            }
+          } catch (e) {}
+        }
+
+        toggle.addEventListener('click', function () {
+          var next = body.getAttribute('data-dark-mode') !== 'true';
+          if (!authenticated) {
+            try {
+              localStorage.setItem('darkMode', next.toString());
+            } catch (e) {}
+            apply(next);
+            return;
+          }
+          var token = document.getElementById('csrf-token');
+          fetch(body.getAttribute('data-toggle-url'), {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': token ? token.value : '',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Dark mode toggle failed');
+              }
+              return response.json();
+            })
+            .then(function (data) {
+              apply(data.dark_mode);
+              try {
+                localStorage.setItem('darkMode', data.dark_mode.toString());
+              } catch (e) {}
+            });
+        });
+      })();
+    </script>
+    {% comment %}
+      Same timezone contract as the shared shell: the browser_timezone cookie for every
+      visitor, and one passive preference POST for a signed-in account without one.
+    {% endcomment %}
+    <script src="{% static 'timezone_preference.js' %}"></script>
+    <script src="{% static 'core/site_navigation.js' %}"></script>
+    <script src="{% static 'core/accessibility.js' %}"></script>
+    <script src="{% static 'core/analytics_preferences.js' %}"></script>
+    {% comment %}
+      The deadline countdown copied with the course platform; it rewrites every
+      .time-left node from its data-deadline attribute and needs no other markup.
+    {% endcomment %}
+    <script src="{% static 'time_left.js' %}"></script>
+  </body>
+</html>

@@ -25,3 +25,13 @@ def urlize_target_blank(value, limit=30, autoescape=None):
 @register.filter
 def user_datetime(value, user):
     return format_user_datetime(value, user)
+
+
+@register.filter
+def user_date_short(value, user):
+    """Render a deadline as the compact "Sep 22" the module rows show beside a title.
+
+    The full deadline is always rendered too, by ``user_datetime``; this is the same
+    instant in the same timezone, written short enough to sit on one summary row.
+    """
+    return format_user_datetime(value, user, fmt="%b %-d")

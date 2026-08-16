@@ -444,7 +444,16 @@ The same shape carries transcript rows with the speaker name as the mark.
 
 Wrap the set in `.module-list`. The number disc sits on `--bubble`; an open
 module tints its summary lavender; the `+`/`−` marker is CSS-drawn from the
-`[open]` state, so it needs no script.
+`[open]` state, so it needs no script. `.module-title` is set at the card-title
+weight, not body weight.
+
+As built (course page, issue #179): a module is one homework or one project, in
+the order the course already lists them, numbered continuously across both.
+There is no per-module blurb in the data, so `.module-summary` carries the
+module's `.status-pill` instead — the state a learner needs at a glance without
+opening the module — and `.module-body` carries the full deadline, the live
+countdown and the link to the page where work is handed in. Only the first
+module is open by default, as in the mockup.
 
 ### Form fields (course page register form)
 
@@ -458,6 +467,14 @@ module tints its summary lavender; the `+`/`−` marker is CSS-drawn from the
 
 `.field-input` styles `input`, `select` and `textarea` alike; readonly and
 disabled fields sit on `--sand`.
+
+Mockup 6b draws this form on the course page itself, but the site already owns
+one registration form, on the registration campaign page (`registration_campaign`,
+`courses/templates/courses/register.html`), with its own POST target, duplicate
+detection, country and role validation and accessible error summary. The rebuilt
+course page therefore keeps its register **call to action** and links to that
+page rather than growing a second copy of a mutation surface; these field
+primitives are still the ones a page in this system uses when it does own a form.
 
 ### Panels
 

@@ -9,7 +9,14 @@ from courses.models.course import (
     Enrollment,
     RegistrationCampaign,
 )
+from courses.course_page_content import (
+    course_modules,
+    course_ship_line,
+    course_specs,
+    submission_progress,
+)
 from courses.models.project import ProjectState
+from courses.services.registration_counts import public_course_registration_count
 from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_projects import get_projects_for_course
@@ -127,12 +134,40 @@ def course_user_context(
     )
 
 
+def registered_learner_count(
+    registration_campaign: RegistrationCampaign | None,
+) -> int | None:
+    """Return the published registration total, or ``None`` when there is no published count.
+
+    This is the same accessor the registration page renders, so the two surfaces can never
+    quote different numbers for one cohort.
+    """
+
+    if registration_campaign is None:
+        return None
+    public_count = public_course_registration_count(registration_campaign)
+    if public_count is None:
+        return None
+    return public_count.count
+
+
 def course_page_context(data: CoursePageData) -> dict:
     has_completed_course_projects = has_completed_projects(data.projects)
+    modules = course_modules(data.homeworks, data.projects)
+    signup_count = registered_learner_count(data.registration_campaign)
     context = {
         "course": data.course,
         "homeworks": data.homeworks,
         "projects": data.projects,
+        "course_modules": modules,
+        "course_ship_line": course_ship_line(data.course.slug),
+        "course_specs": course_specs(
+            data.course,
+            homework_count=len(data.homeworks),
+            project_count=len(data.projects),
+            signup_count=signup_count,
+        ),
+        "signup_count": signup_count,
         "has_completed_projects": has_completed_course_projects,
         "is_authenticated": data.user.is_authenticated,
         "registration_campaign": data.registration_campaign,
@@ -143,6 +178,13 @@ def course_page_context(data: CoursePageData) -> dict:
         data.registration_campaign,
     )
     context.update(user_context)
+    # The submitted counts are this learner's own, so the bar is only drawn for the
+    # signed-in learner whose enrolment produced them.
+    context["submission_progress"] = (
+        submission_progress(modules)
+        if data.user.is_authenticated and user_context["has_enrollment"]
+        else None
+    )
     return context
 
 

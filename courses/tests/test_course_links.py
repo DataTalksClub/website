@@ -40,9 +40,11 @@ class CourseDetailLinksTest(CourseDetailViewTestBase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "fab fa-github")
-        self.assertContains(response, "GitHub")
+        # Design 5a (issue #179) dropped the copied Font Awesome glyphs with the rest of
+        # the adopted stylesheet, so the action is asserted by its own words and target.
+        self.assertContains(response, "Course materials on GitHub")
         self.assertContains(
             response,
-            "https://github.com/DataTalksClub/test-course",
+            'href="https://github.com/DataTalksClub/test-course"',
         )
+        self.assertNotContains(response, "fas fa-")
