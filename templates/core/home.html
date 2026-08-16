@@ -43,11 +43,17 @@
        * above; everything below shapes this page's own sections.
        * ------------------------------------------------------------------ */
 
-      /* The three climb drawings are trimmed to their own ink and so vary in natural
-         size; one box with a contained fit keeps the cards on a shared rhythm. */
+      /* The three climb drawings are trimmed to their own ink, so their natural aspect
+         ratios differ widely.  Boxing them to one ratio letterboxes the widest until it
+         reads as half the size of the others, so each fills the card's width at its own
+         height and the text below is pushed to the card's foot to keep the row aligned. */
       .climb-card .doodle {
-        aspect-ratio: 667 / 432;
-        object-fit: contain;
+        align-self: center;
+        width: 100%;
+      }
+
+      .climb-card .climb-step {
+        margin-top: auto;
       }
 
       /* --- hero --------------------------------------------------------- */
@@ -599,7 +605,6 @@
         }
 
         .climb-card .doodle {
-          aspect-ratio: 667 / 300;
           grid-column: 1 / span 2;
           margin-bottom: 0.6rem;
         }
@@ -795,7 +800,7 @@
             <article class="card climb-card">
               {% include "core/_home_illustration.html" with variant="stuck" %}
               <div class="climb-step">
-                <span class="step-number" aria-hidden="true">01</span>
+                <span class="step-number" aria-hidden="true">1</span>
                 <h3>Right now</h3>
               </div>
               <p>Job posts full of words you'd have to google. No portfolio you'd show anyone.</p>
@@ -803,7 +808,7 @@
             <article class="card climb-card">
               {% include "core/_home_illustration.html" with variant="learning" %}
               <div class="climb-step">
-                <span class="step-number step-number-2" aria-hidden="true">02</span>
+                <span class="step-number step-number-2" aria-hidden="true">2</span>
                 <h3>Nine weeks in</h3>
               </div>
               <p>An orchestrated pipeline running on a schedule, reviewed by classmates, on your GitHub.</p>
@@ -811,7 +816,7 @@
             <article class="card climb-card">
               {% include "core/_home_illustration.html" with variant="shipping" %}
               <div class="climb-step">
-                <span class="step-number step-number-3" aria-hidden="true">03</span>
+                <span class="step-number step-number-3" aria-hidden="true">3</span>
                 <h3>In production</h3>
               </div>
               <p>Deployed models, monitored agents, and the interview where you talk about your own system.</p>
@@ -907,8 +912,26 @@
               <p>Start any of them self-paced today, or register to hold a seat in the next cohort.</p>
             </div>
             <div class="scroller-controls">
-              <button class="scroller-button" type="button" data-scroll="-1" aria-label="Scroll catalogue left">←</button>
-              <button class="scroller-button" type="button" data-scroll="1" aria-label="Scroll catalogue right">→</button>
+              <button
+                class="scroller-button"
+                type="button"
+                data-scroll="-1"
+                aria-label="Scroll catalogue left"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M15 5l-7 7 7 7"/>
+                </svg>
+              </button>
+              <button
+                class="scroller-button"
+                type="button"
+                data-scroll="1"
+                aria-label="Scroll catalogue right"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div

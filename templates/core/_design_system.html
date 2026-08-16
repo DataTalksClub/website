@@ -745,18 +745,46 @@ Rules for editing:
         display: flex;
       }
 
+      /* A disc with a drawn chevron, like .play-disc.  The glyph is an SVG rather than
+         a text arrow: "←" renders as a hairline at this size in most system faces and
+         reads as unfinished next to the page's heavier strokes. */
       .scroller-button {
         align-items: center;
         background: var(--card);
         border: 2px solid var(--line);
-        border-radius: 0.6rem;
+        border-radius: 999px;
         color: var(--ink);
         cursor: pointer;
         display: inline-flex;
-        font-size: 1.1rem;
         height: 2.75rem;
         justify-content: center;
+        padding: 0;
+        transition: background 0.15s ease, transform 0.15s ease;
         width: 2.75rem;
+      }
+
+      .scroller-button:hover {
+        background: var(--lavender);
+      }
+
+      .scroller-button:active {
+        transform: translateY(1px);
+      }
+
+      .scroller-button svg {
+        fill: none;
+        height: 1.15rem;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 2.5;
+        width: 1.15rem;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .scroller-button {
+          transition: none;
+        }
       }
 
       /* --- announcement / impersonation --------------------------------- */
