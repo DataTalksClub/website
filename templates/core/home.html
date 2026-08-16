@@ -35,6 +35,17 @@
        * stylesheet: it deliberately loads none of the older site CSS.
        * ------------------------------------------------------------------ */
 
+      /* The mockup is set in Quicksand (single-storey a and g, rounded
+         terminals); the variable latin cut is self-hosted so the page keeps
+         loading nothing external. */
+      @font-face {
+        font-family: "Quicksand";
+        font-style: normal;
+        font-weight: 300 700;
+        font-display: swap;
+        src: url("{% static 'core/fonts/quicksand-latin-var.woff2' %}") format("woff2");
+      }
+
       :root {
         --cream: #fdfaf3;
         --lavender: #eff1fc;
@@ -54,10 +65,8 @@
         --shadow-soft: rgba(30, 33, 54, 0.16);
         --focus: #1e2136;
         --page: var(--cream);
-        --font-sans: ui-rounded, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont,
-          "Helvetica Neue", Arial, sans-serif;
-        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
-          "Liberation Mono", monospace;
+        --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
+          BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
         --shell: 76rem;
       }
 
@@ -97,6 +106,7 @@
         color: var(--body-text);
         font-family: var(--font-sans);
         font-size: 1rem;
+        font-weight: 500;
         line-height: 1.6;
         margin: 0;
         overflow-x: hidden;
@@ -512,7 +522,6 @@
 
       .kicker {
         color: var(--indigo);
-        font-family: var(--font-mono);
         font-size: 0.72rem;
         letter-spacing: 0.14em;
         text-transform: uppercase;
@@ -621,7 +630,6 @@
         border-radius: 999px;
         color: var(--ink);
         display: inline-flex;
-        font-family: var(--font-mono);
         font-size: 0.72rem;
         letter-spacing: 0.06em;
         padding: 0.2rem 0.6rem;
@@ -672,7 +680,6 @@
         border-radius: 999px;
         display: inline-flex;
         flex: none;
-        font-family: var(--font-mono);
         font-size: 0.8rem;
         font-weight: 700;
         height: 2.1rem;
@@ -829,7 +836,6 @@
 
       .spec dt {
         color: var(--muted);
-        font-family: var(--font-mono);
         font-size: 0.68rem;
         letter-spacing: 0.1em;
         text-transform: uppercase;
@@ -905,7 +911,6 @@
 
       .course-meta {
         color: var(--muted);
-        font-family: var(--font-mono);
         font-size: 0.72rem;
       }
 
@@ -942,7 +947,6 @@
 
       .event-card time {
         color: var(--indigo);
-        font-family: var(--font-mono);
         font-size: 0.78rem;
       }
 
@@ -984,7 +988,6 @@
         color: var(--green-deep);
         display: flex;
         flex: none;
-        font-family: var(--font-mono);
         font-size: 0.82rem;
         font-weight: 700;
         height: 3.25rem;
@@ -1093,7 +1096,6 @@
         color: var(--muted);
         display: flex;
         flex-wrap: wrap;
-        font-family: var(--font-mono);
         font-size: 0.74rem;
         gap: 0.4rem 1.1rem;
         justify-content: space-between;
@@ -1318,7 +1320,6 @@
 
       .footer-version {
         color: var(--muted);
-        font-family: var(--font-mono);
         font-size: 0.78rem;
         min-width: 0;
         overflow-wrap: anywhere;
@@ -1403,7 +1404,6 @@
 
       .analytics-preferences-eyebrow {
         color: var(--muted);
-        font-family: var(--font-mono);
         font-size: 0.74rem;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -1540,8 +1540,7 @@
 
         /* A member story states its transition as one mono line. */
         .story-transition {
-          font-family: var(--font-mono);
-          font-size: 0.8rem;
+            font-size: 0.8rem;
           gap: 0.3rem;
         }
 
