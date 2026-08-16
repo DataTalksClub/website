@@ -18,6 +18,9 @@ pytestmark = [pytest.mark.core, pytest.mark.remote_readonly]
 REPRESENTATIVE_COURSE_PATH = "/courses/de-zoomcamp-2026"
 REPRESENTATIVE_COURSE_TITLE = "Data Engineering Zoomcamp 2026"
 REPRESENTATIVE_COURSE_ARCHIVE_YEAR = "2026"
+# Design 5a (issue #179) renamed the courses index's own section heads.
+COURSE_INDEX_ACTIVE_HEADING = "Active now — you can still join"
+COURSE_INDEX_SELF_PACED_HEADING = "Self-paced any time"
 
 
 @pytest.fixture
@@ -126,17 +129,20 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(
         page.get_by_role("heading", name="Learn data skills. For free. Together.", exact=True)
     ).to_be_visible()
-    expect(page.locator("main .home-hero")).to_have_count(1)
+    expect(page.locator("main .courses-hero")).to_have_count(1)
     expect(page.locator("main #courses")).to_have_count(1)
-    expect(page.get_by_text("Start now", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Active courses", exact=True)).to_be_visible()
+    expect(
+        page.get_by_role("heading", name=COURSE_INDEX_ACTIVE_HEADING, exact=True)
+    ).to_be_visible()
     expect(page.locator("#course-families-heading")).to_have_count(0)
     expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
     expect(page.get_by_text(HOME_HEADING)).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/courses"
     )
-    expect(page.get_by_role("heading", name="Course archive", exact=True)).to_be_visible()
+    expect(
+        page.get_by_role("heading", name=COURSE_INDEX_SELF_PACED_HEADING, exact=True)
+    ).to_be_visible()
     representative_course_link = assert_copied_course_catalog_link(
         page,
         path=REPRESENTATIVE_COURSE_PATH,
@@ -157,11 +163,13 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Page not found")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    stylesheet_urls = page.locator('link[rel="stylesheet"]').evaluate_all(
-        "nodes => nodes.map(node => node.href)"
-    )
-    assert stylesheet_urls
-    assert all(url.startswith(f"{origin}/static/") for url in stylesheet_urls)
+    # Design 5a (issue #179) carries the courses index stylesheet inline, not as a link;
+    # what still has to come from /static/ is the page's own scripts.
+    assert page.locator('link[rel="stylesheet"]').count() == 0
+    assert page.locator("head style").count() == 1
+    script_urls = page.locator("script[src]").evaluate_all("nodes => nodes.map(node => node.src)")
+    assert script_urls
+    assert all(url.startswith(f"{origin}/static/") for url in script_urls)
     page.screenshot(path=screenshot_directory / f"courses-{dimensions}.png", full_page=True)
 
     query = "x=%2F&x="

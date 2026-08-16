@@ -31,9 +31,15 @@ from playwright_tests.course_catalog_contract import assert_copied_course_catalo
 pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
 
 CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
-CMP_COURSE_LIST_SHA256 = "26e391ffdd2c90b89a668c41118f4a8e43efd2b5dde015097f893aee707984ef"
+# The courses index left the byte-exact CMP copy with the design 5a rebuild (issue #179);
+# its digest is now recorded in _docs/adoption/course-platform/integration-patched-files.tsv
+# and asserted by core/tests/test_course_platform_adoption.py.
+DESIGN_MOCKUP_SOURCE = "_docs/design/mockups/datatalks-pages.source.html"
 REPO_ROOT = Path(__file__).resolve().parents[1]
 COURSE_LIST_TEMPLATE = REPO_ROOT / "courses/templates/courses/course_list.html"
+ACTIVE_HEADING = "Active now — you can still join"
+OPEN_HEADING = "Open registration"
+SELF_PACED_HEADING = "Self-paced any time"
 SCREENSHOTS = Path(".tmp/screenshots/issue-128-owner-remediation")
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
@@ -220,7 +226,8 @@ def _write_attribution_evidence() -> None:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     evidence = {
         "cmp_source_commit": CMP_SOURCE_COMMIT,
-        "course_list_sha256": CMP_COURSE_LIST_SHA256,
+        "course_list_sha256": hashlib.sha256(COURSE_LIST_TEMPLATE.read_bytes()).hexdigest(),
+        "design_source": DESIGN_MOCKUP_SOURCE,
         "fixture": [ACTIVE_COURSE, REGISTRATION_COURSE, ARCHIVED_COURSE],
         "template": "courses/templates/courses/course_list.html",
         "viewports": [viewport for viewport, _suffix in VIEWPORTS],
@@ -233,6 +240,38 @@ def _write_attribution_evidence() -> None:
 
 def _capture_dark_mode(page: Page, path: Path) -> None:
     dark_mode = page.get_by_role("button", name="Toggle dark mode")
+    dark_mode.click()
+    expect(page.locator("body.dark-mode")).to_have_count(1)
+    expect(dark_mode).to_have_attribute("aria-pressed", "true")
+    _assert_no_horizontal_overflow(page)
+    page.screenshot(path=path, full_page=True)
+
+
+def _assert_filter_pills_are_operable(page: Page, origin: str) -> None:
+    """The segmented control is links, so it works by keyboard and without JavaScript."""
+
+    pills = page.locator(".filter-pills .filter-pill")
+    expect(pills).to_have_count(4)
+    expect(page.locator('.filter-pill[aria-current="page"]')).to_have_text("All courses")
+    active_pill = page.get_by_role("link", name="Active", exact=True)
+    active_pill.focus()
+    expect(active_pill).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page).to_have_url(f"{origin}/courses?filter=active")
+    expect(page.locator('.filter-pill[aria-current="page"]')).to_have_text("Active")
+    expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name=SELF_PACED_HEADING, exact=True)).to_have_count(0)
+    for pill in pills.all():
+        box = pill.bounding_box()
+        assert box is not None and box["height"] + 0.5 >= 44, box
+    page.goto(f"{origin}/courses", wait_until="networkidle")
+
+
+def _capture_design_dark_mode(page: Page, path: Path) -> None:
+    """Design 5a pages carry their own compact "Dark"/"Light" masthead toggle."""
+
+    dark_mode = page.locator("#dark-mode-toggle")
     dark_mode.click()
     expect(page.locator("body.dark-mode")).to_have_count(1)
     expect(dark_mode).to_have_attribute("aria-pressed", "true")
@@ -271,14 +310,13 @@ def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_database_course_catalog_matches_pinned_cmp_composition(
+def test_database_course_catalog_renders_the_design_5a_index(
     page: Page,
     live_server,
     cmp_course_catalog: dict[str, Course],
     viewport: dict[str, int],
     suffix: str,
 ) -> None:
-    assert hashlib.sha256(COURSE_LIST_TEMPLATE.read_bytes()).hexdigest() == CMP_COURSE_LIST_SHA256
     _write_attribution_evidence()
     page.set_viewport_size(viewport)
     bad_responses: list[str] = []
@@ -296,12 +334,16 @@ def test_database_course_catalog_matches_pinned_cmp_composition(
     expect(
         page.get_by_role("heading", name="Learn data skills. For free. Together.")
     ).to_be_visible()
-    expect(page.locator("main .home-hero")).to_have_count(1)
+    expect(page.locator("main .courses-hero")).to_have_count(1)
     expect(page.locator("main #courses")).to_have_count(1)
-    expect(page.get_by_text("Start now", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Active courses", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Open registration", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Course archive", exact=True)).to_be_visible()
+    expect(page.locator("head style")).to_have_count(1)
+    assert page.locator('link[rel="stylesheet"]').count() == 0
+    # Three catalogue records, and the eyebrow counts them rather than asserting a number.
+    expect(page.get_by_text("three courses · zero tuition", exact=True)).to_be_visible()
+    expect(page.locator(".stat-tile", has_text="free courses")).to_have_count(1)
+    expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=SELF_PACED_HEADING, exact=True)).to_be_visible()
     expect(page.locator("#course-families-heading")).to_have_count(0)
     expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
     course_links = {
@@ -313,21 +355,24 @@ def test_database_course_catalog_matches_pinned_cmp_composition(
         for role, course in cmp_course_catalog.items()
     }
     archived_link = course_links["archived"]
-    expect(page.get_by_role("link", name=ARCHIVED_COURSE["title"], exact=True)).to_have_count(0)
+    # The self-paced row now names its own destination instead of wrapping a whole card.
+    expect(page.get_by_role("link", name=ARCHIVED_COURSE["title"], exact=True)).to_have_count(1)
     expect(archived_link.locator("xpath=ancestor::article[@role='link']")).to_have_count(0)
     expect(
         archived_link.locator("xpath=ancestor::section[1]").get_by_role(
             "heading", name="2024", exact=True
         )
     ).to_be_visible()
-    expect(page.get_by_text("Registration open", exact=True)).to_be_visible()
-    assert page.locator("#courses article[role='link'][tabindex='0']").count() == 2
-    section_order = page.locator("#courses h2").all_text_contents()
-    assert section_order == ["Active courses", "Open registration", "Course archive"]
+    expect(page.get_by_text("registration open", exact=True)).to_be_visible()
+    # The rebuilt page carries no click-anywhere card: every course is reached by a real link.
+    assert page.locator("#courses article[role='link']").count() == 0
+    assert page.locator("#courses article.card").count() == 2
+    section_order = [text.strip() for text in page.locator("#courses h2").all_text_contents()]
+    assert section_order == [ACTIVE_HEADING, OPEN_HEADING, SELF_PACED_HEADING]
     expect(
         page.locator("nav[aria-label='Primary navigation'] a[aria-current='page']")
     ).to_have_text("Courses")
-    expect(page.get_by_role("link", name="Login", exact=True)).to_be_visible()
+    expect(page.get_by_role("link", name="Log in", exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/courses"
     )
@@ -338,16 +383,22 @@ def test_database_course_catalog_matches_pinned_cmp_composition(
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=SCREENSHOTS / f"course-catalog-cmp-{suffix}.png", full_page=True)
 
-    _capture_dark_mode(page, SCREENSHOTS / f"course-catalog-cmp-dark-{suffix}.png")
-    page.get_by_role("button", name="Toggle dark mode").click()
+    _capture_design_dark_mode(page, SCREENSHOTS / f"course-catalog-cmp-dark-{suffix}.png")
+    page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(0)
     page.reload(wait_until="networkidle")
+
+    _assert_filter_pills_are_operable(page, live_server.url)
 
     page.keyboard.press("Tab")
     expect(page.locator(".skip-link")).to_be_focused()
     page.keyboard.press("Enter")
     expect(page.locator("#main-content")).to_be_focused()
-    active_link = page.get_by_role("link", name=ACTIVE_COURSE["title"], exact=True)
+    detail_path = reverse(
+        "course",
+        kwargs={"course_slug": cmp_course_catalog["active"].slug},
+    )
+    active_link = page.locator(f'#courses a[href="{detail_path}"]')
     active_link.focus()
     expect(active_link).to_be_focused()
     assert active_link.evaluate(
@@ -355,10 +406,6 @@ def test_database_course_catalog_matches_pinned_cmp_composition(
         "return style.outlineStyle !== 'none' || style.boxShadow !== 'none'; }"
     )
     page.keyboard.press("Enter")
-    detail_path = reverse(
-        "course",
-        kwargs={"course_slug": cmp_course_catalog["active"].slug},
-    )
     expect(page).to_have_url(f"{live_server.url}{detail_path}")
     expect(page.get_by_role("heading", name=ACTIVE_COURSE["title"], exact=True)).to_be_visible()
     expect(
@@ -598,7 +645,7 @@ def test_registration_hero_fits_success_state_without_javascript(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_no_database_course_catalog_uses_copied_cmp_empty_state(
+def test_no_database_course_catalog_uses_the_design_5a_empty_state(
     page: Page,
     live_server,
     viewport: dict[str, int],
@@ -610,12 +657,12 @@ def test_no_database_course_catalog_uses_copied_cmp_empty_state(
     catalog = page.goto(f"{live_server.url}/courses", wait_until="networkidle")
 
     assert catalog is not None and catalog.status == 200
-    expect(page.locator("main .home-hero")).to_have_count(1)
+    expect(page.locator("main .courses-hero")).to_have_count(1)
     expect(page.locator("main #courses")).to_have_count(1)
-    expect(page.get_by_text("Start now", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Active courses", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Course archive", exact=True)).to_have_count(0)
-    expect(page.get_by_role("heading", name="Open registration", exact=True)).to_have_count(0)
+    expect(page.get_by_text("zero courses · zero tuition", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=SELF_PACED_HEADING, exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_have_count(0)
     expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
     expect(page.get_by_text("Data Engineering Zoomcamp 2026", exact=True)).to_have_count(0)
     expect(page.locator("#course-families-heading")).to_have_count(0)
@@ -624,7 +671,7 @@ def test_no_database_course_catalog_uses_copied_cmp_empty_state(
     _assert_no_horizontal_overflow(page)
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=SCREENSHOTS / f"course-catalog-empty-{suffix}.png", full_page=True)
-    _capture_dark_mode(page, SCREENSHOTS / f"course-catalog-empty-dark-{suffix}.png")
+    _capture_design_dark_mode(page, SCREENSHOTS / f"course-catalog-empty-dark-{suffix}.png")
 
     missing_detail = page.goto(f"{live_server.url}/courses/de-zoomcamp-2026")
     assert missing_detail is not None and missing_detail.status == 404
@@ -633,7 +680,7 @@ def test_no_database_course_catalog_uses_copied_cmp_empty_state(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_database_backed_empty_catalog_keeps_cmp_empty_composition(
+def test_database_backed_empty_catalog_keeps_the_design_5a_empty_composition(
     page: Page,
     live_server,
     viewport: dict[str, int],
@@ -650,9 +697,9 @@ def test_database_backed_empty_catalog_keeps_cmp_empty_composition(
     catalog = page.goto(f"{live_server.url}/courses", wait_until="networkidle")
 
     assert catalog is not None and catalog.status == 200
-    expect(page.locator("main .home-hero")).to_have_count(1)
+    expect(page.locator("main .courses-hero")).to_have_count(1)
     expect(page.locator("main #courses")).to_have_count(1)
-    expect(page.get_by_text("Start now", exact=True)).to_be_visible()
+    expect(page.get_by_text("zero courses · zero tuition", exact=True)).to_be_visible()
     expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
     expect(page.locator("[data-course-row]")).to_have_count(0)
     expect(page.get_by_text("Data Engineering Zoomcamp 2026", exact=True)).to_have_count(0)
@@ -660,4 +707,4 @@ def test_database_backed_empty_catalog_keeps_cmp_empty_composition(
     _assert_no_horizontal_overflow(page)
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=SCREENSHOTS / f"course-catalog-hidden-{suffix}.png", full_page=True)
-    _capture_dark_mode(page, SCREENSHOTS / f"course-catalog-hidden-dark-{suffix}.png")
+    _capture_design_dark_mode(page, SCREENSHOTS / f"course-catalog-hidden-dark-{suffix}.png")

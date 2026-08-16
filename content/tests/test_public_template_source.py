@@ -14,6 +14,9 @@ PUBLIC_TEMPLATE_PATHS = (
     REPOSITORY_ROOT / "accounts/templates/accounts/login.html",
     REPOSITORY_ROOT / "templates/core/base.html",
     REPOSITORY_ROOT / "templates/core/home.html",
+    # The courses index left the adopted shell with the design 5a rebuild (issue #179)
+    # and is now a public page in its own right.
+    REPOSITORY_ROOT / "courses/templates/courses/course_list.html",
     *(sorted((REPOSITORY_ROOT / "templates/public").glob("*.html"))),
     *(sorted((REPOSITORY_ROOT / "templates/review").glob("*.html"))),
 )

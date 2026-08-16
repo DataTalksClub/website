@@ -133,16 +133,28 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                     self.fail(f"template has no loader origin: {logical_name}")
                 self.assertEqual(Path(origin.name).resolve(), adopted_destination)
 
-    def test_course_list_template_remains_the_exact_pinned_cmp_source(self):
+    def test_course_list_template_records_its_design_5a_rebuild_against_the_cmp_source(self):
+        """The courses index left the byte-exact CMP copy with issue #179.
+
+        The copied ledger still records the pinned CMP source it started from, and the
+        patched ledger records what the repository now ships and why, exactly as it does
+        for the adopted base template and stylesheet.
+        """
+
         rows = {
             row["source_path"].removeprefix(PROTECTED_COURSE_TEMPLATE_PREFIX): row
             for row in _protected_course_template_rows()
         }
         row = rows["courses/course_list.html"]
         destination = REPO_ROOT / row["destination_path"]
+        patches = {patch["destination_path"]: patch for patch in _read_tsv(PATCH_MANIFEST_PATH)}
+        patch = patches[row["destination_path"]]
 
         self.assertEqual(row["sha256"], EXPECTED_COURSE_LIST_SHA256)
-        self.assertEqual(_digest(destination), EXPECTED_COURSE_LIST_SHA256)
+        self.assertNotEqual(patch["sha256"], EXPECTED_COURSE_LIST_SHA256)
+        self.assertIn("design 5a", patch["rationale"])
+        self.assertEqual(_digest(destination), patch["sha256"])
+        self.assertEqual(destination.stat().st_size, int(patch["size_bytes"]))
 
     def test_all_recorded_copies_exist_with_recorded_integration_state(self):
         copied_rows = _read_tsv(MANIFEST_PATH)
@@ -245,6 +257,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "courses/models/__init__.py",
                 "courses/models/project.py",
                 "courses/templates/courses/course.html",
+                "courses/templates/courses/course_list.html",
                 "courses/templates/courses/enrollment.html",
                 "courses/templates/courses/leaderboard_score_breakdown.html",
                 "courses/templates/courses/register.html",
@@ -259,6 +272,8 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "courses/tests/homework_submissions_base.py",
                 "courses/tests/homework_submission_validation_base.py",
                 "courses/tests/leaderboard_base.py",
+                "courses/tests/test_course_list_metadata.py",
+                "courses/tests/test_course_list_ordering.py",
                 "courses/tests/test_datamailer_certificates.py",
                 "courses/tests/test_datamailer_registration.py",
                 "courses/tests/test_datamailer_signals.py",
@@ -277,6 +292,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "courses/views/homework_submissions.py",
                 "courses/views/homework_learning_links.py",
                 "courses/views/course_calendar_events.py",
+                "courses/views/course_list.py",
                 "courses/views/project_submissions.py",
                 "courses/views/registration.py",
                 "courses/validators/custom_url_validators.py",
