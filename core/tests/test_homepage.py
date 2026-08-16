@@ -27,27 +27,44 @@ class MainHomepageRoutingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-        self.assertContains(response, "Welcome to DataTalks.Club")
-        self.assertContains(response, "The place to talk about data")
+        self.assertContains(response, "DataTalks.Club")
+        self.assertContains(
+            response,
+            "Ship data pipelines and AI systems that actually run in production.",
+        )
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
-        self.assertContains(response, "2026 cohort")
-        self.assertContains(response, "Starts August 31, 2026")
+        self.assertContains(response, "AI Dev Tools Zoomcamp 2026")
+        self.assertContains(response, "August 31, 2026")
         self.assertContains(
             response,
             f'href="{reverse("course-cohort-ai-dev-tools-2026")}"',
         )
-        self.assertContains(response, "View cohort →")
-        self.assertContains(response, "Browse all courses →")
-        self.assertNotContains(response, "Data Engineering Zoomcamp 2026")
+        self.assertContains(response, "Enroll free")
+        self.assertContains(response, "all courses →")
         self.assertEqual(
             len(re.findall(r"\sdata-featured-course(?=[\s>])", response.content.decode())),
             1,
         )
         self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
-        self.assertRegex(response.content.decode(), r"/static/courses(?:\.[0-9a-f]+)?\.css")
-        self.assertRegex(response.content.decode(), r"/static/core/site_shell(?:\.[0-9a-f]+)?\.css")
         self.assertNotContains(response, "/static/core/site.css")
+
+    def test_homepage_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
+        """Design 5a (issue #179) replaced the adopted shell with one inline stylesheet."""
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn("<style>", body)
+        for retired in (
+            "/static/courses.css",
+            "/static/core/site_shell.css",
+            "/static/core/accessibility.css",
+            "tailwindcss",
+            "fontawesome",
+        ):
+            with self.subTest(asset=retired):
+                self.assertNotIn(retired, body)
+        self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))
@@ -83,7 +100,7 @@ class MainHomepageRoutingTests(TestCase):
             anonymous_response,
             f'href="{reverse("login")}?next=%2F"',
         )
-        self.assertContains(anonymous_response, "Login")
+        self.assertContains(anonymous_response, "Log in")
 
         user_model = get_user_model()
         user = user_model.objects.create(

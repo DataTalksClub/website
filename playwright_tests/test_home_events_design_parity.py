@@ -19,6 +19,11 @@ CMP_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc2156
 CMP_CSS_SHA256 = "282ed7b15df2502a8d4c2e9cd45ef1f8e92771835243d3cbc590f78db9ed5f8f"
 LIGHT_SURFACE_BACKGROUND = "rgb(255, 255, 255)"
 DARK_SURFACE_BACKGROUND = "rgb(13, 17, 23)"
+# The homepage carries its own design-5a palette (issue #179); the events surfaces still
+# render on the adopted CMP shell.
+HOME_LIGHT_BACKGROUND = "rgb(253, 250, 243)"
+HOME_DARK_BACKGROUND = "rgb(20, 23, 42)"
+HOME_HEADING = "Ship data pipelines and AI systems that actually run in production."
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
 ADOPTED_CSS = REPOSITORY_ROOT / "courses/static/courses.css"
@@ -39,10 +44,20 @@ VIEWPORTS = (
     ({"width": 390, "height": 844}, "mobile"),
 )
 SURFACES = (
-    ("/", "home", "The place to talk about data"),
+    ("/", "home", HOME_HEADING),
     ("/events", "events", "Events"),
     (_featured_event_path(), "event-detail", FEATURED_EVENT_TITLE),
 )
+
+
+def _light_background(path: str) -> str:
+    return HOME_LIGHT_BACKGROUND if path in {"/", "/unified/"} else LIGHT_SURFACE_BACKGROUND
+
+
+def _dark_background(path: str) -> str:
+    return HOME_DARK_BACKGROUND if path in {"/", "/unified/"} else DARK_SURFACE_BACKGROUND
+
+
 SCOPED_ACTION_SELECTOR = (
     "#dark-mode-toggle, "
     "main a.primer-button, "
@@ -131,7 +146,7 @@ def _assert_all_scoped_mobile_targets(page: Page, path: str) -> list[dict[str, o
     return records
 
 
-def _load_light(page: Page, url: str) -> None:
+def _load_light(page: Page, url: str, path: str) -> None:
     page.goto(url)
     page.evaluate("localStorage.removeItem('darkMode')")
     response = page.goto(url, wait_until="networkidle")
@@ -139,7 +154,7 @@ def _load_light(page: Page, url: str) -> None:
     expect(page.locator("body.dark-mode")).to_have_count(0)
     expect(page.locator("body")).to_have_css(
         "background-color",
-        LIGHT_SURFACE_BACKGROUND,
+        _light_background(path),
     )
 
 
@@ -170,7 +185,7 @@ def test_home_events_and_detail_match_cmp_composition(
     )
 
     for path, label, heading in SURFACES:
-        _load_light(page, f"{live_server.url}{path}")
+        _load_light(page, f"{live_server.url}{path}", path)
         expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
         expect(page.locator("body")).not_to_contain_text("Traceback")
         expect(page.locator("body")).not_to_contain_text("Page not found")
@@ -178,9 +193,9 @@ def test_home_events_and_detail_match_cmp_composition(
         _assert_no_horizontal_overflow(page)
 
         if path == "/":
-            expect(page.locator("main .home-hero")).to_have_count(1)
+            expect(page.locator("main .hero")).to_have_count(1)
             expect(page.locator("[data-featured-course]")).to_have_css("display", "grid")
-            expect(page.get_by_role("link", name="Browse all courses")).to_have_attribute(
+            expect(page.get_by_role("link", name="all courses")).to_have_attribute(
                 "href", "/courses"
             )
         elif path == "/events":
@@ -207,21 +222,19 @@ def test_home_events_and_detail_match_cmp_composition(
             )
             page.evaluate("window.scrollTo(0, 0)")
 
-        dark_mode = page.get_by_role("button", name="Toggle dark mode")
+        dark_mode = page.locator("#dark-mode-toggle")
         dark_mode.click()
         expect(page.locator("body.dark-mode")).to_have_count(1)
         expect(dark_mode).to_have_attribute("aria-pressed", "true")
         expect(page.locator("body")).to_have_css(
             "background-color",
-            DARK_SURFACE_BACKGROUND,
+            _dark_background(path),
         )
         _assert_no_horizontal_overflow(page)
         page.screenshot(path=SCREENSHOTS / f"{label}-{suffix}-dark.png")
 
-    _load_light(page, f"{live_server.url}/unified/")
-    expect(
-        page.get_by_role("heading", name="The place to talk about data", exact=True)
-    ).to_be_visible()
+    _load_light(page, f"{live_server.url}/unified/", "/unified/")
+    expect(page.get_by_role("heading", name=HOME_HEADING, exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/"
     )
@@ -308,7 +321,7 @@ def test_keyboard_theme_reduced_motion_and_320px_reflow(
         page.keyboard.press("Enter")
         expect(page.locator("#main-content")).to_be_focused()
 
-        dark_mode = page.get_by_role("button", name="Toggle dark mode")
+        dark_mode = page.locator("#dark-mode-toggle")
         dark_mode.click()
         page.goto(f"{live_server.url}/events")
         expect(page.locator("body.dark-mode")).to_have_count(1)

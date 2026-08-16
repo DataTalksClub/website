@@ -10,6 +10,7 @@ from playwright.sync_api import Page, expect
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
 from deploy.contracts import validate_image_digest, validate_source_sha, validate_version
 from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
+from deploy.smoke import HOME_IDENTITY_MARKER as HOME_HEADING
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
 
 pytestmark = [pytest.mark.core, pytest.mark.remote_readonly]
@@ -91,8 +92,8 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     assert home.status == 200
     assert home.url == f"{origin}/"
     assert home.headers["x-robots-tag"] == ROBOTS_VALUE
-    expect(page).to_have_title("Welcome to DataTalks.Club")
-    expect(page.get_by_role("heading", name="The place to talk about data")).to_be_visible()
+    expect(page).to_have_title("DataTalks.Club — free courses for data and AI engineers")
+    expect(page.get_by_role("heading", name=HOME_HEADING)).to_be_visible()
     expect(page.get_by_text("Learn data skills. For free. Together.")).to_have_count(0)
     expect(page.get_by_text(f"Version {version}", exact=False)).to_be_visible()
     expect(page.get_by_text("Learn data skills. For free. Together.")).to_have_count(0)
@@ -102,7 +103,9 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     )
     expect(page.locator("body")).not_to_contain_text("Traceback")
     expect(page.locator("body")).not_to_contain_text("Page not found")
-    assert page.locator('link[rel="stylesheet"]').count() > 0
+    # Design 5a (issue #179) carries the homepage stylesheet inline, not as a link.
+    assert page.locator('link[rel="stylesheet"]').count() == 0
+    assert page.locator("head style").count() == 1
     dimensions = f"{viewport['width']}x{viewport['height']}"
     page.screenshot(path=screenshot_directory / f"home-{dimensions}.png", full_page=True)
 
@@ -114,7 +117,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/"
     )
-    expect(page.get_by_role("heading", name="The place to talk about data")).to_be_visible()
+    expect(page.get_by_role("heading", name=HOME_HEADING)).to_be_visible()
 
     courses = page.goto(f"{origin}/courses", wait_until="networkidle")
     assert courses is not None
@@ -129,7 +132,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(page.get_by_role("heading", name="Active courses", exact=True)).to_be_visible()
     expect(page.locator("#course-families-heading")).to_have_count(0)
     expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
-    expect(page.get_by_text("The place to talk about data")).to_have_count(0)
+    expect(page.get_by_text(HOME_HEADING)).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/courses"
     )

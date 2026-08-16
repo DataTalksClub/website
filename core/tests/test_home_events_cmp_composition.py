@@ -18,8 +18,9 @@ COPIED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/copied-files.t
 PATCHED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/integration-patched-files.tsv"
 PINNED_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc21560b8"
 PINNED_CSS_SHA256 = "282ed7b15df2502a8d4c2e9cd45ef1f8e92771835243d3cbc590f78db9ed5f8f"
+# The homepage left this contract with the design 5a rebuild (issue #179): it owns its own
+# inline stylesheet and none of the adopted CMP shell.  The events surfaces still use it.
 SCOPED_TEMPLATES = (
-    REPOSITORY_ROOT / "templates/core/home.html",
     REPOSITORY_ROOT / "templates/public/events.html",
     REPOSITORY_ROOT / "templates/public/_event.html",
     REPOSITORY_ROOT / "templates/public/_event_meta.html",
@@ -78,7 +79,7 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
         for path in SCOPED_TEMPLATES:
             source = path.read_text(encoding="utf-8")
             relative = path.relative_to(REPOSITORY_ROOT)
-            if path.name in {"home.html", "events.html", "event_detail.html"}:
+            if path.name in {"events.html", "event_detail.html"}:
                 if not source.startswith('{% extends "core/base.html" %}'):
                     failures.append(f"{relative}: does not extend core/base.html")
             for forbidden in (
@@ -96,30 +97,25 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
         self.assertEqual(failures, [])
 
     def test_catalog_surfaces_keep_cmp_hero_and_divided_row_composition(self) -> None:
-        home = (REPOSITORY_ROOT / "templates/core/home.html").read_text(encoding="utf-8")
         events = (REPOSITORY_ROOT / "templates/public/events.html").read_text(encoding="utf-8")
         event_row = (REPOSITORY_ROOT / "templates/public/_event.html").read_text(encoding="utf-8")
         detail = (REPOSITORY_ROOT / "templates/public/event_detail.html").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn('class="home-hero ', home)
         self.assertIn('class="home-hero ', events)
-        self.assertIn("divide-y app-divide", home)
         self.assertIn("divide-y app-divide", events)
         self.assertIn('class="grid gap-3 py-5"', event_row)
         self.assertIn('class="max-w-3xl"', detail)
-        self.assertNotIn("text-6xl", home)
 
     def test_mobile_target_fix_covers_every_scoped_cmp_button(self) -> None:
-        home = (REPOSITORY_ROOT / "templates/core/home.html").read_text(encoding="utf-8")
         events = (REPOSITORY_ROOT / "templates/public/events.html").read_text(encoding="utf-8")
         detail = (REPOSITORY_ROOT / "templates/public/event_detail.html").read_text(
             encoding="utf-8"
         )
         shell_css = TARGET_SHELL_CSS.read_text(encoding="utf-8")
 
-        for source in (home, events, detail):
+        for source in (events, detail):
             self.assertIn("home-events-cmp-surface", source)
         target_rule = re.search(
             r"body\.home-events-cmp-surface main \.primer-button\s*\{(?P<body>[^}]*)\}",
@@ -161,12 +157,14 @@ class HomeEventsCmpRenderingTests(TestCase):
         self.assertEqual(self._main_markup(home), self._main_markup(unified))
         for response in (home, unified):
             self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
-            self.assertContains(response, "The place to talk about data")
-            self.assertContains(response, "Explore upcoming events")
-            self.assertContains(response, "Explore free courses")
-            self.assertContains(response, "Join our community")
+            self.assertContains(
+                response,
+                "Ship data pipelines and AI systems that actually run in production.",
+            )
+            self.assertContains(response, "Create your free account")
+            self.assertContains(response, "Something to attend this week")
             self.assertContains(response, "AI Dev Tools Zoomcamp")
-            self.assertContains(response, "Browse all courses →")
+            self.assertContains(response, "all courses →")
             self.assertNotContains(response, "/static/core/site.css")
 
     def test_events_catalog_and_detail_preserve_public_content_and_seo(self) -> None:

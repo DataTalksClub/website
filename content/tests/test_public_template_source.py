@@ -78,8 +78,9 @@ class PublicTemplateSourceTests(SimpleTestCase):
                 self.assertTrue(readability_violations(source))
 
     def test_collection_surfaces_use_divided_rows_instead_of_column_grids(self) -> None:
+        # The homepage left the divided-row composition with the design 5a rebuild
+        # (issue #179) and now owns its own card grid.
         paths = (
-            REPOSITORY_ROOT / "templates/core/home.html",
             REPOSITORY_ROOT / "templates/public/collection_hub.html",
             REPOSITORY_ROOT / "templates/public/podcast_hub.html",
             REPOSITORY_ROOT / "templates/public/events.html",

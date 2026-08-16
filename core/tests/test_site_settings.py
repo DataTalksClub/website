@@ -434,11 +434,11 @@ class PublicAnnouncementTests(TestCase):
         html = response.content.decode()
         self.assertEqual(html.count('aria-label="Site announcement"'), 1)
         self.assertIn("Hours &amp; &quot;news&quot;", html)
-        self.assertLess(html.index("</header>"), html.index("site-announcement"))
-        self.assertLess(
-            html.index("site-announcement"),
-            html.index('<main id="main-content"'),
-        )
+        # Match the labelled element, not the class name: the homepage carries its own
+        # inline stylesheet, so "site-announcement" also appears in the head.
+        banner = html.index('aria-label="Site announcement"')
+        self.assertLess(html.index("</header>"), banner)
+        self.assertLess(banner, html.index('<main id="main-content"'))
         self.assertNotIn('role="alert"', html)
 
     def test_public_database_failure_keeps_page_available_without_banner(self) -> None:
