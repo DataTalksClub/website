@@ -1,6 +1,7 @@
 from collections import defaultdict
 from dataclasses import dataclass
 
+from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import render
 from django.urls import reverse
@@ -16,6 +17,7 @@ from core.course_index_content import (
     selected_course_filter,
 )
 from courses.models.course import Course
+from courses.models.wrapped import WrappedStatistics
 from courses.services.registration_counts import (
     public_course_registration_count,
 )
@@ -204,6 +206,34 @@ def course_when_display(dates, length):
     return " · ".join(parts)
 
 
+# The year the Wrapped entry point shipped with, and the year it keeps pointing
+# at while no wrapped has been published yet.
+WRAPPED_ENTRY_FALLBACK_YEAR = 2025
+
+
+def wrapped_entry_year():
+    """Return the year the courses index links its Wrapped entry point at.
+
+    The courses index is the site's only route into Wrapped, so the year follows
+    the published data rather than a constant in the template: the newest year an
+    editor has made visible.  With nothing published the link keeps the year the
+    entry point shipped with, which is where the page pointed before.  Nothing is
+    read while SHOW_WRAPPED is off, and the template renders no entry point
+    without a year.
+    """
+
+    if not settings.SHOW_WRAPPED:
+        return None
+
+    published_years = WrappedStatistics.objects.filter(is_visible=True)
+    published_year = (
+        published_years.order_by("-year").values_list("year", flat=True).first()
+    )
+    if published_year is None:
+        return WRAPPED_ENTRY_FALLBACK_YEAR
+    return published_year
+
+
 def visible_course_sections(selected_filter):
     return {
         "show_active_courses": selected_filter in {"all", "active"},
@@ -253,6 +283,7 @@ def course_list_context(request):
             reverse("course_list"),
         ),
         "selected_course_filter": selected_filter,
+        "wrapped_year": wrapped_entry_year(),
     }
     context.update(visible_course_sections(selected_filter))
     return context
