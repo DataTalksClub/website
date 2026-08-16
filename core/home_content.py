@@ -83,6 +83,21 @@ WIKI_GRAPH_SPOKES = (
     "mlops-roadmap",
 )
 
+# Percentage coordinates of the plotted-pill ring, clockwise from the top left.
+# The homepage now draws its graph as a scalable SVG (geometry below), but
+# /wiki/graph still plots its neighbourhood with positioned pills on this ring
+# (content/wiki_content.py imports it: one ring, one definition).
+WIKI_GRAPH_POSITIONS = (
+    (18.0, 19.0),
+    (50.0, 9.0),
+    (82.0, 19.0),
+    (91.0, 50.0),
+    (82.0, 81.0),
+    (50.0, 91.0),
+    (18.0, 81.0),
+    (9.0, 50.0),
+)
+
 # ---------------------------------------------------------------------------
 # Wiki graph geometry.  The homepage draws the hub and its spokes as one SVG
 # (nodes, labels and edges share a viewBox), so the drawing scales as a unit

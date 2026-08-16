@@ -561,11 +561,16 @@ primitives are still the ones a page in this system uses when it does own a form
 ink border) — the tinted inset blocks: "what you'll build", "next assignment",
 "questions before you start?".
 
-### Knowledge graph (homepage wiki band, `/wiki/graph`)
+### Knowledge graph (`/wiki/graph`; homepage draws its own SVG)
 
-The homepage plots one wiki hub and its spokes; `/wiki/graph` plots a hub of its
-own and then lists every node the graph carries. Both read the same data, so
-both use these primitives — they live in the partial rather than in either page.
+`/wiki/graph` plots a hub and its spokes, then lists every node the graph
+carries, using these primitives from the partial. The homepage's wiki band no
+longer uses the plotted-pill form: it draws hub, spokes and edges as one
+inline SVG per width (`.graph-svg-*`, page-local in `templates/core/home.html`,
+geometry computed in `core/home_content.py`), so the drawing scales as a unit
+and cannot overflow a phone. The homepage still shares `.graph-frame`, the
+legend and `--graph-edge`; the pill primitives stay here for `/wiki/graph`,
+which should eventually follow the SVG approach in its own issue.
 
 ```html
 <div class="graph-frame">
@@ -596,9 +601,10 @@ both use these primitives — they live in the partial rather than in either pag
 - **`.topic-list`** / **`.topic`** — the bordered topic cards the homepage
   stacks beside its plot.
 
-Positions are a layout constant (`core.home_content.WIKI_GRAPH_POSITIONS`);
-which node sits where is read from the graph's own edges, and a hub or a spoke
-the data cannot supply raises rather than rendering an invented edge.
+The homepage's SVG geometry (frames, ring positions, label wrapping) is a
+layout constant in `core/home_content.py`; which node sits where is read from
+the graph's own edges, and a hub or a spoke the data cannot supply raises
+rather than rendering an invented edge.
 
 ### Long-form prose (`.prose`)
 

@@ -430,7 +430,7 @@ class HomepageWikiGraphTests(TestCase):
             svg = rendered[layout.kind]
             hub_href = re.escape(graph.hub.public_path)
             hub_anchor = re.search(
-                rf'<a class="graph-node graph-node-hub" href="{hub_href}">.*?</a>',
+                rf'<a class="graph-svg-node graph-svg-hub" href="{hub_href}">.*?</a>',
                 svg,
                 re.DOTALL,
             )
@@ -443,7 +443,7 @@ class HomepageWikiGraphTests(TestCase):
                     self.assertEqual(resolve(node.topic.public_path).url_name, "public-wiki")
                     href = re.escape(node.topic.public_path)
                     anchor = re.search(
-                        rf'<a class="graph-node" href="{href}">.*?</a>',
+                        rf'<a class="graph-svg-node" href="{href}">.*?</a>',
                         svg,
                         re.DOTALL,
                     )
@@ -460,7 +460,7 @@ class HomepageWikiGraphTests(TestCase):
         for layout in graph.layouts:
             with self.subTest(layout=layout.kind):
                 self.assertEqual(
-                    len(re.findall(r'<line class="graph-edge"', rendered[layout.kind])),
+                    len(re.findall(r'<line class="graph-svg-edge"', rendered[layout.kind])),
                     len(layout.edges),
                 )
                 self.assertEqual(len(layout.edges), len(graph.spokes))
