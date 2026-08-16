@@ -34,9 +34,12 @@ with system stacks:
 | Serif | **Source Serif 4** | not used |
 
 The bundles reference the font binaries by UUID, so the files themselves are not here.
-Adopting them means adding the faces to the site's own static assets and deciding how
-they are served; until then the system stacks stand in, and the rendered type is close
-but not identical to the export.
+
+**Decision (owner, 2026-08-16): the site keeps the system stacks.** The mockup faces are
+recorded above for provenance only. Do not add `@font-face` rules or ship font binaries
+for them. The consequence is accepted: rendered type is close to the export without
+matching it exactly, and no measurement should be tuned in pursuit of a match that a
+different typeface makes impossible.
 
 ## Reproducing the decode
 
