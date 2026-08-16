@@ -1,112 +1,500 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block body_class %}
-  home-events-cmp-surface
-{% endblock %}
-{% block content %}
-  <header class="home-hero max-w-3xl py-6 md:py-10">
-    <h1 class="text-3xl font-semibold leading-tight tracking-normal sm:text-4xl md:text-5xl">
-      Events
-    </h1>
-    <p class="mt-4 text-base leading-7 app-text md:text-lg md:leading-8">
-      We host multiple types of events to help you learn and connect with the data science community:
-    </p>
-    <ul
-      class="mt-5 divide-y app-divide border-y app-border app-text"
-      aria-label="Types of events"
-    >
-      <li class="flex items-start gap-3 py-3">
-        <i class="fas fa-tv mt-1" aria-hidden="true"></i>
-        <span>Webinars &ndash; events on Tuesday, with slides, mostly technical</span>
-      </li>
-      <li class="flex items-start gap-3 py-3">
-        <i class="fas fa-microphone-alt mt-1" aria-hidden="true"></i>
-        <span>
-          Live podcasts &ndash; events on Friday, a discussion without slides, the recording is
-          published as a podcast
-        </span>
-      </li>
-      <li class="flex items-start gap-3 py-3">
-        <i class="fas fa-wrench mt-1" aria-hidden="true"></i>
-        <span>Workshop &ndash; hands-on tutorials about technical topics</span>
-      </li>
-      <li class="flex items-start gap-3 py-3">
-        <i class="fas fa-briefcase mt-1" aria-hidden="true"></i>
-        <span>
-          Conference &ndash; bigger events with multiple talks, both webinar-type talks and
-          podcast-type talks
-        </span>
-      </li>
-    </ul>
-    <p class="mt-5 app-text">
-      <i class="far fa-calendar-alt mr-2" aria-hidden="true"></i>
-      <strong>Pro tip</strong>: you can also subscribe to
-      <a
-        class="app-link"
-        href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        our Google calendar<span class="sr-only"> (opens in a new tab)</span>
-      </a>
-      to get notified about all our events (subscribing works from desktop only).
-    </p>
-  </header>
-  <section class="border-t app-border pt-8" aria-labelledby="events-view-heading">
-    <nav class="event-view-tabs" aria-label="Event views">
-      <a
-        class="event-view-tab app-link"
-        href="{{ upcoming_path }}"
-        {% if not is_past_events %}
-          aria-current="page"
-        {% endif %}
-      >
-        Upcoming events
-      </a>
-      <a
-        class="event-view-tab app-link"
-        href="{{ past_path }}"
-        {% if is_past_events %}
-          aria-current="page"
-        {% endif %}
-      >
-        Past events
-      </a>
-    </nav>
-    <h2 id="events-view-heading" class="mt-7 text-2xl font-semibold">
-      {% if is_past_events %}
-        Past events
-      {% else %}
-        Upcoming events
-      {% endif %}
-    </h2>
-    <div class="mt-5" aria-label="Event timeline">
-      {% include "public/_event_timeline.html" %}
-    </div>
-    {% if is_past_events and event_page and event_page.paginator.num_pages > 1 %}
-      <nav class="event-pagination" aria-label="Past event pages">
-        {% if event_page.has_previous %}
-          <a
-            class="primer-button primer-button-secondary app-link"
-            href="{{ previous_event_page_path }}"
-          >
-            Previous
-          </a>
-        {% endif %}
-        <span class="event-pagination-status app-muted">
-          Page {{ event_page.number }} of {{ event_page.paginator.num_pages }}
-        </span>
-        {% if event_page.has_next %}
-          <a
-            class="primer-button primer-button-secondary app-link"
-            href="{{ next_event_page_path }}"
-          >
-            Next
-          </a>
-        {% endif %}
-      </nav>
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Events index, design 5a mockup 6c (issue #179).  Like the homepage
+       * this page carries its own complete stylesheet: the shared design
+       * system partial first, then the few rules this page adds.  It loads
+       * none of the older site CSS.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Events-specific rules.  Everything visual here is a shared primitive
+       * (.when date rail, .status-pill, .row-list/.list-row, .card, .cta,
+       * .filter-pill, .mono-note); what follows is only this page's layout.
+       * ------------------------------------------------------------------ */
+
+      /* The export runs the hero straight into the first row, so the two bands
+         give up most of the padding that meets at their shared dashed rule. */
+      .events-hero {
+        padding-bottom: 1.5rem;
+      }
+
+      .events-list {
+        padding-top: 1.35rem;
+      }
+
+      .events-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        max-width: 18ch;
+      }
+
+      .events-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1.15rem;
+        max-width: 36em;
+      }
+
+      /* The mockup keeps the two view pills on the left and pushes the
+         calendar link to the right edge of the same row. */
+      .events-controls {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        margin-top: 1.5rem;
+      }
+
+      .events-calendar {
+        margin-left: auto;
+      }
+
+      /* One row per event, exactly as the export draws it: the date rail in a
+         fixed first column and the event card filling the rest. */
+      .event-rows .list-row {
+        --row-cols: 6.5rem minmax(0, 1fr);
+        /* The export runs the rail's bubble rule down the whole card, not just
+           beside the three lines of date it holds. */
+        align-items: stretch;
+      }
+
+      .event-card {
+        align-items: center;
+        flex-direction: row;
+        gap: 1rem;
+        padding: 0.85rem 1rem;
+      }
+
+      /* The body takes the free width so the action holds the card's right edge. */
+      .event-body {
+        display: grid;
+        flex: 1;
+        gap: 0.25rem;
+        justify-items: start;
+        min-width: 0;
+      }
+
+      .event-card h3 {
+        font-size: 1.15rem;
+      }
+
+      .event-card h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .event-card h3 a:hover {
+        text-decoration: underline;
+      }
+
+      .event-speakers {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .event-action {
+        flex: none;
+      }
+
+      .event-empty {
+        margin-top: 0.5rem;
+      }
+
+      .event-pagination {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1rem;
+        justify-content: space-between;
+        margin-top: 1.5rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * Narrow layout.  The row reshapes rather than reflows: the date rail
+       * becomes one horizontal line above the card, and the card stacks its
+       * action under the title instead of squeezing it beside one.
+       * ------------------------------------------------------------------ */
+
+      @media (max-width: 47.99rem) {
+        .event-rows .when {
+          align-items: baseline;
+          column-gap: 0.55rem;
+          display: flex;
+          flex-wrap: wrap;
+          padding-top: 0;
+        }
+
+        .event-card {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .event-action {
+          width: 100%;
+        }
+
+        .event-pagination-status {
+          order: -1;
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  {% url 'account_settings' as account_settings_url %}
+  {% url 'socialaccount_connections' as account_connections_url %}
+  {% url 'account_logout' as account_logout_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
     {% endif %}
-  </section>
-{% endblock %}
+  >
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <script>
+      (function () {
+        try {
+          var body = document.body;
+          if (
+            body
+            && body.getAttribute('data-authenticated') !== 'true'
+            && localStorage.getItem('darkMode') === 'true'
+          ) {
+            body.classList.add('dark', 'dark-mode');
+            body.setAttribute('data-dark-mode', 'true');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    {% if user.is_authenticated %}
+      <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+    {% endif %}
+    {% if IS_IMPERSONATING %}
+      <div id="impersonation-banner" class="impersonation-banner">
+        <div class="shell">
+          <span>
+            You are logged in as
+            <strong>{{ request.user.email|default:request.user.username }}</strong>
+          </span>
+          <form method="post" action="{% url 'stop_impersonating' %}">
+            {% csrf_token %}
+            <button type="submit" class="impersonation-return-button">Return to admin account</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+    <header class="masthead">
+      <nav class="shell masthead-inner" aria-label="Primary navigation">
+        <a class="brand" href="{% url 'home' %}">
+          {# The mockup's mark traced 1:1: wobbled lavender bubble, ink outline, tail, DTC. #}
+          <svg class="brand-mark" viewBox="0 0 64 61" aria-hidden="true" focusable="false">
+            <path
+              d="M17 3.2C27 1.6 39 1.8 48 3.6C55.5 5.2 60.8 9.4 61.4 16C62 22.6 61.8 30 60.6 36.4C59.4 42.8 56 47.2 49.6 48.6C46.6 49.2 43.4 49.4 40.2 49C39.4 53.4 38.8 57.4 37.6 61C36.4 57.2 34.4 53.4 31.8 50.2C27 49.6 22.2 48.8 18.2 47.4C11.4 45 6.4 40.6 4.6 34.2C2.8 27.8 2.6 20.6 3.8 14.6C5 8.6 10 4.6 17 3.2Z"
+              fill="#b9bff0"
+              stroke="currentColor"
+              stroke-width="4"
+              stroke-linejoin="round"
+            />
+            <text x="32" y="34">DTC</text>
+          </svg>
+          <span class="brand-name">
+            <span class="brand-light">Data</span>Talks.Club
+          </span>
+        </a>
+        <div class="site-navigation">
+          <button
+            class="site-navigation-toggle"
+            type="button"
+            aria-expanded="false"
+            aria-controls="site-navigation-links"
+          >
+            Menu
+          </button>
+          <div id="site-navigation-links" class="site-navigation-links">
+            <a class="nav-link" href="{% url 'events' %}" aria-current="page">Events</a>
+            <a class="nav-link" href="{% url 'course_list' %}">Courses</a>
+            <a class="nav-link" href="{% url 'articles' %}">Blog</a>
+            <a class="nav-link" href="{% url 'podcast' %}">Podcast</a>
+            <a class="nav-link" href="{% url 'wiki-home' %}">Wiki</a>
+            <a class="nav-link" href="{% url 'books' %}">Books</a>
+            <a class="nav-link" href="{% url 'docs-home' %}">Docs</a>
+            <a class="nav-link" href="{% url 'faq-home' %}">FAQ</a>
+          </div>
+        </div>
+        <div class="masthead-actions">
+          <button
+            id="dark-mode-toggle"
+            class="pill-button"
+            type="button"
+            aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
+          >
+            <span class="dot" aria-hidden="true"></span>
+            <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
+            <span class="sr-only">&nbsp;mode</span>
+          </button>
+          {% if user.is_authenticated %}
+            {% comment %}
+              Same account-menu contract as the shared shell: the labelled summary and the
+              .user-menu-panel links every identity test drives.
+            {% endcomment %}
+            <details class="account-nav user-menu">
+              <summary
+                class="user-menu-toggle"
+                title="Account menu"
+                aria-label="Account menu"
+              >Account</summary>
+              <div class="mobile-nav-panel user-menu-panel">
+                <p class="user-menu-signed-in">Signed in as</p>
+                <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
+                  {{ user.email|default:user.username }}
+                </p>
+                <div class="user-menu-actions">
+                  <a class="nav-link user-menu-item" href="{% url 'course_list' %}">Courses</a>
+                  {% if account_settings_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
+                  {% endif %}
+                  {% if account_connections_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_connections_url }}">Login connections</a>
+                  {% endif %}
+                  {% if can_access_studio %}
+                    <a class="nav-link user-menu-item" href="{% url 'studio:home' %}">Studio</a>
+                  {% endif %}
+                  {% if account_logout_url %}
+                    <a class="nav-link user-menu-item" href="{{ account_logout_url }}">Logout</a>
+                  {% endif %}
+                </div>
+              </div>
+            </details>
+          {% else %}
+            {% comment %}
+              Rendered once, and visible at every width: a signed-out visitor must be able
+              to reach login without first opening the navigation menu.
+            {% endcomment %}
+            <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
+            <a class="signup-button" href="{% url 'account_signup' %}">Sign up free</a>
+          {% endif %}
+        </div>
+      </nav>
+    </header>
+    {% if site_announcement %}
+      <aside class="site-announcement" aria-label="Site announcement">
+        <div class="shell">{{ site_announcement.message }}</div>
+      </aside>
+    {% endif %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream events-hero" aria-labelledby="events-heading">
+        <div class="shell">
+          <h1 id="events-heading">Something happening every week</h1>
+          <p class="events-lede">
+            Workshops, podcast recordings and open Q&amp;As with people doing the work.
+            Free, live, recorded if you miss it.
+          </p>
+          <div class="events-controls">
+            <nav class="filter-pills" aria-label="Event views">
+              {% if is_past_events %}
+                <a class="filter-pill" href="{{ upcoming_path }}">Upcoming events</a>
+              {% else %}
+                <a class="filter-pill" href="{{ upcoming_path }}" aria-current="page">Upcoming events</a>
+              {% endif %}
+              {% if is_past_events %}
+                <a class="filter-pill" href="{{ past_path }}" aria-current="page">Past events</a>
+              {% else %}
+                <a class="filter-pill" href="{{ past_path }}">Past events</a>
+              {% endif %}
+            </nav>
+            <a
+              class="band-link events-calendar"
+              href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
+              target="_blank"
+              rel="noopener noreferrer"
+            >our Google calendar<span class="sr-only"> (opens in a new tab)</span> →</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-cream events-list" aria-labelledby="events-view-heading">
+        <div class="shell">
+          <h2 id="events-view-heading" class="sr-only">
+            {% if is_past_events %}
+              Past events
+            {% else %}
+              Upcoming events
+            {% endif %}
+          </h2>
+          <div class="row-list event-rows" data-event-view="{{ event_mode }}">
+            {% for group in timeline_groups %}
+              {% for event in group.events %}
+                <div class="list-row event-row">
+                  <div class="when">
+                    <strong>
+                      <time datetime="{{ group.key }}">
+                        {{ group.display_date }}
+                      </time>
+                    </strong>
+                    <span class="when-day">
+                      {{ group.weekday }}
+                    </span>
+                    <span class="when-time">
+                      {{ event.display_clock }}
+                    </span>
+                  </div>
+                  <article class="card event-card">
+                    <div class="event-body">
+                      {% if is_past_events %}
+                        <span class="status-pill status-pill-wait">{{ event.type }}</span>
+                      {% elif event.type == "podcast" %}
+                        <span class="status-pill status-pill-mint">{{ event.type }}</span>
+                      {% else %}
+                        <span class="status-pill status-pill-open">{{ event.type }}</span>
+                      {% endif %}
+                      <h3>
+                        <a href="{{ event.public_path }}">{{ event.title }}</a>
+                      </h3>
+                      {% if event.speakers %}
+                        <p class="event-speakers">
+                          With
+                          {% for speaker in event.speakers %}
+                            <a href="{{ speaker.public_path }}">{{ speaker.name }}</a>
+                            {% if not forloop.last %}
+                              <span aria-hidden="true">,</span>
+                            {% endif %}
+                          {% endfor %}
+                        </p>
+                      {% endif %}
+                    </div>
+                    {% if is_past_events %}
+                      <a class="cta cta-compact cta-secondary event-action" href="{{ event.public_path }}">Event details</a>
+                    {% else %}
+                      <a class="cta cta-compact cta-primary event-action" href="{{ event.public_path }}">Event details</a>
+                    {% endif %}
+                  </article>
+                </div>
+              {% endfor %}
+            {% empty %}
+              <p class="event-empty">
+                {% if is_past_events %}
+                  No past events.
+                {% else %}
+                  No upcoming events.
+                {% endif %}
+              </p>
+            {% endfor %}
+          </div>
+          {% if is_past_events and event_page and event_page.paginator.num_pages > 1 %}
+            <nav class="event-pagination" aria-label="Past event pages">
+              {% if event_page.has_previous %}
+                <a class="cta cta-compact cta-secondary" href="{{ previous_event_page_path }}">Previous</a>
+              {% endif %}
+              <p class="mono-note event-pagination-status">
+                Page {{ event_page.number }} of {{ event_page.paginator.num_pages }}
+              </p>
+              {% if event_page.has_next %}
+                <a class="cta cta-compact cta-secondary" href="{{ next_event_page_path }}">Next</a>
+              {% endif %}
+            </nav>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_footer.html" %}
+    <script>
+      /* Page-local theme toggle: same storage key, cookie endpoint and body classes as
+         the shared shell, with the compact "Dark"/"Light" label this design uses. */
+      (function () {
+        var body = document.body;
+        var toggle = document.getElementById('dark-mode-toggle');
+        var label = document.getElementById('dark-mode-label');
+        if (!toggle) {
+          return;
+        }
+
+        function apply(isDark) {
+          body.classList.toggle('dark', isDark);
+          body.classList.toggle('dark-mode', isDark);
+          body.setAttribute('data-dark-mode', isDark ? 'true' : 'false');
+          toggle.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+          if (label) {
+            label.textContent = isDark ? 'Light' : 'Dark';
+          }
+        }
+
+        var authenticated = body.getAttribute('data-authenticated') === 'true';
+        if (!authenticated) {
+          try {
+            var stored = localStorage.getItem('darkMode');
+            if (stored !== null) {
+              apply(stored === 'true');
+            }
+          } catch (e) {}
+        }
+
+        toggle.addEventListener('click', function () {
+          var next = body.getAttribute('data-dark-mode') !== 'true';
+          if (!authenticated) {
+            try {
+              localStorage.setItem('darkMode', next.toString());
+            } catch (e) {}
+            apply(next);
+            return;
+          }
+          var token = document.getElementById('csrf-token');
+          fetch(body.getAttribute('data-toggle-url'), {
+            method: 'POST',
+            headers: {
+              'X-CSRFToken': token ? token.value : '',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+          })
+            .then(function (response) {
+              if (!response.ok) {
+                throw new Error('Dark mode toggle failed');
+              }
+              return response.json();
+            })
+            .then(function (data) {
+              apply(data.dark_mode);
+              try {
+                localStorage.setItem('darkMode', data.dark_mode.toString());
+              } catch (e) {}
+            });
+        });
+      })();
+    </script>
+    {% comment %}
+      Same timezone contract as the shared shell: the browser_timezone cookie for every
+      visitor, and one passive preference POST for a signed-in account without one.
+    {% endcomment %}
+    <script src="{% static 'timezone_preference.js' %}"></script>
+    <script src="{% static 'core/site_navigation.js' %}"></script>
+    <script src="{% static 'core/accessibility.js' %}"></script>
+    <script src="{% static 'core/analytics_preferences.js' %}"></script>
+  </body>
+</html>

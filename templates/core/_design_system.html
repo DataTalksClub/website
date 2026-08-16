@@ -116,11 +116,18 @@ Rules for editing:
         --on-green: #f3fff5;
         --band-ink-bg: #0d0f20;
         --page: #13162a;
-        /* Green in its text role sits on the dark mint panel and the dark page,
-           so it takes the light value the design's dark table gives it
-           (_docs/design/design-5a.md); the light #1f6b2c would read at about
-           1.6:1 on the dark mint of a `.status-pill-mint`. */
+        /* The extended tokens the 6-series pages use.  Their dark values are the
+           mockup's own substitutions (#dfe2f7 -> #2d3565, #f3f0e8 -> #2a2740,
+           #6b6034 -> #cbb98a, #1f6b2c -> #93c7a5) and are documented in the
+           extended-token table of _docs/design/design-5a.md.  Without them a
+           status pill kept its light surface while its text flipped to the dark
+           ink, which is unreadable; --clay and --gold hold in both themes. */
+        --lavender-deep: #2d3565;
+        --sand: #2a2740;
+        --olive: #cbb98a;
         --green-ship: #93c7a5;
+        --bubble: #3c4372;
+        --on-bubble: #e8e5dd;
       }
 
       *,

@@ -79,13 +79,12 @@ class PublicTemplateSourceTests(SimpleTestCase):
 
     def test_collection_surfaces_use_divided_rows_instead_of_column_grids(self) -> None:
         # The homepage left the divided-row composition with the design 5a rebuild
-        # (issue #179) and now owns its own card grid.  The podcast index left it
-        # with the same rebuild: its episodes are design 5a `.row-list` rows, which
-        # draw the same dashed division from the shared partial instead of the
-        # adopted shell's utility classes.
+        # (issue #179) and now owns its own card grid.  The events index and the
+        # podcast index left it with the same rebuild, on mockups 6c and 6d: their
+        # rows are design 5a `.row-list` rows, which draw the same dashed division
+        # from the shared partial instead of the adopted shell's utility classes.
         paths = (
             REPOSITORY_ROOT / "templates/public/collection_hub.html",
-            REPOSITORY_ROOT / "templates/public/events.html",
             REPOSITORY_ROOT / "templates/public/wiki_hub.html",
         )
         for path in paths:

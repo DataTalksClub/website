@@ -19,11 +19,13 @@ CMP_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc2156
 CMP_CSS_SHA256 = "282ed7b15df2502a8d4c2e9cd45ef1f8e92771835243d3cbc590f78db9ed5f8f"
 LIGHT_SURFACE_BACKGROUND = "rgb(255, 255, 255)"
 DARK_SURFACE_BACKGROUND = "rgb(13, 17, 23)"
-# The homepage carries its own design-5a palette (issue #179); the events surfaces still
-# render on the adopted CMP shell.
-HOME_LIGHT_BACKGROUND = "rgb(253, 250, 243)"
-HOME_DARK_BACKGROUND = "rgb(19, 22, 42)"
+# The homepage and the events index carry the design-5a palette (issue #179, mockups 5a
+# and 6c); the event detail page still renders on the adopted CMP shell.
+DESIGN_5A_LIGHT_BACKGROUND = "rgb(253, 250, 243)"
+DESIGN_5A_DARK_BACKGROUND = "rgb(19, 22, 42)"
+DESIGN_5A_PATHS = frozenset({"/", "/unified/", "/events"})
 HOME_HEADING = "Ship data pipelines and AI systems that actually run in production."
+EVENTS_HEADING = "Something happening every week"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
 ADOPTED_CSS = REPOSITORY_ROOT / "courses/static/courses.css"
@@ -45,22 +47,26 @@ VIEWPORTS = (
 )
 SURFACES = (
     ("/", "home", HOME_HEADING),
-    ("/events", "events", "Events"),
+    ("/events", "events", EVENTS_HEADING),
     (_featured_event_path(), "event-detail", FEATURED_EVENT_TITLE),
 )
 
 
 def _light_background(path: str) -> str:
-    return HOME_LIGHT_BACKGROUND if path in {"/", "/unified/"} else LIGHT_SURFACE_BACKGROUND
+    return DESIGN_5A_LIGHT_BACKGROUND if path in DESIGN_5A_PATHS else LIGHT_SURFACE_BACKGROUND
 
 
 def _dark_background(path: str) -> str:
-    return HOME_DARK_BACKGROUND if path in {"/", "/unified/"} else DARK_SURFACE_BACKGROUND
+    return DESIGN_5A_DARK_BACKGROUND if path in DESIGN_5A_PATHS else DARK_SURFACE_BACKGROUND
 
 
+# The CMP surfaces act through .primer-button; the design-5a pages act through .cta and
+# the filter pills, and both kinds are held to the same 44px target floor.
 SCOPED_ACTION_SELECTOR = (
     "#dark-mode-toggle, "
     "main a.primer-button, "
+    "main a.cta, "
+    "main a.filter-pill, "
     "main button, "
     'main input[type="button"], '
     'main input[type="submit"], '
@@ -199,8 +205,12 @@ def test_home_events_and_detail_match_cmp_composition(
                 "href", "/courses"
             )
         elif path == "/events":
-            expect(page.locator("main .home-hero")).to_have_count(1)
-            expect(page.locator("main article").first).to_have_css("display", "grid")
+            expect(page.locator("main .events-hero")).to_have_count(1)
+            expect(page.locator("main .event-rows .list-row").first).to_have_css("display", "grid")
+            expect(page.locator("main .event-rows .when").first).to_be_visible()
+            expect(page.get_by_role("link", name="Past events", exact=True)).to_have_attribute(
+                "href", "/events/past"
+            )
             expect(page.get_by_role("link", name="our Google calendar")).to_have_attribute(
                 "target", "_blank"
             )
@@ -327,7 +337,7 @@ def test_keyboard_theme_reduced_motion_and_320px_reflow(
         expect(page.locator("body.dark-mode")).to_have_count(1)
         expect(page.locator("body")).to_have_css(
             "background-color",
-            DARK_SURFACE_BACKGROUND,
+            DESIGN_5A_DARK_BACKGROUND,
         )
     finally:
         context.close()
@@ -348,7 +358,7 @@ def test_200_percent_reflow_uses_two_device_pixels_per_css_pixel(
     try:
         response = page.goto(f"{live_server.url}/events", wait_until="networkidle")
         assert response is not None and response.status == 200
-        expect(page.get_by_role("heading", name="Events", exact=True)).to_be_visible()
+        expect(page.get_by_role("heading", name=EVENTS_HEADING, exact=True)).to_be_visible()
 
         metrics = page.evaluate(
             """() => ({

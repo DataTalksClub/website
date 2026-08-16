@@ -121,7 +121,7 @@ class EventTimelineRouteTests(TestCase):
         self.assertContains(past_page, 'data-event-view="past"')
         self.assertContains(past_page, "Page 1 of ")
         self.assertEqual(
-            len(re.findall(r'<article class="grid gap-3 py-5">', past_page.content.decode())),
+            len(re.findall(r'<article class="card event-card">', past_page.content.decode())),
             min(EVENT_PAGE_SIZE, len(groups.recent)),
         )
         self.assertNotContains(upcoming, groups.recent[0]["title"])
@@ -177,3 +177,71 @@ class EventTimelineTemplateTests(TestCase):
         self.assertTrue(
             all(event["public_path"].startswith("/events/") for event in projection["events"])
         )
+
+
+class EventIndexDesignSystemTests(TestCase):
+    """The events index is a design 5a page (issue #179, mockup 6c).
+
+    It carries one inline stylesheet built from the shared design system partial, loads no
+    external CSS, and composes its rows from shared primitives instead of forking them.
+    """
+
+    def test_index_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
+        for path in ("/events", "/events/past"):
+            with self.subTest(path=path):
+                body = self.client.get(path).content.decode()
+
+                self.assertIn("<style>", body)
+                self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
+                for retired in (
+                    "/static/courses.css",
+                    "/static/core/site_shell.css",
+                    "/static/core/accessibility.css",
+                    "tailwindcss",
+                    "fontawesome",
+                ):
+                    self.assertNotIn(retired, body)
+
+    def test_index_leaks_no_unrendered_template_syntax(self) -> None:
+        for path in ("/events", "/events/past"):
+            with self.subTest(path=path):
+                body = self.client.get(path).content.decode()
+
+                for leak in ("{#", "#}", "{%", "%}", "{{", "}}"):
+                    self.assertNotIn(leak, body)
+
+    def test_rows_are_built_from_the_shared_design_system_primitives(self) -> None:
+        upcoming = self.client.get("/events").content.decode()
+        past = self.client.get("/events/past").content.decode()
+        first_upcoming = event_groups().upcoming[0]
+
+        for body in (upcoming, past):
+            self.assertIn('<div class="list-row event-row">', body)
+            self.assertIn('<div class="when">', body)
+            self.assertIn('<span class="when-day">', body)
+            self.assertIn('<span class="when-time">', body)
+            self.assertIn('<article class="card event-card">', body)
+        # The kind pill states the event type in words, and only the surface changes:
+        # lavender for an upcoming session, mint for a podcast, sand for anything past.
+        self.assertIn(
+            f'<span class="status-pill status-pill-open">{first_upcoming["type"]}</span>',
+            upcoming,
+        )
+        self.assertIn('<span class="status-pill status-pill-wait">', past)
+        self.assertNotIn('<span class="status-pill status-pill-wait">', upcoming)
+        self.assertNotIn('<span class="status-pill status-pill-open">', past)
+
+    def test_the_view_pills_mark_the_current_view_through_aria(self) -> None:
+        upcoming = self.client.get("/events").content.decode()
+        past = self.client.get("/events/past").content.decode()
+
+        self.assertIn(
+            '<a class="filter-pill" href="/events" aria-current="page">Upcoming events</a>',
+            upcoming,
+        )
+        self.assertIn('<a class="filter-pill" href="/events/past">Past events</a>', upcoming)
+        self.assertIn(
+            '<a class="filter-pill" href="/events/past" aria-current="page">Past events</a>',
+            past,
+        )
+        self.assertIn('<a class="filter-pill" href="/events">Upcoming events</a>', past)

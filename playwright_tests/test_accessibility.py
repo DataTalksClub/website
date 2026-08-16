@@ -141,7 +141,9 @@ def _public_rendered_states(
         PublicRenderedState("public.blog-hub", "blog", "Latest Articles"),
         PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
         PublicRenderedState("public.books-hub", "books", "Book of the Week"),
-        PublicRenderedState("public.events-hub", "events", "Events"),
+        # The design 5a events index (issue #179, mockup 6c) leads with the mockup's
+        # headline; "Events" survives only as the navigation label and the page title.
+        PublicRenderedState("public.events-hub", "events", "Something happening every week"),
         PublicRenderedState("public.courses-hub", "courses", "Learn data skills"),
         PublicRenderedState("public.wiki-hub", "wiki", "Podcast Wiki"),
         PublicRenderedState("public.docs-hub", "docs", "Documentation"),
