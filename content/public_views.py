@@ -35,6 +35,7 @@ from events.identity import (
 from events.services import public_registration_total
 
 from . import wiki_content
+from .article_content import article_view
 from .faq_data import faq_courses
 from .podcast_content import episode_view, listening_platform_phrase, season_episodes
 from .public_data import (
@@ -544,7 +545,8 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
 
 @require_safe
 def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    article = public_projection()["articles_by_slug"].get(slug)
+    projection = public_projection()
+    article = projection["articles_by_slug"].get(slug)
     if article is None:
         raise Http404
     return _render(
@@ -555,6 +557,10 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=article["description"],
         context={
             "record": article,
+            # The design 5a reading page (issue #179) renders this composed value:
+            # the byline joined to the people records, the publication date and
+            # reading estimate the design writes, and the body as prose sections.
+            "article": article_view(article, projection["people_by_slug"]),
             "og_type": "article",
             "og_image_url": _canonical(article["image_path"]) if article["image_path"] else "",
             "published_time": article["published"],

@@ -2,6 +2,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import include, path
 
+from content.article_content import article_view
 from website.urls import urlpatterns as website_urlpatterns
 
 
@@ -15,19 +16,25 @@ def synthetic_identity_conflict(request):
 
 
 def synthetic_missing_media(request):
+    # The article page composes its value the same way the real view does, so this
+    # fixture exercises the production path with artwork deliberately absent.
+    record = {
+        "slug": "synthetic-missing-media",
+        "public_path": "/blog/synthetic-missing-media.html",
+        "title": "Synthetic missing media",
+        "published": "2026-08-10T12:00:00+00:00",
+        "author_profiles": (),
+        "subtitle": "The page remains meaningful when artwork is unavailable.",
+        "media_available": False,
+        "blocks": ({"kind": "paragraph", "text": "Synthetic public fixture."},),
+    }
     return render(
         request,
         "public/article_detail.html",
         {
             "seo_title": "Synthetic missing media — DataTalks.Club",
-            "record": {
-                "title": "Synthetic missing media",
-                "published": "2026-08-10T12:00:00+00:00",
-                "author_profiles": (),
-                "subtitle": "The page remains meaningful when artwork is unavailable.",
-                "media_available": False,
-                "blocks": ({"kind": "paragraph", "text": "Synthetic public fixture."},),
-            },
+            "record": record,
+            "article": article_view(record, {}),
         },
     )
 

@@ -43,6 +43,7 @@ DESIGN_5A_TEMPLATES = (
     "public/wiki_graph.html",
     "public/wiki_special.html",
     "public/wiki_detail.html",
+    "public/article_detail.html",
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -112,6 +113,7 @@ class DesignFiveAShellTests(TestCase):
     course: Course
     episode: dict[str, Any]
     wiki_page: dict[str, Any]
+    article: dict[str, Any]
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -123,6 +125,7 @@ class DesignFiveAShellTests(TestCase):
         )
         cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
         cls.wiki_page = public_projection()["wiki"][0]
+        cls.article = public_projection()["articles"][0]
 
     def page_paths(self) -> dict[str, str]:
         return {
@@ -138,6 +141,7 @@ class DesignFiveAShellTests(TestCase):
             "wiki graph": reverse("wiki-graph"),
             "wiki special pages": reverse("wiki-special"),
             "wiki page": self.wiki_page["public_path"],
+            "blog article": self.article["public_path"],
         }
 
     def rendered_pages(self) -> dict[str, str]:
@@ -202,6 +206,7 @@ class DesignFiveAShellTests(TestCase):
             "wiki graph": "Wiki",
             "wiki special pages": "Wiki",
             "wiki page": "Wiki",
+            "blog article": "Blog",
         }
 
         for name, body in self.rendered_pages().items():
