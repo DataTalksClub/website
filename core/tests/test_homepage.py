@@ -1,8 +1,10 @@
 import re
 from datetime import timedelta
 from pathlib import Path
+from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.db import OperationalError
 from django.test import Client, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
@@ -12,6 +14,7 @@ from courses.models.course import Course
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
+from events.models import Event
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
@@ -74,6 +77,26 @@ class MainHomepageRoutingTests(TestCase):
         for leak in ("{#", "#}", "{%", "%}", "{{", "}}"):
             with self.subTest(token=leak):
                 self.assertNotIn(leak, body)
+
+    def test_homepage_renders_when_the_database_is_unavailable(self) -> None:
+        """/unified/ is the container liveness gate, and that runtime has no database."""
+
+        with mock.patch.object(
+            Event.objects,
+            "order_by",
+            side_effect=OperationalError("unable to open database file"),
+        ):
+            response = self.client.get(reverse("home"))
+            unified = self.client.get("/unified/")
+
+        for rendered in (response, unified):
+            self.assertEqual(rendered.status_code, 200)
+            self.assertContains(
+                rendered,
+                "Ship data pipelines and AI systems that actually run in production.",
+            )
+            self.assertContains(rendered, "AI Dev Tools Zoomcamp")
+            self.assertContains(rendered, "The wiki, as a graph")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))
