@@ -17,12 +17,15 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Any, Protocol, cast
+from urllib.parse import urlsplit
 
+from django.contrib.auth import get_user_model
 from django.template.loader import get_template
 from django.templatetags.static import static
 from django.test import TestCase
 from django.urls import reverse
 
+from accounts.navigation import login_url_for_path
 from content.public_data import public_projection
 from courses.models.course import Course
 
@@ -45,6 +48,9 @@ SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
 # The primary navigation, in the order the site has always offered it.  Slack is
 # the community's main gathering place and stays in the row on every page.
+# A signed-out visitor gets one more entry after these nine: the one-line phone
+# masthead (issue #179) folds "Log in" into the panel below 40rem, so the shell
+# renders it there for every anonymous request.
 EXPECTED_NAVIGATION = (
     ("Events", "events"),
     ("Courses", "course_list"),
@@ -145,6 +151,28 @@ class DesignFiveAShellTests(TestCase):
         return bodies
 
     def test_every_design_5a_page_offers_the_same_navigation_entries(self) -> None:
+        destinations = [(label, reverse(route)) for label, route in EXPECTED_NAVIGATION]
+        paths = self.page_paths()
+
+        for name, body in self.rendered_pages().items():
+            with self.subTest(page=name):
+                entries = navigation_entries(body)
+                # Signed out, the panel closes with "Log in" (its phone-width home
+                # since the one-line masthead), pointing back at the page it is on.
+                # The shell derives next from request.path, so a query string (the
+                # wiki search page) is not part of the return destination.
+                login = login_url_for_path(urlsplit(paths[name]).path)
+                expected = [*destinations, ("Log in", login)]
+                self.assertEqual([(label, href) for label, href, _ in entries], expected)
+
+    def test_signed_in_panels_offer_the_nine_destinations_and_no_login(self) -> None:
+        """The account menu owns auth once signed in; the panel goes back to nine."""
+
+        user = get_user_model().objects.create_user(
+            username="shell-reader@example.invalid",
+            email="shell-reader@example.invalid",
+        )
+        self.client.force_login(user)
         expected = [(label, reverse(route)) for label, route in EXPECTED_NAVIGATION]
 
         for name, body in self.rendered_pages().items():

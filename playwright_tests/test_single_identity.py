@@ -108,6 +108,16 @@ def test_signed_out_login_and_explicit_reauthentication_are_one_safe_flow(
     assert home is not None and home.status == 200
     # The redesigned homepage (issue #179) labels this "Log in"; the shared shell that
     # /courses still renders keeps "Login", asserted in test_course_design_parity.
+    #
+    # Deliberate relaxation with the one-line phone masthead (issue #179): below
+    # 40rem the row keeps "Sign up free" and folds "Log in" into the navigation
+    # panel, so the phone flow opens the labelled Menu toggle first.  Login stays
+    # reachable from every page — one tap deeper on phones — and the desktop row
+    # keeps the standalone link, asserted by the wide viewport of this test.
+    if viewport["width"] < 640:
+        menu = page.get_by_role("button", name="Menu")
+        menu.click()
+        expect(menu).to_have_attribute("aria-expanded", "true")
     login = page.get_by_role("link", name="Log in", exact=True)
     expect(login).to_have_attribute("href", "/accounts/login/?next=%2F")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")

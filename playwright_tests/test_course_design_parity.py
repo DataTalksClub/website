@@ -386,7 +386,16 @@ def test_database_course_catalog_renders_the_design_5a_index(
     expect(
         page.locator("nav[aria-label='Primary navigation'] a[aria-current='page']")
     ).to_have_text("Courses")
-    expect(page.get_by_role("link", name="Log in", exact=True)).to_be_visible()
+    if suffix == "mobile":
+        # One-line phone masthead (issue #179): "Log in" lives in the navigation
+        # panel below 40rem, one tap behind the labelled Menu toggle.
+        menu_toggle = page.get_by_role("button", name="Menu")
+        menu_toggle.click()
+        expect(page.get_by_role("link", name="Log in", exact=True)).to_be_visible()
+        page.keyboard.press("Escape")
+        expect(menu_toggle).to_have_attribute("aria-expanded", "false")
+    else:
+        expect(page.get_by_role("link", name="Log in", exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", "https://datatalks.club/courses"
     )
