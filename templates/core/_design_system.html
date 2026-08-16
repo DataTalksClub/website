@@ -1061,8 +1061,14 @@ Rules for editing:
         white-space: nowrap;
       }
 
+      /* The mockup fills the live pill with --green-bright, but its 0.66rem
+         label is small text and white on that green is only 3:1.  The pill
+         therefore takes the primary --green, the same fill .cta-primary and
+         .chip-live already use, which clears 4.5:1 with the same white label
+         and reads as the same live green.  Dark mode maps both greens to one
+         value, so nothing changes there. */
       .status-pill-live {
-        background: var(--green-bright);
+        background: var(--green);
         border-color: var(--line);
         color: var(--on-green);
       }
