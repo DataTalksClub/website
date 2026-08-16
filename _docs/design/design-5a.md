@@ -5,11 +5,13 @@ and carried by the 6-series pages: the courses index (6a), the course page (6b),
 the events index (6c) and the podcast index and episode (6d).
 
 The five public wiki surfaces — the hub, search results, the graph, the special
-pages and a wiki page — joined the system afterwards. They have **no mockup**:
-they are composed from the inventory below, and where they needed something the
-system did not have (a knowledge-graph node, long-form prose, a search row) the
-primitive was added to the partial and documented here rather than forked into a
-page.
+pages and a wiki page — joined the system afterwards, and the public person
+profile after them. They have **no mockup**: they are composed from the
+inventory below, and where they needed something the system did not have (a
+knowledge-graph node, long-form prose, a search row) the primitive was added to
+the partial and documented here rather than forked into a page. "The wiki
+surfaces, as built" and "The person profile, as built" record what each settled
+on.
 
 The system lives in one place:
 
@@ -253,7 +255,9 @@ Markup shapes below are the contract; the CSS lives in the partial.
   (`/courses`, `/events`, `/podcast`, `/wiki`) and the homepage do not carry
   one — the masthead already marks them with `aria-current="page"` and a lone
   "Home" crumb duplicates the brand link. The podcast episode page keeps its
-  `← all episodes` back-link instead; a page offers one way back, not two.
+  `← all episodes` back-link instead; a page offers one way back, not two. The
+  person profile carries neither: the site deliberately serves no people index
+  (`/people` is a 404), so a crumb or a back-link there would point nowhere.
 
 ### Cards and chips
 
@@ -675,6 +679,42 @@ count, a group or an edge the data does not carry.
   mono kicker, the title, the summary, the page's relations as `.chip`s
   (linked ones indigo, each prefixed with its relation type for screen
   readers), and then the page itself in `.prose`.
+
+## The person profile, as built
+
+`templates/public/person_detail.html` has no mockup either, and it adds **no new
+primitive and no new token**: every part of it is something another page already
+draws.
+
+- **Hero**: the portrait as a `2px`-bordered disc with the card surface and the
+  standard hard shadow, the `.mono-label.mono-label-indigo` kicker, the `h1`, the
+  community roles as `.chip`s in a labelled list, the profile summary as the
+  lede, `.stat-tiles` counting what the person has done, and the external
+  profile addresses as `.pill-button`s.
+- **The profile's own bio** is typed blocks, so it renders in `.prose` with
+  `.prose-paragraph` / `.prose-item`, exactly as a wiki page's body does —
+  through the same partial, `public/_prose_body.html` (named for the primitive
+  rather than for the wiki, now that two pages share it).
+- **One band per kind of work**, in a fixed order — podcast episodes (cream),
+  events (mint, the events band), articles (lavender), books (cream) — each a
+  `.band-head` plus one `.row-list`. A group appears only when the profile
+  actually links to that kind of work.
+- **Each row is drawn with the primitive that kind already uses elsewhere**, so
+  a piece of work looks the same wherever the reader meets it: an episode row
+  leads with the podcast index's `.play-disc` and carries the episode page's
+  `.status-pill-mint` season marker; an event row leads with the events index's
+  `.when` date rail and carries the same type pill with the same
+  open/mint/wait mapping; an article or book row is title, role and date.
+  Because a profile mixes past and future work in one list — unlike the events
+  index, whose whole page is one or the other — a future event also carries the
+  bare `.status-pill` reading `upcoming`, so that state is never colour-only.
+- **Rows, not cards.** The widest profile links to 63 pieces of work; 63 card
+  slabs is a wall, while the dashed row list is what the system already uses for
+  dense catalogues. The cards on this page are the stat tiles.
+
+The composition (grouping, ordering, counts, markers) lives in
+`content/person_content.py`, the same way the podcast pages keep theirs in
+`content/podcast_content.py`, so the template holds no editorial logic.
 
 ## Responsive rules
 
