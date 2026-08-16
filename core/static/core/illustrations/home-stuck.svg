@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 200" width="320" height="200">
+  <title>Someone surrounded by scattered tabs and unanswered questions</title>
+  <ellipse cx="160" cy="104" rx="146" ry="82" fill="#c9cdf2" opacity="0.55"/>
+  <g stroke="#1e2136" stroke-width="2.5" fill="#ffffff" stroke-linejoin="round">
+    <rect x="24" y="26" width="78" height="44" rx="4"/>
+    <rect x="196" y="18" width="66" height="34" rx="4"/>
+    <rect x="30" y="86" width="70" height="30" rx="4" transform="rotate(-8 65 101)"/>
+    <rect x="228" y="72" width="60" height="30" rx="4" transform="rotate(7 258 87)"/>
+  </g>
+  <g stroke="#5a62c4" stroke-width="2.5" stroke-linecap="round">
+    <path d="M34 44h48M34 54h34M206 32h44M206 42h28M42 96h44M240 84h36"/>
+  </g>
+  <g fill="#1e2136" font-family="ui-monospace, monospace" font-size="11" font-weight="700">
+    <text x="128" y="52">?</text>
+    <text x="176" y="76">?</text>
+    <text x="118" y="92">?</text>
+  </g>
+  <g stroke="#1e2136" stroke-width="2.5" fill="none" stroke-linecap="round">
+    <circle cx="160" cy="100" r="16" fill="#ffffff"/>
+    <circle cx="154" cy="98" r="2" fill="#1e2136"/>
+    <circle cx="166" cy="98" r="2" fill="#1e2136"/>
+    <path d="M142 156c0-18 8-28 18-28s18 10 18 28" fill="#2b7a35"/>
+    <path d="M142 156h36"/>
+    <path d="M145 140l-19 14"/>
+    <path d="M175 140l19 14"/>
+    <path d="M118 170h84l-9-16h-66Z" fill="#ffffff"/>
+    <path d="M118 170h84"/>
+  </g>
+  <g stroke="#1e2136" stroke-width="2.5" fill="#ffffff" stroke-linejoin="round">
+    <rect x="34" y="126" width="62" height="11" rx="2"/>
+    <rect x="34" y="139" width="62" height="11" rx="2"/>
+    <rect x="34" y="152" width="62" height="11" rx="2"/>
+    <path d="M244 140h26v22a13 8 0 0 1-26 0Z"/>
+  </g>
+  <g fill="#3ea94b" stroke="#1e2136" stroke-width="1.5">
+    <rect x="34" y="126" width="7" height="11" rx="2"/>
+    <rect x="34" y="152" width="7" height="11" rx="2"/>
+  </g>
+  <g fill="#c9cdf2" stroke="#1e2136" stroke-width="1.5">
+    <rect x="34" y="139" width="7" height="11" rx="2"/>
+  </g>
+  <g stroke="#1e2136" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M252 132c4-4-4-8 0-12M262 132c4-4-4-8 0-12"/>
+  </g>
+</svg>

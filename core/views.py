@@ -16,6 +16,14 @@ from django.views.decorators.http import require_GET, require_safe
 
 from content.public_data import event_groups, ordered_podcasts, public_projection
 from content.review_projection import review_projection
+from core.home_content import (
+    FEATURED_FAMILY,
+    MEMBER_STORIES,
+    course_catalog,
+    published_display,
+    wiki_graph,
+    wiki_topics,
+)
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
 PRODUCTION_ROBOTS_BODY = (
@@ -49,6 +57,8 @@ def management_slash_redirect(request: HttpRequest) -> HttpResponse:
 def home(request: HttpRequest):
     projection = public_projection()
     events = event_groups()
+    catalog = course_catalog()
+    article = projection["articles"][0]
     return render(
         request,
         "core/home.html",
@@ -57,10 +67,17 @@ def home(request: HttpRequest):
             "upcoming_events": events.upcoming[:3],
             "recent_events": events.recent[:1],
             "featured_course": review_projection()["course"],
-            "article": projection["articles"][0],
+            "featured_catalog_entry": next(
+                entry for entry in catalog if entry.family == FEATURED_FAMILY
+            ),
+            "catalog_courses": tuple(entry for entry in catalog if entry.family != FEATURED_FAMILY),
+            "course_family_count": len(catalog),
+            "member_stories": MEMBER_STORIES,
+            "article": article,
+            "article_published": published_display(article["published"]),
             "podcast": ordered_podcasts(projection["podcasts"])[0],
-            "book": projection["books"][0],
-            "wiki_page": projection["wiki"][0],
+            "wiki_topics": wiki_topics(),
+            "wiki_graph": wiki_graph(),
             "counts": projection["manifest"]["counts"],
         },
     )

@@ -1,8 +1,10 @@
 import re
 from datetime import timedelta
 from pathlib import Path
+from unittest import mock
 
 from django.contrib.auth import get_user_model
+from django.db import OperationalError
 from django.test import Client, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
@@ -12,6 +14,7 @@ from courses.models.course import Course
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
+from events.models import Event
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_COURSE_LIST_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course_list.html").resolve()
@@ -27,27 +30,73 @@ class MainHomepageRoutingTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers["X-Robots-Tag"], "noindex, nofollow")
-        self.assertContains(response, "Welcome to DataTalks.Club")
-        self.assertContains(response, "The place to talk about data")
+        self.assertContains(response, "DataTalks.Club")
+        self.assertContains(
+            response,
+            "Ship data pipelines and AI systems that actually run in production.",
+        )
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
-        self.assertContains(response, "2026 cohort")
-        self.assertContains(response, "Starts August 31, 2026")
+        self.assertContains(response, "AI Dev Tools Zoomcamp 2026")
+        self.assertContains(response, "August 31, 2026")
         self.assertContains(
             response,
             f'href="{reverse("course-cohort-ai-dev-tools-2026")}"',
         )
-        self.assertContains(response, "View cohort →")
-        self.assertContains(response, "Browse all courses →")
-        self.assertNotContains(response, "Data Engineering Zoomcamp 2026")
+        self.assertContains(response, "Enroll free")
+        self.assertContains(response, "all courses →")
         self.assertEqual(
             len(re.findall(r"\sdata-featured-course(?=[\s>])", response.content.decode())),
             1,
         )
         self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
-        self.assertRegex(response.content.decode(), r"/static/courses(?:\.[0-9a-f]+)?\.css")
-        self.assertRegex(response.content.decode(), r"/static/core/site_shell(?:\.[0-9a-f]+)?\.css")
         self.assertNotContains(response, "/static/core/site.css")
+
+    def test_homepage_carries_its_own_stylesheet_and_loads_no_legacy_css(self) -> None:
+        """Design 5a (issue #179) replaced the adopted shell with one inline stylesheet."""
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn("<style>", body)
+        for retired in (
+            "/static/courses.css",
+            "/static/core/site_shell.css",
+            "/static/core/accessibility.css",
+            "tailwindcss",
+            "fontawesome",
+        ):
+            with self.subTest(asset=retired):
+                self.assertNotIn(retired, body)
+        self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
+
+    def test_homepage_leaks_no_unrendered_template_syntax(self) -> None:
+        """A multi-line {# #} comment is not a comment, and reaches the reader as copy."""
+
+        body = self.client.get(reverse("home")).content.decode()
+
+        for leak in ("{#", "#}", "{%", "%}", "{{", "}}"):
+            with self.subTest(token=leak):
+                self.assertNotIn(leak, body)
+
+    def test_homepage_renders_when_the_database_is_unavailable(self) -> None:
+        """/unified/ is the container liveness gate, and that runtime has no database."""
+
+        with mock.patch.object(
+            Event.objects,
+            "order_by",
+            side_effect=OperationalError("unable to open database file"),
+        ):
+            response = self.client.get(reverse("home"))
+            unified = self.client.get("/unified/")
+
+        for rendered in (response, unified):
+            self.assertEqual(rendered.status_code, 200)
+            self.assertContains(
+                rendered,
+                "Ship data pipelines and AI systems that actually run in production.",
+            )
+            self.assertContains(rendered, "AI Dev Tools Zoomcamp")
+            self.assertContains(rendered, "The wiki, as a graph")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))
@@ -83,7 +132,7 @@ class MainHomepageRoutingTests(TestCase):
             anonymous_response,
             f'href="{reverse("login")}?next=%2F"',
         )
-        self.assertContains(anonymous_response, "Login")
+        self.assertContains(anonymous_response, "Log in")
 
         user_model = get_user_model()
         user = user_model.objects.create(

@@ -14,6 +14,7 @@ EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
+HOME_HEADING = "Ship data pipelines and AI systems that actually run in production."
 
 
 def _featured_event_path() -> str:
@@ -59,30 +60,32 @@ def test_public_home_and_hubs(
     origin = live_server.url
     response = page.goto(origin)
     assert response is not None and response.status == 200
-    expect(page).to_have_title("Welcome to DataTalks.Club")
-    expect(page.get_by_role("heading", name="The place to talk about data")).to_be_visible()
-    expect(page.get_by_text("Talk about data, machine learning, and engineering")).to_be_visible()
-    expect(page.get_by_role("heading", name="Upcoming events", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Latest podcast episodes", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Book of the week", exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name="Latest articles", exact=True)).to_be_visible()
+    expect(page).to_have_title("DataTalks.Club — free courses for data and AI engineers")
+    expect(page.get_by_role("heading", name=HOME_HEADING)).to_be_visible()
+    expect(
+        page.get_by_role("heading", name="The climb, as members describe it", exact=True)
+    ).to_be_visible()
+    expect(
+        page.get_by_role("heading", name="Something to attend this week", exact=True)
+    ).to_be_visible()
+    expect(page.get_by_role("heading", name="Latest podcast episode", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Latest article", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="The wiki, as a graph", exact=True)).to_be_visible()
     featured_course = page.locator("[data-featured-course]")
     expect(featured_course).to_have_count(1)
-    expect(featured_course.get_by_text("AI Dev Tools Zoomcamp", exact=True)).to_be_visible()
-    expect(featured_course.get_by_text("2026 cohort", exact=True)).to_be_visible()
-    expect(featured_course.get_by_text("Starts August 31, 2026", exact=True)).to_be_visible()
-    expect(featured_course.get_by_role("link", name="View cohort")).to_have_attribute(
+    expect(featured_course.get_by_role("heading", name="AI Dev Tools Zoomcamp")).to_be_visible()
+    expect(featured_course.get_by_text("AI Dev Tools Zoomcamp 2026", exact=True)).to_be_visible()
+    expect(featured_course.get_by_text("August 31, 2026", exact=True)).to_be_visible()
+    expect(featured_course.get_by_role("link", name="Enroll free")).to_have_attribute(
         "href",
         "/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026",
     )
-    expect(page.get_by_role("link", name="Browse all courses")).to_have_attribute(
+    expect(page.get_by_role("link", name="all courses")).to_have_attribute(
         "href",
         "/courses",
     )
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
-    expect(
-        page.locator("#site-navigation-links").get_by_role("link", name="People", exact=True)
-    ).to_have_count(0)
+    expect(page.get_by_role("link", name="People", exact=True)).to_have_count(0)
     _shot(page, f"home-{suffix}.png", full_page=True)
 
     for label, path, heading in (
@@ -95,7 +98,7 @@ def test_public_home_and_hubs(
     ):
         page.goto(origin)
         if viewport["width"] < 1024:
-            page.get_by_role("button", name="Explore").click()
+            page.get_by_role("button", name="Menu").click()
         page.locator("#site-navigation-links").get_by_role("link", name=label, exact=True).click()
         expect(page).to_have_url(f"{origin}{path}")
         expect(page.get_by_role("heading", name=heading, exact=True)).to_be_visible()
@@ -355,7 +358,7 @@ def test_public_pages_remain_meaningful_without_javascript(
     page = context.new_page()
     try:
         for path, heading in (
-            ("/", "The place to talk about data"),
+            ("/", HOME_HEADING),
             ("/events", "Events"),
             (_featured_event_path(), FEATURED_EVENT_TITLE),
             (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_NAME),
@@ -441,7 +444,7 @@ def test_mobile_keyboard_navigation_and_no_results(page: Page, live_server) -> N
     origin = live_server.url
     page.set_viewport_size({"width": 390, "height": 844})
     page.goto(origin)
-    menu = page.get_by_role("button", name="Explore")
+    menu = page.get_by_role("button", name="Menu")
     menu.focus()
     page.keyboard.press("Enter")
     expect(menu).to_have_attribute("aria-expanded", "true")

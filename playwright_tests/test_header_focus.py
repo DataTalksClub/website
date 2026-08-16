@@ -45,7 +45,7 @@ def test_header_pointer_and_keyboard_focus_are_visually_distinct(
         page.locator("body").evaluate("element => element.classList.add('dark', 'dark-mode')")
 
     if suffix == "mobile":
-        pointer_target = page.get_by_role("button", name="Explore")
+        pointer_target = page.get_by_role("button", name="Menu")
         pointer_target.click()
         expect(pointer_target).to_have_attribute("aria-expanded", "true")
         keyboard_target = page.locator("#site-navigation-links").get_by_role(

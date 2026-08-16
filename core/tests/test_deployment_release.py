@@ -2685,10 +2685,9 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"<title>Welcome to DataTalks.Club</title>"
-                b"The place to talk about data"
-                b"Global online community of data science professionals, ML engineers, "
-                b"and AI practitioners"
+                b"<title>DataTalks.Club \xe2\x80\x94 free courses for data and AI engineers</title>"
+                b"Ship data pipelines and AI systems that actually run in production."
+                b"Free, project-based courses where you build the real thing"
                 + f"Version {VERSION_A}".encode()
                 + b'<link rel="canonical" href="https://datatalks.club/">'
                 + b'<link rel="stylesheet" href="/static/core.fixture.css">',
@@ -2696,7 +2695,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"The place to talk about data"
+                b"Ship data pipelines and AI systems that actually run in production."
                 b'<link rel="canonical" href="https://datatalks.club/">',
             ),
             Response(
@@ -2803,7 +2802,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 Response(
                     200,
                     noindex,
-                    b"The place to talk about data"
+                    b"Ship data pipelines and AI systems that actually run in production."
                     + f"Version {VERSION_A}".encode()
                     + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
                 ),

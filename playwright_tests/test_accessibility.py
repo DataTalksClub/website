@@ -137,7 +137,7 @@ def _public_rendered_states(
     )
 
     return (
-        PublicRenderedState("public.home", "home", "Upcoming events"),
+        PublicRenderedState("public.home", "home", "Something to attend this week"),
         PublicRenderedState("public.blog-hub", "blog", "Latest Articles"),
         PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
         PublicRenderedState("public.books-hub", "books", "Book of the Week"),
@@ -597,7 +597,7 @@ def test_accessibility_visual_evidence(
         _visit_surface(page, live_server, accessibility_environment, surface)
         expect(page.locator("main h1")).to_be_visible()
         if surface == "home":
-            explore = page.get_by_role("button", name="Explore")
+            explore = page.get_by_role("button", name="Menu")
             if explore.is_visible():
                 explore.focus()
             else:
@@ -1310,7 +1310,7 @@ def test_named_chromium_blink_accessibility_tree_contracts(
             "public.home",
             "home",
             ("banner", "navigation", "main", "contentinfo", "heading"),
-            ("Upcoming events",),
+            ("Something to attend this week",),
         ),
         (
             "public.podcast-transcript-media",
@@ -1388,7 +1388,7 @@ def test_keyboard_focus_status_and_form_error_contracts(
     page.keyboard.press("Enter")
     expect(page.locator("#main-content")).to_be_focused()
 
-    menu = page.get_by_role("button", name="Explore")
+    menu = page.get_by_role("button", name="Menu")
     menu.focus()
     page.keyboard.press("Enter")
     expect(menu).to_have_attribute("aria-expanded", "true")

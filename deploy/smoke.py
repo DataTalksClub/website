@@ -26,6 +26,8 @@ from deploy.legacy_development_compatibility import ORIGIN as DEVELOPMENT_ORIGIN
 ROBOTS_VALUE = "noindex, nofollow"
 ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
+# The public home identity, as design 5a renders it (issue #179).
+HOME_IDENTITY_MARKER = "Ship data pipelines and AI systems that actually run in production."
 
 
 class _TextParser(html.parser.HTMLParser):
@@ -185,9 +187,9 @@ def run_http_smoke(
     if f"Version {version}" not in _visible_text(html):
         raise ReleaseContractError("home page footer lacks the exact version")
     for expected in (
-        "Welcome to DataTalks.Club",
-        "The place to talk about data",
-        "Global online community of data science professionals, ML engineers, and AI practitioners",
+        "DataTalks.Club — free courses for data and AI engineers",
+        HOME_IDENTITY_MARKER,
+        "Free, project-based courses where you build",
     ):
         if expected not in html:
             raise ReleaseContractError(f"home page lacks expected content: {expected}")
@@ -211,7 +213,7 @@ def run_http_smoke(
     mapped_html = mapped.body.decode("utf-8")
     if mapped_html.count(canonical) != 1 or mapped_html.count('rel="canonical"') != 1:
         raise ReleaseContractError("explicit production canonical differs")
-    if "The place to talk about data" not in mapped_html:
+    if HOME_IDENTITY_MARKER not in mapped_html:
         raise ReleaseContractError("unified compatibility page lacks the main-site identity")
 
     courses = _request(origin, "/courses")
@@ -222,7 +224,7 @@ def run_http_smoke(
         raise ReleaseContractError("course footer lacks the exact version")
     if "Learn data skills. For free. Together." not in courses_html:
         raise ReleaseContractError("course discovery lacks expected content")
-    if "The place to talk about data" in courses_html:
+    if HOME_IDENTITY_MARKER in courses_html:
         raise ReleaseContractError("course discovery regressed to the main-site home")
     courses_canonical = '<link rel="canonical" href="https://datatalks.club/courses">'
     if courses_html.count(courses_canonical) != 1 or courses_html.count('rel="canonical"') != 1:

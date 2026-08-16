@@ -106,7 +106,9 @@ def test_signed_out_login_and_explicit_reauthentication_are_one_safe_flow(
     page.set_viewport_size(viewport)
     home = page.goto(live_server.url)
     assert home is not None and home.status == 200
-    login = page.get_by_role("link", name="Login")
+    # The redesigned homepage (issue #179) labels this "Log in"; the shared shell that
+    # /courses still renders keeps "Login", asserted in test_course_design_parity.
+    login = page.get_by_role("link", name="Log in", exact=True)
     expect(login).to_have_attribute("href", "/accounts/login/?next=%2F")
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
     page.screenshot(
