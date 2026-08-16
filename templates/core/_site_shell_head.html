@@ -1,0 +1,247 @@
+{% comment %}
+  Everything the design 5a shell puts before the page's own main landmark: the skip
+  link, the pre-paint dark-mode bootstrap, the CSRF token, the impersonation banner,
+  the masthead and the site announcement.
+
+  It lives here, and is not copied into each page, because copying it is exactly how
+  a page silently loses a navigation entry (issue #179 lost /slack from five pages
+  that way).  Every URL it needs it resolves itself, as an "as" assignment, so a page
+  cannot forget to supply one and a reduced URLconf degrades to a shorter row
+  instead of raising.  The current entry is taken from `primary_navigation_current`
+  (core/context_processors.site_context), so a page cannot mark the wrong one.
+
+  Pair it with core/_site_shell_foot.html, which carries the footer and the shared
+  script set.  Styling for every class below is in core/_design_system.html.
+{% endcomment %}
+{% url 'home' as site_home_url %}
+{% url 'events' as events_url %}
+{% url 'course_list' as courses_url %}
+{% url 'articles' as articles_url %}
+{% url 'podcast' as podcast_url %}
+{% url 'wiki-home' as wiki_url %}
+{% url 'books' as books_url %}
+{% url 'docs-home' as docs_url %}
+{% url 'faq-home' as faq_url %}
+{% url 'slack' as slack_url %}
+{% url 'studio:home' as studio_home_url %}
+{% url 'account_settings' as account_settings_url %}
+{% url 'socialaccount_connections' as account_connections_url %}
+{% url 'account_logout' as account_logout_url %}
+{% url 'account_signup' as account_signup_url %}
+<a class="skip-link" href="#main-content">Skip to content</a>
+<script>
+  (function () {
+    try {
+      var body = document.body;
+      if (
+        body
+        && body.getAttribute('data-authenticated') !== 'true'
+        && localStorage.getItem('darkMode') === 'true'
+      ) {
+        body.classList.add('dark', 'dark-mode');
+        body.setAttribute('data-dark-mode', 'true');
+      }
+    } catch (e) {}
+  })();
+</script>
+{% if user.is_authenticated %}
+  <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+{% endif %}
+{% if IS_IMPERSONATING %}
+  <div id="impersonation-banner" class="impersonation-banner">
+    <div class="shell">
+      <span>
+        You are logged in as
+        <strong>{{ request.user.email|default:request.user.username }}</strong>
+      </span>
+      <form method="post" action="{% url 'stop_impersonating' %}">
+        {% csrf_token %}
+        <button type="submit" class="impersonation-return-button">Return to admin account</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+<header class="masthead">
+  <nav class="shell masthead-inner" aria-label="Primary navigation">
+    <a class="brand" href="{{ site_home_url|default:'/' }}">
+      {# The mockup's mark traced 1:1: wobbled lavender bubble, ink outline, tail, DTC. #}
+      <svg class="brand-mark" viewBox="0 0 64 61" aria-hidden="true" focusable="false">
+        <path
+          d="M17 3.2C27 1.6 39 1.8 48 3.6C55.5 5.2 60.8 9.4 61.4 16C62 22.6 61.8 30 60.6 36.4C59.4 42.8 56 47.2 49.6 48.6C46.6 49.2 43.4 49.4 40.2 49C39.4 53.4 38.8 57.4 37.6 61C36.4 57.2 34.4 53.4 31.8 50.2C27 49.6 22.2 48.8 18.2 47.4C11.4 45 6.4 40.6 4.6 34.2C2.8 27.8 2.6 20.6 3.8 14.6C5 8.6 10 4.6 17 3.2Z"
+          fill="#b9bff0"
+          stroke="currentColor"
+          stroke-width="4"
+          stroke-linejoin="round"
+        />
+        <text x="32" y="34">DTC</text>
+      </svg>
+      <span class="brand-name">
+        <span class="brand-light">Data</span>Talks.Club
+      </span>
+    </a>
+    <div class="site-navigation">
+      <button
+        class="site-navigation-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="site-navigation-links"
+      >
+        Menu
+      </button>
+      <div id="site-navigation-links" class="site-navigation-links">
+        {% if events_url %}
+          <a
+            class="nav-link"
+            href="{{ events_url }}"
+            {% if primary_navigation_current == "events" %}
+              aria-current="page"
+            {% endif %}
+          >Events</a>
+        {% endif %}
+        {% if courses_url %}
+          <a
+            class="nav-link"
+            href="{{ courses_url }}"
+            {% if primary_navigation_current == "courses" %}
+              aria-current="page"
+            {% endif %}
+          >Courses</a>
+        {% endif %}
+        {% if articles_url %}
+          <a
+            class="nav-link"
+            href="{{ articles_url }}"
+            {% if primary_navigation_current == "blog" %}
+              aria-current="page"
+            {% endif %}
+          >Blog</a>
+        {% endif %}
+        {% if podcast_url %}
+          <a
+            class="nav-link"
+            href="{{ podcast_url }}"
+            {% if primary_navigation_current == "podcast" %}
+              aria-current="page"
+            {% endif %}
+          >Podcast</a>
+        {% endif %}
+        {% if wiki_url %}
+          <a
+            class="nav-link"
+            href="{{ wiki_url }}"
+            {% if primary_navigation_current == "wiki" %}
+              aria-current="page"
+            {% endif %}
+          >Wiki</a>
+        {% endif %}
+        {% if books_url %}
+          <a
+            class="nav-link"
+            href="{{ books_url }}"
+            {% if primary_navigation_current == "books" %}
+              aria-current="page"
+            {% endif %}
+          >Books</a>
+        {% endif %}
+        {% if docs_url %}
+          <a
+            class="nav-link"
+            href="{{ docs_url }}"
+            {% if primary_navigation_current == "docs" %}
+              aria-current="page"
+            {% endif %}
+          >Docs</a>
+        {% endif %}
+        {% if faq_url %}
+          <a
+            class="nav-link"
+            href="{{ faq_url }}"
+            {% if primary_navigation_current == "faq" %}
+              aria-current="page"
+            {% endif %}
+          >FAQ</a>
+        {% endif %}
+        {% comment %}
+          The community's main gathering place keeps its place in the primary row, as
+          it has on every other page of the site.  The 6-series mockups draw an
+          eight-entry row and put Slack in their own footer, but this site's footer is
+          shared with the pages that still run the older shell, and a navigation that
+          loses an entry as the reader moves between pages is worse than a row one
+          entry longer.
+        {% endcomment %}
+        {% if slack_url %}
+          <a
+            class="nav-link"
+            href="{{ slack_url }}"
+            {% if primary_navigation_current == "slack" %}
+              aria-current="page"
+            {% endif %}
+          >Slack</a>
+        {% endif %}
+      </div>
+    </div>
+    <div class="masthead-actions">
+      <button
+        id="dark-mode-toggle"
+        class="pill-button"
+        type="button"
+        aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
+      >
+        <span class="dot" aria-hidden="true"></span>
+        <span id="dark-mode-label">{{ DARK_MODE|yesno:'Light,Dark' }}</span>
+        <span class="sr-only">&nbsp;mode</span>
+      </button>
+      {% if user.is_authenticated %}
+        {% comment %}
+          Same account-menu contract as the shared shell: the labelled summary and the
+          .user-menu-panel links every identity test drives.  courses/static/user_menu.js
+          (loaded by core/_site_shell_foot.html) closes it on Escape and on outside click.
+        {% endcomment %}
+        <details class="account-nav user-menu">
+          <summary
+            class="user-menu-toggle"
+            title="Account menu"
+            aria-label="Account menu"
+          >Account</summary>
+          <div class="mobile-nav-panel user-menu-panel">
+            <p class="user-menu-signed-in">Signed in as</p>
+            <p class="user-menu-identity" title="{{ user.email|default:user.username }}">
+              {{ user.email|default:user.username }}
+            </p>
+            <div class="user-menu-actions">
+              {% if courses_url %}
+                <a class="nav-link user-menu-item" href="{{ courses_url }}">Courses</a>
+              {% endif %}
+              {% if account_settings_url %}
+                <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
+              {% endif %}
+              {% if account_connections_url %}
+                <a class="nav-link user-menu-item" href="{{ account_connections_url }}">Login connections</a>
+              {% endif %}
+              {% if can_access_studio and studio_home_url %}
+                <a class="nav-link user-menu-item" href="{{ studio_home_url }}">Studio</a>
+              {% endif %}
+              {% if account_logout_url %}
+                <a class="nav-link user-menu-item" href="{{ account_logout_url }}">Logout</a>
+              {% endif %}
+            </div>
+          </div>
+        </details>
+      {% else %}
+        {% comment %}
+          Rendered once, and visible at every width: a signed-out visitor must be able
+          to reach login without first opening the navigation menu.
+        {% endcomment %}
+        <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
+        {% if account_signup_url %}
+          <a class="signup-button" href="{{ account_signup_url }}">Sign up free</a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </nav>
+</header>
+{% if site_announcement %}
+  <aside class="site-announcement" aria-label="Site announcement">
+    <div class="shell">{{ site_announcement.message }}</div>
+  </aside>
+{% endif %}

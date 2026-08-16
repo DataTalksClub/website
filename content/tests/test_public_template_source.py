@@ -14,6 +14,10 @@ PUBLIC_TEMPLATE_PATHS = (
     REPOSITORY_ROOT / "accounts/templates/accounts/login.html",
     REPOSITORY_ROOT / "templates/core/base.html",
     REPOSITORY_ROOT / "templates/core/home.html",
+    # The design 5a shell now lives in two partials that every rebuilt page includes
+    # (issue #179), so the markup those pages used to carry answers here instead.
+    REPOSITORY_ROOT / "templates/core/_site_shell_head.html",
+    REPOSITORY_ROOT / "templates/core/_site_shell_foot.html",
     # The courses index left the adopted shell with the design 5a rebuild (issue #179)
     # and is now a public page in its own right.
     REPOSITORY_ROOT / "courses/templates/courses/course_list.html",
