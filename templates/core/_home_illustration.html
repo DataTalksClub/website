@@ -1,28 +1,29 @@
 {% load static %}
 {% comment %}
-Homepage doodles for design 5a.  The artwork itself lives in
-core/static/core/illustrations/*.svg, one file per illustration, so it is edited and
-diffed as a drawing rather than as template markup.  This partial only maps a variant
-name to its file.
+Homepage illustrations for design 5a.  The artwork is the drawing from the #179
+mockup, exported per illustration to core/static/core/illustrations/, so the page
+shows the designed picture rather than a redrawn approximation.  The flat page
+background is transparent in the asset, which lets one file sit on the cream hero
+band and on a white card without a visible plate.
 
-The hero and the "right now" stage share one drawing on purpose: the hero states the
-problem and the first stage names it.
+The hero and the "right now" stage share one drawing on purpose: the hero states
+the problem and the first stage names it.
 
 Decorative only — the surrounding copy carries the meaning — so every image has an
 empty alt attribute.
 {% endcomment %}
 {% if variant == "learning" %}
-  {% static "core/illustrations/home-learning.svg" as doodle_src %}
+  {% static "core/illustrations/home-learning.webp" as doodle_src %}
 {% elif variant == "shipping" %}
-  {% static "core/illustrations/home-shipping.svg" as doodle_src %}
+  {% static "core/illustrations/home-shipping.webp" as doodle_src %}
 {% else %}
-  {% static "core/illustrations/home-stuck.svg" as doodle_src %}
+  {% static "core/illustrations/home-stuck.webp" as doodle_src %}
 {% endif %}
 <img
   class="doodle doodle-{{ variant }}"
   src="{{ doodle_src }}"
   alt=""
-  width="320"
-  height="200"
+  {% if variant == "hero" %}width="989" height="730"{% else %}width="670" height="463"{% endif %}
   decoding="async"
+  {% if variant != "hero" %}loading="lazy"{% endif %}
 >

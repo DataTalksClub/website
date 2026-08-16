@@ -434,7 +434,7 @@
 
       .band {
         border-bottom: 2px dashed var(--line-soft);
-        padding-block: 3.25rem;
+        padding-block: 2.25rem;
       }
 
       .band-cream {
@@ -459,12 +459,11 @@
       }
 
       .band-head {
-        align-items: flex-end;
-        display: flex;
-        flex-wrap: wrap;
+        align-items: baseline;
+        display: grid;
         gap: 0.5rem 1.5rem;
-        justify-content: space-between;
-        margin-bottom: 1.75rem;
+        grid-template-columns: minmax(0, 1fr) auto;
+        margin-bottom: 1.5rem;
       }
 
       .band-head-secondary {
@@ -472,11 +471,14 @@
       }
 
       .band-head h2 {
-        font-size: clamp(1.55rem, 3.4vw, 2.1rem);
+        font-size: clamp(1.4rem, 3vw, 1.87rem);
       }
 
+      /* The heading and its subline are one block, so the action link stays on the
+         heading's own row instead of being pushed under a wrapped subline. */
       .band-head p {
-        margin-top: 0.5rem;
+        font-size: 0.9rem;
+        margin-top: 0.4rem;
         max-width: 46rem;
       }
 
@@ -504,22 +506,22 @@
       }
 
       .hero h1 {
-        font-size: clamp(2.3rem, 5.6vw, 3.85rem);
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
-        max-width: 17ch;
+        max-width: 19ch;
       }
 
       .hero-lede {
-        font-size: clamp(1.02rem, 1.8vw, 1.18rem);
-        margin-top: 1.5rem;
-        max-width: 34rem;
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1.25rem;
+        max-width: 33rem;
       }
 
       .hero-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.85rem;
-        margin-top: 2rem;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
       }
 
       .cta {
@@ -1400,7 +1402,7 @@
 
       @media (min-width: 62rem) {
         .band {
-          padding-block: 4.5rem;
+          padding-block: 2.9rem;
         }
 
         .card-grid-3 {
@@ -1408,8 +1410,8 @@
         }
 
         .hero-grid {
-          gap: 3rem;
-          grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+          gap: 2.5rem;
+          grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
         }
 
         .featured {
