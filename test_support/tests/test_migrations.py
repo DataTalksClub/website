@@ -71,6 +71,7 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "events/migrations/0005_seed_event_identity_manifest.py",
                 "events/migrations/0006_event_public_id.py",
                 "events/migrations/0007_reconcile_public_event_identity.py",
+                "events/migrations/0008_align_public_event_ids_to_manifest.py",
             },
         )
         for path in paths:
