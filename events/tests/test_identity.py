@@ -6,8 +6,10 @@ import uuid
 from copy import deepcopy
 from pathlib import Path
 from typing import ClassVar
+from unittest import mock
 
 from django.core.exceptions import ImproperlyConfigured
+from django.db import OperationalError
 from django.test import TestCase
 from django.urls import Resolver404, resolve
 
@@ -92,6 +94,22 @@ class EventIdentityManifestTests(TestCase):
             "Public Event UUID/public-ID mapping is incomplete",
         ):
             public_projection()
+
+    def test_unavailable_database_serves_the_manifest_identity_snapshot(self) -> None:
+        manifest = load_identity_manifest()
+        expected_paths = {item.canonical_path for item in manifest.events}
+
+        with mock.patch.object(
+            Event.objects,
+            "order_by",
+            side_effect=OperationalError("unable to open database file"),
+        ):
+            projection = public_projection()
+
+        self.assertEqual(
+            {event["public_path"] for event in projection["events"]},
+            expected_paths,
+        )
 
     def test_manifest_import_replay_is_byte_stable_and_a_preflight_noop(self) -> None:
         before = tuple(Event.objects.order_by("id").values_list("id", "public_id", "slug"))
