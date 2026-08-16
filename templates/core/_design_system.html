@@ -116,6 +116,17 @@ Rules for editing:
         --on-green: #f3fff5;
         --band-ink-bg: #0d0f20;
         --page: #13162a;
+        /* The extended 6-series tokens carry their own dark values, from the
+           table in _docs/design/design-5a.md.  Without them a status pill, a
+           ship line or a module disc keeps its light surface under dark text
+           (or the reverse) and stops being readable; --clay and --gold are
+           deliberately identical in both themes, so they are not restated. */
+        --lavender-deep: #2d3565;
+        --sand: #2a2740;
+        --olive: #cbb98a;
+        --green-ship: #93c7a5;
+        --bubble: #3c4372;
+        --on-bubble: #e8e5dd;
       }
 
       *,
@@ -1051,8 +1062,12 @@ Rules for editing:
         white-space: nowrap;
       }
 
+      /* The live pill fills with --green, not --green-bright: this is the one place a
+         green fill carries text, and white on --green-bright is only ~2.7:1.  It is the
+         same pairing .chip-live and .cta-primary already use.  --green-bright stays the
+         marker colour for the dot and the progress fill, which carry no text. */
       .status-pill-live {
-        background: var(--green-bright);
+        background: var(--green);
         border-color: var(--line);
         color: var(--on-green);
       }
@@ -1370,8 +1385,11 @@ Rules for editing:
         width: 1.9rem;
       }
 
+      /* The mockup sets a module title at the card-title weight, not body weight;
+         a summary row inherits the body weight, so it is restated here. */
       .module-title {
         font-size: 1rem;
+        font-weight: 800;
       }
 
       .module-summary {

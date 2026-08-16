@@ -299,7 +299,7 @@ distinct from the round `.chip`:
 | Variant | Surface | Use |
 | --- | --- | --- |
 | *(bare)* | cream, soft border, body text | quiet facts: "enrolled · week 9 of 10" |
-| `status-pill-live` | `--green-bright`, white text | a running cohort, a live event |
+| `status-pill-live` | `--green`, white text | a running cohort, a live event |
 | `status-pill-open` | `--lavender-deep`, ink text | registration open, next cohort dates, workshop kind |
 | `status-pill-wait` | `--sand`, olive text | waitlist, self-paced only, past events |
 | `status-pill-mint` | `--mint`, `--green-ship` text | podcast kind, season/episode marker |
@@ -427,7 +427,16 @@ The same shape carries transcript rows with the speaker name as the mark.
 
 Wrap the set in `.module-list`. The number disc sits on `--bubble`; an open
 module tints its summary lavender; the `+`/`−` marker is CSS-drawn from the
-`[open]` state, so it needs no script.
+`[open]` state, so it needs no script. `.module-title` is set at the card-title
+weight, not body weight.
+
+As built (course page, issue #179): a module is one homework or one project, in
+the order the course already lists them, numbered continuously across both.
+There is no per-module blurb in the data, so `.module-summary` carries the
+module's `.status-pill` instead — the state a learner needs at a glance without
+opening the module — and `.module-body` carries the full deadline, the live
+countdown and the link to the page where work is handed in. Only the first
+module is open by default, as in the mockup.
 
 ### Form fields (course page register form)
 
@@ -441,6 +450,14 @@ module tints its summary lavender; the `+`/`−` marker is CSS-drawn from the
 
 `.field-input` styles `input`, `select` and `textarea` alike; readonly and
 disabled fields sit on `--sand`.
+
+Mockup 6b draws this form on the course page itself, but the site already owns
+one registration form, on the registration campaign page (`registration_campaign`,
+`courses/templates/courses/register.html`), with its own POST target, duplicate
+detection, country and role validation and accessible error summary. The rebuilt
+course page therefore keeps its register **call to action** and links to that
+page rather than growing a second copy of a mutation surface; these field
+primitives are still the ones a page in this system uses when it does own a form.
 
 ### Panels
 
@@ -497,9 +514,11 @@ The partial guarantees, and every page must preserve:
   2.75rem` — a deliberate deviation from the export.
 - **Contrast**: body and muted text pass 4.5:1 on every band in both themes;
   the new pairs were checked (olive on sand ≈ 5.5:1 light; `--green-ship` on
-  cream ≈ 6.3:1). White-on-`--green-bright` pills flip to dark text
-  (`#14172a`) in dark mode. State is never colour-only — pills and dots always
-  carry words.
+  cream ≈ 6.3:1). A green fill that carries text uses `--green`, never
+  `--green-bright`: white on `--green-bright` is ~2.7:1, so `.status-pill-live`
+  fills with `--green` (≈ 5.3:1) exactly as `.chip-live` and `.cta-primary` do,
+  and `--green-bright` is reserved for the textless dot and progress fill. State
+  is never colour-only — pills and dots always carry words.
 - **Decorative artwork**: every illustration has `alt=""` (see below); every
   decorative inline SVG and dot has `aria-hidden="true"` and
   `focusable="false"`.
