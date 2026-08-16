@@ -1,0 +1,1644 @@
+{% load static %}
+{% comment %}
+Design 5a shared stylesheet (issue #179).
+
+This partial is the site's design system: tokens, reset, masthead, bands and the
+shared primitives every rebuilt public page uses.  It is CSS only — include it
+INSIDE the page's own <style> element:
+
+    <style>
+      {% include "core/_design_system.html" %}
+      /* page-specific rules follow */
+    </style>
+
+Pages carry their complete stylesheet inline and load no external CSS (see
+core/tests/test_homepage.py::test_homepage_carries_its_own_stylesheet_and_loads_no_legacy_css),
+so this indirection is how the pages share one visual language without a
+<link rel="stylesheet">.
+
+Rules for editing:
+  - every colour goes through a custom property defined in :root and mirrored
+    in body.dark-mode; if a colour is missing, add a token — never an inline hex;
+  - keep page-specific rules in the page template, shared primitives here;
+  - the system is documented in _docs/design/design-5a.md — update it together
+    with this file.
+{% endcomment %}
+      /* ------------------------------------------------------------------ *
+       * Design 5a shared design system.  Tokens, reset, masthead, bands,
+       * cards and the extended primitives shared by every rebuilt page.
+       * ------------------------------------------------------------------ */
+
+      /* The mockups are set in Quicksand (single-storey a and g, rounded
+         terminals); the variable latin cut is self-hosted so the pages keep
+         loading nothing external. */
+      @font-face {
+        font-family: "Quicksand";
+        font-style: normal;
+        font-weight: 300 700;
+        font-display: swap;
+        src: url("{% static 'core/fonts/quicksand-latin-var.woff2' %}") format("woff2");
+      }
+
+      :root {
+        --cream: #fdfaf3;
+        --lavender: #eff1fc;
+        --mint: #eff5ea;
+        --card: #ffffff;
+        --ink: #1e2136;
+        --body-text: #4c5066;
+        --muted: #5c6076;
+        --line: #1e2136;
+        --line-soft: #d6d9e8;
+        --green: #2b7a35;
+        --green-bright: #3ea94b;
+        --green-deep: #41704e;
+        --indigo: #5a62c4;
+        --indigo-soft: #c9cdf2;
+        --shadow: rgba(30, 33, 54, 0.9);
+        --shadow-soft: rgba(30, 33, 54, 0.16);
+        --focus: #1e2136;
+        /* Text sitting on a green fill, the closing band's ground, and green in
+           its text role.  Each exists so the dark theme can restate it without a
+           per-component override; in light every one resolves to the value the
+           design already rendered. */
+        --on-green: #ffffff;
+        --band-ink-bg: var(--ink);
+        --green-text: var(--green);
+        --page: var(--cream);
+        --font-sans: "Quicksand", ui-rounded, "Segoe UI", system-ui, -apple-system,
+          BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+        --shell: 76rem;
+        /* Extended tokens introduced with the 6-series pages (courses, course
+           detail, events, podcast).  The mono face carries machine-flavoured
+           metadata: status pills, spec labels, timestamps and due dates.  The
+           mockups set it in JetBrains Mono; the site keeps the system stack
+           (owner decision, _docs/design/mockups/README.md). */
+        --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas,
+          "Liberation Mono", monospace;
+        --lavender-deep: #dfe2f7;
+        --sand: #f3f0e8;
+        --olive: #6b6034;
+        --green-ship: #1f6b2c;
+        --bubble: #b9bff0;
+        --on-bubble: #1e2136;
+        --clay: #e0847a;
+        --gold: #e2c67a;
+      }
+
+      /* The dark palette is the designer's own: the decoded mockup source
+         (_docs/design/mockups/datatalks-homepage.source.css) carries a
+         [data-dtc-theme="dark"] substitution table and these values follow it --
+         navy grounds, periwinkle text, a deepened brand green under near-white
+         labels.  Two deliberate departures, because the mockup darkens its
+         inline-SVG artwork by remapping fills, which a token table cannot see:
+         the solid border ink is lightened from the source's #3b4272 so outlined
+         controls hold a 3:1 edge on their own surface, and the dashed-rule alpha
+         rises from .26 to .34 so band separators survive a phone screen. */
+      body.dark-mode {
+        --cream: #13162a;
+        --lavender: #232a52;
+        --mint: #17301f;
+        --card: #1b1f3a;
+        --ink: #eaeaf7;
+        --body-text: #aeb2d2;
+        --muted: #8286a8;
+        --line: #6a72ab;
+        --line-soft: rgba(169, 176, 242, 0.34);
+        --green: #2b8146;
+        --green-bright: #2b8146;
+        --green-deep: #93c7a5;
+        --green-text: #93c7a5;
+        --indigo: #a9b0f2;
+        --indigo-soft: #3c4372;
+        --shadow: rgba(6, 8, 22, 0.65);
+        --shadow-soft: rgba(6, 8, 22, 0.65);
+        --focus: #eaeaf7;
+        --on-green: #f3fff5;
+        --band-ink-bg: #0d0f20;
+        --page: #13162a;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        background: var(--page);
+        color: var(--body-text);
+        font-family: var(--font-sans);
+        font-size: 1rem;
+        font-weight: 500;
+        line-height: 1.6;
+        margin: 0;
+        overflow-x: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4,
+      p,
+      ul,
+      ol,
+      figure,
+      blockquote {
+        margin: 0;
+      }
+
+      ul,
+      ol {
+        list-style: none;
+        padding: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      h4 {
+        color: var(--ink);
+        font-weight: 800;
+        letter-spacing: -0.015em;
+        line-height: 1.12;
+      }
+
+      img,
+      svg {
+        max-width: 100%;
+      }
+
+      a {
+        color: var(--indigo);
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+        border-radius: 0.25rem;
+      }
+
+      /* The skip link moves focus here; the landmark itself must not be outlined. */
+      #main-content:focus,
+      #main-content:focus-visible {
+        outline: 0;
+      }
+
+      .skip-link {
+        background: var(--ink);
+        border-radius: 0.375rem;
+        color: var(--cream);
+        left: 0.5rem;
+        padding: 0.65rem 0.9rem;
+        position: fixed;
+        text-decoration: none;
+        top: 0.5rem;
+        transform: translateY(-160%);
+        z-index: 200;
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .sr-only {
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        height: 1px;
+        overflow: hidden;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
+      }
+
+      .shell {
+        margin-inline: auto;
+        max-width: var(--shell);
+        padding-inline: 1rem;
+        width: 100%;
+      }
+
+      /* --- masthead ----------------------------------------------------- */
+
+      .masthead {
+        background: var(--cream);
+        border-bottom: 2px dashed var(--line-soft);
+      }
+
+      .masthead-inner {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        justify-content: space-between;
+        padding-block: 0.9rem;
+      }
+
+      .brand {
+        align-items: center;
+        color: var(--ink);
+        display: inline-flex;
+        flex-shrink: 0;
+        font-size: 1rem;
+        font-weight: 800;
+        gap: 0.4rem;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .brand-mark {
+        display: block;
+        flex: none;
+        height: 1.9rem;
+        width: auto;
+      }
+
+      .brand-mark text {
+        fill: currentColor;
+        dominant-baseline: auto;
+        font-family: var(--font-sans);
+        font-size: 19px;
+        font-weight: 800;
+        text-anchor: middle;
+      }
+
+      .brand-light {
+        font-weight: 500;
+      }
+
+      .doodle {
+        display: block;
+        height: auto;
+        width: 100%;
+      }
+
+      /* The artwork was painted for the cream page: its lavender wash and white
+         paper read as a glowing plate on the dark ground.  The mockup darkens its
+         artwork by remapping SVG fills, which nothing can do to a fixed WebP, so
+         dark mode dims and slightly desaturates the whole drawing instead — same
+         artwork, lamp turned down — keeping the ink lines and green shirts legible
+         while the wash settles into the ground. */
+      body.dark-mode .doodle {
+        filter: brightness(0.78) saturate(0.72);
+      }
+
+      .masthead-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: flex-end;
+        /* Narrow screens read brand, theme, menu — the same order as the mockup. */
+        order: 2;
+      }
+
+      .site-navigation {
+        order: 3;
+      }
+
+      .masthead .pill-button,
+      .masthead .mobile-nav > summary,
+      .masthead .account-nav > summary {
+        font-size: 0.82rem;
+        padding-inline: 0.7rem;
+      }
+
+      .nav-link {
+        border-radius: 0.5rem;
+        color: var(--ink);
+        display: inline-flex;
+        align-items: center;
+        font-size: 0.92rem;
+        font-weight: 500;
+        min-height: 2.75rem;
+        padding: 0.25rem 0.5rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .nav-link:hover,
+      .nav-link[aria-current="page"] {
+        color: var(--indigo);
+      }
+
+      .pill-button {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-weight: 700;
+        gap: 0.45rem;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 1rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .pill-button .dot {
+        background: var(--ink);
+        border-radius: 999px;
+        height: 0.9rem;
+        width: 0.9rem;
+      }
+
+      .signup-button {
+        align-items: center;
+        background: var(--green);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        box-shadow: 0 3px 0 var(--shadow);
+        color: var(--on-green);
+        display: inline-flex;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 1.15rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      /* The site-wide navigation contract: a toggle plus #site-navigation-links, opened
+         by core/site_navigation.js and always visible without JavaScript. */
+      .site-navigation {
+        position: relative;
+      }
+
+      .site-navigation-toggle {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 0.7rem;
+        white-space: nowrap;
+      }
+
+      .site-navigation-links {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
+        display: none;
+        gap: 0.1rem;
+        min-width: 12rem;
+        padding: 0.5rem;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.4rem);
+        z-index: 60;
+      }
+
+      .site-navigation-links.is-open {
+        display: grid;
+      }
+
+      .no-js .site-navigation-toggle {
+        display: none;
+      }
+
+      .no-js .site-navigation-links {
+        display: flex;
+        flex-wrap: wrap;
+        position: static;
+      }
+
+      /* The auth pair stays in the masthead at every width, so it gives up its padding
+         rather than its place once the row gets tight. */
+      .masthead .nav-auth,
+      .masthead .signup-button {
+        font-size: 0.82rem;
+        padding-inline: 0.6rem;
+      }
+
+      /* The auth link reads as an action, not another destination. */
+      .masthead .nav-auth {
+        color: var(--indigo);
+        font-weight: 600;
+      }
+
+      .account-nav {
+        position: relative;
+      }
+
+      .account-nav > summary {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font-weight: 700;
+        justify-content: center;
+        list-style: none;
+        min-height: 2.75rem;
+        padding: 0.3rem 1rem;
+      }
+
+      .account-nav > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .mobile-nav-panel {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0 0.75rem 1.75rem var(--shadow-soft);
+        display: grid;
+        gap: 0.1rem;
+        padding: 0.5rem;
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.5rem);
+        width: max-content;
+        min-width: 12rem;
+        z-index: 60;
+      }
+
+      .user-menu-signed-in {
+        color: var(--muted);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        margin: 0;
+        padding: 0.35rem 0.6rem 0;
+        text-transform: uppercase;
+      }
+
+      .user-menu-identity {
+        border-bottom: 2px dashed var(--line-soft);
+        margin: 0 0 0.35rem;
+        max-width: 14rem;
+        overflow: hidden;
+        padding: 0.1rem 0.6rem 0.5rem;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .user-menu-actions {
+        display: grid;
+        gap: 0.1rem;
+      }
+
+      /* --- bands -------------------------------------------------------- */
+
+      .band {
+        border-bottom: 2px dashed var(--line-soft);
+        padding-block: 2.25rem;
+      }
+
+      .band-cream {
+        background: var(--cream);
+      }
+
+      .band-lavender {
+        background: var(--lavender);
+      }
+
+      .band-mint {
+        background: var(--mint);
+      }
+
+      .band-ink {
+        background: var(--band-ink-bg);
+        border-bottom: 0;
+      }
+
+      /* Stacked by default; the action or kicker only moves onto the heading's own row
+         once the row is wide enough to hold both without squeezing the heading. */
+      .band-head {
+        display: grid;
+        gap: 0.5rem 1.5rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .band-head-secondary {
+        margin-top: 2.75rem;
+      }
+
+      .band-head h2 {
+        font-size: clamp(1.4rem, 3vw, 1.87rem);
+      }
+
+      /* The heading and its subline are one block, so the action link stays on the
+         heading's own row instead of being pushed under a wrapped subline. */
+      .band-head p {
+        font-size: 0.9rem;
+        margin-top: 0.4rem;
+        max-width: 58rem;
+      }
+
+      .kicker {
+        color: var(--indigo);
+        font-size: 0.72rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .band-link {
+        color: var(--indigo);
+        font-weight: 600;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* --- calls to action ---------------------------------------------- */
+
+      .cta {
+        align-items: center;
+        border: 2px solid var(--line);
+        border-radius: 0.7rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow);
+        display: inline-flex;
+        font-size: 1.05rem;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 3.25rem;
+        padding: 0.65rem 1.5rem;
+        text-decoration: none;
+      }
+
+      .cta-primary {
+        background: var(--green);
+        color: var(--on-green);
+      }
+
+      .cta-secondary {
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      /* --- cards -------------------------------------------------------- */
+
+      .card {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: flex;
+        flex-direction: column;
+        font-size: 0.9rem;
+        gap: 0.6rem;
+        padding: 1rem;
+      }
+
+      .card-grid {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .chip {
+        align-items: center;
+        border: 1.5px solid var(--line-soft);
+        border-radius: 999px;
+        color: var(--ink);
+        display: inline-flex;
+        font-size: 0.72rem;
+        letter-spacing: 0.06em;
+        padding: 0.2rem 0.6rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .chip-plain {
+        text-transform: none;
+      }
+
+      .chip-green {
+        border-color: var(--green-text);
+        color: var(--green-text);
+      }
+
+      .chip-live {
+        background: var(--green);
+        border-color: var(--line);
+        color: var(--on-green);
+      }
+
+      .chip-ink {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--cream);
+      }
+
+      .avatar {
+        align-self: flex-start;
+        background: repeating-linear-gradient(
+          45deg,
+          var(--indigo-soft),
+          var(--indigo-soft) 3px,
+          var(--card) 3px,
+          var(--card) 6px
+        );
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        flex: none;
+        height: 2.6rem;
+        width: 2.6rem;
+      }
+
+      /* --- catalogue scroller ------------------------------------------- */
+
+      /* The mockup's scroller shows cards only -- the strip still scrolls (and
+         keeps its arrow buttons and keyboard focus) but draws no scrollbar. */
+      .catalog-scroller {
+        display: grid;
+        gap: 1.25rem;
+        grid-auto-columns: minmax(min(19rem, 100%), 1fr);
+        grid-auto-flow: column;
+        overflow-x: auto;
+        padding: 0.4rem 0.4rem 0.6rem;
+        margin-inline: -0.4rem;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+      }
+
+      .catalog-scroller::-webkit-scrollbar {
+        display: none;
+      }
+
+      .catalog-scroller > * {
+        scroll-snap-align: start;
+      }
+
+      .scroller-controls {
+        display: none;
+        gap: 0.5rem;
+      }
+
+      html.js .scroller-controls {
+        display: flex;
+      }
+
+      .scroller-button {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font-size: 1.1rem;
+        height: 2.75rem;
+        justify-content: center;
+        width: 2.75rem;
+      }
+
+      /* --- announcement / impersonation --------------------------------- */
+
+      .site-announcement,
+      .impersonation-banner {
+        background: var(--lavender);
+        border-bottom: 2px solid var(--line-soft);
+        color: var(--ink);
+      }
+
+      .site-announcement .shell,
+      .impersonation-banner .shell {
+        padding-block: 0.75rem;
+      }
+
+      .impersonation-return-button {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.3rem 0.8rem;
+      }
+
+      /* --- shared footer partial ---------------------------------------- */
+
+      .site-footer,
+      .site-footer *,
+      .analytics-preferences,
+      .analytics-preferences * {
+        box-sizing: border-box;
+      }
+
+      .site-footer {
+        background: var(--cream);
+        color: var(--muted);
+      }
+
+      .site-footer-inner {
+        display: grid;
+        gap: 0.25rem;
+        justify-items: center;
+        margin-inline: auto;
+        max-width: 56rem;
+        padding: 1.5rem 1.25rem;
+        width: 100%;
+      }
+
+      .site-footer-identity {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0 0.75rem;
+        justify-content: center;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .site-footer-brand {
+        align-items: center;
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0 0.5rem;
+        justify-content: center;
+      }
+
+      .site-footer-brand .font-semibold {
+        color: var(--ink);
+        font-weight: 800;
+      }
+
+      .site-footer-runtime {
+        align-items: center;
+        display: inline-flex;
+        flex: 0 1 auto;
+        gap: 0.5rem;
+        justify-content: center;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .site-footer-legal {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.85rem;
+        justify-content: center;
+      }
+
+      .site-footer-legal-control {
+        align-items: center;
+        background: transparent;
+        border: 0;
+        border-radius: 0.25rem;
+        color: var(--indigo);
+        display: inline-flex;
+        font: inherit;
+        justify-content: center;
+        line-height: 1.3;
+        margin: 0;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.5rem;
+        text-align: center;
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
+      }
+
+      .site-footer-preferences {
+        cursor: pointer;
+      }
+
+      .site-footer-separator {
+        color: var(--muted);
+        line-height: 1;
+      }
+
+      .footer-version {
+        color: var(--muted);
+        font-size: 0.78rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .site-footer-github {
+        align-items: center;
+        border-radius: 0.25rem;
+        display: inline-flex;
+        height: 2.75rem;
+        justify-content: center;
+        min-width: 2.75rem;
+        width: 2.75rem;
+      }
+
+      .site-footer .site-footer-github,
+      .site-footer .site-footer-github:link,
+      .site-footer .site-footer-github:visited,
+      .site-footer .site-footer-github:hover,
+      .site-footer .site-footer-github:focus,
+      .site-footer .site-footer-github:active {
+        text-decoration: none;
+      }
+
+      /* The old icon font is gone with the old CSS; draw the mark instead. */
+      .site-footer-github i {
+        background-color: currentColor;
+        color: var(--ink);
+        display: block;
+        height: 1.35rem;
+        width: 1.35rem;
+        -webkit-mask: var(--github-mark) center / contain no-repeat;
+        mask: var(--github-mark) center / contain no-repeat;
+      }
+
+      :root {
+        --github-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z'/%3E%3C/svg%3E");
+      }
+
+      .analytics-preferences {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.75rem;
+        box-shadow: 0 1rem 2.5rem var(--shadow-soft);
+        color: var(--body-text);
+        inset: auto 1rem 1rem auto;
+        margin: 0;
+        max-height: calc(100vh - 2rem);
+        max-width: min(30rem, calc(100vw - 2rem));
+        overflow: auto;
+        padding: 0;
+        width: 100%;
+        z-index: 90;
+      }
+
+      .analytics-preferences:modal {
+        inset: 0;
+        margin: auto;
+      }
+
+      .analytics-preferences[open]:not(:modal) {
+        inset: auto;
+        margin: 1rem auto 0;
+        max-height: none;
+        position: static;
+        width: calc(100% - 2rem);
+      }
+
+      .analytics-preferences::backdrop {
+        background: rgba(15, 23, 42, 0.48);
+      }
+
+      .analytics-preferences-content {
+        display: grid;
+        gap: 0.9rem;
+        padding: 1.25rem;
+      }
+
+      .analytics-preferences-content h2 {
+        font-size: 1.35rem;
+      }
+
+      .analytics-preferences-eyebrow {
+        color: var(--muted);
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .analytics-preferences-status {
+        font-weight: 600;
+      }
+
+      .analytics-preferences-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.65rem;
+      }
+
+      .analytics-preferences-choice,
+      .analytics-preferences-close {
+        align-items: center;
+        border-radius: 0.5rem;
+        display: inline-flex;
+        font: inherit;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.85rem;
+      }
+
+      .analytics-preferences-choice {
+        border: 2px solid var(--line);
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      .analytics-preferences-allow {
+        background: var(--green);
+        color: var(--on-green);
+      }
+
+      .analytics-preferences-deny {
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      .analytics-preferences-close {
+        background: transparent;
+        border: 0;
+        color: var(--indigo);
+        cursor: pointer;
+        text-decoration: underline;
+        text-underline-offset: 0.18em;
+      }
+
+      .analytics-preferences-detail {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * Extended primitives for the 6-series pages (courses index, course
+       * detail, events index, podcast index and episode).  Defined once here
+       * so the four pages do not each invent their own.  Markup shapes are
+       * documented in _docs/design/design-5a.md.
+       * ------------------------------------------------------------------ */
+
+      /* Stat tiles: the courses-index hero facts (6 free courses, 130k+…). */
+      .stat-tiles {
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stat-tile {
+        background: var(--lavender);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        padding: 0.9rem 1rem;
+      }
+
+      .stat-tile strong {
+        color: var(--ink);
+        display: block;
+        font-size: 1.6rem;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+
+      .stat-tile span {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* Filter pills: one row of pill toggles where exactly one is active
+         (courses filters, upcoming/past events, show notes/timestamps). */
+      .filter-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .filter-pill {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font: inherit;
+        font-size: 0.92rem;
+        font-weight: 700;
+        justify-content: center;
+        min-height: 2.75rem;
+        padding: 0.3rem 1.1rem;
+        text-decoration: none;
+        white-space: nowrap;
+      }
+
+      .filter-pill.is-active,
+      .filter-pill[aria-pressed="true"],
+      .filter-pill[aria-current="page"] {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: var(--cream);
+      }
+
+      /* Status pills: mono uppercase state markers (ACTIVE, REGISTRATION OPEN,
+         NEXT COHORT · …, WAITLIST, SEASON 24 · EPISODE 9).  Unlike the round
+         .chip, a status pill is a soft rectangle.  The bare class is the quiet
+         cream variant ("enrolled · week 9 of 10"). */
+      .status-pill {
+        align-items: center;
+        background: var(--cream);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.45rem;
+        color: var(--body-text);
+        display: inline-flex;
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        font-weight: 700;
+        gap: 0.45rem;
+        letter-spacing: 0.09em;
+        padding: 0.25rem 0.65rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .status-pill-live {
+        background: var(--green-bright);
+        border-color: var(--line);
+        color: var(--on-green);
+      }
+
+      .status-pill-open {
+        background: var(--lavender-deep);
+        border-color: var(--line);
+        color: var(--ink);
+      }
+
+      .status-pill-wait {
+        background: var(--sand);
+        border-color: var(--line);
+        color: var(--olive);
+      }
+
+      .status-pill-mint {
+        background: var(--mint);
+        border-color: var(--line);
+        color: var(--green-ship);
+      }
+
+      /* The little state dot, on a status pill or beside a band heading. */
+      .status-dot {
+        background: var(--green-bright);
+        border-radius: 999px;
+        display: inline-block;
+        flex: none;
+        height: 0.6rem;
+        width: 0.6rem;
+      }
+
+      .status-dot-pulse {
+        animation: status-pulse 2.2s infinite;
+      }
+
+      @keyframes status-pulse {
+        0%,
+        100% {
+          opacity: 0.3;
+        }
+
+        50% {
+          opacity: 1;
+        }
+      }
+
+      .status-pill-live .status-dot {
+        background: currentColor;
+        height: 0.45rem;
+        width: 0.45rem;
+      }
+
+      /* Platform dots recolour the pill-button dot (podcast subscribe row). */
+      .pill-button .dot-green {
+        background: var(--green-bright);
+      }
+
+      .pill-button .dot-bubble {
+        background: var(--bubble);
+      }
+
+      .pill-button .dot-clay {
+        background: var(--clay);
+      }
+
+      .pill-button .dot-gold {
+        background: var(--gold);
+      }
+
+      /* Progress bar: homework/cohort progress.  The .progress element
+         carries role="progressbar" with aria-valuemin/max/now and a label. */
+      .progress {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        height: 0.625rem;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        background: var(--green-bright);
+        border-radius: inherit;
+        height: 100%;
+      }
+
+      /* The "you'll ship:" promise line under a course title. */
+      .ship-line {
+        color: var(--green-ship);
+        font-size: 0.95rem;
+        font-style: italic;
+        font-weight: 700;
+      }
+
+      /* Mono metadata: uppercase mono labels (NEXT ASSIGNMENT, page kickers
+         in the 6-series) and small mono notes (dates, "7 of 9 homeworks"). */
+      .mono-label {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .mono-label-green {
+        color: var(--green-ship);
+      }
+
+      .mono-label-indigo {
+        color: var(--indigo);
+      }
+
+      .mono-note {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      /* Spec rows: label-over-value facts (STARTS / LENGTH / PRICE / …). */
+      .spec-strip {
+        border-block: 2px dashed var(--line-soft);
+        display: grid;
+        gap: 1rem 1.25rem;
+        grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+        padding-block: 1rem;
+        text-align: center;
+      }
+
+      .spec {
+        display: grid;
+        gap: 0.2rem;
+      }
+
+      .spec strong {
+        color: var(--ink);
+        font-size: 0.95rem;
+        font-weight: 800;
+      }
+
+      /* List rows: dashed-divided rows for index surfaces.  Rows stack on
+         narrow screens; pages set --row-cols for their wide column layout. */
+      .row-list {
+        display: grid;
+      }
+
+      .row-list > * {
+        border-bottom: 1.5px dashed var(--line-soft);
+      }
+
+      .list-row {
+        align-items: start;
+        display: grid;
+        gap: 0.35rem 1.5rem;
+        grid-template-columns: minmax(0, 1fr);
+        padding-block: 0.9rem;
+      }
+
+      @media (min-width: 48rem) {
+        .list-row {
+          align-items: center;
+          grid-template-columns: var(--row-cols, minmax(0, 1fr) auto);
+        }
+      }
+
+      /* Play disc: the podcast play marker on the brand's bubble lavender. */
+      .play-disc {
+        align-items: center;
+        background: var(--bubble);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        display: inline-flex;
+        flex: none;
+        height: 2.4rem;
+        justify-content: center;
+        width: 2.4rem;
+      }
+
+      .play-disc svg {
+        fill: var(--on-bubble);
+        height: 1.1rem;
+        width: 1.1rem;
+      }
+
+      .play-disc-card {
+        background: var(--card);
+      }
+
+      .play-disc-card svg {
+        fill: var(--ink);
+      }
+
+      .play-disc-large {
+        height: 3.5rem;
+        width: 3.5rem;
+      }
+
+      .play-disc-large svg {
+        height: 1.6rem;
+        width: 1.6rem;
+      }
+
+      /* Player frame: the episode's striped video placeholder, with a
+         .play-disc.play-disc-card.play-disc-large centred inside. */
+      .player-frame {
+        align-items: center;
+        aspect-ratio: 16 / 9;
+        background: repeating-linear-gradient(
+          135deg,
+          var(--lavender) 0 10px,
+          var(--lavender-deep) 10px 20px
+        );
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: flex;
+        justify-content: center;
+      }
+
+      /* The striped stand-in avatar for a guest without a portrait. */
+      .avatar-striped {
+        background: repeating-linear-gradient(
+          135deg,
+          var(--lavender) 0 6px,
+          var(--lavender-deep) 6px 12px
+        );
+      }
+
+      /* Timestamp rows: mono time mark plus text, dashed separators.
+         The same shape carries transcript rows with a speaker mark. */
+      .timestamp-row {
+        border-bottom: 1.5px dashed var(--line-soft);
+        column-gap: 0.75rem;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        padding-block: 0.7rem;
+      }
+
+      .timestamp-mark {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        padding-top: 0.15rem;
+      }
+
+      /* Numbered step disc (the homepage climb; modules use .module-number). */
+      .step-number {
+        align-items: center;
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        display: inline-flex;
+        flex: none;
+        font-size: 0.8rem;
+        font-weight: 700;
+        height: 2.1rem;
+        justify-content: center;
+        width: 2.1rem;
+      }
+
+      .step-number-2 {
+        background: var(--indigo-soft);
+      }
+
+      .step-number-3 {
+        background: var(--green);
+        color: var(--on-green);
+      }
+
+      /* Module accordion: one syllabus module per details.module element.
+         The numbered disc sits on the brand bubble; an open module tints its
+         summary lavender and keeps the ink border. */
+      .module-list {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .module {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.25rem 0.25rem 0 var(--shadow-soft);
+        overflow: hidden;
+      }
+
+      .module > summary {
+        align-items: center;
+        cursor: pointer;
+        display: grid;
+        gap: 0.1rem 0.75rem;
+        grid-template-columns: auto minmax(0, 1fr) auto auto;
+        list-style: none;
+        padding: 0.8rem 0.95rem;
+      }
+
+      .module[open] > summary {
+        background: var(--lavender);
+      }
+
+      .module > summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .module-number {
+        align-items: center;
+        background: var(--bubble);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--on-bubble);
+        display: inline-flex;
+        flex: none;
+        font-size: 0.75rem;
+        font-weight: 800;
+        grid-row: span 2;
+        height: 1.9rem;
+        justify-content: center;
+        width: 1.9rem;
+      }
+
+      .module-title {
+        font-size: 1rem;
+      }
+
+      .module-summary {
+        color: var(--muted);
+        font-size: 0.85rem;
+        grid-column: 2;
+      }
+
+      .module-due {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        grid-row: span 2;
+        white-space: nowrap;
+      }
+
+      .module-marker {
+        color: var(--indigo);
+        font-weight: 800;
+        grid-row: span 2;
+        text-align: center;
+        width: 1rem;
+      }
+
+      .module-marker::after {
+        content: "+";
+      }
+
+      .module[open] .module-marker::after {
+        content: "−";
+      }
+
+      .module-body {
+        border-top: 1.5px dashed var(--line-soft);
+        display: grid;
+        margin-left: 3.6rem;
+        padding: 0.2rem 0.95rem 0.9rem 0;
+      }
+
+      .module-fact {
+        border-bottom: 1.5px dashed var(--line-soft);
+        column-gap: 0.75rem;
+        display: grid;
+        font-size: 0.9rem;
+        grid-template-columns: 4.25rem minmax(0, 1fr);
+        margin: 0;
+        padding-block: 0.55rem;
+      }
+
+      .module-fact:last-child {
+        border-bottom: 0;
+      }
+
+      .module-fact dt {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.06em;
+        padding-top: 0.2rem;
+        text-transform: uppercase;
+      }
+
+      .module-fact dd {
+        margin: 0;
+      }
+
+      /* Form fields: the register form on the course page. */
+      .field {
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .field-label {
+        color: var(--ink);
+        font-size: 0.9rem;
+        font-weight: 700;
+      }
+
+      .field-input {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.625rem;
+        color: var(--ink);
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.8rem;
+        width: 100%;
+      }
+
+      .field-input[readonly],
+      .field-input[disabled] {
+        background: var(--sand);
+        color: var(--muted);
+      }
+
+      .field-hint {
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+
+      /* Tinted inset panels (what you'll build, next assignment, questions). */
+      .panel {
+        border-radius: 1.1rem;
+        display: grid;
+        gap: 0.75rem;
+        padding: 1.35rem 1.5rem;
+      }
+
+      .panel-outlined {
+        border: 2px solid var(--line);
+      }
+
+      .panel-mint {
+        background: var(--mint);
+      }
+
+      .panel-lavender {
+        background: var(--lavender);
+      }
+
+      /* Date rail: the events-index date block beside each event card. */
+      .when {
+        align-content: start;
+        border-left: 4px solid var(--bubble);
+        display: grid;
+        gap: 0.15rem;
+        padding-left: 0.7rem;
+        padding-top: 0.3rem;
+      }
+
+      .when strong {
+        color: var(--ink);
+        font-size: 0.92rem;
+        line-height: 1.2;
+      }
+
+      .when-day {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .when-time {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+      }
+
+      /* CTA additions: the ink-and-bubble pair from the 6-series pages, and
+         a compact size for row actions (Register buttons in list rows). */
+      .cta-ink {
+        background: var(--ink);
+        box-shadow: 0.25rem 0.25rem 0 var(--bubble);
+        color: var(--cream);
+      }
+
+      .cta-lift {
+        box-shadow: 0.25rem 0.25rem 0 var(--bubble);
+      }
+
+      .cta-compact {
+        border-radius: 0.6rem;
+        font-size: 0.92rem;
+        min-height: 2.75rem;
+        padding: 0.45rem 1.1rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * Shared responsive rules.  Narrow screens reshape rather than merely
+       * reflow; pages add their own narrow overrides after this include.
+       * ------------------------------------------------------------------ */
+
+      @media (max-width: 47.99rem) {
+        .card-grid-3 {
+          gap: 0.9rem;
+        }
+
+        /* The catalogue stays a carousel at every width; phones just see a
+           narrower card so the next one peeks in from the edge. */
+        .catalog-scroller {
+          grid-auto-columns: minmax(min(17rem, 82%), 1fr);
+        }
+      }
+
+      @media (min-width: 40rem) {
+        .shell {
+          padding-inline: 1.25rem;
+        }
+
+        .card-grid-2 {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .band {
+          padding-block: 2.9rem;
+        }
+
+        .card-grid-3 {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+
+      /* The full link row only fits once the viewport can hold it without wrapping.
+         The mockup shows it at its own 1142px width, so the switch sits below that. */
+      @media (min-width: 69rem) {
+        .masthead .site-navigation-links,
+        .masthead .site-navigation-links.is-open {
+          background: transparent;
+          border: 0;
+          box-shadow: none;
+          display: flex;
+          gap: 0.1rem;
+          min-width: 0;
+          padding: 0;
+          position: static;
+        }
+
+        .masthead .site-navigation-toggle {
+          display: none;
+        }
+
+        .masthead .site-navigation {
+          order: 2;
+        }
+
+        .masthead-actions {
+          order: 3;
+        }
+
+        .masthead .nav-auth,
+        .masthead .signup-button {
+          font-size: 0.9rem;
+          padding-inline: 0.95rem;
+        }
+
+        .masthead .nav-link {
+          padding-inline: 0.35rem;
+        }
+
+        .band-head {
+          align-items: baseline;
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .brand {
+          font-size: 1.1rem;
+        }
+
+        .brand-mark {
+          height: 2.3rem;
+        }
+
+        .masthead .pill-button,
+        .masthead .account-nav > summary {
+          font-size: 0.95rem;
+          padding-inline: 1rem;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          scroll-behavior: auto !important;
+          transition: none !important;
+        }
+      }
