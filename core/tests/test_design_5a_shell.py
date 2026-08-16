@@ -46,6 +46,7 @@ DESIGN_5A_TEMPLATES = (
     # One template behind two navigation entries: the blog hub and the books hub.
     "public/collection_hub.html",
     "public/person_detail.html",
+    "public/article_detail.html",
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -116,6 +117,7 @@ class DesignFiveAShellTests(TestCase):
     episode: dict[str, Any]
     wiki_page: dict[str, Any]
     person: dict[str, Any]
+    article: dict[str, Any]
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -128,6 +130,7 @@ class DesignFiveAShellTests(TestCase):
         cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
         cls.wiki_page = public_projection()["wiki"][0]
         cls.person = public_projection()["people_by_slug"]["alexeygrigorev"]
+        cls.article = public_projection()["articles"][0]
 
     def page_paths(self) -> dict[str, str]:
         return {
@@ -148,6 +151,7 @@ class DesignFiveAShellTests(TestCase):
             "blog index": reverse("articles"),
             "books index": reverse("books"),
             "person profile": self.person["public_path"],
+            "blog article": self.article["public_path"],
         }
 
     def rendered_pages(self) -> dict[str, str]:
@@ -217,6 +221,7 @@ class DesignFiveAShellTests(TestCase):
             # A profile sits under no navigation entry: the site offers no people
             # index, so the row marks nothing while the page is open.
             "person profile": None,
+            "blog article": "Blog",
         }
 
         for name, body in self.rendered_pages().items():

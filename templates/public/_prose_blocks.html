@@ -1,0 +1,35 @@
+{% comment %}
+  A composed long-form body, rendered into the design system's `.prose` primitive
+  (core/_design_system.html).  It expects `sections` — the value
+  content.article_content.prose_sections returns — and draws no styling of its
+  own, so the book and podcast bodies can render through it when they join the
+  system.
+
+  It is the composed counterpart of public/_wiki_body.html, which renders raw
+  projection blocks one by one: because the sections arrive already grouped, a
+  run of source list items becomes one real list here (which also tells a screen
+  reader how many items there are) and a heading keeps its own level rather than
+  collapsing everything below h2 into h3.  Both draw the same marks.
+
+  A heading keeps the fragment identifier the projected body assigned it, because
+  those identifiers are linkable anchors that must not move.  Anything else keeps
+  its text as a paragraph, so a block kind the projection grows later is rendered
+  rather than dropped.
+
+  Text sits on the same line as its element on purpose: `.prose-paragraph` keeps
+  source line breaks, so an indented newline inside the tag would become a
+  rendered one.
+{% endcomment %}
+{% for section in sections %}
+  {% if section.kind == "heading" %}
+    <h{{ section.level }} id="{{ section.id }}">{{ section.text }}</h{{ section.level }}>
+  {% elif section.kind == "list" %}
+    <ul>
+      {% for item in section.items %}
+        <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="prose-paragraph">{{ section.text }}</p>
+  {% endif %}
+{% endfor %}
