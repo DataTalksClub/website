@@ -93,10 +93,11 @@ class PublicTemplateSourceTests(SimpleTestCase):
         # podcast index left it with the same rebuild, on mockups 6c and 6d: their
         # rows are design 5a `.row-list` rows, which draw the same dashed division
         # from the shared partial instead of the adopted shell's utility classes.
-        paths = (
-            REPOSITORY_ROOT / "templates/public/collection_hub.html",
-            REPOSITORY_ROOT / "templates/public/wiki_hub.html",
-        )
+        # The wiki hub left it the same way and for the same reason: its catalogue,
+        # its exploration links and its search results are all `.row-list` rows now
+        # (see content/tests/test_wiki_design.py, which holds the wiki surfaces to
+        # the divided-row shape in the language they are actually written in).
+        paths = (REPOSITORY_ROOT / "templates/public/collection_hub.html",)
         for path in paths:
             with self.subTest(path=path.relative_to(REPOSITORY_ROOT)):
                 source = path.read_text(encoding="utf-8")

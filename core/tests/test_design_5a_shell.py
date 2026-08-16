@@ -35,6 +35,11 @@ DESIGN_5A_TEMPLATES = (
     "public/events.html",
     "public/podcast_hub.html",
     "public/podcast_detail.html",
+    "public/wiki_hub.html",
+    "public/wiki_search.html",
+    "public/wiki_graph.html",
+    "public/wiki_special.html",
+    "public/wiki_detail.html",
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -100,6 +105,7 @@ class DesignFiveAShellTests(TestCase):
 
     course: Course
     episode: dict[str, Any]
+    wiki_page: dict[str, Any]
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -110,6 +116,7 @@ class DesignFiveAShellTests(TestCase):
             visible=True,
         )
         cls.episode = next(iter(public_projection()["podcasts_by_slug"].values()))
+        cls.wiki_page = public_projection()["wiki"][0]
 
     def page_paths(self) -> dict[str, str]:
         return {
@@ -120,6 +127,11 @@ class DesignFiveAShellTests(TestCase):
             "past events": reverse("events-past"),
             "podcast index": reverse("podcast"),
             "podcast episode": self.episode["public_path"],
+            "wiki hub": reverse("wiki-home"),
+            "wiki search": f"{reverse('wiki-home')}?q=machine+learning",
+            "wiki graph": reverse("wiki-graph"),
+            "wiki special pages": reverse("wiki-special"),
+            "wiki page": self.wiki_page["public_path"],
         }
 
     def rendered_pages(self) -> dict[str, str]:
@@ -157,6 +169,11 @@ class DesignFiveAShellTests(TestCase):
             "past events": "Events",
             "podcast index": "Podcast",
             "podcast episode": "Podcast",
+            "wiki hub": "Wiki",
+            "wiki search": "Wiki",
+            "wiki graph": "Wiki",
+            "wiki special pages": "Wiki",
+            "wiki page": "Wiki",
         }
 
         for name, body in self.rendered_pages().items():

@@ -1,0 +1,21 @@
+{% comment %}
+  The wiki's search form, shared by the hub and the results page so the two cannot
+  drift apart.  Both post the same GET query to the same wiki route; the caller
+  passes the visible-to-screen-readers label and, on the results page, the term
+  already searched for.
+
+  Usage:
+    {% include "public/_wiki_search_form.html" with search_label="Search the Wiki" %}
+{% endcomment %}
+<form class="search-row wiki-search" action="{% url 'wiki-home' %}" method="get">
+  <label class="sr-only" for="wiki-query">{{ search_label }}</label>
+  <input
+    id="wiki-query"
+    class="field-input"
+    name="q"
+    type="search"
+    value="{{ query|default:'' }}"
+    required
+  >
+  <button class="cta cta-compact cta-primary" type="submit">Search</button>
+</form>

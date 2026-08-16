@@ -1,56 +1,181 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block content %}
-  <header class="max-w-3xl py-6">
-    <h1 class="text-4xl font-semibold">DataTalks.Club Podcast Wiki</h1>
-    <form class="mt-5 flex max-w-xl gap-2" action="{% url 'wiki-home' %}" method="get">
-      <label class="sr-only" for="wiki-query">Search the Wiki</label>
-      <input
-        id="wiki-query"
-        class="min-w-0 flex-1 rounded-md border app-border app-surface px-3 py-2"
-        name="q"
-        type="search"
-        required
-      >
-      <button class="primer-button primer-button-primary" type="submit">Search</button>
-    </form>
-    <nav
-      class="mt-6 flex flex-col divide-y app-divide border-y app-border"
-      aria-label="Wiki exploration"
-    >
-      <a class="block py-4 app-link" href="{% url 'wiki-graph' %}">
-        <strong>Graph</strong>
-        <span class="ml-2 app-text">Explore topic, episode, people, and book connections.</span>
-      </a>
-      <a class="block py-4 app-link" href="{% url 'wiki-home' %}?q=data">
-        <strong>Search</strong>
-        <span class="ml-2 app-text">Find wiki pages, guides, summaries, people, and books.</span>
-      </a>
-      <a class="block py-4 app-link" href="{% url 'wiki-special' %}">
-        <strong>Special pages</strong>
-        <span class="ml-2 app-text">
-          Browse guides, comparisons, roadmaps, how-tos, and transitions.
-        </span>
-      </a>
-    </nav>
-  </header>
-  <h2 class="mt-8 text-2xl font-semibold">Wiki pages</h2>
-  <p class="mt-2 app-text">Browse full catalog ({{ records|length }} topics A&ndash;Z).</p>
-  <div class="mt-6 divide-y app-divide border-y app-border" data-collection-list>
-    {% for record in records %}
-      <article class="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <div class="min-w-0">
-          <h2 class="text-lg font-semibold">
-            <a class="app-link" href="{{ record.public_path }}">{{ record.title }}</a>
-          </h2>
-          <p class="mt-2 line-clamp-3 max-w-3xl text-sm leading-6 app-text">{{ record.summary }}</p>
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    {% include "public/_wiki_head_meta.html" %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Wiki hub, design 5a (issue #179).  There is no mockup for the wiki
+       * pages, so the page is composed from the system's own inventory: a
+       * hero with the search field, the three ways into the wiki as divided
+       * rows, and the A-Z catalogue as the same rows.  Like every page in
+       * the system it carries one inline stylesheet: the shared partial
+       * first, then only what this page adds.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Wiki hub rules.
+       * ------------------------------------------------------------------ */
+
+      .wiki-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        margin-top: 0.6rem;
+        max-width: 20ch;
+      }
+
+      .wiki-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 1rem;
+        max-width: 40rem;
+      }
+
+      .wiki-search {
+        margin-top: 1.5rem;
+        max-width: 34rem;
+      }
+
+      /* Each way into the wiki is one row, and the whole row is the target: the
+         name in its own column, what it does beside it. */
+      .explore-row {
+        --row-cols: 11rem minmax(0, 1fr);
+        text-decoration: none;
+      }
+
+      .explore-row strong {
+        color: var(--ink);
+        display: block;
+        font-size: 1.05rem;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .explore-row span {
+        color: var(--body-text);
+        font-size: 0.9rem;
+      }
+
+      /* One catalogue row: the topic and its summary, with the read action
+         held to the right until the row is too narrow to hold both. */
+      .topic-row {
+        --row-cols: minmax(0, 1fr) auto;
+      }
+
+      .topic-row h3 {
+        font-size: 1.05rem;
+      }
+
+      .topic-row h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .topic-row h3 a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .topic-summary {
+        font-size: 0.9rem;
+        margin-top: 0.3rem;
+      }
+
+      /* Narrow: the read action drops under the summary as a compact button
+         rather than squeezing beside a wrapped one — and stays a button rather
+         than stretching, because 282 full-width slabs is a wall, not a list. */
+      @media (max-width: 47.99rem) {
+        .topic-action {
+          justify-self: start;
+          margin-top: 0.5rem;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream wiki-hero" aria-labelledby="wiki-heading">
+        <div class="shell">
+          <p class="mono-label mono-label-indigo">{{ records|length }} topics</p>
+          <h1 id="wiki-heading">DataTalks.Club Podcast Wiki</h1>
+          <p class="wiki-lede">
+            Community-written topics wired to each other. Start anywhere and follow the links
+            into guides, comparisons, roadmaps, podcast episodes, people and books.
+          </p>
+          {% include "public/_wiki_search_form.html" with search_label="Search the Wiki" %}
         </div>
-        <a class="shrink-0 self-start app-link sm:self-auto" href="{{ record.public_path }}">
-          Read topic
-        </a>
-      </article>
-    {% endfor %}
-  </div>
-{% endblock %}
+      </section>
+
+      <section class="band band-lavender" aria-labelledby="explore-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="explore-heading">Three ways in</h2>
+              <p>The graph, the search index, and the pages the wiki files by kind.</p>
+            </div>
+          </div>
+          <nav class="row-list" aria-label="Wiki exploration">
+            <a class="list-row explore-row" href="{% url 'wiki-graph' %}">
+              <strong>Graph</strong>
+              <span>Explore topic, episode, people, and book connections.</span>
+            </a>
+            <a class="list-row explore-row" href="{% url 'wiki-home' %}?q=data">
+              <strong>Search</strong>
+              <span>Find wiki pages, guides, summaries, people, and books.</span>
+            </a>
+            <a class="list-row explore-row" href="{% url 'wiki-special' %}">
+              <strong>Special pages</strong>
+              <span>Browse guides, comparisons, roadmaps, how-tos, and transitions.</span>
+            </a>
+          </nav>
+        </div>
+      </section>
+
+      <section class="band band-cream" aria-labelledby="catalog-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="catalog-heading">Wiki pages</h2>
+              <p>Browse full catalog ({{ records|length }} topics A&ndash;Z).</p>
+            </div>
+          </div>
+          <div class="row-list">
+            {% for record in records %}
+              <article class="list-row topic-row">
+                <div>
+                  <h3>
+                    <a href="{{ record.public_path }}">{{ record.title }}</a>
+                  </h3>
+                  <p class="topic-summary">{{ record.summary }}</p>
+                </div>
+                <a class="cta cta-compact cta-secondary topic-action" href="{{ record.public_path }}">
+                  Read topic
+                </a>
+              </article>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

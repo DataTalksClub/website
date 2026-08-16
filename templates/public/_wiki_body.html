@@ -1,0 +1,24 @@
+{% comment %}
+  A wiki page's body, rendered from its own typed text blocks into the design 5a
+  `.prose` primitive.  It is a separate partial from public/_body.html because that
+  one styles its blocks with the utility classes of the older shell, which a page
+  carrying only the design system stylesheet cannot resolve.
+
+  Headings keep the identifier the source gives them, so every in-page anchor and
+  every "#section" link into a wiki page still lands.  Paragraph text keeps its own
+  line breaks (`white-space: pre-line`), so the opening tag and the value stay on
+  one line here.
+{% endcomment %}
+{% for block in blocks %}
+  {% if block.kind == "heading" %}
+    {% if block.level == 2 %}
+      <h2 id="{{ block.id }}">{{ block.text }}</h2>
+    {% else %}
+      <h3 id="{{ block.id }}">{{ block.text }}</h3>
+    {% endif %}
+  {% elif block.kind == "list_item" %}
+    <p class="prose-item">{{ block.text }}</p>
+  {% else %}
+    <p class="prose-paragraph">{{ block.text }}</p>
+  {% endif %}
+{% endfor %}
