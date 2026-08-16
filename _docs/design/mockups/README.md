@@ -35,11 +35,15 @@ with system stacks:
 
 The bundles reference the font binaries by UUID, so the files themselves are not here.
 
-**Decision (owner, 2026-08-16): the site keeps the system stacks.** The mockup faces are
-recorded above for provenance only. Do not add `@font-face` rules or ship font binaries
-for them. The consequence is accepted: rendered type is close to the export without
-matching it exactly, and no measurement should be tuned in pursuit of a match that a
-different typeface makes impossible.
+**Decision (owner, 2026-08-16): the site keeps the typefaces it already ships.** That is
+self-hosted Quicksand as `--font-sans` (`core/static/core/fonts/quicksand-latin-var.woff2`
+with its OFL licence, added in `034c8b4`) over a rounded system fallback, and a system
+mono stack. The mockup's Nunito, JetBrains Mono and Source Serif 4 are **not** adopted and
+are recorded above for provenance only.
+
+The consequence is accepted: rendered type is close to the export without matching it
+exactly, and no measurement should be tuned in pursuit of a match that a different
+typeface makes impossible.
 
 ## Reproducing the decode
 
