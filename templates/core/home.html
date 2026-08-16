@@ -1539,10 +1539,13 @@
     <header class="masthead">
       <nav class="shell masthead-inner" aria-label="Primary navigation">
         <a class="brand" href="{% url 'home' %}">
-          <svg class="brand-mark" viewBox="0 0 40 40" role="img" aria-hidden="true" focusable="false">
-            <path d="M20 3c9.4 0 17 6.5 17 14.5S29.4 32 20 32c-1.9 0-3.7-.3-5.4-.8L7 35l2.2-6.4C5.4 26 3 22 3 17.5 3 9.5 10.6 3 20 3Z" fill="#c9cdf2" stroke="#1e2136" stroke-width="2" stroke-linejoin="round"/>
-            <text x="20" y="22" text-anchor="middle" font-family="ui-monospace, monospace" font-size="10" font-weight="700" fill="#1e2136">DTC</text>
-          </svg>
+          <img
+            class="brand-mark"
+            src="{% static 'core/illustrations/brand-mark.svg' %}"
+            alt=""
+            width="40"
+            height="40"
+          >
           <span>DataTalks.Club</span>
         </a>
         <div class="site-navigation">
