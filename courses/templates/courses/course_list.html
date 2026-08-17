@@ -12,7 +12,7 @@
     {% canonical_link canonical_url %}
     <meta
       name="description"
-      content="Free, community-created data and AI courses with practical homework, real projects, public leaderboards and peer review. Join a cohort or work through them self-paced."
+      content="Free, community-created data and AI courses with practical homework, real projects, public leaderboards and peer review. Join a cohort and learn with other people."
     >
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="DataTalks.Club">
@@ -39,8 +39,8 @@
       {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
-       * Courses-index rules.  Shared primitives (stat tiles, filter pills,
-       * status pills, list rows, panels) live in the partial above.
+       * Courses-index rules.  Shared primitives (filter pills, status pills,
+       * list rows, panels) live in the partial above.
        * ------------------------------------------------------------------ */
 
       /* --- hero --------------------------------------------------------- */
@@ -76,8 +76,10 @@
 
       /* The design puts a live dot beside the active band's heading, so that
          head is a row rather than the shared stacked .band-head block. */
+      /* Baseline-aligned so the dot stays with the first line when the
+         heading wraps on a phone. */
       .live-head {
-        align-items: center;
+        align-items: baseline;
         display: flex;
         gap: 0.6rem;
         margin-bottom: 1.5rem;
@@ -106,38 +108,39 @@
 
       /* --- active cohorts ----------------------------------------------- */
 
+      /* The active card is an ordinary one-column card: the page reads at the
+         measure, so there is no room — and no need — for the old sidebar split
+         that changed shape whenever a course had no assignment to show. */
+
       .active-list {
         display: grid;
         gap: 1.25rem;
       }
 
       .active-card {
-        border-radius: 1.1rem;
-        box-shadow: 0.45rem 0.45rem 0 var(--shadow-soft);
         font-size: 1rem;
-        gap: 1.25rem;
-        padding: 1.35rem;
       }
 
-      .active-main {
-        align-content: start;
-        display: grid;
-        gap: 0.5rem;
-      }
-
-      .active-badges {
+      .active-card-head {
+        align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem;
+        gap: 0.5rem 0.85rem;
+        justify-content: space-between;
       }
 
       .active-card h3 {
-        font-size: clamp(1.6rem, 3.2vw, 2.35rem);
-        letter-spacing: -0.02em;
+        font-size: 1.35rem;
       }
 
-      .active-summary {
-        max-width: 34em;
+      .active-card h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .active-card h3 a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
       }
 
       .active-actions {
@@ -145,31 +148,32 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem 1rem;
-        margin-top: 0.6rem;
-      }
-
-      .active-when {
-        color: var(--muted);
-        font-size: 0.9rem;
+        margin-top: auto;
       }
 
       /* --- next assignment panel ---------------------------------------- */
 
+      /* A full-width strip inside the card, sized to the card rather than to a
+         band: the shared .panel inset is for band-level modules. */
       .assignment-panel {
+        border-radius: 0.9rem;
+        gap: 0.35rem;
+        margin-block: 0.35rem;
+        padding: 0.85rem 1rem;
+      }
+
+      .assignment-head {
+        align-items: baseline;
         display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.85rem;
+        justify-content: space-between;
       }
 
       .assignment-title {
         color: var(--ink);
-        font-size: 1.05rem;
-        font-weight: 800;
-        line-height: 1.25;
-      }
-
-      .assignment-due {
-        font-size: 0.9rem;
+        font-weight: 700;
+        line-height: 1.3;
       }
 
       /* --- open registration cards -------------------------------------- */
@@ -218,13 +222,13 @@
         margin-left: auto;
       }
 
-      /* --- self-paced table --------------------------------------------- */
+      /* --- finished-course table ---------------------------------------- */
 
-      .self-paced-group + .self-paced-group {
+      .finished-group + .finished-group {
         margin-top: 2rem;
       }
 
-      .self-paced-year {
+      .finished-year {
         color: var(--muted);
         font-family: var(--font-mono);
         font-size: 0.66rem;
@@ -276,12 +280,6 @@
       /* --- narrow layout: reshape, not reflow ---------------------------- */
 
       @media (max-width: 47.99rem) {
-        /* The active card is a single column here: the assignment panel reads
-           as the last block of the course it belongs to rather than a sidebar. */
-        .active-card {
-          padding: 1.1rem;
-        }
-
         .courses-hero h1 {
           max-width: none;
         }
@@ -296,26 +294,14 @@
           padding-inline: 0.85rem;
         }
 
-        /* The self-paced table stacks: title, promise, state, then its links,
-           left-aligned like everything else in the stack. */
+        /* The finished-course table stacks: title, promise, state, then its
+           links, left-aligned like everything else in the stack. */
         .list-row .course-row-actions {
           justify-content: flex-start;
         }
       }
 
       @media (min-width: 62rem) {
-        .courses-hero-grid {
-          grid-template-columns: 1.15fr 0.85fr;
-        }
-
-        /* Only a card that actually carries an assignment panel splits into
-           two columns; one without a next assignment keeps the full width. */
-        .active-card:has(.assignment-panel) {
-          align-items: start;
-          display: grid;
-          grid-template-columns: 1.5fr 1fr;
-        }
-
         .course-row-actions {
           justify-content: flex-end;
         }
@@ -337,14 +323,14 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream courses-hero" aria-labelledby="courses-hero-heading">
-        <div class="shell courses-hero-grid">
+        <div class="shell shell-reading courses-hero-grid">
           <div>
             <p class="mono-label mono-label-indigo courses-eyebrow">{{ catalog_eyebrow }}</p>
             <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
             <p class="courses-lede">
               Community-created courses with practical homework, real projects, public
-              leaderboards and peer review. Cohorts if you want deadlines and classmates;
-              self-paced if you would rather not wait.
+              leaderboards and peer review. Join a cohort for the deadlines and the
+              classmates.
             </p>
             <div class="filter-pills" role="group" aria-label="Filter courses">
               {% for course_filter in course_filters %}
@@ -356,14 +342,6 @@
               {% endfor %}
             </div>
           </div>
-          <div class="stat-tiles">
-            {% for stat in catalog_stats %}
-              <div class="stat-tile">
-                <strong>{{ stat.value }}</strong>
-                <span>{{ stat.label }}</span>
-              </div>
-            {% endfor %}
-          </div>
         </div>
       </section>
       {% if SHOW_WRAPPED and wrapped_year %}
@@ -373,7 +351,7 @@
           those sections one at a time, and this route must survive every filter.
         {% endcomment %}
         <section class="band band-lavender courses-wrapped" aria-labelledby="wrapped-heading">
-          <div class="shell">
+          <div class="shell shell-reading">
             <div class="band-head">
               <div>
                 <h2 id="wrapped-heading">
@@ -394,7 +372,7 @@
       <div id="courses">
         {% if show_active_courses %}
           <section class="band band-lavender" aria-labelledby="active-heading">
-            <div class="shell">
+            <div class="shell shell-reading">
               <div class="live-head">
                 <span class="status-dot status-dot-pulse" aria-hidden="true"></span>
                 <h2 id="active-heading">Active now — you can still join</h2>
@@ -402,43 +380,50 @@
               {% if active_courses %}
                 <div class="active-list">
                   {% for course in active_courses %}
+                    {% comment %}
+                      One column at reading width: run facts (dates, enrolment) in the
+                      head row, the title as the link, one selling line, the deadline
+                      panel, and the actions last.  The band heading already announces
+                      the active state, so the card repeats no "active" pill.
+                    {% endcomment %}
                     <article class="card active-card">
-                      <div class="active-main">
-                        <div class="active-badges">
-                          <span class="status-pill status-pill-live">
-                            <span class="status-dot" aria-hidden="true"></span>
-                            active
-                          </span>
+                      {% if course.index_when or course.index_enrolled_state %}
+                        <div class="active-card-head">
+                          {% if course.index_when %}
+                            <span class="mono-note">{{ course.index_when }}</span>
+                          {% endif %}
                           {% if course.index_enrolled_state %}
                             <span class="status-pill">{{ course.index_enrolled_state }}</span>
                           {% endif %}
                         </div>
-                        <h3>{{ course.title }}</h3>
-                        {% if course.index_promise %}
-                          <p class="ship-line">you'll ship: {{ course.index_promise }}</p>
-                        {% endif %}
-                        <p class="active-summary">{{ course.home_outcome }}</p>
-                        <div class="active-actions">
-                          {% if course.is_enrolled %}
-                            <a class="cta cta-ink" href="{% url 'course' course.slug %}">Continue course →</a>
-                          {% else %}
-                            <a class="cta cta-ink" href="{% url 'course' course.slug %}">Open course →</a>
-                          {% endif %}
-                          {% if course.index_when %}
-                            <span class="active-when">{{ course.index_when }}</span>
-                          {% endif %}
-                          {% if course.github_repo_url %}
-                            <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>
-                          {% endif %}
-                        </div>
-                      </div>
+                      {% endif %}
+                      <h3>
+                        <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+                      </h3>
+                      {% if course.index_promise %}
+                        <p class="ship-line">you'll ship: {{ course.index_promise }}</p>
+                      {% else %}
+                        <p>{{ course.home_outcome }}</p>
+                      {% endif %}
                       {% if course.home_current_assignment %}
                         <div class="panel panel-mint panel-outlined assignment-panel">
-                          <span class="mono-label mono-label-green">{{ course.home_current_assignment_label }}</span>
+                          <div class="assignment-head">
+                            <span class="mono-label mono-label-green">{{ course.home_current_assignment_label }}</span>
+                            <span class="mono-note">due {{ course.home_current_assignment.due_date|user_datetime:request }}</span>
+                          </div>
                           <span class="assignment-title">{{ course.home_current_assignment.label }}: {{ course.home_current_assignment.title }}</span>
-                          <span class="assignment-due">Due {{ course.home_current_assignment.due_date|user_datetime:request }}</span>
                         </div>
                       {% endif %}
+                      <div class="active-actions">
+                        {% if course.is_enrolled %}
+                          <a class="cta cta-ink" href="{% url 'course' course.slug %}">Continue course →</a>
+                        {% else %}
+                          <a class="cta cta-ink" href="{% url 'course' course.slug %}">Open course →</a>
+                        {% endif %}
+                        {% if course.github_repo_url %}
+                          <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>
+                        {% endif %}
+                      </div>
                     </article>
                   {% endfor %}
                 </div>
@@ -450,7 +435,7 @@
         {% endif %}
         {% if show_open_registration and open_registration_courses %}
           <section class="band band-lavender" aria-labelledby="open-heading">
-            <div class="shell">
+            <div class="shell shell-reading">
               <div class="band-head">
                 <div>
                   <h2 id="open-heading">Open registration</h2>
@@ -492,24 +477,30 @@
             </div>
           </section>
         {% endif %}
-        {% if show_self_paced and archive_groups %}
-          <section class="band band-lavender" aria-labelledby="self-paced-heading">
-            <div class="shell">
+        {% if show_finished and archive_groups %}
+          <section class="band band-lavender" aria-labelledby="finished-heading">
+            <div class="shell shell-reading">
               <div class="band-head">
                 <div>
-                  <h2 id="self-paced-heading">Self-paced any time</h2>
+                  <h2 id="finished-heading">Finished courses</h2>
                   <p>
-                    Every past cohort stays open: videos, homework and solutions. Work through
-                    one whenever you like — only the deadlines and the classmates are gone.
+                    These cohorts have ended, and everything they produced stays public:
+                    videos, homework and solutions. There is nothing left to register for.
                   </p>
                 </div>
               </div>
               {% for group in archive_groups %}
-                <section class="self-paced-group" aria-labelledby="self-paced-{{ group.year|slugify }}">
-                  <h3 class="self-paced-year" id="self-paced-{{ group.year|slugify }}">{{ group.year }}</h3>
+                <section class="finished-group" aria-labelledby="finished-{{ group.year|slugify }}">
+                  <h3 class="finished-year" id="finished-{{ group.year|slugify }}">{{ group.year }}</h3>
                   <div class="row-list">
                     {% for course in group.courses %}
-                      <div class="list-row" style="--row-cols: 1.6fr 1.4fr 1fr 0.8fr">
+                      {% comment %}
+                        The last two columns are `auto` rather than fractions: at
+                        reading width four fixed shares left the titles wrapping to
+                        three lines beside an actions column that is empty for every
+                        course without a public repository.
+                      {% endcomment %}
+                      <div class="list-row" style="--row-cols: 1.6fr 1.4fr auto auto">
                         <div>
                           <h4 class="course-row-title">
                             <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
@@ -523,7 +514,7 @@
                           {% if course.is_enrolled %}
                             <span class="status-pill">enrolled</span>
                           {% else %}
-                            <span class="status-pill status-pill-wait">self-paced only</span>
+                            <span class="status-pill status-pill-wait">finished</span>
                           {% endif %}
                         </div>
                         <div class="course-row-actions">

@@ -39,7 +39,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 COURSE_LIST_TEMPLATE = REPO_ROOT / "courses/templates/courses/course_list.html"
 ACTIVE_HEADING = "Active now — you can still join"
 OPEN_HEADING = "Open registration"
-SELF_PACED_HEADING = "Self-paced any time"
+FINISHED_HEADING = "Finished courses"
 SCREENSHOTS = Path(".tmp/screenshots/issue-128-owner-remediation")
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
@@ -276,7 +276,7 @@ def _assert_filter_pills_are_operable(page: Page, origin: str) -> None:
     expect(page.locator('.filter-pill[aria-current="page"]')).to_have_text("Active")
     expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_have_count(0)
-    expect(page.get_by_role("heading", name=SELF_PACED_HEADING, exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_have_count(0)
     for pill in pills.all():
         box = pill.bounding_box()
         assert box is not None and box["height"] + 0.5 >= 44, box
@@ -363,10 +363,9 @@ def test_database_course_catalog_renders_the_design_5a_index(
     assert page.locator('link[rel="stylesheet"]').count() == 0
     # Three catalogue records, and the eyebrow counts them rather than asserting a number.
     expect(page.get_by_text("three courses · zero tuition", exact=True)).to_be_visible()
-    expect(page.locator(".stat-tile", has_text="free courses")).to_have_count(1)
     expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name=SELF_PACED_HEADING, exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_be_visible()
     expect(page.locator("#course-families-heading")).to_have_count(0)
     expect(page.get_by_text("No active cohort coursework right now.", exact=True)).to_have_count(0)
     course_links = {
@@ -378,7 +377,7 @@ def test_database_course_catalog_renders_the_design_5a_index(
         for role, course in cmp_course_catalog.items()
     }
     archived_link = course_links["archived"]
-    # The self-paced row now names its own destination instead of wrapping a whole card.
+    # The finished-course row now names its own destination instead of wrapping a whole card.
     expect(page.get_by_role("link", name=ARCHIVED_COURSE["title"], exact=True)).to_have_count(1)
     expect(archived_link.locator("xpath=ancestor::article[@role='link']")).to_have_count(0)
     expect(
@@ -391,7 +390,7 @@ def test_database_course_catalog_renders_the_design_5a_index(
     assert page.locator("#courses article[role='link']").count() == 0
     assert page.locator("#courses article.card").count() == 2
     section_order = [text.strip() for text in page.locator("#courses h2").all_text_contents()]
-    assert section_order == [ACTIVE_HEADING, OPEN_HEADING, SELF_PACED_HEADING]
+    assert section_order == [ACTIVE_HEADING, OPEN_HEADING, FINISHED_HEADING]
     expect(
         page.locator("nav[aria-label='Primary navigation'] a[aria-current='page']")
     ).to_have_text("Courses")
@@ -430,7 +429,9 @@ def test_database_course_catalog_renders_the_design_5a_index(
         "course",
         kwargs={"course_slug": cmp_course_catalog["active"].slug},
     )
-    active_link = page.locator(f'#courses a[href="{detail_path}"]')
+    # The active card now offers its title and its CTA as two real links to the
+    # same course, so the keyboard pass takes the first (the title).
+    active_link = page.locator(f'#courses a[href="{detail_path}"]').first
     active_link.focus()
     expect(active_link).to_be_focused()
     assert active_link.evaluate(
@@ -698,7 +699,7 @@ def test_no_database_course_catalog_uses_the_design_5a_empty_state(
     expect(page.locator("main #courses")).to_have_count(1)
     expect(page.get_by_text("zero courses · zero tuition", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name=SELF_PACED_HEADING, exact=True)).to_have_count(0)
+    expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_have_count(0)
     expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_have_count(0)
     expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
     expect(page.get_by_text("Data Engineering Zoomcamp 2026", exact=True)).to_have_count(0)

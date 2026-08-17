@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from core.course_index_content import (
     catalog_eyebrow,
-    catalog_stats,
     cohort_dates_display,
     course_filters,
     course_promise,
@@ -238,7 +237,7 @@ def visible_course_sections(selected_filter):
     return {
         "show_active_courses": selected_filter in {"all", "active"},
         "show_open_registration": selected_filter in {"all", "open"},
-        "show_self_paced": selected_filter in {"all", "self-paced"},
+        "show_finished": selected_filter in {"all", "finished"},
     }
 
 
@@ -274,10 +273,6 @@ def course_list_context(request):
         "other_active_courses": secondary_active_courses,
         "home_stats": home_stats,
         "catalog_eyebrow": catalog_eyebrow(len(course_groups.courses)),
-        "catalog_stats": catalog_stats(
-            course_groups.courses,
-            home_stats["homeworks"],
-        ),
         "course_filters": course_filters(
             selected_filter,
             reverse("course_list"),

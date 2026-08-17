@@ -62,7 +62,7 @@ class CourseListWrappedEntryPointTests(TestCase):
     @override_settings(SHOW_WRAPPED=True)
     def test_wrapped_entry_point_survives_every_catalogue_filter(self):
         wrapped_url = reverse("wrapped", args=[WRAPPED_ENTRY_FALLBACK_YEAR])
-        for course_filter in ("all", "active", "open", "self-paced"):
+        for course_filter in ("all", "active", "open", "finished"):
             with self.subTest(filter=course_filter):
                 response = self.course_list_response(filter=course_filter)
 

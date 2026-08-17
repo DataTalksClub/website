@@ -20,7 +20,7 @@ REPRESENTATIVE_COURSE_TITLE = "Data Engineering Zoomcamp 2026"
 REPRESENTATIVE_COURSE_ARCHIVE_YEAR = "2026"
 # Design 5a (issue #179) renamed the courses index's own section heads.
 COURSE_INDEX_ACTIVE_HEADING = "Active now — you can still join"
-COURSE_INDEX_SELF_PACED_HEADING = "Self-paced any time"
+COURSE_INDEX_FINISHED_HEADING = "Finished courses"
 
 
 @pytest.fixture
@@ -141,7 +141,7 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
         "href", "https://datatalks.club/courses"
     )
     expect(
-        page.get_by_role("heading", name=COURSE_INDEX_SELF_PACED_HEADING, exact=True)
+        page.get_by_role("heading", name=COURSE_INDEX_FINISHED_HEADING, exact=True)
     ).to_be_visible()
     representative_course_link = assert_copied_course_catalog_link(
         page,

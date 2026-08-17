@@ -6,24 +6,17 @@ total, the cohort length range, the week an enrolled learner is in, the dates of
 is derived from the course records the view already loaded.  An element whose fact is
 missing is left out rather than filled with a plausible number.
 
-Only two things here are editorial rather than derived: the promise lines, which the
-homepage already owns in :mod:`core.home_content` and which this page reuses so the same
-course makes the same promise on both surfaces, and the price, which is a constant
-because the catalogue has always been free.
+The one editorial thing here is the promise lines, which the homepage already owns in
+:mod:`core.home_content` and which this page reuses so the same course makes the same
+promise on both surfaces.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
 
 from core.home_content import COURSE_FAMILIES, spelled_count
-
-# EDITORIAL CONSTANT.  Not read from any record: the courses have never had a price, and
-# the design writes that as a stat tile rather than as a sentence.
-CATALOG_PRICE = "0 €"
-CATALOG_PRICE_LABEL = "forever"
 
 DEFAULT_COURSE_FILTER = "all"
 # Filter slug, pill label, and the section the filter keeps.  The pills are links, so the
@@ -32,7 +25,7 @@ COURSE_FILTER_CHOICES: tuple[tuple[str, str], ...] = (
     ("all", "All courses"),
     ("active", "Active"),
     ("open", "Open registration"),
-    ("self-paced", "Self-paced"),
+    ("finished", "Finished"),
 )
 
 
@@ -44,14 +37,6 @@ class CourseFilter:
     label: str
     url: str
     is_current: bool
-
-
-@dataclass(frozen=True, slots=True)
-class StatTile:
-    """One hero stat tile: a value and the words that say what it counts."""
-
-    value: str
-    label: str
 
 
 def selected_course_filter(raw: object) -> str:
@@ -105,45 +90,10 @@ def cohort_weeks(start: date | None, end: date | None) -> int | None:
     return max(1, round(days / 7))
 
 
-def cohort_length_value(courses: list[Any]) -> str:
-    """Return the catalogue's cohort length range, for example "9-19", or ""."""
-
-    lengths = []
-    for course in courses:
-        weeks = cohort_weeks(course.start_date, course.end_date)
-        if weeks is not None:
-            lengths.append(weeks)
-    if not lengths:
-        return ""
-    shortest = min(lengths)
-    longest = max(lengths)
-    if shortest == longest:
-        return str(shortest)
-    return f"{shortest}–{longest}"
-
-
 def catalog_eyebrow(course_count: int) -> str:
     """The hero's mono eyebrow: how many courses there are, and what they cost."""
 
     return f"{spelled_count(course_count)} courses · zero tuition"
-
-
-def catalog_stats(courses: list[Any], homework_total: int) -> tuple[StatTile, ...]:
-    """Return the hero's stat tiles, dropping any tile whose fact we cannot supply."""
-
-    tiles: list[StatTile] = [StatTile(value=str(len(courses)), label="free courses")]
-    if homework_total:
-        tiles.append(
-            StatTile(
-                value=str(homework_total),
-                label="homework assignments",
-            )
-        )
-    tiles.append(StatTile(value=CATALOG_PRICE, label=CATALOG_PRICE_LABEL))
-    length = cohort_length_value(courses)
-    if length:
-        tiles.append(StatTile(value=length, label="weeks per cohort"))
-    return tuple(tiles)
 
 
 def _day_display(value: date, *, with_year: bool) -> str:
