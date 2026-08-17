@@ -141,11 +141,13 @@ def test_consent_keyboard_allow_reopen_escape_withdraw_and_cookie_cleanup(
     assert page.evaluate("document.activeElement === document.body")
     page.keyboard.press("Tab")
     expect(page.locator(".skip-link")).to_be_focused()
-    explore = page.get_by_role("button", name="Explore")
-    explore.click()
-    expect(explore).to_have_attribute("aria-expanded", "true")
-    explore.click()
-    expect(explore).to_have_attribute("aria-expanded", "false")
+    # The legal pages joined design 5a with issue #179, so the navigation toggle
+    # is the shell's "Menu" button rather than the older shell's "Explore".
+    menu = page.get_by_role("button", name="Menu")
+    menu.click()
+    expect(menu).to_have_attribute("aria-expanded", "true")
+    menu.click()
+    expect(menu).to_have_attribute("aria-expanded", "false")
     assert "dtc_analytics_consent" not in _cookie_map(page)
     assert not (_cookie_map(page).keys() & OPTIONAL_COOKIE_NAMES)
     assert outbound_requests == []

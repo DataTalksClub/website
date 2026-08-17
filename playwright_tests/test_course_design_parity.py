@@ -193,33 +193,34 @@ def _assert_local_page_assets(page: Page, origin: str) -> None:
     assert all(asset.startswith(f"{origin}/static/") for asset in assets), assets
 
 
-def _assert_cmp_breadcrumb_geometry(page: Page) -> None:
+def _assert_design_breadcrumb_trail(page: Page) -> None:
+    """The design 5a trail: two levels, a real target on the way back, text where you are.
+
+    The adopted shell drew a compact 24px crumb row and made the current page a link too.
+    Design 5a (issue #179) states the opposite contract: every ancestor is a link that keeps
+    the system's 2.75rem minimum target height, and the current page is plain text on
+    ``li[aria-current="page"]``.  The trail is allowed to wrap onto a second row on a phone —
+    that is exactly why its links carry the target height — so this asserts the levels, the
+    link/text split and the target height rather than a single-line geometry.
+    """
+
     geometry = page.locator(".breadcrumbs li").evaluate_all(
         """nodes => nodes.map(node => {
           const link = node.querySelector('a');
-          const itemRect = node.getBoundingClientRect();
-          const linkRect = link.getBoundingClientRect();
-          const style = getComputedStyle(link);
           return {
-            itemTop: itemRect.top,
-            itemHeight: itemRect.height,
-            linkTop: linkRect.top,
-            linkHeight: linkRect.height,
-            display: style.display,
-            minHeight: style.minHeight,
-            minWidth: style.minWidth,
+            isLink: link !== null,
+            linkHeight: link ? link.getBoundingClientRect().height : 0,
+            current: node.getAttribute('aria-current'),
+            text: node.textContent.trim(),
           };
         })"""
     )
     assert len(geometry) == 2, geometry
-    assert abs(geometry[0]["itemTop"] - geometry[1]["itemTop"]) <= 0.5, geometry
-    for item in geometry:
-        assert item["display"] != "inline-flex", geometry
-        assert item["minHeight"] == "auto", geometry
-        assert item["minWidth"] == "auto", geometry
-        assert item["itemHeight"] <= 24, geometry
-        assert abs(item["itemTop"] - item["linkTop"]) <= 0.5, geometry
-        assert abs(item["itemHeight"] - item["linkHeight"]) <= 0.5, geometry
+    ancestor, current = geometry
+    assert ancestor["isLink"] and ancestor["current"] is None, geometry
+    assert ancestor["linkHeight"] + 0.5 >= 44, geometry
+    assert not current["isLink"] and current["current"] == "page", geometry
+    assert current["text"], geometry
 
 
 def _write_attribution_evidence() -> None:
@@ -294,9 +295,17 @@ def _capture_design_dark_mode(page: Page, path: Path) -> None:
 
 
 def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
-    geometry = page.locator(".registration-panel").evaluate(
-        """panel => {
-          const image = panel.parentElement.querySelector('img[alt=""]');
+    """The campaign artwork stays inside its own column, whatever size it arrives at.
+
+    The image is taken from the page's main landmark: the design 5a rebuild (issue #179)
+    puts the hero artwork in the hero band and the register card in a band of its own, so
+    the two no longer share a parent element.  What is asserted is unchanged — the loaded
+    image is bounded by the column it sits in and the page does not scroll sideways.
+    """
+
+    geometry = page.locator("main").evaluate(
+        """main => {
+          const image = main.querySelector('img[alt=""]');
           const parent = image.parentElement;
           const imageRect = image.getBoundingClientRect();
           const parentRect = parent.getBoundingClientRect();
@@ -480,16 +489,19 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     expect(page.get_by_role("heading", name=cmp_registration_campaign.title)).to_be_visible()
     breadcrumb = page.get_by_role("navigation", name="Breadcrumb")
     expect(breadcrumb.get_by_role("link", name="Courses", exact=True)).to_be_visible()
+    # Design 5a leaves the page you are on as text, so the second level is read, not linked.
     expect(
         breadcrumb.get_by_role(
             "link",
             name=f"{cmp_registration_campaign.title} registration",
             exact=True,
         )
-    ).to_be_visible()
-    expect(page.locator(".breadcrumbs li[aria-current='page']")).to_have_count(1)
+    ).to_have_count(0)
+    current = page.locator(".breadcrumbs li[aria-current='page']")
+    expect(current).to_have_count(1)
+    expect(current).to_have_text(f"{cmp_registration_campaign.title} registration")
     expect(page.get_by_text("1 already registered for 2026 cohort", exact=True)).to_be_visible()
-    _assert_cmp_breadcrumb_geometry(page)
+    _assert_design_breadcrumb_trail(page)
     assert target_size_issues(page, f"registration-{suffix}") == []
     _assert_local_page_assets(page, live_server.url)
     _assert_no_horizontal_overflow(page)
@@ -498,13 +510,15 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     page.screenshot(path=SCREENSHOTS / f"registration-cmp-{suffix}.png", full_page=True)
 
     _capture_dark_mode(page, SCREENSHOTS / f"registration-cmp-dark-{suffix}.png")
-    page.get_by_role("button", name="Toggle dark mode").click()
+    # The design 5a masthead labels the toggle by the mode it switches to, so the control
+    # is taken by its stable id rather than by the copied shell's "Toggle dark mode" name.
+    page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(0)
 
     cdp = page.context.new_cdp_session(page)
     cdp.send("Emulation.setPageScaleFactor", {"pageScaleFactor": 2})
     assert page.evaluate("visualViewport.scale") == 2
-    _assert_cmp_breadcrumb_geometry(page)
+    _assert_design_breadcrumb_trail(page)
     _assert_no_horizontal_overflow(page)
     page.screenshot(
         path=SCREENSHOTS / f"registration-cmp-zoom-{suffix}.png",

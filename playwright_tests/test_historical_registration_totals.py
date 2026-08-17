@@ -206,7 +206,9 @@ def seed_validated_overlap(event: dict, *, suffix: str) -> HistoricalRegistratio
 
 
 def mapping_card(page: Page, external_id: str):
-    return page.locator("article.audit-card").filter(has_text=external_id)
+    # Design 5a (issue #179): a mapping proposal is a .list-row record carrying
+    # data-mapping-id, which is the stable hook rather than the old card class.
+    return page.locator("article[data-mapping-id]").filter(has_text=external_id)
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)

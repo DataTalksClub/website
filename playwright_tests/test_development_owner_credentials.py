@@ -211,7 +211,10 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     page.go_back()
     assert raw_token not in page.content()
 
-    active = page.locator("article.audit-card").filter(has_text="active").first
+    # Design 5a (issue #179) dropped the old core/studio.css card classes from the
+    # Studio credentials page; the record is still the article the view stamps with
+    # its credential id, which is the stable hook for scoping a row's controls.
+    active = page.locator("article[data-credential-id]").filter(has_text="active").first
     active.get_by_label("Confirm rotation").check()
     with page.expect_response(
         lambda response: response.url.endswith("/rotate/") and response.request.method == "POST"
@@ -223,7 +226,7 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     assert successor_token != raw_token
     redact_one_time_token(page, successor_token)
 
-    successor = page.locator("article.audit-card").filter(has_text="active").first
+    successor = page.locator("article[data-credential-id]").filter(has_text="active").first
     successor.get_by_label("Confirm immediate revocation").check()
     with page.expect_response(
         lambda response: response.url.endswith("/revoke/") and response.request.method == "POST"

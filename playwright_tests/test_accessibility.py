@@ -996,7 +996,7 @@ def _management_scenario(recorder: ScenarioRecorder) -> set[str]:
     expect(recorder.page.get_by_role("heading", name="Copy this credential now")).to_be_visible()
     recorder.scan_current("studio.credential-rotate")
     recorder.page.goto(f"{recorder.live_server.url}/studio/_fixtures/credentials/")
-    successor = recorder.page.locator("article.audit-card").filter(has_text="active").first
+    successor = recorder.page.locator("article[data-credential-id]").filter(has_text="active").first
     successor.get_by_role("button", name="Revoke Browser fixture credential").click()
     expect(recorder.page.get_by_text("Credential revoked", exact=False).first).to_be_visible()
     recorder.scan_current("studio.credential-revoke")
@@ -1059,7 +1059,7 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
     expect(
         recorder.page.get_by_role("heading", name="eventbrite · source_missing", exact=True)
     ).to_be_visible()
-    stale_card = recorder.page.locator("article.audit-card").filter(
+    stale_card = recorder.page.locator("article[data-mapping-id]").filter(
         has_text=missing.external_event_identifier
     )
     HistoricalEventMapping.objects.filter(pk=missing.pk).update(revision=missing.revision + 1)
@@ -1071,7 +1071,7 @@ def _historical_scenario(recorder: ScenarioRecorder) -> set[str]:
     recorder.scan_current("historical.stale-revision")
 
     recorder.page.reload()
-    excluded_card = recorder.page.locator("article.audit-card").filter(
+    excluded_card = recorder.page.locator("article[data-mapping-id]").filter(
         has_text=missing.external_event_identifier
     )
     excluded_card.get_by_label("Decision").select_option("excluded")
