@@ -246,6 +246,14 @@ _HTML_TAG = re.compile(r"</?[A-Za-z][^>]*>")
 _HTML_OPENING_TAG = re.compile(r"<(?!/)[A-Za-z][^>]*>")
 
 
+# `<pre><code>` is the one nesting that cannot be broken across lines: everything
+# between those tags is rendered verbatim, so a newline or an indent written for
+# legibility becomes part of the code the reader copies.  The pair is exempt from
+# the adjacent-opening-tags rule, and only that pair — the line still has to obey
+# every other rule.
+_VERBATIM_NESTING = re.compile(r"<pre><code\b")
+
+
 def template_readability_issues(source: str) -> list[str]:
     issues: list[str] = []
     for line_number, line in enumerate(source.splitlines(), start=1):
@@ -254,7 +262,10 @@ def template_readability_issues(source: str) -> list[str]:
             issues.append(f"line {line_number}: multiple Django structural tags")
         if structural_tags and _HTML_TAG.search(line):
             issues.append(f"line {line_number}: Django structural tag shares HTML markup")
-        if len(_HTML_OPENING_TAG.findall(line)) > 1:
+        opening_tags = len(_HTML_OPENING_TAG.findall(line))
+        if _VERBATIM_NESTING.search(line):
+            opening_tags -= 1
+        if opening_tags > 1:
             issues.append(f"line {line_number}: adjacent nested opening tags")
     return issues
 
@@ -263,7 +274,6 @@ AUTHORED_TEMPLATE_ROOTS = {
     "course_platform_templates": "account-learner-shared",
     "templates/404.html": "public",
     "templates/core": "public",
-    "templates/site_base.html": "public",
     "templates/public": "public",
     "templates/review": "public-review",
     "templates/studio": "studio",

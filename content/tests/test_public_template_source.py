@@ -5,6 +5,8 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
+from core.accessibility_registry import template_readability_issues
+
 from content.public_data import EVENT_TYPE_ICONS
 from core.templatetags.public import public_text
 
@@ -12,7 +14,10 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_TEMPLATE_PATHS = (
     REPOSITORY_ROOT / "templates/404.html",
     REPOSITORY_ROOT / "accounts/templates/accounts/login.html",
-    REPOSITORY_ROOT / "templates/core/base.html",
+    # `templates/core/base.html` was read here until issue #179 finished porting the
+    # site to design 5a: it was the public shell every page extended.  Design 5a pages
+    # are complete documents that include the two shell partials below instead, so the
+    # old base has been deleted and the markup it used to own is read from those.
     REPOSITORY_ROOT / "templates/core/home.html",
     # The design 5a shell now lives in two partials that every rebuilt page includes
     # (issue #179), so the markup those pages used to carry answers here instead.
@@ -44,24 +49,12 @@ FORBIDDEN_VISITOR_COPY = (
     "tracked catalogs",
     "tracked edition",
 )
-DJANGO_STRUCTURAL_TAG = re.compile(
-    r"{%\s*(?:block|endblock|if|elif|else|endif|for|empty|endfor|include)\b"
-)
-HTML_TAG = re.compile(r"</?[A-Za-z][^>]*>")
-HTML_OPENING_TAG = re.compile(r"<(?!/)[A-Za-z][^>]*>")
-
-
-def readability_violations(source: str) -> list[str]:
-    violations = []
-    for line_number, line in enumerate(source.splitlines(), start=1):
-        structural_tags = DJANGO_STRUCTURAL_TAG.findall(line)
-        if len(structural_tags) > 1:
-            violations.append(f"line {line_number}: multiple Django structural tags")
-        if structural_tags and HTML_TAG.search(line):
-            violations.append(f"line {line_number}: Django structural tag shares HTML markup")
-        if len(HTML_OPENING_TAG.findall(line)) > 1:
-            violations.append(f"line {line_number}: adjacent nested opening tags")
-    return violations
+# The rule itself lives in core.accessibility_registry, which is what the site's
+# own readability contract runs.  This module used to carry a second copy of it;
+# two implementations of one contract drift, and this one did — it kept failing
+# `<pre><code>`, which the shared rule exempts because everything between those
+# tags is rendered verbatim.
+readability_violations = template_readability_issues
 
 
 class PublicTemplateSourceTests(SimpleTestCase):
@@ -114,7 +107,10 @@ class PublicTemplateSourceTests(SimpleTestCase):
         self.assertNotRegex(source, r"(?:sm|md|lg):grid-cols-")
         self.assertNotIn("card-grid", source)
         self.assertIn('class="row-list collection-rows"', source)
-        self.assertIn('class="list-row record-row"', source)
+        # The row itself is the shared archive row, so the composition contract
+        # is now that the hub draws one of those per record.
+        self.assertIn('include "public/_archive_row.html"', source)
+        self.assertIn('row_class="record-row"', source)
 
     def test_event_icons_keep_text_alternatives_and_hide_decoration(self) -> None:
         source = (REPOSITORY_ROOT / "templates/public/_event_meta.html").read_text(encoding="utf-8")
