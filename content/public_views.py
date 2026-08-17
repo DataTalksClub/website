@@ -346,6 +346,15 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         {**projected, "identity_id": str(identity.id)},
     )
     event["public_path"] = canonical_detail_path(identity.id)
+    # The page states whether the event has happened in a word, using the same split the
+    # events index draws its rows from.  An event the grouped catalogue cannot place —
+    # the projected fallback record above — reports no state rather than an invented one.
+    if any(item.get("identity_id") == str(identity.id) for item in grouped.recent):
+        event_state = "past"
+    elif any(item.get("identity_id") == str(identity.id) for item in grouped.upcoming):
+        event_state = "upcoming"
+    else:
+        event_state = ""
     entity = {
         "@type": "Event",
         "url": _canonical(canonical_detail_path(identity.id)),
@@ -372,6 +381,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
         description=f"{event['type'].title()} on {event['display_time']}.",
         context={
             "event": event,
+            "event_state": event_state,
             "registration_total": registration_total,
             "og_type": "event",
             "structured_data": _json_ld(

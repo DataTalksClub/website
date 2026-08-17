@@ -1,67 +1,265 @@
-{% extends "core/base.html" %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block body_class %}
-  home-events-cmp-surface
-{% endblock %}
-{% block breadcrumbs_nav %}
-  <nav class="breadcrumbs mb-6 text-sm app-muted md:mb-8" aria-label="Breadcrumb">
-    <ul class="m-0 flex list-none flex-wrap items-center gap-y-2 p-0">
-      <li>
-        <a class="app-link" href="{% url 'events' %}">Events</a>
-      </li>
-      <li class="ml-2" aria-current="page">/ {{ event.title }}</li>
-    </ul>
-  </nav>
-{% endblock %}
-{% block content %}
-  <article class="max-w-3xl">
-    <header class="border-b app-border pb-6">
-      {% include "public/_event_meta.html" %}
-      <h1 class="mt-3 text-3xl font-semibold leading-tight tracking-normal md:text-4xl">
-        {{ event.title }}
-      </h1>
-      {% if registration_total is not None %}
-        <p
-          class="mt-4 text-base font-medium app-heading"
-          data-registration-total-revision="{{ registration_total.revision }}"
-        >
-          {{ registration_total.count }} registered
-        </p>
-      {% endif %}
-    </header>
-    {% include "public/_event_description.html" %}
-    {% if event.speakers %}
-      <section class="mt-7" aria-labelledby="event-speakers-heading">
-        <h2 id="event-speakers-heading" class="text-xl font-semibold">Speakers</h2>
-        <ul class="mt-3 divide-y app-divide border-y app-border">
-          {% for speaker in event.speakers %}
-            <li class="py-3">
-              <a class="app-link" href="{{ speaker.public_path }}">{{ speaker.name }}</a>
-            </li>
-          {% endfor %}
-        </ul>
-      </section>
+{% load seo %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="{{ og_type|default:'website' }}">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {% if og_image_url %}
+      <meta name="twitter:card" content="summary_large_image">
+    {% else %}
+      <meta name="twitter:card" content="summary">
     {% endif %}
-    {% if event.links %}
-      <section class="mt-7" aria-labelledby="event-links-heading">
-        <h2 id="event-links-heading" class="text-xl font-semibold">Event links</h2>
-        <div class="mt-4 flex flex-wrap gap-3">
-          {% for link in event.links %}
-            <a
-              class="primer-button primer-button-secondary"
-              href="{{ link.url }}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {{ link.label }}
-              <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-              <span class="sr-only">(opens in a new tab)</span>
-            </a>
-          {% endfor %}
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    {% if og_image_url %}
+      <meta property="og:image" content="{{ og_image_url }}">
+    {% endif %}
+    {% if og_image_url %}
+      <meta name="twitter:image" content="{{ og_image_url }}">
+    {% endif %}
+    {% if structured_data %}
+      <script type="application/ld+json">
+        {{ structured_data|safe }}
+      </script>
+    {% endif %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Event detail, design 5a (issue #179).  The page a reader reaches by
+       * clicking a row on /events, so it is written in that index's own
+       * vocabulary: the same kind pill, the same date rail, the same card
+       * surfaces and the same dark palette.  One inline stylesheet — the
+       * shared design system partial, then this page's own layout — and no
+       * external CSS at all.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Event page rules.  Every visual part is a shared primitive
+       * (.status-pill, .when, .mono-note, .cta, .row-list/.list-row,
+       * .prose/.prose-reading, .breadcrumbs); what follows is only how this
+       * page arranges them.
+       * ------------------------------------------------------------------ */
+
+      /* One reading column: the description is the body of this page, so the
+         shell is the reading measure plus its own inline padding and every
+         part of the page lines up with the prose. */
+      .event-shell {
+        max-width: calc(var(--measure) + 2.5rem);
+      }
+
+      .event-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .event-head {
+        display: grid;
+        gap: 0.9rem;
+        justify-items: start;
+      }
+
+      .event-head h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+      }
+
+      /* The kind pill the row carried, plus the state in a word: colour alone
+         never says whether an event has already happened. */
+      .event-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      /* The index's date rail, laid on one line: on a detail page the date is
+         a single dateline under the title rather than a column beside a row. */
+      .event-when {
+        align-items: baseline;
+        column-gap: 0.55rem;
+        display: flex;
+        flex-wrap: wrap;
+        padding-top: 0;
+        row-gap: 0.15rem;
+      }
+
+      .event-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      .event-description {
+        margin-top: 1.5rem;
+      }
+
+      /* Speakers: one dashed row each, led by the system's stand-in portrait,
+         because the event records carry a name and a profile but no picture. */
+      .speaker-row {
+        align-items: center;
+        display: flex;
+        gap: 0.85rem;
+      }
+
+      .speaker-row a {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2.75rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Narrow: the trail keeps its own line above a tighter head, and the
+           actions become full-width blocks instead of a squeezed row. */
+        .event-hero .breadcrumbs {
+          margin-top: -0.5rem;
+        }
+
+        .event-head {
+          gap: 0.7rem;
+        }
+
+        .event-links {
+          align-items: stretch;
+          flex-direction: column;
+          width: 100%;
+        }
+
+        .event-description {
+          margin-top: 1.25rem;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream event-hero" aria-labelledby="event-heading">
+        <nav class="shell event-shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'events' %}">Events</a>
+            </li>
+            <li aria-current="page">
+              {{ event.title }}
+            </li>
+          </ol>
+        </nav>
+        <div class="shell event-shell">
+          <article>
+            <header class="event-head">
+              {% comment %}
+                The kind pill maps exactly as the index maps it — sand for anything
+                past, mint for a live podcast recording, lavender for every other
+                upcoming session — so a reader meets the same mark on both pages.
+                The state itself is a word beside it, and it is omitted rather than
+                guessed when the catalogue cannot place this event in time.
+              {% endcomment %}
+              <p class="event-pills">
+                {% if event_state == "past" %}
+                  <span class="status-pill status-pill-wait">{{ event.type }}</span>
+                {% elif event.type == "podcast" %}
+                  <span class="status-pill status-pill-mint">{{ event.type }}</span>
+                {% else %}
+                  <span class="status-pill status-pill-open">{{ event.type }}</span>
+                {% endif %}
+                {% if event_state %}
+                  <span class="status-pill">{{ event_state }}</span>
+                {% endif %}
+              </p>
+              <h1 id="event-heading">{{ event.title }}</h1>
+              {% comment %}
+                The whole dateline is one <time>, not just the date: the machine value
+                carries a clock, so the accessible text has to name the zone too, and
+                the zone is the %Z in display_clock (playwright_tests/
+                accessibility_support.py time_issues).  The index escapes this because
+                its machine value is a date-only group key.
+              {% endcomment %}
+              <time class="when event-when" datetime="{{ event.starts_at }}">
+                <strong>{{ event.display_date }}</strong>
+                <span class="when-time">
+                  {{ event.display_clock }}
+                </span>
+              </time>
+              {% if registration_total is not None %}
+                <p
+                  class="mono-note event-registered"
+                  data-registration-total-revision="{{ registration_total.revision }}"
+                >
+                  {{ registration_total.count }} registered
+                </p>
+              {% endif %}
+              {% if event.links %}
+                <div class="event-links" role="group" aria-label="Event links">
+                  {% for link in event.links %}
+                    <a
+                      class="cta cta-compact cta-secondary"
+                      href="{{ link.url }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {{ link.label }}
+                      <span class="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            </header>
+            {% if event.description_html %}
+              <section
+                class="prose prose-reading event-description"
+                aria-label="Event description"
+              >
+                {{ event.description_html|safe }}
+              </section>
+            {% endif %}
+          </article>
         </div>
       </section>
-    {% endif %}
-  </article>
-{% endblock %}
+
+      {% if event.speakers %}
+        <section class="band band-mint speaker-band" aria-labelledby="event-speakers-heading">
+          <div class="shell event-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="event-speakers-heading">Speakers</h2>
+              </div>
+            </div>
+            <ul class="row-list speaker-rows">
+              {% for speaker in event.speakers %}
+                <li class="list-row speaker-row">
+                  <span class="avatar avatar-striped" aria-hidden="true"></span>
+                  <a class="band-link" href="{{ speaker.public_path }}">{{ speaker.name }}</a>
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </section>
+      {% endif %}
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

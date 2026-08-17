@@ -1,59 +1,336 @@
-{% extends "core/base.html" %}
-{% load public %}
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
-{% block breadcrumbs %}
-  <li>
-    <a class="app-link" href="{% url 'books' %}">Books</a>
-  </li>
-  <li class="ml-2">/ {{ record.title }}</li>
-{% endblock %}
-{% block content %}
-  <article class="mx-auto max-w-3xl">
-    <h1 class="text-4xl font-semibold leading-tight">{{ record.title }}</h1>
-    {% if record.authors %}
-      <p class="mt-3 app-muted">By {{ record.authors|join:", " }}</p>
+{% load seo accessibility public %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="{{ og_type|default:'book' }}">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    {% if og_image_url %}
+      <meta name="twitter:card" content="summary_large_image">
+    {% else %}
+      <meta name="twitter:card" content="summary">
     {% endif %}
-    {% include "public/_media.html" %}
-    <p class="mt-6 text-lg leading-8 app-text">{{ record.summary }}</p>
-    {% if record.links %}
-      <div class="mt-5 flex flex-wrap gap-3">
-        {% for link in record.links %}
-          <a class="primer-button primer-button-secondary" href="{{ link.url }}" rel="noopener noreferrer">
-            {{ link.label }}
-          </a>
-        {% endfor %}
-      </div>
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    {% if og_image_url %}
+      <meta property="og:image" content="{{ og_image_url }}">
     {% endif %}
-    {% if record.archive %}
-      <section class="mt-12" aria-labelledby="book-questions-heading">
-        <h2 id="book-questions-heading" class="text-2xl font-semibold">
-          Questions and answers
-        </h2>
-        <div class="mt-6 space-y-6">
-          {% for thread in record.archive %}
-            <article class="border-l-4 app-border pl-4" data-book-question>
-              <p class="font-semibold app-text">{{ thread.name }}</p>
-              {% if thread.text %}
-                <p class="mt-2 leading-7 app-text">{{ thread.text|public_text }}</p>
+    {% if og_image_url %}
+      <meta name="twitter:image" content="{{ og_image_url }}">
+    {% endif %}
+    {% if structured_data %}
+      <script type="application/ld+json">
+        {{ structured_data|safe }}
+      </script>
+    {% endif %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Book of the Week record, design 5a (issue #179).  The reader arrives
+       * from the books archive (public/collection_hub.html), so this page is
+       * written as that hub's continuation: the same kicker, the same
+       * question pill, the same dashed rows and the same mono dateline.  One
+       * inline stylesheet: the shared design system partial, then this page.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Book page rules.  The breadcrumb, status pill, mono note, prose body,
+       * compact CTAs and dashed row list are shared primitives; what follows
+       * is only this page's layout around them.
+       * ------------------------------------------------------------------ */
+
+      /* One column, the width the design gives a page of long copy. */
+      .book-shell {
+        max-width: 52rem;
+      }
+
+      .book-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .book-hero h1 {
+        font-size: clamp(1.9rem, 4.2vw, 2.75rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .book-byline {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin-top: 0.6rem;
+      }
+
+      /* The dateline and the question count, on one line: exactly the two
+         marks the archive row in the hub carries for the same book. */
+      .book-marks {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.85rem;
+        margin-top: 0.85rem;
+      }
+
+      /* The artwork is a wide banner rather than the book's own cover, so it
+         keeps the whole picture instead of cropping to a shape; a tall one is
+         bounded instead, on the tinted plate the letterboxing then shows. */
+      .book-cover {
+        margin-top: 1.5rem;
+        width: 100%;
+      }
+
+      .book-cover img {
+        background: var(--lavender);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: block;
+        height: auto;
+        max-height: 22rem;
+        object-fit: contain;
+        width: 100%;
+      }
+
+      /* Said out loud rather than left as a gap, the way the article page says
+         it: a book whose artwork is missing says so, in its place. */
+      .book-cover-missing {
+        border: 2px dashed var(--line-soft);
+        border-radius: 0.9rem;
+        display: block;
+        margin-top: 1.5rem;
+        padding: 1.1rem 1.25rem;
+        text-align: center;
+        width: 100%;
+      }
+
+      /* The book's own description, in the shared prose primitive at the width
+         the design gives long copy.  It is one imported block that keeps its
+         source line breaks, so `.prose-paragraph` carries it. */
+      .book-summary {
+        margin-top: 1.5rem;
+        max-width: 44rem;
+      }
+
+      /* Where to get the book: one compact action per link the record lists. */
+      .book-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+
+      /* One thread per question, in the dashed row list the archive already
+         reads in.  A thread is a stack, not a column pair, because both the
+         question and its answers are paragraphs. */
+      .book-threads .list-row {
+        --row-cols: minmax(0, 1fr);
+        padding-block: 1.25rem;
+        row-gap: 0.85rem;
+      }
+
+      /* A grid item is as wide as its longest word unless it is told otherwise,
+         and one Slack answer is a bare repository URL: without this the thread
+         pushes the whole page sideways on a phone. */
+      .book-threads .list-row > * {
+        min-width: 0;
+      }
+
+      .book-speaker {
+        color: var(--ink);
+        font-size: 0.98rem;
+        font-weight: 800;
+      }
+
+      /* Imported text: a bare URL in a Slack answer breaks inside the column
+         rather than widening it. */
+      .book-text {
+        color: var(--body-text);
+        line-height: 1.7;
+        margin-top: 0.35rem;
+        overflow-wrap: anywhere;
+      }
+
+      /* The answers hang off the question on the brand's bubble rule, the same
+         mark the events date rail uses, instead of a second heading level. */
+      .book-replies {
+        border-left: 4px solid var(--bubble);
+        display: grid;
+        gap: 0.85rem;
+        min-width: 0;
+        padding-left: 1.1rem;
+      }
+
+      /* An answer is quieter than the question it answers, but it is still a
+         name: --body-text rather than --muted, which on the dark lavender of
+         this band reads at 3.9:1 and would fail the contrast contract. */
+      .book-reply .book-speaker {
+        color: var(--body-text);
+        font-size: 0.92rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * Narrow layout.  The trail keeps its own line above a tighter head,
+       * the artwork gives the opening screen to the title, each action
+       * becomes a full-width target, and the answers keep a shallower indent
+       * so a threaded reply still has a line to read on.
+       * ------------------------------------------------------------------ */
+
+      @media (max-width: 47.99rem) {
+        .book-hero .breadcrumbs {
+          margin-top: -0.5rem;
+        }
+
+        .book-cover img {
+          max-height: 14rem;
+        }
+
+        .book-links {
+          display: grid;
+        }
+
+        .book-replies {
+          padding-left: 0.8rem;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream book-hero" aria-labelledby="book-heading">
+        <nav class="shell book-shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'books' %}">Books</a>
+            </li>
+            <li aria-current="page">
+              {{ record.title }}
+            </li>
+          </ol>
+        </nav>
+        <div class="shell book-shell">
+          <article>
+            <header>
+              <p class="mono-label mono-label-indigo">book of the week</p>
+              <h1 id="book-heading">{{ record.title }}</h1>
+              {% if record.authors %}
+                <p class="book-byline">By {{ record.authors|join:", " }}</p>
               {% endif %}
-              {% if thread.replies %}
-                <div class="mt-4 space-y-4">
-                  {% for reply in thread.replies %}
-                    <div class="border-l-2 app-border pl-4" data-book-answer>
-                      <p class="font-semibold app-muted">{{ reply.name }}</p>
-                      {% if reply.text %}
-                        <p class="mt-1 leading-7 app-text">{{ reply.text|public_text }}</p>
-                      {% endif %}
-                    </div>
-                  {% endfor %}
-                </div>
+              {% comment %}
+                The two marks the same book carries in the archive list: the
+                calendar day of its week, and how many questions the week left
+                behind.  Neither is a figure this page invents.
+              {% endcomment %}
+              <div class="book-marks">
+                <p class="mono-note">
+                  Published
+                  <time datetime="{{ record.published|iso_day }}">
+                    {{ record.published|human_day }}
+                  </time>
+                </p>
+                {% if record.archive %}
+                  <span class="status-pill">
+                    {{ record.archive|length }} question{{ record.archive|length|pluralize }}
+                  </span>
+                {% endif %}
+              </div>
+              {% if record.media_available %}
+                <figure class="book-cover">
+                  <img
+                    src="{{ record.image_path }}"
+                    alt="Artwork for {{ record.title }}"
+                    decoding="async"
+                  >
+                </figure>
+              {% else %}
+                <span class="book-cover-missing mono-note">Artwork unavailable.</span>
               {% endif %}
-            </article>
-          {% endfor %}
+            </header>
+            <div class="prose book-summary">
+              <p class="prose-paragraph">{{ record.summary }}</p>
+            </div>
+            {% if record.links %}
+              <div class="book-links">
+                {% for link in record.links %}
+                  <a
+                    class="cta cta-compact cta-secondary"
+                    href="{{ link.url }}"
+                    rel="noopener noreferrer"
+                  >
+                    {{ link.label }}
+                  </a>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </article>
         </div>
       </section>
-    {% endif %}
-  </article>
-{% endblock %}
+
+      {% if record.archive %}
+        <section class="band band-lavender" aria-labelledby="book-questions-heading">
+          <div class="shell book-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="book-questions-heading">Questions and answers</h2>
+                <p>
+                  The week's conversation, as it ran in
+                  <code class="mono-code">#book-of-the-week</code>
+                  on Slack.
+                </p>
+              </div>
+            </div>
+            <div class="row-list book-threads">
+              {% for thread in record.archive %}
+                <article class="list-row book-thread" data-book-question>
+                  <div class="book-question">
+                    <p class="book-speaker">{{ thread.name }}</p>
+                    {% if thread.text %}
+                      <p class="book-text">{{ thread.text|public_text }}</p>
+                    {% endif %}
+                  </div>
+                  {% if thread.replies %}
+                    <div class="book-replies">
+                      {% for reply in thread.replies %}
+                        <div class="book-reply" data-book-answer>
+                          <p class="book-speaker">{{ reply.name }}</p>
+                          {% if reply.text %}
+                            <p class="book-text">{{ reply.text|public_text }}</p>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>
