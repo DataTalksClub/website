@@ -228,6 +228,7 @@ ACCESSIBILITY_AUTHORED_TEMPLATES = (
     "templates/public/_event_meta.html",
     "templates/public/article_detail.html",
     "templates/public/collection_hub.html",
+    "templates/public/text_page.html",
     "templates/public/legal/base.html",
     "templates/public/legal/impressum.html",
     "templates/public/legal/privacy.html",

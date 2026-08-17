@@ -112,22 +112,31 @@ class CoursePlatformRenderedVendorAssetTests(TestCase):
         for response in responses:
             with self.subTest(path=response.request["PATH_INFO"]):
                 self.assertEqual(response.status_code, 200)
-                rendered = response.content.decode()
                 parser = ExternalAssetParser()
-                parser.feed(rendered)
+                parser.feed(response.content.decode())
                 self.assertEqual(parser.external_requests, [])
-                self.assertIn(
-                    "/static/core/vendor/fontawesome-free-5.15.1/css/all.min.css",
-                    rendered,
-                )
-                self.assertIn(
-                    "/static/core/vendor/tailwindcss-3.4.17/tailwindcss-3.4.17.js",
-                    rendered,
-                )
-                self.assertLess(
-                    rendered.index("tailwind.config"),
-                    rendered.index("/static/core/vendor/tailwindcss-3.4.17/"),
-                )
+
+        # Sign in and the project page both left that shell for design 5a
+        # (issue #179): each carries its own complete stylesheet inline, so it
+        # needs no vendored CSS or CDN at all — the same guarantee, reached by
+        # not making the request in the first place.
+        for response in responses:
+            with self.subTest(path=response.request["PATH_INFO"]):
+                rendered = response.content.decode()
+                self.assertNotIn('<link rel="stylesheet"', rendered)
+                self.assertNotIn("/static/core/vendor/", rendered)
+
+        # The pages still on the adopted shell keep the vendored copies of the
+        # assets that shell used to fetch from a CDN, in the order it loads them.
+        # The contract is read from that shell itself rather than from whichever
+        # page has not been rebuilt yet, so it holds until the shell is deleted.
+        adopted_shell = (ROOT / "course_platform_templates/base.html").read_text(encoding="utf-8")
+        self.assertIn("core/vendor/fontawesome-free-5.15.1/css/all.min.css", adopted_shell)
+        self.assertIn("core/vendor/tailwindcss-3.4.17/tailwindcss-3.4.17.js", adopted_shell)
+        self.assertLess(
+            adopted_shell.index("tailwind.config"),
+            adopted_shell.index("core/vendor/tailwindcss-3.4.17/"),
+        )
 
         project_html = responses[0].content.decode()
         self.assertIn(

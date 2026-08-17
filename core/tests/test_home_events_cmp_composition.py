@@ -13,19 +13,16 @@ from content.public_data import public_projection
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"
 ADOPTED_CSS = REPOSITORY_ROOT / "courses/static/courses.css"
-TARGET_SHELL_CSS = REPOSITORY_ROOT / "core/static/core/site_shell.css"
 COPIED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/copied-files.tsv"
 PATCHED_LEDGER = REPOSITORY_ROOT / "_docs/adoption/course-platform/integration-patched-files.tsv"
 PINNED_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc21560b8"
 PINNED_CSS_SHA256 = "282ed7b15df2502a8d4c2e9cd45ef1f8e92771835243d3cbc590f78db9ed5f8f"
-# The homepage left this contract with the design 5a rebuild (issue #179), and the events
-# index (/events and /events/past) left it with the design 5a mockup 6c rebuild: both own
-# their inline stylesheet and none of the adopted CMP shell.  The event detail page still
-# uses it, so the assertions that protect that page stay exactly as they were.
-SCOPED_TEMPLATES = (
-    REPOSITORY_ROOT / "templates/public/_event_meta.html",
-    REPOSITORY_ROOT / "templates/public/event_detail.html",
-)
+# The homepage left this contract with the design 5a rebuild (issue #179), the events
+# index (/events and /events/past) left it with the design 5a mockup 6c rebuild, and the
+# event detail page followed them: each owns its inline stylesheet and none of the adopted
+# CMP shell.  What remains scoped here is the event meta partial, which the detail page no
+# longer includes and which is now unreferenced.
+SCOPED_TEMPLATES = (REPOSITORY_ROOT / "templates/public/_event_meta.html",)
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 
 
@@ -79,9 +76,6 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
         for path in SCOPED_TEMPLATES:
             source = path.read_text(encoding="utf-8")
             relative = path.relative_to(REPOSITORY_ROOT)
-            if path.name == "event_detail.html":
-                if not source.startswith('{% extends "core/base.html" %}'):
-                    failures.append(f"{relative}: does not extend core/base.html")
             for forbidden in (
                 "core/site.css",
                 "<style",
@@ -96,36 +90,28 @@ class HomeEventsCmpRepositoryContractTests(SimpleTestCase):
 
         self.assertEqual(failures, [])
 
-    def test_catalog_surfaces_keep_cmp_hero_and_divided_row_composition(self) -> None:
+    def test_event_detail_left_the_cmp_surface_for_the_design_system(self) -> None:
+        """The last of the three surfaces this contract guarded (issue #179).
+
+        Two tests lived here: one asserted the adopted shell's `max-w-3xl` column on this
+        page, the other asserted the `home-events-cmp-surface` body class that scoped the
+        mobile target rule in `core/static/core/site_shell.css`.  The page now carries the
+        design system, which guarantees the same 2.75rem target floor for every control,
+        so both are kept in the language the page is written in rather than left
+        describing markup it no longer has.  That scoped CSS rule is now unreachable and
+        can go with the rest of the adopted shell.
+        """
+
         detail = (REPOSITORY_ROOT / "templates/public/event_detail.html").read_text(
             encoding="utf-8"
         )
 
-        self.assertIn('class="max-w-3xl"', detail)
-
-    def test_mobile_target_fix_covers_every_scoped_cmp_button(self) -> None:
-        detail = (REPOSITORY_ROOT / "templates/public/event_detail.html").read_text(
-            encoding="utf-8"
-        )
-        shell_css = TARGET_SHELL_CSS.read_text(encoding="utf-8")
-
-        self.assertIn("home-events-cmp-surface", detail)
-        target_rule = re.search(
-            r"body\.home-events-cmp-surface main \.primer-button\s*\{(?P<body>[^}]*)\}",
-            shell_css,
-        )
-        if target_rule is None:
-            self.fail("scoped mobile CMP button rule is missing")
-        self.assertIn("min-height: 2.75rem", target_rule.group("body"))
-        self.assertIn("min-width: 2.75rem", target_rule.group("body"))
-        self.assertNotIn(
-            "body.home-events-cmp-surface .home-hero-actions .primer-button",
-            shell_css,
-        )
-        self.assertIn(
-            "body.home-events-cmp-surface #dark-mode-toggle.user-menu-toggle",
-            shell_css,
-        )
+        self.assertNotIn("home-events-cmp-surface", detail)
+        self.assertNotIn("max-w-3xl", detail)
+        self.assertNotIn("primer-button", detail)
+        self.assertIn('{% include "core/_design_system.html" %}', detail)
+        self.assertIn('{% include "core/_site_shell_head.html" %}', detail)
+        self.assertIn('{% include "core/_site_shell_foot.html" %}', detail)
 
 
 class HomeEventsCmpRenderingTests(TestCase):

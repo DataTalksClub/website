@@ -36,6 +36,7 @@ DESIGN_5A_TEMPLATES = (
     "courses/course_list.html",
     "courses/course.html",
     "public/events.html",
+    "public/event_detail.html",
     "public/podcast_hub.html",
     "public/podcast_detail.html",
     "public/wiki_hub.html",
@@ -47,6 +48,43 @@ DESIGN_5A_TEMPLATES = (
     "public/collection_hub.html",
     "public/person_detail.html",
     "public/article_detail.html",
+    # One document behind every page that is a heading and some prose: the three
+    # legal pages (/terms, /privacy, /impressum), /slack, and the page a lost
+    # visitor lands on.  They are the same shape, so the shell they carry lives
+    # in the text page they share.  (The error page is in the system too — a lost
+    # visitor still needs the navigation — but it is not in `page_paths` below,
+    # which asserts a 200.)
+    "public/text_page.html",
+    # The documentation index and one documentation page; the section tree they
+    # share is the source-backed navigation from issue #176.
+    "review/docs_home.html",
+    "review/docs_detail.html",
+    # The FAQ hub and one course FAQ; the hub indexes the courses and the course
+    # page is the long question-and-answer document behind it.
+    "review/faq_home.html",
+    "review/faq_detail.html",
+    # The enrolled learner's own pages, below the course page: the course
+    # dashboard, the per-course enrollment profile, the registration campaign
+    # landing page, the year in review and one person's shareable copy of it,
+    # and the courses landing greeting.  They are learner surfaces rather than
+    # public indexes, so they are not in `page_paths` below (each needs its own
+    # signed-in or seeded fixture), but they carry the same shell.
+    "courses/dashboard.html",
+    "courses/enrollment.html",
+    "courses/register.html",
+    "courses/wrapped.html",
+    "courses/user_wrapped.html",
+    "index.html",
+    # The scoring and submission surfaces below a course: the leaderboard, one
+    # student's score breakdown, the form that flags a leaderboard record, one
+    # homework, its public statistics and its submissions list.  Learner
+    # surfaces again, so they are not in `page_paths` below.
+    "courses/leaderboard.html",
+    "courses/leaderboard_score_breakdown.html",
+    "courses/leaderboard_complaint.html",
+    "homework/homework.html",
+    "homework/stats.html",
+    "homework/submissions.html",
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -118,6 +156,7 @@ class DesignFiveAShellTests(TestCase):
     wiki_page: dict[str, Any]
     person: dict[str, Any]
     article: dict[str, Any]
+    event: dict[str, Any]
 
     @classmethod
     def setUpTestData(cls) -> None:
@@ -131,6 +170,7 @@ class DesignFiveAShellTests(TestCase):
         cls.wiki_page = public_projection()["wiki"][0]
         cls.person = public_projection()["people_by_slug"]["alexeygrigorev"]
         cls.article = public_projection()["articles"][0]
+        cls.event = public_projection()["events"][0]
 
     def page_paths(self) -> dict[str, str]:
         return {
@@ -139,6 +179,7 @@ class DesignFiveAShellTests(TestCase):
             "course page": reverse("course", kwargs={"course_slug": self.course.slug}),
             "events index": reverse("events"),
             "past events": reverse("events-past"),
+            "event page": self.event["public_path"],
             "podcast index": reverse("podcast"),
             "podcast episode": self.episode["public_path"],
             "wiki hub": reverse("wiki-home"),
@@ -152,6 +193,21 @@ class DesignFiveAShellTests(TestCase):
             "books index": reverse("books"),
             "person profile": self.person["public_path"],
             "blog article": self.article["public_path"],
+            # The documentation index and one page below it, because the docs
+            # pages are two templates sharing one section tree.
+            "docs index": reverse("docs-home"),
+            "docs page": "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",
+            # The FAQ hub and the smallest course FAQ below it, because the two
+            # are separate templates rather than one page in two states.
+            "faq index": reverse("faq-home"),
+            "faq course": reverse("faq-course", kwargs={"course_slug": "ai-dev-tools-zoomcamp"}),
+            # All three legal documents, because they share one base and a page
+            # that overrides a block can still lose the shell in one branch.
+            "terms": reverse("terms"),
+            "privacy": reverse("privacy"),
+            "impressum": reverse("impressum"),
+            # The page that lost the Slack link when the shell was copied.
+            "slack": reverse("slack"),
         }
 
     def rendered_pages(self) -> dict[str, str]:
@@ -209,6 +265,7 @@ class DesignFiveAShellTests(TestCase):
             "course page": "Courses",
             "events index": "Events",
             "past events": "Events",
+            "event page": "Events",
             "podcast index": "Podcast",
             "podcast episode": "Podcast",
             "wiki hub": "Wiki",
@@ -222,6 +279,16 @@ class DesignFiveAShellTests(TestCase):
             # index, so the row marks nothing while the page is open.
             "person profile": None,
             "blog article": "Blog",
+            "docs index": "Docs",
+            "docs page": "Docs",
+            "faq index": "FAQ",
+            "faq course": "FAQ",
+            # The legal documents sit under no navigation entry; the footer's own
+            # Legal navigation is how a reader reaches them.
+            "terms": None,
+            "privacy": None,
+            "impressum": None,
+            "slack": "Slack",
         }
 
         for name, body in self.rendered_pages().items():
