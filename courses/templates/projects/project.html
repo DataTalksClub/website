@@ -1,312 +1,350 @@
-{% extends 'base.html' %}
+{% extends 'projects/_base.html' %}
 {% load static %}
 {% load custom_filters %}
+{% comment %}
+  The project page a learner hands work in on, in design 5a (issue #179).
 
-{% block breadcrumbs %}
-    <li>
-        <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
-    </li>
-    <li>
-        <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
-    </li>
+  This is a mutation surface, so the port is presentation only.  The form keeps
+  its method, its CSRF token, its id, its `novalidate` and `needs-validation`
+  hooks, every field name and id the copied `homework.js` validates, the
+  disabled rules for a closed window or a signed-out reader, the delete action
+  and its confirm prompt, and the Studio link behind the same
+  `can_access_course_studio` check as before.
+{% endcomment %}
+
+{% block title %}
+  {{ project.title }} — {{ course.title }} — DataTalks.Club
 {% endblock %}
 
-{% block content %}
-<section class="content-narrow">
-    <div class="mb-6 md:mb-8">
-        <h1 class="text-3xl font-semibold leading-tight tracking-normal md:text-4xl">{{ project.title }}</h1>
+{% block extra_styles %}
+  /* The project brief reads as running copy, so it is held to the system's
+     reading measure rather than to the full shell. */
+  .project-description {
+    color: var(--body-text);
+    max-width: 46rem;
+  }
+
+  /* The submission form is held to a usable measure, the way every other form
+     in the system is. */
+  .project-form {
+    display: grid;
+    gap: 1.1rem;
+    max-width: 46rem;
+  }
+
+  .project-form-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  /* The "where do I find the commit ID?" disclosure: a native details, so it
+     opens without script. */
+  .project-hint-details summary {
+    color: var(--indigo);
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .project-hint-details p {
+    color: var(--body-text);
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+  }
+{% endblock %}
+
+{% block breadcrumbs %}
+  <li aria-current="page">
+    {{ project.title }}
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="project-head">
+    <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+    <h1>{{ project.title }}</h1>
+  </div>
+{% endblock %}
+
+{% block project_content %}
+  {% if messages %}
+    <div class="notices">
+      {% for message in messages %}
+        <p class="notice {{ message.tags }}">{{ message }}</p>
+      {% endfor %}
     </div>
-    {% if messages %}
-        <div class="mb-6 space-y-3">
-            {% for message in messages %}
-                <div class="rounded-md border app-alert-info p-4 app-heading {{ message.tags }}">{{ message }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    {% if errors %}
-        <div class="mb-6 space-y-3">
-            {% for error in errors %}
-                <div class="rounded-md border app-alert-danger p-4">{{ error }}</div>
-            {% endfor %}
-        </div>
-    {% endif %}
-    <div class="border-b app-border pb-6">
-        {% if project.description %}
-            <div class="max-w-3xl text-base leading-7 md:text-lg md:leading-8 app-text">
-                {{ project.description | urlize_target_blank }}
-            </div>
-        {% endif %}
-        {% if project.instructions_url %}
-            <a href="{{ project.instructions_url }}"
-               target="_blank"
-               rel="noopener noreferrer"
-               class="mt-4 inline-flex items-center gap-2 font-medium app-link">
-                {% if "github.com" in project.instructions_url %}
-                    <i class="fab fa-github" aria-hidden="true"></i>
-                {% else %}
-                    <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-                {% endif %}
-                <span>Instructions</span>
-            </a>
-        {% endif %}
-        <div class="mt-5 space-y-1 text-sm app-text">
-            <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                    <span class="text-xs font-semibold uppercase app-muted">Deadline:</span>
-                    <span class="font-medium app-heading">
-                        <span>{{ project.submission_due_date|user_datetime:request }}</span>
-                    </span>
-                </div>
-                <div class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                <span class="time-left app-muted"
-                      data-deadline="{{ project.submission_due_date | date:"c" }}"
-                      data-prefix="false"></span>
-                <span aria-hidden="true" class="app-muted">&middot;</span>
-                {% if is_authenticated %}
-                    <span class="app-muted">
-                        Shown in your
-                        <a href="{% url 'account_settings' %}#display-preferences-section"
-                           class="app-link">account timezone</a>.
-                    </span>
-                {% else %}
-                    <span class="app-muted">Shown in your timezone.</span>
-                {% endif %}
-            </div>
-            {% if is_authenticated %}
-            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span class="text-xs font-semibold uppercase app-muted">Status:</span>
-                {% if submission %}
-                    <span class="app-badge app-badge-upper app-badge-success">Submitted</span>
-                {% else %}
-                    <span class="app-badge app-badge-upper app-badge-neutral">Not submitted</span>
-                {% endif %}
-            </div>
-            {% endif %}
-        </div>
-        <div class="mt-5 flex flex-wrap gap-4">
-            {% if project.state == 'CO' %}
-                <a href="{% url 'project_statistics' course.slug project.slug %}"
-                   class="inline-flex items-center font-medium app-link">
-                    Project statistics <span class="ml-2" aria-hidden="true">-&gt;</span>
-                </a>
-            {% endif %}
-            {% if can_access_course_studio %}
-                <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}"
-                   class="inline-flex items-center font-medium app-link">
-                    <i class="fas fa-cog mr-2"></i> Manage project in Studio
-                </a>
-            {% endif %}
-        </div>
+  {% endif %}
+  {% if errors %}
+    <div class="notices">
+      {% for error in errors %}
+        <p class="notice error">{{ error }}</p>
+      {% endfor %}
     </div>
-    <div class="mt-6 space-y-3">
-        {% if disabled %}
-            {% if submission %}
-                {% if project.state == 'PR' %}
-                    <div class="rounded-md border app-alert-warning p-4">
-                        The project is currently in the peer-reviewing phase.
-                        <a href="{% url 'projects_eval' course.slug project.slug %}"
-                           class="app-link">Evaluate your peers here.</a>
-                        This form is no longer accepting modifications.
-                    </div>
-                {% endif %}
-            {% else %}
-                {% if is_authenticated %}
-                    <div class="rounded-md border app-alert-warning p-4">
-                        You didn't submit this project, and the submission window is closed.
-                    </div>
-                {% else %}
-                    <div class="rounded-md border app-alert-info p-4 app-heading">
-                        <a href="{% url 'login' %}" class="app-link">Log in</a> to see the status of your submission.
-                    </div>
-                {% endif %}
-            {% endif %}
+  {% endif %}
+  <section class="project-section" aria-labelledby="project-brief-heading">
+    <div class="project-section-head">
+      <h2 id="project-brief-heading">The brief</h2>
+      {% if is_authenticated %}
+        {% if submission %}
+          <span class="status-pill status-pill-live">Submitted</span>
+        {% else %}
+          <span class="status-pill status-pill-wait">Not submitted</span>
         {% endif %}
+      {% endif %}
     </div>
-    {% if not is_authenticated %}
-        <div class="mt-6 rounded-md border app-border app-surface-muted p-4 app-heading">
-            <div class="font-semibold">Log in to submit this project</div>
-            <p class="mt-1 mb-0 text-sm app-text">You can preview the requirements, but submissions are saved only for logged-in students.</p>
-            <a href="{% url 'login' %}"
-               class="primer-button mt-3">
-                Log in to submit
-            </a>
-        </div>
+    {% if project.description %}
+      <div class="project-description">{{ project.description|urlize_target_blank }}</div>
     {% endif %}
-    {% if accepting_submissions or submission %}
-    <form method="post" id="project-form" class="needs-validation mt-7 md:mt-8" novalidate>
+    {% if project.instructions_url %}
+      <p>
+        <a
+          class="band-link"
+          href="{{ project.instructions_url }}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Instructions →</a>
+      </p>
+    {% endif %}
+    <dl class="project-facts">
+      <div>
+        <dt>deadline</dt>
+        <dd>
+          {{ project.submission_due_date|user_datetime:request }}
+          <span
+            class="time-left"
+            data-deadline="{{ project.submission_due_date|date:"c" }}"
+            data-prefix="false"
+          ></span>
+        </dd>
+      </div>
+    </dl>
+    <p class="project-note">
+      {% if is_authenticated %}
+        Deadlines are shown in your
+        <a class="band-link" href="{% url 'account_settings' %}#display-preferences-section">account timezone</a>.
+      {% else %}
+        Deadlines are shown in your timezone.
+      {% endif %}
+    </p>
+    <div class="project-toolbar">
+      {% if project.state == 'CO' %}
+        <a class="cta cta-compact cta-secondary" href="{% url 'project_statistics' course.slug project.slug %}">
+          Project statistics
+        </a>
+      {% endif %}
+      {% if can_access_course_studio %}
+        <a
+          class="cta cta-compact cta-secondary"
+          href="{% url 'studio_courses_project_submissions' course.slug project.slug %}"
+        >Manage project in Studio</a>
+      {% endif %}
+    </div>
+  </section>
+  {% if disabled %}
+    {% if submission %}
+      {% if project.state == 'PR' %}
+        <p class="notice warning">
+          The project is currently in the peer-reviewing phase.
+          <a href="{% url 'projects_eval' course.slug project.slug %}">Evaluate your peers here.</a>
+          This form is no longer accepting modifications.
+        </p>
+      {% endif %}
+    {% else %}
+      {% if is_authenticated %}
+        <p class="notice warning">
+          You didn't submit this project, and the submission window is closed.
+        </p>
+      {% else %}
+        <p class="notice info">
+          <a href="{% url 'login' %}">Log in</a> to see the status of your submission.
+        </p>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+  {% if not is_authenticated %}
+    <section class="project-section" aria-labelledby="project-login-heading">
+      <div class="project-section-head">
+        <h2 id="project-login-heading">Log in to submit this project</h2>
+      </div>
+      <p class="project-note">
+        You can preview the requirements, but submissions are saved only for logged-in students.
+      </p>
+      <div class="project-toolbar">
+        <a class="cta cta-compact cta-primary" href="{% url 'login' %}">
+          Log in to submit
+        </a>
+      </div>
+    </section>
+  {% endif %}
+  {% if accepting_submissions or submission %}
+    <section class="project-section" aria-labelledby="submission-details-heading">
+      <div class="project-section-head">
+        <h2 id="submission-details-heading">Submission details</h2>
+      </div>
+      <p class="project-note">
+        Submit the public repository link and the exact commit you want evaluated.
+      </p>
+      <form method="post" id="project-form" class="needs-validation project-form" novalidate>
         {% if is_authenticated %}
-            {% csrf_token %}
+          {% csrf_token %}
         {% endif %}
-        <section>
-            <div class="mb-4 md:mb-5">
-                <h2 class="text-2xl font-semibold">Submission details</h2>
-                <p class="mt-2 hidden md:block app-text">Submit the public repository link and the exact commit you want evaluated.</p>
-            </div>
-            <div class="space-y-5">
-                <div class="question">
-                    <label for="github_link" class="question-text font-medium">
-                        GitHub link to the project
-                        <span class="form-help-icon app-muted"
-                              role="button"
-                              tabindex="0"
-                              aria-label="Project GitHub link help"
-                              aria-expanded="false"
-                              data-form-help="Your project should be hosted on GitHub. Make sure your project is public"><i class="fas fa-question-circle" aria-hidden="true"></i></span>
-                    </label>
-                    <input type="url"
-                           class="form-control mt-2"
-                           id="github_link"
-                           name="github_link"
-                           value="{{ submission.github_link|default:'' }}"
-                           required
-                           {% if disabled or not is_authenticated %}disabled{% endif %} />
-                </div>
-                <div class="question">
-                    <label for="commit_id" class="question-text font-medium">
-                        Commit ID
-                        <span class="form-help-icon app-muted"
-                              role="button"
-                              tabindex="0"
-                              aria-label="Commit ID help"
-                              aria-expanded="false"
-                              data-form-help="Paste the first 7 characters of the commit ID."><i class="fas fa-question-circle" aria-hidden="true"></i></span>
-                    </label>
-                    <details class="mt-2 text-sm app-muted">
-                        <summary class="cursor-pointer font-medium app-link">Where do I find the commit ID?</summary>
-                        <p class="mt-2">
-                            Open the commit on GitHub and copy the first 7 characters shown next to its title.
-                        </p>
-                    </details>
-                    <input type="text"
-                           id="commit_id"
-                           class="form-control mt-2"
-                           name="commit_id"
-                           value="{{ submission.commit_id|default:'' }}"
-                           required
-                           {% if disabled or not is_authenticated %}disabled{% endif %} />
-                </div>
-                {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=project.learning_in_public_cap_project learning_in_public_links=submission.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
-                <script src="{% static 'learning_in_public.js' %}"></script>
-                {% if project.time_spent_project_field %}
-                    <div class="question">
-                        <label for="time_spent" class="question-text font-medium">
-                            Time spent on project (hours)
-                            <span class="form-help-icon app-muted"
-                                  role="button"
-                                  tabindex="0"
-                                  aria-label="How much time you spent on the project"
-                                  aria-expanded="false"
-                                  data-form-help="How much time (in hours) did you spend to work on the project?"><i class="fas fa-question-circle" aria-hidden="true"></i></span>
-                        </label>
-                        <input type="number"
-                               class="form-control mt-2"
-                               name="time_spent"
-                               id="time_spent"
-                               min="0"
-                               value="{{ submission.time_spent|default:'' }}"
-                               {% if disabled or not is_authenticated %}disabled{% endif %} />
-                    </div>
-                {% endif %}
-                {% if project.faq_contribution_field %}
-                    {% include 'include/faq_contribution_field.html' %}
-                {% endif %}
-                {% if accepting_submissions %}
-                    <div class="question">
-                        <label for="certificate_name" class="question-text font-medium">
-                            Certificate name
-                            <span class="form-help-icon app-muted"
-                                  role="button"
-                                  tabindex="0"
-                                  aria-label="Certificate name help"
-                                  aria-expanded="false"
-                                  data-form-help="Enter the name you would like to be shown on the certificate. This is required and will be used for your certificate."><i class="fas fa-question-circle" aria-hidden="true"></i></span>
-                        </label>
-                        <input type="text"
-                               class="form-control mt-2"
-                               id="certificate_name"
-                               name="certificate_name"
-                               value="{{ certificate_name|default:'' }}"
-                               required
-                               {% if disabled or not is_authenticated %}disabled{% endif %} />
-                    </div>
-                {% endif %}
-            </div>
-        </section>
-        <div class="mt-6">
-            <div class="text-sm app-muted">
-                {% if submission %}
-                    Last saved at:
-                    <span>{{ submission.submitted_at|user_datetime:request }}</span>
-                {% else %}
-                    Status: Not saved yet
-                {% endif %}
-                {% if accepting_submissions and is_authenticated %}
-                    <div class="mt-1">
-                        You can save your project now and keep working on it. Update the commit ID before the deadline when you have a newer version.
-                    </div>
-                {% endif %}
-            </div>
-            {% if accepting_submissions %}
-                <div class="mt-4 flex flex-wrap gap-2 border-t app-border pt-5">
-                    {% if is_authenticated %}
-                        {% if not submission %}
-                            <button id="submit-button"
-                                    type="submit"
-                                    class="primer-button">
-                                Save submission
-                            </button>
-                        {% else %}
-                            <button id="submit-button"
-                                    type="submit"
-                                    class="primer-button">
-                                Update submission
-                            </button>
-                            <button id="delete-button"
-                                    type="button"
-                                    class="primer-button primer-button-secondary">Remove</button>
-                        {% endif %}
-                    {% else %}
-                        <a href="{% url 'login' %}"
-                           class="primer-button">
-                            Log in to submit
-                        </a>
-                    {% endif %}
-                </div>
-            {% endif %}
+        <div class="field">
+          <label class="field-label" for="github_link">
+            GitHub link to the project
+          </label>
+          <p class="field-hint">
+            Your project should be hosted on GitHub. Make sure your project is public.
+          </p>
+          <input
+            type="url"
+            class="form-control"
+            id="github_link"
+            name="github_link"
+            value="{{ submission.github_link|default:'' }}"
+            required
+            {% if disabled or not is_authenticated %}disabled{% endif %}
+          />
         </div>
-    </form>
-    {% endif %}
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var form = document.getElementById('project-form');
-            var deleteButton = document.getElementById('delete-button');
-            var commitIdInput = document.getElementById('commit_id');
-            if (commitIdInput) {
-                commitIdInput.addEventListener('blur', function() {
-                    commitIdInput.value = commitIdInput.value.trim();
-                });
-            }
-            if (form) {
-                form.addEventListener('submit', function() {
-                    if (commitIdInput) {
-                        commitIdInput.value = commitIdInput.value.trim();
-                    }
-                });
-            }
-            if (deleteButton && form) {
-                deleteButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    if (confirm('Are you sure you want to delete your project submission?')) {
-                        var actionInput = document.createElement('input');
-                        actionInput.type = 'hidden';
-                        actionInput.name = 'action';
-                        actionInput.value = 'delete';
-                        form.appendChild(actionInput);
-                        form.submit();
-                    }
-                });
-            }
+        <div class="field">
+          <label class="field-label" for="commit_id">
+            Commit ID
+          </label>
+          <p class="field-hint">
+            Paste the first 7 characters of the commit ID.
+          </p>
+          <details class="project-hint-details">
+            <summary>Where do I find the commit ID?</summary>
+            <p>
+              Open the commit on GitHub and copy the first 7 characters shown next to its title.
+            </p>
+          </details>
+          <input
+            type="text"
+            id="commit_id"
+            class="form-control"
+            name="commit_id"
+            value="{{ submission.commit_id|default:'' }}"
+            required
+            {% if disabled or not is_authenticated %}disabled{% endif %}
+          />
+        </div>
+        {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=project.learning_in_public_cap_project learning_in_public_links=submission.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
+        {% if project.time_spent_project_field %}
+          <div class="field">
+            <label class="field-label" for="time_spent">
+              Time spent on project (hours)
+            </label>
+            <p class="field-hint">
+              How much time (in hours) did you spend to work on the project?
+            </p>
+            <input
+              type="number"
+              class="form-control"
+              name="time_spent"
+              id="time_spent"
+              min="0"
+              value="{{ submission.time_spent|default:'' }}"
+              {% if disabled or not is_authenticated %}disabled{% endif %}
+            />
+          </div>
+        {% endif %}
+        {% if project.faq_contribution_field %}
+          {% include 'include/faq_contribution_field.html' %}
+        {% endif %}
+        {% if accepting_submissions %}
+          <div class="field">
+            <label class="field-label" for="certificate_name">
+              Certificate name
+            </label>
+            <p class="field-hint">
+              Enter the name you would like to be shown on the certificate. This is required and will be used for your certificate.
+            </p>
+            <input
+              type="text"
+              class="form-control"
+              id="certificate_name"
+              name="certificate_name"
+              value="{{ certificate_name|default:'' }}"
+              required
+              {% if disabled or not is_authenticated %}disabled{% endif %}
+            />
+          </div>
+        {% endif %}
+        <p class="project-note">
+          {% if submission %}
+            Last saved at: {{ submission.submitted_at|user_datetime:request }}
+          {% else %}
+            Status: Not saved yet
+          {% endif %}
+        </p>
+        {% if accepting_submissions and is_authenticated %}
+          <p class="project-note">
+            You can save your project now and keep working on it. Update the commit ID before the deadline when you have a newer version.
+          </p>
+        {% endif %}
+        {% if accepting_submissions %}
+          <div class="project-form-actions">
+            {% if is_authenticated %}
+              {% if not submission %}
+                <button id="submit-button" type="submit" class="cta cta-compact cta-primary">
+                  Save submission
+                </button>
+              {% else %}
+                <button id="submit-button" type="submit" class="cta cta-compact cta-primary">
+                  Update submission
+                </button>
+                <button id="delete-button" type="button" class="cta cta-compact cta-secondary">
+                  Remove
+                </button>
+              {% endif %}
+            {% else %}
+              <a class="cta cta-compact cta-primary" href="{% url 'login' %}">
+                Log in to submit
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'time_left.js' %}"></script>
+  <script src="{% static 'learning_in_public.js' %}"></script>
+  <script src="{% static 'homework.js' %}"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      var form = document.getElementById('project-form');
+      var deleteButton = document.getElementById('delete-button');
+      var commitIdInput = document.getElementById('commit_id');
+      if (commitIdInput) {
+        commitIdInput.addEventListener('blur', function() {
+          commitIdInput.value = commitIdInput.value.trim();
         });
-    </script>
-    <script src="{% static 'homework.js' %}"></script>
-</section>
+      }
+      if (form) {
+        form.addEventListener('submit', function() {
+          if (commitIdInput) {
+            commitIdInput.value = commitIdInput.value.trim();
+          }
+        });
+      }
+      if (deleteButton && form) {
+        deleteButton.addEventListener('click', function(e) {
+          e.preventDefault();
+          if (confirm('Are you sure you want to delete your project submission?')) {
+            var actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete';
+            form.appendChild(actionInput);
+            form.submit();
+          }
+        });
+      }
+    });
+  </script>
 {% endblock %}

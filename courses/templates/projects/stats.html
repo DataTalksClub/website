@@ -1,40 +1,106 @@
-{% extends 'base.html' %}
+{% extends 'projects/_base.html' %}
+{% comment %}
+  Aggregate statistics for one project, on design 5a (issue #179).
+
+  A read-only page of numbers.  The icons the copied page drew beside every
+  section and every row came from an icon font a design 5a page does not load,
+  and each of them only repeated the label beside it, so the labels now carry
+  the meaning on their own.
+{% endcomment %}
+
+{% block title %}
+  {{ project.title }} statistics — {{ course.title }} — DataTalks.Club
+{% endblock %}
+
 {% block meta_robots %}
   <meta name="robots" content="noindex">
 {% endblock %}
-{% block breadcrumbs %}
-  <li><a href="{% url 'course' course.slug %}">{{ course.title }}</a></li>
-  <li><a href="{% url 'project' course.slug project.slug %}">{{ project.title }}</a></li>
-  <li>Statistics</li>
+
+{% block extra_styles %}
+  /* One section per measured field, two across once there is room. */
+  .stat-sections {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 62rem) {
+    .stat-sections {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .stat-rows {
+    display: grid;
+    gap: 0.75rem 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  }
+
+  .stat-rows dt {
+    color: var(--body-text);
+    font-family: var(--font-mono);
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  .stat-rows dd {
+    color: var(--ink);
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin-top: 0.2rem;
+  }
 {% endblock %}
-{% block content %}
-  <section class="border-b app-border pb-5 ">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
-    <h1 class="mt-2 text-2xl font-semibold app-heading md:text-3xl">{{ project.title }} statistics</h1>
-    <p class="mt-1 text-sm app-muted">Aggregate project submission and scoring metrics.</p>
+
+{% block breadcrumbs %}
+  <li>
+    <a href="{% url 'project' course.slug project.slug %}">{{ project.title }}</a>
+  </li>
+  <li aria-current="page">
+    Statistics
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="project-head">
+    <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+    <h1>{{ project.title }} statistics</h1>
+    <p class="project-lede">
+      Aggregate project submission and scoring metrics.
+    </p>
+    <p class="mono-note">
+      Calculated: {{ stats.last_calculated }}
+    </p>
+  </div>
+{% endblock %}
+
+{% block project_content %}
+  <section class="project-section" aria-labelledby="total-submissions-heading">
+    <div class="project-section-head">
+      <h2 id="total-submissions-heading">Total submissions</h2>
+    </div>
+    <div class="stat-tiles">
+      <div class="stat-tile">
+        <strong>{{ stats.total_submissions }}</strong>
+        <span>submissions</span>
+      </div>
+    </div>
   </section>
-  <section class="mt-6 rounded-md border app-border app-surface-muted p-4 ">
-    <p class="text-xs font-semibold uppercase app-muted">Total submissions</p>
-    <p class="mt-1 text-3xl font-semibold app-heading">{{ stats.total_submissions }}</p>
-  </section>
-  <section class="mt-6 grid gap-4 md:grid-cols-2">
+  <div class="stat-sections">
     {% for field_name, field_stats, field_icon in stats.get_stat_fields %}
-      <article class="overflow-hidden rounded-md border app-border app-surface ">
-        <div class="border-b app-border app-surface-muted px-4 py-3 ">
-          <h2 class="text-base font-semibold app-heading"><i class="{{ field_icon }} mr-2"></i>{{ field_name }}</h2>
+      <section class="project-section" aria-labelledby="stat-section-{{ forloop.counter }}">
+        <div class="project-section-head">
+          <h2 id="stat-section-{{ forloop.counter }}">{{ field_name }}</h2>
         </div>
-        <dl class="grid grid-cols-2 gap-3 p-4 text-sm sm:grid-cols-3">
+        <dl class="stat-rows">
           {% for value, label, icon in field_stats %}
             <div>
-              <dt class="text-xs font-semibold uppercase app-muted"><i class="{{ icon }} mr-1"></i>{{ label }}</dt>
-              <dd class="mt-1 text-xl font-semibold app-heading">{{ value|floatformat:0 }}</dd>
+              <dt>{{ label }}</dt>
+              <dd>{{ value|floatformat:0 }}</dd>
             </div>
           {% endfor %}
         </dl>
-      </article>
+      </section>
     {% endfor %}
-  </section>
-  <p class="mt-4 text-sm app-muted">
-    <i class="fas fa-calendar-alt"></i> Calculated: {{ stats.last_calculated }}
-  </p>
+  </div>
 {% endblock %}

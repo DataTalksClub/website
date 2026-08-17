@@ -1,0 +1,343 @@
+{% load seo %}
+{% comment %}
+  The design 5a shell for the learner project pages (issue #179).
+
+  Eight pages hang off this document — the project itself, the submission
+  lists, the peer-evaluation surfaces, the results and the statistics — and
+  they are the same shape: a trail back to the course, a head, and a stack of
+  sections.  Writing that document eight times is how a family drifts (the
+  design 5a rebuild lost a navigation entry from five pages exactly that way),
+  so it is written once here, the way templates/studio/base.html does it for
+  the Studio pages, and each page fills in its own blocks.
+
+  A page therefore inherits the whole design 5a document: one inline
+  stylesheet whose first content is the shared design system partial, no
+  external CSS, and the shared masthead / footer / script partials.  The
+  patterns below are composed from that system's tokens and primitives; a page
+  should reach for them, and for the shared .cta-*, .status-pill-*,
+  .filter-pill, .field-*, .row-list, .stat-tile and .mono-* primitives, before
+  writing anything in its own extra_styles block.
+
+  Blocks a page fills: title, meta_robots, extra_styles, breadcrumbs (the li
+  items after "Courses / <course>"), page_head, project_content and extra_js.
+
+  Nothing here changes what a page does: forms, actions, field names, CSRF
+  tokens, permission checks and redirects all stay in the pages themselves,
+  exactly as the copied platform wrote them.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>
+      {% block title %}
+        {{ course.title }} — DataTalks.Club
+      {% endblock %}
+    </title>
+    {% block meta_robots %}
+    {% endblock %}
+    {% canonical_link canonical_url %}
+    <style>
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Project-page patterns.  Everything below is built from the tokens
+       * and primitives of the design system above: no new colour, no new
+       * face, no external stylesheet.
+       * ------------------------------------------------------------------ */
+
+      /* These pages are full of definition lists (score components, facts),
+         and the system's card and row layouts drop the browser's own list
+         chrome, so both are settled here once. */
+      dl,
+      dd {
+        margin: 0;
+      }
+
+      /* The trail sits at the top of the band, above the page head; its links
+         already carry the system's 2.75rem target height, so it needs only a
+         little air under it. */
+      .shell > .breadcrumbs {
+        margin-bottom: 0.75rem;
+      }
+
+      /* The page head: the course kicker, the h1, a one-line lede and the row
+         of actions the page opens with.  The h1 takes the type scale's
+         featured size rather than the public hero size — a work surface's
+         title sits directly above the work and must not shout over it. */
+      .project-head {
+        display: grid;
+        gap: 0.5rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .project-head h1 {
+        font-size: clamp(1.6rem, 3.2vw, 2.35rem);
+        overflow-wrap: anywhere;
+      }
+
+      .project-lede {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        max-width: 46rem;
+      }
+
+      .project-note {
+        color: var(--body-text);
+        font-size: 0.85rem;
+      }
+
+      /* A row of actions: under the head, beside a heading, below a form. */
+      .project-toolbar {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      /* One vertical rhythm for the page body, so a page can emit sections
+         without carrying spacing of its own. */
+      .project-stack {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      /* A section slab: the card surface at page scale, for each group a page
+         shows (a list of submissions, a form, a set of facts). */
+      .project-section {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: grid;
+        gap: 0.9rem;
+        padding: 1.25rem;
+      }
+
+      .project-section-head {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        justify-content: space-between;
+      }
+
+      .project-section-head h2 {
+        font-size: 1.15rem;
+      }
+
+      /* Label-over-value facts, wrapping into as many columns as fit. */
+      .project-facts {
+        display: grid;
+        gap: 0.75rem 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      }
+
+      .project-facts dt {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .project-facts dd {
+        color: var(--ink);
+        font-weight: 700;
+        margin-top: 0.2rem;
+        overflow-wrap: anywhere;
+      }
+
+      /* A repository address or a public progress link is long and arrives
+         from a student, so it breaks inside the column rather than widening
+         the page. */
+      .submission-link {
+        overflow-wrap: anywhere;
+      }
+
+      /* An empty list says so on the same dashed frame the list would have
+         used, so the shape of the page does not change when data arrives. */
+      .project-empty {
+        border: 2px dashed var(--line-soft);
+        border-radius: 0.9rem;
+        color: var(--body-text);
+        padding: 1.75rem 1rem;
+        text-align: center;
+      }
+
+      /* --- notices ------------------------------------------------------ *
+       * Django messages and the pages' own closed/denied states.  The variant
+       * classes are Django's own level tags, which is what {{ message.tags }}
+       * already renders, and every notice carries its state in words: the
+       * surface is only reinforcement.  The system has no danger colour, so
+       * warning and error share the attention surface. */
+      .notice {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        color: var(--body-text);
+        display: grid;
+        gap: 0.3rem;
+        padding: 0.9rem 1.1rem;
+      }
+
+      .notice.success {
+        background: var(--mint);
+      }
+
+      .notice.info,
+      .notice.debug {
+        background: var(--lavender);
+      }
+
+      .notice.warning,
+      .notice.error {
+        background: var(--sand);
+        color: var(--olive);
+      }
+
+      .notice a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .notices {
+        display: grid;
+        gap: 0.6rem;
+        margin-bottom: 1.5rem;
+      }
+
+      /* --- form controls ------------------------------------------------ *
+       * The copied platform's forms — and the "add another link" script that
+       * appends to one of them — carry `form-control` and `form-check-input`
+       * class names, and a design 5a page loads no stylesheet that defines
+       * them.  They take the system's own .field-input treatment here, so a
+       * field the script creates looks exactly like the ones the template
+       * rendered. */
+      .form-control {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.625rem;
+        color: var(--ink);
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.8rem;
+        width: 100%;
+      }
+
+      .form-control[readonly],
+      .form-control[disabled] {
+        background: var(--sand);
+        color: var(--muted);
+      }
+
+      /* A field the server rejected: the attention surface the notices use,
+         so the marker is never colour alone — the message beside it names the
+         problem. */
+      .form-control.is-invalid {
+        background: var(--sand);
+        color: var(--olive);
+      }
+
+      .form-check-input {
+        accent-color: var(--green);
+        flex: none;
+        height: 1.1rem;
+        width: 1.1rem;
+      }
+
+      /* The message the copied `homework.js` inserts after a field it rejected
+         before the form is posted.  It reads on the attention colour the
+         notices use; the sentence itself carries the problem. */
+      .invalid-feedback {
+        color: var(--olive);
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      /* The live countdown `time_left.js` writes into a deadline line.  It is
+         the same page-local treatment the course page gives it: token-driven
+         tones that survive both themes, and no box at all before the script
+         has run.  The words always say the state, so colour only reinforces. */
+      .time-left {
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      .time-left:empty {
+        display: none;
+      }
+
+      .time-left--normal {
+        color: var(--muted);
+      }
+
+      .time-left--warning {
+        color: var(--olive);
+        font-weight: 700;
+      }
+
+      .time-left--overdue {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      {% block extra_styles %}
+      {% endblock %}
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream">
+        <div class="shell">
+          {% comment %}
+            The trail the adopted shell used to draw, as the design system's
+            own primitive: every ancestor is a link and the page itself is
+            plain text on li[aria-current="page"], which each page supplies.
+          {% endcomment %}
+          <nav class="breadcrumbs" aria-label="Breadcrumb">
+            <ol>
+              <li>
+                <a href="{% url 'course_list' %}">Courses</a>
+              </li>
+              <li>
+                <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+              </li>
+              {% block breadcrumbs %}
+              {% endblock %}
+            </ol>
+          </nav>
+          {% block page_head %}
+          {% endblock %}
+          <div class="project-stack">
+            {% block project_content %}
+            {% endblock %}
+          </div>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+    {% block extra_js %}
+    {% endblock %}
+  </body>
+</html>

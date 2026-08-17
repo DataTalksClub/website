@@ -1,269 +1,499 @@
-{% extends 'base.html' %}
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ homework.title }} statistics — {{ course.title }} — DataTalks.Club</title>
+    <meta name="robots" content="noindex">
+    <meta name="description" content="Distribution of scores and reported study time for {{ homework.title }}.">
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Homework statistics, design 5a (issue #179).  Like every rebuilt page
+       * it carries its complete stylesheet inline — the shared design system
+       * partial first, then this page's own rules — and loads none of the
+       * older site CSS.
+       *
+       * This is a visual port: every statistic, including a real zero, is the
+       * value the copied page rendered (issue #144).
+       * ------------------------------------------------------------------ */
 
-{% block meta_robots %}
-  <meta name="robots" content="noindex">
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
-  </li>
-  <li>
-    <a href="{% url 'homework' course.slug homework.slug %}">{{ homework.title }}</a>
-  </li>
-  <li>Statistics</li>
-{% endblock %}
+      /* ------------------------------------------------------------------ *
+       * Page-specific rules.
+       * ------------------------------------------------------------------ */
 
-{% block content %}
-  <section class="border-b app-border pb-5">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
-    <h1 class="mt-2 text-2xl font-semibold app-heading md:text-3xl">{{ homework.title }} Statistics</h1>
-    <p class="mt-1 text-sm app-muted">
-      Distribution of scores and reported study time for this homework.
-    </p>
-  </section>
+      /* The breadcrumb links carry the system's 2.75rem target height, so the
+         row brings its own air; fold most of it into the band's top padding. */
+      .stats-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
 
-  <section class="mt-6 grid gap-3 sm:grid-cols-3">
-    <div class="border-l-2 app-border pl-4">
-      <p class="text-xs font-semibold uppercase app-muted">Submissions</p>
-      <p class="mt-1 text-2xl font-semibold app-heading">{{ stats.total_submissions }}</p>
-    </div>
-    <div class="border-l-2 app-border pl-4">
-      <p class="text-xs font-semibold uppercase app-muted">Median total score</p>
-      <p class="mt-1 text-2xl font-semibold app-heading">
-        {% if stats.median_total_score is not None %}{{ stats.median_total_score|floatformat:0 }}{% else %}-{% endif %}
-      </p>
-    </div>
-    <div class="border-l-2 app-border pl-4">
-      <p class="text-xs font-semibold uppercase app-muted">Average total score</p>
-      <p class="mt-1 text-2xl font-semibold app-heading">
-        {% if stats.avg_total_score is not None %}{{ stats.avg_total_score|floatformat:0 }}{% else %}-{% endif %}
-      </p>
-    </div>
-  </section>
+      .stats-hero-inner {
+        display: grid;
+        gap: 0.75rem;
+        justify-items: start;
+      }
 
-  <section class="mt-8">
-    <h2 class="text-lg font-semibold app-heading">Score distribution</h2>
-    <p class="mt-1 text-sm app-muted">All values are points.</p>
-    <div class="mt-3 hidden overflow-x-auto rounded-md border app-border md:block">
-      <table class="min-w-full text-sm">
-        <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted">
-          <tr>
-            <th class="px-3 py-2">Metric</th>
-            <th class="px-3 py-2 text-right">Min</th>
-            <th class="px-3 py-2 text-right">Q1</th>
-            <th class="px-3 py-2 text-right">Median</th>
-            <th class="px-3 py-2 text-right">Average</th>
-            <th class="px-3 py-2 text-right">Q3</th>
-            <th class="px-3 py-2 text-right">Max</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y app-divide">
-          <tr>
-            <td class="px-3 py-2 font-medium app-heading">Questions score</td>
-            <td class="px-3 py-2 text-right">{{ stats.min_questions_score|default_if_none:"-" }}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q1_questions_score is not None %}{{ stats.q1_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_questions_score is not None %}{{ stats.median_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.avg_questions_score is not None %}{{ stats.avg_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q3_questions_score is not None %}{{ stats.q3_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{{ stats.max_questions_score|default_if_none:"-" }}</td>
-          </tr>
-          <tr>
-            <td class="px-3 py-2 font-medium app-heading">Learning in public score</td>
-            <td class="px-3 py-2 text-right">{{ stats.min_learning_in_public_score|default_if_none:"-" }}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q1_learning_in_public_score is not None %}{{ stats.q1_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_learning_in_public_score is not None %}{{ stats.median_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.avg_learning_in_public_score is not None %}{{ stats.avg_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q3_learning_in_public_score is not None %}{{ stats.q3_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{{ stats.max_learning_in_public_score|default_if_none:"-" }}</td>
-          </tr>
-          <tr>
-            <td class="px-3 py-2 font-medium app-heading">Total score</td>
-            <td class="px-3 py-2 text-right">{{ stats.min_total_score|default_if_none:"-" }}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q1_total_score is not None %}{{ stats.q1_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_total_score is not None %}{{ stats.median_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.avg_total_score is not None %}{{ stats.avg_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q3_total_score is not None %}{{ stats.q3_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{{ stats.max_total_score|default_if_none:"-" }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="mt-3 divide-y rounded-md border app-border app-divide md:hidden">
-      <article class="p-3">
-        <h3 class="font-medium app-heading">Questions score</h3>
-        <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_questions_score|default_if_none:"-" }}</dd></div>
-          <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_questions_score is not None %}{{ stats.median_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_questions_score|default_if_none:"-" }}</dd></div>
-          <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_questions_score is not None %}{{ stats.q1_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_questions_score is not None %}{{ stats.avg_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_questions_score is not None %}{{ stats.q3_questions_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-        </dl>
-      </article>
-      <article class="p-3">
-        <h3 class="font-medium app-heading">Learning in public score</h3>
-        <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_learning_in_public_score|default_if_none:"-" }}</dd></div>
-          <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_learning_in_public_score is not None %}{{ stats.median_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_learning_in_public_score|default_if_none:"-" }}</dd></div>
-          <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_learning_in_public_score is not None %}{{ stats.q1_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_learning_in_public_score is not None %}{{ stats.avg_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_learning_in_public_score is not None %}{{ stats.q3_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-        </dl>
-      </article>
-      <article class="p-3">
-        <h3 class="font-medium app-heading">Total score</h3>
-        <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{{ stats.min_total_score|default_if_none:"-" }}</dd></div>
-          <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_total_score is not None %}{{ stats.median_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{{ stats.max_total_score|default_if_none:"-" }}</dd></div>
-          <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_total_score is not None %}{{ stats.q1_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_total_score is not None %}{{ stats.avg_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_total_score is not None %}{{ stats.q3_total_score|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-        </dl>
-      </article>
-    </div>
-  </section>
+      .stats-lede {
+        color: var(--body-text);
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        max-width: 46rem;
+      }
 
-  <section class="mt-8">
-    <h2 class="text-lg font-semibold app-heading">Time distribution</h2>
-    <p class="mt-1 text-sm app-muted">All values are hours reported by students.</p>
-    <div class="mt-3 hidden overflow-x-auto rounded-md border app-border md:block">
-      <table class="min-w-full text-sm">
-        <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted">
-          <tr>
-            <th class="px-3 py-2">Metric</th>
-            <th class="px-3 py-2 text-right">Min</th>
-            <th class="px-3 py-2 text-right">Q1</th>
-            <th class="px-3 py-2 text-right">Median</th>
-            <th class="px-3 py-2 text-right">Average</th>
-            <th class="px-3 py-2 text-right">Q3</th>
-            <th class="px-3 py-2 text-right">Max</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y app-divide">
-          <tr>
-            <td class="px-3 py-2 font-medium app-heading">Lectures</td>
-            <td class="px-3 py-2 text-right">{% if stats.min_time_spent_lectures is not None %}{{ stats.min_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q1_time_spent_lectures is not None %}{{ stats.q1_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_time_spent_lectures is not None %}{{ stats.median_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.avg_time_spent_lectures is not None %}{{ stats.avg_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q3_time_spent_lectures is not None %}{{ stats.q3_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.max_time_spent_lectures is not None %}{{ stats.max_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
-          </tr>
-          <tr>
-            <td class="px-3 py-2 font-medium app-heading">Homework</td>
-            <td class="px-3 py-2 text-right">{% if stats.min_time_spent_homework is not None %}{{ stats.min_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q1_time_spent_homework is not None %}{{ stats.q1_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right font-semibold app-heading">{% if stats.median_time_spent_homework is not None %}{{ stats.median_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.avg_time_spent_homework is not None %}{{ stats.avg_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.q3_time_spent_homework is not None %}{{ stats.q3_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
-            <td class="px-3 py-2 text-right">{% if stats.max_time_spent_homework is not None %}{{ stats.max_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="mt-3 divide-y rounded-md border app-border app-divide md:hidden">
-      <article class="p-3">
-        <h3 class="font-medium app-heading">Lectures</h3>
-        <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{% if stats.min_time_spent_lectures is not None %}{{ stats.min_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_time_spent_lectures is not None %}{{ stats.median_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{% if stats.max_time_spent_lectures is not None %}{{ stats.max_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_time_spent_lectures is not None %}{{ stats.q1_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_time_spent_lectures is not None %}{{ stats.avg_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_time_spent_lectures is not None %}{{ stats.q3_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-        </dl>
-      </article>
-      <article class="p-3">
-        <h3 class="font-medium app-heading">Homework</h3>
-        <dl class="mt-2 grid grid-cols-3 gap-2 text-sm">
-          <div><dt class="app-muted">Min</dt><dd class="font-semibold app-heading">{% if stats.min_time_spent_homework is not None %}{{ stats.min_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Median</dt><dd class="font-semibold app-heading">{% if stats.median_time_spent_homework is not None %}{{ stats.median_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Max</dt><dd class="font-semibold app-heading">{% if stats.max_time_spent_homework is not None %}{{ stats.max_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Q1</dt><dd>{% if stats.q1_time_spent_homework is not None %}{{ stats.q1_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Avg</dt><dd>{% if stats.avg_time_spent_homework is not None %}{{ stats.avg_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-          <div><dt class="app-muted">Q3</dt><dd>{% if stats.q3_time_spent_homework is not None %}{{ stats.q3_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</dd></div>
-        </dl>
-      </article>
-    </div>
-  </section>
+      .stats-headline {
+        margin-top: 0.4rem;
+        width: 100%;
+      }
 
-  {% if question_stats %}
-    <section class="mt-8">
-      <h2 class="text-lg font-semibold app-heading">Question breakdown</h2>
-      <p class="mt-1 text-sm app-muted">
-        Correctness and answer distribution per question.
-      </p>
+      /* --- distribution tables --------------------------------------------- *
+       * Seven columns of numbers with headers a screen reader has to be able
+       * to announce, so this stays real table markup with the system's dashed
+       * row treatment — the same shape the Studio section uses for its wide
+       * tables — inside a scroll frame that is reachable by keyboard.  It
+       * replaces the copied page's phone-only duplicate of the same numbers,
+       * so every figure is written once. */
+      .stats-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+      }
 
-      <div class="mt-4 space-y-6">
-        {% for q in question_stats %}
-          <div class="border-t app-border pt-4">
-            <h3 class="text-sm font-medium app-heading">
-              {{ forloop.counter }}. {{ q.text }}
-            </h3>
-            <p class="mt-1 text-sm app-muted">
-              {% if q.pct_correct is not None %}
-                {{ q.correct }} / {{ q.total }} correct
-                <span class="font-semibold app-heading">({{ q.pct_correct }}%)</span>
+      .stats-scroll:focus-visible {
+        outline-offset: -3px;
+      }
+
+      .stats-table {
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+        width: 100%;
+      }
+
+      .stats-table th,
+      .stats-table td {
+        padding-block: 0.75rem;
+        padding-inline-end: 1.25rem;
+        vertical-align: top;
+      }
+
+      .stats-table th:last-child,
+      .stats-table td:last-child {
+        padding-inline-end: 0;
+      }
+
+      .stats-table thead th {
+        border-bottom: 2px dashed var(--line-soft);
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        padding-block: 0.4rem 0.6rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .stats-table tbody th {
+        color: var(--ink);
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .stats-table tbody th,
+      .stats-table td {
+        border-bottom: 1.5px dashed var(--line-soft);
+        color: var(--body-text);
+      }
+
+      .stats-table tbody tr:last-child th,
+      .stats-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      .stats-numeric {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      .stats-numeric-strong {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      /* --- question breakdown ---------------------------------------------- */
+
+      .stats-question h3 {
+        font-size: 1.05rem;
+      }
+
+      .stats-question-main {
+        display: grid;
+        gap: 0.5rem;
+        min-width: 0;
+      }
+
+      .stats-question-count {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+      }
+
+      .stats-question-count strong {
+        color: var(--ink);
+      }
+
+      .stats-options {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      /* One answer option: its index, its text, the share that chose it drawn
+         on the system's progress track, and the count in words. */
+      .stats-option {
+        display: grid;
+        gap: 0.2rem;
+      }
+
+      .stats-option-label {
+        color: var(--body-text);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.6rem;
+      }
+
+      .stats-option-index {
+        color: var(--muted);
+        font-family: var(--font-mono);
+      }
+
+      .stats-option-correct .stats-option-text {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .stats-option-share {
+        align-items: center;
+        display: grid;
+        gap: 0.6rem;
+        grid-template-columns: minmax(0, 1fr) 6rem;
+      }
+
+      .stats-option-count {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      .stats-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+      }
+
+      .stats-calculated {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        margin-top: 1.5rem;
+      }
+
+      /* --- narrow layout ------------------------------------------------- */
+
+      /* Reshape rather than reflow: the headline tiles keep two columns and
+         the option share drops its trailing count column under the bar. */
+      @media (max-width: 47.99rem) {
+        .stats-option-share {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .stats-option-count {
+          text-align: left;
+        }
+      }
+
+      @media (min-width: 62rem) {
+        .stats-headline {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream stats-hero" aria-labelledby="stats-heading">
+        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+            </li>
+            <li>
+              <a href="{% url 'homework' course.slug homework.slug %}">{{ homework.title }}</a>
+            </li>
+            <li aria-current="page">
+              Statistics
+            </li>
+          </ol>
+        </nav>
+        <div class="shell stats-hero-inner">
+          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+          <h1 id="stats-heading">{{ homework.title }} Statistics</h1>
+          <p class="stats-lede">
+            Distribution of scores and reported study time for this homework.
+          </p>
+          <div class="stat-tiles stats-headline">
+            <div class="stat-tile">
+              <strong>{{ stats.total_submissions }}</strong>
+              <span>submissions</span>
+            </div>
+            <div class="stat-tile">
+              {% if stats.median_total_score is not None %}
+                <strong>{{ stats.median_total_score|floatformat:0 }}</strong>
               {% else %}
-                {{ q.total }} answers
+                <strong>-</strong>
               {% endif %}
-            </p>
-
-            {% if q.choice_options %}
-              <div class="mt-3 space-y-1">
-                {% for opt in q.choice_options %}
-                  <div class="flex items-center gap-2 text-sm">
-                    <span class="w-5 shrink-0 text-right app-muted">{{ opt.index }}</span>
-                    <span class="min-w-0 flex-1 truncate {% if opt.is_correct %}font-semibold app-heading{% else %}app-text{% endif %}">
-                      {{ opt.label }}
-                      {% if opt.is_correct %}<i class="fas fa-check app-muted text-xs" aria-label="Correct answer"></i>{% endif %}
-                    </span>
-                    <span class="shrink-0 w-32">
-                      <span class="block h-2 w-full overflow-hidden rounded app-surface-muted">
-                        <span class="block h-full rounded" style="width: {{ opt.pct }}%; background: var(--link-color)"></span>
-                      </span>
-                    </span>
-                    <span class="shrink-0 w-16 text-right app-muted">
-                      {{ opt.count }} ({{ opt.pct }}%)
-                    </span>
-                  </div>
-                {% endfor %}
-              </div>
-            {% elif q.free_form_values %}
-              <div class="mt-3 overflow-x-auto rounded-md border app-border">
-                <table class="min-w-full text-sm">
-                  <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted">
-                    <tr>
-                      <th class="px-3 py-2">Answer</th>
-                      <th class="px-3 py-2 text-right">Count</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y app-divide">
-                    {% for value, count in q.free_form_values %}
-                      <tr>
-                        <td class="px-3 py-2 app-heading break-all">{{ value }}</td>
-                        <td class="px-3 py-2 text-right app-muted">{{ count }}</td>
-                      </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-            {% else %}
-              <p class="mt-2 text-sm app-muted">No answers submitted.</p>
-            {% endif %}
+              <span>median total score</span>
+            </div>
+            <div class="stat-tile">
+              {% if stats.avg_total_score is not None %}
+                <strong>{{ stats.avg_total_score|floatformat:0 }}</strong>
+              {% else %}
+                <strong>-</strong>
+              {% endif %}
+              <span>average total score</span>
+            </div>
           </div>
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
+        </div>
+      </section>
 
-  <p class="mt-4 text-sm app-muted">
-    Calculated:
-    <span class="local-date" data-timestamp="{{ stats.last_calculated|date:'U' }}">
-      {{ stats.last_calculated|date:"j F Y, H:i" }}
-    </span>
-  </p>
-{% endblock %}
+      <section class="band band-lavender" aria-labelledby="score-distribution-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="score-distribution-heading">Score distribution</h2>
+              <p>All values are points.</p>
+            </div>
+          </div>
+          <div
+            class="stats-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="score-distribution-heading"
+          >
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metric</th>
+                  <th class="stats-numeric" scope="col">Min</th>
+                  <th class="stats-numeric" scope="col">Q1</th>
+                  <th class="stats-numeric" scope="col">Median</th>
+                  <th class="stats-numeric" scope="col">Average</th>
+                  <th class="stats-numeric" scope="col">Q3</th>
+                  <th class="stats-numeric" scope="col">Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Questions score</th>
+                  <td class="stats-numeric">{{ stats.min_questions_score|default_if_none:"-" }}</td>
+                  <td class="stats-numeric">{% if stats.q1_questions_score is not None %}{{ stats.q1_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric stats-numeric-strong">{% if stats.median_questions_score is not None %}{{ stats.median_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.avg_questions_score is not None %}{{ stats.avg_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.q3_questions_score is not None %}{{ stats.q3_questions_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{{ stats.max_questions_score|default_if_none:"-" }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Learning in public score</th>
+                  <td class="stats-numeric">{{ stats.min_learning_in_public_score|default_if_none:"-" }}</td>
+                  <td class="stats-numeric">{% if stats.q1_learning_in_public_score is not None %}{{ stats.q1_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric stats-numeric-strong">{% if stats.median_learning_in_public_score is not None %}{{ stats.median_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.avg_learning_in_public_score is not None %}{{ stats.avg_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.q3_learning_in_public_score is not None %}{{ stats.q3_learning_in_public_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{{ stats.max_learning_in_public_score|default_if_none:"-" }}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Total score</th>
+                  <td class="stats-numeric">{{ stats.min_total_score|default_if_none:"-" }}</td>
+                  <td class="stats-numeric">{% if stats.q1_total_score is not None %}{{ stats.q1_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric stats-numeric-strong">{% if stats.median_total_score is not None %}{{ stats.median_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.avg_total_score is not None %}{{ stats.avg_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.q3_total_score is not None %}{{ stats.q3_total_score|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{{ stats.max_total_score|default_if_none:"-" }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-cream" aria-labelledby="time-distribution-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="time-distribution-heading">Time distribution</h2>
+              <p>All values are hours reported by students.</p>
+            </div>
+          </div>
+          <div
+            class="stats-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="time-distribution-heading"
+          >
+            <table class="stats-table">
+              <thead>
+                <tr>
+                  <th scope="col">Metric</th>
+                  <th class="stats-numeric" scope="col">Min</th>
+                  <th class="stats-numeric" scope="col">Q1</th>
+                  <th class="stats-numeric" scope="col">Median</th>
+                  <th class="stats-numeric" scope="col">Average</th>
+                  <th class="stats-numeric" scope="col">Q3</th>
+                  <th class="stats-numeric" scope="col">Max</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Lectures</th>
+                  <td class="stats-numeric">{% if stats.min_time_spent_lectures is not None %}{{ stats.min_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.q1_time_spent_lectures is not None %}{{ stats.q1_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric stats-numeric-strong">{% if stats.median_time_spent_lectures is not None %}{{ stats.median_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.avg_time_spent_lectures is not None %}{{ stats.avg_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.q3_time_spent_lectures is not None %}{{ stats.q3_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.max_time_spent_lectures is not None %}{{ stats.max_time_spent_lectures|floatformat:1 }}{% else %}-{% endif %}</td>
+                </tr>
+                <tr>
+                  <th scope="row">Homework</th>
+                  <td class="stats-numeric">{% if stats.min_time_spent_homework is not None %}{{ stats.min_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.q1_time_spent_homework is not None %}{{ stats.q1_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric stats-numeric-strong">{% if stats.median_time_spent_homework is not None %}{{ stats.median_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.avg_time_spent_homework is not None %}{{ stats.avg_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.q3_time_spent_homework is not None %}{{ stats.q3_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
+                  <td class="stats-numeric">{% if stats.max_time_spent_homework is not None %}{{ stats.max_time_spent_homework|floatformat:1 }}{% else %}-{% endif %}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      {% if question_stats %}
+        <section class="band band-lavender" aria-labelledby="question-breakdown-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="question-breakdown-heading">Question breakdown</h2>
+                <p>Correctness and answer distribution per question.</p>
+              </div>
+            </div>
+            <div class="row-list">
+              {% for q in question_stats %}
+                <article class="list-row stats-question" style="--row-cols: minmax(0,1fr)">
+                  <div class="stats-question-main">
+                    <h3>{{ forloop.counter }}. {{ q.text }}</h3>
+                    {% if q.pct_correct is not None %}
+                      <p class="stats-question-count">
+                        {{ q.correct }} / {{ q.total }} correct
+                        <strong>({{ q.pct_correct }}%)</strong>
+                      </p>
+                    {% else %}
+                      <p class="stats-question-count">{{ q.total }} answers</p>
+                    {% endif %}
+                    {% if q.choice_options %}
+                      <div class="stats-options">
+                        {% for opt in q.choice_options %}
+                          {% if opt.is_correct %}
+                            <div class="stats-option stats-option-correct">
+                          {% else %}
+                            <div class="stats-option">
+                          {% endif %}
+                            <p class="stats-option-label">
+                              <span class="stats-option-index">{{ opt.index }}</span>
+                              <span class="stats-option-text">{{ opt.label }}</span>
+                              {% if opt.is_correct %}
+                                <span class="status-pill status-pill-mint">correct answer</span>
+                              {% endif %}
+                            </p>
+                            <div class="stats-option-share">
+                              <div
+                                class="progress"
+                                role="progressbar"
+                                aria-valuemin="0"
+                                aria-valuemax="100"
+                                aria-valuenow="{{ opt.pct }}"
+                                aria-label="Share of answers for option {{ opt.index }}"
+                              >
+                                <div class="progress-fill" style="width: {{ opt.pct }}%"></div>
+                              </div>
+                              <p class="stats-option-count">{{ opt.count }} ({{ opt.pct }}%)</p>
+                            </div>
+                          </div>
+                        {% endfor %}
+                      </div>
+                    {% elif q.free_form_values %}
+                      <div
+                        class="stats-scroll"
+                        tabindex="0"
+                        role="region"
+                        aria-label="Answers to question {{ forloop.counter }}"
+                      >
+                        <table class="stats-table">
+                          <thead>
+                            <tr>
+                              <th scope="col">Answer</th>
+                              <th class="stats-numeric" scope="col">Count</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for value, count in q.free_form_values %}
+                              <tr>
+                                <th scope="row">{{ value }}</th>
+                                <td class="stats-numeric">{{ count }}</td>
+                              </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    {% else %}
+                      <p class="stats-note">No answers submitted.</p>
+                    {% endif %}
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="band band-cream" aria-labelledby="stats-calculated-heading">
+        <div class="shell">
+          <h2 id="stats-calculated-heading" class="sr-only">When these statistics were calculated</h2>
+          <p class="stats-calculated">
+            Calculated:
+            <span class="local-date" data-timestamp="{{ stats.last_calculated|date:'U' }}">{{ stats.last_calculated|date:"j F Y, H:i" }}</span>
+          </p>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+    {% comment %}
+      The local-date rewriter copied with the course platform; it restates the
+      calculation time in the reader's own timezone from data-timestamp.
+    {% endcomment %}
+    <script src="{% static 'local_date.js' %}"></script>
+  </body>
+</html>

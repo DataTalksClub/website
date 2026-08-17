@@ -1,16 +1,83 @@
-{% extends 'base.html' %}
+{% load seo %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>DataTalks.Club Courses</title>
+    {% canonical_link canonical_url %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * The courses landing greeting, design 5a (issue #179).  The page is
+       * one line of welcome in either of its two states — signed in, or an
+       * invitation to sign in — so it is one cream band holding one column.
+       * Like every page in the system it carries its complete stylesheet
+       * inline and loads no external CSS.
+       *
+       * Nothing about the page's behaviour moved with the design: the two
+       * states are still read from user.is_authenticated and the way in is
+       * still the same login route.
+       * ------------------------------------------------------------------ */
 
-{% block content %}
-  {% if user.is_authenticated %}
-    <section>
-      <h1 class="text-2xl font-semibold app-heading md:text-3xl">Welcome, {{ user.username }}!</h1>
-    </section>
-  {% else %}
-    <section>
-      <h1 class="text-2xl font-semibold app-heading md:text-3xl">Welcome to DataTalks.Club Courses!</h1>
-      <p class="mt-1 text-sm app-muted">
-        Please <a href="{% url 'login' %}" class="app-link hover:underline">log in</a> to access your courses.
-      </p>
-    </section>
-  {% endif %}
-{% endblock %}
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Welcome rules.
+       * ------------------------------------------------------------------ */
+
+      /* A greeting is a single short column, so it is held well inside the
+         shell rather than stretched across it. */
+      .welcome-shell {
+        max-width: 40rem;
+      }
+
+      .welcome-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+        overflow-wrap: anywhere;
+      }
+
+      .welcome-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream welcome-hero" aria-labelledby="welcome-heading">
+        <div class="shell welcome-shell">
+          <p class="mono-label mono-label-indigo">Courses</p>
+          {% if user.is_authenticated %}
+            <h1 id="welcome-heading">Welcome, {{ user.username }}!</h1>
+          {% else %}
+            <h1 id="welcome-heading">Welcome to DataTalks.Club Courses!</h1>
+            <p class="welcome-lede">
+              Please
+              <a href="{% url 'login' %}">log in</a>
+              to access your courses.
+            </p>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

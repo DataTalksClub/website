@@ -1,44 +1,166 @@
-{% extends 'base.html' %}
+{% load seo %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Flag leaderboard record — {{ course.title }} — DataTalks.Club</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="Tell the {{ course.title }} course team what looks wrong on a leaderboard record.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="Flag leaderboard record — {{ course.title }} — DataTalks.Club">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="Flag leaderboard record — {{ course.title }} — DataTalks.Club">
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Leaderboard flag form, design 5a (issue #179).  The page carries its
+       * complete stylesheet inline — the shared design system partial first,
+       * then this page's own rules — and loads none of the older site CSS.
+       *
+       * This is a visual port of a real dispute form: the method, the CSRF
+       * token, the posted field names and the destination it returns to are
+       * exactly the ones the copied page used.
+       * ------------------------------------------------------------------ */
 
-{% block breadcrumbs %}
-  <li><a href="{% url 'course' course.slug %}">{{ course.title }}</a></li>
-  <li><a href="{% url 'leaderboard' course.slug %}">Leaderboard</a></li>
-  <li><a href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}">{{ enrollment.display_name }}</a></li>
-  <li>Flag record</li>
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section class="border-b app-border pb-5">
-  <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
-  <div class="mt-2 flex flex-col gap-3">
-    <div>
-      <h1 class="text-2xl font-semibold app-heading md:text-3xl">Flag leaderboard record</h1>
-      <p class="mt-1 text-sm app-muted">Record: {{ enrollment.display_name }} · {{ enrollment.total_score }} points</p>
-    </div>
-    <a href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}" class="primer-button primer-button-secondary w-fit">Back to record</a>
-  </div>
-</section>
+      /* ------------------------------------------------------------------ *
+       * Page-specific rules.
+       * ------------------------------------------------------------------ */
 
-<form method="post" class="mt-6 max-w-2xl space-y-5">
-  {% csrf_token %}
-  <div>
-    <label for="{{ form.issue_type.id_for_label }}" class="settings-label mb-2 block text-sm font-semibold">{{ form.issue_type.label }}</label>
-    {{ form.issue_type }}
-    {% if form.issue_type.errors %}
-      <p class="mt-2 text-sm font-medium app-danger-text">{{ form.issue_type.errors|join:" " }}</p>
-    {% endif %}
-  </div>
-  <div>
-    <label for="{{ form.description.id_for_label }}" class="settings-label mb-2 block text-sm font-semibold">{{ form.description.label }}</label>
-    {{ form.description }}
-    <p class="settings-helper mt-1 text-xs leading-5">Flags are visible to course staff only.</p>
-    {% if form.description.errors %}
-      <p class="mt-2 text-sm font-medium app-danger-text">{{ form.description.errors|join:" " }}</p>
-    {% endif %}
-  </div>
-  <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-    <button type="submit" class="primer-button">Submit flag</button>
-    <a href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}" class="primer-button primer-button-secondary">Cancel</a>
-  </div>
-</form>
-{% endblock %}
+      /* The breadcrumb links carry the system's 2.75rem target height, so the
+         row brings its own air; fold most of it into the band's top padding. */
+      .complaint-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .complaint-hero-inner {
+        display: grid;
+        gap: 0.6rem;
+        justify-items: start;
+      }
+
+      .complaint-form {
+        display: grid;
+        gap: 1.25rem;
+        max-width: 42rem;
+      }
+
+      .complaint-actions {
+        border-top: 2px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding-top: 1.25rem;
+      }
+
+      /* The two widgets are built in courses/views/forms.py and arrive carrying
+         the copied platform's class name.  A design 5a page loads no
+         stylesheet that defines it, so it takes the system's own field
+         treatment here, in the page that renders it. */
+      .form-control {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.625rem;
+        color: var(--ink);
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.8rem;
+        width: 100%;
+      }
+
+      /* The system has no danger colour: an error is carried by its words on
+         the attention surface, which clears 4.5:1 in both themes. */
+      .complaint-error {
+        color: var(--olive);
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-top: 0.4rem;
+      }
+
+      /* --- narrow layout ------------------------------------------------- */
+
+      @media (max-width: 47.99rem) {
+        .complaint-actions {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream complaint-hero" aria-labelledby="complaint-heading">
+        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+            </li>
+            <li>
+              <a href="{% url 'leaderboard' course.slug %}">Leaderboard</a>
+            </li>
+            <li>
+              <a href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}">{{ enrollment.display_name }}</a>
+            </li>
+            <li aria-current="page">
+              Flag record
+            </li>
+          </ol>
+        </nav>
+        <div class="shell complaint-hero-inner">
+          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+          <h1 id="complaint-heading">Flag leaderboard record</h1>
+          <p class="mono-note">{{ enrollment.display_name }} · {{ enrollment.total_score }} points</p>
+          <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}">Back to record</a>
+        </div>
+      </section>
+
+      <section class="band band-lavender" aria-labelledby="flag-form-heading">
+        <div class="shell">
+          <h2 id="flag-form-heading" class="sr-only">Flag details</h2>
+          <form method="post" class="complaint-form">
+            {% csrf_token %}
+            <div class="field">
+              <label class="field-label" for="{{ form.issue_type.id_for_label }}">{{ form.issue_type.label }}</label>
+              {{ form.issue_type }}
+              {% if form.issue_type.errors %}
+                <p class="complaint-error">
+                  <span class="sr-only">Error:</span>
+                  {{ form.issue_type.errors|join:" " }}
+                </p>
+              {% endif %}
+            </div>
+            <div class="field">
+              <label class="field-label" for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+              {{ form.description }}
+              <p class="field-hint">Flags are visible to course staff only.</p>
+              {% if form.description.errors %}
+                <p class="complaint-error">
+                  <span class="sr-only">Error:</span>
+                  {{ form.description.errors|join:" " }}
+                </p>
+              {% endif %}
+            </div>
+            <div class="complaint-actions">
+              <button class="cta cta-primary" type="submit">Submit flag</button>
+              <a class="cta cta-secondary" href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

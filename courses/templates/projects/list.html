@@ -1,266 +1,309 @@
-{% extends 'base.html' %}
+{% extends 'projects/_base.html' %}
+{% comment %}
+  The project submission list a learner votes and picks reviews from, on
+  design 5a (issue #179).
+
+  Only the presentation moved.  Every vote form keeps its method, its CSRF
+  token, its `submission_id` and `action` hidden inputs, its own-submission and
+  limit-reached disabled rules and the asynchronous POST the page has always
+  made; the "add to evaluation" button keeps its confirm prompt and its exact
+  destination; the paginator is the shared include.
+{% endcomment %}
+
+{% block title %}
+  Projects for {{ project.title }} — {{ course.title }} — DataTalks.Club
+{% endblock %}
 
 {% block meta_robots %}
-    <meta name="robots" content="noindex">
+  <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block extra_styles %}
+  /* The submission row: who submitted, how many votes it has, the vote
+     control and the review action.  It stacks on a phone, as every .list-row
+     in the system does. */
+  .submission-row {
+    --row-cols: minmax(0, 1fr) auto auto auto;
+  }
+
+  /* A group heading inside the list ("your submission", "others"): the row
+     list draws the rule, so the heading only carries its label. */
+  .project-group {
+    padding-block: 0.9rem 0.35rem;
+  }
+
+  .submission-student {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    min-width: 0;
+  }
+
+  .submission-student a {
+    font-weight: 700;
+  }
+
+  /* The vote control is a compact CTA that reports its own state: the class
+     the page's script toggles fills it green once the vote is cast, and a
+     vote that cannot be cast (your own project, or the limit reached) sits on
+     the readonly surface. */
+  .project-vote-button.is-voted {
+    background: var(--green);
+    border-color: var(--line);
+    color: var(--on-green);
+  }
+
+  .project-vote-button[disabled] {
+    background: var(--sand);
+    box-shadow: none;
+    color: var(--olive);
+    cursor: not-allowed;
+  }
+
+  .project-vote-form {
+    margin: 0;
+  }
 {% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="{% url 'course' course.slug %}">{{ course.title }}</a></li>
-    <li>
-        <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
-    </li>
-    <li>Project submissions</li>
+  <li>
+    <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
+  </li>
+  <li aria-current="page">
+    Project submissions
+  </li>
 {% endblock %}
 
-{% block content %}
-    <section class="pb-5">
-        <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
-        <div class="mt-2 flex flex-col gap-3">
-            <div>
-                <h1 class="text-2xl font-semibold app-heading md:text-3xl">Projects for {{ project.title }}</h1>
-                <p class="mt-1 max-w-2xl text-sm app-muted">
-                    Review peer submissions, open repositories, and vote for up to {{ project_votes_per_project }} favorites.
-                </p>
-                {% if is_authenticated %}
-                    <p class="mt-1 text-sm app-muted">
-                        <span id="project-votes-left">{{ project_votes_left }}</span>
-                        <span id="project-votes-left-label">vote{{ project_votes_left|pluralize }} left</span>
-                    </p>
-                {% endif %}
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <a href="{% url 'list_all_project_submissions' course.slug %}"
-                   class="primer-button primer-button-secondary w-fit">All Projects</a>
-                <a href="{% url 'course' course.slug %}" class="primer-button primer-button-secondary w-fit">Back to Course</a>
-            </div>
-        </div>
-    </section>
+{% block page_head %}
+  <div class="project-head">
+    <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+    <h1>Projects for {{ project.title }}</h1>
+    <p class="project-lede">
+      Review peer submissions, open repositories, and vote for up to {{ project_votes_per_project }} favorites.
+    </p>
+    {% if is_authenticated %}
+      <p class="mono-note">
+        <span id="project-votes-left">{{ project_votes_left }}</span>
+        <span id="project-votes-left-label">vote{{ project_votes_left|pluralize }} left</span>
+      </p>
+    {% endif %}
+    <div class="project-toolbar">
+      <a class="cta cta-compact cta-secondary" href="{% url 'list_all_project_submissions' course.slug %}">
+        All Projects
+      </a>
+      <a class="cta cta-compact cta-secondary" href="{% url 'course' course.slug %}">
+        Back to Course
+      </a>
+    </div>
+  </div>
+{% endblock %}
 
-    {% if project.state == 'CL' %}
-        <p class="mt-6 rounded-md border app-border app-surface-muted px-4 py-4 text-sm app-muted">
-            The project is closed. Come back later to see the submissions.
+{% block project_content %}
+  {% if project.state == 'CL' %}
+    <p class="notice warning">
+      The project is closed. Come back later to see the submissions.
+    </p>
+  {% else %}
+    <section class="project-section" aria-labelledby="submissions-heading">
+      <div class="project-section-head">
+        <h2 id="submissions-heading">Submissions</h2>
+        <p class="mono-note">
+          {{ submissions_page.paginator.count }} total
         </p>
-    {% else %}
-        <section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
-            {% if submissions %}
-                <div class="border-b app-border app-surface-muted px-4 py-3">
-                    <p class="text-xs font-semibold uppercase app-muted">Submissions</p>
-                    <p class="mt-1 text-sm app-muted">
-                        {{ submissions_page.paginator.count }} total
-                    </p>
-                </div>
-                <div class="hidden border-b app-border app-surface-muted px-4 py-2 text-xs font-semibold uppercase app-muted md:grid md:grid-cols-[minmax(0,1fr)_64px_40px_86px] md:items-center md:gap-3">
-                    <div>Student</div>
-                    <div class="text-right">Votes</div>
-                    <div class="text-center">Vote</div>
-                    <div class="text-right">Review</div>
-                </div>
-                <div class="divide-y app-divide">
-                    {% for submission in submissions %}
-                        {% if submission.group_heading %}
-                            <div class="app-surface-muted px-4 py-2 text-xs font-semibold uppercase app-muted">
-                                {{ submission.group_heading }}
-                            </div>
-                        {% endif %}
-                        <article class="px-4 py-3">
-                            <div class="project-submission-row">
-                                <div class="project-submission-student min-w-0">
-                                    <div class="flex min-w-0 items-center gap-2">
-                                        <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=submission.enrollment.id %}"
-                                           class="min-w-0 truncate font-medium app-link hover:underline">
-                                            {{ submission.enrollment.display_name }}
-                                        </a>
-                                        {% if submission.github_link %}
-                                            <a href="{{ submission.github_link }}"
-                                               target="_blank"
-                                               rel="noopener noreferrer"
-                                               class="shrink-0 text-xs app-link hover:underline"
-                                               title="Open repository"
-                                               aria-label="Open repository">
-                                                <i class="fas fa-external-link-alt"></i>
-                                            </a>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="project-submission-votes flex items-center gap-2">
-                                    <span class="project-vote-count text-sm app-muted"
-                                          data-submission-id="{{ submission.id }}"
-                                          data-vote-count="{{ submission.vote_count }}">
-                                        <span class="md:hidden">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
-                                        <span class="hidden md:inline">{{ submission.vote_count }}</span>
-                                    </span>
-                                </div>
-                                <div class="project-submission-vote-action flex items-center">
-                                    {% if is_authenticated %}
-                                        <form method="post"
-                                              class="project-vote-form m-0"
-                                              data-submission-id="{{ submission.id }}"
-                                              data-own="{% if submission.own %}true{% else %}false{% endif %}">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="submission_id" value="{{ submission.id }}">
-                                            {% if submission.id in voted_submission_ids %}
-                                                <input type="hidden" name="action" value="remove">
-                                                <span class="project-vote-button-tooltip" title="Remove vote">
-                                                    <button type="submit"
-                                                            class="project-vote-button is-voted"
-                                                            aria-label="Remove vote"
-                                                            title="Remove vote">
-                                                        <i class="fas fa-thumbs-up"></i>
-                                                    </button>
-                                                </span>
-                                            {% else %}
-                                                <input type="hidden" name="action" value="vote">
-                                                <span class="project-vote-button-tooltip"
-                                                      title="{% if submission.vote_limit_reached %}Limit reached{% elif submission.own %}Your project{% else %}Vote{% endif %}">
-                                                    <button type="submit"
-                                                            class="project-vote-button"
-                                                            aria-label="Vote"
-                                                            title="{% if submission.vote_limit_reached %}Limit reached{% elif submission.own %}Your project{% else %}Vote{% endif %}"
-                                                            {% if submission.vote_limit_reached or submission.own %}disabled{% endif %}>
-                                                        <i class="far fa-thumbs-up"></i>
-                                                    </button>
-                                                </span>
-                                            {% endif %}
-                                        </form>
-                                    {% endif %}
-                                </div>
-                                <div class="project-submission-review flex items-center gap-2">
-                                    {% if is_authenticated and project.state == 'PR' %}
-                                        {% if submission.to_evaluate %}
-                                            <a href="{% url 'projects_eval_submit' course_slug=course.slug project_slug=project.slug review_id=submission.review.id %}"
-                                               class="submission-action-button submission-action-button-primary submission-action-button-fixed"
-                                               title="Review: {{ submission.review.get_state_display }}"
-                                               aria-label="Review: {{ submission.review.get_state_display }}">
-                                                {% if submission.review.state == 'SU' %}
-                                                    <i class="fas fa-check"></i> Done
-                                                {% else %}
-                                                    <i class="fas fa-pen"></i> Review
-                                                {% endif %}
-                                            </a>
-                                        {% elif submission.own %}
-                                            <span class="app-badge app-badge-neutral">Your project</span>
-                                        {% else %}
-                                            <button type="button"
-                                                    onclick="confirmEvaluation('{% url 'projects_eval_add' course_slug=course.slug project_slug=project.slug submission_id=submission.id %}')"
-                                                    class="submission-action-button submission-action-button-fixed"
-                                                    title="Add to evaluation"
-                                                    aria-label="Add to evaluation">
-                                                <i class="fas fa-plus"></i> Review
-                                            </button>
-                                        {% endif %}
-                                    {% elif project.state == 'CO' %}
-                                        <span class="text-sm font-semibold app-heading">{{ submission.project_score }} score</span>
-                                        {% if submission.passed %}
-                                            <span class="app-badge app-badge-success">Passed</span>
-                                        {% else %}
-                                            <span class="app-badge app-badge-danger">Not passed</span>
-                                        {% endif %}
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </article>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="px-4 py-6 text-sm app-muted">No submissions yet.</p>
+      </div>
+      {% if submissions %}
+        <div class="row-list">
+          {% for submission in submissions %}
+            {% if submission.group_heading %}
+              <p class="mono-label project-group">
+                {{ submission.group_heading }}
+              </p>
             {% endif %}
-
-            {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
-        </section>
-    {% endif %}
-
-    {% if project.state == 'CO' %}
-        <div class="mt-4">
-            <a href="{% url 'project_statistics' course.slug project.slug %}" class="primer-button primer-button-secondary">Project statistics</a>
+            <article class="list-row submission-row">
+              <div class="submission-student">
+                <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=submission.enrollment.id %}">
+                  {{ submission.enrollment.display_name }}
+                </a>
+                {% if submission.github_link %}
+                  <a
+                    class="band-link submission-link"
+                    href="{{ submission.github_link }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Open repository"
+                    aria-label="Open repository"
+                  >Repository</a>
+                {% endif %}
+              </div>
+              <p
+                class="project-vote-count mono-note"
+                data-submission-id="{{ submission.id }}"
+                data-vote-count="{{ submission.vote_count }}"
+              >{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</p>
+              <div>
+                {% if is_authenticated %}
+                  <form
+                    method="post"
+                    class="project-vote-form"
+                    data-submission-id="{{ submission.id }}"
+                    data-own="{% if submission.own %}true{% else %}false{% endif %}"
+                  >
+                    {% csrf_token %}
+                    <input type="hidden" name="submission_id" value="{{ submission.id }}">
+                    {% if submission.id in voted_submission_ids %}
+                      <input type="hidden" name="action" value="remove">
+                      <button
+                        type="submit"
+                        class="cta cta-compact cta-secondary project-vote-button is-voted"
+                        aria-label="Remove vote"
+                        title="Remove vote"
+                      ><span class="project-vote-label">Voted</span></button>
+                    {% else %}
+                      <input type="hidden" name="action" value="vote">
+                      <button
+                        type="submit"
+                        class="cta cta-compact cta-secondary project-vote-button"
+                        aria-label="Vote"
+                        title="{% if submission.vote_limit_reached %}Limit reached{% elif submission.own %}Your project{% else %}Vote{% endif %}"
+                        {% if submission.vote_limit_reached or submission.own %}disabled{% endif %}
+                      ><span class="project-vote-label">Vote</span></button>
+                    {% endif %}
+                  </form>
+                {% endif %}
+              </div>
+              <div class="project-toolbar">
+                {% if is_authenticated and project.state == 'PR' %}
+                  {% if submission.to_evaluate %}
+                    <a
+                      class="cta cta-compact cta-primary"
+                      href="{% url 'projects_eval_submit' course_slug=course.slug project_slug=project.slug review_id=submission.review.id %}"
+                      title="Review: {{ submission.review.get_state_display }}"
+                      aria-label="Review: {{ submission.review.get_state_display }}"
+                    >
+                      {% if submission.review.state == 'SU' %}
+                        Done
+                      {% else %}
+                        Review
+                      {% endif %}
+                    </a>
+                  {% elif submission.own %}
+                    <span class="status-pill">Your project</span>
+                  {% else %}
+                    <button
+                      type="button"
+                      onclick="confirmEvaluation('{% url 'projects_eval_add' course_slug=course.slug project_slug=project.slug submission_id=submission.id %}')"
+                      class="cta cta-compact cta-secondary"
+                      title="Add to evaluation"
+                      aria-label="Add to evaluation"
+                    >Review</button>
+                  {% endif %}
+                {% elif project.state == 'CO' %}
+                  <span class="mono-note">{{ submission.project_score }} score</span>
+                  {% if submission.passed %}
+                    <span class="status-pill status-pill-live">Passed</span>
+                  {% else %}
+                    <span class="status-pill status-pill-wait">Not passed</span>
+                  {% endif %}
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
         </div>
-    {% endif %}
+      {% else %}
+        <p class="project-empty">
+          No submissions yet.
+        </p>
+      {% endif %}
+      {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
+    </section>
+  {% endif %}
+  {% if project.state == 'CO' %}
+    <div class="project-toolbar">
+      <a class="cta cta-compact cta-secondary" href="{% url 'project_statistics' course.slug project.slug %}">
+        Project statistics
+      </a>
+    </div>
+  {% endif %}
+{% endblock %}
 
-    <script>
-      function confirmEvaluation(url) {
-        if (confirm('Are you sure you want to add this project to the list of projects you need to evaluate?')) {
-          window.location.href = url;
-        }
+{% block extra_js %}
+  <script>
+    function confirmEvaluation(url) {
+      if (confirm('Are you sure you want to add this project to the list of projects you need to evaluate?')) {
+        window.location.href = url;
       }
+    }
 
-      function voteLabel(count) {
-        return `${count} vote${count === 1 ? '' : 's'}`;
+    function voteLabel(count) {
+      return `${count} vote${count === 1 ? '' : 's'}`;
+    }
+
+    function setVoteFormState(form, voted, limitReached) {
+      const ownSubmission = form.dataset.own === 'true';
+      const actionInput = form.querySelector('input[name="action"]');
+      const button = form.querySelector('.project-vote-button');
+      const label = button.querySelector('.project-vote-label');
+      const title = voted ? 'Remove vote' : (limitReached ? 'Limit reached' : (ownSubmission ? 'Your project' : 'Vote'));
+
+      actionInput.value = voted ? 'remove' : 'vote';
+      button.classList.toggle('is-voted', voted);
+      if (label) {
+        label.textContent = voted ? 'Voted' : 'Vote';
       }
+      button.disabled = !voted && (limitReached || ownSubmission);
+      button.title = title;
+      button.setAttribute('aria-label', title);
+    }
 
-      function voteLabelHtml(count) {
-        return `<span class="md:hidden">${voteLabel(count)}</span><span class="hidden md:inline">${count}</span>`;
-      }
+    document.querySelectorAll('.project-vote-form').forEach((form) => {
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
 
-      function setVoteFormState(form, voted, limitReached) {
-        const ownSubmission = form.dataset.own === 'true';
-        const actionInput = form.querySelector('input[name="action"]');
         const button = form.querySelector('.project-vote-button');
-        const tooltip = form.querySelector('.project-vote-button-tooltip');
-        const title = voted ? 'Remove vote' : (limitReached ? 'Limit reached' : (ownSubmission ? 'Your project' : 'Vote'));
+        const formData = new FormData(form);
+        button.disabled = true;
 
-        actionInput.value = voted ? 'remove' : 'vote';
-        button.classList.toggle('is-voted', voted);
-        const icon = button.querySelector('i');
-        if (icon) {
-          icon.classList.toggle('fas', voted);
-          icon.classList.toggle('far', !voted);
-        }
-        button.disabled = !voted && (limitReached || ownSubmission);
-        button.title = title;
-        button.setAttribute('aria-label', title);
-        if (tooltip) {
-          tooltip.title = title;
-        }
-      }
-
-      document.querySelectorAll('.project-vote-form').forEach((form) => {
-        form.addEventListener('submit', async (event) => {
-          event.preventDefault();
-
-          const button = form.querySelector('.project-vote-button');
-          const formData = new FormData(form);
-          button.disabled = true;
-
-          try {
-            const response = await fetch(form.action || window.location.href, {
-              method: 'POST',
-              body: formData,
-              headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-              }
-            });
-
-            if (!response.ok) {
-              form.submit();
-              return;
+        try {
+          const response = await fetch(form.action || window.location.href, {
+            method: 'POST',
+            body: formData,
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest'
             }
+          });
 
-            const data = await response.json();
-            const votesLeft = document.getElementById('project-votes-left');
-            if (votesLeft) {
-              votesLeft.textContent = data.votes_left;
-              const votesLeftLabel = document.getElementById('project-votes-left-label');
-              if (votesLeftLabel) {
-                votesLeftLabel.textContent = `vote${data.votes_left === 1 ? '' : 's'} left`;
-              }
-            }
-
-            document.querySelectorAll(`.project-vote-count[data-submission-id="${data.submission_id}"]`).forEach((count) => {
-              count.dataset.voteCount = data.vote_count;
-              count.innerHTML = voteLabelHtml(data.vote_count);
-            });
-
-            const votedIds = new Set(data.voted_submission_ids.map(String));
-            document.querySelectorAll('.project-vote-form').forEach((voteForm) => {
-              setVoteFormState(
-                voteForm,
-                votedIds.has(voteForm.dataset.submissionId),
-                data.vote_limit_reached
-              );
-            });
-          } catch (error) {
+          if (!response.ok) {
             form.submit();
+            return;
           }
-        });
+
+          const data = await response.json();
+          const votesLeft = document.getElementById('project-votes-left');
+          if (votesLeft) {
+            votesLeft.textContent = data.votes_left;
+            const votesLeftLabel = document.getElementById('project-votes-left-label');
+            if (votesLeftLabel) {
+              votesLeftLabel.textContent = `vote${data.votes_left === 1 ? '' : 's'} left`;
+            }
+          }
+
+          document.querySelectorAll(`.project-vote-count[data-submission-id="${data.submission_id}"]`).forEach((count) => {
+            count.dataset.voteCount = data.vote_count;
+            count.textContent = voteLabel(data.vote_count);
+          });
+
+          const votedIds = new Set(data.voted_submission_ids.map(String));
+          document.querySelectorAll('.project-vote-form').forEach((voteForm) => {
+            setVoteFormState(
+              voteForm,
+              votedIds.has(voteForm.dataset.submissionId),
+              data.vote_limit_reached
+            );
+          });
+        } catch (error) {
+          form.submit();
+        }
       });
-    </script>
+    });
+  </script>
 {% endblock %}

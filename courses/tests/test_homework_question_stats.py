@@ -172,7 +172,15 @@ class HomeworkQuestionStatsTestCase(TestCase):
         question_stats = response.context["question_stats"]
         self.assertEqual(len(question_stats), 3)
 
-    def test_stats_page_preserves_zero_min_and_max_in_both_layouts(self):
+    def test_stats_page_preserves_zero_min_and_max_scores(self):
+        """A real zero is a score, not a missing value (issue #144).
+
+        The design 5a port (issue #179) writes each figure once, in the one
+        score-distribution table that reshapes, instead of the copied page's
+        separate desktop and phone copies of the same numbers; the six zeros
+        are the min and max of the three score rows.
+        """
+
         for _ in range(3):
             _, submission = self.create_student_and_submission()
             submission.questions_score = 0
@@ -189,11 +197,6 @@ class HomeworkQuestionStatsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(
             response,
-            'class="px-3 py-2 text-right">0</td>',
-            count=6,
-        )
-        self.assertContains(
-            response,
-            'class="font-semibold app-heading">0</dd>',
+            '<td class="stats-numeric">0</td>',
             count=6,
         )

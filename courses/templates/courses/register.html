@@ -1,221 +1,590 @@
-{% extends 'base.html' %}
-{% load accessibility static %}
+{% load accessibility seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ campaign.title }} Registration - DataTalks.Club</title>
+    {% canonical_link canonical_url %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Registration campaign page, design 5a (issue #179).  This is the one
+       * registration form the site owns — mockup 6b draws the same form on
+       * the course page, and the rebuilt course page deliberately links here
+       * instead of growing a second copy of a mutation surface.  Like every
+       * page in the system it carries its complete stylesheet inline and
+       * loads no external CSS, so the copied platform's widget and combobox
+       * class names are given the system's treatment here.
+       *
+       * Nothing about the registration behaviour moved with the design: the
+       * POST target and CSRF token, every field name and widget, the
+       * accessible error summary and per-field help/error relationships, the
+       * country combobox hooks (data-country-combobox-input,
+       * data-country-combobox-panel, country-options-json), the submit
+       * button's data-registration-submit/data-busy-label contract and the
+       * already-registered state are exactly what
+       * courses/views/registration.py already rendered.
+       * ------------------------------------------------------------------ */
 
-{% block title %}
-  {{ campaign.title }} Registration - DataTalks.Club
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'course_list' %}">Courses</a>
-  </li>
-  <li aria-current="page">
-    <a href="{% url 'registration_campaign' campaign.slug %}">
-      {{ campaign.title }} registration
-    </a>
-  </li>
-{% endblock %}
+      /* ------------------------------------------------------------------ *
+       * Registration rules.
+       * ------------------------------------------------------------------ */
 
-{% block content %}
-<section class="space-y-8">
-  <div class="min-w-0">
-    {% if campaign.hero_image_url %}
-      <img src="{{ campaign.hero_image_url }}"
-           alt=""
-           class="mb-6 aspect-[16/7] w-full rounded-md object-cover">
-    {% endif %}
-
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">
-      {% if campaign.edition_label %}
-        {{ campaign.edition_label }}
-      {% else %}
-        Next edition
-      {% endif %}
-    </p>
-    <h1 class="mt-2 text-3xl font-semibold leading-tight tracking-normal md:text-5xl">
-      {{ campaign.title }}
-    </h1>
-
-    {% if signup_count %}
-      <p class="mt-3 inline-flex items-center gap-2 text-sm font-medium app-muted">
-        <i class="fas fa-users" aria-hidden="true"></i>
-        {{ signup_count }} already registered
-        {% if campaign.edition_label %}
-          for {{ campaign.edition_label }}
-        {% endif %}
-      </p>
-    {% endif %}
-
-    {% if course_is_open and start_course_url %}
-      <div class="mt-5 rounded-md border app-alert-info px-4 py-3">
-        <p class="font-medium app-heading">The course is already open.</p>
-        <p class="mt-1 text-sm app-text">
-          You can start now, and register if you want to receive course updates.
-        </p>
-        <a href="{{ start_course_url }}" class="primer-button mt-3">
-          <i class="fas fa-play" aria-hidden="true"></i> Start course
-        </a>
-      </div>
-    {% elif course and start_course_url %}
-      <div class="mt-5 rounded-md border app-alert-info px-4 py-3">
-        <p class="font-medium app-heading">Registration is open.</p>
-        <p class="mt-1 text-sm app-text">
-          We will send course updates by email when the edition starts.
-        </p>
-      </div>
-    {% else %}
-      <div class="mt-5 rounded-md border app-alert-info px-4 py-3">
-        <p class="font-medium app-heading">Register for the next edition.</p>
-        <p class="mt-1 text-sm app-text">
-          We will let you know when the next cohort is announced.
-        </p>
-      </div>
-    {% endif %}
-
-    {% if marketing_html %}
-      <div class="registration-markdown mt-7 max-w-3xl text-base leading-7 app-text">
-        {{ marketing_html }}
-      </div>
-    {% endif %}
-
-    {% if video_embed_url %}
-      <div class="mt-7 aspect-video overflow-hidden rounded-md border app-border">
-        <iframe src="{{ video_embed_url }}"
-                class="h-full w-full"
-                title="{{ campaign.title }} video"
-                allowfullscreen></iframe>
-      </div>
-    {% endif %}
-  </div>
-
-  <aside class="registration-panel rounded-md border app-border app-surface-muted p-5">
-    {% if registration %}
-      <div class="rounded-md border app-alert-success px-4 py-3">
-        <h2 class="text-lg font-semibold app-heading">
-          {% if form.is_bound %}
-            You are registered
-          {% else %}
-            You are already registered
-          {% endif %}
-        </h2>
-        <p class="mt-2 text-sm app-text">
-          We will send course updates to {{ registration.email_normalized }}.
-        </p>
-      </div>
-    {% else %}
-      <div class="mb-4">
-        <h2 class="text-xl font-semibold app-heading">Register</h2>
-        {% if not user.is_authenticated %}
-          <a href="{% url 'login' %}?next={{ request.path }}" class="a11y-inline-target mt-3 inline-flex items-center text-sm font-medium app-link">
-            <i class="fas fa-sign-in-alt mr-2" aria-hidden="true"></i> Log in to use your account email
-          </a>
-        {% endif %}
-      </div>
-
-      <form method="post" class="registration-form space-y-4" data-registration-form>
-        {% csrf_token %}
-        <p class="text-sm app-muted">
-          Fields marked <span class="a11y-required" aria-hidden="true">*</span>
-          are required.
-        </p>
-        {% accessibility_error_summary form %}
-
-        {% for field in form %}
-          {% accessibility_help_id field as help_id %}
-          {% accessibility_error_id field as error_id %}
-          {% if field.field.widget.input_type == 'checkbox' %}
-            <div class="checkbox-row">
-              {% accessible_widget field %}
-              <label for="{{ field.id_for_label }}" class="checkbox-label">
-                {{ field.label }}
-                {% if field.field.required %}
-                  <span class="a11y-required" aria-hidden="true">*</span>
-                  <span class="sr-only">(required)</span>
-                {% endif %}
-              </label>
-            </div>
-            {% if field.help_text %}
-              <p id="{{ help_id }}" class="checkbox-help">{{ field.help_text }}</p>
-            {% endif %}
-            {% if field.errors %}
-              <p id="{{ error_id }}" class="a11y-error">
-                <span class="sr-only">Error:</span>
-                {{ field.errors|join:" " }}
-              </p>
-            {% endif %}
-          {% else %}
-            <div
-              {% if field.name == 'country' %}
-                class="country-combobox-field"
-              {% endif %}>
-              <label for="{{ field.id_for_label }}" class="registration-field-label">
-                {{ field.label }}
-                {% if field.field.required %}
-                  <span class="a11y-required" aria-hidden="true">*</span>
-                  <span class="sr-only">(required)</span>
-                {% endif %}
-              </label>
-              <div class="mt-1">
-                {% accessible_widget field %}
-                {% if field.name == 'country' %}
-                  {{ country_options|json_script:"country-options-json" }}
-                  <div class="country-combobox-panel"
-                       data-country-combobox-panel
-                       hidden></div>
-                {% endif %}
-              </div>
-              {% if field.help_text %}
-                <p id="{{ help_id }}" class="a11y-help text-xs app-muted">{{ field.help_text }}</p>
-              {% endif %}
-              {% if field.name == 'email' and user.is_authenticated %}
-                <p class="mt-1 text-xs app-muted">
-                  <a href="{% url 'account_logout' %}?next={{ request.path }}" class="app-link">Log out</a> to use a different email address.
-                </p>
-              {% endif %}
-              {% if field.errors %}
-                <p id="{{ error_id }}" class="a11y-error">
-                  <span class="sr-only">Error:</span>
-                  {{ field.errors|join:" " }}
-                </p>
-              {% endif %}
-            </div>
-          {% endif %}
-        {% endfor %}
-
-        <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-          <button type="submit"
-                  class="primer-button registration-submit-button"
-                  data-busy-label="Registering…"
-                  data-registration-submit>
-            <i class="fas fa-user-plus" aria-hidden="true"></i> Register
-          </button>
-        </div>
-      </form>
-    {% endif %}
-  </aside>
-</section>
-{% endblock %}
-
-{% block extra_js %}
-  {{ block.super }}
-  <script src="{% static 'country_combobox.js' %}"></script>
-  <script>
-    document.querySelectorAll('[data-registration-form]').forEach((form) => {
-      const submitButton = form.querySelector('[data-registration-submit]');
-
-      if (!submitButton) {
-        return;
+      /* One column, the width the account pages already use for a form, so a
+         field row never runs the full 76rem shell. */
+      .registration-shell {
+        max-width: 46rem;
       }
 
-      const syncSubmitState = () => {
-        submitButton.disabled = !form.checkValidity();
-      };
+      .registration-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
 
-      syncSubmitState();
-      form.querySelectorAll('input, select, textarea').forEach((control) => {
-        control.addEventListener('input', syncSubmitState);
-        control.addEventListener('change', syncSubmitState);
+      /* The campaign's own artwork, bounded by the column and keeping its
+         intrinsic proportions: no crop, so a hero that arrives at any size
+         still fits a phone without widening the page.  The system's frame is
+         drawn by the wrapper rather than by the image, so the image's own box
+         stays exactly the shape the file is. */
+      .registration-hero-frame {
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+      }
+
+      .registration-hero-image {
+        display: block;
+        height: auto;
+        max-width: 100%;
+        width: 100%;
+      }
+
+      .registration-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        margin-top: 0.6rem;
+        max-width: 22ch;
+      }
+
+      .registration-count {
+        margin-top: 0.85rem;
+      }
+
+      .registration-state {
+        justify-items: start;
+        margin-top: 1.5rem;
+      }
+
+      /* The state line is a statement, not a section, so it keeps the weight
+         it had rather than becoming a heading in the page's outline. */
+      .registration-state-title {
+        color: var(--ink);
+        font-size: 1.05rem;
+        font-weight: 800;
+      }
+
+      .registration-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+      }
+
+      .registration-video {
+        aspect-ratio: 16 / 9;
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        margin-top: 1.75rem;
+        overflow: hidden;
+      }
+
+      .registration-video iframe {
+        border: 0;
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      /* The form itself: one card filling the page's column.  The campaign's
+         marketing copy is rendered markdown, so it is set in the shared prose
+         primitive rather than in a second body style of this page's own. */
+      .registration-panel {
+        align-self: start;
+        font-size: 1rem;
+        gap: 1rem;
+        padding: 1.35rem;
+      }
+
+      .registration-panel h2 {
+        font-size: 1.15rem;
+      }
+
+      .registration-form {
+        display: grid;
+        gap: 1rem;
+        margin: 0;
+      }
+
+      .registration-field-label {
+        color: var(--ink);
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+      }
+
+      /* The bound fields keep the widget classes
+         courses/views/registration_form.py gives them, so the system's
+         control treatment is attached to those classes here instead of
+         restyling the form in Python. */
+      .registration-form .form-control {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.625rem;
+        color: var(--ink);
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.8rem;
+        width: 100%;
+      }
+
+      .registration-form .form-control[disabled],
+      .registration-form .form-control[readonly] {
+        background: var(--sand);
+        color: var(--muted);
+      }
+
+      .registration-form textarea.form-control {
+        min-height: 7rem;
+      }
+
+      /* The consent checkbox: the system's square, drawn from the tokens, at
+         the 24px the target-size contract asks for. */
+      .checkbox-row {
+        align-items: start;
+        display: grid;
+        gap: 0.65rem;
+        grid-template-columns: 1.5rem minmax(0, 1fr);
+      }
+
+      .checkbox-row input[type="checkbox"] {
+        appearance: none;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.35rem;
+        cursor: pointer;
+        height: 1.5rem;
+        margin: 0;
+        position: relative;
+        width: 1.5rem;
+      }
+
+      .checkbox-row input[type="checkbox"]:checked {
+        background: var(--green);
+        border-color: var(--green);
+      }
+
+      .checkbox-row input[type="checkbox"]:checked::after {
+        border: solid var(--on-green);
+        border-width: 0 0.16rem 0.16rem 0;
+        content: "";
+        height: 0.6rem;
+        left: 0.38rem;
+        position: absolute;
+        top: 0.15rem;
+        transform: rotate(45deg);
+        width: 0.3rem;
+      }
+
+      .checkbox-label {
+        color: var(--ink);
+        font-size: 0.92rem;
+        font-weight: 600;
+      }
+
+      .checkbox-help {
+        color: var(--body-text);
+        font-size: 0.85rem;
+        margin-top: 0.35rem;
+      }
+
+      /* The country combobox panel country_combobox.js fills: the field is the
+         positioning context and the options are the script's own elements, so
+         both keep the class names it writes. */
+      .country-combobox-field {
+        position: relative;
+      }
+
+      .country-combobox-panel {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.7rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        max-height: 16rem;
+        overflow-y: auto;
+        padding: 0.3rem;
+        position: absolute;
+        width: 100%;
+        z-index: 30;
+      }
+
+      .country-combobox-option,
+      .country-combobox-empty {
+        background: transparent;
+        border: 0;
+        border-radius: 0.5rem;
+        color: var(--ink);
+        display: block;
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.55rem 0.7rem;
+        text-align: left;
+        width: 100%;
+      }
+
+      .country-combobox-option {
+        cursor: pointer;
+      }
+
+      .country-combobox-option:hover,
+      .country-combobox-option[aria-selected="true"] {
+        background: var(--lavender);
+      }
+
+      .country-combobox-empty {
+        color: var(--body-text);
+      }
+
+      /* The shared accessible form primitives (core/templates/accessibility/)
+         carry these class names, and their stylesheet is one of the ones a
+         design 5a page deliberately does not load — so the summary, the
+         required mark and the field error are styled here instead.  The
+         system has no danger colour: an error is carried by its words on the
+         attention surface (--olive on --sand clears 4.5:1 in both themes),
+         never by colour alone. */
+      .a11y-error-summary {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        color: var(--ink);
+        display: grid;
+        gap: 0.6rem;
+        padding: 1rem 1.15rem;
+      }
+
+      .a11y-error-summary h2 {
+        font-size: 1.05rem;
+      }
+
+      .a11y-error-summary ul {
+        display: grid;
+        gap: 0.35rem;
+        list-style: disc;
+        padding-inline-start: 1.25rem;
+      }
+
+      .a11y-error-summary li {
+        display: list-item;
+      }
+
+      .a11y-required {
+        color: var(--olive);
+        font-weight: 800;
+      }
+
+      .a11y-help {
+        color: var(--body-text);
+        display: block;
+        font-size: 0.85rem;
+        margin-top: 0.35rem;
+      }
+
+      .a11y-error {
+        color: var(--olive);
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-top: 0.35rem;
+      }
+
+      .registration-fineprint {
+        color: var(--body-text);
+        font-size: 0.85rem;
+      }
+
+      .registration-actions {
+        border-top: 2px dashed var(--line-soft);
+        padding-top: 1.25rem;
+      }
+
+      /* The page's script disables the button until the form is valid, exactly
+         as the adopted page did; the state is drawn on the attention surface
+         (--olive on --sand) rather than by dimming the green. */
+      .registration-submit-button[disabled] {
+        background: var(--sand);
+        border-color: var(--line-soft);
+        box-shadow: none;
+        color: var(--olive);
+        cursor: not-allowed;
+      }
+
+      .registration-submitted {
+        margin: 0;
+      }
+
+      .registration-submitted h2 {
+        font-size: 1.15rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Reshape on a phone: the panel gives up its inset and both the login
+           link and the submit button take the full width. */
+        .registration-panel {
+          padding: 1.1rem;
+        }
+
+        .registration-actions .cta {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream registration-hero" aria-labelledby="registration-heading">
+        {% comment %}
+          The trail the adopted shell used to draw, as the design 5a primitive:
+          the ancestor index is a link and the current page is plain text.
+        {% endcomment %}
+        <nav class="shell registration-shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'course_list' %}">Courses</a>
+            </li>
+            <li aria-current="page">
+              {{ campaign.title }} registration
+            </li>
+          </ol>
+        </nav>
+        <div class="shell registration-shell">
+          {% if campaign.hero_image_url %}
+            <div class="registration-hero-frame">
+              <img
+                class="registration-hero-image"
+                src="{{ campaign.hero_image_url }}"
+                alt=""
+                decoding="async"
+              >
+            </div>
+          {% endif %}
+          {% if campaign.edition_label %}
+            <p class="mono-label mono-label-indigo">{{ campaign.edition_label }}</p>
+          {% else %}
+            <p class="mono-label mono-label-indigo">Next edition</p>
+          {% endif %}
+          <h1 id="registration-heading">{{ campaign.title }}</h1>
+          {% if signup_count %}
+            <p class="mono-note registration-count">
+              {{ signup_count }} already registered
+              {% if campaign.edition_label %}
+                for {{ campaign.edition_label }}
+              {% endif %}
+            </p>
+          {% endif %}
+          {% if course_is_open and start_course_url %}
+            <div class="panel panel-mint panel-outlined registration-state">
+              <p class="registration-state-title">The course is already open.</p>
+              <p class="registration-note">
+                You can start now, and register if you want to receive course updates.
+              </p>
+              <a class="cta cta-primary" href="{{ start_course_url }}">Start course</a>
+            </div>
+          {% elif course and start_course_url %}
+            <div class="panel panel-lavender panel-outlined registration-state">
+              <p class="registration-state-title">Registration is open.</p>
+              <p class="registration-note">
+                We will send course updates by email when the edition starts.
+              </p>
+            </div>
+          {% else %}
+            <div class="panel panel-lavender panel-outlined registration-state">
+              <p class="registration-state-title">Register for the next edition.</p>
+              <p class="registration-note">
+                We will let you know when the next cohort is announced.
+              </p>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+
+      {% if marketing_html or video_embed_url %}
+        <section class="band band-cream" aria-labelledby="registration-about-heading">
+          <div class="shell registration-shell">
+            <h2 id="registration-about-heading" class="sr-only">About {{ campaign.title }}</h2>
+            {% if marketing_html %}
+              <div class="prose">{{ marketing_html }}</div>
+            {% endif %}
+            {% if video_embed_url %}
+              <div class="registration-video">
+                <iframe
+                  src="{{ video_embed_url }}"
+                  title="{{ campaign.title }} video"
+                  allowfullscreen
+                ></iframe>
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      {% endif %}
+
+      <section class="band band-lavender" aria-labelledby="registration-form-heading">
+        <div class="shell registration-shell">
+          {% if registration %}
+            <div class="card registration-panel">
+              <div class="registration-submitted">
+                {% if form.is_bound %}
+                  <h2 id="registration-form-heading">You are registered</h2>
+                {% else %}
+                  <h2 id="registration-form-heading">You are already registered</h2>
+                {% endif %}
+                <p class="registration-note">
+                  We will send course updates to {{ registration.email_normalized }}.
+                </p>
+              </div>
+            </div>
+          {% else %}
+            <div class="card registration-panel">
+              <h2 id="registration-form-heading">Register</h2>
+              {% if not user.is_authenticated %}
+                <p>
+                  <a href="{% url 'login' %}?next={{ request.path }}">
+                    Log in to use your account email
+                  </a>
+                </p>
+              {% endif %}
+              <form method="post" class="registration-form" data-registration-form>
+                {% csrf_token %}
+                <p class="registration-fineprint">
+                  Fields marked
+                  <span class="a11y-required" aria-hidden="true">*</span>
+                  are required.
+                </p>
+                {% accessibility_error_summary form %}
+                {% for field in form %}
+                  {% accessibility_help_id field as help_id %}
+                  {% accessibility_error_id field as error_id %}
+                  {% if field.field.widget.input_type == 'checkbox' %}
+                    <div>
+                      <div class="checkbox-row">
+                        {% accessible_widget field %}
+                        <label for="{{ field.id_for_label }}" class="checkbox-label">
+                          {{ field.label }}
+                          {% if field.field.required %}
+                            <span class="a11y-required" aria-hidden="true">*</span>
+                            <span class="sr-only">(required)</span>
+                          {% endif %}
+                        </label>
+                      </div>
+                      {% if field.help_text %}
+                        <p id="{{ help_id }}" class="checkbox-help">{{ field.help_text }}</p>
+                      {% endif %}
+                      {% if field.errors %}
+                        <p id="{{ error_id }}" class="a11y-error">
+                          <span class="sr-only">Error:</span>
+                          {{ field.errors|join:" " }}
+                        </p>
+                      {% endif %}
+                    </div>
+                  {% else %}
+                    <div
+                      {% if field.name == 'country' %}
+                        class="country-combobox-field"
+                      {% endif %}
+                    >
+                      <label for="{{ field.id_for_label }}" class="registration-field-label">
+                        {{ field.label }}
+                        {% if field.field.required %}
+                          <span class="a11y-required" aria-hidden="true">*</span>
+                          <span class="sr-only">(required)</span>
+                        {% endif %}
+                      </label>
+                      {% accessible_widget field %}
+                      {% if field.name == 'country' %}
+                        {{ country_options|json_script:"country-options-json" }}
+                        <div class="country-combobox-panel" data-country-combobox-panel hidden></div>
+                      {% endif %}
+                      {% if field.help_text %}
+                        <p id="{{ help_id }}" class="a11y-help">{{ field.help_text }}</p>
+                      {% endif %}
+                      {% if field.name == 'email' and user.is_authenticated %}
+                        <p class="a11y-help">
+                          <a href="{% url 'account_logout' %}?next={{ request.path }}">Log out</a>
+                          to use a different email address.
+                        </p>
+                      {% endif %}
+                      {% if field.errors %}
+                        <p id="{{ error_id }}" class="a11y-error">
+                          <span class="sr-only">Error:</span>
+                          {{ field.errors|join:" " }}
+                        </p>
+                      {% endif %}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+                <div class="registration-actions">
+                  <button
+                    class="cta cta-primary registration-submit-button"
+                    type="submit"
+                    data-busy-label="Registering…"
+                    data-registration-submit
+                  >Register</button>
+                </div>
+              </form>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+    <script src="{% static 'country_combobox.js' %}"></script>
+    <script>
+      /* The submit button follows the form's own validity, exactly as the
+         adopted page had it: no field names, no destinations, no extra
+         requests — only the disabled state of the button. */
+      document.querySelectorAll('[data-registration-form]').forEach((form) => {
+        const submitButton = form.querySelector('[data-registration-submit]');
+
+        if (!submitButton) {
+          return;
+        }
+
+        const syncSubmitState = () => {
+          submitButton.disabled = !form.checkValidity();
+        };
+
+        syncSubmitState();
+        form.querySelectorAll('input, select, textarea').forEach((control) => {
+          control.addEventListener('input', syncSubmitState);
+          control.addEventListener('change', syncSubmitState);
+        });
       });
-    });
-  </script>
-{% endblock %}
+    </script>
+  </body>
+</html>

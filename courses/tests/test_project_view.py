@@ -37,7 +37,9 @@ class ProjectViewTestCase(ProjectViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Instructions")
         self.assertContains(response, self.project.instructions_url)
-        self.assertContains(response, "fas fa-external-link-alt")
+        # The design 5a page draws no icon font: the instructions link is
+        # marked as leaving the site by opening in a new context instead.
+        self.assertContains(response, 'rel="noopener noreferrer"')
 
     def test_project_detail_hides_missing_instructions_url(self):
         self.project.instructions_url = ""

@@ -1,73 +1,92 @@
+{% comment %}
+  The learning-in-public link fields, on design 5a (issue #179).
+
+  Same shape as the FAQ field beside it: the hover-only help bubble becomes the
+  field's own visible hint, the label keeps only its label, and the layout comes
+  from the design system's `.field` grid rather than from utility classes a
+  design 5a page does not load.  The read-only list is a mono label above the
+  link it names instead of the copied platform's readonly-value row.
+
+  Everything the "Add link" script needs stays exactly where it was: the
+  container ids, the `form-control` class the script copies onto each input it
+  appends, the `learning_in_public_links[]` field name and the cap it reads from
+  `global_learning_in_public_cap`.
+{% endcomment %}
 {% if learning_in_public_cap > 0 and not disable_learning_in_public %}
-    <div id="learning-in-public-links-container" class="question">
-        <label for="learning_in_public_links[]" class="question-text form-label-with-help font-medium">
-            <span>
-                Learning in public links
-                (<a href="https://datatalks.club/docs/courses/course-management-platform/learning-in-public/"
-                    target="_blank"
-                    rel="noopener noreferrer">docs</a>,
-                <span class="app-muted">optional</span>)
-            </span>
-            <span class="form-help-icon app-muted"
-                  role="button"
-                  tabindex="0"
-                  aria-label="Links to social media posts where you share your progress"
-                  aria-expanded="false"
-                  data-form-help="Links to social media posts where you share your progress (LinkedIn, Twitter, etc). {% if course.social_media_hashtag %} Use {{ course.social_media_hashtag }} tag.{% endif %} The scores are capped at {{ learning_in_public_cap }} point.">
-                <i class="fas fa-question-circle" aria-hidden="true"></i>
-            </span>
-        </label>
-        <p class="mt-1 text-sm app-muted">
-            Add up to {{ learning_in_public_cap }} public progress link{{ learning_in_public_cap|pluralize }}.
-        </p>
-
-        <div id="learning-in-public-links" class="mt-2 space-y-2">
-            {% if disabled %}
-                {% for link in learning_in_public_links %}
-                    <div class="readonly-value">
-                        <span class="readonly-value-label">Link {{ forloop.counter }}</span>
-                        <span class="readonly-value-content">
-                            <a href="{{ link }}"
-                               target="_blank"
-                               rel="noopener noreferrer"
-                               class="break-all app-link hover:underline">{{ link }}</a>
-                        </span>
-                    </div>
-                {% empty %}
-                    <p class="mt-2 text-sm app-muted">No learning in public links submitted.</p>
-                {% endfor %}
-            {% else %}
-                {% for link in learning_in_public_links %}
-                    <input type="url"
-                           class="form-control"
-                           name="learning_in_public_links[]"
-                           value="{{ link }}"
-                           autocomplete="url"
-                           inputmode="url"
-                           {% if not user.is_authenticated %}disabled{% endif %}>
-                {% endfor %}
-
-                {% if learning_in_public_links|length < learning_in_public_cap %}
-                    <input type="url"
-                           class="form-control"
-                           name="learning_in_public_links[]"
-                           autocomplete="url"
-                           inputmode="url"
-                           {% if not user.is_authenticated %}disabled{% endif %}>
-                {% endif %}
-            {% endif %}
-        </div>
-
-        {% if accepting_submissions and not disabled and user.is_authenticated %}
-            <button type="button"
-                    id="add-learning-public-link"
-                    class="primer-button primer-button-secondary mt-2">
-                <i class="fas fa-plus"></i> Add link
-            </button>
+  <div id="learning-in-public-links-container" class="field">
+    <label class="field-label" for="learning_in_public_links[]">
+      Learning in public links (optional)
+    </label>
+    <p class="field-hint">
+      Links to social media posts where you share your progress (LinkedIn, Twitter, etc).
+      {% if course.social_media_hashtag %}
+        Use {{ course.social_media_hashtag }} tag.
+      {% endif %}
+      The scores are capped at {{ learning_in_public_cap }} point.
+      Add up to {{ learning_in_public_cap }} public progress link{{ learning_in_public_cap|pluralize }}.
+      <a
+        class="band-link"
+        href="https://datatalks.club/docs/courses/course-management-platform/learning-in-public/"
+        target="_blank"
+        rel="noopener noreferrer"
+      >Learning in public docs</a>
+    </p>
+    <div id="learning-in-public-links" class="field">
+      {% if disabled %}
+        {% for link in learning_in_public_links %}
+          <div class="field">
+            <span class="mono-label">Link {{ forloop.counter }}</span>
+            <a
+              class="band-link submission-link"
+              href="{{ link }}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >{{ link }}</a>
+          </div>
+        {% empty %}
+          <p class="field-hint">
+            No learning in public links submitted.
+          </p>
+        {% endfor %}
+      {% else %}
+        {% for link in learning_in_public_links %}
+          <input
+            type="url"
+            class="form-control"
+            name="learning_in_public_links[]"
+            value="{{ link }}"
+            autocomplete="url"
+            inputmode="url"
+            {% if not user.is_authenticated %}disabled{% endif %}
+          >
+        {% endfor %}
+        {% if learning_in_public_links|length < learning_in_public_cap %}
+          <input
+            type="url"
+            class="form-control"
+            name="learning_in_public_links[]"
+            autocomplete="url"
+            inputmode="url"
+            {% if not user.is_authenticated %}disabled{% endif %}
+          >
         {% endif %}
+      {% endif %}
     </div>
-
-    <script>
-        global_learning_in_public_cap = {{ learning_in_public_cap }};
-    </script>
+    {% if accepting_submissions and not disabled and user.is_authenticated %}
+      {% comment %}
+        The button sits in its own row so the grid does not stretch it to the
+        full width of the field column.
+      {% endcomment %}
+      <div>
+        <button
+          type="button"
+          id="add-learning-public-link"
+          class="cta cta-compact cta-secondary"
+        >Add link</button>
+      </div>
+    {% endif %}
+  </div>
+  <script>
+    global_learning_in_public_cap = {{ learning_in_public_cap }};
+  </script>
 {% endif %}

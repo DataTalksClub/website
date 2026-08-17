@@ -49,4 +49,9 @@ class HomeworkSubmissionsHiddenAnswersTest(
 
         self.assertNotIn(long_answer, content)
         self.assertNotIn(f'title="{long_answer}', content)
-        self.assertNotIn("…", content)
+        # Scan the rendered page, not the document: a design 5a page carries the
+        # design system stylesheet inline, and its CSS comments contain an ellipsis
+        # of their own.  Against the whole response this assertion would fail on
+        # comment prose while proving nothing about the truncation it is written to
+        # catch.
+        self.assertNotIn("…", content.split("</head>", 1)[-1])

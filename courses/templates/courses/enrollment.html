@@ -1,142 +1,358 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block meta_robots %}
+{% load seo static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Edit enrollment details — {{ course.title }} — DataTalks.Club</title>
     <meta name="robots" content="noindex">
-{% endblock %}
+    {% canonical_link canonical_url %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Course enrollment profile, design 5a (issue #179).  This is the
+       * per-course half of the account settings page, so it is built from
+       * the same vocabulary: a hero band naming the course, then one form
+       * band holding the identity fields and the visibility switches.  The
+       * page carries its complete stylesheet inline and loads no external
+       * CSS, so the copied platform's control classes are given the
+       * system's treatment here.
+       *
+       * Nothing about the enrollment behaviour moved with the design: the
+       * form method and CSRF token, every field name and widget, the
+       * immediate-toggle hooks (js-immediate-toggle-row, data-toggle-url)
+       * that settings_toggles.js drives, the label wrappers that give each
+       * switch its full accessible name, the noindex directive and the
+       * certificate destination are exactly what the view already rendered.
+       * ------------------------------------------------------------------ */
 
-{% block breadcrumbs %}
-    <li>
-        <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
-    </li>
-    <li aria-current="page">Enrollment</li>
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-    <section class="settings-section border-b pb-5">
-        <p class="settings-page-kicker text-sm font-semibold uppercase tracking-wide">
-            {{ course.title }}
-        </p>
-        <div class="mt-2 flex flex-col gap-3">
-            <div>
-                <h1 class="settings-page-title text-2xl font-semibold md:text-3xl">
-                    Edit Enrollment Details
-                </h1>
-                <p class="settings-section-copy mt-1 max-w-2xl text-sm">
-                    Update how your profile appears on the leaderboard and public score breakdown.
-                    Certificate name is managed in account settings.
-                </p>
-            </div>
-            <a href="{% url 'course' course.slug %}"
-               class="primer-button primer-button-secondary w-fit">
-                Back to course
+      /* ------------------------------------------------------------------ *
+       * Enrollment rules.
+       * ------------------------------------------------------------------ */
+
+      /* One form, read top to bottom: held to the same column the account
+         settings page uses so the two profile surfaces feel like one place. */
+      .enrollment-shell {
+        max-width: 46rem;
+      }
+
+      .enrollment-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .enrollment-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .enrollment-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+
+      .enrollment-back {
+        margin-top: 1.25rem;
+      }
+
+      .enrollment-fields {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      /* The bound fields keep the widget classes courses/views/forms.py gives
+         them, so the system's control treatment is attached to those classes
+         here instead of restyling the form in Python. */
+      .enrollment-fields .form-control {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.625rem;
+        color: var(--ink);
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.8rem;
+        width: 100%;
+      }
+
+      /* A field's own error, under the control it belongs to.  The system
+         carries no red, and does not need one: the words say "Error", and the
+         sand/ink pairing clears 4.5:1 on both themes. */
+      .enrollment-error {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        padding: 0.5rem 0.7rem;
+      }
+
+      /* An immediately persisted preference: the switch, then its label and
+         help.  The class names are the script's hooks and do not change, and
+         the whole row stays one <label> so the switch keeps the full
+         accessible name the adopted page gave it. */
+      .toggle-row {
+        align-items: start;
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: 2.6rem minmax(0, 1fr);
+      }
+
+      .toggle-row input[type="checkbox"] {
+        appearance: none;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        cursor: pointer;
+        height: 1.5rem;
+        margin: 0.1rem 0 0;
+        position: relative;
+        width: 2.6rem;
+      }
+
+      .toggle-row input[type="checkbox"]::before {
+        background: var(--line);
+        border-radius: 999px;
+        content: "";
+        height: 0.9rem;
+        left: 0.2rem;
+        position: absolute;
+        top: 0.2rem;
+        transition: transform 0.15s ease;
+        width: 0.9rem;
+      }
+
+      .toggle-row input[type="checkbox"]:checked {
+        background: var(--green);
+        border-color: var(--green);
+      }
+
+      .toggle-row input[type="checkbox"]:checked::before {
+        background: var(--on-green);
+        transform: translateX(1.1rem);
+      }
+
+      .toggle-row input[type="checkbox"]:disabled {
+        cursor: wait;
+        opacity: 0.65;
+      }
+
+      .toggle-copy {
+        display: grid;
+        gap: 0.2rem;
+      }
+
+      .toggle-label {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .toggle-help {
+        color: var(--body-text);
+        font-size: 0.85rem;
+      }
+
+      .toggle-list {
+        display: grid;
+        gap: 1.1rem;
+      }
+
+      /* The certificate this enrollment has, or has not, earned: a mono label
+         over its one value, the same shape a spec row uses. */
+      .enrollment-certificate {
+        border-top: 2px dashed var(--line-soft);
+        display: grid;
+        gap: 0.2rem;
+        margin-top: 1.5rem;
+        padding-top: 1.25rem;
+      }
+
+      .enrollment-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+      }
+
+      .enrollment-actions {
+        margin-top: 1.75rem;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .toggle-row input[type="checkbox"]::before {
+          transition: none;
+        }
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Reshape on a phone: both actions take the full width instead of
+           sitting as narrow targets in a wrapped row. */
+        .enrollment-back .cta,
+        .enrollment-actions .cta {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream enrollment-hero" aria-labelledby="enrollment-heading">
+        {% comment %}
+          The trail the adopted shell used to draw, as the design 5a primitive:
+          every ancestor is a link and the current page is plain text.
+        {% endcomment %}
+        <nav class="shell enrollment-shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'course_list' %}">Courses</a>
+            </li>
+            <li>
+              <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+            </li>
+            <li aria-current="page">
+              Enrollment
+            </li>
+          </ol>
+        </nav>
+        <div class="shell enrollment-shell">
+          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+          <h1 id="enrollment-heading">Edit Enrollment Details</h1>
+          <p class="enrollment-lede">
+            Update how your profile appears on the leaderboard and public score breakdown.
+            Certificate name is managed in account settings.
+          </p>
+          <p class="enrollment-back">
+            <a class="cta cta-compact cta-secondary" href="{% url 'course' course.slug %}">
+              Back to course
             </a>
+          </p>
         </div>
-    </section>
+      </section>
 
-    <form method="post" class="settings-form mt-6 space-y-8">
-        {% csrf_token %}
-
-        <section class="settings-section">
-            <div>
-                <h2 class="settings-section-title text-lg font-semibold">Public identity</h2>
-                <p class="settings-section-copy mt-1 text-sm leading-6">
-                    How classmates and the course team identify you in public course views.
+      <section class="band band-cream" aria-labelledby="public-identity-heading">
+        <div class="shell enrollment-shell">
+          <form method="post">
+            {% csrf_token %}
+            <div class="band-head">
+              <div>
+                <h2 id="public-identity-heading">Public identity</h2>
+                <p>How classmates and the course team identify you in public course views.</p>
+              </div>
+            </div>
+            <div class="enrollment-fields">
+              <div class="field">
+                <label class="field-label" for="{{ form.display_name.id_for_label }}">
+                  Leaderboard name
+                </label>
+                {{ form.display_name }}
+                <p class="field-hint">Shown on leaderboards and public score pages.</p>
+                {% if form.display_name.errors %}
+                  <div class="enrollment-error">
+                    <span class="sr-only">Error:</span>
+                    {{ form.display_name.errors|join:" " }}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="field">
+                <label class="field-label" for="{{ form.certificate_name.id_for_label }}">
+                  Certificate name
+                </label>
+                {{ form.certificate_name }}
+                <p class="field-hint">Saved to your account and used across course certificates.</p>
+                {% if form.certificate_name.errors %}
+                  <div class="enrollment-error">
+                    <span class="sr-only">Error:</span>
+                    {{ form.certificate_name.errors|join:" " }}
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+            <div class="band-head band-head-secondary">
+              <div>
+                <h2 id="leaderboard-visibility-heading">Leaderboard visibility</h2>
+                <p>Each switch is saved as soon as you change it.</p>
+              </div>
+            </div>
+            <div class="toggle-list">
+              <label
+                class="toggle-row js-immediate-toggle-row"
+                data-toggle-url="{% url 'update_enrollment_toggle' course.slug %}"
+              >
+                {{ form.display_on_leaderboard }}
+                <span class="toggle-copy">
+                  <span class="toggle-label">
+                    Show my record on the public leaderboard
+                  </span>
+                  <span class="toggle-help">
+                    When disabled, your score remains saved for you and the course team, but your row is hidden from public leaderboard views and exports.
+                  </span>
+                </span>
+              </label>
+              <label
+                class="toggle-row js-immediate-toggle-row"
+                data-toggle-url="{% url 'update_enrollment_toggle' course.slug %}"
+              >
+                {{ form.display_public_profile }}
+                <span class="toggle-copy">
+                  <span class="toggle-label">
+                    Display my public profile data on this leaderboard record
+                  </span>
+                  <span class="toggle-help">
+                    Uses your account profile: About me, GitHub, LinkedIn, and website.
+                    <a href="{% url 'account_settings' %}">Edit public profile</a>
+                  </span>
+                </span>
+              </label>
+            </div>
+            <div class="enrollment-certificate">
+              <p class="mono-label">Certificate</p>
+              {% if enrollment.certificate_url %}
+                <p>
+                  <a
+                    href="{{ enrollment.certificate_url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >Download</a>
                 </p>
+              {% else %}
+                <p class="enrollment-note">Not available</p>
+              {% endif %}
             </div>
-            <div class="mt-5 space-y-5">
-                <div>
-                    <label for="{{ form.display_name.id_for_label }}"
-                           class="settings-label mb-2 block text-sm font-semibold">
-                        Leaderboard name
-                    </label>
-                    {{ form.display_name }}
-                    <p class="settings-helper mt-1 text-xs leading-5">
-                        Shown on leaderboards and public score pages.
-                    </p>
-                    {% if form.display_name.errors %}
-                        <div class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            {{ form.display_name.errors|join:" " }}
-                        </div>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="{{ form.certificate_name.id_for_label }}"
-                           class="settings-label mb-2 block text-sm font-semibold">
-                        Certificate name
-                    </label>
-                    {{ form.certificate_name }}
-                    <p class="settings-helper mt-1 text-xs leading-5">
-                        Saved to your account and used across course certificates.
-                    </p>
-                    {% if form.certificate_name.errors %}
-                        <div class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            {{ form.certificate_name.errors|join:" " }}
-                        </div>
-                    {% endif %}
-                </div>
+            <div class="enrollment-actions">
+              <button
+                id="submit-button"
+                class="cta cta-primary"
+                type="submit"
+                data-busy-label="Saving…"
+              >Save changes</button>
             </div>
-        </section>
-
-        <section class="settings-section border-t pt-6">
-            <div class="space-y-5">
-                <label class="toggle-row js-immediate-toggle-row"
-                       data-toggle-url="{% url 'update_enrollment_toggle' course.slug %}">
-                    {{ form.display_on_leaderboard }}
-                    <span class="toggle-copy">
-                        <span class="toggle-label">
-                            Show my record on the public leaderboard
-                        </span>
-                        <span class="toggle-help">
-                            When disabled, your score remains saved for you and the course team, but your row is hidden from public leaderboard views and exports.
-                        </span>
-                    </span>
-                </label>
-                <label class="toggle-row js-immediate-toggle-row"
-                       data-toggle-url="{% url 'update_enrollment_toggle' course.slug %}">
-                    {{ form.display_public_profile }}
-                    <span class="toggle-copy">
-                        <span class="toggle-label">
-                            Display my public profile data on this leaderboard record
-                        </span>
-                        <span class="toggle-help">
-                            Uses your account profile: About me, GitHub, LinkedIn, and website.
-                            <a href="{% url 'account_settings' %}" class="app-link font-medium">
-                                Edit public profile
-                            </a>
-                        </span>
-                    </span>
-                </label>
-                <div class="text-sm">
-                    <span class="settings-meta-label">Certificate:</span>
-                    {% if enrollment.certificate_url %}
-                        <a href="{{ enrollment.certificate_url }}"
-                           target="_blank"
-                           class="settings-link ml-1 font-medium hover:underline">
-                            Download
-                        </a>
-                    {% else %}
-                        <span class="settings-meta-value ml-1">Not available</span>
-                    {% endif %}
-                </div>
-            </div>
-        </section>
-
-        <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-            <button id="submit-button"
-                    type="submit"
-                    class="primer-button">
-                Save changes
-            </button>
+          </form>
         </div>
-    </form>
-
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+    {% comment %}
+      The two scripts the adopted page loaded, in the same order: the shared
+      form validator (a no-op here, it only binds form.needs-validation) and
+      the immediate-toggle persistence this page's switches depend on.
+    {% endcomment %}
     <script src="{% static 'homework.js' %}"></script>
-{% endblock %}
-
-{% block extra_js %}
-    {{ block.super }}
     <script src="{% static 'settings_toggles.js' %}"></script>
-{% endblock %}
+  </body>
+</html>

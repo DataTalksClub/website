@@ -16,7 +16,9 @@ class LeaderboardScoreBreakdownAdminTestCase(LeaderboardTestBase):
         self.assertEqual(response.status_code, 200)
         admin_edit_url = self.admin_enrollment_edit_url(enrollment)
         self.assertContains(response, admin_edit_url)
-        self.assertContains(response, "fa-cog")
+        # The design 5a page loads no icon font, so the repair control is
+        # named rather than marked with a glyph (issue #179).
+        self.assertContains(response, "Admin: Edit Enrollment")
 
     def test_score_breakdown_admin_button_hidden_for_regular_user(self):
         enrollment = self.create_student("student1")
@@ -30,7 +32,11 @@ class LeaderboardScoreBreakdownAdminTestCase(LeaderboardTestBase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "fa-cog")
+        self.assertNotContains(response, "Admin: Edit Enrollment")
+        self.assertNotContains(
+            response,
+            self.admin_enrollment_edit_url(enrollment),
+        )
 
     def test_score_breakdown_admin_button_hidden_for_anonymous(self):
         enrollment = self.create_student("student1")
@@ -39,4 +45,8 @@ class LeaderboardScoreBreakdownAdminTestCase(LeaderboardTestBase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "fa-cog")
+        self.assertNotContains(response, "Admin: Edit Enrollment")
+        self.assertNotContains(
+            response,
+            self.admin_enrollment_edit_url(enrollment),
+        )

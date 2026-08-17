@@ -1,88 +1,396 @@
-{% extends 'base.html' %}
+{% load seo %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Leaderboard — {{ course.title }} — DataTalks.Club</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="Scores, positions and public student profiles for {{ course.title }}.">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="Leaderboard — {{ course.title }} — DataTalks.Club">
+    <meta property="og:description" content="Scores, positions and public student profiles for {{ course.title }}.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="Leaderboard — {{ course.title }} — DataTalks.Club">
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Course leaderboard, design 5a (issue #179).  Like every rebuilt page
+       * it carries its complete stylesheet inline — the shared design system
+       * partial first, then the rules that shape this page only — and loads
+       * none of the older site CSS.
+       *
+       * This is a visual port: every score, position, destination and query
+       * parameter is the one the page already rendered.
+       * ------------------------------------------------------------------ */
 
-{% block breadcrumbs %}
-<li><a href="{% url 'course' course.slug %}">{{ course.title }}</a></li>
-<li>Leaderboard</li>
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section>
-  <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
-  <div class="mt-2 flex flex-col gap-3">
-    <div>
-      <h1 class="text-2xl font-semibold app-heading md:text-3xl">Leaderboard</h1>
-      <p class="mt-1 text-sm app-muted">Scores, positions, and public student profiles for this course.</p>
-    </div>
-  </div>
-</section>
+      /* ------------------------------------------------------------------ *
+       * Leaderboard-specific rules.  The ranked table is the system's
+       * dashed-divided row list (.row-list / .list-row); everything below is
+       * the three columns it lays out to and the marks inside them.
+       * ------------------------------------------------------------------ */
 
-{% if current_student_enrollment %}
-<section class="mt-6 rounded-md border app-alert-info p-4">
-  <div class="flex flex-col gap-3">
-    <div>
-      <h2 class="text-base font-semibold app-heading">Your Record</h2>
-      <p class="mt-1 text-sm app-text">
-        <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=current_student_enrollment.id %}" class="font-medium app-link hover:underline">
-          Your total score: {{ current_student_enrollment.total_score }}
-        </a>
-        <span>(Position: {{ current_student_enrollment.position_on_leaderboard }})</span>
-      </p>
-      <p class="mt-1 text-sm app-text">Display name: {{ current_student_enrollment.display_name }} (<a href="{% url 'enrollment' course.slug %}" class="app-link hover:underline">change</a>)</p>
-      {% if not current_student_enrollment.display_on_leaderboard %}
-        <p class="mt-1 text-sm app-muted">Your record is hidden from the public leaderboard.</p>
-      {% endif %}
-    </div>
-    {% if current_student_enrollment.display_on_leaderboard %}
-      <div class="flex flex-wrap gap-2">
-        {% if current_student_page_number %}
-          <a href="?page={{ current_student_page_number }}#record-{{ current_student_enrollment.id }}" class="primer-button primer-button-secondary w-fit">Jump to my record</a>
-        {% else %}
-          <a href="#record-{{ current_student_enrollment.id }}" class="primer-button primer-button-secondary w-fit">Jump to my record</a>
-        {% endif %}
-      </div>
-    {% endif %}
-  </div>
-</section>
-{% endif %}
+      /* The breadcrumb links carry the system's 2.75rem target height, so the
+         row brings its own air; fold most of it into the band's top padding. */
+      .leaderboard-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
 
-<section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
-  <div class="grid grid-cols-[44px_minmax(0,1fr)_72px] border-b app-border app-surface-muted px-4 py-2 text-xs font-semibold uppercase app-muted md:grid-cols-[56px_minmax(0,1fr)_96px]">
-    <div>#</div>
-    <div>Name</div>
-    <div class="text-right">Score</div>
-  </div>
-  <div class="divide-y app-divide">
-    {% for enrollment in enrollments %}
-      <div id="record-{{ enrollment.id }}"
-           class="grid grid-cols-[44px_minmax(0,1fr)_72px] items-center px-4 py-3 text-sm md:grid-cols-[56px_minmax(0,1fr)_96px] {% if enrollment.id == current_student_enrollment_id %}app-alert-info{% endif %}">
-        <div class="font-medium app-muted">{{ enrollment.position_on_leaderboard }}</div>
-        <div class="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=enrollment.id %}" class="min-w-0 font-medium leading-snug app-link hover:underline md:truncate">
-            {{ enrollment.display_name }}
-          </a>
-          {% if enrollment.passed_projects %}
-            <div class="flex shrink-0 flex-wrap gap-1">
-              {% for project in enrollment.passed_projects %}
-                <span class="leaderboard-project-star leaderboard-project-star-{{ project.medal_index }}"
-                      title="Passed {{ project.title }}">
-                  <i class="fas fa-star" aria-hidden="true"></i>
-                  <span class="sr-only">Passed {{ project.title }}</span>
-                </span>
-              {% endfor %}
-            </div>
+      .leaderboard-hero-inner {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .leaderboard-lede {
+        color: var(--body-text);
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        max-width: 46rem;
+      }
+
+      /* --- the signed-in learner's own record --------------------------- */
+
+      .leaderboard-you {
+        display: grid;
+        gap: 0.6rem;
+        margin-top: 1.25rem;
+      }
+
+      .leaderboard-you h2 {
+        font-size: 1.15rem;
+      }
+
+      /* Body text, not the muted grey: these lines sit on a tinted panel,
+         where the dark theme's muted grey does not hold 4.5:1. */
+      .leaderboard-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+      }
+
+      .leaderboard-you-score {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .leaderboard-you-score a {
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .leaderboard-you-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      /* --- the ranked rows ---------------------------------------------- */
+
+      /* Position, name, score.  The head row is decoration for the eye only —
+         each row states its own three facts to a screen reader — so it is
+         hidden from the accessibility tree and from the stacked narrow
+         layout, where a column head has nothing to head. */
+      .leaderboard-head {
+        padding-block: 0.4rem 0.5rem;
+      }
+
+      .leaderboard-rank {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .leaderboard-name {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.6rem;
+        min-width: 0;
+      }
+
+      .leaderboard-name a {
+        font-weight: 700;
+        overflow-wrap: anywhere;
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .leaderboard-score {
+        color: var(--ink);
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      /* The reader's own row.  The tint is reinforcement; the "you" pill in
+         the name cell is what actually says which row this is. */
+      .leaderboard-row-you {
+        background: var(--lavender);
+        border-radius: 0.5rem;
+        padding-inline: 0.6rem;
+      }
+
+      /* One mark per project this student has passed.  The copied page drew a
+         five-colour medal star from an icon font; a design 5a page loads no
+         icon font and has no medal palette, so the mark is the brand bubble
+         disc and the project it stands for is named in text beside it. */
+      .leaderboard-passed {
+        align-items: center;
+        background: var(--bubble);
+        border-radius: 999px;
+        color: var(--on-bubble);
+        display: inline-flex;
+        flex: none;
+        font-size: 0.7rem;
+        height: 1.4rem;
+        justify-content: center;
+        width: 1.4rem;
+      }
+
+      /* --- pagination ---------------------------------------------------- */
+
+      .leaderboard-pagination {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 0.75rem;
+        justify-content: center;
+        margin-top: 1.5rem;
+      }
+
+      .leaderboard-pages {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        font-family: var(--font-mono);
+        gap: 0.35rem 0.75rem;
+        justify-content: center;
+      }
+
+      .leaderboard-pages a {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .leaderboard-pages [aria-current="page"] {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .leaderboard-gap {
+        color: var(--muted);
+      }
+
+      .leaderboard-data {
+        color: var(--body-text);
+        font-size: 0.85rem;
+        margin-top: 1.5rem;
+      }
+
+      .leaderboard-empty {
+        text-align: center;
+      }
+
+      /* --- narrow layout ------------------------------------------------- */
+
+      /* Reshape rather than reflow: below the row-list breakpoint the column
+         head has nothing left to head, so the rank leads the name on one line
+         and the score sits under it, each naming itself in a drawn mark whose
+         empty alternative text keeps it out of the accessibility tree — the
+         sr-only labels in the row already say what the figures are. */
+      @media (max-width: 47.99rem) {
+        .leaderboard-head {
+          display: none;
+        }
+
+        .leaderboard-row {
+          align-items: baseline;
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .leaderboard-rank::before {
+          content: "#" / "";
+        }
+
+        .leaderboard-name,
+        .leaderboard-score {
+          grid-column: 2;
+        }
+
+        .leaderboard-score::before {
+          content: "score " / "";
+        }
+
+        .leaderboard-you-actions {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream leaderboard-hero" aria-labelledby="leaderboard-heading">
+        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li>
+              <a href="{% url 'course_list' %}">Courses</a>
+            </li>
+            <li>
+              <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+            </li>
+            <li aria-current="page">
+              Leaderboard
+            </li>
+          </ol>
+        </nav>
+        <div class="shell leaderboard-hero-inner">
+          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+          <h1 id="leaderboard-heading">Leaderboard</h1>
+          <p class="leaderboard-lede">
+            Scores, positions, and public student profiles for this course.
+          </p>
+          {% if current_student_enrollment %}
+            <aside class="panel panel-mint panel-outlined leaderboard-you" aria-labelledby="your-record-heading">
+              <h2 id="your-record-heading">Your Record</h2>
+              <p class="leaderboard-you-score">
+                <a class="band-link" href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=current_student_enrollment.id %}">Your total score: {{ current_student_enrollment.total_score }}</a>
+                <span class="status-pill">Position: {{ current_student_enrollment.position_on_leaderboard }}</span>
+              </p>
+              <p class="leaderboard-note">
+                Display name: {{ current_student_enrollment.display_name }}
+                <a class="band-link" href="{% url 'enrollment' course.slug %}">(change)</a>
+              </p>
+              {% if not current_student_enrollment.display_on_leaderboard %}
+                <p class="leaderboard-note">Your record is hidden from the public leaderboard.</p>
+              {% endif %}
+              {% if current_student_enrollment.display_on_leaderboard %}
+                <div class="leaderboard-you-actions">
+                  {% if current_student_page_number %}
+                    <a class="cta cta-compact cta-secondary" href="?page={{ current_student_page_number }}#record-{{ current_student_enrollment.id }}">Jump to my record</a>
+                  {% else %}
+                    <a class="cta cta-compact cta-secondary" href="#record-{{ current_student_enrollment.id }}">Jump to my record</a>
+                  {% endif %}
+                </div>
+              {% endif %}
+            </aside>
           {% endif %}
         </div>
-        <div class="text-right font-semibold app-heading">{{ enrollment.total_score }}</div>
-      </div>
-    {% endfor %}
-  </div>
+      </section>
 
-  {% include 'include/pagination.html' with pagination_page=page_obj pagination_range=page_range pagination_label='Leaderboard pagination' %}
-</section>
-
-<p class="mt-4 text-xs app-muted">
-  <a href="{% url 'api_course_leaderboard' course_slug=course.slug %}"
-     class="app-link hover:underline">Leaderboard data (YAML)</a>
-</p>
-
-{% endblock %}
+      <section class="band band-lavender" aria-labelledby="standings-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="standings-heading">Standings</h2>
+              <p>Open a student to see how their score is made up.</p>
+            </div>
+          </div>
+          {% if enrollments %}
+            <div class="row-list">
+              <div
+                class="list-row leaderboard-head"
+                style="--row-cols: 4rem minmax(0,1fr) 6rem"
+                aria-hidden="true"
+              >
+                <p class="mono-label">#</p>
+                <p class="mono-label">Name</p>
+                <p class="mono-label">Score</p>
+              </div>
+              {% for enrollment in enrollments %}
+                {% if enrollment.id == current_student_enrollment_id %}
+                  <div
+                    class="list-row leaderboard-row leaderboard-row-you"
+                    style="--row-cols: 4rem minmax(0,1fr) 6rem"
+                    id="record-{{ enrollment.id }}"
+                  >
+                {% else %}
+                  <div
+                    class="list-row leaderboard-row"
+                    style="--row-cols: 4rem minmax(0,1fr) 6rem"
+                    id="record-{{ enrollment.id }}"
+                  >
+                {% endif %}
+                  <p class="leaderboard-rank">
+                    <span class="sr-only">Position</span>
+                    {{ enrollment.position_on_leaderboard }}
+                  </p>
+                  <p class="leaderboard-name">
+                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=enrollment.id %}">{{ enrollment.display_name }}</a>
+                    {% if enrollment.id == current_student_enrollment_id %}
+                      <span class="status-pill status-pill-open">you</span>
+                    {% endif %}
+                    {% for project in enrollment.passed_projects %}
+                      <span class="leaderboard-passed" title="Passed {{ project.title }}">
+                        <span aria-hidden="true">★</span>
+                        <span class="sr-only">Passed {{ project.title }}</span>
+                      </span>
+                    {% endfor %}
+                  </p>
+                  <p class="leaderboard-score">
+                    <span class="sr-only">Total score</span>
+                    {{ enrollment.total_score }}
+                  </p>
+                </div>
+              {% endfor %}
+            </div>
+            {% if page_obj.has_other_pages %}
+              {% comment %}
+                The paginator the copied page used, in this system's marks: the
+                same ?page= destinations, the same elided range, and the current
+                page as plain text carrying aria-current.
+              {% endcomment %}
+              <nav class="leaderboard-pagination" aria-label="Leaderboard pagination">
+                {% if page_obj.has_previous %}
+                  <a
+                    class="cta cta-compact cta-secondary"
+                    href="?page={{ page_obj.previous_page_number }}"
+                    aria-label="Previous page"
+                  >← Previous</a>
+                {% endif %}
+                <div class="leaderboard-pages">
+                  {% for page_number in page_range %}
+                    {% if page_number == page_obj.paginator.ELLIPSIS %}
+                      <span class="leaderboard-gap">{{ page_number }}</span>
+                    {% elif page_number == page_obj.number %}
+                      <span aria-current="page">{{ page_number }}</span>
+                    {% else %}
+                      <a href="?page={{ page_number }}">{{ page_number }}</a>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+                {% if page_obj.has_next %}
+                  <a
+                    class="cta cta-compact cta-secondary"
+                    href="?page={{ page_obj.next_page_number }}"
+                    aria-label="Next page"
+                  >Next →</a>
+                {% endif %}
+              </nav>
+            {% endif %}
+          {% else %}
+            <div class="panel panel-lavender panel-outlined leaderboard-empty" role="alert">
+              <p>No students are on this leaderboard yet.</p>
+            </div>
+          {% endif %}
+          <p class="leaderboard-data">
+            <a class="band-link" href="{% url 'api_course_leaderboard' course_slug=course.slug %}">Leaderboard data (YAML)</a>
+          </p>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

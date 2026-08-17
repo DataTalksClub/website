@@ -1,97 +1,152 @@
-{% extends 'base.html' %}
+{% extends 'projects/_base.html' %}
+{% comment %}
+  Every project submission in the course, on design 5a (issue #179).
+
+  A read-only catalogue: it carries no form and no mutation, and the port
+  changes nothing about which submissions it lists, what it links to, or where
+  the vote controls live (on the per-project list, which each row's project
+  jump link leads to).
+{% endcomment %}
+
+{% block title %}
+  All project submissions — {{ course.title }} — DataTalks.Club
+{% endblock %}
 
 {% block meta_robots %}
-    <meta name="robots" content="noindex">
+  <meta name="robots" content="noindex">
+{% endblock %}
+
+{% block extra_styles %}
+  /* The catalogue row: who submitted and which project, then the outcome. */
+  .submission-row {
+    --row-cols: minmax(0, 1fr) auto;
+  }
+
+  .submission-student {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    min-width: 0;
+  }
+
+  .submission-student a {
+    font-weight: 700;
+  }
+
+  .submission-outcome {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+  }
+
+  /* The jump links to each project's own list. */
+  .project-jumps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.25rem;
+  }
 {% endblock %}
 
 {% block breadcrumbs %}
-    <li><a href="{% url 'course' course.slug %}">{{ course.title }}</a></li>
-    <li>All project submissions</li>
+  <li aria-current="page">
+    All project submissions
+  </li>
 {% endblock %}
 
-{% block content %}
-    <section class="pb-5">
-        <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ course.title }}</p>
-        <div class="mt-2 flex flex-col gap-3">
+{% block page_head %}
+  <div class="project-head">
+    <p class="mono-label mono-label-indigo">{{ course.title }}</p>
+    <h1>All Project Submissions</h1>
+    <p class="project-lede">
+      Browse submitted project repositories and see which projects the community is highlighting.
+    </p>
+    <div class="project-toolbar">
+      <a class="cta cta-compact cta-secondary" href="{% url 'course' course.slug %}">
+        Back to Course
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
+{% block project_content %}
+  {% if projects %}
+    <section class="project-section" aria-labelledby="project-lists-heading">
+      <div class="project-section-head">
+        <h2 id="project-lists-heading">Project lists</h2>
+      </div>
+      <p class="project-note">
+        Jump to submissions for a specific project.
+      </p>
+      <div class="project-jumps">
+        {% for project in projects %}
+          <a class="band-link" href="{% url 'project_list' course_slug=course.slug project_slug=project.slug %}">
+            {{ project.title }}
+            <span class="mono-note">{{ project.submissions_count }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+  <section class="project-section" aria-labelledby="all-submissions-heading">
+    <div class="project-section-head">
+      <h2 id="all-submissions-heading">Submissions</h2>
+      {% if submissions %}
+        <p class="mono-note">
+          {{ submissions_page.paginator.count }} total
+        </p>
+      {% endif %}
+    </div>
+    {% if submissions %}
+      <p class="project-note">
+        Vote on each individual project submissions page.
+      </p>
+      <div class="row-list">
+        {% for submission in submissions %}
+          <article class="list-row submission-row">
             <div>
-                <h1 class="text-2xl font-semibold app-heading md:text-3xl">All Project Submissions</h1>
-                <p class="mt-1 max-w-2xl text-sm app-muted">
-                    Browse submitted project repositories and see which projects the community is highlighting.
-                </p>
+              <div class="submission-student">
+                <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=submission.enrollment.id %}">
+                  {{ submission.enrollment.display_name }}
+                </a>
+                <a
+                  class="band-link submission-link"
+                  href="{{ submission.github_link }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Open repository"
+                  aria-label="Open repository"
+                >Repository</a>
+              </div>
+              <p class="mono-note">
+                {{ submission.project.title }}
+              </p>
             </div>
-            <a href="{% url 'course' course.slug %}" class="primer-button primer-button-secondary w-fit">Back to Course</a>
-        </div>
-    </section>
-
-    {% if projects %}
-        <section class="mt-4 rounded-md border app-border app-surface px-4 py-3">
-            <h2 class="text-sm font-semibold app-heading">Project lists</h2>
-            <p class="mt-1 text-xs app-muted">Jump to submissions for a specific project.</p>
-            <div class="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-                {% for project in projects %}
-                    <a href="{% url 'project_list' course_slug=course.slug project_slug=project.slug %}"
-                       class="inline-flex items-center gap-2 text-sm font-medium app-link hover:underline">
-                        <span>{{ project.title }}</span>
-                        <span class="text-xs app-muted">{{ project.submissions_count }}</span>
-                    </a>
-                {% endfor %}
+            <div class="submission-outcome">
+              <span class="mono-note">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
+              <span class="mono-note">
+                {% if submission.display_score == -1 %}
+                  Score N/A
+                {% else %}
+                  {{ submission.display_score }} score
+                {% endif %}
+              </span>
+              {% if submission.display_score != -1 %}
+                {% if submission.passed %}
+                  <span class="status-pill status-pill-live">Passed</span>
+                {% else %}
+                  <span class="status-pill status-pill-wait">Not passed</span>
+                {% endif %}
+              {% endif %}
             </div>
-        </section>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="project-empty">
+        No project submissions yet.
+      </p>
     {% endif %}
-
-    <section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
-        {% if submissions %}
-            <div class="border-b app-border app-surface-muted px-4 py-3">
-                <p class="text-xs font-semibold uppercase app-muted">Submissions</p>
-                <p class="mt-1 text-sm app-muted">
-                    {{ submissions_page.paginator.count }} total. Vote on each individual project submissions page.
-                </p>
-            </div>
-
-            <div class="divide-y app-divide">
-                {% for submission in submissions %}
-                    <article class="px-4 py-3">
-                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div class="min-w-0">
-                                <div class="flex min-w-0 items-center gap-2">
-                                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=submission.enrollment.id %}"
-                                       class="min-w-0 font-medium app-link hover:underline">
-                                        {{ submission.enrollment.display_name }}
-                                    </a>
-                                    <a href="{{ submission.github_link }}"
-                                       target="_blank"
-                                       rel="noopener noreferrer"
-                                       class="shrink-0 text-xs app-link hover:underline"
-                                       title="Open repository"
-                                       aria-label="Open repository">
-                                        <i class="fas fa-external-link-alt"></i>
-                                    </a>
-                                </div>
-                                <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                                    <span class="app-muted">{{ submission.project.title }}</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-wrap items-center gap-3 text-sm">
-                                <span class="app-muted">{{ submission.vote_count }} vote{{ submission.vote_count|pluralize }}</span>
-                                <span class="font-semibold app-heading">
-                                    {% if submission.display_score == -1 %}Score N/A{% else %}{{ submission.display_score }} score{% endif %}
-                                </span>
-                                {% if submission.display_score != -1 %}
-                                    {% if submission.passed %}
-                                        <span class="app-badge app-badge-success">Passed</span>
-                                    {% else %}
-                                        <span class="app-badge app-badge-danger">Not passed</span>
-                                    {% endif %}
-                                {% endif %}
-                            </div>
-                        </div>
-                    </article>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p class="px-4 py-6 text-sm app-muted">No project submissions yet.</p>
-        {% endif %}
-
-        {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
-    </section>
+    {% include 'include/pagination.html' with pagination_page=submissions_page pagination_range=page_range pagination_label='Project submission pages' %}
+  </section>
 {% endblock %}

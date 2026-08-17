@@ -1,174 +1,399 @@
-{% extends 'base.html' %}
-{% load static %}
+{% load seo %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>DataTalks.Club Wrapped {{ year }}</title>
+    {% canonical_link canonical_url %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * DataTalks.Club Wrapped, design 5a (issue #179).  Wrapped is the
+       * year-in-review page, so it keeps the celebratory shape it has always
+       * had — a title band, big numbers, then the community's own totals —
+       * built from the system's own devices: the .stat-tile is the design's
+       * big-number card, the dashed .row-list carries the courses and the
+       * leaderboard, and the year closes on the ink band the system reserves
+       * for a page's final call to action.
+       *
+       * Nothing about the page's behaviour moved with the design: the
+       * no-data state, the signed-in-only personal section, the four
+       * community totals, the top-four course list, the leaderboard and
+       * every destination are exactly what courses/views/wrapped.py
+       * already supplied.
+       * ------------------------------------------------------------------ */
 
-{% block title %}
-  DataTalks.Club Wrapped {{ year }}
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block breadcrumbs %}
-  <li>
-    <a href="{% url 'wrapped' year %}">{{ year }} Wrapped</a>
-  </li>
-{% endblock %}
+      /* ------------------------------------------------------------------ *
+       * Wrapped rules.
+       * ------------------------------------------------------------------ */
 
-{% block content %}
-  {% if no_data %}
-    <section class="wrapped-hero">
-      <h1 class="text-2xl font-semibold app-heading md:text-3xl">DataTalks.Club Wrapped {{ year }}</h1>
-      <p class="mt-1 text-sm app-muted">Your year of learning in review.</p>
-    </section>
+      .wrapped-hero h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        margin-top: 0.6rem;
+      }
 
-    <section class="mt-6 rounded-md border app-alert-info p-4">
-      <h2 class="text-base font-semibold app-heading">Wrapped data is not available yet</h2>
-      <p class="mt-1 text-sm">
-        The {{ year }} Wrapped statistics are being calculated. Check back soon to see your year in review.
-      </p>
-    </section>
+      .wrapped-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
 
-    <section class="mt-6 border-t app-border pt-6">
-      <h2 class="text-lg font-semibold app-heading">Keep learning</h2>
-      <p class="mt-1 text-sm app-muted">Join us for more courses and challenges.</p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary w-fit">Explore courses</a>
-      </div>
-    </section>
-  {% else %}
-    <section class="wrapped-hero">
-      <h1 class="text-2xl font-semibold app-heading md:text-3xl">DataTalks.Club Wrapped {{ year }}</h1>
-      <p class="mt-1 text-sm app-muted">Your year of learning in review.</p>
-    </section>
+      /* The year's numbers are the page: the shared 2×2 tile grid opens into
+         as many columns as the width can hold, so five personal totals and
+         four community totals both read as one block. */
+      .wrapped-tiles {
+        grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+        margin-top: 1.5rem;
+      }
 
-    {% if user_stats %}
-      <section class="mt-8">
-        <h2 class="text-lg font-semibold app-heading">Your {{ year }} highlights</h2>
-        <p class="mt-1 text-sm app-muted">Everything you earned across the platform this year.</p>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <a href="{% url 'user_wrapped' year request.user.id %}" class="primer-button primer-button-secondary w-fit">
-            View your shareable Wrapped page
-          </a>
-        </div>
+      .wrapped-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.25rem;
+      }
 
-        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <div class="wrapped-stat">
-            <p class="wrapped-stat-label">Total points earned</p>
-            <p class="wrapped-stat-number">{{ user_stats.total_points }}</p>
-          </div>
-          <div class="wrapped-stat">
-            <p class="wrapped-stat-label">Hours of learning</p>
-            <p class="wrapped-stat-number">{{ user_stats.total_hours }}</p>
-          </div>
-          <div class="wrapped-stat">
-            <p class="wrapped-stat-label">Courses enrolled</p>
-            <p class="wrapped-stat-number">{{ user_stats.courses_enrolled|length }}</p>
-          </div>
-          <div class="wrapped-stat">
-            <p class="wrapped-stat-label">Certificates earned</p>
-            <p class="wrapped-stat-number">{{ user_stats.certificates_earned }}</p>
-          </div>
-          {% if user_rank %}
-            <div class="wrapped-stat">
-              <p class="wrapped-stat-label">Your global rank</p>
-              <p class="wrapped-stat-number">#{{ user_rank }}</p>
-            </div>
-          {% endif %}
+      .wrapped-course-score {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      /* A leaderboard row: the rank disc, the person, and the score.  The
+         disc is the system's numbered step marker; its three brand fills
+         mark the top three, and the number inside says the rank, so the
+         standing is never carried by colour alone. */
+      .wrapped-rank {
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      .wrapped-rank-1 {
+        background: var(--bubble);
+        color: var(--on-bubble);
+      }
+
+      .wrapped-rank-2 {
+        background: var(--indigo-soft);
+        color: var(--ink);
+      }
+
+      .wrapped-rank-3 {
+        background: var(--mint);
+        color: var(--green-ship);
+      }
+
+      .wrapped-name {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .wrapped-score {
+        color: var(--ink);
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+      }
+
+      .wrapped-empty {
+        border-bottom: 0;
+        color: var(--body-text);
+        padding-block: 1.5rem;
+      }
+
+      /* The closing band, in the ink treatment the homepage's closing band
+         defines: the two fixed literals are the sanctioned ones that must not
+         flip with the theme. */
+      .wrapped-closing {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        justify-content: space-between;
+      }
+
+      .wrapped-closing > div {
+        flex: 1 1 26rem;
+      }
+
+      .wrapped-closing > .cta {
+        flex: none;
+      }
+
+      .wrapped-closing h2 {
+        color: #ffffff;
+        font-size: clamp(1.15rem, 2.4vw, 1.55rem);
+      }
+
+      .wrapped-closing p {
+        color: #d7d9e6;
+        font-size: 0.88rem;
+        margin-top: 0.5rem;
+      }
+
+      .wrapped-closing .cta-primary {
+        border-color: #ffffff;
+        box-shadow: none;
+      }
+
+      @media (min-width: 48rem) {
+        .wrapped-leaderboard-row {
+          --row-cols: 3.4rem minmax(0, 1fr) auto;
+        }
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Reshape on a phone: every action becomes a full-width row instead of
+           a wrapped grid of half-width buttons. */
+        .wrapped-actions {
+          display: grid;
+        }
+
+        .wrapped-closing > .cta {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      {% comment %}
+        Wrapped is the index of its own year, so it carries no breadcrumb: the
+        only crumb it could draw is a link to the page the reader is on.  The
+        shareable per-person page below it does carry the trail back here.
+      {% endcomment %}
+      <section class="band band-cream wrapped-hero" aria-labelledby="wrapped-heading">
+        <div class="shell">
+          <p class="mono-label mono-label-indigo">Year in review</p>
+          <h1 id="wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>
+          <p class="wrapped-lede">Your year of learning in review.</p>
         </div>
       </section>
 
-      {% if user_stats.courses_enrolled %}
-        <section class="mt-8">
-          <h2 class="text-lg font-semibold app-heading">Your courses</h2>
-          <div class="mt-3 overflow-hidden rounded-md border app-border app-surface">
-            <div class="divide-y app-divide">
-              {% for course in user_stats.courses_enrolled %}
-                <a href="{% url 'leaderboard_score_breakdown' course.slug course.enrollment_id %}"
-                   class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 no-underline app-hover-muted">
-                  <span class="min-w-0 font-medium app-link">{{ course.title }}</span>
-                  <span class="text-sm app-muted">{{ course.score }} points</span>
+      {% if no_data %}
+        <section class="band band-lavender" aria-labelledby="wrapped-pending-heading">
+          <div class="shell">
+            <div class="panel panel-lavender panel-outlined" role="status">
+              <h2 id="wrapped-pending-heading">Wrapped data is not available yet</h2>
+              <p>
+                The {{ year }} Wrapped statistics are being calculated. Check back soon to see your year in review.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section class="band band-ink" aria-labelledby="wrapped-keep-learning-heading">
+          <div class="shell wrapped-closing">
+            <div>
+              <h2 id="wrapped-keep-learning-heading">Keep learning</h2>
+              <p>Join us for more courses and challenges.</p>
+            </div>
+            <a class="cta cta-primary" href="{% url 'course_list' %}">Explore courses</a>
+          </div>
+        </section>
+      {% else %}
+        {% if user_stats %}
+          <section class="band band-lavender" aria-labelledby="your-highlights-heading">
+            <div class="shell">
+              <div class="band-head">
+                <div>
+                  <h2 id="your-highlights-heading">Your {{ year }} highlights</h2>
+                  <p>Everything you earned across the platform this year.</p>
+                </div>
+              </div>
+              <div class="wrapped-actions">
+                <a
+                  class="cta cta-compact cta-secondary"
+                  href="{% url 'user_wrapped' year request.user.id %}"
+                >
+                  View your shareable Wrapped page
                 </a>
+              </div>
+              <div class="stat-tiles wrapped-tiles">
+                <div class="stat-tile">
+                  <strong>{{ user_stats.total_points }}</strong>
+                  <span>Total points earned</span>
+                </div>
+                <div class="stat-tile">
+                  <strong>{{ user_stats.total_hours }}</strong>
+                  <span>Hours of learning</span>
+                </div>
+                <div class="stat-tile">
+                  <strong>{{ user_stats.courses_enrolled|length }}</strong>
+                  <span>Courses enrolled</span>
+                </div>
+                <div class="stat-tile">
+                  <strong>{{ user_stats.certificates_earned }}</strong>
+                  <span>Certificates earned</span>
+                </div>
+                {% if user_rank %}
+                  <div class="stat-tile">
+                    <strong>#{{ user_rank }}</strong>
+                    <span>Your global rank</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          </section>
+
+          {% if user_stats.courses_enrolled %}
+            <section class="band band-cream" aria-labelledby="your-courses-heading">
+              <div class="shell">
+                <div class="band-head">
+                  <div>
+                    <h2 id="your-courses-heading">Your courses</h2>
+                  </div>
+                </div>
+                <div class="row-list">
+                  {% for course in user_stats.courses_enrolled %}
+                    <div class="list-row">
+                      <p>
+                        <a href="{% url 'leaderboard_score_breakdown' course.slug course.enrollment_id %}">
+                          {{ course.title }}
+                        </a>
+                      </p>
+                      <p class="wrapped-course-score">{{ course.score }} points</p>
+                    </div>
+                  {% endfor %}
+                </div>
+              </div>
+            </section>
+          {% endif %}
+        {% endif %}
+
+        <section class="band band-lavender" aria-labelledby="community-highlights-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="community-highlights-heading">Community highlights {{ year }}</h2>
+                <p>What the whole community achieved together.</p>
+              </div>
+            </div>
+            <div class="stat-tiles wrapped-tiles">
+              <div class="stat-tile">
+                <strong>{{ platform_stats.total_enrollments|default:"0" }}</strong>
+                <span>Total participants</span>
+              </div>
+              <div class="stat-tile">
+                <strong>{{ platform_stats.total_hours|default:"0" }}</strong>
+                <span>Total hours learning</span>
+              </div>
+              <div class="stat-tile">
+                <strong>{{ platform_stats.total_certificates|default:"0" }}</strong>
+                <span>Certificates awarded</span>
+              </div>
+              <div class="stat-tile">
+                <strong>{{ platform_stats.total_points|default:"0" }}</strong>
+                <span>Total points earned</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {% if platform_stats.course_stats %}
+          <section class="band band-cream" aria-labelledby="popular-courses-heading">
+            <div class="shell">
+              <div class="band-head">
+                <div>
+                  <h2 id="popular-courses-heading">Most popular courses in {{ year }}</h2>
+                </div>
+              </div>
+              <div class="row-list">
+                {% for course_stat in platform_stats.course_stats %}
+                  <div class="list-row">
+                    <p>
+                      <a href="{% url 'course' course_stat.slug %}">{{ course_stat.title }}</a>
+                    </p>
+                    <p class="wrapped-course-score">{{ course_stat.enrollment_count }} participants</p>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          </section>
+        {% endif %}
+
+        <section class="band band-lavender" aria-labelledby="wrapped-leaderboard-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="wrapped-leaderboard-heading">Top {{ year }} leaderboard</h2>
+              </div>
+            </div>
+            <div class="row-list">
+              {% for entry in leaderboard %}
+                <div class="list-row wrapped-leaderboard-row">
+                  {% if entry.rank == 1 %}
+                    <p class="step-number wrapped-rank wrapped-rank-1">
+                      <span class="sr-only">Rank</span>
+                      {{ entry.rank }}
+                    </p>
+                  {% elif entry.rank == 2 %}
+                    <p class="step-number wrapped-rank wrapped-rank-2">
+                      <span class="sr-only">Rank</span>
+                      {{ entry.rank }}
+                    </p>
+                  {% elif entry.rank == 3 %}
+                    <p class="step-number wrapped-rank wrapped-rank-3">
+                      <span class="sr-only">Rank</span>
+                      {{ entry.rank }}
+                    </p>
+                  {% else %}
+                    <p class="step-number wrapped-rank">
+                      <span class="sr-only">Rank</span>
+                      {{ entry.rank }}
+                    </p>
+                  {% endif %}
+                  <p class="wrapped-name">
+                    <a href="{% url 'user_wrapped' year entry.student_id %}">
+                      {{ entry.display_name }}
+                    </a>
+                    {% if user.is_authenticated and entry.student_id == user.id %}
+                      <span class="status-pill status-pill-open">you</span>
+                    {% endif %}
+                  </p>
+                  <p class="wrapped-score">
+                    <span class="sr-only">Score</span>
+                    {{ entry.total_score }}
+                  </p>
+                </div>
+              {% empty %}
+                <p class="wrapped-empty">No leaderboard data available for {{ year }}.</p>
               {% endfor %}
             </div>
           </div>
         </section>
-      {% endif %}
-    {% endif %}
 
-    <section class="mt-8">
-      <h2 class="text-lg font-semibold app-heading">Community highlights {{ year }}</h2>
-      <p class="mt-1 text-sm app-muted">What the whole community achieved together.</p>
-      <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="wrapped-stat">
-          <p class="wrapped-stat-label">Total participants</p>
-          <p class="wrapped-stat-number">{{ platform_stats.total_enrollments|default:"0" }}</p>
-        </div>
-        <div class="wrapped-stat">
-          <p class="wrapped-stat-label">Total hours learning</p>
-          <p class="wrapped-stat-number">{{ platform_stats.total_hours|default:"0" }}</p>
-        </div>
-        <div class="wrapped-stat">
-          <p class="wrapped-stat-label">Certificates awarded</p>
-          <p class="wrapped-stat-number">{{ platform_stats.total_certificates|default:"0" }}</p>
-        </div>
-        <div class="wrapped-stat">
-          <p class="wrapped-stat-label">Total points earned</p>
-          <p class="wrapped-stat-number">{{ platform_stats.total_points|default:"0" }}</p>
-        </div>
-      </div>
-    </section>
-
-    {% if platform_stats.course_stats %}
-      <section class="mt-8">
-        <h2 class="text-lg font-semibold app-heading">Most popular courses in {{ year }}</h2>
-        <div class="mt-3 overflow-hidden rounded-md border app-border app-surface">
-          <div class="divide-y app-divide">
-            {% for course_stat in platform_stats.course_stats %}
-              <a href="{% url 'course' course_stat.slug %}"
-                 class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 no-underline app-hover-muted">
-                <span class="min-w-0 font-medium app-link">{{ course_stat.title }}</span>
-                <span class="text-sm app-muted">{{ course_stat.enrollment_count }} participants</span>
-              </a>
-            {% endfor %}
-          </div>
-        </div>
-      </section>
-    {% endif %}
-
-    <section class="mt-8">
-      <h2 class="text-lg font-semibold app-heading">Top {{ year }} leaderboard</h2>
-      <div class="mt-3 overflow-hidden rounded-md border app-border app-surface">
-        <div class="grid grid-cols-[44px_minmax(0,1fr)_72px] border-b app-border app-surface-muted px-4 py-2 text-xs font-semibold uppercase app-muted md:grid-cols-[56px_minmax(0,1fr)_96px]">
-          <div>Rank</div>
-          <div>Name</div>
-          <div class="text-right">Score</div>
-        </div>
-        <div class="divide-y app-divide">
-          {% for entry in leaderboard %}
-            <div class="grid grid-cols-[44px_minmax(0,1fr)_72px] items-center px-4 py-3 text-sm md:grid-cols-[56px_minmax(0,1fr)_96px] {% if user.is_authenticated and entry.student_id == user.id %}app-alert-info{% endif %}">
-              <div>
-                <span class="wrapped-rank {% if entry.rank == 1 %}wrapped-rank-1{% elif entry.rank == 2 %}wrapped-rank-2{% elif entry.rank == 3 %}wrapped-rank-3{% else %}wrapped-rank-other{% endif %}">
-                  {{ entry.rank }}
-                </span>
-              </div>
-              <div class="min-w-0">
-                <a href="{% url 'user_wrapped' year entry.student_id %}"
-                   class="min-w-0 font-medium app-link hover:underline md:truncate">
-                  {{ entry.display_name }}
-                </a>
-              </div>
-              <div class="text-right font-semibold app-heading">{{ entry.total_score }}</div>
+        <section class="band band-ink" aria-labelledby="wrapped-next-year-heading">
+          <div class="shell wrapped-closing">
+            <div>
+              <h2 id="wrapped-next-year-heading">Keep learning in {{ year|add:1 }}</h2>
+              <p>Join us for more courses and challenges.</p>
             </div>
-          {% empty %}
-            <p class="px-4 py-6 text-sm app-muted">No leaderboard data available for {{ year }}.</p>
-          {% endfor %}
-        </div>
-      </div>
-    </section>
-
-    <section class="mt-8 border-t app-border pt-6">
-      <h2 class="text-lg font-semibold app-heading">Keep learning in {{ year|add:1 }}</h2>
-      <p class="mt-1 text-sm app-muted">Join us for more courses and challenges.</p>
-      <div class="mt-3 flex flex-wrap gap-2">
-        <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary w-fit">Explore courses</a>
-      </div>
-    </section>
-  {% endif %}
-{% endblock %}
+            <a class="cta cta-primary" href="{% url 'course_list' %}">Explore courses</a>
+          </div>
+        </section>
+      {% endif %}
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>
