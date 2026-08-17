@@ -156,6 +156,7 @@ Mounted from `courses.urls`.
 | `preview_peer_review_email` | `courses` | Preview the peer-review-assignment email for a project. |
 | `process_datamailer_outbox` | `data` | Dispatch pending/retrying Datamailer outbox events. |
 | `reconcile_accounts` | `accounts` | Dry-run, apply, or rollback-check reviewed account mappings. |
+| `seed_local_courses` | `courses` | Seed the local development database with the pinned public course catalog so / and /courses show the same real courses. |
 | `send_deadline_reminders` | `courses` | Send Datamailer deadline reminders with transient recipient lists. |
 | `sync_datamailer_contacts` | `courses` | Backfill Datamailer contacts from CMP users. |
 | `sync_datamailer_recipient_lists` | `courses` | Backfill Datamailer recipient lists from CMP registrations, enrollments, and submissions. |

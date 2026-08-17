@@ -85,7 +85,12 @@ def course_specs(
 
 @dataclass(frozen=True, slots=True)
 class CourseModule:
-    """One row of the module accordion: a homework or a project, in deadline order."""
+    """One unit of course work: a homework or a project, in deadline order.
+
+    The page draws homework and projects as two tables of their own rows, so this
+    numbering is no longer rendered; it is how the learner's submitted-module count
+    below is taken across both lists at once.
+    """
 
     number: str
     kind: str
@@ -96,7 +101,7 @@ def course_modules(homeworks: list, projects: list) -> tuple[CourseModule, ...]:
     """Number the course's homework and project rows as one continuous module list.
 
     The page shows homework first and projects after, which is the order the two
-    context builders already return and the order the old table rendered.
+    context builders already return and the order the two tables render.
     """
 
     modules: list[CourseModule] = []

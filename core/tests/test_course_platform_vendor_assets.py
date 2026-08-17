@@ -126,10 +126,15 @@ class CoursePlatformRenderedVendorAssetTests(TestCase):
                 self.assertNotIn('<link rel="stylesheet"', rendered)
                 self.assertNotIn("/static/core/vendor/", rendered)
 
-        # The pages still on the adopted shell keep the vendored copies of the
-        # assets that shell used to fetch from a CDN, in the order it loads them.
-        # The contract is read from that shell itself rather than from whichever
-        # page has not been rebuilt yet, so it holds until the shell is deleted.
+        # No page is left on the adopted shell: issue #179 finished the design 5a
+        # port and nothing extends `base.html` any more.  The shell itself is still
+        # in the tree because the course-platform adoption manifests have no way to
+        # record a copied file the target has stopped using, so this assertion keeps
+        # its subject: while those bytes are shipped they must keep naming the local
+        # vendored copies, in load order, rather than a CDN.  The vendored assets do
+        # not depend on it — `verify()` above proves every recorded target exists,
+        # matches its provenance digest and references no external URL — so when the
+        # shell is retired this block goes with it and nothing else changes.
         adopted_shell = (ROOT / "course_platform_templates/base.html").read_text(encoding="utf-8")
         self.assertIn("core/vendor/fontawesome-free-5.15.1/css/all.min.css", adopted_shell)
         self.assertIn("core/vendor/tailwindcss-3.4.17/tailwindcss-3.4.17.js", adopted_shell)

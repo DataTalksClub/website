@@ -1,4 +1,12 @@
-"""Contracts for the design 5a course page (issue #179, mockup 6b)."""
+"""Contracts for the design 5a course page (issue #179, mockup 6b).
+
+The page's *arrangement* is the one it carried before the design 5a port and the
+one the reference course page still has: a left-aligned hero, one row of every
+action the course offers, then a Homework table and a Projects table whose
+deadlines and states are all readable at once.  Mockup 6b's centred hero and
+single module accordion are not part of that contract; its colours, pills, mono
+labels and panels are.
+"""
 
 import re
 
@@ -113,17 +121,71 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
             with self.subTest(token=leak):
                 self.assertNotIn(leak, body)
 
-    def test_every_homework_and_project_becomes_a_numbered_module(self):
-        response = self.client.get(self.course_url())
+    def test_homework_and_projects_are_two_tables_of_open_rows(self):
+        """The arrangement the page carried before the port, restored.
 
-        modules = response.context["course_modules"]
-        self.assertEqual(
-            len(modules),
-            len(response.context["homeworks"]) + len(response.context["projects"]),
+        Homework and projects are separate sections again, each a dashed row
+        list with a caption row, and every deadline and state is on the page at
+        once instead of behind a disclosure.
+        """
+
+        response = self.client.get(self.course_url())
+        body = response.content.decode()
+        page = body[body.index("<main") : body.index("</main>")]
+
+        homework_count = len(response.context["homeworks"])
+        project_count = len(response.context["projects"])
+        self.assertContains(response, 'id="homework-heading"')
+        self.assertContains(response, 'id="projects-heading"')
+        self.assertContains(response, 'class="row-list course-rows"', count=2)
+        self.assertContains(response, 'class="list-row course-rows-head"', count=2)
+        self.assertContains(
+            response,
+            'class="list-row"',
+            count=homework_count + project_count,
         )
-        self.assertContains(response, 'class="module-list"')
-        self.assertContains(response, "<details class=\"module\" open>", count=1)
-        self.assertContains(response, 'class="module-number"', count=len(modules))
+        # Nothing on the page has to be opened to read a deadline or a state.
+        self.assertNotIn("<details", page)
+
+    def test_a_course_row_carries_its_deadline_beside_its_title(self):
+        homework = self.homeworks[-1]
+
+        response = self.client.get(self.course_url())
+        body = response.content.decode()
+
+        row = re.search(
+            rf'<div class="list-row">(?:(?!</div>\s*</div>).)*?{re.escape(homework.title)}.*?'
+            r'<div class="course-row-state">.*?</div>',
+            body,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(row)
+        self.assertIn('class="course-row-when"', row.group(0))
+        self.assertIn('class="time-left"', row.group(0))
+        self.assertIn('class="status-pill', row.group(0))
+
+    def test_every_band_holds_the_shared_reading_column(self):
+        """The course page holds the column the rest of the site holds."""
+
+        body = self.client.get(self.course_url()).content.decode()
+        page = body[body.index("<main") : body.index("</main>")]
+
+        shells = re.findall(r'class="(shell[^"]*)"', page)
+        self.assertTrue(shells)
+        for shell in shells:
+            with self.subTest(shell=shell):
+                self.assertIn("shell-reading", shell)
+
+    def test_the_course_profile_is_an_action_beside_the_others(self):
+        """Every control the course offers is in the one row of actions."""
+
+        self.client.login(**credentials)
+
+        body = self.client.get(self.course_url()).content.decode()
+
+        profile_url = reverse("enrollment", kwargs={"course_slug": self.course.slug})
+        self.assertLess(body.index('class="course-actions"'), body.index(profile_url))
+        self.assertLess(body.index(profile_url), body.index("Your work in this course"))
 
     def test_a_signed_out_visitor_sees_no_learner_panel(self):
         response = self.client.get(self.course_url())
@@ -224,7 +286,7 @@ class CoursePageBreadcrumbTests(CourseDetailViewTestBase):
     def breadcrumb_nav(self):
         body = self.client.get(self.course_url()).content.decode()
         trails = re.findall(
-            r'<nav class="shell breadcrumbs" aria-label="Breadcrumb">(.*?)</nav>',
+            r'<nav class="[^"]*\bbreadcrumbs\b[^"]*" aria-label="Breadcrumb">(.*?)</nav>',
             body,
             re.DOTALL,
         )

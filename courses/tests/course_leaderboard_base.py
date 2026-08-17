@@ -318,8 +318,13 @@ class CourseLeaderboardViewTestBase(TestCase):
         )
 
     def assert_score_breakdown_links(self, response):
-        self.assertContains(response, "<details", count=2)
-        self.assertContains(response, "<summary", count=2)
+        # Count inside <main>, not the document: the shared design 5a shell draws
+        # its own disclosures (the phone menu, the account menu), so a whole-page
+        # count measures the masthead rather than this page's two breakdowns.
+        body = response.content.decode()
+        main = body[body.index("<main") : body.index("</main>")]
+        self.assertEqual(main.count("<details"), 2)
+        self.assertEqual(main.count("<summary"), 2)
         self.assertContains(response, "<strong>FAQ URL:</strong>", count=2)
         self.assertContains(response, "View submission", count=2)
         self.assertContains(response, "https://example.com/homework-post")

@@ -22,53 +22,57 @@
     <meta name="twitter:description" content="{{ course.home_outcome|striptags|truncatechars:180 }}">
     <style>
       /* ------------------------------------------------------------------ *
-       * Course page, design 5a mockup 6b (issue #179).  Like the homepage,
-       * this page carries its own complete stylesheet: the shared design
-       * system partial first, then the rules that shape this page only.  It
-       * deliberately loads none of the older site CSS.
+       * Course page, design 5a (issue #179).  Like the homepage, this page
+       * carries its own complete stylesheet: the shared design system partial
+       * first, then the rules that shape this page only.  It deliberately
+       * loads none of the older site CSS.
+       *
+       * The arrangement is the one this page had before the port — a
+       * left-aligned hero, one row of actions, then a Homework table and a
+       * Projects table whose deadlines and states are all visible at once —
+       * drawn entirely in the design 5a vocabulary.  Mockup 6b's centred hero
+       * and single module accordion hid the assignment list behind a click on
+       * a page whose whole job is to show it.
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
        * Course-page-specific rules.  Every shared primitive this page uses —
-       * .module, .spec-strip, .status-pill, .progress, .ship-line, .panel,
-       * .cta, .field — lives in the partial above.
+       * .shell-reading, .row-list/.list-row, .spec-strip, .status-pill,
+       * .progress, .ship-line, .panel, .cta, .mono-label — lives in the
+       * partial above.
        * ------------------------------------------------------------------ */
 
       /* --- hero --------------------------------------------------------- */
 
       /* The breadcrumb links carry the system's 2.75rem target height, so the
          row brings its own air; fold most of it into the band's top padding
-         and keep a small gap above the centred hero column. */
+         and keep a small gap above the hero column. */
       .course-hero .breadcrumbs {
         margin-bottom: 0.35rem;
         margin-top: -0.85rem;
       }
 
-      /* Mockup 6b is a single centred column: the cohort eyebrow, the title,
-         the promise, the description, the actions and then the fact strip. */
+      /* One left-aligned column, the shape this page carried before the design
+         5a port and the shape the reference course page still has: the cohort
+         eyebrow, the title, the promise, the description, one row of actions,
+         the operator link, this learner's own line and then the fact strip.
+         Everything the reader came for — the assignments — starts directly
+         under it. */
       .course-hero-inner {
         display: grid;
-        gap: 0.85rem;
-        justify-items: center;
-        text-align: center;
+        gap: 0.8rem;
       }
 
       .course-hero h1 {
-        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        font-size: clamp(1.95rem, 4.4vw, 2.6rem);
         letter-spacing: -0.03em;
-        max-width: 20ch;
-      }
-
-      .course-hero .ship-line {
-        max-width: 40ch;
       }
 
       .course-lede {
         color: var(--body-text);
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        max-width: 46rem;
+        font-size: 1rem;
       }
 
       .course-lede p {
@@ -79,23 +83,24 @@
         margin-bottom: 0;
       }
 
+      /* One wrapping row of controls, as the old page had it: every action this
+         course offers is reachable without opening anything.  They take the
+         compact CTA the course index already uses, so six of them wrap into a
+         row instead of stacking into a wall of full-height buttons. */
       .course-actions {
         display: flex;
         flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: center;
-        margin-top: 0.4rem;
+        gap: 0.6rem;
       }
 
       .course-fineprint {
         color: var(--muted);
         font-size: 0.92rem;
-        max-width: 40rem;
       }
 
       /* The fact strip is a dl, so its dd needs its default margin removed. */
       .course-specs {
-        margin-top: 1.4rem;
+        margin-top: 0.5rem;
         width: 100%;
       }
 
@@ -103,27 +108,26 @@
         margin: 0;
       }
 
-      /* --- the signed-in learner's own panel ---------------------------- */
+      /* --- the signed-in learner's own line ----------------------------- */
 
-      /* Everything about *this* learner — score, how much has been handed in,
-         the certificate and the course profile — sits in one mint panel under
-         the facts, so the marketing hero above it stays the same for everyone. */
+      /* What *this* learner has done reads as a short block under the actions,
+         the way the old page carried its "Total score" line, rather than as a
+         card that pushes the assignments off the first screen. */
       .course-learner {
-        margin-top: 1.5rem;
-        text-align: left;
-        width: 100%;
+        display: grid;
+        gap: 0.45rem;
+        justify-items: start;
       }
 
       .course-learner-head {
-        align-items: baseline;
+        align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.5rem 1rem;
-        justify-content: space-between;
+        gap: 0.6rem;
       }
 
       .course-learner h2 {
-        font-size: 1.15rem;
+        font-size: 1rem;
       }
 
       .course-score {
@@ -133,19 +137,61 @@
       }
 
       .course-score strong {
-        font-size: 1.6rem;
+        font-size: 1.35rem;
       }
 
-      .course-learner-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
+      .course-progress {
+        display: grid;
+        gap: 0.3rem;
+        max-width: 22rem;
+        width: 100%;
       }
 
-      /* --- modules ------------------------------------------------------ */
+      .course-operator {
+        font-size: 0.92rem;
+      }
 
-      .module-open-link {
+      /* --- the homework and project rows -------------------------------- */
+
+      /* The two tables the page carried before the port, drawn with the design
+         system's dashed row list: one row per assignment, its deadline and its
+         state readable without opening anything.  The column set is stated once
+         on the list because custom properties inherit; the status column sizes
+         to its widest pill so a long state name never squeezes the title. */
+      .course-rows {
+        --row-cols: minmax(0, 1fr) 11.5rem auto;
+      }
+
+      .course-rows .list-row {
+        column-gap: 1rem;
+      }
+
+      /* Column captions belong to the wide layout only: below 48rem the row
+         list stacks and each cell reads on its own line. */
+      .course-rows-head {
+        display: none;
+      }
+
+      .course-row-title {
+        font-size: 0.98rem;
         font-weight: 700;
+      }
+
+      .course-row-when {
+        color: var(--body-text);
+        font-size: 0.85rem;
+      }
+
+      .course-row-note {
+        color: var(--muted);
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+      }
+
+      .course-more {
+        margin-top: 1.5rem;
+        text-align: center;
       }
 
       /* The countdown text is written by time_left.js, so it sits beside the
@@ -176,7 +222,7 @@
         font-weight: 700;
       }
 
-      .module-empty {
+      .course-empty {
         text-align: center;
       }
 
@@ -185,6 +231,7 @@
       .course-closing {
         display: grid;
         gap: 1.25rem;
+        margin-top: 2.75rem;
       }
 
       .course-closing h3 {
@@ -202,46 +249,19 @@
         font-size: 0.92rem;
       }
 
-      .course-operator {
-        border-top: 2px dashed var(--line-soft);
-        margin-top: 1.5rem;
-        padding-top: 1rem;
-      }
+      /* --- wide layout -------------------------------------------------- */
 
-      /* --- narrow layout ------------------------------------------------ */
-
-      /* Reshape rather than reflow: the hero stops centring so long titles and
-         descriptions read as a normal column, and every action becomes a
-         full-width row instead of a wrapped grid of half-width buttons. */
-      @media (max-width: 47.99rem) {
-        .course-hero-inner {
-          justify-items: stretch;
-          text-align: left;
-        }
-
-        .course-hero h1 {
-          max-width: none;
-        }
-
-        .course-actions {
+      /* 48rem is where the row list becomes a grid, so it is also where the
+         column captions and the right-hand status column start to mean
+         something. */
+      @media (min-width: 48rem) {
+        .course-rows-head {
           display: grid;
-          justify-content: stretch;
+          padding-block: 0.5rem;
         }
 
-        .course-specs {
-          text-align: left;
-        }
-
-        .course-learner-links {
-          display: grid;
-        }
-      }
-
-      /* Two panels sit side by side; a single panel (an enrolled learner has no
-         register panel) keeps the full column instead of half an empty row. */
-      @media (min-width: 62rem) {
-        .course-closing {
-          grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+        .course-row-state {
+          text-align: right;
         }
       }
     </style>
@@ -266,7 +286,7 @@
           The trail the adopted shell used to draw, restored as a design 5a
           primitive: the ancestor index is a link, the current page is text.
         {% endcomment %}
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -276,7 +296,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell course-hero-inner">
+        <div class="shell shell-reading course-hero-inner">
           {% if registration_campaign.edition_label %}
             <p class="mono-label mono-label-indigo">{{ registration_campaign.edition_label }}</p>
           {% else %}
@@ -287,17 +307,26 @@
             <p class="ship-line">you'll ship: {{ course_ship_line }}</p>
           {% endif %}
           <div class="course-lede">{{ course.home_outcome|urlize_target_blank }}</div>
+          {% comment %}
+            One row with every control the course offers, the way the page
+            carried them before the port: register, the materials, the
+            leaderboard and dashboard, and — for the learner who has them —
+            the course profile and the certificate.
+          {% endcomment %}
           <div class="course-actions">
             {% if registration_campaign and not has_enrollment and not has_registration %}
-              <a class="cta cta-primary" href="{% url 'registration_campaign' registration_campaign.slug %}">
+              <a
+                class="cta cta-compact cta-primary"
+                href="{% url 'registration_campaign' registration_campaign.slug %}"
+              >
                 Register for the cohort
               </a>
             {% elif course.registration_url and not has_enrollment %}
-              <a class="cta cta-primary" href="{{ course.registration_url }}">Register</a>
+              <a class="cta cta-compact cta-primary" href="{{ course.registration_url }}">Register</a>
             {% endif %}
             {% if course.github_repo_url %}
               <a
-                class="cta cta-secondary cta-lift"
+                class="cta cta-compact cta-secondary"
                 href="{{ course.github_repo_url }}"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -306,36 +335,42 @@
               </a>
             {% endif %}
             {% if course.first_homework_scored %}
-              <a class="cta cta-secondary" href="{% url 'leaderboard' course.slug %}">Course leaderboard</a>
+              <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard' course.slug %}">
+                Course leaderboard
+              </a>
             {% endif %}
             {% if course.first_homework_scored %}
-              <a class="cta cta-secondary" href="{% url 'dashboard' course.slug %}">Course dashboard</a>
+              <a class="cta cta-compact cta-secondary" href="{% url 'dashboard' course.slug %}">
+                Course dashboard
+              </a>
+            {% endif %}
+            {% if is_authenticated and has_enrollment %}
+              <a class="cta cta-compact cta-secondary" href="{% url 'enrollment' course.slug %}">
+                Edit course profile
+              </a>
+            {% endif %}
+            {% if is_authenticated and certificate_url %}
+              <a
+                class="cta cta-compact cta-secondary"
+                href="{{ certificate_url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Download Certificate
+              </a>
             {% endif %}
           </div>
-          {% if signup_count %}
-            <p class="course-fineprint">
-              The course is already open — {{ signup_count }} people have signed up for this cohort.
+          {% if can_access_course_studio %}
+            <p class="course-operator">
+              <a class="band-link" href="{% url 'studio_courses_course' course.slug %}">
+                Manage course in Studio →
+              </a>
             </p>
           {% endif %}
-          {% if course_specs %}
-            <dl class="spec-strip course-specs">
-              {% for spec in course_specs %}
-                <div class="spec">
-                  <dt class="mono-label">{{ spec.label }}</dt>
-                  <dd>
-                    <strong>{{ spec.value }}</strong>
-                  </dd>
-                </div>
-              {% endfor %}
-            </dl>
-          {% endif %}
           {% if is_authenticated %}
-            <aside
-              class="panel panel-mint panel-outlined course-learner"
-              aria-labelledby="learner-heading"
-            >
+            <div class="course-learner">
               <div class="course-learner-head">
-                <h2 id="learner-heading">Your work in this course</h2>
+                <h2>Your work in this course</h2>
                 {% if has_enrollment %}
                   <span class="status-pill">enrolled</span>
                 {% else %}
@@ -349,285 +384,241 @@
                 </p>
               {% endif %}
               {% if submission_progress %}
-                <div
-                  class="progress"
-                  role="progressbar"
-                  aria-valuemin="0"
-                  aria-valuemax="{{ submission_progress.total }}"
-                  aria-valuenow="{{ submission_progress.submitted }}"
-                  aria-label="Modules you have submitted"
-                >
-                  <div class="progress-fill" style="width: {{ submission_progress.percent }}%"></div>
-                </div>
-                <p class="mono-note">
-                  {{ submission_progress.submitted }} of {{ submission_progress.total }} modules submitted
-                </p>
-              {% endif %}
-              <div class="course-learner-links">
-                {% if has_enrollment %}
-                  <a class="cta cta-compact cta-secondary" href="{% url 'enrollment' course.slug %}">
-                    Edit course profile
-                  </a>
-                {% endif %}
-                {% if certificate_url %}
-                  <a
-                    class="cta cta-compact cta-secondary"
-                    href="{{ certificate_url }}"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <div class="course-progress">
+                  <div
+                    class="progress"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="{{ submission_progress.total }}"
+                    aria-valuenow="{{ submission_progress.submitted }}"
+                    aria-label="Modules you have submitted"
                   >
-                    Download Certificate
-                  </a>
-                {% endif %}
-              </div>
-            </aside>
+                    <div class="progress-fill" style="width: {{ submission_progress.percent }}%"></div>
+                  </div>
+                  <p class="mono-note">
+                    {{ submission_progress.submitted }} of {{ submission_progress.total }} modules submitted
+                  </p>
+                </div>
+              {% endif %}
+            </div>
+          {% endif %}
+          {% if course_specs %}
+            <dl class="spec-strip course-specs">
+              {% for spec in course_specs %}
+                <div class="spec">
+                  <dt class="mono-label">{{ spec.label }}</dt>
+                  <dd>
+                    <strong>{{ spec.value }}</strong>
+                  </dd>
+                </div>
+              {% endfor %}
+            </dl>
           {% endif %}
         </div>
       </section>
 
-      <section class="band band-lavender" aria-labelledby="modules-heading">
-        <div class="shell">
-          <div class="band-head">
-            <div>
-              <h2 id="modules-heading">The modules</h2>
-              <p>Open a module for its deadline, your status and the page you hand work in on.</p>
-            </div>
-          </div>
-          {% if course_modules %}
-            <div class="module-list">
-              {% for module in course_modules %}
-                {% if forloop.first %}
-                  <details class="module" open>
-                {% else %}
-                  <details class="module">
-                {% endif %}
-                  {% if module.kind == "homework" %}
-                    <summary>
-                      <span class="module-number" aria-hidden="true">{{ module.number }}</span>
-                      <span class="module-title">{{ module.item.title }}</span>
-                      <span class="module-due">due {{ module.item.due_date|user_date_short:request }}</span>
-                      <span class="module-marker" aria-hidden="true"></span>
-                      <span class="module-summary">
-                        {% if module.item.state == 'CL' %}
-                          <span class="status-pill status-pill-wait">Closed</span>
-                        {% elif module.item.is_scored and module.item.submitted %}
-                          <span class="status-pill status-pill-live">Scored ({{ module.item.score }})</span>
-                        {% elif module.item.is_scored %}
-                          <span class="status-pill status-pill-mint">Scored</span>
-                        {% elif module.item.submitted %}
-                          <span class="status-pill status-pill-live">Submitted</span>
-                        {% else %}
-                          <span class="status-pill status-pill-open">Open</span>
-                        {% endif %}
-                      </span>
-                    </summary>
-                    <dl class="module-body">
-                      {% if module.item.is_scored %}
-                        <div class="module-fact">
-                          <dt>deadline</dt>
-                          <dd>{{ module.item.due_date|user_datetime:request }}</dd>
-                        </div>
-                        <div class="module-fact">
-                          <dt>state</dt>
-                          <dd>Already scored</dd>
-                        </div>
+      {% comment %}
+        The assignments, as two tables under one content band: Homework then
+        Projects, the arrangement the page carried before the design 5a port.
+        Every deadline and every state is on the page at once, and the title is
+        the link to the page work is handed in on — nothing has to be opened to
+        find out when something is due.
+      {% endcomment %}
+      <section class="band band-lavender">
+        <div class="shell shell-reading">
+          {% if homeworks %}
+            <section aria-labelledby="homework-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="homework-heading">Homework</h2>
+                </div>
+              </div>
+              <div class="row-list course-rows">
+                <div class="list-row course-rows-head">
+                  <span class="mono-label">Homework</span>
+                  <span class="mono-label">Deadline</span>
+                  <span class="mono-label course-row-state">Status</span>
+                </div>
+                {% for hw in homeworks %}
+                  <div class="list-row">
+                    <div>
+                      {% if hw.state == 'CL' %}
+                        <span class="course-row-title">{{ hw.title }}</span>
                       {% else %}
-                        <div class="module-fact">
-                          <dt>deadline</dt>
-                          <dd>
-                            {{ module.item.due_date|user_datetime:request }}
-                            <span
-                              class="time-left"
-                              data-deadline="{{ module.item.due_date|date:"c" }}"
-                              data-past-tone="muted"
-                            ></span>
-                          </dd>
-                        </div>
+                        <a
+                          class="course-row-title band-link"
+                          href="{% url 'homework' course.slug hw.slug %}"
+                        >{{ hw.title }}</a>
                       {% endif %}
-                      {% if module.item.state != 'CL' %}
-                        <div class="module-fact">
-                          <dt>homework</dt>
-                          <dd>
-                            <a
-                              class="band-link module-open-link"
-                              href="{% url 'homework' course.slug module.item.slug %}"
-                            >Open {{ module.item.title }} →</a>
-                          </dd>
-                        </div>
-                      {% endif %}
-                    </dl>
-                  {% else %}
-                    <summary>
-                      <span class="module-number" aria-hidden="true">{{ module.number }}</span>
-                      <span class="module-title">{{ module.item.title }}</span>
-                      {% if module.item.state == 'PR' and module.item.submitted %}
-                        <span class="module-due">
-                          due {{ module.item.peer_review_due_date|user_date_short:request }}
-                        </span>
-                      {% elif module.item.state == 'CO' %}
-                        <span class="module-due">
-                          due {{ module.item.peer_review_due_date|user_date_short:request }}
-                        </span>
+                    </div>
+                    <div class="course-row-when">
+                      {{ hw.due_date|user_datetime:request }}
+                      {% if hw.is_scored %}
+                        <span class="course-row-note">Already scored</span>
                       {% else %}
-                        <span class="module-due">
-                          due {{ module.item.submission_due_date|user_date_short:request }}
-                        </span>
+                        <span
+                          class="time-left"
+                          data-deadline="{{ hw.due_date|date:"c" }}"
+                          data-past-tone="muted"
+                        ></span>
                       {% endif %}
-                      <span class="module-marker" aria-hidden="true"></span>
-                      <span class="module-summary">
-                        {% if module.item.badge_css_class == 'bg-success' or module.item.badge_css_class == 'bg-info' %}
-                          <span class="status-pill status-pill-live">{{ module.item.badge_state_name }}</span>
-                        {% elif module.item.badge_css_class == 'bg-warning' %}
-                          <span class="status-pill status-pill-open">{{ module.item.badge_state_name }}</span>
-                        {% elif module.item.badge_css_class == 'bg-danger' %}
-                          <span class="status-pill status-pill-wait">{{ module.item.badge_state_name }}</span>
-                        {% else %}
-                          <span class="status-pill">{{ module.item.badge_state_name }}</span>
-                        {% endif %}
-                      </span>
-                    </summary>
-                    <dl class="module-body">
-                      {% if module.item.state == 'PR' and module.item.submitted %}
-                        <div class="module-fact">
-                          <dt>peer review</dt>
-                          <dd>
-                            {{ module.item.peer_review_due_date|user_datetime:request }}
-                            <span
-                              class="time-left"
-                              data-deadline="{{ module.item.peer_review_due_date|date:"c" }}"
-                              data-past-tone="muted"
-                            ></span>
-                          </dd>
-                        </div>
-                      {% elif module.item.state == 'CO' %}
-                        <div class="module-fact">
-                          <dt>peer review</dt>
-                          <dd>{{ module.item.peer_review_due_date|user_datetime:request }}</dd>
-                        </div>
-                        <div class="module-fact">
-                          <dt>state</dt>
-                          <dd>Completed</dd>
-                        </div>
+                    </div>
+                    <div class="course-row-state">
+                      {% if hw.state == 'CL' %}
+                        <span class="status-pill status-pill-wait">Closed</span>
+                      {% elif hw.is_scored and hw.submitted %}
+                        <span class="status-pill status-pill-live">Scored ({{ hw.score }})</span>
+                      {% elif hw.is_scored %}
+                        <span class="status-pill status-pill-mint">Scored</span>
+                      {% elif hw.submitted %}
+                        <span class="status-pill status-pill-live">Submitted</span>
                       {% else %}
-                        <div class="module-fact">
-                          <dt>submission</dt>
-                          <dd>
-                            {{ module.item.submission_due_date|user_datetime:request }}
-                            <span
-                              class="time-left"
-                              data-deadline="{{ module.item.submission_due_date|date:"c" }}"
-                              data-past-tone="muted"
-                            ></span>
-                          </dd>
-                        </div>
+                        <span class="status-pill status-pill-open">Open</span>
                       {% endif %}
-                      {% if module.item.state == 'CS' %}
-                        <div class="module-fact">
-                          <dt>project</dt>
-                          <dd>
-                            <a
-                              class="band-link module-open-link"
-                              href="{% url 'project' course_slug=course.slug project_slug=module.item.slug %}"
-                            >Open {{ module.item.title }} →</a>
-                          </dd>
-                        </div>
-                      {% elif module.item.state == 'PR' %}
-                        <div class="module-fact">
-                          <dt>project</dt>
-                          <dd>
-                            <a
-                              class="band-link module-open-link"
-                              href="{% url 'projects_eval' course.slug module.item.slug %}"
-                            >Open {{ module.item.title }} →</a>
-                          </dd>
-                        </div>
-                      {% elif module.item.state == 'CO' %}
-                        <div class="module-fact">
-                          <dt>project</dt>
-                          <dd>
-                            <a
-                              class="band-link module-open-link"
-                              href="{% url 'project_results' course.slug module.item.slug %}"
-                            >Open {{ module.item.title }} →</a>
-                          </dd>
-                        </div>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </section>
+          {% endif %}
+          {% if projects %}
+            <section aria-labelledby="projects-heading">
+              <div
+                class="band-head
+                  {% if homeworks %}
+                    band-head-secondary
+                  {% endif %}"
+              >
+                <div>
+                  <h2 id="projects-heading">Projects</h2>
+                </div>
+              </div>
+              <div class="row-list course-rows">
+                <div class="list-row course-rows-head">
+                  <span class="mono-label">Project</span>
+                  <span class="mono-label">Deadline</span>
+                  <span class="mono-label course-row-state">Status</span>
+                </div>
+                {% for project in projects %}
+                  <div class="list-row">
+                    <div>
+                      {% if project.state == 'CS' %}
+                        <a
+                          class="course-row-title band-link"
+                          href="{% url 'project' course_slug=course.slug project_slug=project.slug %}"
+                        >{{ project.title }}</a>
+                      {% elif project.state == 'PR' %}
+                        <a
+                          class="course-row-title band-link"
+                          href="{% url 'projects_eval' course.slug project.slug %}"
+                        >{{ project.title }}</a>
+                      {% elif project.state == 'CO' %}
+                        <a
+                          class="course-row-title band-link"
+                          href="{% url 'project_results' course.slug project.slug %}"
+                        >{{ project.title }}</a>
+                      {% else %}
+                        <span class="course-row-title">{{ project.title }}</span>
                       {% endif %}
-                    </dl>
-                  {% endif %}
-                </details>
-              {% endfor %}
-            </div>
-            {% if has_completed_projects %}
-              <p class="course-note module-empty">
-                <a class="band-link" href="{% url 'list_all_project_submissions' course.slug %}">
-                  See all submitted projects →
-                </a>
-              </p>
-            {% endif %}
-          {% else %}
-            <div class="panel panel-lavender panel-outlined module-empty" role="alert">
+                    </div>
+                    <div class="course-row-when">
+                      {% if project.state == 'PR' and project.submitted %}
+                        {{ project.peer_review_due_date|user_datetime:request }}
+                        <span
+                          class="time-left"
+                          data-deadline="{{ project.peer_review_due_date|date:"c" }}"
+                          data-past-tone="muted"
+                        ></span>
+                      {% elif project.state == 'CO' %}
+                        {{ project.peer_review_due_date|user_datetime:request }}
+                        <span class="course-row-note">Completed</span>
+                      {% else %}
+                        {{ project.submission_due_date|user_datetime:request }}
+                        <span
+                          class="time-left"
+                          data-deadline="{{ project.submission_due_date|date:"c" }}"
+                          data-past-tone="muted"
+                        ></span>
+                      {% endif %}
+                    </div>
+                    <div class="course-row-state">
+                      {% if project.badge_css_class == 'bg-success' or project.badge_css_class == 'bg-info' %}
+                        <span class="status-pill status-pill-live">{{ project.badge_state_name }}</span>
+                      {% elif project.badge_css_class == 'bg-warning' %}
+                        <span class="status-pill status-pill-open">{{ project.badge_state_name }}</span>
+                      {% elif project.badge_css_class == 'bg-danger' %}
+                        <span class="status-pill status-pill-wait">{{ project.badge_state_name }}</span>
+                      {% else %}
+                        <span class="status-pill">{{ project.badge_state_name }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+              {% if has_completed_projects %}
+                <p class="course-more">
+                  <a class="band-link" href="{% url 'list_all_project_submissions' course.slug %}">
+                    See all submitted projects →
+                  </a>
+                </p>
+              {% endif %}
+            </section>
+          {% endif %}
+          {% if not homeworks and not projects %}
+            <div class="panel panel-lavender panel-outlined course-empty" role="alert">
               <p>There are no homeworks or projects available for this course yet. Come back later.</p>
             </div>
           {% endif %}
-        </div>
-      </section>
-
-      <section class="band band-cream" aria-labelledby="next-heading">
-        <div class="shell">
-          <h2 id="next-heading" class="sr-only">Registration and deadlines</h2>
-          <div class="course-closing">
-            {% if registration_campaign and not has_enrollment and not has_registration %}
-              <div class="panel panel-lavender panel-outlined course-register-panel">
-                <h3>Register for {{ course.title }}</h3>
-                <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
-                <a class="cta cta-primary" href="{% url 'registration_campaign' registration_campaign.slug %}">
-                  Register for the cohort
-                </a>
-              </div>
-            {% elif course.registration_url and not has_enrollment %}
-              <div class="panel panel-lavender panel-outlined course-register-panel">
-                <h3>Register for {{ course.title }}</h3>
-                <p>Registration for this course is handled on its own page.</p>
-                <a class="cta cta-primary" href="{{ course.registration_url }}">Register</a>
-              </div>
-            {% elif has_registration and not has_enrollment %}
-              <div class="panel panel-lavender panel-outlined course-register-panel">
-                <h3>You are registered</h3>
-                <p>Watch your inbox for the schedule, and start on the modules whenever you like.</p>
-              </div>
-            {% endif %}
-            {% if course.faq_document_url %}
-              <div class="panel panel-lavender panel-outlined">
-                <h3>Questions before you start?</h3>
-                <p class="course-note">This course keeps its own frequently asked questions.</p>
-                <a
-                  class="band-link"
-                  href="{{ course.faq_document_url }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >Course FAQ →</a>
-              </div>
-            {% endif %}
-            <div class="panel panel-mint panel-outlined">
-              <h3>Deadlines and your calendar</h3>
-              <p class="course-note">
-                {% if is_authenticated %}
-                  All deadlines are shown in your
-                  <a class="band-link" href="{{ account_settings_url }}#display-preferences-section">account timezone</a>.
-                {% else %}
-                  All deadlines are shown in your timezone.
-                {% endif %}
-              </p>
-              <a class="band-link" href="{% url 'course_calendar' course.slug %}">Calendar feed</a>
+          <section aria-labelledby="next-heading">
+            <h2 id="next-heading" class="sr-only">Registration and deadlines</h2>
+            <div class="course-closing">
+              {% if registration_campaign and not has_enrollment and not has_registration %}
+                <div class="panel panel-lavender panel-outlined course-register-panel">
+                  <h3>Register for {{ course.title }}</h3>
+                  <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
+                  <a class="cta cta-compact cta-primary" href="{% url 'registration_campaign' registration_campaign.slug %}">
+                    Register for the cohort
+                  </a>
+                </div>
+              {% elif course.registration_url and not has_enrollment %}
+                <div class="panel panel-lavender panel-outlined course-register-panel">
+                  <h3>Register for {{ course.title }}</h3>
+                  <p>Registration for this course is handled on its own page.</p>
+                  <a class="cta cta-compact cta-primary" href="{{ course.registration_url }}">Register</a>
+                </div>
+              {% elif has_registration and not has_enrollment %}
+                <div class="panel panel-lavender panel-outlined course-register-panel">
+                  <h3>You are registered</h3>
+                  <p>Watch your inbox for the schedule, and start on the modules whenever you like.</p>
+                </div>
+              {% endif %}
+              {% if course.faq_document_url %}
+                <div class="panel panel-lavender panel-outlined">
+                  <h3>Questions before you start?</h3>
+                  <p class="course-note">This course keeps its own frequently asked questions.</p>
+                  <a
+                    class="band-link"
+                    href="{{ course.faq_document_url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >Course FAQ →</a>
+                </div>
+              {% endif %}
             </div>
-          </div>
-          {% if can_access_course_studio %}
-            <p class="course-operator">
-              <a class="band-link" href="{% url 'studio_courses_course' course.slug %}">
-                Manage course in Studio →
-              </a>
+            {% comment %}
+              The page's last line, as it was before the port: where the times
+              come from, and the feed that puts them in a calendar.
+            {% endcomment %}
+            <p class="course-fineprint">
+              {% if is_authenticated %}
+                All deadlines are shown in your
+                <a class="band-link" href="{{ account_settings_url }}#display-preferences-section">account timezone</a>.
+              {% else %}
+                All deadlines are shown in your timezone.
+              {% endif %}
+              <a class="band-link" href="{% url 'course_calendar' course.slug %}">Calendar feed</a>
             </p>
-          {% endif %}
+          </section>
         </div>
       </section>
     </main>
