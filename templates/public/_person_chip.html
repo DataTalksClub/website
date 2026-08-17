@@ -1,0 +1,46 @@
+{% comment %}
+  One credited person: a small portrait and their name, linked to their profile.
+
+  This is the blog article byline, factored out (issue #179 built it there first).
+  Every surface that names a person now draws them from this one partial — a book's
+  authors, an event's speakers, an episode's guests, the homepage cards — so a
+  reader meets the same person the same way wherever they find them, and a byline
+  can never fall back to printing a bare source key.
+
+  Pass a `person` resolved by `content.person_chip`, usually through the filter:
+
+      {% include "public/_person_chip.html" with person=speaker|person_chip %}
+
+  Three facts can each be missing, and each degrades on its own:
+
+  * no portrait keeps the system's striped stand-in disc, which claims no identity
+    and is hidden from assistive technology;
+  * no profile keeps the name as plain text rather than a link to nowhere;
+  * the portrait itself is decorative and carries empty alternative text, because
+    the name it sits beside is already the credit — a screen reader that heard
+    "Portrait of Alexey Grigorev, link, Alexey Grigorev" would hear it twice.
+
+  The picture is given its intrinsic square so it reserves its own space and the
+  line it sits on cannot shift as it arrives.  A chip in a page's opening screen
+  passes `chip_loading="eager"`; everything further down keeps the lazy default.
+{% endcomment %}
+<span class="person-chip">
+  {% if person.media_available %}
+    <img
+      class="person-chip-portrait"
+      src="{{ person.image_path }}"
+      alt=""
+      width="96"
+      height="96"
+      decoding="async"
+      loading="{{ chip_loading|default:'lazy' }}"
+    >
+  {% else %}
+    <span class="avatar avatar-striped person-chip-portrait" aria-hidden="true"></span>
+  {% endif %}
+  {% if person.public_path %}
+    <a class="band-link person-chip-name" href="{{ person.public_path }}">{{ person.name }}</a>
+  {% else %}
+    <span class="person-chip-name">{{ person.name }}</span>
+  {% endif %}
+</span>
