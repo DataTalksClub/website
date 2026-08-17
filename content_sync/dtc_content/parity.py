@@ -11,7 +11,7 @@ from urllib.parse import quote
 from content.inventory import content_route_contracts
 from content.public_data import PROJECTION_ROOT, public_projection
 from content.services import PreparedDocument
-from scripts.build_public_projection import _body_blocks
+from scripts.build_public_projection import _article_blocks
 from scripts.build_public_projection import _string as _projection_string
 
 from .adapter import CandidateAsset, CandidateBundle, CandidateRelation, DtcContentValidationError
@@ -237,6 +237,29 @@ def _published_date(document: PreparedDocument, record: Mapping[str, Any]) -> No
         _fail("projection_date_mismatch", document.source_path)
 
 
+def _comparable_article_blocks(blocks: Any) -> Any:
+    """Return article body blocks without the sizes only a checked-out file can give.
+
+    An illustration block carries the intrinsic pixel size the build read from the
+    image itself, so the page can reserve its box.  The adapter bundle transports
+    that image as bytes and a checksum, not as a tree this comparison can open, and
+    those bytes are already compared asset by asset below.  Everything else about a
+    block — its kind, its order, its text and its source segment — is compared
+    exactly, which is what proves the two readings of the same Markdown agree.
+    """
+
+    if not isinstance(blocks, (list, tuple)):
+        return blocks
+    return [
+        (
+            {key: value for key, value in block.items() if key not in {"width", "height"}}
+            if isinstance(block, dict) and block.get("kind") == "image"
+            else block
+        )
+        for block in blocks
+    ]
+
+
 def _transcript_segments(value: Any, *, source_path: str) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         _fail("projection_transcript_mismatch", source_path)
@@ -454,8 +477,10 @@ def verify_initial_projection_parity(
                     source_path=document.source_path,
                 )
                 _expect(
-                    record.get("blocks"),
-                    _body_blocks(document.raw_body),
+                    _comparable_article_blocks(record.get("blocks")),
+                    _comparable_article_blocks(
+                        _article_blocks(document.raw_body, media_root=None, counters={})
+                    ),
                     code="projection_article_body_mismatch",
                     source_path=document.source_path,
                 )

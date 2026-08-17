@@ -333,3 +333,143 @@ class PublicProjectionBuilderTests(SimpleTestCase):
                         selection_mode="preferred",
                         source_artifact_digests=source_artifacts,
                     )
+
+
+class ArticleBodyProjectionTests(SimpleTestCase):
+    """The article body builder, which is what stopped flattening a body to prose."""
+
+    def temporary_directory(self) -> tempfile.TemporaryDirectory[str]:
+        scratch = Path(settings.BASE_DIR) / ".tmp"
+        scratch.mkdir(exist_ok=True)
+        return tempfile.TemporaryDirectory(dir=scratch)
+
+    def blocks(self, body: str, *, media_root: Path | None = None) -> list[dict]:
+        return builder._article_blocks(body, media_root=media_root, counters={})
+
+    def test_a_fenced_sample_stays_a_sample_instead_of_becoming_headings(self) -> None:
+        """The old plain-text builder read `# comment` inside code as an `<h1>`."""
+
+        blocks = self.blocks("```python\n# load the frame\n- not a list item\nprint(1)\n```")
+
+        self.assertEqual(
+            blocks,
+            [
+                {
+                    "kind": "code",
+                    "text": "# load the frame\n- not a list item\nprint(1)",
+                    "language": "python",
+                }
+            ],
+        )
+
+    def test_a_numbered_run_is_marked_as_ordered(self) -> None:
+        blocks = self.blocks("1. first\n2. second\n\n- bullet")
+
+        self.assertEqual(
+            [(block["kind"], block["text"], block.get("ordered", False)) for block in blocks],
+            [
+                ("list_item", "first", True),
+                ("list_item", "second", True),
+                ("list_item", "bullet", False),
+            ],
+        )
+
+    def test_a_link_keeps_its_address_and_loses_the_legacy_directive(self) -> None:
+        blocks = self.blocks('Read [the guide](https://example.test/g){:target="_blank"} today.')
+
+        self.assertEqual(blocks[0]["text"], "Read the guide today.")
+        self.assertEqual(blocks[0]["markdown"], "Read [the guide](https://example.test/g) today.")
+
+    def test_a_table_becomes_rows_a_page_can_draw(self) -> None:
+        blocks = self.blocks("| Tool | Use |\n|------|-----|\n| dbt | **transform** |")
+
+        self.assertEqual(
+            blocks,
+            [
+                {
+                    "kind": "table",
+                    "label": "Table 1",
+                    "head": ["Tool", "Use"],
+                    "rows": [["dbt", "**transform**"]],
+                }
+            ],
+        )
+
+    def test_an_illustration_carries_its_own_size_and_its_caption(self) -> None:
+        with self.temporary_directory() as directory:
+            root = Path(directory)
+            picture = root / "images" / "posts" / "demo" / "chart.png"
+            picture.parent.mkdir(parents=True)
+            # A 1x1 PNG, written byte by byte so the header is the real thing.
+            picture.write_bytes(
+                bytes.fromhex(
+                    "89504e470d0a1a0a0000000d494844520000000100000001080600000"
+                    "01f15c4890000000a49444154789c6300010000050001"
+                    "0d0a2db40000000049454e44ae426082"
+                )
+            )
+            body = (
+                "<figure>\n"
+                '<img src="/images/posts/demo/chart.png" alt="A described chart" />\n'
+                "<figcaption><p>What it shows</p></figcaption>\n"
+                "</figure>"
+            )
+
+            blocks = self.blocks(body, media_root=root)
+
+        self.assertEqual(
+            blocks,
+            [
+                {
+                    "kind": "image",
+                    "src": "/images/posts/demo/chart.png",
+                    "alt": "A described chart",
+                    "caption": "What it shows",
+                    "width": 1,
+                    "height": 1,
+                }
+            ],
+        )
+
+    def test_an_off_site_or_missing_illustration_never_reaches_a_block(self) -> None:
+        with self.temporary_directory() as directory:
+            remote = self.blocks(
+                '<img src="https://example.test/a.png" alt="remote" />', media_root=Path(directory)
+            )
+            self.assertEqual(remote, [])
+            with self.assertRaisesRegex(builder.ProjectionBuildError, "missing from the pinned"):
+                self.blocks(
+                    '<img src="/images/posts/demo/absent.png" alt="gone" />',
+                    media_root=Path(directory),
+                )
+        with self.assertRaisesRegex(builder.ProjectionBuildError, "image path rejected"):
+            self.blocks('<img src="/images/posts/../secret.png" alt="escape" />')
+
+    def test_executable_or_embedding_markup_stops_the_build(self) -> None:
+        """A checked artifact does not carry a script, a frame, or a handler."""
+
+        for source in (
+            "<script>alert(1)</script> text",
+            '<iframe src="https://example.test/"></iframe>',
+            '<img src="/images/posts/demo/a.png" onerror="alert(1)" alt="x">',
+            '<a href="javascript:alert(1)">click</a>',
+        ):
+            with self.subTest(source=source):
+                with self.assertRaisesRegex(builder.ProjectionBuildError, "disallowed markup"):
+                    self.blocks(source)
+
+    def test_the_liquid_this_site_cannot_run_is_removed(self) -> None:
+        blocks = self.blocks("**Visible text** {% include faq-accordion.html %}")
+
+        self.assertNotIn("faq-accordion", str(blocks))
+        self.assertIn("Visible text", str(blocks))
+
+    def test_a_heading_the_source_named_keeps_that_name(self) -> None:
+        """The article's own table of contents links to the identifier it wrote."""
+
+        blocks = self.blocks('<h2 id="ml-zoomcamp">1. ML Zoomcamp</h2>\n\n## ML Zoomcamp')
+
+        self.assertEqual(
+            [(block["id"], block["text"]) for block in blocks],
+            [("ml-zoomcamp", "1. ML Zoomcamp"), ("ml-zoomcamp-2", "ML Zoomcamp")],
+        )

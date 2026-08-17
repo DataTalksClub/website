@@ -1,6 +1,13 @@
 [
   {
     "archive": [],
+    "author_profiles": [
+      {
+        "key": "nikolaysmorchkov",
+        "name": "Nikolay Smorchkov",
+        "public_path": "/people/nikolaysmorchkov.html"
+      }
+    ],
     "authors": [
       "nikolaysmorchkov"
     ],
@@ -29,6 +36,13 @@
   },
   {
     "archive": [],
+    "author_profiles": [
+      {
+        "key": "enginyoyen",
+        "name": "Engin Yöyen",
+        "public_path": "/people/enginyoyen.html"
+      }
+    ],
     "authors": [
       "enginyoyen"
     ],
@@ -61,6 +75,13 @@
   },
   {
     "archive": [],
+    "author_profiles": [
+      {
+        "key": "vadimsmolyakov",
+        "name": "Vadim Smolyakov",
+        "public_path": "/people/vadimsmolyakov.html"
+      }
+    ],
     "authors": [
       "vadimsmolyakov"
     ],
@@ -97,6 +118,13 @@
   },
   {
     "archive": [],
+    "author_profiles": [
+      {
+        "key": "khuyentran",
+        "name": "Khuyen Tran",
+        "public_path": "/people/khuyentran.html"
+      }
+    ],
     "authors": [
       "khuyentran"
     ],
@@ -129,6 +157,18 @@
   },
   {
     "archive": [],
+    "author_profiles": [
+      {
+        "key": "markryan",
+        "name": "Mark Ryan",
+        "public_path": "/people/markryan.html"
+      },
+      {
+        "key": "lucamassaron",
+        "name": "Luca Massaron",
+        "public_path": "/people/lucamassaron.html"
+      }
+    ],
     "authors": [
       "markryan",
       "lucamassaron"
@@ -685,6 +725,18 @@
           }
         ],
         "text": "Hi Doug Gray,\nI’ve often observed data scientists fall into the trap of data snooping, or “p-hacking,” in an effort to prevent a project from being deemed a failure. This typically occurs when stakeholders approach a project with a strong bias toward a specific hypothesis, expecting the data scientist to validate it. When the analysis produces results that contradict their expectations, stakeholders can become confrontational, scrutinizing every aspect of the methodology and citing anecdotal or empirical examples to challenge the findings. This often pressures the data scientist to repeatedly reanalyze the data until the results align with the stakeholder’s preconceived notions, epitomizing the phrase: “torture the data long enough, and it will confess.”\nHow can data scientists effectively deliver results that contradict a stakeholder's assumptions while helping them understand why their hypothesis is not supported by the data? Given that explanations involving statistical tests and p-values often fail to resonate with non-technical teams, how can we effectively communicate negative findings in a way that fosters understanding and collaboration?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "evanshellshear",
+        "name": "Evan Shellshear",
+        "public_path": "/people/evanshellshear.html"
+      },
+      {
+        "key": "douglasgray",
+        "name": "Douglas Gray",
+        "public_path": "/people/douglasgray.html"
       }
     ],
     "authors": [
@@ -1292,6 +1344,18 @@
           }
         ],
         "text": "Hello Maxime Labonne Paul Iusztin\nI have some specific questions about the LLM Twin Concept :gratitude-asl::\n1. Could you provide more details on the specific architecture of the LLM Twin, including the components involved and how they interact with each other?\n2. How does the LLM Twin approach address the challenges of scaling LLMs and making them modular for different use cases?\n3. What specific strategies are employed in the LLM Twin to reduce training and inference costs?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "pauliusztin",
+        "name": "Paul Iusztin",
+        "public_path": "/people/pauliusztin.html"
+      },
+      {
+        "key": "maximelabonne",
+        "name": "Maxime Labonne",
+        "public_path": "/people/maximelabonne.html"
       }
     ],
     "authors": [
@@ -2041,6 +2105,13 @@
         "text": "Question: for RAG workload , I feel finetune an embedding model will have more benefit than finetune a generation model. How should I finetune an embedding model ?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "sebastianraschka",
+        "name": "Sebastian Raschka",
+        "public_path": "/people/sebastianraschka.html"
+      }
+    ],
     "authors": [
       "sebastianraschka"
     ],
@@ -2139,6 +2210,13 @@
           }
         ],
         "text": "This is a very keen topic of interest for me and I have started reviewing this wonderful book. Thank you Angelica Lo Duca. One thing that I have concern about generativeAI is while its extremely helpful for cases where we use it as an assistant or supportive framework in order to consolidate or even data mining and feeding us with key information to guide us making data decisions. On the other hand during real customer use cases at times raises the question of data quality that is fed into the dashboards. Could I ask if there are different ways to measure the quality of data that is refined by generative AI to continuously measure the quality? More specifically what are some common measures we can use to measure the quality of extracted content from genAI before we use it for key dashboards or decision making."
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "angelicaloduca",
+        "name": "Angelica Lo Duca",
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -2273,6 +2351,18 @@
           }
         ],
         "text": "Hi Mario, Justin, Are there any metrics/parameters  that are used to understand/measure the model quality and reliability w.r.t data privacy and protection."
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "mariolazo",
+        "name": "Mario Lazo",
+        "public_path": "/people/mariolazo.html"
+      },
+      {
+        "key": "justinryan",
+        "name": "Justin Ryan",
+        "public_path": "/people/justinryan.html"
       }
     ],
     "authors": [
@@ -2681,6 +2771,18 @@
         "text": "Hi James and Mike.\nBeen trying to grasp all the vocab and terms to understand content about LLMs and Generative AI.\nDo you have recommendations what core-concept and what methodologies we have to really really grasp like the back of our hand, as\n- models become smarter\n- tokens get faster and cheaper\n- context windows getting bigger and bigger?\nSo that we can swap out the new models that seem to keep coming out each and every week?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "michaeltaylor",
+        "name": "Michael Taylor",
+        "public_path": "/people/michaeltaylor.html"
+      },
+      {
+        "key": "jamesphoenix",
+        "name": "James Phoenix",
+        "public_path": "/people/jamesphoenix.html"
+      }
+    ],
     "authors": [
       "michaeltaylor",
       "jamesphoenix"
@@ -2923,6 +3025,13 @@
         "text": "Thanks @everyone for your questions and big up to the ones running for the book. I’ll turn the ebook price into a hard book one, because you can get a free copy on [https://www.kensu.io/oreilly-all-chapters](https://www.kensu.io/oreilly-all-chapters) for a few months still.\nI am available for further questions obviously! Please connect me on LinkedIn and let’s rock it all 😄\n[https://www.linkedin.com/in/andypetrella/](https://www.linkedin.com/in/andypetrella/)"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "andypetrella",
+        "name": "Andy Petrella",
+        "public_path": "/people/andypetrella.html"
+      }
+    ],
     "authors": [
       "andypetrella"
     ],
@@ -3051,6 +3160,13 @@
         "text": "Hi again Matt Palmer, just wondering what thoughts you had (or what you put in the book) about change data capture, and how that's evolved?  It's an old topic, but given the huge increase in variety and volume of data sources, I would imagine there are quite a few more approaches than those written about by (for example) Joe Caserta and Ralph Kimball ~20 years ago."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "mattpalmer",
+        "name": "Matt Palmer",
+        "public_path": "/people/mattpalmer.html"
+      }
+    ],
     "authors": [
       "mattpalmer"
     ],
@@ -3174,6 +3290,23 @@
           }
         ],
         "text": "Hey,\nThank you for the book, its a really important topic to cover, my questions are:\n\n1. How can human judgment be efficiently included in data labeling processes?\n2. What key strategies do you recommend for effectively using 'small data'?\n3. What is the value of synthetic data in data-centric ML projects?\n4. What are the first steps for adopting data-centric ML practices?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "nakulbajaj",
+        "name": "Nakul Bajaj",
+        "public_path": "/people/nakulbajaj.html"
+      },
+      {
+        "key": "jonaschristensen",
+        "name": "Jonas Christensen",
+        "public_path": "/people/jonaschristensen.html"
+      },
+      {
+        "key": "manmohangosada",
+        "name": "Manmohan Gosada",
+        "public_path": "/people/manmohangosada.html"
       }
     ],
     "authors": [
@@ -3352,6 +3485,13 @@
         "name": "Janna Lipenkova",
         "replies": [],
         "text": "Thanks a lot for your questions!! Was a fun week and I think I crystallized some new information needs which I will elaborate on in the book!"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "jannalipenkova",
+        "name": "Janna Lipenkova",
+        "public_path": "/people/jannalipenkova.html"
       }
     ],
     "authors": [
@@ -3574,6 +3714,13 @@
           }
         ],
         "text": "Hi Yuan, As a person trying to understand ML process management improvements, I see this topic is of interest to me. I have been in solutioning Data intensive products delivering on k8s platfom. I am wondering how ML training, serving, and feedback loop back to improve model quality canbe made parallel. Can larger ML models be partially trained and combined similar to map-reduce patterns to increase parallelism? Does this book throw light into these aspects? What do you suggest me to get a good understanding of this?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "yuantang",
+        "name": "Yuan Tang",
+        "public_path": "/people/yuantang.html"
       }
     ],
     "authors": [
@@ -3995,6 +4142,18 @@
         "text": "First question: Does the book focus on dbt core or dbt Cloud? I have experience using both, but in the case of dbt core, Im having trouble setting up and configure a scheduler, which becomes very important when you want the create a specific materialization. It would be great if you could provide some guidance or point us to some resources. 😀\nSecond question: What is your opinion about the Modern Data Stack?\nThank you!"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "ruimachado",
+        "name": "Rui Machado",
+        "public_path": "/people/ruimachado.html"
+      },
+      {
+        "key": "helderrussa",
+        "name": "Hélder Russa",
+        "public_path": "/people/helderrussa.html"
+      }
+    ],
     "authors": [
       "ruimachado",
       "helderrussa"
@@ -4167,6 +4326,13 @@
         "text": "What are the big differences between a Data Contract and a Data Catalog? I just saw different definitions. Is it possible to combine them?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "andrewjones",
+        "name": "Andrew Jones",
+        "public_path": "/people/andrewjones.html"
+      }
+    ],
     "authors": [
       "andrewjones"
     ],
@@ -4299,6 +4465,18 @@
           }
         ],
         "text": "Hello Authors, congratulations on your published work.\nI noticed that many python books on time series don't pay as much details or attention to Volatility clustering as R books on time series.\nIs there a reason for that?\nAre there other tools besides classical methods of Arch and Garch family of tools to analyze variability in volatility and how to predict such?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "ashishpatel",
+        "name": "Ashish Patel",
+        "public_path": "/people/ashishpatel.html"
+      },
+      {
+        "key": "vishwasbv",
+        "name": "Vishwas BV",
+        "public_path": "/people/vishwasbv.html"
       }
     ],
     "authors": [
@@ -4497,6 +4675,13 @@
         "text": "I remember seeing your post on LinkedIn about using GPT for writing this book. How did you use it and how much of the content is written/edited by GPT?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "christophmolnar",
+        "name": "Christoph Molnar",
+        "public_path": "/people/christophmolnar.html"
+      }
+    ],
     "authors": [
       "christophmolnar"
     ],
@@ -4693,6 +4878,18 @@
           }
         ],
         "text": "2. Practically, only very few big tech companies will be commercially able to train such large models from scratch. I understand the transfer learning on top of these for fine tuning domain specific corpus but will it not create a huge bias/trustworthiness when only a few handful of companies decide the base pretrained  models? With only the number of parameters used to train only ever increasing, do you think smaller models can provide such impactful responses with some innovations (and not depending on pretrained models)?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "sandrakublik",
+        "name": "Sandra Kublik",
+        "public_path": "/people/sandrakublik.html"
+      },
+      {
+        "key": "shubhamsaboo",
+        "name": "Shubham Saboo",
+        "public_path": "/people/shubhamsaboo.html"
       }
     ],
     "authors": [
@@ -4965,6 +5162,13 @@
         "name": "richard",
         "replies": [],
         "text": "hi,\ni found the book also on the snowflake company website with Compliments of Snowflake but did not yet go deep into it.\nwould your definitive guide be the best start into the topic and what would be a good next book\nother books are\napress\nBuilding the Snowflake Data Cloud, Monetizing and Democratizing Your Data\napress\nMastering Snowflake Solutions, Supporting Analytics and Data Sharing\napress\nJumpstart Snowflake: A Step-by-Step Guide to Modern Cloud Analytics\napress\nSnowflake Access Control, Mastering the Features for Data Privacy and Regulatory Compliance\napress\nSnowflake Essentials, Getting Started with Big Data in the Cloud\npackt\nSnowflake Cookbook: Techniques for building modern cloud data warehousing solutions"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "joycekayavila",
+        "name": "Joyce Kay Avila",
+        "public_path": "/people/joycekayavila.html"
       }
     ],
     "authors": [
@@ -5316,6 +5520,28 @@
         "text": "At what stage of the project should one plan/think to start implementing MLRE?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "toddunderwood",
+        "name": "Todd Underwood",
+        "public_path": "/people/toddunderwood.html"
+      },
+      {
+        "key": "krantik-parisa",
+        "name": "Kranti K. Parisa",
+        "public_path": "/people/krantik-parisa.html"
+      },
+      {
+        "key": "cathychen",
+        "name": "Cathy Chen",
+        "public_path": "/people/cathychen.html"
+      },
+      {
+        "key": "niallmurphy",
+        "name": "Niall Murphy",
+        "public_path": "/people/niallmurphy.html"
+      }
+    ],
     "authors": [
       "toddunderwood",
       "krantik-parisa",
@@ -5470,6 +5696,18 @@
         "text": "Hi,  Ross Brigoli and Machine Learning in Production! I have a question. It seems that Google Run is good enough to run a simple ML service. Is there any criteria that it's time to use Kubernetes?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "rossbrigoli",
+        "name": "Ross Brigoli",
+        "public_path": "/people/rossbrigoli.html"
+      },
+      {
+        "key": "faisalmasood",
+        "name": "Faisal Masood",
+        "public_path": "/people/faisalmasood.html"
+      }
+    ],
     "authors": [
       "rossbrigoli",
       "faisalmasood"
@@ -5574,6 +5812,13 @@
           }
         ],
         "text": "Hi Angelica Lo Duca, \nI am just curious to know if Comet has capabilities to put ML models into production ? \nMy follow-up  question is more regarding EDA, is comet automating EDA ? If so, are there options that would help us identify outliers in data ?\nThanks. \nHT"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "angelicaloduca",
+        "name": "Angelica Lo Duca",
+        "public_path": "/people/angelicaloduca.html"
       }
     ],
     "authors": [
@@ -5830,6 +6075,13 @@
         "text": "*Q: What should SME concentrate on (people - working in-house for the company OR technology - managed services via external contracts ?) to make most out of a ML project initiative ?*"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "simonthompson",
+        "name": "Simon Thompson",
+        "public_path": "/people/simonthompson.html"
+      }
+    ],
     "authors": [
       "simonthompson"
     ],
@@ -6044,6 +6296,13 @@
           }
         ],
         "text": "The book that was mentioned in the week 1 video about being the best book to read as regards DE. Please I didn't get the spelling"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "tomazbratanic",
+        "name": "Tomaz Bratanic",
+        "public_path": "/people/tomazbratanic.html"
       }
     ],
     "authors": [
@@ -6305,6 +6564,18 @@
         "text": "Luca Massaron, congratulations on the book. I was wondering how much time you usually spend on a kaggle competition. To me the time commitment is a bit scary, because it seems to be a mayor task to create anything remotely acceptable. Or is it less time consuming than it seems?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "lucamassaron",
+        "name": "Luca Massaron",
+        "public_path": "/people/lucamassaron.html"
+      },
+      {
+        "key": "konradbanachewicz",
+        "name": "Konrad Banachewicz",
+        "public_path": "/people/konradbanachewicz.html"
+      }
+    ],
     "authors": [
       "lucamassaron",
       "konradbanachewicz"
@@ -6508,6 +6779,13 @@
           }
         ],
         "text": "Hi Fernando Doglio thank you in advance 😊 What advice would you have for someone who is already a tech lead, so that they can keep up with the evolving technologies and still be good at their job of not just writing good code but also teaching others to do the same."
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "fernandodoglio",
+        "name": "Fernando Doglio",
+        "public_path": "/people/fernandodoglio.html"
       }
     ],
     "authors": [
@@ -6774,6 +7052,13 @@
           }
         ],
         "text": "Hi Thomas Nield I remembered from my time at college that my math teacher used to say that probably we would never perform matrix multiplication manually and we should learn the tools (at college maple) and understand what we were doing instead remembering how to perform those operation manually.\nWhat is your opinion about it?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "thomasnield",
+        "name": "Thomas Nield",
+        "public_path": "/people/thomasnield.html"
       }
     ],
     "authors": [
@@ -7700,6 +7985,18 @@
         "text": "Thanks for putting in the effort to make a quality contribution to the space Matthew Housley and Joseph Reis! I’m curious what you see as the biggest problems to be solved in the Data Engineering space with regard to privacy? I am recently coming from the privacy infrastructure world and I would love to see an increased focus in this community on protecting the data we use."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "joereis",
+        "name": "Joe Reis",
+        "public_path": "/people/joereis.html"
+      },
+      {
+        "key": "matthewhousley",
+        "name": "Matthew Housley",
+        "public_path": "/people/matthewhousley.html"
+      }
+    ],
     "authors": [
       "joereis",
       "matthewhousley"
@@ -7808,6 +8105,28 @@
           }
         ],
         "text": "Have you ever dealt with a project where there is no clear owner of a company data strategy which then means ownership in analytics projects becomes a huge point of concern? e.g. whos supporting the report once its completed or a model is developed but data scientist move on and models gather dust. How would you address this and does the book assist in complex project like this?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "ondrejkubera",
+        "name": "Ondřej Kubera",
+        "public_path": "/people/ondrejkubera.html"
+      },
+      {
+        "key": "davidbednar",
+        "name": "David Bednar",
+        "public_path": "/people/davidbednar.html"
+      },
+      {
+        "key": "ondrejbothe",
+        "name": "Ondřej Bothe",
+        "public_path": "/people/ondrejbothe.html"
+      },
+      {
+        "key": "martinpotancok",
+        "name": "Martin Potančok",
+        "public_path": "/people/martinpotancok.html"
       }
     ],
     "authors": [
@@ -7952,6 +8271,13 @@
           }
         ],
         "text": "Hi Stefanie Molin, thanks for being here. I am wondering what is new in the second edition? Also, in your opinion, what are the most useful pandas features that are rarely used?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "stefaniemolin",
+        "name": "Stefanie Molin",
+        "public_path": "/people/stefaniemolin.html"
       }
     ],
     "authors": [
@@ -8339,6 +8665,18 @@
           }
         ],
         "text": "Hello Josh Fischer and Ning Wang, thank you for being here! My question is, what advantages do streaming system provide while deploying ML/DL models, as compared to deploying them on local device and sending data to server? Let's say a company has face recognition model for its employees. Wouldn't it be cheaper to just deploy that model on local device and setup a server containing information about the employees, instead of using streaming system(assuming we are using AWS Lambda and Kinesis for streaming data) ?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "joshfischer",
+        "name": "Josh Fischer",
+        "public_path": "/people/joshfischer.html"
+      },
+      {
+        "key": "ningwang",
+        "name": "Ning Wang",
+        "public_path": "/people/ningwang.html"
       }
     ],
     "authors": [
@@ -8776,6 +9114,13 @@
         "text": "Hi Chip Huyen!  Thanks so much for taking the time to answer questions here.\nThis book sounds super interesting and relevant!  I know some of your blog postings have been about real-time ML.  To what degree is this covered in the book?  (Seems like Ch9 deals with it, at least in part)."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "chiphuyen",
+        "name": "Chip Huyen",
+        "public_path": "/people/chiphuyen.html"
+      }
+    ],
     "authors": [
       "chiphuyen"
     ],
@@ -8879,6 +9224,13 @@
           }
         ],
         "text": "Hi Hayden Liu , thanks for taking the time to answer questions here! Sounds like a great book. Does it also touch on issues related to deploying models in production?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "haydenliu",
+        "name": "Hayden Liu",
+        "public_path": "/people/haydenliu.html"
       }
     ],
     "authors": [
@@ -9045,6 +9397,13 @@
           }
         ],
         "text": "Hi Tobias Zwingmann , would this book be appropriate for who has a background in data science and ML, but not necessarily BI?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "tobiaszwingmann",
+        "name": "Tobias Zwingmann",
+        "public_path": "/people/tobiaszwingmann.html"
       }
     ],
     "authors": [
@@ -9257,6 +9616,13 @@
           }
         ],
         "text": "Also apologize for creating another thread, but I have a different question: for all the AI fairness metrics that are available out there, what is the ground basis for fairness? How does one define \"fairness\"?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "nielsenaileen",
+        "name": "Nielsen Aileen",
+        "public_path": "/people/nielsenaileen.html"
       }
     ],
     "authors": [
@@ -9612,6 +9978,18 @@
         "text": "Santiago Vladimir Haltakov great website - its a fun way to learn!! My observation is that i just dont remember to go to the website everyday - is it possible for you guys to send email/notification everyday?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "svpino",
+        "name": "Santiago Valdarrama",
+        "public_path": "/people/svpino.html"
+      },
+      {
+        "key": "vladimirhaltakov",
+        "name": "Vladimir Haltakov",
+        "public_path": "/people/vladimirhaltakov.html"
+      }
+    ],
     "authors": [
       "svpino",
       "vladimirhaltakov"
@@ -9700,6 +10078,13 @@
           }
         ],
         "text": "Hi Prateek Joshi, thanks for answering questions 🙂\n- Why was it time for a second edition of your book? \n- For what kind of problems would you suggest logic programming?\n- What is the most difficult part of building a startup? What is your advice if someone wants to do it?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "prateekjoshi",
+        "name": "Prateek Joshi",
+        "public_path": "/people/prateekjoshi.html"
       }
     ],
     "authors": [
@@ -10063,6 +10448,23 @@
         "text": "I wish I could use a Transformer here to generate questions (and hence increase my chances of getting the book) :-)"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "leandrovonwerra",
+        "name": "Leandro von Werra",
+        "public_path": "/people/leandrovonwerra.html"
+      },
+      {
+        "key": "lewistunstall",
+        "name": "Lewis Tunstall",
+        "public_path": "/people/lewistunstall.html"
+      },
+      {
+        "key": "thomaswolf",
+        "name": "Thomas Wolf",
+        "public_path": "/people/thomaswolf.html"
+      }
+    ],
     "authors": [
       "leandrovonwerra",
       "lewistunstall",
@@ -10372,6 +10774,13 @@
         "text": "I recently read this article: Stop Explaining Black Box Machine Learning Models for High Stakes Decisions and Use Interpretable Models Instead ([https://arxiv.org/abs/1811.10154](https://arxiv.org/abs/1811.10154)) The author seems to have a rather strongly critical approach to explaining black box methods. Are you perhaps familiar with this article and could you let us know what your opinion is on the subject?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "christophmolnar",
+        "name": "Christoph Molnar",
+        "public_path": "/people/christophmolnar.html"
+      }
+    ],
     "authors": [
       "christophmolnar"
     ],
@@ -10519,6 +10928,13 @@
           }
         ],
         "text": "Hi Anthony Virtuoso (Author), thanks for answering the questions. Once ACID transactions are out of public preview for Athena and Lake Formation, do you see it potentially replacing Redshift (+ Spectrum)? It seems there are 2 competitive solutions that are converging. What is your take on that?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "anthonyvirtuoso",
+        "name": "Anthony Virtuoso",
+        "public_path": "/people/anthonyvirtuoso.html"
       }
     ],
     "authors": [
@@ -10686,6 +11102,13 @@
         "text": "Thanks everyone for the great questions, please don't hesitate to ask more in the future."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "manojkukreja",
+        "name": "Manoj Kukreja",
+        "public_path": "/people/manojkukreja.html"
+      }
+    ],
     "authors": [
       "manojkukreja"
     ],
@@ -10831,6 +11254,13 @@
         "name": "Roy Jafari",
         "replies": [],
         "text": "Thank you Francis Terence Amit for featuring my book and also, thanks everyone for their excellent question. \nHere is a 6 minute vide tour of the book: [https://youtu.be/iUHAFPucYZU](https://youtu.be/iUHAFPucYZU) \nJust in case there were more unanswered question. \nCheers and happy learning, everyone!"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "royjafari",
+        "name": "Roy Jafari",
+        "public_path": "/people/royjafari.html"
       }
     ],
     "authors": [
@@ -11060,6 +11490,13 @@
           }
         ],
         "text": "Thanks Alexey for inviting me here. It's been so much fun interacting with you all and I appreciate the time you took to ask questions and share comments.\nThis community is amazing with phenomenal growth, and I'm sure this is just the start!\nBTW, I will keep the 40% book discount over the weekend if you are interested to get it. Use the discount code: DATATALKS40"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "meoramer",
+        "name": "Meor Amer",
+        "public_path": "/people/meoramer.html"
       }
     ],
     "authors": [
@@ -11331,6 +11768,13 @@
         "text": "Hi Matt! I just ordered the book and looking forward to reading and improving my pandas' coding and knowledge.\nObviously, you have a great depth of experience and expertise with programming and pandas and I am thankful that you are sharing that with us through this book. My question is exactly about this experience and expertise. How would you describe it? How many years and what type of experiences has led you to this exciting book?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "mattharrison",
+        "name": "Matt Harrison",
+        "public_path": "/people/mattharrison.html"
+      }
+    ],
     "authors": [
       "mattharrison"
     ],
@@ -11363,6 +11807,13 @@
   },
   {
     "archive": [],
+    "author_profiles": [
+      {
+        "key": "andrewmcmahon",
+        "name": "Andrew McMahon",
+        "public_path": "/people/andrewmcmahon.html"
+      }
+    ],
     "authors": [
       "andrewmcmahon"
     ],
@@ -11639,6 +12090,13 @@
         "text": "Another question… how robust are the pre-trained pipelines?  In what scenarios would one need to (re)train their own model as opposed to just using the pre-trained ones."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "duygualtinok",
+        "name": "Duygu Altinok",
+        "public_path": "/people/duygualtinok.html"
+      }
+    ],
     "authors": [
       "duygualtinok"
     ],
@@ -11867,6 +12325,13 @@
           }
         ],
         "text": "Congratulations to the winners, much thanks to Alexey Grigorev for hosting me here, and thanks to everybody who participated this week."
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "markryan",
+        "name": "Mark Ryan",
+        "public_path": "/people/markryan.html"
       }
     ],
     "authors": [
@@ -12221,6 +12686,13 @@
         "text": "Thanks Alexey Grigorev  for yet another interesting week. \nQuestion I have regarding the book:\n\"What according to you is a major drawback while using fastai as compared to TF or PT (apart from the fine grained control we have from these 2 frameworks)?\"\nAgain kudos Mark Ryan for such a detailed book, the TOC looks quite comprehensive 👍"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "donjones",
+        "name": "Don Jones",
+        "public_path": "/people/donjones.html"
+      }
+    ],
     "authors": [
       "donjones"
     ],
@@ -12423,6 +12895,13 @@
           }
         ],
         "text": "Hi Emmanuel, thanks for doing this and for the insightful answers you have provided this far. Sounds like a great book!\nWhat would you say is the minimal realistic practical size for a team to take a new project from prototype to production?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "emmanuelameisen",
+        "name": "Emmanuel Ameisen",
+        "public_path": "/people/emmanuelameisen.html"
       }
     ],
     "authors": [
@@ -12894,6 +13373,18 @@
         "text": "Hey Nick Singh and Kevin Kev, great to see you guys here I follow you on LinkedIn you both post great stuff. My questions would be what kind of projects would make you stand out of the crowd in relation with analyst-consulting based roles? Is it a good practice to research about the work already being done in a company you are applying to for a particular role? Does it come up as being a kiss up to recruiters?\nShould I really work at my DSA if I am planning for DS roles only and not at MLOps or MLE profile? In case I find myself wanting to get into MLE, how much swe knowledge do I need to function as a good MLE? Do official certifications from tech giants like TF developer from Google or others like IBM, Nvidia really boost up placement chances in these companies? I was told that they do but still it would be better if you could throw some light on it. \nOne final question apart from academia.\nAlso how to deal with that overwhelming feeling when you know there's a lot to cover(coding+stats+SQL+ML to name a few) but time is a constraint? \nSorry for throwing a lot haha\nCheers and all the best for your book. Looking forward to read it once it's available here!!"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "kevinhuo",
+        "name": "Kevin Huo",
+        "public_path": "/people/kevinhuo.html"
+      },
+      {
+        "key": "nicksingh",
+        "name": "Nick Singh",
+        "public_path": "/people/nicksingh.html"
+      }
+    ],
     "authors": [
       "kevinhuo",
       "nicksingh"
@@ -13081,6 +13572,18 @@
         "name": "Raghav Bali",
         "replies": [],
         "text": "Awesome week and equally Awesome set of questions. Thank you to all the participants and congratulations to all the winners. It's been fun interacting and discussing stuff with you all.\nThanks Alexey Grigorev again for this wonderful platform. Would love to keep this discussion on going.\nCheers and keep exploring guys n girls"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "",
+        "name": "Joseph Babcock",
+        "public_path": ""
+      },
+      {
+        "key": "raghavbali",
+        "name": "Raghav Bali",
+        "public_path": "/people/raghavbali.html"
       }
     ],
     "authors": [
@@ -13384,6 +13887,23 @@
           }
         ],
         "text": "Doug Turnbull any thoughts on the right way to combine filtering and nearest neighbor search? do we do the former first and then the latter or the other way around? is there a way to do both reliably?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "",
+        "name": "Trey Grainger",
+        "public_path": ""
+      },
+      {
+        "key": "dougturnbull",
+        "name": "Doug Turnbull",
+        "public_path": "/people/dougturnbull.html"
+      },
+      {
+        "key": "",
+        "name": "Max Irwin",
+        "public_path": ""
       }
     ],
     "authors": [
@@ -13739,6 +14259,13 @@
         "text": "Hi Jonathan Rioux . I have a question about dependency management for PySpark. When we need a library for a PySpark Job, then we may 1) install the library on all nodes or 2) submit all required library with `--py-files` option. I do not think that these options are realistic if the dependency is quite large. (e.g. install/update `spacy`. It requires around 30 libraries.)\nMy question is: what is the best approach to submitting a PySpark Job requiring a large dependency?\n(If we use Scala, we do not have such a problem, because we can pack all needed packages in a JAR file.)"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "jonathanrioux",
+        "name": "Jonathan Rioux",
+        "public_path": "/people/jonathanrioux.html"
+      }
+    ],
     "authors": [
       "jonathanrioux"
     ],
@@ -13974,6 +14501,23 @@
         "text": "- If we want to train ML models using pySpark, does the model have to support distributed training?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "jensalbrecht",
+        "name": "Jens Albrecht",
+        "public_path": "/people/jensalbrecht.html"
+      },
+      {
+        "key": "sidharthramachandran",
+        "name": "Sidharth Ramachandran",
+        "public_path": "/people/sidharthramachandran.html"
+      },
+      {
+        "key": "christianwinkler",
+        "name": "Christian Winkler",
+        "public_path": "/people/christianwinkler.html"
+      }
+    ],
     "authors": [
       "jensalbrecht",
       "sidharthramachandran",
@@ -14183,6 +14727,18 @@
         "text": "Hi Timur Kamaliev Thank you for your question. The contribution of such large models to the system in terms of success is around 2% at most. However, it is important for us that the models should be lighter and more accurate. It is very vital especially to use them on edge devices and other sorts of limited devices. Therefore, models such as efficient transformers are more focused on the speed and memory efficieny of the model.\nAnother important problem in Transformers is the input size (e.g. 512 tokens). Increasing it is more vital than increasing the parameters at the moment. So what we are looking for is to be able to work with longer inputs and produce lighter but successful models. That is, sounds like a parameter show to me."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "savasyildirim",
+        "name": "Savaş Yıldırım",
+        "public_path": "/people/savasyildirim.html"
+      },
+      {
+        "key": "meysamasgarichenaghlu",
+        "name": "Meysam Asgari-Chenaghlu",
+        "public_path": "/people/meysamasgarichenaghlu.html"
+      }
+    ],
     "authors": [
       "savasyildirim",
       "meysamasgarichenaghlu"
@@ -14389,6 +14945,18 @@
           }
         ],
         "text": "Hi Raghav Bali and Dipanjan Sarkar. Thanks for doing that.\nJust a couple of questions.\n- Can transfer learning give satisfactory results on small datasets? And how the training process will be differ in this case? Could you please share some best practices from your background?\n- And what often do you use - Pytorch or TF? :)\nMany thanks!"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "",
+        "name": "Dipanjan Sarkar",
+        "public_path": ""
+      },
+      {
+        "key": "raghavbali",
+        "name": "Raghav Bali",
+        "public_path": "/people/raghavbali.html"
       }
     ],
     "authors": [
@@ -14804,6 +15372,13 @@
         "text": "Hi Ville Tuulos, \nOne last question before the round closes :) \nIn terms of constantly monitoring your models in terms of , for example, accuracy, precision, recall, rmse among all the other metrics for evaluation , I have few questions:\n- How often those metrics should be evaluated ? \n- What platform is used in terms of observability for evaluation metrics of a model in production? \n- Would you say is fair to say if a metric presents a degradation under certain threshold to perform training or refresh of the model? \nWhat resources would you recommend for learning more about evaluating metrics in production models?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "villetuulos",
+        "name": "Ville Tuulos",
+        "public_path": "/people/villetuulos.html"
+      }
+    ],
     "authors": [
       "villetuulos"
     ],
@@ -15120,6 +15695,13 @@
         "text": "Hi Soledad Galli.. Thanks for taking questions.\nUsing the fraud model as an example, once users of your model see the results of latest fraud model incorporated and see the benefits e.g. successful identification of fraud [instances... How do they respond to gaps in terms of missing fraud? Can they ](http://instances.be) articulate new features which are variations of existing features and see them incorporated w/o an explicit modeling process (via UI or some other post processing activity)? How does one keep the (domain) features updated? Is Iterative development fast enough to respond to real time fraud behavior/events?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "soledadgalli",
+        "name": "Soledad Galli",
+        "public_path": "/people/soledadgalli.html"
+      }
+    ],
     "authors": [
       "soledadgalli"
     ],
@@ -15348,6 +15930,18 @@
         "text": "Thanks all for having me on book of the week - there have been some great and thoughtful questions and I've really enjoyed it. Feel free to contact me here or at guy.adams@dataops.live if you have any further questions about DataOps  and I'd be happy to help!"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "",
+        "name": "Justin Mullen",
+        "public_path": ""
+      },
+      {
+        "key": "guyadams",
+        "name": "Guy Adams",
+        "public_path": "/people/guyadams.html"
+      }
+    ],
     "authors": [
       "Justin Mullen",
       "guyadams"
@@ -15554,6 +16148,18 @@
         "name": "Krzysztof Ograbek",
         "replies": [],
         "text": "Thank you Tomasz Lelek for your great answers. Thank you Alexey Grigorev for having this channel 🙂"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "tomaszlelek",
+        "name": "Tomasz Lelek",
+        "public_path": "/people/tomaszlelek.html"
+      },
+      {
+        "key": "jonskeet",
+        "name": "Jon Skeet",
+        "public_path": "/people/jonskeet.html"
       }
     ],
     "authors": [
@@ -15928,6 +16534,18 @@
         "name": "Noah Gift",
         "replies": [],
         "text": "If you want a deep dive on the book and how to MLOPs from Zero, watch this 2.5 hour video:  [https://www.youtube.com/watch?v=OMv3lkB5W20](https://www.youtube.com/watch?v=OMv3lkB5W20)"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "noahgift",
+        "name": "Noah Gift",
+        "public_path": "/people/noahgift.html"
+      },
+      {
+        "key": "",
+        "name": "Alfredo Deza",
+        "public_path": ""
       }
     ],
     "authors": [
@@ -16389,6 +17007,13 @@
         "text": "Hello David Stephenson, Can having domain knowledge be one of the business skills?  How important should domain knowledge be considered? Should we gain majority of domain knowledge first or start with a satisfactory amount of knowledge and gain it during the execution?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "davidstephenson",
+        "name": "David Stephenson",
+        "public_path": "/people/davidstephenson.html"
+      }
+    ],
     "authors": [
       "davidstephenson"
     ],
@@ -16683,6 +17308,13 @@
           }
         ],
         "text": "David Sweet what does \"tuning up\" in the book title mean🙂? Is it tuning abtest system or optimising the business metrics?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "davidsweet",
+        "name": "David Sweet",
+        "public_path": "/people/davidsweet.html"
       }
     ],
     "authors": [
@@ -17057,6 +17689,13 @@
         "text": "Thank you Alexey Grigorev for the invitation, and thank you all so much for your great questions! It's an honor to be a part of this group!\nHere is my contact for anyone who'd like to stay in touch, or has any further questions/comments!\nemail: luisgui.serrano@gmail.com\n[Webpage](http://serrano.academy)\n[LinkedIn](https://www.linkedin.com/in/luisgserrano/)"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "luisserrano",
+        "name": "Luis Serrano",
+        "public_path": "/people/luisserrano.html"
+      }
+    ],
     "authors": [
       "luisserrano"
     ],
@@ -17387,6 +18026,13 @@
           }
         ],
         "text": "Hi Kim Falk  How to select A/B test users for realtime recommendations?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "kimfalk",
+        "name": "Kim Falk",
+        "public_path": "/people/kimfalk.html"
       }
     ],
     "authors": [
@@ -17960,6 +18606,18 @@
         "text": "Thanks everyone! And big shoutout to Alexey Grigorev for inviting us and organizing this. If you want to follow me personally on trends in the AI/ML and NLP space, please feel free to [subscribe here](https://www.ankursnewsletter.com). Hope to see you all again soon"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "ankurapatel",
+        "name": "Ankur A. Patel",
+        "public_path": "/people/ankurapatel.html"
+      },
+      {
+        "key": "",
+        "name": "Ajay Uppili Arasanipalai",
+        "public_path": ""
+      }
+    ],
     "authors": [
       "ankurapatel",
       "Ajay Uppili Arasanipalai"
@@ -18270,6 +18928,13 @@
           }
         ],
         "text": "Hi Serg Masís, can you elaborate more on how you would approach connecting ml model usage to peripheral hardware?\nThank you!"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "sergmasis",
+        "name": "Serg Masis",
+        "public_path": "/people/sergmasis.html"
       }
     ],
     "authors": [
@@ -18673,6 +19338,18 @@
         "text": "Hi Doug Turnbull ,\n1. How do you handle: \n    a. Different languages? Example: Input text is in English but documents to be queried over is in Spanish.\n    b. Phonetic variations?\n    c. Transliterations in search?\n2. How do you search:\n    d. Text input over media content (image, video, audio). Example: Input -&gt; \"Lots of explosion\"; Results &lt;Image of an explosions&gt;, &lt;Mission Impossible movie&gt;, &lt;Sound of dynamites exploding&gt;;\n    e. Media versus media (Search for similar images given an image, video given an video, audio given an audio)."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "dougturnbull",
+        "name": "Doug Turnbull",
+        "public_path": "/people/dougturnbull.html"
+      },
+      {
+        "key": "",
+        "name": "John Berryman",
+        "public_path": ""
+      }
+    ],
     "authors": [
       "dougturnbull",
       "John Berryman"
@@ -18908,6 +19585,13 @@
           }
         ],
         "text": "Hey Emmanuel Raj Would you rather suggest to build an MLOps system on your own or buy it from an external provider? I saw that Fiddler has an amazing solution"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "emmanuelraj",
+        "name": "Emmanuel Raj",
+        "public_path": "/people/emmanuelraj.html"
       }
     ],
     "authors": [
@@ -19298,6 +19982,18 @@
         "text": "Hi, first of all thanks for being here. What should be considered when migrating an ML project from local or another cloud platform to AWS? What are your suggestions about this?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "chrisfregly",
+        "name": "Chris Fregly",
+        "public_path": "/people/chrisfregly.html"
+      },
+      {
+        "key": "antjebarth",
+        "name": "Antje Barth",
+        "public_path": "/people/antjebarth.html"
+      }
+    ],
     "authors": [
       "chrisfregly",
       "antjebarth"
@@ -19576,6 +20272,13 @@
         "name": "David Mertz",
         "replies": [],
         "text": "It's been nice having folks comment this week.  I'm happy to reply for however many more hours the timezone indicates, or indeed in general personally, to any questions.\nCan I ask participants a favor? Apparently more Amazon reviews helps convince them the promote my book, and Packt essentially makes itself a subsidiary of Amazon (not happy about that; but such is life).  So if contributors to this thread write reviews (and buy the book, of course), it helps me."
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "davidmertz",
+        "name": "David Mertz",
+        "public_path": "/people/davidmertz.html"
       }
     ],
     "authors": [
@@ -19899,6 +20602,18 @@
           }
         ],
         "text": "Hi, Thanks for the opportunity bechbd and Josh Perryman to ask questions. Are there any simple/beginner tutorials in using graphs for Inference? Use graph (properties and processing) to tease out causal linkages between products or data elements?\nAlso can one relate this to sub-graph/directionality of the edges of the graph ...\n{ (customers with attributes) a, b }  (buys) c =&gt; (buys) p ... or (strong signal for c =&gt; p)\nbut not vice versa...\ni.e. { (customers with attributes) a, b } (buys) p NOT =&gt; (buys) c .... or (weak signal for p =&gt; c)"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "davebechberger",
+        "name": "Dave Bechberger",
+        "public_path": "/people/davebechberger.html"
+      },
+      {
+        "key": "",
+        "name": "Josh Perryman",
+        "public_path": ""
       }
     ],
     "authors": [
@@ -20349,6 +21064,18 @@
           }
         ],
         "text": "Hi Hannes Hapke I just finished chapter 2 of your book and it seems to be very useful. As you discuss in the book, so far, I have been creating my own custom solutions. Using TFX seems to be much easier than I initially thought. I have been a little hesitant to look at libraries for pipelines. I thought, it is difficult to practice it on my own, because I need datasets that are continuously updated, and it might be much more work than the usual data science project. But I was probably wrong, and I would like to ask you some related question:\n \n- Do you have ideas for toy projects that have a reasonable size with data that is regularly updated?\n- If you already have a model, which would be the parts of the pipeline you would focus on first? In your experience, what is the most crucial part of the pipeline. Where does a data science team benefits the most?\n- If you build, for example, a model for stock trading, which metrics would you use to monitor that your model is still performing? Do you monitor your return? Or the error? Maybe, the drift of the error?\n \nThank you very much!"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "hanneshapke",
+        "name": "Hannes Hapke",
+        "public_path": "/people/hanneshapke.html"
+      },
+      {
+        "key": "",
+        "name": "Catherine Nelson",
+        "public_path": ""
       }
     ],
     "authors": [
@@ -21047,6 +21774,13 @@
         "text": "What kind of new advances would you like to see in the future for data structures?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "marcellolarocca",
+        "name": "Marcello La Rocca",
+        "public_path": "/people/marcellolarocca.html"
+      }
+    ],
     "authors": [
       "marcellolarocca"
     ],
@@ -21312,6 +22046,33 @@
         "text": "Not sure if you’re still taking questions, but if so: do you think data governance has generally deteriorated in recent years? Or perhaps is taken less seriously?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "",
+        "name": "Evren Eryurek",
+        "public_path": ""
+      },
+      {
+        "key": "urigilad",
+        "name": "Uri Gilad",
+        "public_path": "/people/urigilad.html"
+      },
+      {
+        "key": "",
+        "name": "Valliappa Lakshmanan",
+        "public_path": ""
+      },
+      {
+        "key": "",
+        "name": "Anita Kibunguchy-Grant",
+        "public_path": ""
+      },
+      {
+        "key": "jessiashdown",
+        "name": "Jessi Ashdown",
+        "public_path": "/people/jessiashdown.html"
+      }
+    ],
     "authors": [
       "Evren Eryurek",
       "urigilad",
@@ -21575,6 +22336,13 @@
           }
         ],
         "text": "Hi Miguel,\nI started looking into RL and your books looks like a great asset! I would like to ask you couple of questions concerning the book and the general topic:\n- Do you have any recommendations for projects to work on alongside your book? I implemented some algorithms for the cart-pole environment from the OpenAIGym package and everything seemed to work, but when I moved to more complex environments my agents did not perform. I was wondering if you have recommendations that are more complex than the cart-pole problem, but still do-able for starters.\n- In the introductory chapter of your book, you mention that the book focuses on algorithms and not on environments or modeling problems. In my attempts, I found it very difficult to find a good description of the current state and to assign useful rewards. I assume this is part of the modeling problem. Do you have any recommendation on how to best do this?\n- To compare different policies, would you compare estimates of the value function?\n- In your experience, where and how would you start to debug if your model is not learning anything?\n- I read in another book that DRL is currently sill very hard, especially to get consistent high-quality results and that you usually have to tune the hyperparameters quite a lot and often you also need a little bit of luck. Would you agree to this statement?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "miguelmorales",
+        "name": "Miguel Morales",
+        "public_path": "/people/miguelmorales.html"
       }
     ],
     "authors": [
@@ -21912,6 +22680,13 @@
         "text": "And check our interview with swyx from yesterday! [https://www.youtube.com/watch?v=tkBCPqWKCL8](https://www.youtube.com/watch?v=tkBCPqWKCL8)\n(Thanks swyx for the chat!)"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "swyx",
+        "name": "Shawn Swyx Wang",
+        "public_path": "/people/swyx.html"
+      }
+    ],
     "authors": [
       "swyx"
     ],
@@ -22114,6 +22889,23 @@
           }
         ],
         "text": "Hi Alexia, congrats on your book! It must be feel very exciting to write on such an interesting topic. If you had to add one more chapter, what would it be about?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "alexiaaudevart",
+        "name": "Alexia Audevart",
+        "public_path": "/people/alexiaaudevart.html"
+      },
+      {
+        "key": "",
+        "name": "Konrad Banachewicz",
+        "public_path": ""
+      },
+      {
+        "key": "",
+        "name": "Luca Massaron",
+        "public_path": ""
       }
     ],
     "authors": [
@@ -22597,6 +23389,13 @@
         "text": "to add to the above questions above bioinformatics-- I find it quite an interesting topic, but as someone who has no biology background beyond high school, what's a good way to learn about it/get involved in projects etc? would you say your new book a good starting point?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "kenyouens-clark",
+        "name": "Ken Youens-Clark",
+        "public_path": "/people/kenyouens-clark.html"
+      }
+    ],
     "authors": [
       "kenyouens-clark"
     ],
@@ -22981,6 +23780,13 @@
           }
         ],
         "text": "Denis Rothman what is faster ways to test which encoding would be great for a task instead of going into whole train - test life cycle. At least any fast intuitive way to try first in order to get fast feedback."
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "denisrothman",
+        "name": "Denis Rothman",
+        "public_path": "/people/denisrothman.html"
       }
     ],
     "authors": [
@@ -23449,6 +24255,13 @@
         "name": "Laurence Moroney",
         "replies": [],
         "text": "Saurav Maheshkar -- Thanks! 🙂 As for 'Full Stack' -- I don't think it's well defined yet, but I will take a stab at definining it similarly to how we define full stack web developers -- and that is someone who is involved, at least in part, in every part of the overall stack to solve a problem. A full stack web developer, for example, is involved in coding the part of the solution that lives on the server, but they're not necessarily an expert in infosec. They'll interface with the people who are. They'll also be involved in coding the front end, and the UX, but they're not necessarily a designer or a UXE. So, similarly, when it comes to ML, if you explore the life cycle from data-&gt;feature engineering-&gt;model training-&gt;deployment-&gt;management, I think a full stack ML Engineer will be involved in all of them to some extent, but the closer you get to the center of that chart, the more they do."
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "laurencemoroney",
+        "name": "Laurence Moroney",
+        "public_path": "/people/laurencemoroney.html"
       }
     ],
     "authors": [
@@ -24136,6 +24949,13 @@
         "text": "Thank you all very much for letting me join this world and talk about graphs this week. The pleasure is all mine as I thoroughly love and enjoy this topic.  Feel free to ping me in here anytime, or drop me an email: <mailto:denisekgosnell@gmail.com|denisekgosnell@gmail.com>\nLet's stay connected! 😜"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "denisegosnell",
+        "name": "Denise Gosnell",
+        "public_path": "/people/denisegosnell.html"
+      }
+    ],
     "authors": [
       "denisegosnell"
     ],
@@ -24475,6 +25295,13 @@
         "text": "Hi, Gant Thanks for participating book of the week.\nI have a question about TF.js and federated learning. My question can be stupid, because I do not understand federated learning much. But if I understand correctly, then\n- Federated learning proposes a model training on a distributed system without collecting the data in one place. \n- 3rd-party cookie will be replaced with FLoC (federated learning of cohorts). \nBecause FL(oC) involves a distributed system, especially web clients/browsers for FLoC, it is natural to use TF.js to implement FL so that FLoC is one of the use cases. So my question is: Do you think TF.js can be mainstream of FL(oC)?\n(Recently Google released a new version of chrome on which FLoC works, but I do not know its implementation.)"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "gantlaborde",
+        "name": "Gant Laborde",
+        "public_path": "/people/gantlaborde.html"
+      }
+    ],
     "authors": [
       "gantlaborde"
     ],
@@ -24739,6 +25566,13 @@
         "text": "&gt; Street coders get the job done by prioritizing tasks, making quick decisions, and knowing which rules to break.\nWe already talked about which rules to break - but what about task prioritization and making quick decisions? If you were to give tweet-sized advice about each of these topics, what that would be?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "sedatkapanoglu",
+        "name": "Sedat Kapanoglu",
+        "public_path": "/people/sedatkapanoglu.html"
+      }
+    ],
     "authors": [
       "sedatkapanoglu"
     ],
@@ -24771,6 +25605,13 @@
   },
   {
     "archive": [],
+    "author_profiles": [
+      {
+        "key": "alexpetrov",
+        "name": "Alex Petrov",
+        "public_path": "/people/alexpetrov.html"
+      }
+    ],
     "authors": [
       "alexpetrov"
     ],
@@ -25249,6 +26090,13 @@
         "text": "Hello Martin Kleppmann. Could you please help to build intuition about [Version Vectors](http://en.wikipedia.org/wiki/Version_vector) and [Vector Clocks](http://en.wikipedia.org/wiki/Vector_clock). i read about them in chapter 5 but can not understand the difference. i am looking for some examples in order to build intuition.I know that it's a long story and i read also some articles from Riak founders. But i's not still clear for me ). Maybe some good example will let to understand it."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "martinkleppmann",
+        "name": "Martin Kleppmann",
+        "public_path": "/people/martinkleppmann.html"
+      }
+    ],
     "authors": [
       "martinkleppmann"
     ],
@@ -25506,6 +26354,13 @@
           }
         ],
         "text": "What the process should look like from identifying a user problem to solving it with ML in production? What are the steps in the process and which tools should we use at each step?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "benwilson",
+        "name": "Ben Wilson",
+        "public_path": "/people/benwilson.html"
       }
     ],
     "authors": [
@@ -25920,6 +26775,13 @@
         "text": "Tino the datasets themselves are certainly subjects to compliance re privacy etc. On the modeling side, I think explainability is more of an issue because decision makers (depending on the organization) want to understand if a model aligns with their priors than for the reasons you mention for credit decisions, for instance. It's certainly a hot topic, but getting the models to work well is probably a higher priority."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "stefanjansen",
+        "name": "Stefan Jansen",
+        "public_path": "/people/stefanjansen.html"
+      }
+    ],
     "authors": [
       "stefanjansen"
     ],
@@ -26257,6 +27119,13 @@
         "text": "Also I'm curious what you think about the way math is taught at schools and universities. Is there something you'd change?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "paulorland",
+        "name": "Paul Orland",
+        "public_path": "/people/paulorland.html"
+      }
+    ],
     "authors": [
       "paulorland"
     ],
@@ -26513,6 +27382,23 @@
           }
         ],
         "text": "Hi Mike Munn - thanks for writing this book! So invaluable as we figure out good practices for shipping ML systems. My question is: what were some design patterns (if any) that you would have liked to include, but that had to get edited out? 🙂"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "",
+        "name": "Valliappa Lakshmanan",
+        "public_path": ""
+      },
+      {
+        "key": "",
+        "name": "Sara Robinson",
+        "public_path": ""
+      },
+      {
+        "key": "michaelmunn",
+        "name": "Michael Munn",
+        "public_path": "/people/michaelmunn.html"
       }
     ],
     "authors": [
@@ -26979,6 +27865,13 @@
         "text": "Jesse Anderson do you think it is a good idea to have mixed teams of data scientists who build the models &amp; ML engineers &amp; developers who move them to production, or those should be split? There seem to be pros &amp; cons of both approaches."
       }
     ],
+    "author_profiles": [
+      {
+        "key": "jesseanderson",
+        "name": "Jesse Anderson",
+        "public_path": "/people/jesseanderson.html"
+      }
+    ],
     "authors": [
       "jesseanderson"
     ],
@@ -27329,6 +28222,13 @@
           }
         ],
         "text": "Good morning!\nIn which order do you think we should learn ML algorithms?\nDo we first learn logistic regression and then decision trees? Or first decision trees and then logistic regression?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "giuseppebonaccorso",
+        "name": "Giuseppe Bonaccorso",
+        "public_path": "/people/giuseppebonaccorso.html"
       }
     ],
     "authors": [
@@ -27714,6 +28614,13 @@
           }
         ],
         "text": "Thanks to everybody who participated this week and thanks very much to Alexey Grigorev for providing the venue. I really enjoyed the questions and the exchange of ideas.\nIf you get the book I encourage you to leave a review on Amazon - thanks!: [https://www.amazon.com/Deep-Learning-Structured-Data-Mark/dp/1617296724/ref=sr_1_1?c[…]+learning+with+structured%2Cstripbooks-intl-ship%2C312&amp;sr=1-1](https://www.amazon.com/Deep-Learning-Structured-Data-Mark/dp/1617296724/ref=sr_1_1?crid=2NBP30UIUGEOS&amp;dchild=1&amp;keywords=deep+learning+with+structured+data&amp;qid=1611328706&amp;s=books&amp;sprefix=deep+learning+with+structured%2Cstripbooks-intl-ship%2C312&amp;sr=1-1)"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "markryan",
+        "name": "Mark Ryan",
+        "public_path": "/people/markryan.html"
       }
     ],
     "authors": [
@@ -28105,6 +29012,13 @@
         "text": "Phil Winder Hi Phil, Pavlov’s famous experiments (:bell:) are a great example of reinforcement learning for non-machines. I’m interested to know: do you foresee any interplay between reinforcement learning for biological/machine entities in the future? e.g. do you expect to see research insights from (machine) reinforcement learning having application in psychology, and vice-versa?"
       }
     ],
+    "author_profiles": [
+      {
+        "key": "philwinder",
+        "name": "Phil Winder",
+        "public_path": "/people/philwinder.html"
+      }
+    ],
     "authors": [
       "philwinder"
     ],
@@ -28377,6 +29291,13 @@
           }
         ],
         "text": "Maybe it was already mentioned, but I think another aspect that is not always considered in ML books is A/B testing ML models, which in production setups is really important. (Here, too, SM offers this possibility :slightly_smiling_face: , but, for sure, it's not the only framework). WDYT?"
+      }
+    ],
+    "author_profiles": [
+      {
+        "key": "alexeygrigorev",
+        "name": "Alexey Grigorev",
+        "public_path": "/people/alexeygrigorev.html"
       }
     ],
     "authors": [

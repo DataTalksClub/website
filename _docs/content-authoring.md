@@ -44,6 +44,13 @@ Articles remain UTF-8 Markdown with one leading YAML front-matter mapping. Their
 non-empty. Unknown front-matter fields remain available as source metadata. HTML, URLs, and the
 small allowlist of legacy Liquid includes are validated and rendered by website-owned code.
 
+Ten articles end with a frequently-asked-questions section written as
+`{% include faq-accordion.html faqs=site.data.faqs.<key> %}`. The include names a data file in
+`DataTalksClub/datatalksclub.github.io` under `_data/faqs/`, so the pairs are not in this source at
+all and an article file alone cannot supply them. The website recovers them into
+`content/article_faq.json`; see [article FAQ recovery](article-faq-recovery.md), which also records
+the upstream change that would retire the recovery.
+
 Podcast episode files are UTF-8 YAML mappings at `podcasts/<slug>.yaml`. Required identity fields
 include `slug`, exact `legacy_path`, `title`, `description`, `season`, `episode`, `guests`, and
 `image`. `description` must be a non-empty string; missing, blank, null, numeric, boolean, sequence,

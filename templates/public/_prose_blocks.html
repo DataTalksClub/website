@@ -9,26 +9,144 @@
   projection blocks one by one: because the sections arrive already grouped, a
   run of source list items becomes one real list here (which also tells a screen
   reader how many items there are) and a heading keeps its own level rather than
-  collapsing everything below h2 into h3.  Both draw the same marks.
+  collapsing everything below h2 into h3.
 
   A heading keeps the fragment identifier the projected body assigned it, because
-  those identifiers are linkable anchors that must not move.  Anything else keeps
-  its text as a paragraph, so a block kind the projection grows later is rendered
-  rather than dropped.
+  those identifiers are linkable anchors that must not move.  Anything this
+  partial does not name keeps its text as a paragraph, so a block kind the
+  projection grows later is rendered rather than dropped.
 
-  Text sits on the same line as its element on purpose: `.prose-paragraph` keeps
-  source line breaks, so an indented newline inside the tag would become a
-  rendered one.
+  `section.html` is markup the composition already put through the shared
+  sanitizer (content.services.sanitize_rendered_html), which is why it is marked
+  safe here — the same path templates/public/_article_faq.html uses for a
+  recovered answer.  Where a section has no such markup its plain text is drawn
+  instead, escaped by the template as usual.
+
+  Some lines here are deliberately not broken.  `.prose-paragraph` keeps source
+  line breaks and `<pre>` keeps every character between its tags, so a newline
+  written for readability inside either would become a rendered one.
 {% endcomment %}
 {% for section in sections %}
   {% if section.kind == "heading" %}
     <h{{ section.level }} id="{{ section.id }}">{{ section.text }}</h{{ section.level }}>
   {% elif section.kind == "list" %}
-    <ul>
+    {% if section.ordered %}
+      <ol>
+    {% else %}
+      <ul>
+    {% endif %}
       {% for item in section.items %}
-        <li>{{ item }}</li>
+        {% if item.html %}
+          <li>{{ item.html|safe }}</li>
+        {% else %}
+          <li>{{ item.text }}</li>
+        {% endif %}
       {% endfor %}
-    </ul>
+    {% if section.ordered %}
+      </ol>
+    {% else %}
+      </ul>
+    {% endif %}
+  {% elif section.kind == "image" %}
+    {% comment %}
+      The picture keeps the source's own pixel size, so the reading column
+      reserves its shape before the file arrives and the text below it does not
+      jump.  An illustration the source gave no description carries an empty alt
+      rather than an invented one; where the source wrote a caption, that caption
+      is the description a reader gets, and a screen reader reads it with the
+      figure.
+    {% endcomment %}
+    <figure>
+      <img
+        src="{{ section.src }}"
+        alt="{{ section.alt }}"
+        {% if section.title %}
+          title="{{ section.title }}"
+        {% endif %}
+        {% if section.width %}
+          width="{{ section.width }}"
+        {% endif %}
+        {% if section.height %}
+          height="{{ section.height }}"
+        {% endif %}
+        loading="lazy"
+        decoding="async"
+      >
+      {% if section.caption %}
+        <figcaption>{{ section.caption }}</figcaption>
+      {% endif %}
+    </figure>
+  {% elif section.kind == "table" %}
+    {% comment %}
+      A comparison table is wider than the reading measure, so it scrolls inside
+      its own frame.  That frame is keyboard reachable and named — the same
+      `role="region"` + `tabindex="0"` the Studio tables use — because a
+      scrollable box no keyboard can reach is a barrier, not a layout.
+    {% endcomment %}
+    <div class="prose-scroll" role="region" tabindex="0" aria-label="{{ section.label }}">
+      <table>
+        {% if section.head %}
+          <thead>
+            <tr>
+              {% for cell in section.head %}
+                <th scope="col">{{ cell|safe }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+        {% endif %}
+        <tbody>
+          {% for row in section.rows %}
+            <tr>
+              {% for cell in row %}
+                <td>{{ cell|safe }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% elif section.kind == "code" %}
+    {% comment %}
+      The sample keeps its own lines and wraps rather than scrolling: a scrolling
+      frame here would need a focus stop of its own, and the FAQ pages already
+      settled that a wrapped command is the readable answer
+      (templates/review/faq_detail.html).  The language is recorded on the
+      element for a future highlighter; nothing highlights it today.
+    {% endcomment %}
+    <pre><code class="language-{{ section.language|default:'plaintext' }}">{{ section.text }}</code></pre>
+  {% elif section.kind == "quote" %}
+    {% if section.block_level %}
+      <blockquote class="prose-embed">{{ section.html|safe }}</blockquote>
+    {% elif section.html %}
+      <blockquote>
+        <p>{{ section.html|safe }}</p>
+      </blockquote>
+    {% else %}
+      <blockquote>
+        <p class="prose-paragraph">{{ section.text }}</p>
+      </blockquote>
+    {% endif %}
+  {% elif section.kind == "separator" %}
+    <hr>
+  {% elif section.kind == "chart" %}
+    {% comment %}
+      Said out loud rather than left as a gap: these survey charts are drawn by a
+      script this site does not ship, so the page names the chart the article
+      argued from instead of showing nothing where it stood.
+    {% endcomment %}
+    <figure class="prose-unavailable">
+      <p class="mono-note">Chart unavailable.</p>
+      {% if section.text %}
+        <figcaption>{{ section.text }}</figcaption>
+      {% endif %}
+      {% if section.caption %}
+        <p class="prose-caption">{{ section.caption }}</p>
+      {% endif %}
+    </figure>
+  {% elif section.block_level %}
+    <div class="prose-embed">{{ section.html|safe }}</div>
+  {% elif section.html %}
+    <p>{{ section.html|safe }}</p>
   {% else %}
     <p class="prose-paragraph">{{ section.text }}</p>
   {% endif %}

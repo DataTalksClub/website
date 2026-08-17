@@ -74,6 +74,29 @@ EXPECTED_COUNTS = {
     "wiki": 282,
     "courses": 12,
 }
+# A book's `authors` list is not homogeneous in the source: most entries are the stable key of a
+# person record, but a co-author the community never hosted is written out as a plain display
+# name.  Those names are the whole inventory of book credits that cannot become a profile link, so
+# the build states them here and fails if the set moves.  Everything else must resolve, which is
+# what stops a bare source key from reaching a reader as if it were a name.
+BOOK_AUTHORS_WITHOUT_PROFILE = (
+    "Ajay Uppili Arasanipalai",
+    "Alfredo Deza",
+    "Anita Kibunguchy-Grant",
+    "Catherine Nelson",
+    "Dipanjan Sarkar",
+    "Evren Eryurek",
+    "John Berryman",
+    "Joseph Babcock",
+    "Josh Perryman",
+    "Justin Mullen",
+    "Konrad Banachewicz",
+    "Luca Massaron",
+    "Max Irwin",
+    "Sara Robinson",
+    "Trey Grainger",
+    "Valliappa Lakshmanan",
+)
 EXPECTED_PREFERRED_CONTENT_MEDIA_COUNT = 815
 EXPECTED_FALLBACK_CONTENT_MEDIA_COUNT = 807
 EXPECTED_PEOPLE_MEDIA_COUNT = 438
@@ -448,6 +471,573 @@ def _body_blocks(body: str) -> list[dict[str, Any]]:
     return blocks
 
 
+# ---------------------------------------------------------------------------
+# Article bodies
+#
+# `_body_blocks` above is the plain-text projection the wiki pages and the person
+# bios still use: it keeps headings, paragraphs and list items and flattens
+# everything else away.  An article body is not that shape.  The accepted content
+# revision writes articles as Markdown with a large amount of literal HTML in it —
+# 379 `<figure>` illustrations, 23 `<table>` comparisons, 90 fenced code samples,
+# 111 ordered-list runs and 676 links — and flattening all of that to prose is
+# what turned tutorials into unreadable paragraphs (owner report, this issue).
+#
+# `_article_blocks` therefore keeps the same block-list contract (a flat, ordered,
+# JSON-safe list, so the recovered-FAQ split index still means what it meant) and
+# widens the vocabulary: `image`, `table`, `code`, `quote`, `separator`, `chart`
+# and `embed` join `heading`, `paragraph` and `list_item`.  Two properties are
+# deliberate:
+#
+#   * `text` keeps the exact plain-text projection it had before, so reading time,
+#     the leaked-metadata canary and any other plain-text consumer are unchanged
+#     for a block whose structure did not change; and
+#   * a block whose source carried more than its plain text also carries
+#     `markdown`, the bounded source segment.  Rendering that segment is the
+#     page's job, through the shared sanitizer, exactly as the recovered FAQ
+#     answers are rendered.  Nothing in this file emits HTML.
+#
+# Liquid remains stripped on purpose: `{% include ... %}` addressed a legacy Jekyll
+# site whose partials do not exist here, and the FAQ accordions it pulled in were
+# recovered separately (content/article_faq.py).
+# ---------------------------------------------------------------------------
+
+ARTICLE_FENCE = re.compile(r"^(`{3,}|~{3,})[ \t]*([A-Za-z0-9_+#.-]{0,32})[ \t]*$")
+ARTICLE_ORDERED_ITEM = re.compile(r"^\d{1,3}[.)][ \t]+(.+)$")
+ARTICLE_UNORDERED_ITEM = re.compile(r"^[-*+][ \t]+(.+)$")
+ARTICLE_QUOTE_LINE = re.compile(r"^>[ \t]?(.*)$")
+ARTICLE_RULE = re.compile(r"^(?:-{3,}|\*{3,}|_{3,})$")
+ARTICLE_TABLE_DIVIDER = re.compile(r"^\|?[ \t]*:?-{2,}:?[ \t]*(?:\|[ \t]*:?-{2,}:?[ \t]*)*\|?$")
+ARTICLE_TABLE_PIPE = re.compile(r"(?<!\\)\|")
+ARTICLE_TARGET_ATTRIBUTE = re.compile(r"\{:[ \t]*target[ \t]*=[ \t]*\"_?blank\"[ \t]*\}")
+ARTICLE_UNSAFE_MARKUP = re.compile(
+    r"</?(?:script|style|iframe|object|embed|form|input|button|link|meta|base|noscript)\b"
+    r"|\son[a-z]{2,20}[ \t]*="
+    r"|(?:href|src|action|formaction)[ \t]*=[ \t]*[\"']?[ \t]*(?:javascript|vbscript|data):",
+    re.IGNORECASE,
+)
+ARTICLE_HTML_COMMENT = re.compile(r"<!--.*?-->", re.DOTALL)
+ARTICLE_HTML_ATTRIBUTE = re.compile(
+    r"""([A-Za-z_:][-A-Za-z0-9_:.]*)[ \t\r\n]*=[ \t\r\n]*(?:"([^"]*)"|'([^']*)')"""
+)
+ARTICLE_FIGURE = re.compile(r"<figure\b[^>]*>(.*?)</figure\s*>", re.DOTALL | re.IGNORECASE)
+ARTICLE_FIGCAPTION = re.compile(
+    r"<figcaption\b[^>]*>(.*?)</figcaption\s*>", re.DOTALL | re.IGNORECASE
+)
+ARTICLE_IMG = re.compile(r"<img\b([^>]*?)/?>", re.IGNORECASE)
+ARTICLE_TABLE = re.compile(r"<table\b[^>]*>(.*?)</table\s*>", re.DOTALL | re.IGNORECASE)
+ARTICLE_TABLE_ROW = re.compile(r"<tr\b[^>]*>(.*?)</tr\s*>", re.DOTALL | re.IGNORECASE)
+ARTICLE_TABLE_CELL = re.compile(r"<(th|td)\b[^>]*>(.*?)</\1\s*>", re.DOTALL | re.IGNORECASE)
+ARTICLE_HTML_HEADING = re.compile(r"<h([1-6])\b([^>]*)>(.*?)</h\1\s*>", re.DOTALL | re.IGNORECASE)
+ARTICLE_CANVAS = re.compile(r"<canvas\b([^>]*?)(?:/>|>.*?</canvas\s*>)", re.DOTALL | re.IGNORECASE)
+ARTICLE_DIVIDER = re.compile(
+    r"<div\b[^>]*class=\"[^\"]*article-divider[^\"]*\"[^>]*>\s*</div\s*>", re.IGNORECASE
+)
+ARTICLE_HR = re.compile(r"<hr\b[^>]*/?>", re.IGNORECASE)
+ARTICLE_HTML_BLOCK_START = re.compile(
+    r"^<(?:figure|table|img|canvas|hr|div|h[1-6])\b", re.IGNORECASE
+)
+ARTICLE_IMAGE_EXTENSIONS = frozenset({".gif", ".jpeg", ".jpg", ".png", ".svg"})
+MAX_ARTICLE_SEGMENT_CHARACTERS = 20_000
+MAX_ARTICLE_TABLE_CELLS = 400
+
+# Canaries over the accepted article corpus.  Each one names a decision a reader
+# can check against the source, and a build whose numbers move stops rather than
+# quietly publishing a different body.
+EXPECTED_ARTICLE_IMAGES = 325
+EXPECTED_ARTICLE_IMAGES_WITHOUT_ALT = 119
+# The five remote illustrations the accepted pin hosts outside this projection.
+# They have no checked media record, the shared sanitizer rejects an off-site
+# `img src`, and the parity contract already declares them omitted.
+EXPECTED_ARTICLE_REMOTE_IMAGES = 5
+EXPECTED_ARTICLE_TABLES = 33
+EXPECTED_ARTICLE_CODE_BLOCKS = 90
+# Chart.js canvases.  The data lives in `data-*` attributes and needs a script to
+# draw; this projection carries no script, so the block keeps the chart's own
+# title and the page says the chart is unavailable rather than dropping it.
+EXPECTED_ARTICLE_CHARTS = 50
+
+
+def _html_attributes(value: str) -> dict[str, str]:
+    """Return one HTML start tag's quoted attributes, lower-cased by name."""
+
+    attributes: dict[str, str] = {}
+    for match in ARTICLE_HTML_ATTRIBUTE.finditer(value):
+        name = match.group(1).casefold()
+        attributes.setdefault(name, html.unescape(match.group(2) or match.group(3) or ""))
+    return attributes
+
+
+def _image_dimensions(path: Path) -> tuple[int, int] | None:
+    """Return one raster image's intrinsic pixel size, read from its own header.
+
+    The page needs a real aspect box so an article does not reflow while its
+    illustrations load.  Only the three header shapes this corpus contains are
+    read — PNG, GIF and the JPEG frame markers — and anything else (an SVG, a
+    truncated file) returns ``None`` so the page can say it has no dimensions
+    instead of guessing one.
+    """
+
+    try:
+        payload = path.read_bytes()
+    except OSError:
+        return None
+    if payload.startswith(b"\x89PNG\r\n\x1a\n") and len(payload) >= 24:
+        width = int.from_bytes(payload[16:20], "big")
+        height = int.from_bytes(payload[20:24], "big")
+    elif payload.startswith((b"GIF87a", b"GIF89a")) and len(payload) >= 10:
+        width = int.from_bytes(payload[6:8], "little")
+        height = int.from_bytes(payload[8:10], "little")
+    elif payload.startswith(b"\xff\xd8"):
+        width = height = 0
+        position = 2
+        while position + 9 < len(payload):
+            if payload[position] != 0xFF:
+                return None
+            marker = payload[position + 1]
+            if marker in {0xD8, 0x01} or 0xD0 <= marker <= 0xD7:
+                position += 2
+                continue
+            length = int.from_bytes(payload[position + 2 : position + 4], "big")
+            if length < 2:
+                return None
+            if 0xC0 <= marker <= 0xCF and marker not in {0xC4, 0xC8, 0xCC}:
+                height = int.from_bytes(payload[position + 5 : position + 7], "big")
+                width = int.from_bytes(payload[position + 7 : position + 9], "big")
+                break
+            position += 2 + length
+    else:
+        return None
+    if not 0 < width <= 20_000 or not 0 < height <= 20_000:
+        return None
+    return width, height
+
+
+def _article_segment(value: str) -> str:
+    """Return one bounded source segment, with the Liquid this site cannot run removed."""
+
+    value = LIQUID.sub("", value)
+    value = ARTICLE_HTML_COMMENT.sub("", value)
+    value = strip_target_attributes_from_links(value)
+    # The accepted articles attach Kramdown's `{:target="_blank"}` to 270 links.
+    # The plain-text projection keeps that token and the runtime strips it under a
+    # provenance allowlist (content/public_data.py); the source segment this field
+    # adds is written clean instead, because nothing downstream would ever want a
+    # legacy renderer's directive rendered as prose.
+    value = ARTICLE_TARGET_ATTRIBUTE.sub("", value)
+    value = value.strip()
+    if len(value) > MAX_ARTICLE_SEGMENT_CHARACTERS or "\x00" in value:
+        raise ProjectionBuildError("article body segment rejected")
+    # The page renders this segment through the shared sanitizer, which would
+    # remove all of the below.  The build refuses it anyway: a checked artifact
+    # should not carry executable or embedding markup as data, and the accepted
+    # corpus contains none of it, so a source that grows some is a review event
+    # rather than something a sanitizer quietly absorbs.
+    if ARTICLE_UNSAFE_MARKUP.search(value) is not None:
+        raise ProjectionBuildError("article body segment contains disallowed markup")
+    return value
+
+
+def _article_text_block(kind: str, source: str, **extra: Any) -> dict[str, Any] | None:
+    """Return one text-carrying article block, or ``None`` when it says nothing.
+
+    ``text`` is the same plain-text projection this builder always produced.
+    ``markdown`` is added only when the source segment carried more than that
+    plain text, so a block the flattening never damaged keeps its exact previous
+    shape and a block it did damage carries what the page needs to render it.
+
+    A segment with no words at all is not a block.  These bodies contain a
+    handful of ``&nbsp;`` spacers and one orphaned closing tag, and every element
+    that carries meaning without words — an illustration, a table, a rule — has
+    its own kind above, so nothing is lost by refusing them here.
+    """
+
+    segment = _article_segment(source)
+    text = _plain_inline(segment)
+    if not text:
+        return None
+    block: dict[str, Any] = {"kind": kind, "text": text, **extra}
+    if segment != text:
+        block["markdown"] = segment
+    return block
+
+
+def _article_table_block(head: list[str], rows: list[list[str]], index: int) -> dict[str, Any]:
+    if not head and not rows:
+        raise ProjectionBuildError("article table is empty")
+    width = max([len(head), *(len(row) for row in rows)] or [0])
+    if width * (len(rows) + 1) > MAX_ARTICLE_TABLE_CELLS:
+        raise ProjectionBuildError("article table is too large")
+    return {
+        "kind": "table",
+        # The reading column is narrower than a wide comparison table, so the page
+        # puts one in a keyboard-reachable scroll frame.  That frame needs a name,
+        # and a name that repeats inside one document is its own defect, so the
+        # build numbers the tables it found rather than inventing a description.
+        "label": f"Table {index}",
+        "head": [_article_segment(cell) for cell in head],
+        "rows": [[_article_segment(cell) for cell in row] for row in rows],
+    }
+
+
+def _article_html_table(markup: str, index: int) -> dict[str, Any]:
+    head: list[str] = []
+    rows: list[list[str]] = []
+    for row_match in ARTICLE_TABLE_ROW.finditer(markup):
+        cells = [
+            (cell.group(1).casefold(), cell.group(2))
+            for cell in ARTICLE_TABLE_CELL.finditer(row_match.group(1))
+        ]
+        if not cells:
+            continue
+        if not head and all(name == "th" for name, _ in cells):
+            head = [value for _, value in cells]
+            continue
+        rows.append([value for _, value in cells])
+    return _article_table_block(head, rows, index)
+
+
+def _article_markdown_table(lines: list[str], index: int) -> dict[str, Any]:
+    def cells(line: str) -> list[str]:
+        # A cell may contain an escaped pipe, and one of these tables does; the
+        # row is therefore split on unescaped delimiters only.
+        parts = [cell.strip() for cell in ARTICLE_TABLE_PIPE.split(line.strip())]
+        if parts and not parts[0]:
+            parts.pop(0)
+        if parts and not parts[-1]:
+            parts.pop()
+        return parts
+
+    head = cells(lines[0])
+    rows = [cells(line) for line in lines[2:] if line.strip()]
+    return _article_table_block(head, rows, index)
+
+
+def _article_image_block(
+    tag_attributes: dict[str, str],
+    caption: str,
+    *,
+    media_root: Path | None,
+    counters: dict[str, int],
+) -> dict[str, Any] | None:
+    source = tag_attributes.get("src", "").strip()
+    if not source:
+        return None
+    if not source.startswith("/") or source.startswith("//"):
+        # An off-site illustration has no checked media record and the shared
+        # sanitizer rejects its address; the accepted parity contract already
+        # declares these omitted rather than published from a remote host.
+        counters["remote_images"] = counters.get("remote_images", 0) + 1
+        return None
+    relative = source.lstrip("/")
+    if ".." in relative or Path(relative).suffix.casefold() not in ARTICLE_IMAGE_EXTENSIONS:
+        raise ProjectionBuildError("article image path rejected")
+    path = None
+    if media_root is not None:
+        path = media_root / relative
+        if not path.is_file() or path.is_symlink():
+            raise ProjectionBuildError("article image is missing from the pinned source")
+    counters["images"] = counters.get("images", 0) + 1
+    alt = tag_attributes.get("alt", "").strip()
+    if not alt:
+        # Said rather than invented: this illustration carries no description in
+        # the source.  An empty `alt` keeps a screen reader from reading a file
+        # name aloud; the caption below it, where the source wrote one, is what
+        # actually describes the picture.
+        counters["images_without_alt"] = counters.get("images_without_alt", 0) + 1
+    block: dict[str, Any] = {"kind": "image", "src": source, "alt": alt}
+    title = tag_attributes.get("title", "").strip()
+    if title:
+        block["title"] = title
+    caption_text = _plain_inline(_article_segment(caption))
+    if caption_text:
+        block["caption"] = caption_text
+    dimensions = _image_dimensions(path) if path is not None else None
+    if dimensions is not None:
+        block["width"], block["height"] = dimensions
+    elif path is not None:
+        counters["images_without_dimensions"] = counters.get("images_without_dimensions", 0) + 1
+    return block
+
+
+def _article_html_segment(
+    segment: str,
+    *,
+    media_root: Path | None,
+    counters: dict[str, int],
+    numbering: dict[str, int],
+    heading: Any,
+    text_blocks: Any,
+) -> list[dict[str, Any]]:
+    """Return the blocks one literal-HTML source segment carries.
+
+    The accepted articles write their illustrations, comparison tables and a
+    handful of section headings as HTML inside the Markdown.  Each recognised
+    element becomes its own typed block; whatever is left over is kept whole as
+    an ``embed`` so a call-to-action or a layout wrapper still reaches the page
+    through the sanitizer instead of disappearing.
+    """
+
+    # Checked once for the whole run, because the elements below are read field by
+    # field rather than through `_article_segment`: an event handler on an image
+    # is discarded by that reading, and it still stops the build.
+    if ARTICLE_UNSAFE_MARKUP.search(segment) is not None:
+        raise ProjectionBuildError("article body segment contains disallowed markup")
+    blocks: list[dict[str, Any]] = []
+    position = 0
+    for match in re.finditer(
+        r"<figure\b[^>]*>.*?</figure\s*>"
+        r"|<table\b[^>]*>.*?</table\s*>"
+        r"|<h([1-6])\b[^>]*>.*?</h\1\s*>"
+        r"|<img\b[^>]*?/?>"
+        r"|<canvas\b[^>]*?(?:/>|>.*?</canvas\s*>)"
+        r"|<div\b[^>]*class=\"[^\"]*article-divider[^\"]*\"[^>]*>\s*</div\s*>"
+        r"|<hr\b[^>]*/?>",
+        segment,
+        re.DOTALL | re.IGNORECASE,
+    ):
+        leading = segment[position : match.start()]
+        position = match.end()
+        if leading.strip():
+            blocks.extend(text_blocks(leading))
+        found = match.group(0)
+        lowered = found[:9].casefold()
+        if lowered.startswith("<figure"):
+            inner = ARTICLE_FIGURE.match(found)
+            body = inner.group(1) if inner else ""
+            caption_match = ARTICLE_FIGCAPTION.search(body)
+            caption = caption_match.group(1) if caption_match else ""
+            image_match = ARTICLE_IMG.search(body)
+            if image_match is not None:
+                image = _article_image_block(
+                    _html_attributes(image_match.group(1)),
+                    caption,
+                    media_root=media_root,
+                    counters=counters,
+                )
+                if image is not None:
+                    blocks.append(image)
+                continue
+            canvas_match = ARTICLE_CANVAS.search(body)
+            if canvas_match is not None:
+                blocks.append(
+                    _article_chart_block(_html_attributes(canvas_match.group(1)), caption, counters)
+                )
+                continue
+            blocks.extend(text_blocks(body))
+        elif lowered.startswith("<table"):
+            counters["tables"] = counters.get("tables", 0) + 1
+            numbering["tables"] = numbering.get("tables", 0) + 1
+            blocks.append(_article_html_table(found, numbering["tables"]))
+        elif lowered.startswith("<img"):
+            image_tag = ARTICLE_IMG.match(found)
+            image = (
+                _article_image_block(
+                    _html_attributes(image_tag.group(1)),
+                    "",
+                    media_root=media_root,
+                    counters=counters,
+                )
+                if image_tag is not None
+                else None
+            )
+            if image is not None:
+                blocks.append(image)
+        elif lowered.startswith("<canvas"):
+            canvas_tag = ARTICLE_CANVAS.match(found)
+            blocks.append(
+                _article_chart_block(
+                    _html_attributes(canvas_tag.group(1) if canvas_tag else ""), "", counters
+                )
+            )
+        elif lowered.startswith("<h"):
+            parsed = ARTICLE_HTML_HEADING.match(found)
+            if parsed is None:
+                raise ProjectionBuildError("article heading markup rejected")
+            blocks.append(
+                heading(
+                    int(parsed.group(1)),
+                    parsed.group(3),
+                    _html_attributes(parsed.group(0).split(">", 1)[0]).get("id", ""),
+                )
+            )
+        else:
+            blocks.append({"kind": "separator"})
+    trailing = segment[position:]
+    if trailing.strip():
+        blocks.extend(text_blocks(trailing))
+    return blocks
+
+
+def _article_chart_block(
+    attributes: dict[str, str], caption: str, counters: dict[str, int]
+) -> dict[str, Any]:
+    counters["charts"] = counters.get("charts", 0) + 1
+    title = attributes.get("data-title", "").strip()
+    caption_text = _plain_inline(_article_segment(caption))
+    block: dict[str, Any] = {"kind": "chart", "text": title or caption_text}
+    if caption_text and caption_text != block["text"]:
+        block["caption"] = caption_text
+    return block
+
+
+def _article_blocks(
+    body: str, *, media_root: Path | None, counters: dict[str, int]
+) -> list[dict[str, Any]]:
+    """Return one article body as its ordered blocks, keeping what it carries."""
+
+    blocks: list[dict[str, Any]] = []
+    used_ids: dict[str, int] = {}
+    pending: list[str] = []
+    # Table numbering is per document, so a body reads the same whether it is
+    # built whole or as the prefix the recovered-FAQ position is measured from.
+    numbering: dict[str, int] = {}
+
+    def heading_block(level: int, title_source: str, source_id: str) -> dict[str, Any]:
+        title = _plain_inline(title_source)
+        # A source that already names its heading keeps that name: the article's
+        # own table of contents links to it, and a derived identifier would break
+        # every one of those links.
+        base_id = source_id.strip() or _slugify(title)
+        used_ids[base_id] = used_ids.get(base_id, 0) + 1
+        fragment_id = base_id if used_ids[base_id] == 1 else f"{base_id}-{used_ids[base_id]}"
+        return {
+            "kind": "heading",
+            "level": max(2, min(6, level)),
+            "id": fragment_id,
+            "text": title,
+        }
+
+    def flush() -> None:
+        if not pending:
+            return
+        chunk = list(pending)
+        pending.clear()
+        blocks.extend(_article_chunk(chunk))
+
+    def _article_chunk(lines: list[str]) -> list[dict[str, Any]]:
+        """Return one blank-line-separated source chunk as blocks.
+
+        A chunk is a table, a run of literal HTML, or text — and an article
+        regularly puts an illustration straight under a sentence with no blank
+        line between them, so the text before the first HTML element is read as
+        text and the rest is handed to the HTML reader.
+        """
+
+        stripped = [line.strip() for line in lines]
+        if (
+            len(lines) > 2
+            and "|" in stripped[0]
+            and ARTICLE_TABLE_DIVIDER.fullmatch(stripped[1]) is not None
+        ):
+            counters["tables"] = counters.get("tables", 0) + 1
+            numbering["tables"] = numbering.get("tables", 0) + 1
+            return [_article_markdown_table(lines, numbering["tables"])]
+        opening = next(
+            (
+                position
+                for position, bare in enumerate(stripped)
+                if ARTICLE_HTML_BLOCK_START.match(bare) is not None
+            ),
+            None,
+        )
+        if opening is not None:
+            return _text_chunk(lines[:opening]) + _article_html_segment(
+                "\n".join(lines[opening:]),
+                media_root=media_root,
+                counters=counters,
+                numbering=numbering,
+                heading=heading_block,
+                text_blocks=lambda segment: _text_chunk(segment.splitlines()),
+            )
+        return _text_chunk(lines)
+
+    def _text_chunk(lines: list[str]) -> list[dict[str, Any]]:
+        stripped = [line.strip() for line in lines]
+        produced: list[dict[str, Any]] = []
+        paragraph: list[str] = []
+        quote: list[str] = []
+
+        def close_paragraph() -> None:
+            if paragraph:
+                block = _article_text_block("paragraph", "\n".join(paragraph))
+                paragraph.clear()
+                if block is not None:
+                    produced.append(block)
+
+        def close_quote() -> None:
+            if quote:
+                block = _article_text_block("quote", "\n".join(quote))
+                quote.clear()
+                if block is not None:
+                    produced.append(block)
+
+        for line, bare in zip(lines, stripped, strict=True):
+            quoted = ARTICLE_QUOTE_LINE.match(bare)
+            if quoted is not None:
+                close_paragraph()
+                quote.append(quoted.group(1))
+                continue
+            close_quote()
+            if ARTICLE_RULE.fullmatch(bare) is not None:
+                close_paragraph()
+                produced.append({"kind": "separator"})
+                continue
+            unordered = ARTICLE_UNORDERED_ITEM.match(bare)
+            ordered = None if unordered else ARTICLE_ORDERED_ITEM.match(bare)
+            item_match = unordered or ordered
+            if item_match is not None:
+                close_paragraph()
+                block = _article_text_block(
+                    "list_item",
+                    item_match.group(1),
+                    **({"ordered": True} if ordered is not None else {}),
+                )
+                if block is not None:
+                    produced.append(block)
+                continue
+            paragraph.append(line)
+        close_quote()
+        close_paragraph()
+        return produced
+
+    lines = body.splitlines()
+    index = 0
+    while index < len(lines):
+        raw_line = lines[index]
+        line = raw_line.strip()
+        fence = ARTICLE_FENCE.match(line)
+        if fence is not None:
+            flush()
+            closing = fence.group(1)[0] * 3
+            collected: list[str] = []
+            index += 1
+            while index < len(lines) and not lines[index].strip().startswith(closing):
+                collected.append(lines[index])
+                index += 1
+            index += 1
+            counters["code_blocks"] = counters.get("code_blocks", 0) + 1
+            code = "\n".join(collected).rstrip()
+            if len(code) > MAX_ARTICLE_SEGMENT_CHARACTERS or "\x00" in code:
+                raise ProjectionBuildError("article code block rejected")
+            block: dict[str, Any] = {"kind": "code", "text": code}
+            if fence.group(2):
+                block["language"] = fence.group(2).casefold()
+            blocks.append(block)
+            continue
+        index += 1
+        heading = HEADING.match(line)
+        if heading is not None:
+            flush()
+            blocks.append(heading_block(len(heading.group(1)), heading.group(2), ""))
+            continue
+        if not line:
+            flush()
+            continue
+        pending.append(raw_line)
+    flush()
+    return blocks
+
+
 def _title_from_record(record: dict[str, Any], key: str) -> str:
     return _string(record.get("title") or record.get("short") or key, field="title", maximum=500)
 
@@ -463,6 +1053,15 @@ def _main_records(
     books: list[dict[str, Any]] = []
     selected_revision = PREFERRED_CONTENT_REVISION if mode == "preferred" else LEGACY_MAIN_REVISION
     selected_repository = CONTENT_REPOSITORY if mode == "preferred" else LEGACY_MAIN_REPOSITORY
+    article_counters: dict[str, int] = {
+        "images": 0,
+        "images_without_alt": 0,
+        "images_without_dimensions": 0,
+        "remote_images": 0,
+        "tables": 0,
+        "code_blocks": 0,
+        "charts": 0,
+    }
 
     for path in sorted((content_root / "articles").glob("*.md")):
         metadata, body = _frontmatter(path)
@@ -495,7 +1094,7 @@ def _main_records(
                 ),
                 "published": published,
                 "authors": _safe_key_list(metadata.get("authors"), field="article author"),
-                "blocks": _body_blocks(body),
+                "blocks": _article_blocks(body, media_root=content_root, counters=article_counters),
                 "image_source": _string(
                     metadata.get("image"), field="article image", maximum=500, optional=True
                 ),
@@ -508,6 +1107,22 @@ def _main_records(
                 ),
             }
         )
+
+    # The article bodies are the one place this build reads rich source structure,
+    # so it states what it found.  A source that gains an illustration, a table or
+    # a code sample is a review event; it never changes the published corpus
+    # silently.  The reviewed legacy fallback is a different corpus and is never
+    # promoted, so it is not held to these numbers.
+    if mode == "preferred" and article_counters != {
+        "images": EXPECTED_ARTICLE_IMAGES,
+        "images_without_alt": EXPECTED_ARTICLE_IMAGES_WITHOUT_ALT,
+        "images_without_dimensions": 0,
+        "remote_images": EXPECTED_ARTICLE_REMOTE_IMAGES,
+        "tables": EXPECTED_ARTICLE_TABLES,
+        "code_blocks": EXPECTED_ARTICLE_CODE_BLOCKS,
+        "charts": EXPECTED_ARTICLE_CHARTS,
+    }:
+        raise ProjectionBuildError("article body inventory mismatch")
 
     transcript_root = content_root / "podcasts" / "transcripts"
     for path in sorted((content_root / "podcasts").glob("*.yaml")):
@@ -1905,6 +2520,29 @@ def build(args: argparse.Namespace) -> None:
                 "public_path": people_by_slug[author]["public_path"],
             }
             for author in article["authors"]
+        ]
+    # Books credit their authors the same way articles credit theirs, so a book's byline can be
+    # drawn from the same `{key, name, public_path}` shape wherever a reader meets it.  A credit
+    # the people records cannot place keeps its written name and no link, rather than exposing a
+    # source key as if it were a person's name.
+    unresolved_book_authors = sorted(
+        {author for book in books for author in book["authors"] if author not in people_by_slug}
+    )
+    # The inventory is stated for the accepted source.  The reviewed legacy fallback writes its
+    # book front matter differently and is never silently promoted, so it degrades rather than
+    # failing the one build that exists to recover from a withdrawn acceptance.
+    if args.mode == "preferred" and tuple(unresolved_book_authors) != BOOK_AUTHORS_WITHOUT_PROFILE:
+        raise ProjectionBuildError("book author/profile exception inventory mismatch")
+    for book in books:
+        book["author_profiles"] = [
+            {
+                "key": author if author in people_by_slug else "",
+                "name": people_by_slug[author]["title"] if author in people_by_slug else author,
+                "public_path": (
+                    people_by_slug[author]["public_path"] if author in people_by_slug else ""
+                ),
+            }
+            for author in book["authors"]
         ]
     for podcast in podcasts:
         podcast["guest_profiles"] = [

@@ -33,7 +33,17 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 # The block kinds the projected article bodies actually contain.  The page must
 # handle each of them; a kind added later must still render (see the unknown-kind
 # test below), never disappear.
-PROJECTED_BLOCK_KINDS = {"heading", "list_item", "paragraph"}
+PROJECTED_BLOCK_KINDS = {
+    "chart",
+    "code",
+    "heading",
+    "image",
+    "list_item",
+    "paragraph",
+    "quote",
+    "separator",
+    "table",
+}
 
 
 def _richest_article() -> dict:
@@ -78,21 +88,72 @@ class ArticleCompositionTests(SimpleTestCase):
             self.assertEqual(view.media_available, bool(record["media_available"]))
 
     def test_the_body_keeps_every_projected_block_in_its_own_order(self) -> None:
+        """Every block becomes exactly one drawn thing, in the order it was written."""
+
         kinds: set[str] = set()
         for record in public_projection()["articles"]:
             with self.subTest(slug=record["slug"]):
                 kinds.update(block["kind"] for block in record["blocks"])
-                sections = prose_sections(record["blocks"])
-                rendered: list[str] = []
-                for section in sections:
+                drawn: list[str] = []
+                for section in prose_sections(record["blocks"]):
                     if section.kind == "list":
-                        rendered.extend(section.items)
+                        drawn.extend("list_item" for _ in section.items)
                     else:
-                        rendered.append(section.text)
-                self.assertEqual(rendered, [block["text"] for block in record["blocks"]])
+                        drawn.append(section.kind)
+                self.assertEqual(drawn, [block["kind"] for block in record["blocks"]])
         # If the projection grows a kind, this test names it and the page must
         # decide what to do with it rather than silently inheriting a paragraph.
         self.assertEqual(kinds, PROJECTED_BLOCK_KINDS)
+
+    def test_the_restored_body_kinds_carry_what_they_need_to_be_drawn(self) -> None:
+        """The kinds the flattening used to destroy arrive whole, with their fields."""
+
+        found: dict[str, int] = {}
+        for record in public_projection()["articles"]:
+            for section in prose_sections(record["blocks"]):
+                found[section.kind] = found.get(section.kind, 0) + 1
+                with self.subTest(slug=record["slug"], kind=section.kind):
+                    if section.kind == "image":
+                        # A site-relative address, and a size the page can reserve.
+                        self.assertRegex(section.src, r"^/images/[^\s]+$")
+                        self.assertGreater(section.width, 0)
+                        self.assertGreater(section.height, 0)
+                    elif section.kind == "table":
+                        self.assertTrue(section.rows or section.head)
+                        self.assertTrue(section.label)
+                    elif section.kind == "code":
+                        self.assertTrue(section.text)
+        self.assertEqual(found["image"], 325)
+        self.assertEqual(found["table"], 33)
+        self.assertEqual(found["code"], 90)
+        self.assertEqual(found["chart"], 50)
+
+    def test_a_table_frame_is_named_once_inside_its_own_article(self) -> None:
+        """A scroll frame is a named region, and two of them may not share a name."""
+
+        for record in public_projection()["articles"]:
+            labels = [
+                section.label
+                for section in prose_sections(record["blocks"])
+                if section.kind == "table"
+            ]
+            with self.subTest(slug=record["slug"]):
+                self.assertEqual(len(labels), len(set(labels)))
+
+    def test_a_link_written_in_the_source_keeps_its_address(self) -> None:
+        record = public_projection()["articles_by_slug"][
+            "how-to-run-postgresql-and-pgadmin-with-docker"
+        ]
+
+        markup = " ".join(
+            section.html for section in prose_sections(record["blocks"]) if section.html
+        )
+
+        self.assertIn('<a href="https://www.postgresql.org/">PostgreSQL</a>', markup)
+        # The sanitizer owns what may survive: a legacy renderer's directive and a
+        # target attribute are not markup this site publishes.
+        self.assertNotIn("target=", markup)
+        self.assertNotIn("{:", markup)
 
     def test_headings_keep_their_anchors_and_stay_inside_the_heading_range(self) -> None:
         for record in public_projection()["articles"]:
@@ -120,13 +181,29 @@ class ArticleCompositionTests(SimpleTestCase):
         )
 
         self.assertEqual([section.kind for section in sections], ["list", "paragraph", "list"])
-        self.assertEqual(sections[0].items, ("first", "second"))
-        self.assertEqual(sections[2].items, ("third",))
+        self.assertEqual([item.text for item in sections[0].items], ["first", "second"])
+        self.assertEqual([item.text for item in sections[2].items], ["third"])
+        self.assertFalse(any(section.ordered for section in sections))
+
+    def test_a_numbered_run_becomes_its_own_ordered_list(self) -> None:
+        """A source that counted its steps keeps the count, and the counter."""
+
+        sections = prose_sections(
+            (
+                {"kind": "list_item", "text": "bullet"},
+                {"kind": "list_item", "text": "step one", "ordered": True},
+                {"kind": "list_item", "text": "step two", "ordered": True},
+            )
+        )
+
+        self.assertEqual([section.kind for section in sections], ["list", "list"])
+        self.assertEqual([section.ordered for section in sections], [False, True])
+        self.assertEqual([item.text for item in sections[1].items], ["step one", "step two"])
 
     def test_a_block_kind_the_projection_grows_later_is_still_rendered(self) -> None:
         sections = prose_sections(
             (
-                {"kind": "quote", "text": "A pull quote the projection does not make today."},
+                {"kind": "callout", "text": "A callout the projection does not make today."},
                 {"kind": "", "text": "An unnamed block."},
                 {"kind": "paragraph", "text": ""},
             )
@@ -135,8 +212,16 @@ class ArticleCompositionTests(SimpleTestCase):
         self.assertEqual([section.kind for section in sections], ["paragraph", "paragraph"])
         self.assertEqual(
             [section.text for section in sections],
-            ["A pull quote the projection does not make today.", "An unnamed block."],
+            ["A callout the projection does not make today.", "An unnamed block."],
         )
+
+    def test_an_illustration_the_record_addresses_off_site_is_refused(self) -> None:
+        """The page never publishes an address the sanitizer would have rejected."""
+
+        for source in ("https://example.invalid/a.png", "//example.invalid/a.png", "/a b.png"):
+            with self.subTest(src=source):
+                with self.assertRaisesRegex(ImproperlyConfigured, "illustration address"):
+                    prose_sections(({"kind": "image", "src": source},))
 
     def test_a_record_that_cannot_supply_a_fact_fails_loudly(self) -> None:
         record = dict(public_projection()["articles"][0])
@@ -214,8 +299,50 @@ class ArticleCompositionTests(SimpleTestCase):
         for forked in (".article-body p", ".article-body h", ".article-body li"):
             self.assertNotIn(forked, page)
 
+    def test_a_code_sample_wraps_instead_of_hiding_behind_a_scroll(self) -> None:
+        """The FAQ pages settled this: a scroll with no focus stop is a barrier."""
+
+        partial = (REPOSITORY_ROOT / "templates/core/_design_system.html").read_text(
+            encoding="utf-8"
+        )
+        rule = partial.split(".prose pre {", 1)[1].split("}", 1)[0]
+
+        self.assertIn("white-space: pre-wrap", rule)
+        self.assertNotIn("overflow-x: auto", rule)
+
 
 class ArticlePageTests(TestCase):
+    def test_a_body_with_pictures_tables_and_code_is_drawn_properly(self) -> None:
+        """The restored kinds reach the page as the marks each one needs."""
+
+        body = self.client.get("/blog/machine-learning-zoomcamp.html").content.decode()
+
+        # A picture reserves its own box, so the reading column does not jump.
+        self.assertRegex(
+            body, r'<img\s+src="/images/posts/[^"]+"[\s\S]*?width="\d+"[\s\S]*?height="\d+"'
+        )
+        self.assertIn("<figure>", body)
+        self.assertIn("<figcaption>", body)
+        # A wide table scrolls inside a named frame a keyboard can reach.
+        self.assertIn(
+            '<div class="prose-scroll" role="region" tabindex="0" aria-label="Table 1">', body
+        )
+        self.assertIn('<th scope="col">Topic</th>', body)
+        # A link keeps the address the source wrote.
+        self.assertIn('<a href="https://', body)
+
+    def test_a_code_sample_reaches_the_page_as_code(self) -> None:
+        body = self.client.get(
+            "/blog/how-to-run-postgresql-and-pgadmin-with-docker.html"
+        ).content.decode()
+
+        self.assertIn('<pre><code class="language-bash">docker volume create', body)
+        # Escaped, never executed: a sample's angle brackets and quotes are text
+        # inside the element, and the body region carries no markup of its own.
+        prose = body.split('class="prose prose-reading article-body"', 1)[1].split("</div>", 1)[0]
+        self.assertNotIn("<script", prose)
+        self.assertIn("&quot;root&quot;", prose)
+
     def test_the_page_carries_its_own_stylesheet_and_no_legacy_css(self) -> None:
         article = _richest_article()
 
@@ -265,10 +392,17 @@ class ArticlePageTests(TestCase):
         body = response.content.decode()
         for profile in article["author_profiles"]:
             person = projection["people_by_slug"][profile["key"]]
-            self.assertIn(escape(profile["name"]), body)
-            self.assertIn(f'href="{profile["public_path"]}"', body)
+            # The byline is the shared person chip: the name is the link, and the
+            # portrait beside it is decorative, because a screen reader that heard
+            # "Portrait of Alexey Grigorev, link, Alexey Grigorev" would hear the
+            # same credit twice.
+            self.assertIn(
+                f'<a class="band-link person-chip-name" '
+                f'href="{profile["public_path"]}">{escape(profile["name"])}</a>',
+                body,
+            )
             self.assertIn(f'src="{person["image_path"]}"', body)
-            self.assertIn(f'alt="Portrait of {escape(profile["name"])}"', body)
+            self.assertNotIn(f'alt="Portrait of {escape(profile["name"])}"', body)
 
     def test_the_date_the_reading_time_and_the_artwork_are_all_shown(self) -> None:
         article = public_projection()["articles"][0]
@@ -303,9 +437,14 @@ class ArticlePageTests(TestCase):
         body = self.client.get(article["public_path"]).content.decode()
 
         for block in article["blocks"]:
-            self.assertIn(escape(block["text"]), body)
+            # A block that carried more than its plain text is drawn from that
+            # source segment, so the flattened text is not what reaches the page.
+            if block.get("markdown") is None and block.get("text"):
+                self.assertIn(escape(block["text"]), body)
             if block["kind"] == "heading":
                 self.assertIn(f'id="{block["id"]}"', body)
+            if block["kind"] == "image":
+                self.assertIn(f'src="{block["src"]}"', body)
         self.assertIn("<li>", body)
         self.assertIn("<ul>", body)
         self.assertIn("<h2 ", body)

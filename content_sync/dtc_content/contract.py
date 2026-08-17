@@ -26,8 +26,12 @@ EDITORIAL_OVERLAY_SHA256 = "63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1
 EDITORIAL_OVERLAY_ISSUE = "https://github.com/DataTalksClub/content/issues/3"
 EDITORIAL_OVERLAY_CREATED = "2026-08-10"
 SOURCE_CI_RUN = "https://github.com/DataTalksClub/content/actions/runs/31365358459"
-PROJECTION_MANIFEST_SHA256 = "4666c8c1853df6e6a6ee69335bffcb40bf8a1d08823dcfc826d7e45c72608f9c"
-PROJECTION_TREE_SHA256 = "3b69c3a566788c2cf9254f3f1677aa4c8ee25589e253a81d4bae75cda38dbaeb"
+# The checked projection's own digests.  They move whenever the build writes a
+# different artifact, and each move is a reviewed event: this pair was last
+# regenerated when the article bodies stopped being flattened to plain text and
+# started carrying their illustrations, tables, code samples and links.
+PROJECTION_MANIFEST_SHA256 = "6e3fad2cbc597bdae3323ab54fa5f0cd8cfd305e566161cdf184c3f7dcc49348"
+PROJECTION_TREE_SHA256 = "287183b4556f992d0e1377fb06e74725e329a0d59dd8e4fb812da14ae20ffed7"
 PROJECTION_PODCASTS_SHA256 = "33409b09c184a02ff6b685d805d9ad05d74bb15d5b34ea86f34c5a10b4cb0c8d"
 ACCEPTED_BUNDLE_SHA256 = "d314b64a2bd94c24cf06afb55a1bae5557a31f1e7cc605ed44fa3379ffff0d17"
 ACCEPTED_ADOPTED_SOURCE_SET_SHA256 = (
