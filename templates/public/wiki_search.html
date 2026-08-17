@@ -97,7 +97,7 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="search-heading">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'wiki-home' %}">Wiki</a>
@@ -107,15 +107,15 @@
             </li>
           </ol>
         </nav>
-        <div class="shell">
+        <div class="shell shell-reading">
           <h1 id="search-heading">Search the Wiki</h1>
           {% include "public/_wiki_search_form.html" with search_label="Search term" %}
         </div>
       </section>
 
       {% if query %}
-        <section class="band band-cream" aria-labelledby="results-heading">
-          <div class="shell">
+        <section class="band band-lavender" aria-labelledby="results-heading">
+          <div class="shell shell-reading">
             <div class="band-head">
               <div>
                 <h2 id="results-heading" class="search-count">{{ results|length }} results for &ldquo;{{ query }}&rdquo;</h2>

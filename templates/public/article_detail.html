@@ -1,4 +1,4 @@
-{% load seo %}
+{% load seo people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -53,6 +53,32 @@
        * Article page rules.  Everything here shapes the page around the
        * reading column; the column itself is the shared primitive.
        * ------------------------------------------------------------------ */
+
+      /* The page opens on the site's warm --cream — masthead, trail, title,
+         byline — and then hands over to the cool --lavender for the read
+         itself.  Putting the whole page on lavender was tried first and pulled
+         the article out of the site: the masthead is the one strip every other
+         page shares, and recolouring it made the blog look like somewhere else.
+         So the seam sits where the reading starts instead.
+
+         --page follows the reading band, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
+      /* The reading band carries the prose to the foot of the page, so it needs
+         the room the hero's bottom padding would otherwise have left. */
+      .article-read {
+        padding-top: 1.6rem;
+      }
+
+      /* The cover's letterbox plate stays off the ground it sits on, so a tall
+         or narrow image still reads as a framed picture rather than a floating
+         one. */
+      .article-cover img {
+        background: var(--card);
+      }
 
       /* One column at the system's reading measure, plus the shell's own
          inline padding, so the prose sits at the width `.prose-reading` sets
@@ -168,6 +194,212 @@
         margin-top: 2rem;
       }
 
+      /* ------------------------------------------------------------------ *
+       * The recovered FAQ section, drawn with the course FAQ page's own marks
+       * (templates/review/faq_detail.html) so the site keeps one way of
+       * writing a question and an answer.  It sits inside the reading band, at
+       * the position the article body put it, under the heading the body
+       * already carries — this stylesheet gives it no heading of its own.
+       * ------------------------------------------------------------------ */
+
+      /* The FAQ is its own block at the foot of the article, not more article:
+         a panel with its own edge, so a reader can see where the writing stops
+         and the questions start.  Everything inside it is the shared .faq-fold
+         primitive from the design system. */
+      .article-faq {
+        margin-top: 1.6rem;
+      }
+
+      /* Prose that continues below the FAQ — a call to action or a closing note
+         in six of these articles — keeps the same rhythm. */
+      .article-body-tail {
+        margin-top: 1.6rem;
+      }
+
+      .article-body {
+        margin-top: 2rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * The recovered FAQ section, drawn with the course FAQ page's own marks
+       * (templates/review/faq_detail.html) so the site keeps one way of
+       * writing a question and an answer.  It sits inside the reading band, at
+       * the position the article body put it, under the heading the body
+       * already carries — this stylesheet gives it no heading of its own.
+       * ------------------------------------------------------------------ */
+
+      /* The FAQ is its own block at the foot of the article, not more article:
+         a panel with its own edge, so a reader can see where the writing stops
+         and the questions start. */
+      .article-faq {
+        margin-top: 1.6rem;
+        padding: 0.4rem 1.25rem;
+      }
+
+      /* Prose that continues below the FAQ — a call to action or a closing note
+         in six of these articles — keeps the same rhythm. */
+      .article-body-tail {
+        margin-top: 1.6rem;
+      }
+
+      /* Each question folds.  <details> gives the keyboard behaviour and the
+         announced expanded state for free, and it still works with JavaScript
+         off, which a scripted accordion would not. */
+      .faq-fold {
+        border-top: 1.5px dashed var(--line-soft);
+        min-width: 0;
+      }
+
+      .faq-fold:first-child {
+        border-top: 0;
+      }
+
+      .faq-fold-summary {
+        align-items: baseline;
+        cursor: pointer;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        list-style: none;
+        min-height: 2.75rem;
+        padding-block: 0.9rem;
+      }
+
+      /* Safari draws its own disclosure triangle unless this is said. */
+      .faq-fold-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .faq-fold-summary:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      /* A recovered question is a line of source text and some carry a product
+         name with no space in it, so the title breaks rather than widening the
+         page. */
+      .faq-question-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      /* The marker is drawn rather than typed, so it needs no icon font: a
+         chevron that turns a quarter when the question opens. */
+      .faq-fold-marker {
+        border-bottom: 2px solid var(--indigo);
+        border-right: 2px solid var(--indigo);
+        flex: none;
+        height: 0.5rem;
+        margin-top: 0.25rem;
+        transform: rotate(45deg);
+        transition: transform 0.15s ease;
+        width: 0.5rem;
+      }
+
+      .faq-fold[open] .faq-fold-marker {
+        transform: rotate(-135deg);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .faq-fold-marker {
+          transition: none;
+        }
+      }
+
+      /* An answer is one rendered fragment, so nothing inside it can be wrapped
+         in a scrolling frame from this template.  A long address therefore
+         breaks rather than widening the column. */
+      .faq-answer {
+        overflow-wrap: anywhere;
+        padding-bottom: 1.1rem;
+      }
+
+      .article-body {
+        margin-top: 2rem;
+      }
+
+      /* ------------------------------------------------------------------ *
+       * The recovered FAQ section, drawn with the course FAQ page's own marks
+       * (templates/review/faq_detail.html) so the site keeps one way of
+       * writing a question and an answer.  It sits inside the reading band, at
+       * the position the article body put it, under the heading the body
+       * already carries — this stylesheet gives it no heading of its own.
+       * ------------------------------------------------------------------ */
+
+      /* The section starts on the paragraph rhythm the prose above it ends on,
+         and its rows already carry their own dividers. */
+      .article-faq {
+        margin-top: 1.1rem;
+      }
+
+      /* Prose that continues below the FAQ — a call to action or a closing note
+         in six of these articles — keeps the same rhythm. */
+      .article-body-tail {
+        margin-top: 1.6rem;
+      }
+
+      /* A question is a row in a grid, so it says so: without the zero minimum
+         the widest unwrapped line in an answer would set the row's width and
+         scroll the whole page sideways. */
+      .faq-question {
+        min-width: 0;
+        padding-block: 1.5rem;
+        scroll-margin-top: 1.5rem;
+      }
+
+      .faq-question-head {
+        display: grid;
+        gap: 0.35rem 1rem;
+        grid-template-columns: minmax(0, 1fr);
+        margin-bottom: 0.6rem;
+      }
+
+      /* A recovered question is a line of source text and some carry a product
+         name with no space in it, so the title breaks rather than widening the
+         page. */
+      .faq-question-title {
+        font-size: 1.1rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      /* The link to this question.  The course FAQ prints its ten-character
+         identifier as a copyable literal; these identifiers are derived from
+         the question and far too long for that, so the mark stands alone and
+         the screen-reader name carries the target. */
+      .faq-permalink {
+        align-items: center;
+        color: var(--indigo);
+        display: inline-flex;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        min-height: 2.75rem;
+        text-underline-offset: 0.2em;
+      }
+
+      /* An answer is one rendered fragment, so nothing inside it can be wrapped
+         in a scrolling frame from this template.  A long address therefore
+         breaks rather than widening the column. */
+      .faq-answer {
+        overflow-wrap: anywhere;
+      }
+
+      /* Wide: the question keeps its permalink on the heading's own row.  The
+         link keeps its 2.75rem target, but the negative margin stops that
+         target from stretching a one-line question away from its answer. */
+      @media (min-width: 48rem) {
+        .faq-question-head {
+          align-items: baseline;
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+
+        .faq-permalink {
+          margin-block: -0.7rem;
+        }
+      }
+
       @media (max-width: 47.99rem) {
         /* Narrow: the trail keeps its own line above a tighter head, and the
            cover gives the opening screen to the title rather than the picture. */
@@ -203,71 +435,75 @@
   >
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
-      <section class="band band-cream article-hero" aria-labelledby="article-heading">
-        <nav class="shell article-shell breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'articles' %}">Blog</a>
-            </li>
-            <li aria-current="page">
-              {{ article.title }}
-            </li>
-          </ol>
-        </nav>
-        <div class="shell article-shell">
-          <article>
+      <article>
+        <section class="band band-cream article-hero" aria-labelledby="article-heading">
+          <nav class="shell article-shell breadcrumbs" aria-label="Breadcrumb">
+            <ol>
+              <li>
+                <a href="{% url 'articles' %}">Blog</a>
+              </li>
+              <li aria-current="page">
+                {{ article.title }}
+              </li>
+            </ol>
+          </nav>
+          <div class="shell article-shell">
             <header class="article-head">
               <h1 id="article-heading">{{ article.title }}</h1>
               {% if article.subtitle %}
                 <p class="prose-lede">{{ article.subtitle }}</p>
               {% endif %}
-              {% if article.authors %}
-                <div class="article-byline">
-                  <span class="article-byline-label">By</span>
-                  {% for author in article.authors %}
-                    <span class="article-author">
-                      {% if author.media_available %}
-                        <img
-                          class="article-portrait"
-                          src="{{ author.image_path }}"
-                          alt="Portrait of {{ author.name }}"
-                          decoding="async"
-                        >
-                      {% else %}
-                        <span class="avatar avatar-striped" aria-hidden="true"></span>
-                      {% endif %}
-                      {% if author.public_path %}
-                        <a class="band-link" href="{{ author.public_path }}">{{ author.name }}</a>
-                      {% else %}
-                        <span class="article-author-name">{{ author.name }}</span>
-                      {% endif %}
-                    </span>
-                  {% endfor %}
-                </div>
-              {% endif %}
+              {% comment %}
+                Date first, then who wrote it — and neither is labelled.  A date
+                on an article is read as its publication date, and a face beside
+                a name is read as the byline; the words "published" and "By" only
+                took a line each to say what the marks already say.  The credit
+                is the shared person chip, so an author looks the same here as on
+                the blog index and on their own profile.
+              {% endcomment %}
               <p class="mono-note article-meta">
-                published
                 <time datetime="{{ article.published }}">{{ article.published_display }}</time>
                 · {{ article.reading_time }}
               </p>
-              {% if article.media_available %}
-                <figure class="article-cover">
-                  <img
-                    src="{{ article.image_path }}"
-                    alt="Artwork for {{ article.title }}"
-                    decoding="async"
-                  >
-                </figure>
-              {% else %}
-                <span class="article-cover-missing mono-note">Artwork unavailable.</span>
+              {% if article.authors %}
+                <p class="article-byline person-chips">
+                  {% for author in article.authors %}
+                    {% include "public/_person_chip.html" with person=author|person_chip %}
+                  {% endfor %}
+                </p>
               {% endif %}
             </header>
+          </div>
+        </section>
+        <section class="band band-lavender article-read">
+          <div class="shell article-shell">
+            {% comment %}
+              The cover belongs to the article, not to its title block, so it
+              opens the reading band rather than closing the warm hero.
+            {% endcomment %}
+            {% if article.media_available %}
+              <figure class="article-cover">
+                <img
+                  src="{{ article.image_path }}"
+                  alt="Artwork for {{ article.title }}"
+                  decoding="async"
+                >
+              </figure>
+            {% else %}
+              <span class="article-cover-missing mono-note">Artwork unavailable.</span>
+            {% endif %}
             <div class="prose prose-reading article-body">
               {% include "public/_prose_blocks.html" with sections=article.sections %}
             </div>
-          </article>
-        </div>
-      </section>
+            {% include "public/_article_faq.html" with faq_questions=article.faq %}
+            {% if article.sections_after_faq %}
+              <div class="prose prose-reading article-body article-body-tail">
+                {% include "public/_prose_blocks.html" with sections=article.sections_after_faq %}
+              </div>
+            {% endif %}
+          </div>
+        </section>
+      </article>
     </main>
     {% include "core/_site_shell_foot.html" %}
   </body>

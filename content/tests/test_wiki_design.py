@@ -17,15 +17,20 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.urls import reverse
 
+from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import public_projection
 from content.public_views import WIKI_SPECIAL_CATEGORIES
 from content.wiki_content import (
     GRAPH_GROUPS,
+    GROUP_ENTRY_POINTS,
     busiest_neighbourhood,
     graph_groups,
     graph_nodes,
     graph_totals,
+    node_connections,
 )
+
+from .pagination_support import catalogue_page_bodies
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 RETIRED_ASSETS = (
@@ -86,7 +91,7 @@ class WikiDesignSystemTests(TestCase):
             with self.subTest(page=name):
                 body = bodies[name]
                 self.assertRegex(
-                    body, r'<nav class="shell breadcrumbs[^"]*" aria-label="Breadcrumb">'
+                    body, r'<nav class="shell[^"]*\bbreadcrumbs\b[^"]*" aria-label="Breadcrumb">'
                 )
                 self.assertIn(f'<a href="{reverse("wiki-home")}">Wiki</a>', body)
                 self.assertIn('aria-current="page"', body)
@@ -94,7 +99,9 @@ class WikiDesignSystemTests(TestCase):
     def test_the_hub_is_an_index_and_carries_no_breadcrumb_trail(self) -> None:
         """An index is marked by the masthead; a lone "Wiki" crumb would repeat it."""
 
-        self.assertNotIn('<nav class="shell breadcrumbs', self.bodies()["hub"])
+        self.assertNotRegex(
+            self.bodies()["hub"], r'<nav class="shell[^"]*\bbreadcrumbs\b'
+        )
 
     def test_every_wiki_page_keeps_its_social_card_and_canonical(self) -> None:
         og_image = "https://datatalks.club/wiki/assets/og-default.png"
@@ -117,6 +124,9 @@ class WikiHubTests(TestCase):
         self.assertIn('<label class="sr-only" for="wiki-query">Search the Wiki</label>', self.body)
         self.assertIn('name="q"', self.body)
         self.assertIn(f"Browse full catalog ({len(records)} topics A&ndash;Z).", self.body)
+        # The catalogue pages (issue #175), so it also says which part of that whole
+        # inventory is on screen.
+        self.assertIn(f"Showing 1&ndash;{PUBLIC_PAGE_SIZE}.", self.body)
 
     def test_the_hub_keeps_all_three_ways_into_the_wiki(self) -> None:
         """The exploration links are the graph's and the special pages' only entry."""
@@ -132,18 +142,132 @@ class WikiHubTests(TestCase):
                 self.assertIn(f"<strong>{label}</strong>", self.body)
 
     def test_the_catalogue_lists_every_topic_twice_over_as_title_and_read_action(self) -> None:
+        """Across its pages the catalogue still carries every topic, exactly once.
+
+        The catalogue pages (issue #175), so this walks it the way a reader does and
+        then checks the whole thing: the pages must partition the projection in its
+        existing order, with no topic repeated between two pages and none lost.
+        """
+
         records = public_projection()["wiki"]
+        pages = catalogue_page_bodies(self.client, reverse("wiki-home"))
+        body = "".join(pages)
 
         for record in (records[0], records[-1]):
             with self.subTest(slug=record["slug"]):
-                self.assertEqual(self.body.count(f'href="{record["public_path"]}"'), 2)
-                self.assertIn(str(record["title"]), self.body)
-                self.assertIn(str(record["summary"]), self.body)
-        self.assertEqual(self.body.count("Read topic"), len(records))
+                self.assertEqual(body.count(f'href="{record["public_path"]}"'), 2)
+                self.assertIn(str(record["title"]), body)
+                self.assertIn(str(record["summary"]), body)
+        self.assertEqual(body.count("Read topic"), len(records))
+        # The first page holds the first slice of the existing order, and the last
+        # page holds the last, so the pages are cut from the catalogue rather than
+        # re-sorted per page.
+        self.assertIn(f'href="{records[0]["public_path"]}"', pages[0])
+        self.assertIn(f'href="{records[-1]["public_path"]}"', pages[-1])
+        for page_body in pages[:-1]:
+            self.assertEqual(page_body.count("Read topic"), PUBLIC_PAGE_SIZE)
 
     def test_the_catalogue_rows_are_divided_rows_and_never_a_column_grid(self) -> None:
         self.assertIn('<div class="row-list">', self.body)
         self.assertNotRegex(self.body, r"(?:sm|md|lg):grid-cols-")
+
+
+class WikiCataloguePaginationTests(TestCase):
+    """The A–Z catalogue is paged; the other three ways in are not (issue #175)."""
+
+    def test_the_landing_page_offers_all_four_paths_on_every_catalogue_page(self) -> None:
+        for path in (reverse("wiki-home"), f"{reverse('wiki-home')}?page=2"):
+            with self.subTest(path=path):
+                body = self.client.get(path).content.decode()
+                self.assertIn('<h1 id="wiki-heading">DataTalks.Club Podcast Wiki</h1>', body)
+                self.assertIn('name="q"', body)
+                self.assertIn('aria-label="Wiki exploration"', body)
+                self.assertIn(f'href="{reverse("wiki-graph")}"', body)
+                self.assertIn(f'href="{reverse("wiki-special")}"', body)
+                self.assertIn('<h2 id="catalog-heading">Wiki pages</h2>', body)
+                self.assertIn('aria-label="Wiki catalogue pages"', body)
+
+    def test_page_one_is_the_clean_path_and_later_pages_name_themselves(self) -> None:
+        for spelling in (reverse("wiki-home"), f"{reverse('wiki-home')}?page=1"):
+            with self.subTest(spelling=spelling):
+                body = self.client.get(spelling).content.decode()
+                self.assertIn("<title>Podcast Wiki — DataTalks.Club</title>", body)
+                self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
+                self.assertIn(
+                    '<meta property="og:url" content="https://datatalks.club/wiki">', body
+                )
+                self.assertNotIn('?page=1"', body)
+
+        body = self.client.get(f"{reverse('wiki-home')}?page=3").content.decode()
+        self.assertIn("<title>Podcast Wiki — Page 3 — DataTalks.Club</title>", body)
+        self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki?page=3">', body)
+        self.assertIn('<meta property="og:url" content="https://datatalks.club/wiki?page=3">', body)
+        self.assertIn('<link rel="prev" href="https://datatalks.club/wiki?page=2">', body)
+        self.assertIn('<link rel="next" href="https://datatalks.club/wiki?page=4">', body)
+        # A catalogue page is still a wiki surface, so it keeps the wiki social card.
+        self.assertIn(
+            '<meta property="og:image" content="https://datatalks.club/wiki/assets/og-default.png">',
+            body,
+        )
+
+    def test_a_search_never_reaches_the_paginator_and_is_never_paged(self) -> None:
+        for query in ("q=machine+learning", "q=", "q=data&page=2"):
+            with self.subTest(query=query):
+                response = self.client.get(f"{reverse('wiki-home')}?{query}")
+                self.assertEqual(response.status_code, 200)
+                body = response.content.decode()
+                # `q` is the mode switch, so what every search response shares is
+                # the search surface itself.  An empty `q=` is still a search: it
+                # renders the form and no results band, because "0 results for
+                # nothing" is a sentence about a search the visitor did not make.
+                self.assertIn('id="search-heading"', body)
+                if query != "q=":
+                    self.assertIn("results for", body)
+                self.assertNotIn('<nav class="pagination"', body)
+                self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
+
+    def test_the_catalogue_selector_accepts_one_spelling_and_fails_closed(self) -> None:
+        for bad_query in ("page=0", "page=01", "page=%32", "page=2&page=3", "page=2&sort=title"):
+            with self.subTest(bad_query=bad_query):
+                response = self.client.get(f"{reverse('wiki-home')}?{bad_query}")
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+                self.assertNotContains(response, bad_query, status_code=400)
+
+        beyond = self.client.get(f"{reverse('wiki-home')}?page=999")
+        self.assertEqual(beyond.status_code, 404)
+        self.assertEqual(beyond.headers["Cache-Control"], "no-store, max-age=0")
+        self.assertNotIn("Location", beyond.headers)
+
+        rejected = self.client.post(reverse("wiki-home"))
+        self.assertEqual(rejected.status_code, 405)
+        self.assertEqual(rejected.headers["Allow"], "GET, HEAD")
+        self.assertEqual(rejected.headers["Cache-Control"], "no-store, max-age=0")
+
+    def test_the_slash_alias_still_forwards_its_raw_query_in_one_hop(self) -> None:
+        response = self.client.get("/wiki/?page=2", follow=False)
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "/wiki?page=2")
+
+    def test_an_empty_catalogue_says_so_and_leaves_the_other_paths_useful(self) -> None:
+        projection = dict(public_projection())
+        projection["wiki"] = ()
+        with patch("content.public_views.public_projection", return_value=projection):
+            response = self.client.get(reverse("wiki-home"))
+            body = response.content.decode()
+            beyond = self.client.get(f"{reverse('wiki-home')}?page=2")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("No Wiki pages are available yet.", body)
+        self.assertNotIn('<nav class="pagination"', body)
+        self.assertIn('aria-label="Wiki exploration"', body)
+        self.assertEqual(beyond.status_code, 404)
+
+    def test_the_wiki_sitemap_lists_the_clean_hub_and_no_page_query(self) -> None:
+        sitemap = self.client.get("/wiki/sitemap.xml").content.decode()
+
+        self.assertIn("<loc>https://datatalks.club/wiki</loc>", sitemap)
+        self.assertNotIn("?page=", sitemap)
 
 
 class WikiSearchTests(TestCase):
@@ -219,17 +343,92 @@ class WikiGraphTests(TestCase):
                 self.assertIn(f'<h2 id="{group.heading_id}">{group.title}</h2>', self.body)
                 self.assertIn(f"{group.count} in the graph", self.body)
 
-    def test_the_plotted_neighbourhood_is_read_from_the_graph_and_never_invented(self) -> None:
+    def test_the_drawn_neighbourhood_is_read_from_the_graph_and_never_invented(self) -> None:
         neighbourhood = busiest_neighbourhood()
 
-        self.assertIn(
-            f'<a class="graph-node graph-node-hub" href="{neighbourhood.url}">', self.body
-        )
         self.assertIn(f"{neighbourhood.connections} connections from", self.body)
-        for spoke in neighbourhood.spokes:
-            with self.subTest(spoke=spoke.title):
-                self.assertIn(f"left: {spoke.left}%; top: {spoke.top}%", self.body)
-        self.assertEqual(len(re.findall(r"<line ", self.body)), len(neighbourhood.spokes))
+        for layout in neighbourhood.layouts:
+            with self.subTest(layout=layout.kind):
+                svg = self.rendered_layout(layout.kind)
+                self.assertIn(
+                    f'<a class="graph-svg-node graph-svg-hub" href="{neighbourhood.url}">', svg
+                )
+                self.assertEqual(
+                    len(re.findall(r'<line class="graph-svg-edge"', svg)),
+                    len(neighbourhood.spokes),
+                )
+                for spoke in neighbourhood.spokes:
+                    with self.subTest(spoke=spoke.title):
+                        self.assertIn(f'<a class="graph-svg-node" href="{spoke.url}">', svg)
+
+    def rendered_layout(self, kind: str) -> str:
+        found = re.search(
+            rf'<svg\s+class="graph-svg graph-svg-{kind}".*?</svg>', self.body, re.DOTALL
+        )
+        if found is None:
+            self.fail(f"the graph page renders no {kind} drawing")
+        return found.group(0)
+
+    def test_the_drawing_is_one_scalable_svg_per_width_and_names_itself(self) -> None:
+        """The whole drawing shares one viewBox, so no label can escape its node."""
+
+        neighbourhood = busiest_neighbourhood()
+
+        for layout in neighbourhood.layouts:
+            with self.subTest(layout=layout.kind):
+                svg = self.rendered_layout(layout.kind)
+                self.assertIn(f'viewBox="0 0 {layout.width} {layout.height}"', svg)
+                self.assertIn('role="group"', svg)
+                self.assertIn(
+                    f'aria-label="{neighbourhood.title} and {len(neighbourhood.spokes)} of its '
+                    f'{neighbourhood.connections} linked wiki topics"',
+                    svg,
+                )
+                for node in layout.nodes:
+                    for line in node.lines:
+                        self.assertIn(f">{line.text}</tspan>", svg)
+        # The pills the drawing used to be positioned with are gone: they
+        # collided with each other and overflowed their labels below full width.
+        self.assertNotIn("graph-plot", self.body)
+        self.assertNotIn('style="left:', self.body)
+
+    def test_the_page_holds_the_reading_column_and_never_breaks_out_of_it(self) -> None:
+        """Content width, one column: the drawing scales, so it needs no breakout."""
+
+        # The class attribute, not the primitive's own rule in the stylesheet.
+        self.assertNotIn('shell-breakout"', self.body)
+        self.assertNotIn('graph-grid"', self.body)
+        self.assertEqual(
+            len(re.findall(r'<div class="shell shell-reading">', self.body)),
+            1 + len(GRAPH_GROUPS),
+        )
+
+    def test_each_group_leads_with_its_busiest_nodes_and_folds_the_rest_away(self) -> None:
+        """The band is a way in, not an inventory: the ways in are what it shows."""
+
+        connections = node_connections()
+        for group in graph_groups():
+            with self.subTest(group=group.key):
+                self.assertEqual(len(group.entries), min(GROUP_ENTRY_POINTS, group.count))
+                weakest_entry = min(connections.get(str(node["id"]), 0) for node in group.entries)
+                for node in group.rest:
+                    self.assertLessEqual(connections.get(str(node["id"]), 0), weakest_entry)
+                self.assertIn(
+                    f"The other {group.rest_count} {group.title.lower()}, A&ndash;Z", self.body
+                )
+        # Every node is still on the page, each one exactly once.
+        self.assertEqual(len(re.findall(r'class="graph-node" id="', self.body)), len(graph_nodes()))
+
+    def test_a_group_points_at_the_page_that_indexes_its_kind_in_full(self) -> None:
+        for group in graph_groups():
+            if group.browse is None:
+                continue
+            with self.subTest(group=group.key):
+                self.assertIn(
+                    f'<a class="band-link group-browse" href="{reverse(group.browse.url_name)}">',
+                    self.body,
+                )
+                self.assertIn(group.browse.label, self.body)
 
     def test_an_unknown_node_type_fails_loudly_instead_of_disappearing(self) -> None:
         graph: dict[str, Any] = {
@@ -245,7 +444,7 @@ class WikiGraphTests(TestCase):
                 graph_totals()
 
     def test_the_group_table_covers_every_node_type_the_data_carries(self) -> None:
-        declared = {key for key, _title, _description in GRAPH_GROUPS}
+        declared = {key for key, _title, _description, _browse in GRAPH_GROUPS}
 
         self.assertEqual({str(node["type"]) for node in graph_nodes()}, declared)
 

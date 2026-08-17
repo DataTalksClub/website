@@ -9,6 +9,7 @@
       document.documentElement.classList.add("js");
     </script>
     {% include "public/_wiki_head_meta.html" %}
+    {% include "public/_page_relations.html" %}
     <style>
       /* ------------------------------------------------------------------ *
        * Wiki hub, design 5a (issue #179).  There is no mockup for the wiki
@@ -88,6 +89,12 @@
         margin-top: 0.3rem;
       }
 
+      /* The catalogue with nothing in it: the three ways in above stay useful, so
+         this is one line inside the divided list rather than a whole empty band. */
+      .topic-empty {
+        padding-block: 0.9rem;
+      }
+
       /* Narrow: the read action drops under the summary as a compact button
          rather than squeezing beside a wrapped one — and stays a button rather
          than stretching, because 282 full-width slabs is a wall, not a list. */
@@ -114,8 +121,8 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="wiki-heading">
-        <div class="shell">
-          <p class="mono-label mono-label-indigo">{{ records|length }} topics</p>
+        <div class="shell shell-reading">
+          <p class="mono-label mono-label-indigo">{{ catalogue_total }} topics</p>
           <h1 id="wiki-heading">DataTalks.Club Podcast Wiki</h1>
           <p class="wiki-lede">
             Community-written topics wired to each other. Start anywhere and follow the links
@@ -126,7 +133,7 @@
       </section>
 
       <section class="band band-lavender" aria-labelledby="explore-heading">
-        <div class="shell">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="explore-heading">Three ways in</h2>
@@ -150,12 +157,22 @@
         </div>
       </section>
 
-      <section class="band band-cream" aria-labelledby="catalog-heading">
-        <div class="shell">
+      <section class="band band-lavender" aria-labelledby="catalog-heading">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="catalog-heading">Wiki pages</h2>
-              <p>Browse full catalog ({{ records|length }} topics A&ndash;Z).</p>
+              {% comment %}
+                The catalogue says how large it is and which part of it is on screen,
+                so a reader who arrives on page six knows where page six sits.  Both
+                numbers come from the shared paginator; neither is counted here.
+              {% endcomment %}
+              <p>
+                Browse full catalog ({{ catalogue_total }} topics A&ndash;Z).
+                {% if pagination.has_controls %}
+                  Showing {{ pagination.first_item_number }}&ndash;{{ pagination.last_item_number }}.
+                {% endif %}
+              </p>
             </div>
           </div>
           <div class="row-list">
@@ -171,8 +188,11 @@
                   Read topic
                 </a>
               </article>
+            {% empty %}
+              <p class="topic-empty">No Wiki pages are available yet.</p>
             {% endfor %}
           </div>
+          {% include "public/_pagination.html" %}
         </div>
       </section>
     </main>

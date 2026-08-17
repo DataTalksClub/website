@@ -54,8 +54,9 @@
 
       /* One column, wide enough for a row's three cells and narrow enough for
          the bio to read as prose. */
+      /* The same reading column every content page holds. */
       .person-shell {
-        max-width: 56rem;
+        max-width: calc(var(--measure) + 2.5rem);
       }
 
       .person-identity {
@@ -130,76 +131,21 @@
         max-width: 48rem;
       }
 
-      /* One row per contribution.  The default row is title plus date; a
-         podcast row leads with the play disc the podcast index uses, and an
-         event row leads with the date rail the events index uses, so a piece of
-         work looks the same wherever the reader meets it. */
-      .person-rows .list-row {
-        --row-cols: minmax(0, 1fr) auto;
-        column-gap: 1.1rem;
-      }
-
-      .person-rows-podcast .list-row {
-        --row-cols: auto minmax(0, 1fr) auto;
-      }
-
-      .person-rows-events .list-row {
-        --row-cols: 6.5rem minmax(0, 1fr);
-        align-items: stretch;
-      }
-
-      .person-row-body {
-        display: grid;
-        gap: 0.3rem;
-        justify-items: start;
-        min-width: 0;
-      }
-
-      /* An event that has not happened yet says "upcoming" beside its kind: the
-         profile mixes past and future work in one list, so the state cannot rest
-         on the pill's colour alone. */
-      .person-row-marks {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-      }
-
-      .person-row-title {
-        font-size: 1.05rem;
-      }
-
-      .person-row-title a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .person-row-title a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      /* An article's own one-line summary, kept to two lines so a row stays a
-         row: the article page carries the rest. */
-      .person-row-note {
-        display: -webkit-box;
-        font-size: 0.9rem;
-        overflow: hidden;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
-      }
-
-      .person-row-date {
-        white-space: nowrap;
-      }
+      /* One row per contribution, and it is the archive row every dated index on
+         the site draws — `.archive-row` in the design system partial above,
+         through `public/_archive_row.html`.  This page had four row shapes of
+         its own, one per kind of work, and none of them was the shape the same
+         episode or article had on the page it came from.  Now a piece of work
+         looks the same wherever the reader meets it, and the page adds no row
+         rule of its own. */
 
       .person-empty {
         max-width: 44rem;
       }
 
       /* ------------------------------------------------------------------ *
-       * Narrow layout.  The hero centres the portrait over the name, the date
-       * rail becomes one horizontal line above the event, and a row's date
-       * drops under the work instead of squeezing the title into two words.
+       * Narrow layout.  The hero centres the portrait over the name; the rows
+       * carry their own narrow behaviour from the shared archive row.
        * ------------------------------------------------------------------ */
 
       @media (max-width: 47.99rem) {
@@ -210,24 +156,6 @@
         .person-portrait {
           height: 6.5rem;
           width: 6.5rem;
-        }
-
-        .person-rows-podcast .list-row {
-          align-items: start;
-          column-gap: 0.85rem;
-          grid-template-columns: auto minmax(0, 1fr);
-        }
-
-        .person-rows-podcast .person-row-date {
-          grid-column: 2;
-        }
-
-        .person-rows-events .when {
-          align-items: baseline;
-          column-gap: 0.55rem;
-          display: flex;
-          flex-wrap: wrap;
-          padding-top: 0;
         }
       }
     </style>
@@ -314,7 +242,7 @@
       </section>
 
       {% if person.blocks %}
-        <section class="band band-cream person-about" aria-labelledby="person-about-heading">
+        <section class="band band-lavender person-about" aria-labelledby="person-about-heading">
           <div class="shell person-shell">
             <div class="band-head">
               <div>
@@ -329,12 +257,20 @@
       {% endif %}
 
       {% comment %}
-        One band per kind of work, each drawn with the primitive that kind already
-        uses elsewhere on the site.  A profile with no linked work says so instead
-        of showing an empty heading.
+        One band per kind of work, every row of it the site's shared archive row,
+        and all of them on the content ground so the profile reads as one page
+        rather than four.  A profile with no linked work says so instead of
+        showing an empty heading.
+
+        A long group keeps its first rows in view and puts the rest behind one
+        control that says how many it is holding: the widest profile lists fifty
+        events, and fifty rows is a wall rather than a list.  The control is a
+        <details>, so it needs no script, the browser gives it its keyboard
+        behaviour and its announced expanded state, and the rows it holds are in
+        the document already rather than fetched when it opens.
       {% endcomment %}
       {% for group in person.groups %}
-        <section class="band {{ group.band }} person-contributions" aria-labelledby="{{ group.anchor }}-heading">
+        <section class="band band-lavender person-contributions" aria-labelledby="{{ group.anchor }}-heading">
           <div class="shell person-shell">
             <div class="band-head">
               <div>
@@ -343,51 +279,26 @@
               </div>
             </div>
             <div class="row-list person-rows person-rows-{{ group.key }}">
-              {% for item in group.items %}
-                <article class="list-row person-row">
-                  {% if item.mark == "date" %}
-                    <div class="when">
-                      <strong>
-                        <time datetime="{{ item.date }}">{{ item.date_display }}</time>
-                      </strong>
-                      <span class="when-day">{{ item.weekday }}</span>
-                    </div>
-                  {% elif item.mark == "play" %}
-                    <span class="play-disc" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" focusable="false">
-                        <path d="M9 6.5l9 5.5-9 5.5z"/>
-                      </svg>
-                    </span>
-                  {% endif %}
-                  <div class="person-row-body">
-                    <p class="mono-label">{{ item.role }}</p>
-                    <h3 class="person-row-title">
-                      <a href="{{ item.public_path }}">{{ item.title }}</a>
-                    </h3>
-                    {% if item.pill_label %}
-                      <div class="person-row-marks">
-                        <span class="status-pill {{ item.pill_variant }}">{{ item.pill_label }}</span>
-                        {% if item.state_label %}
-                          <span class="status-pill">{{ item.state_label }}</span>
-                        {% endif %}
-                      </div>
-                    {% endif %}
-                    {% if item.note %}
-                      <p class="person-row-note">{{ item.note }}</p>
-                    {% endif %}
-                  </div>
-                  {% if item.date_display and item.mark != "date" %}
-                    <p class="mono-note person-row-date">
-                      <time datetime="{{ item.date }}">{{ item.date_display }}</time>
-                    </p>
-                  {% endif %}
-                </article>
+              {% for item in group.visible_items %}
+                {% include "public/_contribution_row.html" with item=item only %}
               {% endfor %}
+              {% if group.folded_items %}
+                <details class="row-fold" id="{{ group.anchor }}-more">
+                  <summary class="row-fold-summary">
+                    <span class="row-fold-open">{{ group.fold_label }}</span>
+                    <span class="row-fold-close">{{ group.fold_close_label }}</span>
+                    <span class="row-fold-marker" aria-hidden="true"></span>
+                  </summary>
+                  {% for item in group.folded_items %}
+                    {% include "public/_contribution_row.html" with item=item only %}
+                  {% endfor %}
+                </details>
+              {% endif %}
             </div>
           </div>
         </section>
       {% empty %}
-        <section class="band band-cream" aria-labelledby="person-contributions-heading">
+        <section class="band band-lavender" aria-labelledby="person-contributions-heading">
           <div class="shell person-shell">
             <div class="band-head">
               <div>

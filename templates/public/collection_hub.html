@@ -20,6 +20,7 @@
     <meta name="twitter:site" content="@DataTalksClub">
     <meta name="twitter:title" content="{{ seo_title }}">
     <meta name="twitter:description" content="{{ seo_description }}">
+    {% include "public/_page_relations.html" %}
     <style>
       /* ------------------------------------------------------------------ *
        * Collection hub, design 5a (issue #179).  One template behind the
@@ -60,71 +61,23 @@
         column-gap: 1rem;
       }
 
-      /* One archive row: the record on the left, its publication date as the
-         quiet mono mark on the right. */
-      .collection-rows .list-row {
-        --row-cols: minmax(0, 1fr) auto;
-        align-items: start;
-        column-gap: 1.5rem;
-      }
-
-      .record-body {
-        display: grid;
-        gap: 0.25rem;
-        justify-items: start;
-        min-width: 0;
-      }
-
-      .record-title {
-        font-size: 1.05rem;
-      }
-
-      .record-title a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .record-title a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .record-authors {
-        color: var(--muted);
-        font-size: 0.85rem;
-      }
-
-      /* The archive used to clamp its summaries to three lines; a book summary
-         runs to a full page, so the clamp stays and the record page carries
-         the rest. */
-      .record-summary {
-        display: -webkit-box;
-        -webkit-box-orient: vertical;
-        -webkit-line-clamp: 3;
-        line-clamp: 3;
-        font-size: 0.9rem;
+      /* A record's row is the shared archive row — `.archive-row` in the design
+         system partial above, drawn by `public/_archive_row.html` — so an
+         article, a book and a podcast episode are one shape.  The mockups never
+         drew a blog index (they stop at "try next: the article/blog page"), so
+         the shape came from the dated lists that were drawn.  This page adds
+         only the reading width a summary keeps. */
+      .archive-summary {
         max-width: 46rem;
-        overflow: hidden;
-      }
-
-      .record-date {
-        padding-top: 0.2rem;
       }
 
       .collection-empty {
         padding-block: 0.9rem;
       }
 
-      /* Narrow: the archive row reshapes into an archive entry — the date
-         becomes the dateline above the title instead of a squeezed second
-         column — and the step keeps its disc beside it rather than stacking a
-         lone number on its own line. */
+      /* Narrow: the step keeps its disc beside it rather than stacking a lone
+         number on its own line. */
       @media (max-width: 47.99rem) {
-        .collection-rows .record-date {
-          order: -1;
-          padding-top: 0;
-        }
-
         .how-it-works .list-row {
           align-items: start;
           column-gap: 0.85rem;
@@ -148,22 +101,24 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream collection-hero" aria-labelledby="collection-heading">
-        <div class="shell">
+        <div class="shell shell-reading">
           {% comment %}
-            The kicker counts what the page actually holds, from the records the
-            view passes; nothing here is a figure the page made up.
+            The kicker counts the whole collection, not the page of it on screen:
+            the books archive is paged (issue #174), and a reader who reaches page
+            six is still looking at an archive of the same size.  The figure comes
+            from the view either way; nothing here is a number the page made up.
           {% endcomment %}
           {% if collection == "articles" %}
             <p class="mono-label mono-label-indigo">
-              blog · {{ records|length }} articles
+              blog · {{ collection_total }} articles
             </p>
           {% elif collection == "podcasts" %}
             <p class="mono-label mono-label-indigo">
-              podcast · {{ records|length }} episodes
+              podcast · {{ collection_total }} episodes
             </p>
           {% else %}
             <p class="mono-label mono-label-indigo">
-              books · {{ records|length }} in the archive
+              books · {{ collection_total }} in the archive
             </p>
           {% endif %}
           {% if collection == "articles" %}
@@ -200,7 +155,7 @@
 
       {% if collection == "books" %}
         <section class="band band-lavender" aria-labelledby="how-it-works-heading">
-          <div class="shell">
+          <div class="shell shell-reading">
             <div class="band-head">
               <div>
                 <h2 id="how-it-works-heading">How it works</h2>
@@ -243,8 +198,8 @@
         </section>
       {% endif %}
 
-      <section class="band band-cream" aria-labelledby="collection-list-heading">
-        <div class="shell">
+      <section class="band band-lavender" aria-labelledby="collection-list-heading">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               {% if collection == "articles" %}
@@ -254,47 +209,24 @@
               {% else %}
                 <h2 id="collection-list-heading">Archive</h2>
               {% endif %}
+              {% if pagination.has_controls %}
+                <p>Showing {{ pagination.first_item_number }}&ndash;{{ pagination.last_item_number }} of {{ pagination.total_items }}.</p>
+              {% endif %}
             </div>
           </div>
           <div class="row-list collection-rows" data-collection-list>
             {% for record in records %}
-              <article class="list-row record-row">
-                <div class="record-body">
-                  {% if record.archive %}
-                    <span class="status-pill">
-                      {{ record.archive|length }} question{{ record.archive|length|pluralize }}
-                    </span>
-                  {% endif %}
-                  <h3 class="record-title">
-                    <a href="{{ record.public_path }}">{{ record.title }}</a>
-                  </h3>
-                  {% if record.author_profiles %}
-                    <p class="record-authors">
-                      By
-                      {% for author in record.author_profiles %}
-                        <a href="{{ author.public_path }}">{{ author.name }}</a>
-                        {% if not forloop.last %}
-                          <span aria-hidden="true">,</span>
-                        {% endif %}
-                      {% endfor %}
-                    </p>
-                  {% endif %}
-                  {% if record.description %}
-                    <p class="record-summary">{{ record.description }}</p>
-                  {% endif %}
-                </div>
-                {% comment %}
-                  The mark is the calendar day, in both the machine attribute and
-                  the visible text: neither catalogue records a publication time,
-                  and the books catalogue's padded midnight is not one.
-                {% endcomment %}
-                <p class="mono-note record-date">
-                  Published
-                  <time datetime="{{ record.published|iso_day }}">
-                    {{ record.published|human_day }}
-                  </time>
-                </p>
-              </article>
+              {% comment %}
+                The shared archive row.  The date is the calendar day, in both
+                the machine attribute and the visible text: neither catalogue
+                records a publication time, and the books catalogue's padded
+                midnight is not one.  It leads the row rather than trailing it,
+                and needs no "Published" label — a date on an archive row is not
+                read as anything else.  The authors are the card's credit, at its
+                foot and with no "By": a face beside a name under a title is
+                already read as the person who wrote it.
+              {% endcomment %}
+              {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_pill=record.archive|counted:"question" row_summary=record.description row_credits=record.author_profiles row_class="record-row" only %}
             {% empty %}
               <p class="collection-empty">
                 {% if collection == "articles" %}
@@ -302,11 +234,17 @@
                 {% elif collection == "podcasts" %}
                   No episodes yet.
                 {% else %}
-                  No books in the archive yet.
+                  No books are available yet.
                 {% endif %}
               </p>
             {% endfor %}
           </div>
+          {% comment %}
+            Only the books archive is paged (issue #174); the blog and the podcast
+            pass no `pagination`, so the shared include renders nothing for them
+            without this page testing which collection it is.
+          {% endcomment %}
+          {% include "public/_pagination.html" %}
         </div>
       </section>
     </main>

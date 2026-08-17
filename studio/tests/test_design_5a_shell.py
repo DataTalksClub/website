@@ -22,6 +22,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.models import CustomUser
 from accounts.studio_test_support import make_studio_user
 from core.models import AuditEvent
 from courses.models import (
@@ -57,6 +58,12 @@ class StudioDesignFiveAShellTests(TestCase):
     course: Course
     audit_event: AuditEvent
     event: Event
+    student: CustomUser
+    enrollment: Enrollment
+    homework: Homework
+    homework_submission: Submission
+    project: Project
+    project_submission: ProjectSubmission
 
     @classmethod
     def setUpTestData(cls) -> None:

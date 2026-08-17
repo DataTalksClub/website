@@ -438,10 +438,10 @@ class HomepageWikiGraphTests(TestCase):
                 self.fail(f"{layout.kind}: hub is not a link")
             self.assertIn(graph.hub.title, hub_anchor.group(0))
             for node in layout.nodes:
-                with self.subTest(layout=layout.kind, topic=node.topic.slug):
+                with self.subTest(layout=layout.kind, topic=node.title):
                     # The href is the topic's own public path, and it routes.
-                    self.assertEqual(resolve(node.topic.public_path).url_name, "public-wiki")
-                    href = re.escape(node.topic.public_path)
+                    self.assertEqual(resolve(node.url).url_name, "public-wiki")
+                    href = re.escape(node.url)
                     anchor = re.search(
                         rf'<a class="graph-svg-node" href="{href}">.*?</a>',
                         svg,

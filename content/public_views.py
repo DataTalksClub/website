@@ -7,7 +7,6 @@ from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
-from django.core.paginator import EmptyPage, Paginator
 from django.http import (
     FileResponse,
     Http404,
@@ -36,7 +35,14 @@ from events.services import public_registration_total
 
 from . import wiki_content
 from .article_content import article_view
+from .article_faq import ArticleFaq, article_faq
 from .faq_data import faq_courses
+from .pagination import (
+    PublicPagination,
+    paginate_public_request,
+    pagination_title,
+    public_page_url,
+)
 from .person_content import person_view
 from .podcast_content import episode_view, listening_platform_phrase, season_episodes
 from .public_data import (
@@ -56,18 +62,24 @@ WIKI_SPECIAL_CATEGORIES = {
     "how-tos": "how-to",
 }
 PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
+# `/events?filter=past[&page=N]` is the one legacy spelling that still redirects into the
+# archive, so the hub keeps a parser for it.  The archive itself no longer has a parser of
+# its own: past events, books and the Wiki catalogue all read `content.pagination`.
 EVENT_PAST_PAGE_QUERY = re.compile(r"filter=past(?:&page=([1-9][0-9]{0,2}))?\Z", re.ASCII)
-EVENT_PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,2})\Z", re.ASCII)
-EVENT_PAGE_SIZE = 20
-EVENT_MAX_PAGE = 999
 
 
 def _canonical(path: str) -> str:
     return f"{settings.CANONICAL_ORIGIN.rstrip('/')}{path}"
 
 
-def _json_ld(entity: dict, breadcrumbs: tuple[tuple[str, str], ...] = ()) -> str:
+def _json_ld(
+    entity: dict,
+    breadcrumbs: tuple[tuple[str, str], ...] = (),
+    *,
+    extra: tuple[dict, ...] = (),
+) -> str:
     graph = [{"@id": entity["url"], **entity}]
+    graph.extend(extra)
     if breadcrumbs:
         graph.append(
             {
@@ -161,13 +173,30 @@ def _render(
         "seo_description": description,
         **(context or {}),
     }
-    if path == "/wiki" or path.startswith("/wiki/"):
+    # Every wiki surface carries the wiki social card, including a catalogue page
+    # beyond the first — `/wiki?page=6` is the same surface as `/wiki`.
+    if path == "/wiki" or path.startswith(("/wiki/", "/wiki?")):
         page_context["og_image_url"] = _canonical("/wiki/assets/og-default.png")
     return render(
         request,
         template,
         page_context,
     )
+
+
+def _pagination_context(pagination: PublicPagination) -> dict:
+    """The context a paginated catalogue adds: the controls and the head relations.
+
+    `previous_url`/`next_url` are the absolute canonical URLs the head's `rel=prev`
+    and `rel=next` publish, which is the same pair of keys the podcast hub's season
+    navigation already uses.  The visible controls read `pagination` itself.
+    """
+
+    return {
+        "pagination": pagination,
+        "previous_url": _canonical(pagination.previous_url) if pagination.previous_url else "",
+        "next_url": _canonical(pagination.next_url) if pagination.next_url else "",
+    }
 
 
 def _public_not_found(request: HttpRequest) -> HttpResponse:
@@ -216,25 +245,6 @@ def _podcast_season_path(number: int, *, latest: int) -> str:
     return "/podcast" if number == latest else f"/podcast?season={number}"
 
 
-def _events_past_page_query(request: HttpRequest) -> int | None:
-    raw_query = request.META.get("QUERY_STRING", "")
-    if raw_query == "":
-        return 1
-    if not isinstance(raw_query, str) or len(raw_query) > 16:
-        return None
-    match = EVENT_PAGE_QUERY.fullmatch(raw_query)
-    if match is None:
-        return None
-    page = int(match.group(1))
-    return page if page <= EVENT_MAX_PAGE else None
-
-
-def _events_page_path(*, past: bool, page: int) -> str:
-    if not past:
-        return "/events"
-    return "/events/past" if page == 1 else f"/events/past?page={page}"
-
-
 @csrf_exempt
 def events(request: HttpRequest) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
@@ -246,56 +256,56 @@ def events(request: HttpRequest) -> HttpResponse:
         if match is None:
             return _no_store(HttpResponseBadRequest("Bad request."))
         page_number = int(match.group(1) or "1")
-        if page_number > EVENT_MAX_PAGE:
-            return _no_store(HttpResponseBadRequest("Bad request."))
-        target = _events_page_path(past=True, page=page_number)
+        target = public_page_url("/events/past", page_number)
         return permanent_public_redirect(request, target=target, preserve_query=False)
-    return _render_events(request, past=False, page_number=1)
+    return _render_events(request, past=False, pagination=None)
 
 
 @csrf_exempt
 def events_past(request: HttpRequest) -> HttpResponse:
-    if request.method not in {"GET", "HEAD"}:
-        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
-    page_number = _events_past_page_query(request)
-    if page_number is None:
-        return _no_store(HttpResponseBadRequest("Bad request."))
-    return _render_events(request, past=True, page_number=page_number)
+    """The past-events archive, on the shared public paginator (issues #177, #178).
+
+    The archive owns its order and its date grouping; it owns nothing about pages.
+    The deterministic recent sequence is sliced first and grouped afterwards, so a
+    local date that spans the boundary appears as a heading on both pages while every
+    event still appears exactly once.
+    """
+
+    pagination = paginate_public_request(
+        request,
+        event_groups().recent,
+        clean_base_path="/events/past",
+        catalogue_label="Past event pages",
+    )
+    if isinstance(pagination, HttpResponse):
+        return pagination
+    return _render_events(request, past=True, pagination=pagination)
 
 
-def _render_events(request: HttpRequest, *, past: bool, page_number: int) -> HttpResponse:
+def _render_events(
+    request: HttpRequest, *, past: bool, pagination: PublicPagination | None
+) -> HttpResponse:
     groups = event_groups()
     upcoming_groups = groups.upcoming_groups or event_date_groups(list(groups.upcoming))
-    all_events = groups.recent if past else groups.upcoming
     if past:
-        paginator = Paginator(all_events, EVENT_PAGE_SIZE)
-        try:
-            event_page = paginator.page(page_number)
-        except EmptyPage:
-            return _no_store(HttpResponse("Page not found.", status=404))
-        timeline_groups = event_date_groups(list(event_page.object_list), descending=True)
-        previous_event_page_path = (
-            _events_page_path(past=True, page=event_page.previous_page_number())
-            if event_page.has_previous()
-            else ""
-        )
-        next_event_page_path = (
-            _events_page_path(past=True, page=event_page.next_page_number())
-            if event_page.has_next()
-            else ""
-        )
+        assert pagination is not None
+        timeline_groups = event_date_groups(list(pagination.items), descending=True)
+        canonical_path = pagination.canonical_path
+        title = pagination_title("Past events", pagination.page_number)
+        extra_context = _pagination_context(pagination)
+        count = pagination.total_items
     else:
-        event_page = None
         timeline_groups = upcoming_groups
-        previous_event_page_path = ""
-        next_event_page_path = ""
+        canonical_path = "/events"
+        title = "Events — DataTalks.Club"
+        extra_context = {}
+        count = len(groups.upcoming)
 
-    canonical_path = _events_page_path(past=past, page=page_number)
     response = _render(
         request,
         "public/events.html",
         path=canonical_path,
-        title=("Past events" if past else "Events") + " — DataTalks.Club",
+        title=title,
         description=(
             "Join our data science events including webinars, live podcasts, workshops, and "
             "conferences. Connect with experts and learn about the latest trends in data, ML, "
@@ -307,14 +317,10 @@ def _render_events(request: HttpRequest, *, past: bool, page_number: int) -> Htt
             "timeline_groups": timeline_groups,
             "event_mode": "past" if past else "upcoming",
             "is_past_events": past,
-            "event_page": event_page,
-            "event_page_size": EVENT_PAGE_SIZE,
-            "event_page_path": canonical_path,
             "upcoming_path": "/events",
             "past_path": "/events/past",
-            "previous_event_page_path": previous_event_page_path,
-            "next_event_page_path": next_event_page_path,
-            "count": len(all_events),
+            "count": count,
+            **extra_context,
         },
     )
     # Anonymous event catalogues are public but query-bounded.  Keep browser revalidation
@@ -434,45 +440,66 @@ def event_legacy_redirect(request: HttpRequest, legacy_path: str) -> HttpRespons
     return permanent_public_redirect(request, target=target)
 
 
-@require_safe
+# The two collections behind `public/collection_hub.html`.  Both are dated archives
+# that grew past one screen — 55 articles, 98 books — so both page, through the one
+# shared paginator (issues #174, #178).  Each entry is the hub's heading, its clean
+# canonical base path, its catalogue's accessible label and its description.
+COLLECTION_HUBS = {
+    "articles": (
+        "Articles",
+        "/blog",
+        "Article pages",
+        (
+            "Explore the latest articles on data science, machine learning, and AI from "
+            "the DataTalks.Club community. Insights, tutorials, and best practices from "
+            "industry experts."
+        ),
+    ),
+    "books": (
+        "Book of the Week",
+        "/books",
+        "Book archive pages",
+        (
+            "Discover the latest books in data science, machine learning, and AI. Join our "
+            "weekly book discussions with authors at DataTalks.Club and win free copies of "
+            "featured books."
+        ),
+    ),
+}
+
+
+@csrf_exempt
 def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
-    projection = public_projection()
-    configuration = {
-        "articles": (
-            "Articles",
-            "/blog",
-            (
-                "Explore the latest articles on data science, machine learning, and AI from "
-                "the DataTalks.Club community. Insights, tutorials, and best practices from "
-                "industry experts."
-            ),
-        ),
-        "podcasts": (
-            "DataTalks.Club Podcast",
-            "/podcast",
-            (
-                "DataTalks.Club weekly podcast episodes with data science experts, ML "
-                "engineers, and AI researchers. Listen on Apple Podcasts, Spotify, YouTube."
-            ),
-        ),
-        "books": (
-            "Book of the Week",
-            "/books",
-            (
-                "Discover the latest books in data science, machine learning, and AI. Join our "
-                "weekly book discussions with authors at DataTalks.Club and win free copies of "
-                "featured books."
-            ),
-        ),
-    }
-    title, path, description = configuration[collection]
+    """The blog index and the Book of the Week archive, on the shared paginator.
+
+    The projections are already in their published order — `(published, slug)`
+    descending — and that is the order the pages are cut from.  Nothing here sorts,
+    filters or renumbers; the collection differs only by which records, which base
+    path and which words.
+    """
+
+    heading, base_path, catalogue_label, description = COLLECTION_HUBS[collection]
+    pagination = paginate_public_request(
+        request,
+        public_projection()[collection],
+        clean_base_path=base_path,
+        catalogue_label=catalogue_label,
+    )
+    if isinstance(pagination, HttpResponse):
+        return pagination
     return _render(
         request,
         "public/collection_hub.html",
-        path=path,
-        title=f"{title} — DataTalks.Club",
+        path=pagination.canonical_path,
+        title=pagination_title(heading, pagination.page_number),
         description=description,
-        context={"heading": title, "records": projection[collection], "collection": collection},
+        context={
+            "heading": heading,
+            "records": pagination.items,
+            "collection": collection,
+            "collection_total": pagination.total_items,
+            **_pagination_context(pagination),
+        },
     )
 
 
@@ -554,12 +581,50 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
     return response
 
 
+def _article_faq_structured_data(article: dict, faq: ArticleFaq | None) -> tuple[dict, ...]:
+    """Return the FAQPage node one article's recovered section publishes.
+
+    Written the way `content.review_views._faq_structured_data` writes the course
+    FAQ node, so the two agree: one `FAQPage` whose questions carry their own
+    canonical fragment and the plain text of the answer the page shows.
+    """
+
+    if faq is None:
+        return ()
+    canonical = _canonical(article["public_path"])
+    questions = []
+    for question in faq.questions:
+        question_url = f"{canonical}#{question.id}"
+        questions.append(
+            {
+                "@type": "Question",
+                "@id": question_url,
+                "url": question_url,
+                "name": question.question,
+                "acceptedAnswer": {"@type": "Answer", "text": question.answer_text},
+            }
+        )
+    return (
+        {
+            "@type": "FAQPage",
+            "@id": f"{canonical}#{faq.heading_id}",
+            "url": f"{canonical}#{faq.heading_id}",
+            "name": f"{article['title']} — frequently asked questions",
+            "mainEntity": questions,
+        },
+    )
+
+
 @require_safe
 def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     projection = public_projection()
     article = projection["articles_by_slug"].get(slug)
     if article is None:
         raise Http404
+    # Ten articles closed with a frequently-asked-questions section the projected
+    # body never carried; `content.article_faq` holds that recovered half.  An
+    # article without one gets `None`, and the page then draws no FAQ region.
+    faq = article_faq(slug)
     return _render(
         request,
         "public/article_detail.html",
@@ -571,7 +636,7 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
             # The design 5a reading page (issue #179) renders this composed value:
             # the byline joined to the people records, the publication date and
             # reading estimate the design writes, and the body as prose sections.
-            "article": article_view(article, projection["people_by_slug"]),
+            "article": article_view(article, projection["people_by_slug"], faq),
             "og_type": "article",
             "og_image_url": _canonical(article["image_path"]) if article["image_path"] else "",
             "published_time": article["published"],
@@ -597,6 +662,12 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     ),
                 },
                 (("Home", "/"), ("Blog", "/blog"), (article["title"], article["public_path"])),
+                # The legacy accordion published FAQPage data with every one of
+                # these ten sections, and the course FAQ pages publish the same
+                # node today (`review_views._faq_structured_data`).  Restoring it
+                # here keeps the rich result the article already earned; an
+                # article without a recovered FAQ adds no node at all.
+                extra=_article_faq_structured_data(article, faq),
             ),
         },
     )
@@ -673,7 +744,21 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
                     "url": _canonical(book["public_path"]),
                     "name": book["title"],
                     "description": book["description"] or book["summary"],
-                    "author": [{"@type": "Person", "name": name} for name in book["authors"]],
+                    # The book's own byline: names, and the profile address for an
+                    # author this site publishes one for.  It used to emit the
+                    # record's raw author keys as if they were names.
+                    "author": [
+                        {
+                            "@type": "Person",
+                            "name": author["name"],
+                            **(
+                                {"url": _canonical(author["public_path"])}
+                                if author["public_path"]
+                                else {}
+                            ),
+                        }
+                        for author in book["author_profiles"]
+                    ],
                     **({"image": _canonical(book["image_path"])} if book["image_path"] else {}),
                 },
                 (("Home", "/"), ("Books", "/books"), (book["title"], book["public_path"])),
@@ -712,17 +797,39 @@ def person_detail(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
-@require_safe
+@csrf_exempt
 def wiki_hub(request: HttpRequest) -> HttpResponse:
+    """The Wiki landing page: four ways in, the last of which is a paged catalogue.
+
+    `q` is the mode switch and is read first, so a search request never reaches the
+    paginator and search results are never paged (issue #175).  Without `q` the hub is
+    the A–Z catalogue in the projection's `(title.casefold(), slug)` order, cut into
+    pages by the shared paginator (issue #178).
+    """
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
     if "q" in request.GET:
         return wiki_search(request)
+    pagination = paginate_public_request(
+        request,
+        public_projection()["wiki"],
+        clean_base_path="/wiki",
+        catalogue_label="Wiki catalogue pages",
+    )
+    if isinstance(pagination, HttpResponse):
+        return pagination
     return _render(
         request,
         "public/wiki_hub.html",
-        path="/wiki",
-        title="Podcast Wiki — DataTalks.Club",
+        path=pagination.canonical_path,
+        title=pagination_title("Podcast Wiki", pagination.page_number),
         description="Find wiki pages, guides, summaries, people, and books.",
-        context={"records": public_projection()["wiki"]},
+        context={
+            "records": pagination.items,
+            "catalogue_total": pagination.total_items,
+            **_pagination_context(pagination),
+        },
     )
 
 
@@ -803,7 +910,6 @@ def wiki_graph(request: HttpRequest) -> HttpResponse:
             "DataTalks.Club podcast archive."
         ),
         context={
-            "nodes": wiki_content.graph_nodes(),
             "graph_groups": wiki_content.graph_groups(),
             "graph_totals": wiki_content.graph_totals(),
             "neighbourhood": wiki_content.busiest_neighbourhood(),

@@ -13,8 +13,11 @@ from unittest import mock
 from django.test import SimpleTestCase, TestCase
 from django.utils.html import escape
 
+from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import public_projection
 from core.templatetags.accessibility import human_day, iso_day
+
+from .pagination_support import catalogue_page_bodies
 
 RETIRED_ASSETS = (
     "/static/courses.css",
@@ -100,25 +103,45 @@ class CollectionHubDesignTests(TestCase):
 
 class CollectionHubRecordTests(TestCase):
     def test_blog_hub_lists_every_article_with_its_own_title_path_and_authors(self) -> None:
+        """The index pages (issue #174's primitive); the whole blog is still on it."""
+
         articles = public_projection()["articles"]
-        body = self.client.get("/blog").content.decode()
+        body = "".join(catalogue_page_bodies(self.client, "/blog"))
 
         self.assertIn(f"blog · {len(articles)} articles", body)
-        self.assertEqual(body.count('class="list-row record-row"'), len(articles))
+        self.assertEqual(body.count('class="list-row archive-row record-row"'), len(articles))
         for article in articles:
             title = escape(article["title"])
             self.assertIn(f'<a href="{article["public_path"]}">{title}</a>', body)
             for author in article["author_profiles"]:
                 name = escape(author["name"])
-                self.assertIn(f'<a href="{author["public_path"]}">{name}</a>', body)
+                # A byline is the shared person chip: a portrait and the name,
+                # linked to the profile.
+                self.assertIn(
+                    f'<a class="band-link person-chip-name" '
+                    f'href="{author["public_path"]}">{name}</a>',
+                    body,
+                )
 
     def test_books_hub_lists_every_book_and_counts_only_recorded_questions(self) -> None:
+        """The archive pages (issue #174); the whole archive is still on it."""
+
         books = public_projection()["books"]
         with_archive = [book for book in books if book["archive"]]
-        body = self.client.get("/books").content.decode()
+        pages = catalogue_page_bodies(self.client, "/books")
+        body = "".join(pages)
 
-        self.assertIn(f"books · {len(books)} in the archive", body)
-        self.assertEqual(body.count('class="list-row record-row"'), len(books))
+        # The kicker counts the collection, not the page: it says the same number
+        # on every page of the archive.
+        for page_body in pages:
+            self.assertIn(f"books · {len(books)} in the archive", page_body)
+        self.assertEqual(body.count('class="list-row archive-row record-row"'), len(books))
+        # Every page but the last is exactly one full page of records.
+        for page_body in pages[:-1]:
+            self.assertEqual(
+                page_body.count('class="list-row archive-row record-row"'),
+                PUBLIC_PAGE_SIZE,
+            )
         self.assertEqual(body.count('<span class="status-pill">'), len(with_archive))
         sample = with_archive[0]
         self.assertIn(f"{len(sample['archive'])} questions", body)
@@ -133,28 +156,34 @@ class CollectionHubRecordTests(TestCase):
 
         for path, collection in (("/blog", "articles"), ("/books", "books")):
             with self.subTest(path=path):
-                body = self.client.get(path).content.decode()
+                body = "".join(catalogue_page_bodies(self.client, path))
                 self.assertNotIn("00:00 UTC", body)
                 for record in public_projection()[collection]:
                     day = str(record["published"])[:10]
                     self.assertIn(f'<time datetime="{day}">', body)
-        self.assertIn("July 28, 2026", self.client.get("/blog").content.decode())
-        self.assertIn("October 6, 2025", self.client.get("/books").content.decode())
+        # The shared archive rail sets the day above the year, so that a column of
+        # rows is one column of dates whatever the month is called.
+        blog = "".join(catalogue_page_bodies(self.client, "/blog"))
+        books = "".join(catalogue_page_bodies(self.client, "/books"))
+        self.assertIn("<span>July 28</span>", blog)
+        self.assertIn("<span>2026</span>", blog)
+        self.assertIn("<span>October 6</span>", books)
+        self.assertIn("<span>2025</span>", books)
 
     def test_no_row_declares_a_machine_time_its_text_does_not_name(self) -> None:
         for path in ("/blog", "/books"):
             with self.subTest(path=path):
-                body = self.client.get(path).content.decode()
+                body = "".join(catalogue_page_bodies(self.client, path))
                 self.assertEqual(re.findall(r'<time datetime="[^"]*T[^"]*"', body), [])
 
     def test_descriptions_are_shown_and_no_record_is_summarised_by_the_page(self) -> None:
         for path, collection in (("/blog", "articles"), ("/books", "books")):
             with self.subTest(path=path):
-                body = self.client.get(path).content.decode()
+                body = "".join(catalogue_page_bodies(self.client, path))
                 for record in public_projection()[collection]:
                     self.assertTrue(record["description"])
                     self.assertIn(
-                        f'<p class="record-summary">{escape(record["description"])}</p>',
+                        f'<p class="archive-summary">{escape(record["description"])}</p>',
                         body,
                     )
 
@@ -164,7 +193,127 @@ class CollectionHubRecordTests(TestCase):
         projection["books"] = ()
         with mock.patch("content.public_views.public_projection", return_value=projection):
             self.assertContains(self.client.get("/blog"), "No articles yet.")
-            self.assertContains(self.client.get("/books"), "No books in the archive yet.")
+            empty_books = self.client.get("/books")
+            self.assertContains(empty_books, "No books are available yet.")
+            # An empty archive is one valid page, so it offers no page controls at
+            # all, and the page beyond it is a real miss rather than a nearest page.
+            self.assertNotContains(empty_books, 'aria-label="Book archive pages"')
+            self.assertEqual(self.client.get("/books?page=2").status_code, 404)
+
+
+class CollectionHubPaginationTests(TestCase):
+    """Both hubs page, through the one shared control (issues #174, #178).
+
+    55 articles and 98 books were one screen each; the hub now cuts them into pages
+    of 20 without changing what a row says, what a page is called, or which URL a
+    record lives at.
+    """
+
+    def test_the_first_page_is_the_clean_path_and_keeps_its_original_metadata(self) -> None:
+        expected = {
+            "/blog": "Articles — DataTalks.Club",
+            "/books": "Book of the Week — DataTalks.Club",
+        }
+        for path, title in expected.items():
+            with self.subTest(path=path):
+                for spelling in (path, f"{path}?page=1"):
+                    response = self.client.get(spelling)
+                    self.assertEqual(response.status_code, 200)
+                    body = response.content.decode()
+                    self.assertIn(f"<title>{title}</title>", body)
+                    self.assertIn(
+                        f'<link rel="canonical" href="https://datatalks.club{path}">', body
+                    )
+                    self.assertIn(
+                        f'<meta property="og:url" content="https://datatalks.club{path}">', body
+                    )
+                    # No internal link ever spells the first page as a query.
+                    self.assertNotIn('?page=1"', body)
+                    self.assertNotIn('<link rel="prev"', body)
+
+    def test_a_later_page_names_itself_in_its_title_canonical_and_relations(self) -> None:
+        response = self.client.get("/books?page=2")
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("<title>Book of the Week — Page 2 — DataTalks.Club</title>", body)
+        self.assertIn('<link rel="canonical" href="https://datatalks.club/books?page=2">', body)
+        self.assertIn(
+            '<meta property="og:url" content="https://datatalks.club/books?page=2">', body
+        )
+        self.assertIn('<link rel="prev" href="https://datatalks.club/books">', body)
+        self.assertIn('<link rel="next" href="https://datatalks.club/books?page=3">', body)
+        # The archive's own introduction stays above every page of records.
+        self.assertIn('<h1 id="collection-heading">Book of the Week</h1>', body)
+        self.assertIn('<h2 id="how-it-works-heading">How it works</h2>', body)
+        self.assertIn('<h2 id="collection-list-heading">Archive</h2>', body)
+
+    def test_the_pages_partition_the_projection_in_its_recorded_order(self) -> None:
+        for path, collection in (("/blog", "articles"), ("/books", "books")):
+            with self.subTest(path=path):
+                records = public_projection()[collection]
+                pages = catalogue_page_bodies(self.client, path)
+                self.assertEqual(
+                    len(pages),
+                    -(-len(records) // PUBLIC_PAGE_SIZE),
+                )
+                for index, page_body in enumerate(pages):
+                    expected = records[index * PUBLIC_PAGE_SIZE : (index + 1) * PUBLIC_PAGE_SIZE]
+                    found = re.findall(r'<h3 class="archive-title">\s*<a href="([^"]+)"', page_body)
+                    self.assertEqual(found, [record["public_path"] for record in expected])
+
+    def test_the_page_selector_accepts_one_spelling_and_fails_closed_otherwise(self) -> None:
+        for path in ("/blog", "/books"):
+            with self.subTest(path=path):
+                for query in ("page=0", "page=01", "page=%32", "page=2&page=3", "page=2&x=1"):
+                    bad = self.client.get(f"{path}?{query}")
+                    self.assertEqual(bad.status_code, 400)
+                    self.assertEqual(bad.headers["Cache-Control"], "no-store, max-age=0")
+                    self.assertNotContains(bad, query, status_code=400)
+
+                beyond = self.client.get(f"{path}?page=99")
+                self.assertEqual(beyond.status_code, 404)
+                self.assertEqual(beyond.headers["Cache-Control"], "no-store, max-age=0")
+                self.assertNotIn("Location", beyond.headers)
+
+                rejected = self.client.post(path)
+                self.assertEqual(rejected.status_code, 405)
+                self.assertEqual(rejected.headers["Allow"], "GET, HEAD")
+                self.assertEqual(rejected.headers["Cache-Control"], "no-store, max-age=0")
+
+    def test_the_hub_aliases_still_forward_their_raw_query_in_one_hop(self) -> None:
+        for alias in ("/books.html", "/books/"):
+            with self.subTest(alias=alias):
+                response = self.client.get(f"{alias}?page=2", follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response.headers["Location"], "/books?page=2")
+
+    def test_controls_are_one_labelled_landmark_with_one_current_page(self) -> None:
+        body = self.client.get("/books?page=2").content.decode()
+        markup = body.split('<nav class="pagination"', 1)[1].split("</nav>", 1)[0]
+
+        self.assertEqual(body.count('<nav class="pagination"'), 1)
+        self.assertIn('aria-label="Book archive pages"', markup)
+        self.assertEqual(markup.count('aria-current="page"'), 1)
+        self.assertIn('aria-label="Page 2, current page"', markup)
+        self.assertIn('aria-label="Previous page — page 1"', markup)
+        self.assertIn('aria-label="Next page — page 3"', markup)
+        # The current page is a marker, not a link a reader can follow to itself.
+        self.assertIn('class="filter-pill pagination-number"\n              aria-current', markup)
+
+    def test_the_blog_index_pages_and_keeps_its_own_words(self) -> None:
+        articles = public_projection()["articles"]
+        second = self.client.get("/blog?page=2")
+        body = second.content.decode()
+
+        self.assertEqual(second.status_code, 200)
+        self.assertIn("<title>Articles — Page 2 — DataTalks.Club</title>", body)
+        self.assertIn(f"blog · {len(articles)} articles", body)
+        self.assertIn('<h1 id="collection-heading">Latest Articles</h1>', body)
+        self.assertIn('<h2 id="collection-list-heading">All articles</h2>', body)
+        self.assertIn('aria-label="Article pages"', body)
+        # The books explainer belongs to books, on every page of either hub.
+        self.assertNotIn('id="how-it-works-heading"', body)
 
 
 class BooksExplainerTests(TestCase):

@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load seo static people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -20,6 +20,7 @@
     <meta name="twitter:site" content="@DataTalksClub">
     <meta name="twitter:title" content="{{ seo_title }}">
     <meta name="twitter:description" content="{{ seo_description }}">
+    {% include "public/_page_relations.html" %}
     <style>
       /* ------------------------------------------------------------------ *
        * Events index, design 5a mockup 6c (issue #179).  Like the homepage
@@ -58,26 +59,10 @@
         max-width: 36em;
       }
 
-      /* The kinds explainer: the same dashed rows the events themselves use, each
-         led by the very status pill that marks that kind on an event row. */
-      .event-types-label {
-        display: block;
-        margin-top: 1.5rem;
-      }
-
-      .event-types {
-        margin-top: 0.5rem;
-      }
-
-      .event-types .list-row {
-        --row-cols: 7.5rem minmax(0, 1fr);
-      }
-
-      /* A grid item is stretched by default, which would pull the pill across its
-         whole column; the pill keeps the width of the word it carries. */
-      .event-types .status-pill {
-        justify-self: start;
-      }
+      /* The card itself — the link stretched over the whole of it, the clamped
+         summary, the title's colour — is `.event-card` in the design system
+         partial above, because the homepage draws the same card.  This page adds
+         only the shape its rows give it.  */
 
       /* The mockup keeps the two view pills on the left and pushes the
          calendar link to the right edge of the same row. */
@@ -118,19 +103,6 @@
         min-width: 0;
       }
 
-      .event-card h3 {
-        font-size: 1.15rem;
-      }
-
-      .event-card h3 a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .event-card h3 a:hover {
-        text-decoration: underline;
-      }
-
       .event-speakers {
         color: var(--muted);
         font-size: 0.9rem;
@@ -144,14 +116,11 @@
         margin-top: 0.5rem;
       }
 
-      .event-pagination {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem 1rem;
-        justify-content: space-between;
-        margin-top: 1.5rem;
-      }
+      /* The archive used to draw a paginator of its own, and styled it here, until
+         issue #177.  Past events now include the shared public paginator, drawn from
+         `.filter-pills`/`.filter-pill`/`.status-pill` and carries its one
+         `.pagination` component in the design system partial above, so this page
+         adds no pagination rule of its own. */
 
       /* ------------------------------------------------------------------ *
        * Narrow layout.  The row reshapes rather than reflows: the date rail
@@ -176,11 +145,6 @@
         .event-action {
           width: 100%;
         }
-
-        .event-pagination-status {
-          order: -1;
-          width: 100%;
-        }
       }
     </style>
   </head>
@@ -199,48 +163,12 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream events-hero" aria-labelledby="events-heading">
-        <div class="shell">
+        <div class="shell shell-reading">
           <h1 id="events-heading">Something happening every week</h1>
           <p class="events-lede">
             Workshops, podcast recordings and open Q&amp;As with people doing the work.
             Free, live, recorded if you miss it.
           </p>
-          {% comment %}
-            Every row below carries its kind as a status pill, so the page says what
-            those four kinds are before the reader meets them.  It sits above the
-            view switcher because it introduces the vocabulary of both views.
-          {% endcomment %}
-          <p class="mono-label mono-label-indigo event-types-label">
-            types of events
-          </p>
-          <ul class="row-list event-types" aria-label="Types of events">
-            <li class="list-row">
-              <span class="status-pill">webinar</span>
-              <p>
-                Webinars &ndash; events on Tuesday, with slides, mostly technical
-              </p>
-            </li>
-            <li class="list-row">
-              <span class="status-pill">podcast</span>
-              <p>
-                Live podcasts &ndash; events on Friday, a discussion without slides,
-                the recording is published as a podcast
-              </p>
-            </li>
-            <li class="list-row">
-              <span class="status-pill">workshop</span>
-              <p>
-                Workshop &ndash; hands-on tutorials about technical topics
-              </p>
-            </li>
-            <li class="list-row">
-              <span class="status-pill">conference</span>
-              <p>
-                Conference &ndash; bigger events with multiple talks, both
-                webinar-type talks and podcast-type talks
-              </p>
-            </li>
-          </ul>
           <div class="events-controls">
             <nav class="filter-pills" aria-label="Event views">
               {% if is_past_events %}
@@ -264,8 +192,8 @@
         </div>
       </section>
 
-      <section class="band band-cream events-list" aria-labelledby="events-view-heading">
-        <div class="shell">
+      <section class="band band-lavender events-list" aria-labelledby="events-view-heading">
+        <div class="shell shell-reading">
           <h2 id="events-view-heading" class="sr-only">
             {% if is_past_events %}
               Past events
@@ -292,33 +220,21 @@
                   </div>
                   <article class="card event-card">
                     <div class="event-body">
-                      {% if is_past_events %}
-                        <span class="status-pill status-pill-wait">{{ event.type }}</span>
-                      {% elif event.type == "podcast" %}
-                        <span class="status-pill status-pill-mint">{{ event.type }}</span>
-                      {% else %}
-                        <span class="status-pill status-pill-open">{{ event.type }}</span>
-                      {% endif %}
+                      {% include "public/_event_kind.html" with tip_id=event.public_id|default:forloop.counter0 %}
                       <h3>
                         <a href="{{ event.public_path }}">{{ event.title }}</a>
                       </h3>
+                      {% if event.description_text %}
+                        <p class="event-summary">{{ event.description_text|truncatewords:30 }}</p>
+                      {% endif %}
                       {% if event.speakers %}
-                        <p class="event-speakers">
-                          With
+                        <p class="event-speakers person-chips card-credit">
                           {% for speaker in event.speakers %}
-                            <a href="{{ speaker.public_path }}">{{ speaker.name }}</a>
-                            {% if not forloop.last %}
-                              <span aria-hidden="true">,</span>
-                            {% endif %}
+                            {% include "public/_person_chip.html" with person=speaker|person_chip %}
                           {% endfor %}
                         </p>
                       {% endif %}
                     </div>
-                    {% if is_past_events %}
-                      <a class="cta cta-compact cta-secondary event-action" href="{{ event.public_path }}">Event details</a>
-                    {% else %}
-                      <a class="cta cta-compact cta-primary event-action" href="{{ event.public_path }}">Event details</a>
-                    {% endif %}
                   </article>
                 </div>
               {% endfor %}
@@ -332,19 +248,12 @@
               </p>
             {% endfor %}
           </div>
-          {% if is_past_events and event_page and event_page.paginator.num_pages > 1 %}
-            <nav class="event-pagination" aria-label="Past event pages">
-              {% if event_page.has_previous %}
-                <a class="cta cta-compact cta-secondary" href="{{ previous_event_page_path }}">Previous</a>
-              {% endif %}
-              <p class="mono-note event-pagination-status">
-                Page {{ event_page.number }} of {{ event_page.paginator.num_pages }}
-              </p>
-              {% if event_page.has_next %}
-                <a class="cta cta-compact cta-secondary" href="{{ next_event_page_path }}">Next</a>
-              {% endif %}
-            </nav>
-          {% endif %}
+          {% comment %}
+            Only the archive pages, and only through the shared public control.
+            The upcoming view passes no `pagination`, so the include renders
+            nothing there without this page testing which view it is.
+          {% endcomment %}
+          {% include "public/_pagination.html" %}
         </div>
       </section>
     </main>

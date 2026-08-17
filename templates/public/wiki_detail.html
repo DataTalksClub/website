@@ -23,8 +23,9 @@
        * ------------------------------------------------------------------ */
 
       /* The reading column: the width the design gives long prose. */
+      /* The same reading column every content page holds. */
       .wiki-shell {
-        max-width: 48rem;
+        max-width: calc(var(--measure) + 2.5rem);
       }
 
       .wiki-hero .breadcrumbs {
@@ -131,7 +132,7 @@
         </div>
       </section>
 
-      <section class="band band-cream">
+      <section class="band band-lavender">
         <div class="shell wiki-shell">
           {% comment %}
             Anchors the source links to but never defines a heading for: they keep

@@ -109,20 +109,60 @@ def test_a_wide_body_of_work_is_grouped_into_scannable_rows(page: Page, live_ser
     page.goto(f"{live_server.url}{record['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    expect(page.locator(".list-row.person-row")).to_have_count(len(record["relationships"]))
+    # Every contribution is the site's shared archive row.
+    expect(page.locator(".list-row.archive-row.person-row")).to_have_count(
+        len(record["relationships"])
+    )
     expect(page.locator(".stat-tile")).to_have_count(len(person.groups))
     expect(page.locator(".person-rows-podcast .play-disc")).to_have_count(5)
-    expect(page.locator(".person-rows-events .when")).to_have_count(50)
+    expect(page.locator(".person-rows-events .date-rail")).to_have_count(50)
     for group in person.groups:
         heading = page.locator(f"#{group.anchor}-heading")
         expect(heading).to_be_visible()
         expect(heading).to_have_text(group.heading)
 
-    first_row_link = page.locator(".person-row-title a").first
+    first_row_link = page.locator(".archive-title a").first
     expect(first_row_link).to_have_attribute("href", person.groups[0].items[0].public_path)
 
     portrait = page.get_by_role("img", name=f"Portrait of {record['title']}")
     expect(portrait).to_be_visible()
+
+
+def test_a_long_group_folds_and_opens_without_javascript_of_its_own(
+    page: Page,
+    live_server,
+) -> None:
+    """Fifty events is a wall: six stay in view and the rest are one click away."""
+
+    record = _profile(RICH_SLUG)
+    person = person_view(record)
+    events = next(group for group in person.groups if group.key == "events")
+    page.goto(f"{live_server.url}{record['public_path']}", wait_until="networkidle")
+    _settle_analytics_preferences(page)
+
+    fold = page.locator("#person-events-more")
+    control = fold.locator("summary")
+    expect(control).to_be_visible()
+    expect(control).to_contain_text(events.fold_label)
+
+    hidden = fold.locator(".list-row")
+    expect(hidden).to_have_count(events.folded_count)
+    expect(hidden.first).to_be_hidden()
+    # The visible rows are the ones outside the fold.
+    expect(page.locator(".person-rows-events > .list-row")).to_have_count(len(events.visible_items))
+
+    # The control is the browser's own: it is reachable and operable by keyboard.
+    box = control.bounding_box()
+    assert box is not None and box["height"] >= 44, box
+    control.click()
+    expect(hidden.first).to_be_visible()
+    expect(control).to_contain_text(events.fold_close_label)
+    _assert_no_horizontal_overflow(page)
+    control.click()
+    expect(hidden.first).to_be_hidden()
+
+    # A group short enough to read offers no control at all.
+    expect(page.locator(".person-rows-podcast .row-fold")).to_have_count(0)
 
 
 def test_external_profile_links_announce_that_they_open_a_new_tab(

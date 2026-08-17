@@ -55,7 +55,11 @@ EXPECTED_COUNTS = {
 }
 # The accepted projection audit found these exact supported metadata markers.  Runtime cleanup
 # uses this canary to ensure the immutable-source allowlist does not silently broaden or drift.
-EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 270, "people": 10}
+# Articles are zero because their bodies are now projected by the article block builder, which
+# removes the legacy `{:target="_blank"}` directive at build time instead of leaving 270 of them
+# in the published text for the runtime to clean up.  Person bios still take the older plain-text
+# path, so their ten markers are still removed here.
+EXPECTED_LEAKED_TARGET_MARKERS = {"articles": 0, "people": 10}
 EXPECTED_SELECTION = "preferred"
 EDITORIAL_ROUTE_COLLECTIONS = {
     "articles": "/blog",

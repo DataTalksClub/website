@@ -17,7 +17,13 @@ from django.core.exceptions import ImproperlyConfigured
 from django.test import SimpleTestCase, TestCase
 from django.utils.html import escape
 
-from content.person_content import person_view
+from content.person_content import (
+    ROWS_BEFORE_FOLD,
+    SMALLEST_FOLD,
+    Contribution,
+    ContributionGroup,
+    person_view,
+)
 from content.public_data import public_projection
 
 # The profile with the widest body of work in the catalogue (63 links across all
@@ -93,10 +99,11 @@ class PersonCompositionTests(SimpleTestCase):
         event = groups["events"].items[0]
         event_source = projection["events_by_path"][event.public_path]
         self.assertEqual(event.pill_label, event_source["type"])
-        self.assertEqual(event.mark, "date")
-        self.assertTrue(event.weekday)
-        # An event's date rail is the only place its date appears.
-        self.assertTrue(event.date_display)
+        # A date is the row's rail, not a mark: only the podcast disc is one, and
+        # the shared archive row writes the date itself from this one field.
+        self.assertEqual(event.mark, "")
+        self.assertRegex(event.date, r"^\d{4}-\d{2}-\d{2}$")
+        self.assertIn(event.date[:4], event_source["starts_at"])
 
         article = groups["blog"].items[0]
         article_source = projection["articles_by_path"][article.public_path]
@@ -153,7 +160,65 @@ class PersonCompositionTests(SimpleTestCase):
         ]
         self.assertTrue(undated)
         for item in undated:
-            self.assertEqual((item.date, item.date_display), ("", ""))
+            self.assertEqual(item.date, "")
+
+    def test_a_long_group_keeps_its_first_rows_and_folds_the_rest(self) -> None:
+        """Fifty events is a wall, not a list; three is neither.
+
+        A group shows ``ROWS_BEFORE_FOLD`` rows and folds the remainder, and only
+        when there is a remainder worth a control — hiding one or two rows behind
+        something the reader has to click is worse than showing them.
+        """
+
+        groups = {group.key: group for group in person_view(profile(RICH_SLUG)).groups}
+
+        events = groups["events"]
+        self.assertEqual(events.count, 50)
+        self.assertEqual(len(events.visible_items), ROWS_BEFORE_FOLD)
+        self.assertEqual(events.folded_count, 50 - ROWS_BEFORE_FOLD)
+        self.assertEqual(events.fold_label, "Show 44 more events")
+        self.assertEqual(events.fold_close_label, "Show fewer events")
+        # The fold reorders nothing: it is the same list, cut in two.
+        self.assertEqual((*events.visible_items, *events.folded_items), events.items)
+
+        # Five episodes and seven articles are lists a reader can simply read.
+        for key in ("podcast", "blog", "books"):
+            with self.subTest(group=key):
+                group = groups[key]
+                self.assertEqual(group.folded_count, 0)
+                self.assertEqual(group.folded_items, ())
+                self.assertEqual(group.visible_items, group.items)
+                self.assertEqual(group.fold_label, "")
+
+    def test_a_group_folds_only_once_it_would_hide_more_than_a_couple_of_rows(self) -> None:
+        def group_of(total: int) -> ContributionGroup:
+            return ContributionGroup(
+                key="events",
+                heading="Events",
+                noun="event",
+                items=tuple(
+                    Contribution(
+                        role="speaker",
+                        title=f"Event {index}",
+                        public_path=f"/events/{index}/event",
+                        date="2025-01-01",
+                        pill_label="webinar",
+                        pill_variant="status-pill-wait",
+                        state_label="",
+                        note="",
+                        mark="",
+                    )
+                    for index in range(total)
+                ),
+            )
+
+        for total in range(ROWS_BEFORE_FOLD + SMALLEST_FOLD):
+            with self.subTest(total=total):
+                self.assertEqual(group_of(total).folded_count, 0)
+        folded = group_of(ROWS_BEFORE_FOLD + SMALLEST_FOLD)
+        self.assertEqual(folded.folded_count, SMALLEST_FOLD)
+        self.assertEqual(folded.fold_label, f"Show {SMALLEST_FOLD} more events")
+        self.assertEqual(group_of(ROWS_BEFORE_FOLD + 1).fold_label, "")
 
     def test_counts_and_role_phrases_agree_with_the_rows(self) -> None:
         person = person_view(profile(RICH_SLUG))
@@ -295,18 +360,61 @@ class PersonPageTests(TestCase):
         for group in person.groups:
             self.assertIn(f'<h2 id="{group.anchor}-heading">{group.heading}</h2>', body)
             self.assertIn(f"person-rows-{group.key}", body)
+        # Every contribution is the site's shared archive row — the same row the
+        # blog, the books archive and the podcast index draw — and the rows
+        # behind a group's fold are in the page too, not fetched on demand.
         self.assertEqual(
-            body.count('class="list-row person-row"'),
+            body.count('class="list-row archive-row person-row"'),
             len(record["relationships"]),
         )
         self.assertEqual(body.count('class="play-disc"'), 5)
-        self.assertEqual(body.count('class="when"'), 50)
+        # Each dated row leads with the shared two-line date rail, and an undated
+        # one gives that column back to the card.
+        dated = [item for group in person.groups for item in group.items if item.date]
+        self.assertEqual(body.count('class="mono-note archive-date date-rail"'), len(dated))
+        self.assertNotIn('class="when"', body)
         self.assertIn('class="status-pill status-pill-mint"', body)
         self.assertIn('class="stat-tiles person-stats"', body)
         # Design 5a bands, one per kind of work, and no invented catalogue link.
-        self.assertIn('class="band band-mint person-contributions"', body)
-        self.assertIn('class="band band-lavender person-contributions"', body)
+        # Every band after the hero takes the content ground, so a profile with
+        # four kinds of work still reads as one page.
+        self.assertEqual(
+            body.count('class="band band-lavender person-contributions"'),
+            len(person.groups),
+        )
+        self.assertNotIn('<section class="band band-mint', body)
+        self.assertNotIn('<section class="band band-cream person-contributions', body)
         self.assertNotIn('href="/people"', body)
+
+    def test_a_long_group_offers_one_control_that_says_what_it_is_holding(self) -> None:
+        """The fold is a <details>: no script, and it opens with JavaScript off."""
+
+        body = self.rendered(RICH_SLUG)
+        person = person_view(profile(RICH_SLUG))
+        folded = [group for group in person.groups if group.folded_count]
+        self.assertEqual([group.key for group in folded], ["events"])
+
+        self.assertEqual(body.count('<details class="row-fold"'), 1)
+        self.assertIn('id="person-events-more"', body)
+        self.assertIn('<span class="row-fold-open">Show 44 more events</span>', body)
+        self.assertIn('<span class="row-fold-close">Show fewer events</span>', body)
+        # It is a control the browser owns: no script, and no ARIA restating what
+        # <details> already announces.
+        fold = re.search(r'<details class="row-fold".*?</summary>', body, re.S)
+        assert fold is not None
+        self.assertNotIn("aria-expanded", fold.group(0))
+        self.assertNotIn("onclick", fold.group(0))
+
+        # The first rows stay in view; only the remainder are inside the fold.
+        opening, _, remainder = body.partition('<details class="row-fold"')
+        events_band = opening.rpartition("person-rows-events")[2]
+        self.assertEqual(events_band.count('class="list-row archive-row person-row"'), 6)
+        self.assertEqual(
+            remainder.partition("</details>")[0].count('class="list-row archive-row person-row"'),
+            44,
+        )
+        # A short group offers no control at all.
+        self.assertNotIn("Show 4 more episodes", body)
 
     def test_a_profile_without_work_says_so_instead_of_padding_the_page(self) -> None:
         record = profile(SPARSE_SLUG)

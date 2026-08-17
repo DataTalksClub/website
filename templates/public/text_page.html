@@ -159,9 +159,14 @@
   >
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
-      <section class="band band-cream" aria-labelledby="text-page-heading">
-        <div class="shell text-page-shell">
-          <article>
+      {% comment %}
+        Two bands, not one: the title block takes the site's warm ground and the
+        reading takes the cool one, the same seam every other content page has.
+        The <article> wraps both so the page is still one document.
+      {% endcomment %}
+      <article>
+        <section class="band band-cream" aria-labelledby="text-page-heading">
+          <div class="shell text-page-shell">
             <header class="text-page-head">
               <p class="mono-label mono-label-indigo">
                 {% block kicker %}
@@ -181,6 +186,10 @@
                 {% endblock %}
               </p>
             </header>
+          </div>
+        </section>
+        <section class="band band-lavender text-page-read">
+          <div class="shell text-page-shell">
             {% block notice %}
             {% endblock %}
             <div class="prose prose-reading text-page-body">
@@ -191,9 +200,9 @@
               {% block actions %}
               {% endblock %}
             </div>
-          </article>
-        </div>
-      </section>
+          </div>
+        </section>
+      </article>
     </main>
     {% include "core/_site_shell_foot.html" %}
   </body>

@@ -1,4 +1,4 @@
-{% load seo accessibility public %}
+{% load seo accessibility people public %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -52,9 +52,10 @@
        * is only this page's layout around them.
        * ------------------------------------------------------------------ */
 
-      /* One column, the width the design gives a page of long copy. */
+      /* The same reading column every content page holds, so moving from the
+         archive into a book does not change the shape of the page. */
       .book-shell {
-        max-width: 52rem;
+        max-width: calc(var(--measure) + 2.5rem);
       }
 
       .book-hero .breadcrumbs {
@@ -237,8 +238,19 @@
             <header>
               <p class="mono-label mono-label-indigo">book of the week</p>
               <h1 id="book-heading">{{ record.title }}</h1>
-              {% if record.authors %}
-                <p class="book-byline">By {{ record.authors|join:", " }}</p>
+              {% comment %}
+                The byline names the people who wrote the book, in the shared
+                person chip every other surface credits someone with.  Until
+                issue #179's follow-up this line printed the record's raw author
+                keys, so a reader met "nikolaysmorchkov" where a name belonged
+                and had no way through to the profile the site already publishes.
+              {% endcomment %}
+              {% if record.author_profiles %}
+                <p class="book-byline person-chips">
+                  {% for author in record.author_profiles %}
+                    {% include "public/_person_chip.html" with person=author|person_chip chip_loading="eager" %}
+                  {% endfor %}
+                </p>
               {% endif %}
               {% comment %}
                 The two marks the same book carries in the archive list: the

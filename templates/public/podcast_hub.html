@@ -60,45 +60,11 @@
         max-width: 36rem;
       }
 
-      /* One episode row: the play disc, the episode itself, and the date as the
-         quiet right-hand mark the mockup gives the episode number. */
-      .episode-row {
-        --row-cols: auto minmax(0, 1fr) auto;
-        column-gap: 1.1rem;
-      }
-
-      .episode-body {
-        display: grid;
-        gap: 0.2rem;
-        min-width: 0;
-      }
-
-      .episode-title {
-        font-size: 1.05rem;
-      }
-
-      .episode-title a {
-        color: var(--ink);
-        text-decoration: none;
-      }
-
-      .episode-title a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .episode-meta {
-        color: var(--muted);
-        font-size: 0.85rem;
-      }
-
-      .episode-summary {
-        font-size: 0.9rem;
-      }
-
-      .episode-date {
-        white-space: nowrap;
-      }
+      /* An episode row is the archive row the blog and the books archive draw,
+         with the play disc as its leading mark: `.archive-row` in the design
+         system partial above, through `public/_archive_row.html`.  This page
+         adds nothing to it — an episode is not a different kind of record from
+         an article, so it is not a different kind of row. */
 
       /* The season controls are one navigation: the two adjacent seasons first,
          then every season as its own target. */
@@ -121,19 +87,6 @@
         margin-top: 1.25rem;
       }
 
-      /* Narrow: the disc keeps the row readable as a list, and the date drops
-         under the episode instead of squeezing the title into two words. */
-      @media (max-width: 47.99rem) {
-        .episode-row {
-          align-items: start;
-          column-gap: 0.85rem;
-          grid-template-columns: auto minmax(0, 1fr);
-        }
-
-        .episode-date {
-          grid-column: 2;
-        }
-      }
     </style>
   </head>
   {% url 'update_timezone_preference' as timezone_update_url %}
@@ -151,7 +104,7 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream podcast-hero" aria-labelledby="podcast-heading">
-        <div class="shell">
+        <div class="shell shell-reading">
           <p class="mono-label mono-label-indigo">podcast · season {{ season.number }}</p>
           <h1 id="podcast-heading">Conversations with people who ship data</h1>
           <p class="podcast-lede">
@@ -171,8 +124,8 @@
         </div>
       </section>
 
-      <section class="band band-cream" aria-labelledby="season-heading">
-        <div class="shell">
+      <section class="band band-lavender" aria-labelledby="season-heading">
+        <div class="shell shell-reading">
           <div class="band-head">
             <div>
               <h2 id="season-heading">Season {{ season.number }}</h2>
@@ -181,47 +134,22 @@
           </div>
           <div class="row-list" data-podcast-season="{{ season.number }}">
             {% for episode in episodes %}
-              <article class="list-row episode-row" data-podcast-episode>
-                <span class="play-disc" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M9 6.5l9 5.5-9 5.5z"/>
-                  </svg>
-                </span>
-                <div class="episode-body">
-                  <h3 class="episode-title">
-                    <a href="{{ episode.public_path }}">{{ episode.title }}</a>
-                  </h3>
-                  <p class="episode-meta">
-                    {{ episode.season_episode }}
-                    {% for guest in episode.guests %}
-                      {% if forloop.first %}
-                        · with
-                      {% endif %}
-                      {% if guest.public_path %}
-                        <a href="{{ guest.public_path }}">{{ guest.name }}</a>
-                      {% else %}
-                        {{ guest.name }}
-                      {% endif %}
-                      {% if not forloop.last %}
-                        and
-                      {% endif %}
-                    {% endfor %}
-                  </p>
-                  <p class="episode-summary">{{ episode.description }}</p>
-                </div>
-                <p class="mono-note episode-date">
-                  {% if episode.published %}
-                    <time datetime="{{ episode.published }}">{{ episode.published_display }}</time>
-                  {% endif %}
-                </p>
-              </article>
+              {% comment %}
+                The shared archive row, so an episode looks the same here, on the
+                blog index and on a guest's own profile.  Seventeen of the 205
+                catalogue entries carry no publication date, and season 24 is
+                entirely undated — the row drops its rail for those rather than
+                leaving a column of empty space down the newest season.  The
+                guests are the card's credit, drawn as the shared person chip.
+              {% endcomment %}
+              {% include "public/_archive_row.html" with row_title=episode.title row_url=episode.public_path row_date=episode.published row_mark="play" row_pill=episode.season_episode row_pill_variant="status-pill-mint" row_summary=episode.description row_credits=episode.guests row_class="episode-row" row_hook="data-podcast-episode" only %}
             {% endfor %}
           </div>
         </div>
       </section>
 
       <section class="band band-lavender">
-        <div class="shell">
+        <div class="shell shell-reading">
           <nav id="podcast-seasons" class="season-groups" aria-label="Podcast seasons">
             <div class="season-row podcast-season-adjacent">
               {% if newer_season %}

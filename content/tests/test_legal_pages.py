@@ -221,27 +221,52 @@ class SharedLegalFooterTests(TestCase):
                 self.assertNotIn('href="/privacy/"', body)
                 self.assertNotIn('href="/impressum/"', body)
 
-    def test_one_base_shell_owns_the_shared_footer_partial(self) -> None:
-        copied_base = (ROOT / "course_platform_templates/base.html").read_text(encoding="utf-8")
-        public_base = (ROOT / "templates/core/base.html").read_text(encoding="utf-8")
+    def test_one_shell_partial_owns_the_shared_footer_include(self) -> None:
+        """One shell renders the footer, and no page keeps a second copy of it.
+
+        The owner used to be `templates/site_base.html`; issue #179 finished porting
+        the site to design 5a, whose pages are complete documents that include
+        `core/_site_shell_foot.html` rather than extending a base, so that partial is
+        the single include site now.  The contract is unchanged: exactly one shell
+        includes the partial, and no page template restates the footer's own markup.
+        """
+
+        shell_foot = (ROOT / "templates/core/_site_shell_foot.html").read_text(encoding="utf-8")
+        page_roots = ("templates/public", "templates/review", "templates/core")
 
         self.assertFalse((ROOT / "templates/base.html").exists())
-        self.assertEqual(copied_base.count('{% include "core/_site_footer.html" %}'), 1)
-        self.assertNotIn("site-footer-github", copied_base)
-        self.assertNotIn("Analytics preferences</button>", copied_base)
-        self.assertIn('{% extends "site_base.html" %}', public_base)
-        self.assertNotIn('{% include "core/_site_footer.html" %}', public_base)
+        self.assertFalse((ROOT / "templates/site_base.html").exists())
+        self.assertFalse((ROOT / "templates/core/base.html").exists())
+        self.assertEqual(shell_foot.count('{% include "core/_site_footer.html" %}'), 1)
+        for root in page_roots:
+            for path in sorted((ROOT / root).rglob("*.html")):
+                if path.name in {"_site_footer.html", "_site_shell_foot.html"}:
+                    continue
+                with self.subTest(template=path.relative_to(ROOT).as_posix()):
+                    source = path.read_text(encoding="utf-8")
+                    self.assertNotIn('{% include "core/_site_footer.html" %}', source)
+                    self.assertNotIn('<footer class="site-footer', source)
+                    self.assertNotIn("Analytics preferences</button>", source)
 
     def test_github_icon_and_ordinary_legal_link_styles_are_separate(self) -> None:
+        """The footer's icon link is undecorated; its word links stay underlined.
+
+        These rules lived in `core/static/core/site_shell.css` while the site had an
+        external shell stylesheet.  Design 5a pages load no stylesheet at all, so the
+        footer's styling now comes from the shared `core/_design_system.html` block
+        every page inlines, and the rules are read from there.  They no longer need
+        `!important`, because there is no utility framework left to override.
+        """
+
         footer = (ROOT / "templates/core/_site_footer.html").read_text(encoding="utf-8")
-        shell = (ROOT / "core/static/core/site_shell.css").read_text(encoding="utf-8")
+        design_system = (ROOT / "templates/core/_design_system.html").read_text(encoding="utf-8")
         self.assertIn('rel="noopener noreferrer"', footer)
         self.assertIn('aria-label="Website source on GitHub (opens in a new tab)"', footer)
         for state in ("", ":link", ":visited", ":hover", ":focus", ":active"):
-            self.assertIn(f".site-footer .site-footer-github{state}", shell)
-        self.assertIn("text-decoration: none !important", shell)
-        self.assertIn(".site-footer-legal-control", shell)
-        self.assertIn("text-decoration: underline", shell)
+            self.assertIn(f".site-footer .site-footer-github{state}", design_system)
+        self.assertIn("text-decoration: none;", design_system)
+        self.assertIn(".site-footer-legal-control", design_system)
+        self.assertIn("text-decoration: underline;", design_system)
 
     def test_rendered_source_and_response_fail_closed_without_analytics_provider(self) -> None:
         response = self.client.get("/")

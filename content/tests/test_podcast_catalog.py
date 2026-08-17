@@ -628,7 +628,12 @@ class PodcastSeasonNavigationTests(TestCase):
 
         self.assertEqual(body.count('class="row-list"'), 1)
         self.assertEqual(body.count('class="play-disc"'), len(season.episodes))
-        self.assertEqual(body.count('class="list-row episode-row"'), len(season.episodes))
+        # An episode row is the site's shared archive row with the play disc as
+        # its leading mark, and an episode with no publication date gives its
+        # rail back to the card rather than leaving an empty column.
+        undated = [episode for episode in season.episodes if not episode["published"]]
+        self.assertEqual(body.count('class="list-row archive-row'), len(season.episodes))
+        self.assertEqual(body.count("archive-row archive-row-undated"), len(undated))
         self.assertIn(f"podcast · season {season.number}", body)
         # The catalogue has no duration and no global episode number; the design's
         # "58 min" and "#214" therefore have no stand-in on the page.

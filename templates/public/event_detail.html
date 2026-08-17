@@ -1,4 +1,4 @@
-{% load seo %}
+{% load seo people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -106,18 +106,14 @@
         margin-top: 1.5rem;
       }
 
-      /* Speakers: one dashed row each, led by the system's stand-in portrait,
-         because the event records carry a name and a profile but no picture. */
+      /* Speakers: one dashed row each, holding the shared person chip.  The
+         event record carries a name and a profile; the portrait comes from the
+         people records the chip joins to, and a speaker with no picture keeps
+         the system's stand-in disc. */
       .speaker-row {
         align-items: center;
         display: flex;
         gap: 0.85rem;
-      }
-
-      .speaker-row a {
-        align-items: center;
-        display: inline-flex;
-        min-height: 2.75rem;
       }
 
       @media (max-width: 47.99rem) {
@@ -241,7 +237,7 @@
       </section>
 
       {% if event.speakers %}
-        <section class="band band-mint speaker-band" aria-labelledby="event-speakers-heading">
+        <section class="band band-lavender speaker-band" aria-labelledby="event-speakers-heading">
           <div class="shell event-shell">
             <div class="band-head">
               <div>
@@ -251,8 +247,7 @@
             <ul class="row-list speaker-rows">
               {% for speaker in event.speakers %}
                 <li class="list-row speaker-row">
-                  <span class="avatar avatar-striped" aria-hidden="true"></span>
-                  <a class="band-link" href="{{ speaker.public_path }}">{{ speaker.name }}</a>
+                  {% include "public/_person_chip.html" with person=speaker|person_chip %}
                 </li>
               {% endfor %}
             </ul>

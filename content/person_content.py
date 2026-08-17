@@ -37,13 +37,29 @@ SITE_TIMEZONE = ZoneInfo("Europe/Berlin")
 
 # One group per kind of work a profile can link to, in the order the page offers
 # them: the path prefix the relationship carries, the index its record lives in,
-# the heading, the noun the group counts in, and the band it is drawn on.
-CONTRIBUTION_GROUPS: tuple[tuple[str, str, str, str, str], ...] = (
-    ("podcast", "podcasts_by_path", "Podcast episodes", "episode", "band-cream"),
-    ("events", "events_by_path", "Events", "event", "band-mint"),
-    ("blog", "articles_by_path", "Articles", "article", "band-lavender"),
-    ("books", "books_by_path", "Books", "book", "band-cream"),
+# the heading, and the noun the group counts in.  Each group used to name its own
+# band (cream, mint, lavender, cream), which made one page look like four; the
+# ground is now the site-wide content lavender and the group is named by its
+# heading and its row marks.  See "Which ground a band takes" in
+# _docs/design/design-5a.md.
+CONTRIBUTION_GROUPS: tuple[tuple[str, str, str, str], ...] = (
+    ("podcast", "podcasts_by_path", "Podcast episodes", "episode"),
+    ("events", "events_by_path", "Events", "event"),
+    ("blog", "articles_by_path", "Articles", "article"),
+    ("books", "books_by_path", "Books", "book"),
 )
+
+# How many rows of a group stay in view, and how many it takes to be worth
+# folding the rest away.  Six is about one screen of rows under a band heading at
+# a laptop height, and it is more than all but ten of the 615 groups in the
+# catalogue carry, so almost every profile never sees the control at all.  The
+# second number keeps it that way: hiding one or two rows behind something the
+# reader has to click is worse than showing them, so a group folds only when
+# there are at least three rows to fold.  Today exactly two groups in the whole
+# catalogue do — one profile's fifty events, another's twenty articles — which
+# are the two lists that actually run off the page.
+ROWS_BEFORE_FOLD = 6
+SMALLEST_FOLD = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,11 +77,12 @@ class Contribution:
     role: str
     title: str
     public_path: str
-    # The ISO date the row's <time> carries, and how the design writes it.  Both
-    # stay empty for the seventeen catalogue entries that carry no date at all.
+    # The ISO date the row's rail carries.  It stays empty for the seventeen
+    # catalogue entries that carry no date at all, and the row then drops its
+    # rail rather than leaving an empty column.  The shared archive row writes
+    # the date itself, day above year, so the profile no longer prepares a second
+    # rendering of it.
     date: str
-    date_display: str
-    weekday: str
     pill_label: str
     pill_variant: str
     # "upcoming" on an event that has not happened yet, and empty on everything
@@ -73,8 +90,8 @@ class Contribution:
     # carried by a word rather than by the pill's colour alone.
     state_label: str
     note: str
-    # Which mark the row's first cell draws: the podcast play disc, the events
-    # date rail, or nothing.
+    # The card's leading mark: "play" for the podcast disc, empty for everything
+    # else.  A date is not a mark — it is the row's rail.
     mark: str
 
 
@@ -84,7 +101,6 @@ class ContributionGroup:
 
     key: str
     heading: str
-    band: str
     noun: str
     items: tuple[Contribution, ...]
 
@@ -100,7 +116,50 @@ class ContributionGroup:
     def noun_label(self) -> str:
         """The group's noun, agreeing with how many rows it holds."""
 
-        return self.noun if self.count == 1 else f"{self.noun}s"
+        return self._noun_for(self.count)
+
+    def _noun_for(self, total: int) -> str:
+        return self.noun if total == 1 else f"{self.noun}s"
+
+    @property
+    def folded_count(self) -> int:
+        """How many rows this group keeps behind its "show more" control.
+
+        A group that is not long enough to be a wall folds nothing: see
+        ``ROWS_BEFORE_FOLD`` and ``SMALLEST_FOLD``.
+        """
+
+        hidden = self.count - ROWS_BEFORE_FOLD
+        return hidden if hidden >= SMALLEST_FOLD else 0
+
+    @property
+    def visible_items(self) -> tuple[Contribution, ...]:
+        """The rows the page shows without asking the reader for anything."""
+
+        return self.items[:ROWS_BEFORE_FOLD] if self.folded_count else self.items
+
+    @property
+    def folded_items(self) -> tuple[Contribution, ...]:
+        """The rest of the rows, in the same order, behind the fold."""
+
+        return self.items[ROWS_BEFORE_FOLD:] if self.folded_count else ()
+
+    @property
+    def fold_label(self) -> str:
+        """Name the control by what it is holding: ``Show 44 more events``."""
+
+        hidden = self.folded_count
+        if not hidden:
+            return ""
+        return f"Show {hidden} more {self._noun_for(hidden)}"
+
+    @property
+    def fold_close_label(self) -> str:
+        """And name it again by what it will do next, once it is open."""
+
+        if not self.folded_count:
+            return ""
+        return f"Show fewer {self._noun_for(self.count)}"
 
     @property
     def count_label(self) -> str:
@@ -166,8 +225,14 @@ def person_public_path(record: dict[str, Any]) -> str:
     return public_path
 
 
-def display_date(value: str) -> str:
-    """Render a record's publication date the way the design writes dates."""
+def checked_day(value: str) -> str:
+    """Return the calendar day a record publishes, or fail on one it cannot.
+
+    The row draws the date itself, so this no longer renders it; what it still
+    does is refuse a date the catalogue got wrong rather than passing a string
+    through to the page.  A record with no date at all is not an error: seventeen
+    podcast episodes have none, and their rows drop the rail.
+    """
 
     if not value:
         return ""
@@ -175,7 +240,7 @@ def display_date(value: str) -> str:
         published = date.fromisoformat(value[:10])
     except ValueError as error:
         raise ImproperlyConfigured("Public record publication date is invalid.") from error
-    return f"{published:%b} {published.day}, {published:%Y}"
+    return published.isoformat()
 
 
 def _links(record: dict[str, Any]) -> tuple[ProfileLink, ...]:
@@ -210,7 +275,7 @@ def _event_contribution(
     *,
     now: datetime,
 ) -> Contribution:
-    """One event, drawn the way the events hub draws it: date rail plus type pill."""
+    """One event, as an archive row: the day it runs on the rail, and its type pill."""
 
     starts_at = event.get("starts_at")
     if not isinstance(starts_at, str) or not starts_at:
@@ -235,13 +300,11 @@ def _event_contribution(
         title=label,
         public_path=public_path,
         date=local_start.date().isoformat(),
-        date_display=f"{local_start:%b} {local_start.day}, {local_start:%Y}",
-        weekday=local_start.strftime("%A"),
         pill_label=event_type,
         pill_variant=variant,
         state_label="" if past else "upcoming",
         note="",
-        mark="date",
+        mark="",
     )
 
 
@@ -262,9 +325,7 @@ def _podcast_contribution(
         role=role,
         title=label,
         public_path=public_path,
-        date=published[:10],
-        date_display=display_date(published),
-        weekday="",
+        date=checked_day(published),
         pill_label=f"Season {season} · Episode {number}",
         pill_variant="status-pill-mint",
         state_label="",
@@ -286,9 +347,7 @@ def _published_contribution(
         role=role,
         title=label,
         public_path=public_path,
-        date=published[:10],
-        date_display=display_date(published),
-        weekday="",
+        date=checked_day(published),
         pill_label="",
         pill_variant="",
         state_label="",
@@ -339,7 +398,7 @@ def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup
         collected[prefix].append(_contribution(relationship, prefix, linked, now=now))
 
     groups: list[ContributionGroup] = []
-    for key, _index, heading, noun, band in CONTRIBUTION_GROUPS:
+    for key, _index, heading, noun in CONTRIBUTION_GROUPS:
         items = collected[key]
         if not items:
             continue
@@ -352,7 +411,6 @@ def _groups(record: dict[str, Any], *, now: datetime) -> tuple[ContributionGroup
             ContributionGroup(
                 key=key,
                 heading=heading,
-                band=band,
                 noun=noun,
                 items=tuple(items),
             )

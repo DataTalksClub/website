@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load seo static people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -305,14 +305,26 @@
         font-size: 0.85rem;
       }
 
+      /* Drawn, not struck — the 4a mockup's lopsided radius, the same one the
+         climb steps carry, so the two marks on this page were made by the same
+         hand.  Each of the three gets its own rotation of it: three identical
+         wobbles in a row read as a repeated asset rather than as drawing. */
       .promise-mark {
         background: var(--indigo-soft);
         border: 2px solid var(--line);
-        border-radius: 999px;
+        border-radius: var(--drawn-circle);
         grid-row: span 2;
         height: 1.35rem;
         margin-top: 0.15rem;
         width: 1.35rem;
+      }
+
+      .promise:nth-child(2) .promise-mark {
+        border-radius: var(--drawn-circle-b);
+      }
+
+      .promise:nth-child(3) .promise-mark {
+        border-radius: var(--drawn-circle-c);
       }
 
       .promise h3 {
@@ -326,16 +338,24 @@
         font-size: 0.78rem;
       }
 
+      /* The "see all" line under a band's cards. */
+      .band-more {
+        margin-top: 1.1rem;
+        text-align: right;
+      }
+
       .event-top {
-        align-items: flex-start;
+        align-items: center;
         display: flex;
         gap: 0.75rem;
         justify-content: space-between;
       }
 
-      .event-card h3 {
-        font-size: 1.15rem;
-      }
+      /* The card this band draws is the events feed's card: the link stretched
+         over the whole of it, the clamped summary, the title.  It is one
+         component, so it is drawn once, in `.event-card` in the design system
+         partial above; this page adds only the clock and the three-up band's
+         own foot. */
 
       .event-details {
         border-top: 1.5px dashed var(--line-soft);
@@ -372,15 +392,17 @@
         width: 3.25rem;
       }
 
-      /* The episode opens with a play button, so it is a disc with a filled glyph. */
+      /* The episode opens with a play button, so it is a disc with a filled
+         glyph — the same drawn mark and the same glyph proportion the podcast
+         pages use for their play disc. */
       .latest-icon-play {
-        border-radius: 999px;
+        border-radius: var(--drawn-circle);
       }
 
       .latest-icon-play svg {
         fill: var(--ink);
-        height: 1.7rem;
-        width: 1.7rem;
+        height: 2rem;
+        width: 2rem;
       }
 
       .latest-icon-green {
@@ -413,84 +435,10 @@
         gap: 1.25rem;
       }
 
-      /* The whole graph — nodes, labels and edges — is one SVG with a viewBox,
-         so it scales as a unit and cannot overflow a narrow screen.  Two
-         arrangements of the same data are in the markup: a landscape ring for
-         wide screens and a portrait ring for phones (display:none keeps the
-         hidden one out of the tab order).  Each is capped near its design
-         size so labels stay label-sized instead of scaling with the column.
-         The class names stay clear of the shared .graph-node pill primitives,
-         which /wiki/graph still draws from the partial. */
-      .graph-svg {
-        display: block;
-        height: auto;
-        margin-inline: auto;
-        width: 100%;
-      }
+      /* The drawing itself — `.graph-svg` and the legend's edge key — is a
+         shared primitive in the partial: /wiki/graph draws the same ring
+         around its own hub. */
 
-      .graph-svg-narrow {
-        max-width: 24rem;
-      }
-
-      .graph-svg-wide {
-        display: none;
-        max-width: 44rem;
-      }
-
-      @media (min-width: 48rem) {
-        .graph-svg-narrow {
-          display: none;
-        }
-
-        .graph-svg-wide {
-          display: block;
-        }
-      }
-
-      .graph-svg-edge {
-        stroke: var(--graph-edge);
-        stroke-width: 2;
-      }
-
-      .graph-svg-node .graph-svg-shape {
-        fill: var(--lavender);
-        stroke: var(--indigo);
-        stroke-width: 2;
-      }
-
-      .graph-svg-node text {
-        fill: var(--ink);
-        font-weight: 600;
-      }
-
-      .graph-svg-hub .graph-svg-shape {
-        fill: var(--green);
-        stroke: var(--line);
-      }
-
-      .graph-svg-hub text {
-        fill: var(--on-green);
-        font-weight: 800;
-      }
-
-      .graph-svg-node:hover .graph-svg-shape {
-        stroke-width: 3.5;
-      }
-
-      /* SVG links get the page's focus outline where engines draw it, and a
-         thickened focus-coloured border where they do not. */
-      .graph-svg-node:focus-visible .graph-svg-shape {
-        stroke: var(--focus);
-        stroke-width: 4;
-      }
-
-      /* The homepage legend adds an edge key beside the shared hub/page swatches. */
-      .legend-swatch-line {
-        background: var(--graph-edge);
-        border-radius: 999px;
-        height: 0.2rem;
-        width: 1.1rem;
-      }
       /* --- closing band ------------------------------------------------- */
 
       .closing {
@@ -581,8 +529,10 @@
           grid-column: 2;
         }
 
-        /* Events read as a dashed list of times and titles. */
-        .event-card {
+        /* Events read as a dashed list of times and titles.  The card gives up
+           its own surface here, so it gives up the hover shadow with it. */
+        .event-card,
+        .event-card:hover {
           background: none;
           border: 0;
           border-bottom: 1.5px dashed var(--line-soft);
@@ -596,11 +546,6 @@
         .event-card .event-speakers,
         .event-card .event-details {
           display: none;
-        }
-
-        .event-card h3 a {
-          color: var(--ink);
-          text-decoration: none;
         }
 
         /* A member story states its transition as one mono line. */
@@ -764,7 +709,6 @@
                 <h2 id="stories-heading">People who were exactly where you are</h2>
                 <p>Same courses, same Slack, no shortcuts. Here's what changed and how long it took.</p>
               </div>
-              <a class="band-link" href="{% url 'articles' %}">more member stories →</a>
             </div>
             <div class="card-grid card-grid-3">
               {% for story in member_stories %}
@@ -926,36 +870,45 @@
                 and stop tracking it.
               </p>
             </div>
-            <a class="band-link" href="{% url 'events' %}">see all events →</a>
           </div>
           {% if upcoming_events %}
             <div class="card-grid card-grid-3">
               {% for event in upcoming_events %}
+                {% comment %}
+                  The same card the events feed draws: the kind pill with its
+                  explanation, the title, enough of the description to know
+                  whether it is for you, and the speakers as chips.  No "Event
+                  details" link — the card is the link.
+                {% endcomment %}
                 <article class="card event-card">
                   <div class="event-top">
-                    <time datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
-                    <span class="chip">{{ event.type }}</span>
+                    {% include "public/_event_kind.html" with tip_id=event.identity_id|default:forloop.counter0 %}
+                    <time class="mono-note" datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
                   </div>
                   <h3>
                     <a href="{{ event.public_path }}">{{ event.title }}</a>
                   </h3>
+                  {% if event.description_text %}
+                    <p class="event-summary">{{ event.description_text|truncatewords:20 }}</p>
+                  {% endif %}
                   {% if event.speakers %}
-                    <p class="event-speakers">
-                      With
+                    <p class="event-speakers person-chips card-credit">
                       {% for speaker in event.speakers %}
-                        <a href="{{ speaker.public_path }}">{{ speaker.name }}</a>
-                        {% if not forloop.last %}
-                          <span aria-hidden="true">,</span>
-                        {% endif %}
+                        {% include "public/_person_chip.html" with person=speaker|person_chip %}
                       {% endfor %}
                     </p>
                   {% endif %}
-                  <p class="event-details">
-                    <a class="band-link" href="{{ event.public_path }}">Event details →</a>
-                  </p>
                 </article>
               {% endfor %}
             </div>
+            {% comment %}
+              The way on to the full feed sits under the cards rather than beside
+              the heading: it is what you do after reading the three, not an
+              alternative to reading them.
+            {% endcomment %}
+            <p class="band-more">
+              <a class="band-link" href="{% url 'events' %}">see all events →</a>
+            </p>
           {% else %}
             <p>No upcoming events.</p>
             {% for event in recent_events %}
@@ -974,7 +927,6 @@
             <div>
               <div class="band-head">
                 <h3>Latest podcast episode</h3>
-                <a class="band-link" href="{% url 'podcast' %}">all episodes →</a>
               </div>
               <div class="card">
                 <div class="latest-item">
@@ -989,18 +941,24 @@
                     </h3>
                     <p class="latest-meta">
                       Season {{ podcast.season }} · Episode {{ podcast.episode }}
-                      {% for guest in podcast.guest_profiles %}
-                        · with {{ guest.name }}
-                      {% endfor %}
                     </p>
+                    {% if podcast.guest_profiles %}
+                      <p class="person-chips card-credit">
+                        {% for guest in podcast.guest_profiles %}
+                          {% include "public/_person_chip.html" with person=guest|person_chip %}
+                        {% endfor %}
+                      </p>
+                    {% endif %}
                   </div>
                 </div>
               </div>
+              <p class="band-more">
+                <a class="band-link" href="{% url 'podcast' %}">all episodes →</a>
+              </p>
             </div>
             <div>
               <div class="band-head">
                 <h3>Latest article</h3>
-                <a class="band-link" href="{% url 'articles' %}">read the blog →</a>
               </div>
               <div class="card">
                 <div class="latest-item">
@@ -1015,6 +973,9 @@
                   </div>
                 </div>
               </div>
+              <p class="band-more">
+                <a class="band-link" href="{% url 'articles' %}">read the blog →</a>
+              </p>
             </div>
           </div>
         </div>
@@ -1047,7 +1008,7 @@
                     {% endfor %}
                   </g>
                   {% for node in layout.nodes %}
-                    <a class="graph-svg-node" href="{{ node.topic.public_path }}">
+                    <a class="graph-svg-node" href="{{ node.url }}">
                       <rect class="graph-svg-shape" x="{{ node.left }}" y="{{ node.top }}" width="{{ node.width }}" height="{{ node.height }}" rx="{{ node.radius }}"/>
                       {% spaceless %}
                         <text text-anchor="middle" font-size="{{ node.font_size }}">
@@ -1058,7 +1019,7 @@
                       {% endspaceless %}
                     </a>
                   {% endfor %}
-                  <a class="graph-svg-node graph-svg-hub" href="{{ layout.hub.topic.public_path }}">
+                  <a class="graph-svg-node graph-svg-hub" href="{{ layout.hub.url }}">
                     <rect class="graph-svg-shape" x="{{ layout.hub.left }}" y="{{ layout.hub.top }}" width="{{ layout.hub.width }}" height="{{ layout.hub.height }}" rx="{{ layout.hub.radius }}"/>
                     {% spaceless %}
                       <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">

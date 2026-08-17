@@ -16,6 +16,8 @@ from content.public_data import EXPECTED_COUNTS, event_groups, public_projection
 from courses.models.course import Course
 from scripts import build_public_projection as projection_builder
 
+from .pagination_support import catalogue_body
+
 
 class LinkParser(HTMLParser):
     def __init__(self) -> None:
@@ -114,28 +116,25 @@ class PublicProjectionTests(TestCase):
             self.assertEqual(event["provenance"]["source_path"], "_data/events.yaml")
 
     def test_hubs_render_every_checked_record(self) -> None:
+        """Every record is still reachable, now across the pages of a hub that pages.
+
+        The books archive and the Wiki catalogue are paged (issues #174, #175), so a
+        hub is read the way a visitor reads it: page one, then whatever page one links
+        to.  Nothing may fall out of the catalogue between the pages.
+        """
+
         for path, collection in (
             ("/blog", "articles"),
             ("/books", "books"),
             ("/wiki", "wiki"),
         ):
             with self.subTest(path=path):
-                response = self.client.get(path)
-                self.assertEqual(response.status_code, 200)
-                body = response.content.decode()
+                body = catalogue_body(self.client, path)
                 for record in self.projection[collection]:
                     self.assertIn(f'href="{record["public_path"]}"', body)
 
         events = self.client.get("/events").content.decode()
-        archive = self.client.get("/events/past").content.decode()
-        page_match = re.search(r"Page 1 of (\d+)", archive)
-        if page_match is not None:
-            archive_pages = [archive]
-            for page in range(2, int(page_match.group(1)) + 1):
-                response = self.client.get(f"/events/past?page={page}")
-                self.assertEqual(response.status_code, 200)
-                archive_pages.append(response.content.decode())
-            archive = "".join(archive_pages)
+        archive = catalogue_body(self.client, "/events/past")
         for event in self.projection["events"]:
             self.assertIn(f'href="{event["public_path"]}"', events + archive)
 

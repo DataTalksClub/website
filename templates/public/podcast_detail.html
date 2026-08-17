@@ -1,4 +1,4 @@
-{% load seo static %}
+{% load seo static people %}
 <!DOCTYPE html>
 <html lang="en" class="no-js">
   <head>
@@ -52,8 +52,9 @@
        * ------------------------------------------------------------------ */
 
       /* The episode reads as one column, the width the design gives long prose. */
+      /* The same reading column every content page holds. */
       .episode-shell {
-        max-width: 52rem;
+        max-width: calc(var(--measure) + 2.5rem);
       }
 
       .episode-back {
@@ -101,23 +102,14 @@
         text-align: center;
       }
 
+      /* The guest is the shared person chip at its standalone size; this row
+         only places it and the word for what they did on the episode. */
       .guest-row {
         align-items: center;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.85rem;
+        gap: 0.5rem 0.85rem;
         margin-top: 1.5rem;
-      }
-
-      .guest-identity {
-        margin-right: auto;
-        min-width: 0;
-      }
-
-      .guest-name {
-        color: var(--ink);
-        font-size: 1.05rem;
-        font-weight: 800;
       }
 
       .episode-description {
@@ -218,16 +210,17 @@
               {% include "public/_episode_artwork.html" %}
             </div>
           {% endif %}
+          {% comment %}
+            The guest, in the shared person chip at its standalone size, with the
+            role named beneath.  The chip's own name is the way to the profile,
+            which is why the row no longer carries a separate "Profile" link: a
+            reader is offered one way through to a person, not two, and the link
+            they are offered says whose profile it is.
+          {% endcomment %}
           {% for guest in episode.guests %}
-            <div class="guest-row">
-              <span class="avatar avatar-striped" aria-hidden="true"></span>
-              <div class="guest-identity">
-                <p class="guest-name">{{ guest.name }}</p>
-                <p class="mono-label">guest</p>
-              </div>
-              {% if guest.public_path %}
-                <a class="band-link" href="{{ guest.public_path }}">Profile</a>
-              {% endif %}
+            <div class="guest-row person-chip-lead">
+              {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" %}
+              <p class="mono-label">guest</p>
             </div>
           {% endfor %}
           <p class="episode-description">{{ episode.description }}</p>
@@ -250,7 +243,7 @@
       </section>
 
       {% if record.transcript %}
-        <section class="band band-cream" aria-labelledby="transcript-heading">
+        <section class="band band-lavender" aria-labelledby="transcript-heading">
           <div class="shell episode-shell">
             <div class="band-head">
               <div>
