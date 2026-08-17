@@ -1,41 +1,259 @@
-{% extends "core/base.html" %}
-{% load static %}
-{% block title %}
-  Documentation — DataTalks.Club
-{% endblock %}
-{% block extra_css %}
-  <link rel="stylesheet" href="{% static 'core/docs_navigation.css' %}">
-{% endblock %}
-{% block content %}
-  <div class="docs-page">
-    <article class="docs-content docs-introduction app-text">
-      {{ docs_html|safe }}
-    </article>
-    <div class="docs-actions" aria-label="Documentation actions">
-      <a
-        class="docs-action app-link"
-        href="{{ docs_search_url }}"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Search documentation on GitHub (opens in a new tab)"
-      >Search documentation on GitHub <span aria-hidden="true">↗</span></a>
-      <a
-        class="docs-action app-link"
-        href="{{ docs.edit_url }}"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Edit this page on GitHub (opens in a new tab)"
-      >Edit this page on GitHub <span aria-hidden="true">↗</span></a>
-    </div>
-    <section class="docs-home-navigation" aria-labelledby="docs-sections-heading">
-      <h2 id="docs-sections-heading" class="docs-section-heading">Documentation sections</h2>
-      {% if docs_navigation %}
-        <nav class="docs-home-tree" aria-label="Documentation sections">
-          {% include "review/_docs_navigation_tree.html" with docs_items=docs_navigation only %}
-        </nav>
-      {% else %}
-        <p class="docs-empty-state">No documentation sections are available yet.</p>
-      {% endif %}
-    </section>
-  </div>
-{% endblock %}
+{% load seo %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Docs home, design 5a (issue #179).  The documentation index: the
+       * root page's own body, the two GitHub actions, and the complete
+       * source-backed section tree.  Like every rebuilt page it carries its
+       * whole stylesheet inline — the shared design system partial first,
+       * then only this page's rules — and links no external CSS, which is
+       * why the old `core/docs_navigation.css` is gone from the head.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Docs home rules.  The body is the shared `.prose` primitive and the
+       * actions are `.pill-button`s; what follows is the tree's 5a skin and
+       * this page's own layout.
+       * ------------------------------------------------------------------ */
+
+      /* The documentation body renders through the shared reading primitive.
+         Only the measure is this page's own: a docs body carries screenshots,
+         code and long link lists that the 38rem reading column would crowd,
+         and the design system says to override `--measure` on the element
+         rather than to fork `.prose-reading`. */
+      .docs-body {
+        --measure: 46rem;
+        margin-top: 0.6rem;
+      }
+
+      /* The body opens with the source's own h1 — the title the documentation
+         gives itself, and the page's only h1 — so the page heading is sized
+         here rather than in a hero block the source does not supply. */
+      .docs-body h1 {
+        font-size: clamp(2.1rem, 4.9vw, 3.4rem);
+        letter-spacing: -0.03em;
+        line-height: 1.08;
+        scroll-margin-top: 1.5rem;
+      }
+
+      /* A screenshot keeps its own size instead of being stretched: the source
+         marks several at a fraction of the column, and the system's full-width
+         `.prose img` would blow every one of them up. */
+      .docs-body img {
+        max-width: 100%;
+        width: auto;
+      }
+
+      /* The two GitHub actions, as the system's round bordered control.  They
+         wrap rather than run off a phone, so the pill's own `nowrap` is
+         released for this pair of long labels. */
+      .docs-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin-top: 2rem;
+      }
+
+      .docs-actions .pill-button {
+        text-align: center;
+        white-space: normal;
+      }
+
+      /* ---- the source-backed section tree ------------------------------- *
+       * Structure and links are exactly what `review/_docs_navigation_tree`
+       * generates (issue #176); everything below is only its 5a skin.
+       * ------------------------------------------------------------------ */
+
+      .docs-tree-list {
+        list-style: none;
+        margin: 0;
+        min-width: 0;
+        padding: 0;
+      }
+
+      /* Each nested level hangs off the system's dashed rule. */
+      .docs-tree-list .docs-tree-list {
+        border-inline-start: 2px dashed var(--line-soft);
+        margin-inline-start: 0.75rem;
+        padding-inline-start: 0.7rem;
+      }
+
+      .docs-tree-item {
+        min-width: 0;
+      }
+
+      .docs-tree-link {
+        align-items: center;
+        border-radius: 0.5rem;
+        color: var(--body-text);
+        display: flex;
+        font-size: 0.95rem;
+        gap: 0.5rem;
+        line-height: 1.35;
+        min-height: 2.75rem;
+        min-width: 0;
+        overflow-wrap: anywhere;
+        padding: 0.4rem 0.5rem;
+        text-decoration: none;
+      }
+
+      .docs-tree-link:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .docs-tree-marker {
+        border-block-end: 2px solid var(--indigo);
+        border-inline-end: 2px solid var(--indigo);
+        flex: 0 0 0.4rem;
+        height: 0.4rem;
+        transform: rotate(-45deg);
+        width: 0.4rem;
+      }
+
+      /* Each top-level section is one card on the band, stacked: the three the
+         documentation publishes are very different sizes, so putting the
+         sections themselves in columns would leave two columns nearly empty
+         beside one very long one. */
+      .docs-home-tree > .docs-tree-list {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      .docs-home-tree > .docs-tree-list > .docs-tree-item {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        padding: 0.6rem 0.9rem 0.85rem;
+      }
+
+      /* A top-level section reads as the heading of its own card. */
+      .docs-home-tree > .docs-tree-list > .docs-tree-item > .docs-tree-link {
+        color: var(--ink);
+        font-size: 1.05rem;
+        font-weight: 800;
+      }
+
+      .docs-empty {
+        color: var(--muted);
+      }
+
+      /* Wide: the subsections inside a card flow into balanced columns, and
+         each subsection stays whole so its own pages never split across two of
+         them.  The card's own title keeps the full width above them. */
+      @media (min-width: 62rem) {
+        .docs-home-tree > .docs-tree-list > .docs-tree-item > .docs-tree-list {
+          border-inline-start: 0;
+          column-gap: 1.75rem;
+          columns: 3;
+          margin-inline-start: 0;
+          padding-inline-start: 0;
+        }
+
+        .docs-home-tree > .docs-tree-list > .docs-tree-item > .docs-tree-list > .docs-tree-item {
+          break-inside: avoid;
+          margin-bottom: 0.6rem;
+        }
+      }
+
+      /* Narrow: the actions stop being a row of two and become a stack, so
+         neither long label is squeezed to a third of the screen. */
+      @media (max-width: 47.99rem) {
+        .docs-actions {
+          display: grid;
+          margin-top: 1.5rem;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream">
+        <div class="shell">
+          {% comment %}
+            The kicker counts the sections the tree actually carries; nothing
+            here is a figure the page made up.  The heading below it is the
+            documentation's own h1, rendered from the root page's body, so the
+            page never restates a title the source already gives.
+          {% endcomment %}
+          <p class="mono-label mono-label-indigo">
+            docs · {{ docs_navigation|length }} sections
+          </p>
+          <div class="prose prose-reading docs-body">
+            {{ docs_html|safe }}
+          </div>
+          <div class="docs-actions" aria-label="Documentation actions">
+            <a
+              class="pill-button"
+              href="{{ docs_search_url }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Search documentation on GitHub (opens in a new tab)"
+            >Search documentation on GitHub <span aria-hidden="true">↗</span></a>
+            <a
+              class="pill-button"
+              href="{{ docs.edit_url }}"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Edit this page on GitHub (opens in a new tab)"
+            >Edit this page on GitHub <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+      </section>
+
+      <section class="band band-lavender" aria-labelledby="docs-sections-heading">
+        <div class="shell">
+          <div class="band-head">
+            <div>
+              <h2 id="docs-sections-heading">Documentation sections</h2>
+              <p>Every page the documentation publishes, in the order it publishes them.</p>
+            </div>
+          </div>
+          {% if docs_navigation %}
+            <nav class="docs-home-tree" aria-label="Documentation sections">
+              {% include "review/_docs_navigation_tree.html" with docs_items=docs_navigation only %}
+            </nav>
+          {% else %}
+            <p class="docs-empty">No documentation sections are available yet.</p>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

@@ -202,7 +202,10 @@ class DocsProjectionTests(TestCase):
     def test_detail_marks_current_once_in_each_navigation_landmark(self) -> None:
         path = "/docs/courses/ai-dev-tools-zoomcamp/getting-started/"
         response = self.client.get(path)
-        html = response.content.decode("utf-8")
+        # The design 5a page carries its whole stylesheet inline (issue #179), and
+        # that stylesheet names both landmarks in its own comments and selectors,
+        # so the landmarks are read from the document below the head.
+        html = response.content.decode("utf-8").split("</head>", 1)[1]
         breadcrumb = html.split('aria-label="Breadcrumb"', 1)[1].split("</nav>", 1)[0]
         tree = html.split('aria-label="Documentation sections"', 1)[1].split("</nav>", 1)[0]
         self.assertEqual(breadcrumb.count('aria-current="page"'), 1)
