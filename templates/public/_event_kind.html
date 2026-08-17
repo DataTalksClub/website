@@ -1,0 +1,49 @@
+{% load event_kind %}
+{% comment %}
+  The kind pill on an event row, with the explanation of that kind attached to it.
+
+  The events index used to carry a "types of events" list above the timeline that
+  said what the four kinds mean.  It said all four to every reader whether or not
+  they wanted any of them, and pushed the events themselves below the fold.  The
+  explanation now hangs off the pill it explains.
+
+  It is deliberately not a hover-only tooltip.  A tip that only appears on hover
+  is invisible to anyone using a keyboard and unreachable on a touch screen, and
+  this repository has been removing exactly that pattern rather than adding it
+  (the course form's hover-only help bubbles became visible hints in the same
+  round of work).  So the pill takes focus, the tip shows on hover *and* on
+  keyboard focus, and the text is bound to the pill with aria-describedby so a
+  screen reader announces it either way.  On a touch screen the tip shows on tap,
+  because tapping focuses the pill.
+
+  `id` must be unique per row, so the caller passes the event's own identifier.
+{% endcomment %}
+{% comment %}
+  `is_past_events` is only set by the events index; the homepage draws the same
+  pill without it.  A missing filter argument raises where a missing `{% if %}`
+  subject would simply be false, so it is resolved through `firstof`, which
+  ignores a name the context does not carry.
+{% endcomment %}
+{% firstof is_past_events "" as kind_is_past %}
+<span class="kind">
+  <span
+    class="status-pill {{ event.type|kind_variant:kind_is_past }}"
+    tabindex="0"
+    aria-describedby="kind-tip-{{ tip_id }}"
+  >{{ event.type }}</span>
+  <span class="kind-tip" role="tooltip" id="kind-tip-{{ tip_id }}">
+    {% if event.type == "webinar" %}
+      Webinars &ndash; events on Tuesday, with slides, mostly technical
+    {% elif event.type == "podcast" %}
+      Live podcasts &ndash; events on Friday, a discussion without slides, the
+      recording is published as a podcast
+    {% elif event.type == "workshop" %}
+      Workshop &ndash; hands-on tutorials about technical topics
+    {% elif event.type == "conference" %}
+      Conference &ndash; bigger events with multiple talks, both webinar-type
+      talks and podcast-type talks
+    {% else %}
+      {{ event.type }}
+    {% endif %}
+  </span>
+</span>
