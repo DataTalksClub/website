@@ -494,17 +494,19 @@ Rules for editing:
         fill: var(--bubble);
       }
 
-      .brand-mark text {
-        fill: currentColor;
-        dominant-baseline: auto;
-        font-family: var(--font-sans);
-        font-size: 19px;
-        font-weight: 800;
-        text-anchor: middle;
+      .brand-letters {
+        stroke: currentColor;
       }
 
-      .brand-light {
-        font-weight: 500;
+      /* The mark's box is 64 x 61, but the tail occupies its bottom fifth, so the
+         drawn DTC is centred at 26 of those 61 units — 4.5 units above the box
+         centre the flex row aligns on.  Left alone the wordmark sits that much
+         lower than the letters it names.  A bottom margin on the wordmark makes
+         its margin box taller, and centring a taller box lifts the text inside it
+         by half the margin: 0.28rem here for the ~0.14rem the mark is off by.  It
+         is a margin rather than a transform so the text stays on the pixel grid. */
+      .brand-name {
+        margin-block-end: 0.28rem;
       }
 
       .doodle {

@@ -5,22 +5,16 @@ and carried by the 6-series pages: the courses index (6a), the course page (6b),
 the events index (6c) and the podcast index and episode (6d).
 
 The five public wiki surfaces — the hub, search results, the graph, the special
-pages and a wiki page — joined the system afterwards, and so did the shared
-collection hub behind `/blog` and `/books`
+pages and a wiki page — joined the system afterwards, then the public person
+profile, and then the shared collection hub behind `/blog` and `/books`
 (`templates/public/collection_hub.html`). They have **no mockup**: they are
 composed from the inventory below, and where they needed something the system
 did not have (a knowledge-graph node, long-form prose, a search row, an inline
 mono literal) the primitive was added to the partial and documented here rather
 than forked into a page. When there is no drawing, the rules in this document
 are the whole brief — bands from the band table, primitives from the inventory,
-and nothing on the page that the catalogue does not hold.
-pages and a wiki page — joined the system afterwards, and the public person
-profile after them. They have **no mockup**: they are composed from the
-inventory below, and where they needed something the system did not have (a
-knowledge-graph node, long-form prose, a search row) the primitive was added to
-the partial and documented here rather than forked into a page. "The wiki
-surfaces, as built" and "The person profile, as built" record what each settled
-on.
+and nothing on the page that the catalogue does not hold. "The wiki surfaces, as
+built" and "The person profile, as built" record what each settled on.
 
 The blog article page joined next, also without a mockup. It is the first page
 whose whole purpose is reading, so it extended the wiki pages' `.prose`
@@ -471,6 +465,15 @@ fully styled by the stylesheet partial, and their **markup is shared too**:
   …the page's own scripts, if it has any…
 </body>
 ```
+
+**The brand lockup.** The mark is one drawing: the bubble outline and the `DTC`
+inside it are stroked paths in the same weight and round cap, because the
+illustrations this masthead sits above are hand-lettered and a typeset `DTC`
+was the one printed-looking thing in the mark. `DataTalks.Club` is a single
+weight throughout — it is one name, not a light half and a bold half. The
+wordmark carries a small bottom margin so it aligns with the drawn letters
+rather than with the mark's box, whose bottom fifth is the bubble's tail; the
+arithmetic is in the comment on `.brand-name`.
 
 Do not copy that markup into a page. The first five pages in the system each
 carried their own copy, and the copies drifted: `/slack` left the navigation on
