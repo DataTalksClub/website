@@ -24,7 +24,7 @@ DARK_SURFACE_BACKGROUND = "rgb(13, 17, 23)"
 # click-through from the index stopped changing design mid-journey.
 DESIGN_5A_LIGHT_BACKGROUND = "rgb(253, 250, 243)"
 DESIGN_5A_DARK_BACKGROUND = "rgb(19, 22, 42)"
-HOME_HEADING = "Ship data pipelines and AI systems that actually run in production."
+HOME_HEADING = "Ship data pipelines and AI systems that run in production."
 EVENTS_HEADING = "Something happening every week"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 ADOPTED_BASE = REPOSITORY_ROOT / "course_platform_templates/base.html"

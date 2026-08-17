@@ -33,7 +33,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "DataTalks.Club")
         self.assertContains(
             response,
-            "Ship data pipelines and AI systems that actually run in production.",
+            "Ship data pipelines and AI systems that run in production.",
         )
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
@@ -92,7 +92,7 @@ class MainHomepageRoutingTests(TestCase):
             self.assertEqual(rendered.status_code, 200)
             self.assertContains(
                 rendered,
-                "Ship data pipelines and AI systems that actually run in production.",
+                "Ship data pipelines and AI systems that run in production.",
             )
             self.assertContains(rendered, "AI Dev Tools Zoomcamp")
             self.assertContains(rendered, "The wiki, as a graph")
@@ -316,8 +316,8 @@ class MainHomepageRoutingTests(TestCase):
         self.assertLess(catalog.index(active_heading), catalog.index(active.title))
         self.assertLess(catalog.index(active.title), catalog.index("Open registration"))
         self.assertLess(catalog.index("Open registration"), catalog.index(registration.title))
-        self.assertLess(catalog.index(registration.title), catalog.index("Self-paced any time"))
-        self.assertLess(catalog.index("Self-paced any time"), catalog.index(archived.title))
+        self.assertLess(catalog.index(registration.title), catalog.index("Finished courses"))
+        self.assertLess(catalog.index("Finished courses"), catalog.index(archived.title))
         self.assertContains(response, "registration open")
         self.assertNotContains(response, 'id="course-families-heading"')
         self.assertNotContains(response, "No active cohort coursework right now.")
