@@ -227,12 +227,18 @@ class WikiCataloguePaginationTests(TestCase):
                 self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
 
     def test_the_catalogue_selector_accepts_one_spelling_and_fails_closed(self) -> None:
-        for bad_query in ("page=0", "page=01", "page=%32", "page=2&page=3", "page=2&sort=title"):
+        for bad_query in ("page=0", "page=01", "page=%32", "page=2&page=3"):
             with self.subTest(bad_query=bad_query):
                 response = self.client.get(f"{reverse('wiki-home')}?{bad_query}")
                 self.assertEqual(response.status_code, 400)
                 self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
                 self.assertNotContains(response, bad_query, status_code=400)
+
+        # A parameter the catalogue does not select on is ignored rather than
+        # refused, so a campaign-tagged link still reaches the page it names.
+        tagged = self.client.get(f"{reverse('wiki-home')}?page=2&sort=title")
+        self.assertEqual(tagged.status_code, 200)
+        self.assertNotContains(tagged, "sort=title")
 
         beyond = self.client.get(f"{reverse('wiki-home')}?page=999")
         self.assertEqual(beyond.status_code, 404)

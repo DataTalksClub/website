@@ -265,11 +265,17 @@ class CollectionHubPaginationTests(TestCase):
     def test_the_page_selector_accepts_one_spelling_and_fails_closed_otherwise(self) -> None:
         for path in ("/blog", "/books"):
             with self.subTest(path=path):
-                for query in ("page=0", "page=01", "page=%32", "page=2&page=3", "page=2&x=1"):
+                for query in ("page=0", "page=01", "page=%32", "page=2&page=3"):
                     bad = self.client.get(f"{path}?{query}")
                     self.assertEqual(bad.status_code, 400)
                     self.assertEqual(bad.headers["Cache-Control"], "no-store, max-age=0")
                     self.assertNotContains(bad, query, status_code=400)
+
+                # A parameter this hub does not select on rides along ignored, so a
+                # campaign-tagged link is a link to the hub rather than an error.
+                tagged = self.client.get(f"{path}?page=2&x=1")
+                self.assertEqual(tagged.status_code, 200)
+                self.assertNotContains(tagged, "x=1")
 
                 beyond = self.client.get(f"{path}?page=99")
                 self.assertEqual(beyond.status_code, 404)
