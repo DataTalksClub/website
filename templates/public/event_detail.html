@@ -102,8 +102,17 @@
         gap: 0.6rem;
       }
 
-      .event-description {
-        margin-top: 1.5rem;
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
+      /* The description opens its own band, so the band's padding is the space
+         above it; the hero's bottom padding already sits on the other side of
+         the seam. */
+      .event-read {
+        padding-top: 1.6rem;
       }
 
       /* Speakers: one dashed row each, holding the shared person chip.  The
@@ -133,8 +142,8 @@
           width: 100%;
         }
 
-        .event-description {
-          margin-top: 1.25rem;
+        .event-read {
+          padding-top: 1.25rem;
         }
       }
     </style>
@@ -224,17 +233,25 @@
                 </div>
               {% endif %}
             </header>
-            {% if event.description_html %}
-              <section
-                class="prose prose-reading event-description"
-                aria-label="Event description"
-              >
-                {{ event.description_html|safe }}
-              </section>
-            {% endif %}
           </article>
         </div>
       </section>
+
+      {% comment %}
+        The seam sits where the reading starts, as it does on an article: the
+        warm band carries the masthead, the kind, the title and the dateline,
+        and the description below it is content, so it sits on the cool ground
+        every other page reads on.
+      {% endcomment %}
+      {% if event.description_html %}
+        <section class="band band-lavender event-read" aria-label="Event description">
+          <div class="shell event-shell">
+            <div class="prose prose-reading event-description">
+              {{ event.description_html|safe }}
+            </div>
+          </div>
+        </section>
+      {% endif %}
 
       {% if event.speakers %}
         <section class="band band-lavender speaker-band" aria-labelledby="event-speakers-heading">

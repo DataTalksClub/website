@@ -37,16 +37,33 @@
        * Docs page rules.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
+      /* The warm band holds nothing but the trail, so it keeps only the space a
+         trail needs; the reading band below it takes the room the hero's own
+         bottom padding would otherwise have left. */
+      .docs-hero {
+        padding-block: 1.5rem;
+      }
+
+      .docs-hero .breadcrumbs {
+        margin-bottom: 0;
+        margin-top: 0;
+      }
+
+      .docs-read {
+        padding-top: 1.6rem;
+      }
+
       /* Body and tree side by side from 64rem; below that the reader meets
          the page before its index, which is the order the docs pages have
          always used.  The columns are ordered rather than reordered in the
          source so the tree keeps its place in the markup the navigation
          partial expects. */
-      .docs-hero .breadcrumbs {
-        margin-bottom: 0.5rem;
-        margin-top: -0.85rem;
-      }
-
       .docs-layout {
         display: grid;
         gap: 2rem;
@@ -293,8 +310,8 @@
       /* Narrow: the actions stop being a row of two and become a stack, so
          neither long label is squeezed to half a phone. */
       @media (max-width: 47.99rem) {
-        .docs-hero .breadcrumbs {
-          margin-top: -0.5rem;
+        .docs-read {
+          padding-top: 1.25rem;
         }
 
         .docs-actions {
@@ -331,6 +348,15 @@
             </li>
           </ol>
         </nav>
+      </section>
+
+      {% comment %}
+        The trail is all this page's title block can be — the documentation
+        writes its own h1 into the body — so the warm band is the trail alone,
+        and the seam falls where the reading starts.  Tree, body and actions are
+        the page's content, so they take the cool ground.
+      {% endcomment %}
+      <section class="band band-lavender docs-read">
         <div class="shell">
           <div class="docs-layout">
             {% comment %}

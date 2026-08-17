@@ -51,6 +51,12 @@
        * status pills and platform pills are all shared primitives.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       /* The episode reads as one column, the width the design gives long prose. */
       /* The same reading column every content page holds. */
       .episode-shell {
@@ -69,13 +75,19 @@
         margin-top: 0.6rem;
       }
 
+      /* The reading band carries the episode from its frame to its dateline, so
+         it needs the room the hero's bottom padding would otherwise have
+         left. */
+      .episode-read {
+        padding-top: 1.6rem;
+      }
+
       /* The player frame is a real destination here: the episode artwork fills
          the striped slab, and the disc sits on top of it.  The mockup's white
          `.play-disc-card` was drawn against the empty striped placeholder; over
          real artwork it can land on white, so the frame keeps the brand-bubble
          disc the index rows and the homepage already use. */
       .episode-player {
-        margin-top: 1.5rem;
         overflow: hidden;
         position: relative;
         text-decoration: none;
@@ -146,6 +158,10 @@
       }
 
       @media (max-width: 47.99rem) {
+        .episode-read {
+          padding-top: 1.25rem;
+        }
+
         /* Narrow: the speaker sits above their line instead of stealing half the
            row, and the artwork keeps its shape. */
         .timestamp-row {
@@ -185,6 +201,17 @@
             <span class="status-pill status-pill-mint">{{ episode.season_episode }}</span>
           </p>
           <h1 id="episode-heading">{{ episode.title }}</h1>
+        </div>
+      </section>
+
+      {% comment %}
+        The seam sits where the title block ends: the way back, the season
+        marker and the title are where the page starts, and the episode itself
+        — the recording, its guest, what it is about and where to hear it —
+        reads on the cool ground every other page reads on.
+      {% endcomment %}
+      <section class="band band-lavender episode-read" aria-label="About this episode">
+        <div class="shell episode-shell">
           {% comment %}
             Artwork and a listening link are independent facts, so the frame draws its
             artwork either way and only becomes a link when there is something to open.

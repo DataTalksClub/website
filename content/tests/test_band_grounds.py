@@ -18,14 +18,57 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 BAND_PATTERN = re.compile(r'class="band (band-[a-z]+)')
 
+# The page background token, as a page's own stylesheet block sets it.
+PAGE_TOKEN_PATTERN = re.compile(r":root\s*\{[^}]*--page:\s*var\(--lavender\);")
+
+# The first thing a page draws below the seam.  A page whose body slid back up
+# into the warm hero would put one of these ahead of its first lavender band,
+# which a band sequence alone cannot see: the hero would still be cream and the
+# content band would still be lavender while the reading sat on the wrong one.
+BODIES_BELOW_THE_SEAM: dict[str, str] = {
+    "templates/public/article_detail.html": '<div class="prose prose-reading article-body">',
+    "templates/public/book_detail.html": '<div class="prose book-summary">',
+    "templates/public/collection_hub.html": '<div class="row-list collection-rows"',
+    "templates/public/event_detail.html": '<div class="prose prose-reading event-description">',
+    "templates/public/events.html": '<div class="row-list event-rows"',
+    "templates/public/person_detail.html": '<div class="prose person-bio">',
+    "templates/public/podcast_detail.html": '<p class="episode-description">',
+    "templates/public/podcast_hub.html": '<div class="row-list" data-podcast-season=',
+    "templates/public/text_page.html": '<div class="prose prose-reading text-page-body">',
+    "templates/public/wiki_detail.html": '<div class="prose wiki-prose">',
+    "templates/review/docs_detail.html": '<div class="docs-layout">',
+    "templates/review/faq_home.html": '<div class="row-list faq-rows">',
+    "templates/review/registration_preview.html": 'aria-labelledby="registration-state-heading"',
+    "courses/templates/courses/course.html": '<div class="row-list course-rows">',
+    # The sign-up page: the ways in are the page's body, so they read on the
+    # content ground rather than in the warm hero the heading sits in.
+    "accounts/templates/account/signup.html": '<div class="provider-choices">',
+}
+
 # Every public reading surface the rule governs: the editorial pages, the review
-# surfaces behind /docs, /faq and the cohort previews, and the two course pages
-# the masthead's Courses entry leads to.
+# surfaces behind /docs, /faq and the cohort previews, the two course pages the
+# masthead's Courses entry leads to, and the account entrance family a
+# signed-out visitor meets — sign up, sign in, sign out, the password reset
+# steps and the provider outcomes.  The entrance pages are where the homepage's
+# primary call to action lands, so a ground that alternates on its own there
+# reads as a different site at exactly the wrong moment.
+#
+# `socialaccount/connections.html` is deliberately not here yet: it is an
+# account *management* page rather than an entrance, and it draws cream, cream,
+# lavender.  Moving its second band is its own change, not a drive-by inside a
+# sign-up redesign.
 GOVERNED_TEMPLATES: tuple[Path, ...] = (
     *sorted((REPOSITORY_ROOT / "templates/public").glob("*.html")),
     *sorted((REPOSITORY_ROOT / "templates/review").glob("*.html")),
     REPOSITORY_ROOT / "courses/templates/courses/course_list.html",
     REPOSITORY_ROOT / "courses/templates/courses/course.html",
+    *sorted((REPOSITORY_ROOT / "accounts/templates/account").glob("*.html")),
+    REPOSITORY_ROOT / "accounts/templates/accounts/login.html",
+    REPOSITORY_ROOT / "course_platform_templates/account/logout.html",
+    REPOSITORY_ROOT / "course_platform_templates/socialaccount/authentication_error.html",
+    REPOSITORY_ROOT / "course_platform_templates/socialaccount/identity_conflict.html",
+    REPOSITORY_ROOT / "course_platform_templates/socialaccount/login_cancelled.html",
+    REPOSITORY_ROOT / "course_platform_templates/socialaccount/signup.html",
 )
 
 # The homepage is composed directly from its own mockup and alternates cream,
@@ -78,6 +121,42 @@ class BandGroundTests(SimpleTestCase):
                 grounds = set(band_sequence(template))
                 self.assertNotIn("band-mint", grounds)
                 self.assertNotIn("band-ink", grounds)
+
+    def test_a_page_that_ends_cool_carries_the_page_token(self) -> None:
+        # `--page` is the body background, and the strip below the last band —
+        # the analytics dialog's ground, and everything under the footer — is
+        # drawn with it.  A page whose last band is the content ground has to
+        # move the token with it, or that strip snaps back to cream between the
+        # lavender it continues and the cream footer.
+        for template in GOVERNED_TEMPLATES:
+            bands = band_sequence(template)
+            if not bands or bands[-1] != "band-lavender":
+                continue
+            with self.subTest(template=template.name):
+                self.assertIsNotNone(
+                    PAGE_TOKEN_PATTERN.search(template.read_text(encoding="utf-8")),
+                    f"{template.name} ends on the content ground but never sets "
+                    "`--page` to `var(--lavender)` on `:root` in its own stylesheet "
+                    "block, so the tail below its last band snaps back to cream.",
+                )
+
+    def test_the_body_of_a_page_sits_below_the_seam(self) -> None:
+        # The warm band marks where a page starts; it is not the page.  Prose,
+        # cards, list rows, a detail body and a state panel are all content, so
+        # they belong under the seam even when the hero above them is short.
+        for relative, body in BODIES_BELOW_THE_SEAM.items():
+            template = REPOSITORY_ROOT / relative
+            source = template.read_text(encoding="utf-8")
+            with self.subTest(template=template.name):
+                self.assertIn(body, source, "The pinned body markup has been renamed.")
+                seam = source.find('class="band band-lavender')
+                self.assertNotEqual(seam, -1, "The page draws no content band.")
+                self.assertGreater(
+                    source.find(body),
+                    seam,
+                    "This page's body reads on the content ground, not in the warm "
+                    'hero.  See "Which ground a band takes" in _docs/design/design-5a.md.',
+                )
 
     def test_the_homepage_keeps_its_own_alternation(self) -> None:
         # Guards the exception itself: the homepage is drawn from its own mockup and

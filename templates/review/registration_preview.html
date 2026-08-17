@@ -45,6 +45,12 @@
        * partial above.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       /* One narrow column: this page says one thing, so it is not given the
          full shell to say it in. */
       .registration-shell {
@@ -65,8 +71,11 @@
         margin-top: 0.6rem;
       }
 
-      .registration-state {
-        margin-top: 1.5rem;
+      /* The state opens its own band, so the band's padding is the space above
+         it; the hero's bottom padding already sits on the other side of the
+         seam. */
+      .registration-read {
+        padding-top: 1.6rem;
       }
 
       /* The heading and the state marker share one row and separate when the
@@ -121,8 +130,20 @@
         <div class="shell registration-shell">
           <p class="mono-label mono-label-indigo">Course registration</p>
           <h1 id="registration-heading">{{ cohort.title }}</h1>
+        </div>
+      </section>
+
+      {% comment %}
+        The one thing this page has to say is the state of the registration, and
+        that is the page's content rather than its title block, so it sits on the
+        cool ground below the seam.  The panel gave up its lavender tint on the
+        way: on the content ground that fill said nothing, and the outline is
+        what was drawing the block all along.
+      {% endcomment %}
+      <section class="band band-lavender registration-read">
+        <div class="shell registration-shell">
           <section
-            class="panel panel-lavender panel-outlined registration-state"
+            class="panel panel-outlined registration-state"
             aria-labelledby="registration-state-heading"
           >
             <div class="registration-state-head">

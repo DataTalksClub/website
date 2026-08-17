@@ -52,6 +52,12 @@
        * is only this page's layout around them.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       /* The same reading column every content page holds, so moving from the
          archive into a book does not change the shape of the page. */
       .book-shell {
@@ -85,16 +91,24 @@
         margin-top: 0.85rem;
       }
 
+      /* The reading band carries the book from its artwork to the last action,
+         so it needs the room the hero's bottom padding would otherwise have
+         left. */
+      .book-read {
+        padding-top: 1.6rem;
+      }
+
       /* The artwork is a wide banner rather than the book's own cover, so it
          keeps the whole picture instead of cropping to a shape; a tall one is
-         bounded instead, on the tinted plate the letterboxing then shows. */
+         bounded instead, on the plate the letterboxing then shows.  The plate
+         is the card surface, so it stays off the ground it sits on and a
+         letterboxed picture still reads as a framed one. */
       .book-cover {
-        margin-top: 1.5rem;
         width: 100%;
       }
 
       .book-cover img {
-        background: var(--lavender);
+        background: var(--card);
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
@@ -111,7 +125,6 @@
         border: 2px dashed var(--line-soft);
         border-radius: 0.9rem;
         display: block;
-        margin-top: 1.5rem;
         padding: 1.1rem 1.25rem;
         text-align: center;
         width: 100%;
@@ -194,6 +207,10 @@
           margin-top: -0.5rem;
         }
 
+        .book-read {
+          padding-top: 1.25rem;
+        }
+
         .book-cover img {
           max-height: 14rem;
         }
@@ -222,19 +239,19 @@
   >
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
-      <section class="band band-cream book-hero" aria-labelledby="book-heading">
-        <nav class="shell book-shell breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'books' %}">Books</a>
-            </li>
-            <li aria-current="page">
-              {{ record.title }}
-            </li>
-          </ol>
-        </nav>
-        <div class="shell book-shell">
-          <article>
+      <article>
+        <section class="band band-cream book-hero" aria-labelledby="book-heading">
+          <nav class="shell book-shell breadcrumbs" aria-label="Breadcrumb">
+            <ol>
+              <li>
+                <a href="{% url 'books' %}">Books</a>
+              </li>
+              <li aria-current="page">
+                {{ record.title }}
+              </li>
+            </ol>
+          </nav>
+          <div class="shell book-shell">
             <header>
               <p class="mono-label mono-label-indigo">book of the week</p>
               <h1 id="book-heading">{{ record.title }}</h1>
@@ -270,18 +287,28 @@
                   </span>
                 {% endif %}
               </div>
-              {% if record.media_available %}
-                <figure class="book-cover">
-                  <img
-                    src="{{ record.image_path }}"
-                    alt="Artwork for {{ record.title }}"
-                    decoding="async"
-                  >
-                </figure>
-              {% else %}
-                <span class="book-cover-missing mono-note">Artwork unavailable.</span>
-              {% endif %}
             </header>
+          </div>
+        </section>
+        {% comment %}
+          The seam sits where the title block ends: the artwork belongs to the
+          book rather than to its dateline, so it opens the reading band instead
+          of closing the warm hero, and the description and the ways to get the
+          book follow it on the ground every other page reads on.
+        {% endcomment %}
+        <section class="band band-lavender book-read" aria-label="About the book">
+          <div class="shell book-shell">
+            {% if record.media_available %}
+              <figure class="book-cover">
+                <img
+                  src="{{ record.image_path }}"
+                  alt="Artwork for {{ record.title }}"
+                  decoding="async"
+                >
+              </figure>
+            {% else %}
+              <span class="book-cover-missing mono-note">Artwork unavailable.</span>
+            {% endif %}
             <div class="prose book-summary">
               <p class="prose-paragraph">{{ record.summary }}</p>
             </div>
@@ -298,9 +325,9 @@
                 {% endfor %}
               </div>
             {% endif %}
-          </article>
-        </div>
-      </section>
+          </div>
+        </section>
+      </article>
 
       {% if record.archive %}
         <section class="band band-lavender" aria-labelledby="book-questions-heading">
