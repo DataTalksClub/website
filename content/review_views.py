@@ -44,8 +44,6 @@ from .faq_data import (
 )
 from .review_projection import (
     SLACK_PUBLIC_PATH,
-    event_groups,
-    projected_events,
     projection_context,
     review_projection,
 )
@@ -71,119 +69,6 @@ def _render(
         **(context or {}),
     }
     return render(request, template_name, page_context)
-
-
-@require_safe
-def events(request: HttpRequest) -> HttpResponse:
-    groups = event_groups()
-    return _render(
-        request,
-        "review/events.html",
-        path="/events.html",
-        title="Events — DataTalks.Club",
-        description="Upcoming and recorded DataTalks.Club workshops, webinars, and conversations.",
-        context={"upcoming_events": groups.upcoming, "recent_events": groups.recent},
-    )
-
-
-@require_safe
-def articles(request: HttpRequest) -> HttpResponse:
-    return _render(
-        request,
-        "review/articles.html",
-        path="/articles.html",
-        title="Articles — DataTalks.Club",
-        description="Practical articles and learning guides from the DataTalks.Club community.",
-        context=projection_context("article"),
-    )
-
-
-@require_safe
-def article_detail(request: HttpRequest) -> HttpResponse:
-    return _render(
-        request,
-        "review/article_detail.html",
-        path="/blog/ai-dev-tools-zoomcamp.html",
-        title="AI Dev Tools Zoomcamp 2026 — DataTalks.Club",
-        description=review_projection()["article"]["description"],
-        context=projection_context("article"),
-    )
-
-
-@require_safe
-def podcast(request: HttpRequest) -> HttpResponse:
-    return _render(
-        request,
-        "review/podcast.html",
-        path="/podcast.html",
-        title="Podcast — DataTalks.Club",
-        description="Conversations with people who build and operate data and AI systems.",
-        context=projection_context("podcast"),
-    )
-
-
-@require_safe
-def podcast_detail(request: HttpRequest) -> HttpResponse:
-    projection = review_projection()
-    episode = projection["podcast"]
-    person = projection["people"][episode["guest"]]
-    return _render(
-        request,
-        "review/podcast_detail.html",
-        path=episode["public_path"],
-        title=f"{episode['title']} — DataTalks.Club Podcast",
-        description=episode["summary"],
-        context={
-            "podcast": episode,
-            "person": person,
-        },
-    )
-
-
-@require_safe
-def person_detail(request: HttpRequest) -> HttpResponse:
-    projection = review_projection()
-    person = projection["people"]["aleksandrkim"]
-    recorded_event = next(
-        event for event in projected_events() if event["speaker"] == "aleksandrkim"
-    )
-    return _render(
-        request,
-        "review/person_detail.html",
-        path=person["public_path"],
-        title=f"{person['name']} — DataTalks.Club",
-        description=person["bio"],
-        context={
-            "person": person,
-            "recorded_event": recorded_event,
-            "podcast": projection["podcast"],
-        },
-    )
-
-
-@require_safe
-def books(request: HttpRequest) -> HttpResponse:
-    return _render(
-        request,
-        "review/books.html",
-        path="/books.html",
-        title="Books — DataTalks.Club",
-        description="DataTalks.Club book discussions with authors and community readers.",
-        context=projection_context("book"),
-    )
-
-
-@require_safe
-def book_detail(request: HttpRequest) -> HttpResponse:
-    book = review_projection()["book"]
-    return _render(
-        request,
-        "review/book_detail.html",
-        path=book["public_path"],
-        title=f"{book['title']} — DataTalks.Club Books",
-        description=book["description"],
-        context=projection_context("book"),
-    )
 
 
 @require_safe
@@ -449,22 +334,6 @@ def slack(request: HttpRequest) -> HttpResponse:
         path=page["public_path"],
         title="Join our Slack — DataTalks.Club",
         description=page["lead"],
-        context=context,
-    )
-
-
-@require_safe
-def course_family(request: HttpRequest) -> HttpResponse:
-    course = review_projection()["course"]
-    legacy_course = Course.objects.filter(slug=course["cohort"]["legacy_platform_slug"]).first()
-    context = projection_context("course")
-    context.update({"legacy_course": legacy_course})
-    return _render(
-        request,
-        "review/course_family.html",
-        path=course["public_path"],
-        title=f"{course['title']} — DataTalks.Club",
-        description=course["summary"],
         context=context,
     )
 
