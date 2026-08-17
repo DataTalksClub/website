@@ -1,0 +1,49 @@
+{% extends "public/text_page.html" %}
+{% comment %}
+  Bad request (issue #178).  The page a visitor lands on when a public catalogue
+  is asked for a page selector it does not accept — a duplicated `page`, a zero, a
+  percent-encoded digit, an extra parameter.
+
+  It is the 404's sibling and is written the same way: the shared text page with a
+  heading, one sentence and two ways back.  It repeats nothing about the request,
+  because the request is exactly what could not be trusted, and it carries no
+  canonical and no social card, because a rejected request is not a destination.
+
+  Both ways back are resolved as "as" assignments, the way the shared text page and
+  the 404 do it: a route that cannot be reversed drops out of the page rather than
+  turning a 400 into a 500.
+{% endcomment %}
+
+{% block document_title %}
+  <title>Bad request — DataTalks.Club</title>
+{% endblock %}
+
+{% block document_meta %}
+  {% comment %}
+    Deliberately empty: a rejected request claims no canonical, no description and
+    no social card.
+  {% endcomment %}
+{% endblock %}
+
+{% block kicker %}
+  400
+{% endblock %}
+
+{% block title %}
+  Bad request
+{% endblock %}
+
+{% block lede %}
+  We couldn't understand that request.
+{% endblock %}
+
+{% block actions %}
+  {% url 'home' as site_home_url %}
+  {% if site_home_url %}
+    <a class="cta cta-primary" href="{{ site_home_url }}">Return home</a>
+  {% endif %}
+  {% url 'wiki-home' as wiki_url %}
+  {% if wiki_url %}
+    <a class="cta cta-secondary" href="{{ wiki_url }}">Browse the Wiki</a>
+  {% endif %}
+{% endblock %}

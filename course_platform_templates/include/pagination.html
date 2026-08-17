@@ -16,40 +16,60 @@
   Nothing about the paginator's behaviour moves: the same `?page=` links, the
   same `pagination_querystring` carried through, the same `aria-label`s on the
   two directions and the same accessible name on the nav itself.
+
+  Issue #178 gave the design system one `.pagination` component so that these
+  eight authenticated pages and the public catalogues are one control to look
+  at.  This row wears it: the same space above the row, the numbers as the
+  shared `.pagination-number` — the lopsided hand-drawn circle the step discs
+  and the play disc use — the two directions as the stadium `.pagination-step`
+  carrying the arrow rather than the word, and the same quiet marker for a
+  range.  Each direction keeps the accessible name it has always had, and the
+  arrow is hidden from assistive technology, so nothing a screen reader hears
+  changes.
+
+  The public catalogues answer a different behavioural contract — their own
+  query grammar, no unrelated parameter carried through, and a direction that
+  leads nowhere absent rather than present and quiet — so they keep their own
+  template in `templates/public/_pagination.html` and share only the mark.
 {% endcomment %}
 {% if pagination_page.has_other_pages %}
-  <nav class="filter-pills" aria-label="{{ pagination_label|default:'Pagination' }}">
+  <nav
+    class="pagination filter-pills pagination-pills"
+    aria-label="{{ pagination_label|default:'Pagination' }}"
+  >
     {% if pagination_page.has_previous %}
       <a
-        class="filter-pill"
+        class="filter-pill pagination-step"
         href="?page={{ pagination_page.previous_page_number }}{{ pagination_querystring|default:'' }}"
         rel="prev"
         aria-label="Previous page"
-      >Previous</a>
+      ><span aria-hidden="true">&larr;</span></a>
     {% else %}
-      <span class="status-pill" aria-label="Previous page">Previous</span>
+      <span class="status-pill pagination-step" aria-label="Previous page"
+        ><span aria-hidden="true">&larr;</span></span>
     {% endif %}
     {% for page_number in pagination_range %}
       {% if page_number == pagination_page.paginator.ELLIPSIS %}
-        <span class="status-pill">{{ page_number }}</span>
+        <span class="status-pill pagination-gap">{{ page_number }}</span>
       {% elif page_number == pagination_page.number %}
-        <span class="filter-pill" aria-current="page">{{ page_number }}</span>
+        <span class="filter-pill pagination-number" aria-current="page">{{ page_number }}</span>
       {% else %}
         <a
-          class="filter-pill"
+          class="filter-pill pagination-number"
           href="?page={{ page_number }}{{ pagination_querystring|default:'' }}"
         >{{ page_number }}</a>
       {% endif %}
     {% endfor %}
     {% if pagination_page.has_next %}
       <a
-        class="filter-pill"
+        class="filter-pill pagination-step"
         href="?page={{ pagination_page.next_page_number }}{{ pagination_querystring|default:'' }}"
         rel="next"
         aria-label="Next page"
-      >Next</a>
+      ><span aria-hidden="true">&rarr;</span></a>
     {% else %}
-      <span class="status-pill" aria-label="Next page">Next</span>
+      <span class="status-pill pagination-step" aria-label="Next page"
+        ><span aria-hidden="true">&rarr;</span></span>
     {% endif %}
   </nav>
 {% endif %}

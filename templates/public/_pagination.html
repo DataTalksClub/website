@@ -1,0 +1,71 @@
+{% comment %}
+  The one page-number control the public catalogues share (issue #178).
+
+  It is drawn entirely from the design 5a primitives, so it needs no rule of its
+  own on any page that includes it: the row is a `.filter-pills` row, which is
+  the system's own "one row of controls where exactly one is current" shape, and
+  the current page is marked with `aria-current="page"`, the state that primitive
+  already fills ink for.  The numbers wear the shared `.pagination-number` mark,
+  the same lopsided hand-drawn circle the step discs and the play disc use, and
+  an elided range is the quiet bare `.status-pill`, hidden from assistive
+  technology because it names nothing a reader can go to.
+
+  The two directions are the arrows, not the words: at the end of a list of
+  numbers a glyph reads faster than a label, and the label a reader cannot see is
+  the one that matters — each carries its direction and its destination page as
+  its accessible name, and the arrow itself is hidden.
+
+  Everything here was decided in `content/pagination.py`: the window, the labels
+  and every URL, including the fact that the first page is the clean path and is
+  never spelled with a page query.  This template builds no URL and reads no
+  query.  A direction that leads nowhere is absent rather than present and
+  disabled, so the row never offers a target that does not move.
+
+  The caller supplies `pagination`; the accessible name of the landmark is the
+  catalogue label that caller passed to the builder.
+{% endcomment %}
+{% if pagination.has_controls %}
+  <nav class="pagination" aria-label="{{ pagination.catalogue_label }}">
+    <ul class="filter-pills pagination-pills">
+      {% if pagination.previous_url %}
+        <li>
+          <a
+            class="filter-pill pagination-step"
+            href="{{ pagination.previous_url }}"
+            rel="prev"
+            aria-label="Previous page — page {{ pagination.previous_page_number }}"
+          ><span aria-hidden="true">&larr;</span></a>
+        </li>
+      {% endif %}
+      {% for control in pagination.controls %}
+        <li>
+          {% if control.kind == "ellipsis" %}
+            <span class="status-pill pagination-gap" aria-hidden="true">&hellip;</span>
+          {% elif control.is_current %}
+            <span
+              class="filter-pill pagination-number"
+              aria-current="page"
+              aria-label="{{ control.accessible_label }}"
+            >{{ control.page_number }}</span>
+          {% else %}
+            <a
+              class="filter-pill pagination-number"
+              href="{{ control.url }}"
+              aria-label="{{ control.accessible_label }}"
+            >{{ control.page_number }}</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+      {% if pagination.next_url %}
+        <li>
+          <a
+            class="filter-pill pagination-step"
+            href="{{ pagination.next_url }}"
+            rel="next"
+            aria-label="Next page — page {{ pagination.next_page_number }}"
+          ><span aria-hidden="true">&rarr;</span></a>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+{% endif %}

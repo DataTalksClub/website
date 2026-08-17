@@ -1,0 +1,80 @@
+{% load seo %}
+{% comment %}
+  A synthetic public catalogue, for proving the shared paginator on its own
+  (issue #178).  It is reachable only under the test URLconf in
+  `content/tests/pagination_fixture_urls.py`; no production route serves it.
+
+  It is a design 5a document like every page in the system — the shared
+  stylesheet partial and the two shell partials — so what a browser test reads
+  here is the control as the real catalogues draw it, not a stripped harness.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>{{ seo_title }}</title>
+    {% canonical_link canonical_url %}
+    <meta name="description" content="{{ seo_description }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="DataTalks.Club">
+    <meta property="og:title" content="{{ seo_title }}">
+    <meta property="og:description" content="{{ seo_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:site" content="@DataTalksClub">
+    <meta name="twitter:title" content="{{ seo_title }}">
+    <meta name="twitter:description" content="{{ seo_description }}">
+    {% include "public/_page_relations.html" %}
+    <style>
+      {% include "core/_design_system.html" %}
+
+      .fixture-row {
+        --row-cols: minmax(0, 1fr);
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream" aria-labelledby="fixture-heading">
+        <div class="shell shell-reading">
+          <p class="mono-label mono-label-indigo">{{ pagination.total_items }} items</p>
+          <h1 id="fixture-heading">{{ pagination.catalogue_label }}</h1>
+        </div>
+      </section>
+
+      <section class="band band-lavender" aria-labelledby="fixture-list-heading">
+        <div class="shell shell-reading">
+          <div class="band-head">
+            <div>
+              <h2 id="fixture-list-heading">Items</h2>
+              <p>
+                Page {{ pagination.page_number }} of {{ pagination.page_count }}.
+              </p>
+            </div>
+          </div>
+          <div class="row-list" data-pagination-items>
+            {% for item in pagination.items %}
+              <p class="list-row fixture-row">{{ item }}</p>
+            {% empty %}
+              <p class="list-row fixture-row">No fixture items.</p>
+            {% endfor %}
+          </div>
+          {% include "public/_pagination.html" %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>
