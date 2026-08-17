@@ -47,8 +47,9 @@
        * ------------------------------------------------------------------ */
 
       /* The reading column: the width the design gives long prose. */
+      /* The same reading column every content page holds. */
       .faq-shell {
-        max-width: 48rem;
+        max-width: calc(var(--measure) + 2.5rem);
       }
 
       .faq-hero .breadcrumbs {
@@ -102,45 +103,8 @@
       /* A question is a row in a grid, so it says so: without the zero minimum
          the widest unwrapped line in an answer (a code block keeps its lines)
          would set the row's width and scroll the whole page sideways. */
-      .faq-question {
-        min-width: 0;
-        padding-block: 1.5rem;
-        scroll-margin-top: 1.5rem;
-      }
-
-      .faq-question-head {
-        display: grid;
-        gap: 0.35rem 1.5rem;
-        grid-template-columns: minmax(0, 1fr);
-        margin-bottom: 0.75rem;
-      }
-
-      /* A question is a line of source text and some carry a path or a command
-         with no space in it, so the title breaks rather than widening the page. */
-      .faq-question-title {
-        font-size: 1.1rem;
-        min-width: 0;
-        overflow-wrap: anywhere;
-      }
-
-      /* The stable ten-character link, shown as the literal a reader can copy
-         out of the address bar. */
-      .faq-permalink {
-        align-items: center;
-        color: var(--indigo);
-        display: inline-flex;
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        letter-spacing: 0.06em;
-        min-height: 2.75rem;
-        text-underline-offset: 0.2em;
-      }
-
-      /* An answer is one rendered fragment, so nothing inside it can be wrapped
-         in a scrolling frame from this template.  A long URL therefore breaks
-         rather than widening the column, and a wide table scrolls in place. */
-      .faq-answer {
-        overflow-wrap: anywhere;
+      .faq-permalink-row {
+        padding-bottom: 1.1rem;
       }
 
       .faq-answer > table {
@@ -244,7 +208,7 @@
 
       {% for section in faq_sections %}
         <section
-          class="band band-cream faq-section"
+          class="band band-lavender faq-section"
           id="section-{{ section.id }}"
           aria-labelledby="section-{{ section.id }}-heading"
         >
@@ -260,16 +224,26 @@
             </div>
             <div class="row-list">
               {% for question in section.questions %}
-                <article class="faq-question" id="{{ question.id }}">
-                  <div class="faq-question-head">
+                {% comment %}
+                  The shared fold from the design system, the same one the blog
+                  articles' recovered FAQ draws.  The permalink keeps its own
+                  row under the summary rather than sitting inside it: a link
+                  inside a <summary> is a control inside a control, and clicking
+                  it would toggle the fold as well as follow the link.
+                {% endcomment %}
+                <details class="faq-fold" id="{{ question.id }}">
+                  <summary class="faq-fold-summary">
                     <h3 class="faq-question-title">{{ question.question }}</h3>
+                    <span class="faq-fold-marker" aria-hidden="true"></span>
+                  </summary>
+                  <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
+                  <p class="faq-permalink-row">
                     <a class="faq-permalink" href="#{{ question.id }}">
                       <span aria-hidden="true">#{{ question.id }}</span>
                       <span class="sr-only">Link to {{ question.question }}</span>
                     </a>
-                  </div>
-                  <div class="prose faq-answer">{{ question.rendered_answer|safe }}</div>
-                </article>
+                  </p>
+                </details>
               {% endfor %}
             </div>
           </div>

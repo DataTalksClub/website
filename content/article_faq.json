@@ -1,0 +1,949 @@
+{
+  "article_source": {
+    "repository": "DataTalksClub/content",
+    "revision": "e29f56ce70bd997171a78a9f0facc9354797f421"
+  },
+  "articles": [
+    {
+      "article_source_path": "articles/2025-09-23-ai-dev-tools-zoomcamp.md",
+      "article_source_sha256": "afbb979e31ede1922f093a6d14472dd08cf0fe83f48132adb778dbaf21e31e7a",
+      "block_index": 125,
+      "blocks_sha256": "dc33564ac6310c0ea777123e4f1fcaf11332927d6eb0f079582c1d7e275b65a3",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/ai-dev-tools-zoomcamp.html",
+      "questions": [
+        {
+          "answer": "The AI Dev Tools Zoomcamp is a free, community-driven program by [DataTalks.Club](/) that teaches AI-native software engineering: how to build, test, deploy, extend, and audit software with AI developer tools without losing engineering discipline.\n\nThis 4-module course covers a hands-on [curriculum](#course-curriculum) with all materials open and available anytime on [GitHub](https://github.com/DataTalksClub/ai-dev-tools-zoomcamp). You'll work with coding agents and agentic IDEs such as Claude Code, Codex, Cursor, and GitHub Copilot, the Model Context Protocol (MCP), and open-source AI tools for security, audit, and DevOps, and earn a [certificate](#certificate).",
+          "id": "faq-what-is-the-ai-dev-tools-zoomcamp",
+          "question": "What is the AI Dev Tools Zoomcamp?"
+        },
+        {
+          "answer": "\"Zoomcamp\" is a term that originated from [Alexey Grigorev](/people/alexeygrigorev.html), the founder of DataTalks.Club. It started with his book \"ML Bookcamp.\" When Alexey decided to create a video course based on the book, he called it \"[Machine Learning Zoomcamp](/blog/machine-learning-zoomcamp.html)\" - a free, cohort-based course in video format. The name \"zoomcamp\" is a play on \"bookcamp,\" referring to the video format of the course. The Zoomcamp series has since expanded to include other free courses like the [Data Engineering Zoomcamp](/blog/data-engineering-zoomcamp.html), [MLOps Zoomcamp](/blog/mlops-zoomcamp.html), [LLM Zoomcamp](/blog/llm-zoomcamp.html), and [AI Dev Tools Zoomcamp](/blog/ai-dev-tools-zoomcamp.html), all following the same community-driven, open-source philosophy.",
+          "id": "faq-what-does-zoomcamp-mean",
+          "question": "What does zoomcamp mean?"
+        },
+        {
+          "answer": "Yes! The AI Dev Tools Zoomcamp is completely free. There are no hidden costs, no tuition fees, and no paid tiers. All course materials, videos, homework assignments, and access to the [Slack community](/slack.html) are provided at no cost. Unlike traditional bootcamps that charge $10,000-$20,000+, this course is entirely community-driven and open source.",
+          "id": "faq-is-ai-dev-tools-zoomcamp-free",
+          "question": "Is AI Dev Tools Zoomcamp free?"
+        },
+        {
+          "answer": "Basic programming ability in Python, JavaScript, TypeScript, or a similar language is enough. You should also be comfortable with the command line and know Git and GitHub basics. No prior experience with AI coding tools is required. You do need to be willing to read, review, debug, and maintain AI-generated code - that's a large part of what the course teaches.",
+          "id": "faq-what-programming-experience-do-i-need-for-ai-dev-tools-zoomcamp",
+          "question": "What programming experience do I need for AI Dev Tools Zoomcamp?"
+        },
+        {
+          "answer": "No. The course is also relevant for data scientists, ML engineers, MLOps engineers, AI engineers, data engineers, analysts who write code, and technical students. You do need basic programming ability.",
+          "id": "faq-do-i-need-to-be-a-software-engineer-to-take-this-course",
+          "question": "Do I need to be a software engineer to take this course?"
+        },
+        {
+          "answer": "Each module includes hands-on work, so the time commitment depends on your background and how much time you can dedicate. Expect roughly 5-15 hours per week across the four modules, including watching videos, completing homework, and working on [the final project](#final-project). More time may be needed during the final project weeks.",
+          "id": "faq-how-long-does-ai-dev-tools-zoomcamp-take-to-complete",
+          "question": "How long does AI Dev Tools Zoomcamp take to complete?"
+        },
+        {
+          "answer": "You'll pick a coding tool in Module 1 and use it throughout the course. The materials work with modern agentic coding tools such as Claude Code, Codex, Cursor, GitHub Copilot, and similar products. Later modules use MCP servers and open-source tools such as PR-Agent, Semgrep MCP, Snyk Agent Scan, K8sGPT, LiteLLM, and Ollama. Some commercial tools require a subscription, but we focus on free or low-cost options where possible.",
+          "id": "faq-do-i-need-to-install-specific-ai-tools-for-this-course",
+          "question": "Do I need to install specific AI tools for this course?"
+        },
+        {
+          "answer": "No. The course is about using AI developer tools, not training models, so a powerful machine or GPU is not required.",
+          "id": "faq-do-i-need-a-powerful-computer-or-gpu",
+          "question": "Do I need a powerful computer or GPU?"
+        },
+        {
+          "answer": "Lectures are pre-recorded, so you can watch them whenever it suits you. The live cohort adds shared deadlines, scored homework, a leaderboard, peer review, community support, and certificate eligibility. We also run live events before the cohort starts and Q&A sessions during it.",
+          "id": "faq-are-there-live-classes",
+          "question": "Are there live classes?"
+        },
+        {
+          "answer": "No. The course focuses on AI-assisted software development workflows: coding assistants, coding agents, MCP, testing, CI/CD, deployment, documentation, review, security, audit, and DevOps. If you want to build LLM applications with RAG and agents, look at the [LLM Zoomcamp](/blog/llm-zoomcamp.html) instead.",
+          "id": "faq-is-this-course-about-rag-llm-applications-or-model-training",
+          "question": "Is this course about RAG, LLM applications, or model training?"
+        },
+        {
+          "answer": "To earn a certificate, you need to pass the final project and complete the required peer reviews. The project is an end-to-end application of your own, built and documented with the workflow taught in the course. Homework helps you stay on track, but the certificate is based on the final project and peer review. [Learn more about the final project](#final-project) and [certificate requirements](#certificate).",
+          "id": "faq-how-do-i-get-the-ai-dev-tools-zoomcamp-certificate",
+          "question": "How do I get the AI Dev Tools Zoomcamp certificate?"
+        },
+        {
+          "answer": "Absolutely! The course is supported by the [DataTalks.Club community on Slack](/slack.html), where thousands of learners exchange ideas, ask questions, and provide feedback. Course-specific questions go to the #course-ai-dev-tools-zoomcamp channel. We also have an [FAQ repository](https://github.com/DataTalksClub/faq) with answers to common questions and a @ZoomcampQABot in Slack for quick help.",
+          "id": "faq-can-i-get-help-if-i-m-stuck-during-the-course",
+          "question": "Can I get help if I'm stuck during the course?"
+        },
+        {
+          "answer": "Most AI courses teach you how to prompt a tool. This one teaches a repeatable engineering workflow around the tools: give them the right context, use them for the right job, review what they produce, test the result, and ship with guardrails. You write specifications, groom a backlog, build and deploy a real full-stack application, extend your agent with MCP and reusable capabilities, and audit the result with open-source security and DevOps tooling. By the end you have a deployed project, not just a set of prompts.",
+          "id": "faq-what-makes-ai-dev-tools-zoomcamp-different-from-other-ai-courses",
+          "question": "What makes AI Dev Tools Zoomcamp different from other AI courses?"
+        },
+        {
+          "answer": "The next cohort of the AI Dev Tools Zoomcamp starts on August 31, 2026. Register here: [https://courses.datatalks.club/register/ai-dev-tools/](https://courses.datatalks.club/register/ai-dev-tools/) before the course starts.",
+          "id": "faq-when-does-the-next-cohort-of-the-ai-dev-tools-zoomcamp-start",
+          "question": "When does the next cohort of the AI Dev Tools Zoomcamp start?"
+        },
+        {
+          "answer": "The AI Dev Tools Zoomcamp is run by [DataTalks.Club](/), a global online community of data professionals and learners. The instructors are [Alexey Grigorev](/people/alexeygrigorev.html), Bhavani Ravi, and Moein Foroughi, and members of the DataTalks.Club community contribute as maintainers.\n\nDataTalks.Club is often referred to as \"the DataTalks Club\", \"data talks club\", or \"datatalks club\".",
+          "id": "faq-who-runs-the-ai-dev-tools-zoomcamp",
+          "question": "Who runs the AI Dev Tools Zoomcamp?"
+        },
+        {
+          "answer": "Yes! All course materials, videos, and recordings remain available after the cohort ends, and you can learn at your own pace. You'll have access to the [Slack community](/slack.html) for support. However, self-paced learning does not include scored homework, project evaluations, or the ability to earn a [certificate](#certificate). To receive a certificate, you need to join an active cohort.",
+          "id": "faq-can-i-take-the-course-in-self-paced-mode",
+          "question": "Can I take the course in self-paced mode?"
+        },
+        {
+          "answer": "No, certificates are only available when completing the course with a live cohort. This is because the certification process requires peer review, and peer reviews only happen during the active course period. Additionally, the submission form closes after the peer-review list is compiled. Self-paced learners can access all course materials and the Slack community, but must join a live cohort to earn a certificate.",
+          "id": "faq-can-i-get-a-certificate-in-self-paced-mode",
+          "question": "Can I get a certificate in self-paced mode?"
+        },
+        {
+          "answer": "The GitHub repository is [https://github.com/DataTalksClub/ai-dev-tools-zoomcamp](https://github.com/DataTalksClub/ai-dev-tools-zoomcamp).",
+          "id": "faq-where-is-the-github-repository",
+          "question": "Where is the GitHub repository?"
+        },
+        {
+          "answer": "In 2026 each module also comes out as a standalone article on [Alexey Grigorev's Substack](https://alexeyondata.substack.com/). The first one, [AI-Native Development: Specifications, Loop Engineering, and Graph Engineering](https://alexeyondata.substack.com/p/ai-native-development-specifications), covers the Module 1 workflow. Subscribe there to get the rest as they're published, and star the [GitHub repository](https://github.com/DataTalksClub/ai-dev-tools-zoomcamp) for the full materials and homework.",
+          "id": "faq-where-can-i-read-the-course-articles",
+          "question": "Where can I read the course articles?"
+        },
+        {
+          "answer": "Course videos are available on the [DataTalks.Club playlist](https://www.youtube.com/playlist?list=PL3MmuxUbc_hLuyafXPyhTdbF4s_uNhc43). For easier navigation, refer to the [GitHub repository](https://github.com/DataTalksClub/ai-dev-tools-zoomcamp) for course materials and links to video content. We also maintain [year-specific playlists](https://www.youtube.com/@DataTalksClub/playlists) for updates.",
+          "id": "faq-where-can-i-find-the-course-videos",
+          "question": "Where can I find the course videos?"
+        },
+        {
+          "answer": "You'll work with coding agents and agentic IDEs (Claude Code, Codex, Cursor, GitHub Copilot), project bootstrappers such as Lovable, durable agent context with `AGENTS.md`, full-stack tooling (React/TypeScript, FastAPI or Django, OpenAPI, Docker, GitHub Actions), the Model Context Protocol along with skills, hooks, subagents, and plugins, and open-source AI tools for security, audit, and DevOps: PR-Agent, Semgrep MCP, Snyk Agent Scan, K8sGPT, LiteLLM, and Ollama.",
+          "id": "faq-what-tools-and-technologies-will-i-learn",
+          "question": "What tools and technologies will I learn?"
+        },
+        {
+          "answer": "The DataTalks.Club AI Dev Tools community is a supportive network of 80,000+ data professionals and learners. As part of the AI Dev Tools Zoomcamp, you'll have access to a dedicated course channel in [Slack](/slack.html) where you can ask questions, get help from instructors and peers, share your progress, and connect with like-minded individuals. Course announcements are also posted in the [Telegram channel](https://t.me/aidevtoolszoomcamp). The community provides technical support, peer learning opportunities, and networking that can lead to collaborations and career opportunities.",
+          "id": "faq-what-is-the-datatalks-club-ai-dev-tools-community",
+          "question": "What is the DataTalks.Club AI Dev Tools community?"
+        },
+        {
+          "answer": "Yes! This is a completely free AI Dev Tools course, with a certificate available when you complete the course with a live cohort. There are no hidden costs or tuition fees. To earn your certificate, you need to build a final project that demonstrates practical AI-assisted development and complete the required peer reviews. This free course provides the same quality training as paid bootcamps but at no cost. Certificates, scored homework, and project evaluations are only available when participating in a live cohort, not in self-paced mode.",
+          "id": "faq-is-this-a-free-ai-dev-tools-course-with-certificate",
+          "question": "Is this a free AI Dev Tools course with certificate?"
+        },
+        {
+          "answer": "Yes, certificates are available when completing the course with a live cohort. Requirements include building one final project that demonstrates practical AI-assisted software development and reviewing other students' projects during the peer review period. Certificates, scored homework, and project evaluations are not available in self-paced mode.",
+          "id": "faq-can-i-get-a-certificate",
+          "question": "Can I get a certificate?"
+        }
+      ],
+      "slug": "ai-dev-tools-zoomcamp",
+      "source_path": "_data/faqs/ai-dev-tools-zoomcamp.yml",
+      "source_sha256": "80d653b28fa9491ae86c29262fac377ff233415dc5a8785ea227c7fb81928ae0"
+    },
+    {
+      "article_source_path": "articles/2023-11-18-data-engineering-zoomcamp.md",
+      "article_source_sha256": "60f49491acb9f3eb26f54595f2ceee71c642278509019211b098316feacfd36a",
+      "block_index": 133,
+      "blocks_sha256": "df01dd8753fc0aa8396acdb34ef570dbbde723726b3e0a4be6854983bbc62267",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/data-engineering-zoomcamp.html",
+      "questions": [
+        {
+          "answer": "Yes. The Data Engineering Zoomcamp is a free, project-based data engineering course that covers pipelines, data warehouses, batch and streaming, and orchestration—without any tuition fees.",
+          "id": "faq-is-the-data-engineering-zoomcamp-a-free-data-engineering-course",
+          "question": "Is the Data Engineering Zoomcamp a free data engineering course?"
+        },
+        {
+          "answer": "Bootcamps usually charge tuition, offer full-time schedules, and sometimes include dedicated career services. Zoomcamps are part-time, community-run, open-source, and free, with an emphasis on self-directed learning and peer support.",
+          "id": "faq-whats-the-difference-between-a-datatalks-club-zoomcamp-and-a-typical-data",
+          "question": "Whats the difference between a DataTalks.Club Zoomcamp and a typical data engineering bootcamp?"
+        },
+        {
+          "answer": "During an active cohort, you can earn a certificate by completing the final project, reviewing peers' projects, and meeting all deadlines. Self-paced learners don't receive certificates but still build the same projects.",
+          "id": "faq-does-the-data-engineering-zoomcamp-offer-a-certificate",
+          "question": "Does the Data Engineering Zoomcamp offer a certificate?"
+        },
+        {
+          "answer": "To earn a [certificate](#how-to-get-a-certificate), you need to complete one [capstone project](#capstone-project) by building an end-to-end data pipeline. After submitting your project, you must also review at least 3 other students' projects by the deadline and provide constructive feedback.",
+          "id": "faq-how-does-the-data-engineering-zoomcamp-certificate-work",
+          "question": "How does the Data Engineering Zoomcamp certificate work?"
+        },
+        {
+          "answer": "The next cohort of the DE Zoomcamp starts around January each year. Register here: [https://airtable.com/appzbS8Pkg9PL254a/shr6oVXeQvSI5HuWD](https://airtable.com/appzbS8Pkg9PL254a/shr6oVXeQvSI5HuWD) before the course starts.",
+          "id": "faq-when-does-the-next-cohort-of-the-de-zoomcamp-start",
+          "question": "When does the next cohort of the DE Zoomcamp start?"
+        },
+        {
+          "answer": "No, the 2025 cohort is closed. You can join the 2026 cohort when it starts in January 2026. [Register here](https://airtable.com/appzbS8Pkg9PL254a/shr6oVXeQvSI5HuWD) before the course starts.",
+          "id": "faq-can-i-join-the-data-engineering-zoomcamp-2025-cohort",
+          "question": "Can I join the Data Engineering Zoomcamp 2025 cohort?"
+        },
+        {
+          "answer": "DE Zoomcamp is run by [DataTalks.Club](/), a global online community of data professionals and learners. While the initial idea and most of the content were created by [Alexey Grigorev](/people/alexeygrigorev.html), members of the DataTalks.Club community contribute as instructors and maintainers.\n\nDataTalks.Club is often referred to as \"the DataTalks Club\", \"data talks club\", or \"datatalks club\".",
+          "id": "faq-who-runs-the-data-engineering-zoomcamp",
+          "question": "Who runs the Data Engineering Zoomcamp?"
+        },
+        {
+          "answer": "You should be comfortable with basic coding (Python or similar), the command line, and basic SQL. No prior data engineering experience is required.",
+          "id": "faq-what-are-the-prerequisites-for-the-data-engineering-zoomcamp",
+          "question": "What are the prerequisites for the Data Engineering Zoomcamp?"
+        },
+        {
+          "answer": "Expect to spend 5-15 hours per week, depending on your background. This includes watching videos, completing homework, and working on [the capstone project](#capstone-project). More time may be needed during the final project weeks.",
+          "id": "faq-how-much-time-does-it-take",
+          "question": "How much time does it take?"
+        },
+        {
+          "answer": "Yes! All course materials, videos, and recordings remain available after the cohort ends, and you can learn at your own pace. You'll have access to the [Slack community](https://datatalks.club/slack.html) for support. However, self-paced learning does not include homework submissions, project evaluations, or the ability to earn a [certificate](#how-to-get-a-certificate). To receive a certificate, you need to join an active cohort.",
+          "id": "faq-can-i-learn-at-my-own-pace",
+          "question": "Can I learn at my own pace?"
+        },
+        {
+          "answer": "You have multiple support channels available. Join the [Slack community](https://datatalks.club/slack.html) where you can ask questions and get help from instructors and fellow students. We also have an [FAQ repository](https://github.com/DataTalksClub/faq) with answers to common questions and a @ZoomcampQABot in Slack for quick help.",
+          "id": "faq-what-if-i-get-stuck",
+          "question": "What if I get stuck?"
+        },
+        {
+          "answer": "The GitHub repository is [https://github.com/DataTalksClub/data-engineering-zoomcamp](https://github.com/DataTalksClub/data-engineering-zoomcamp).",
+          "id": "faq-where-is-the-github-repository-for-the-data-engineering-zoomcamp",
+          "question": "Where is the GitHub repository for the Data Engineering Zoomcamp?"
+        },
+        {
+          "answer": "You can find the full syllabus in the readme of the [Data Engineering Zoomcamp GitHub repository](https://github.com/DataTalksClub/data-engineering-zoomcamp).",
+          "id": "faq-where-can-i-find-the-data-engineering-zoomcamp-syllabus",
+          "question": "Where can I find the Data Engineering Zoomcamp syllabus?"
+        },
+        {
+          "answer": "Yes, people use these names interchangeably. Throughout this page we'll use \"Data Engineering Zoomcamp\" as the canonical name.",
+          "id": "faq-is-it-the-same-as-de-zoomcamp-data-engineer-zoomcamp-or-zoomcamp-data",
+          "question": "Is it the same as DE Zoomcamp, Data Engineer Zoomcamp, or Zoomcamp Data Engineering?"
+        },
+        {
+          "answer": "The course focuses on building real-world pipelines and infrastructure with tools like Docker, BigQuery, Spark, and Kafka. Many learners have used the final project and GitHub portfolio as part of their data engineering job search.",
+          "id": "faq-is-the-data-engineering-zoomcamp-good-preparation-for-data-engineering-jobs",
+          "question": "Is the Data Engineering Zoomcamp good preparation for data engineering jobs?"
+        },
+        {
+          "answer": "You can request an invite via the [Slack signup form](/slack.html). After confirming your email, you'll receive an invitation link to join the workspace.",
+          "id": "faq-how-do-i-join-the-datatalks-club-slack-community",
+          "question": "How do I join the DataTalks.Club Slack community?"
+        },
+        {
+          "answer": "The main community hub is [Slack](/slack.html). Data Engineering Zoomcamp also has a [Telegram announcement channel](https://t.me/dezoomcamp), but all core discussion happens in Slack.",
+          "id": "faq-is-there-a-discord-or-telegram-channel-for-datatalks-club",
+          "question": "Is there a Discord or Telegram channel for DataTalks.Club?"
+        }
+      ],
+      "slug": "data-engineering-zoomcamp",
+      "source_path": "_data/faqs/data-engineering-zoomcamp.yml",
+      "source_sha256": "4ee6bc605cf2fcc73b9c7e4106c28516efa3ef7dba85d4c3d8783ad54423ebca"
+    },
+    {
+      "article_source_path": "articles/2025-08-16-free-machine-learning-courses.md",
+      "article_source_sha256": "4a2accf412a0f0b53d43cbef3a41e10655b4dbfc774fd8cc137ff820e3731301",
+      "block_index": 216,
+      "blocks_sha256": "1d8f2e7596b34935dccc20344385e143bfc04e578745dd248899b9fab10bc324",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/free-machine-learning-courses.html",
+      "questions": [
+        {
+          "answer": "Most courses require basic Python knowledge. If you're new to programming, start with Microsoft ML for Beginners or Google ML Crash Course, which include gentler introductions. For intensive programming preparation, consider pairing ML study with foundational Python courses.",
+          "id": "faq-do-i-need-to-know-programming-before-taking-these-courses",
+          "question": "Do I need to know programming before taking these courses?"
+        },
+        {
+          "answer": "Start with Google Machine Learning Crash Course, Microsoft ML for Beginners, or Fast.ai Practical Deep Learning for Coders. These courses teach ML concepts with minimal math prerequisites. Once you're comfortable, you can take the Mathematics for ML Specialization to deepen your understanding.",
+          "id": "faq-which-course-is-best-for-someone-with-no-math-background",
+          "question": "Which course is best for someone with no math background?"
+        },
+        {
+          "answer": "Absolutely! All courses listed offer free access to materials. Certificates are optional and mainly useful for LinkedIn/resume credentials. Your portfolio projects (especially from ML Zoomcamp or FreeCodeCamp) will be more valuable to employers than certificates.",
+          "id": "faq-can-i-really-learn-ml-for-free-or-do-i-need-to-pay-for-certificates",
+          "question": "Can I really learn ML for free, or do I need to pay for certificates?"
+        },
+        {
+          "answer": "For basic competency: 2-3 months with consistent study. For job readiness: 4-6 months including projects. For advanced expertise: 1-2 years of continuous learning and practice. Start with one course (like ML Zoomcamp or DeepLearning.AI Specialization) and build from there.",
+          "id": "faq-how-long-does-it-take-to-learn-machine-learning",
+          "question": "How long does it take to learn machine learning?"
+        },
+        {
+          "answer": "Generally no. Focus on one primary course and one supplementary resource (like Kaggle for practice). Exception: You can pair a math course (Imperial College) with a practical course if you need math foundations.",
+          "id": "faq-should-i-take-multiple-courses-simultaneously",
+          "question": "Should I take multiple courses simultaneously?"
+        },
+        {
+          "answer": "Machine Learning is a subset of AI focused on algorithms that learn from data. These ML courses teach core algorithms (regression, neural networks, decision trees). For broader AI topics including agents, LLMs, and automation, check out our [AI Dev Tools Zoomcamp](/blog/ai-dev-tools-zoomcamp.html).",
+          "id": "faq-what-s-the-difference-between-ml-and-ai-courses",
+          "question": "What's the difference between ML and AI courses?"
+        },
+        {
+          "answer": "Most free courses don't offer formal placement services, but ML Zoomcamp includes an active Slack community where members share job opportunities, and the capstone project creates a strong portfolio piece. Focus on building projects and networking within course communities.",
+          "id": "faq-which-courses-offer-job-placement-support",
+          "question": "Which courses offer job placement support?"
+        },
+        {
+          "answer": "University OpenCourseWare (MIT 6.036, Stanford CS229, etc.) don't offer credit, but platforms like Coursera and edX sometimes offer credit-eligible versions for a fee. Check each platform's credit policies if this is important to you.",
+          "id": "faq-can-i-get-college-credit-for-these-courses",
+          "question": "Can I get college credit for these courses?"
+        }
+      ],
+      "slug": "free-machine-learning-courses",
+      "source_path": "_data/faqs/free-ml-courses.yml",
+      "source_sha256": "157f8e40808aab7bb8c40382956ab9d206a1e41ca4dc85dcb47677ebb7a41c06"
+    },
+    {
+      "article_source_path": "articles/2024-04-11-guide-to-free-online-courses-at-datatalks-club.md",
+      "article_source_sha256": "3a12f0a6a0cd67d162b319d1bce4981f7f1655bc99869d34f78e13303f6f5684",
+      "block_index": 101,
+      "blocks_sha256": "824a29cc20ac5ba95b4662e7961139e38b3332d02dfa37567cddcb7ebb7309ad",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/guide-to-free-online-courses-at-datatalks-club.html",
+      "questions": [
+        {
+          "answer": "Zoomcamp is a term that originated from [Alexey Grigorev](/people/alexeygrigorev.html), the founder of DataTalks.Club. It started with his book \"ML Bookcamp.\" When Alexey decided to create a video course based on the book, he called it \"[Machine Learning Zoomcamp](/blog/machine-learning-zoomcamp.html)\" - a free, cohort-based course in video format. The name \"zoomcamp\" is a play on \"bookcamp,\" referring to the video format of the course. The Zoomcamp series has since expanded to include other free courses like the [Data Engineering Zoomcamp](/blog/data-engineering-zoomcamp.html), [MLOps Zoomcamp](/blog/mlops-zoomcamp.html), and [LLM Zoomcamp](/blog/llm-zoomcamp.html), all following the same community-driven, open-source philosophy.",
+          "id": "faq-why-datatalks-club-courses-are-called-zoomcamps",
+          "question": "Why DataTalks.Club courses are called Zoomcamps?"
+        },
+        {
+          "answer": "Yes. All DataTalks.Club courses (Zoomcamps) are completely free. You get full access to the GitHub repositories, YouTube playlists, homework, and the Slack community without paying anything. The only investment required is your time and commitment.",
+          "id": "faq-are-datatalks-club-zoomcamps-free",
+          "question": "Are DataTalks.Club Zoomcamps free?"
+        },
+        {
+          "answer": "No. All lectures are pre-recorded and available on YouTube, so you can watch them whenever you like. Occasionally, optional live workshops or Q&A sessions are announced in [Slack](/slack.html) and the newsletter, but they are not required to complete the course.",
+          "id": "faq-do-i-need-to-attend-live-sessions",
+          "question": "Do I need to attend live sessions?"
+        },
+        {
+          "answer": "Certificates are available only during live cohorts. To earn one, you need to complete the required project(s) and review other students' submissions before the deadlines. Self-paced learners have full access to the course but are not eligible for certificates.",
+          "id": "faq-how-do-i-earn-a-certificate",
+          "question": "How do I earn a certificate?"
+        },
+        {
+          "answer": "Certificates are not formally accredited, but they validate that you completed a real project using modern tools. Your GitHub portfolio and project work carry the most weight—many learners use their Zoomcamp projects to showcase practical skills in job applications.",
+          "id": "faq-are-the-certificates-recognized-by-employers",
+          "question": "Are the certificates recognized by employers?"
+        },
+        {
+          "answer": "For a live cohort, plan for around 10-15 hours per week to watch lectures, complete homework, and work on the project. Self-paced learners can adjust the workload to their schedule, but more weekly time generally leads to better progress and outcomes.",
+          "id": "faq-how-much-time-should-i-dedicate-per-week",
+          "question": "How much time should I dedicate per week?"
+        },
+        {
+          "answer": "Python is the main programming language used across all Zoomcamps. The exact skill level depends on the course—each course section in this guide lists its prerequisites.",
+          "id": "faq-what-programming-languages-do-i-need-to-know",
+          "question": "What programming languages do I need to know?"
+        },
+        {
+          "answer": "Zoomcamps offer a similar project-based, structured learning experience but are completely free and open source. Bootcamps charge between $2,000 and $10,000+, often restrict access to materials, and follow strict schedules. Zoomcamps are flexible and community-driven—no content paywalls, no time limits, and no tuition fees.",
+          "id": "faq-what-s-the-difference-between-a-datatalks-club-zoomcamp-and-a-typical-bootcamp",
+          "question": "What's the difference between a DataTalks.Club Zoomcamp and a typical bootcamp?"
+        },
+        {
+          "answer": "You can request an invite via the [Slack signup form](/slack.html). After confirming your email, you'll receive an invitation link. Slack is where discussions happen, questions are answered, and announcements for cohorts and workshops are posted.",
+          "id": "faq-how-do-i-join-the-datatalks-club-slack-community",
+          "question": "How do I join the DataTalks.Club Slack community?"
+        }
+      ],
+      "slug": "guide-to-free-online-courses-at-datatalks-club",
+      "source_path": "_data/faqs/free-datatalksclub-courses-zoomcamps.yml",
+      "source_sha256": "dd821050a2a560409f83862e18d19cd37d3ee5384eb0ec4588c5c88f2b939415"
+    },
+    {
+      "article_source_path": "articles/2024-11-11-llm-zoomcamp.md",
+      "article_source_sha256": "cbd70fd5cdb34c942c23b40216f78c777a849e723a930ff1ffcfc8aec17296a8",
+      "block_index": 86,
+      "blocks_sha256": "bc9adff32787d07163d20598ffd2e9381461d096e6d8b886162ebbd64c2e06bd",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/llm-zoomcamp.html",
+      "questions": [
+        {
+          "answer": "The LLM Zoomcamp is a free, community-driven program by [DataTalks.Club](/) that teaches practical applications with large language models through hands-on project work.\n\nThis 10-week course covers a comprehensive [curriculum](#course-curriculum) with all materials open and available anytime on [GitHub](https://github.com/DataTalksClub/llm-zoomcamp). You'll work with an industry-standard stack including OpenAI API, minsearch, PGVector, and Grafana, and earn a [certificate](#can-i-get-a-certificate).",
+          "id": "faq-what-is-the-llm-zoomcamp",
+          "question": "What is the LLM Zoomcamp?"
+        },
+        {
+          "answer": "\"Zoomcamp\" is a term that originated from [Alexey Grigorev](/people/alexeygrigorev.html), the founder of DataTalks.Club. It started with his book \"ML Bookcamp.\" When Alexey decided to create a video course based on the book, he called it \"[Machine Learning Zoomcamp](/blog/machine-learning-zoomcamp.html)\" - a free, cohort-based course in video format. The name \"zoomcamp\" is a play on \"bookcamp,\" referring to the video format of the course. The Zoomcamp series has since expanded to include other free courses like the [Data Engineering Zoomcamp](/blog/data-engineering-zoomcamp.html), [MLOps Zoomcamp](/blog/mlops-zoomcamp.html), and [LLM Zoomcamp](/blog/llm-zoomcamp.html), all following the same community-driven, open-source philosophy.",
+          "id": "faq-what-does-zoomcamp-mean",
+          "question": "What does zoomcamp mean?"
+        },
+        {
+          "answer": "Yes, the LLM Zoomcamp is completely free. There are no hidden costs, no tuition fees, and no paid tiers. All course materials, videos, homework assignments, and access to the [community](#what-is-the-datatalksclub-llm-community) are provided at no cost. Unlike traditional bootcamps that charge $10,000-$20,000+, this course is entirely community-driven and open source.",
+          "id": "faq-is-it-really-free",
+          "question": "Is it really free?"
+        },
+        {
+          "answer": "The LLM Zoomcamp differs from traditional LLM bootcamps in several key ways:\n\n1. **Cost**: Completely free vs. $10,000-$20,000+ for bootcamps\n2. **Community**: Community-driven and open source with all materials available forever on GitHub vs. content locked behind paywalls\n3. **Flexibility**: Can continue at your own pace after the cohort ends vs. rigid schedules and limited access periods",
+          "id": "faq-how-does-the-llm-zoomcamp-compare-to-traditional-llm-bootcamps",
+          "question": "How does the LLM Zoomcamp compare to traditional LLM bootcamps?"
+        },
+        {
+          "answer": "To earn a [certificate](#can-i-get-a-certificate), you need to complete one [capstone project](#course-projects-for-your-portfolio) that demonstrates your mastery of building an end-to-end RAG application. After submitting your project, you must also review at least 3 other students' projects by the deadline and provide constructive feedback.",
+          "id": "faq-how-does-the-llm-zoomcamp-certificate-work",
+          "question": "How does the LLM Zoomcamp certificate work?"
+        },
+        {
+          "answer": "The next cohort of the LLM Zoomcamp typically starts in June each year. Register here: [https://airtable.com/appPPxkgYLH06Mvbw/shr7WtxHEPXxaui0Q](https://airtable.com/appPPxkgYLH06Mvbw/shr7WtxHEPXxaui0Q) before the course starts.",
+          "id": "faq-when-does-the-next-cohort-of-the-llm-zoomcamp-start",
+          "question": "When does the next cohort of the LLM Zoomcamp start?"
+        },
+        {
+          "answer": "The LLM Zoomcamp is run by [DataTalks.Club](/), a global online community of data professionals and learners. While the initial idea and most of the content were created by [Alexey Grigorev](/people/alexeygrigorev.html), members of the DataTalks.Club community contribute as instructors and maintainers.\n\nDataTalks.Club is often referred to as \"the DataTalks Club\", \"data talks club\", or \"datatalks club\".",
+          "id": "faq-who-runs-the-llm-zoomcamp",
+          "question": "Who runs the LLM Zoomcamp?"
+        },
+        {
+          "answer": "To get the most out of this course, you should be comfortable with programming and Python, command line, and Docker. No previous exposure to AI or ML is required. The course is designed to teach you everything you need to know about LLMs and RAG from the ground up.",
+          "id": "faq-what-background-knowledge-do-i-need-to-take-the-llm-zoomcamp-course",
+          "question": "What background knowledge do I need to take the LLM Zoomcamp? Course prerequisites."
+        },
+        {
+          "answer": "Expect to spend 5-15 hours per week, depending on your background. This includes watching videos, completing homework, and working on [the capstone project](#course-projects-for-your-portfolio). More time may be needed during the final project weeks.",
+          "id": "faq-how-much-time-should-i-expect-to-spend",
+          "question": "How much time should I expect to spend?"
+        },
+        {
+          "answer": "Yes! All course materials, videos, and recordings remain available after the cohort ends, and you can learn at your own pace. You'll have access to the [Slack community](/slack.html) for support. However, self-paced learning does not include homework submissions, project evaluations, or the ability to earn a [certificate](#can-i-get-a-certificate). To receive a certificate, you need to join an active cohort.",
+          "id": "faq-can-i-take-the-course-in-self-paced-mode",
+          "question": "Can I take the course in self-paced mode?"
+        },
+        {
+          "answer": "No, certificates are only available when completing the course with a live cohort. Self-paced mode does not include homework submissions, project evaluations, or certificates. This is because the certification process requires you to peer-review three capstone projects, and these peer reviews only happen during the active course period. Additionally, the submission form closes after the peer-review list is compiled. Self-paced learners can access all course materials and the Slack community, but must join a live cohort to earn a certificate.",
+          "id": "faq-can-i-get-a-certificate-in-self-paced-mode",
+          "question": "Can I get a certificate in self-paced mode?"
+        },
+        {
+          "answer": "Yes, but if you want to receive a certificate, you need to submit your project while we're still accepting submissions.",
+          "id": "faq-can-i-still-join-if-i-just-discovered-the-course",
+          "question": "Can I still join if I just discovered the course?"
+        },
+        {
+          "answer": "You don't need a confirmation email. You are automatically accepted into the course. You can even start learning and submitting homework (while the form is open) without registering, as submissions are not checked against any registered list. Registration is primarily used to gauge interest before the start date.",
+          "id": "faq-do-i-need-a-confirmation-email-after-registration",
+          "question": "Do I need a confirmation email after registration?"
+        },
+        {
+          "answer": "There are no office hours—all lectures are pre-recorded and available in the [YouTube playlist](https://www.youtube.com/playlist?list=PL3MmuxUbc_hLZFNgSad56pDBKK8KO0XIv), so you can watch them whenever it suits you.\n\nAll course materials are in the [GitHub repository](https://github.com/DataTalksClub/llm-zoomcamp). Each module has its own folder (for example, 01-intro or 02-vector-search), while cohort-specific homework and deadlines are located in cohorts/2026.\n\nOccasionally, additional workshops or updated implementation videos are released—there will be additional announcements if this happens.",
+          "id": "faq-how-do-i-join-the-office-hours-or-live-sessions",
+          "question": "How do I join the office hours or live sessions?"
+        },
+        {
+          "answer": "Yes! The only requirement for receiving a certificate is completing the capstone project. Homework assignments are not mandatory, though they are recommended for reinforcing concepts and understanding the material better. Your homework points will count toward your position on the course leaderboard, but they don't affect certificate eligibility.",
+          "id": "faq-can-i-still-get-a-certificate-if-i-missed-the-first-homework",
+          "question": "Can I still get a certificate if I missed the first homework?"
+        },
+        {
+          "answer": "You have multiple support channels available. Join the [DataTalks.Club Slack community](/slack.html) where you can ask questions and get help from instructors and fellow students. We also have an [FAQ repository](https://github.com/DataTalksClub/faq) with answers to common questions and a @ZoomcampQABot in Slack for quick help.",
+          "id": "faq-what-if-i-get-stuck",
+          "question": "What if I get stuck?"
+        },
+        {
+          "answer": "The GitHub repository is [https://github.com/DataTalksClub/llm-zoomcamp](https://github.com/DataTalksClub/llm-zoomcamp).",
+          "id": "faq-where-is-the-github-repository",
+          "question": "Where is the GitHub repository?"
+        },
+        {
+          "answer": "Course videos are available in the [YouTube playlist](https://www.youtube.com/playlist?list=PL3MmuxUbc_hLZFNgSad56pDBKK8KO0XIv). For easier navigation, refer to the [GitHub repository](https://github.com/DataTalksClub/llm-zoomcamp). We also maintain [year-specific playlists](https://www.youtube.com/@DataTalksClub/playlists) for updates.",
+          "id": "faq-where-can-i-find-the-course-videos",
+          "question": "Where can I find the course videos?"
+        },
+        {
+          "answer": "You need to complete one capstone project to earn a certificate. The capstone project is a comprehensive end-to-end RAG application that demonstrates your mastery of all course concepts including retrieval, vector databases, evaluation, monitoring, and LLM orchestration. After submitting your project, you'll also need to review at least 3 other students' projects. [Learn more about the capstone project](#course-projects-for-your-portfolio) and [certificate requirements](#can-i-get-a-certificate).",
+          "id": "faq-how-many-projects-do-i-need-to-complete-for-the-certificate",
+          "question": "How many projects do I need to complete for the certificate?"
+        },
+        {
+          "answer": "Large Language Models (LLMs) are AI systems trained on vast amounts of text data that can understand and generate human-like text. They power applications like ChatGPT, code assistants, and intelligent search systems. Learning LLMs is essential for anyone looking to build AI-powered applications, implement RAG (Retrieval-Augmented Generation) systems, or work with modern NLP technologies. The demand for LLM skills is rapidly growing across industries.",
+          "id": "faq-what-are-llms-and-why-should-i-learn-them",
+          "question": "What are LLMs and why should I learn them?"
+        },
+        {
+          "answer": "RAG (Retrieval-Augmented Generation) is a technique that combines information retrieval with LLM generation to create AI systems that can answer questions about specific knowledge bases. RAG is crucial because it allows LLMs to access up-to-date information and domain-specific knowledge that wasn't in their training data. This course teaches you to build production-ready RAG systems from scratch.",
+          "id": "faq-what-is-rag-and-why-is-it-important",
+          "question": "What is RAG and why is it important?"
+        },
+        {
+          "answer": "The course covers essential LLM tools and platforms including OpenAI API for LLM integration, PGVector for vector search, Kestra for orchestration, Grafana for monitoring, and evaluation techniques. You'll also learn monitoring best practices, agent patterns, and data ingestion pipelines.",
+          "id": "faq-what-tools-and-technologies-will-i-learn",
+          "question": "What tools and technologies will I learn?"
+        },
+        {
+          "answer": "The DataTalks.Club LLM community is a supportive network of 80,000+ data professionals and learners. As part of the LLM Zoomcamp, you'll have access to a dedicated course channel in [Slack](/slack.html) where you can ask questions, get help from instructors and peers, share your progress, and connect with like-minded individuals. The community provides technical support, peer learning opportunities, and networking that can lead to collaborations and career opportunities. This active community is one of the key differentiators of the LLM Zoomcamp experience.",
+          "id": "faq-what-is-the-datatalks-club-llm-community",
+          "question": "What is the DataTalks.Club LLM community?"
+        },
+        {
+          "answer": "This comprehensive training covers the complete large language model application lifecycle. You'll receive hands-on training in building RAG systems, working with open-source and commercial LLMs, implementing vector databases and search, evaluating and monitoring LLM applications, orchestrating LLM pipelines, and deploying production-ready LLM systems. The course includes 7 core technical modules, weekly homework assignments, and a capstone project. This practical training prepares you for real-world AI applications and is taught by expert instructors from the DataTalks.Club community.",
+          "id": "faq-what-llm-training-does-this-course-provide",
+          "question": "What LLM training does this course provide?"
+        },
+        {
+          "answer": "Yes! This is a completely free LLM course, with a certificate available when you complete the course with a live cohort. There are no hidden costs or tuition fees. To earn your certificate, you'll need to complete the technical modules, build one capstone RAG project, participate in peer reviews, and follow LLM best practices. This free course provides the same quality training as paid bootcamps but at no cost. Certificates, homework submissions, and project evaluations are only available when participating in a live cohort, not in self-paced mode.",
+          "id": "faq-is-this-a-free-llm-course-with-certificate",
+          "question": "Is this a free LLM course with certificate?"
+        },
+        {
+          "answer": "Yes, certificates are available when completing the course with a live cohort. Requirements include completing the technical modules, building one capstone RAG project, participating in peer reviews (reviewing at least 3 other students' projects), and following LLM best practices. Certificates, homework submissions, and project evaluations are not available in self-paced mode.",
+          "id": "faq-can-i-get-a-certificate",
+          "question": "Can I get a certificate?"
+        }
+      ],
+      "slug": "llm-zoomcamp",
+      "source_path": "_data/faqs/llm-zoomcamp.yml",
+      "source_sha256": "929884a0f905a26726b993719a04e7de79880ac32629ceb73e70b5f73086834c"
+    },
+    {
+      "article_source_path": "articles/2023-08-17-machine-learning-zoomcamp.md",
+      "article_source_sha256": "dff47f21ffc57424f9f9c3fe7bc6af46f3351c23edde8336026e55d4239e68c2",
+      "block_index": 144,
+      "blocks_sha256": "7e7d7374d8499ccf0f058b28a8d4250049a46f2ad4ec1976213c2dde8560a7ee",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/machine-learning-zoomcamp.html",
+      "questions": [
+        {
+          "answer": "The course runs for 4 months (September - December) and is divided into two main parts: Part 1 covers ML foundations (regression, classification, decision trees, neural networks with TensorFlow and PyTorch), and Part 2 focuses on production deployment (FastAPI, Docker, Kubernetes, AWS Lambda, serverless architectures). You'll complete weekly homework assignments and 2 projects (either midterm + capstone OR two capstones). Expect to dedicate around 10 hours per week for coursework and projects. [Learn more about the curriculum](#course-curriculum-what-youll-learn-in-the-machine-learning-zoomcamp).",
+          "id": "faq-how-is-ml-zoomcamp-structured",
+          "question": "How is ML Zoomcamp structured?"
+        },
+        {
+          "answer": "The course is kept current with the tools used in industry today: 1) the deployment module uses FastAPI (replacing Flask) with modern deployment tools, 2) neural networks are taught with PyTorch (theory videos in Keras are retained, with additional PyTorch implementation videos), and 3) deep learning deployment uses ONNX Runtime on AWS Lambda (replacing TensorFlow Lite).",
+          "id": "faq-how-up-to-date-is-the-ml-zoomcamp-course-content",
+          "question": "How up to date is the ML Zoomcamp course content?"
+        },
+        {
+          "answer": "You can choose between two learning paths: self-paced learning, where you can start immediately with pre-recorded materials freely available on [GitHub](https://github.com/DataTalksClub/machine-learning-zoomcamp) and learn at your own pace with [Slack community](https://datatalks.club/slack.html) support, or [joining our live cohort](https://courses.datatalks.club/register/ml-zoomcamp/) starting on September 14, 2026, to learn alongside peers with structured deadlines, submit homework for automatic scoring, complete 2 peer-reviewed projects (either midterm + capstone OR two capstones), and earn a certificate. Certificates are only available for cohort participants. [Learn more about getting started](#how-to-get-started-with-the-machine-learning-zoomcamp).",
+          "id": "faq-how-do-i-get-started-with-ml-zoomcamp",
+          "question": "How do I get started with ML Zoomcamp?"
+        },
+        {
+          "answer": "The live cohort includes a structured learning path with deadlines, automatically scored homework assignments, peer interaction and community support through [Slack](https://datatalks.club/slack.html), the opportunity to earn a certificate through submitting 2 projects (either midterm + capstone OR two capstones) and peer review, and access to all pre-recorded course materials on [YouTube](https://www.youtube.com/playlist?list=PL3MmuxUbc_hIhxl5Ji8t4O6lPAOpHaCLR). [See how it works](#how-the-machine-learning-zoomcamp-works).",
+          "id": "faq-what-s-included-in-the-live-cohort",
+          "question": "What's included in the live cohort?"
+        },
+        {
+          "answer": "To earn a certificate, you'll need to complete and submit 2 projects: either a [midterm project](https://github.com/DataTalksClub/machine-learning-zoomcamp/tree/master#midterm-project) and a [capstone project](https://github.com/DataTalksClub/machine-learning-zoomcamp/tree/master#capstone-project-1), OR two [capstone projects](https://github.com/DataTalksClub/machine-learning-zoomcamp/tree/master#capstone-project-1). You'll also need to review 3 peers' projects by the deadline. Projects must be completed individually, and you must be part of a cohort to be eligible.",
+          "id": "faq-how-do-i-get-certified",
+          "question": "How do I get certified?"
+        },
+        {
+          "answer": "All homework assignments are automatically scored when you submit your answers through the homework form. You'll see your results on an anonymous leaderboard, which fosters healthy competition among participants. You can earn additional bonus points through \"learning in public\"—sharing your progress, insights, and projects on social media, blogs, or YouTube. While homework doesn't count toward certification, it provides valuable practice and helps you track your progress throughout the course.",
+          "id": "faq-how-is-homework-scored",
+          "question": "How is homework scored?"
+        },
+        {
+          "answer": "Yes! While you might miss some homework deadlines, you can still join and get certified by completing 2 projects (either midterm + capstone OR two capstones) and the required peer reviews. All course materials remain accessible.",
+          "id": "faq-can-i-join-ml-zoomcamp-after-the-course-has-started",
+          "question": "Can I join ML Zoomcamp after the course has started?"
+        },
+        {
+          "answer": "Machine learning has become a foundational technology driving the global AI market, valued at [$184 billion in 2024 and projected to reach $826 billion by 2030](https://www.statista.com/forecasts/1474143/global-ai-market-size). ML powers applications you use daily: ChatGPT, DALL-E, autonomous vehicles, and recommendation engines on streaming platforms. According to the [World Economic Forum's Future of Jobs Report 2025](https://reports.weforum.org/docs/WEF_Future_of_Jobs_Report_2025.pdf), AI and machine learning specialists are among the top three fastest-growing roles between 2025 and 2030, with an expected global net growth of 82%. The demand for skilled ML professionals continues to grow across all industries. [Learn more about why learn machine learning](#why-learn-machine-learning).",
+          "id": "faq-why-should-i-learn-machine-learning-in-2026",
+          "question": "Why should I learn machine learning in 2026?"
+        },
+        {
+          "answer": "You should be familiar with basic Python concepts like variables, libraries, and Jupyter notebooks. If you need to brush up, we recommend taking our Introduction to Python course first.",
+          "id": "faq-what-python-skills-do-i-need",
+          "question": "What Python skills do I need?"
+        },
+        {
+          "answer": "Join our active [Slack community](https://datatalks.club/slack.html) of 80,000+ data professionals on the #course-ml-zoomcamp channel. You can troubleshoot problems with peers, share your progress, ask questions, and get help from the @ZoomcampQABot. The course also has a comprehensive [FAQ repository](https://datatalks.club/faq/machine-learning-zoomcamp.html) covering common questions and technical issues. Sharing your journey on social media with #mlzoomcamp earns you bonus points and helps build your online portfolio. [Learn more about the community](#what-is-datatalksclub-community-a-place-to-connect-and-learn-with-other-machine-learning-professionals).",
+          "id": "faq-how-do-i-join-the-slack-community",
+          "question": "How do I join the Slack community?"
+        },
+        {
+          "answer": "The course is suitable for anyone with programming experience (1+ year) and command line familiarity. You don't need a PhD in mathematics or prior ML experience—the course starts from first principles with a gentle math refresher. However, machine learning is technical and requires dedication. You'll work with concepts from linear algebra, calculus, and statistics. The learning curve can be steep, and you'll need patience to debug models, handle messy data, and troubleshoot deployment issues. The course is ideal for software developers, data analysts, CS students, and career changers with technical backgrounds. [Learn more about prerequisites](#course-prerequisites) and [who can learn machine learning](#who-can-learn-machine-learning).",
+          "id": "faq-is-ml-zoomcamp-suitable-for-beginners",
+          "question": "Is ML Zoomcamp suitable for beginners?"
+        },
+        {
+          "answer": "You'll need a laptop with an internet connection and basic tools installed (Python, Git, Docker). The course uses Jupyter Notebooks for development, and you'll work with Python libraries including NumPy, Pandas, scikit-learn, TensorFlow, PyTorch, and XGBoost. For deployment, you'll use Docker, FastAPI, and optionally cloud platforms like AWS Lambda and Kubernetes. For deep learning sections, cloud resources may be recommended for intensive computations.",
+          "id": "faq-what-do-i-need-to-get-started",
+          "question": "What do I need to get started?"
+        },
+        {
+          "answer": "While all course materials are freely available for self-paced learning on [GitHub](https://github.com/DataTalksClub/machine-learning-zoomcamp), joining a cohort offers additional benefits: a structured timeline with regular deadlines, the ability to submit homework for automatic scoring and appear on the leaderboard, submit 2 projects (either midterm + capstone OR two capstones) for peer evaluation, active peer learning and discussion in [Slack](https://datatalks.club/slack.html), the opportunity to earn a certificate, and a shared learning experience with others facing similar challenges. Self-paced learners can access all materials and the Slack community but cannot submit homework, participate in project evaluations, or earn certificates. Many students find the cohort structure helps them stay motivated and complete the course successfully. [See the comparison](#how-to-get-started-with-the-machine-learning-zoomcamp).",
+          "id": "faq-what-s-the-difference-between-self-paced-and-cohort-learning",
+          "question": "What's the difference between self-paced and cohort learning?"
+        },
+        {
+          "answer": "All course materials on [GitHub](https://github.com/DataTalksClub/machine-learning-zoomcamp), videos on [YouTube](https://www.youtube.com/playlist?list=PL3MmuxUbc_hIhxl5Ji8t4O6lPAOpHaCLR), and recordings remain available after the cohort ends, and you can learn at your own pace. You'll have access to the [Slack community](https://datatalks.club/slack.html) for support. However, self-paced learning does not include homework submissions, project evaluations, or the ability to earn a certificate. To receive a certificate, you need to [join an active cohort](https://courses.datatalks.club/register/ml-zoomcamp/).",
+          "id": "faq-what-support-is-available-for-self-paced-learners",
+          "question": "What support is available for self-paced learners?"
+        },
+        {
+          "answer": "There are no office hours—all lectures are pre-recorded and available in the [YouTube playlist](https://www.youtube.com/playlist?list=PL3MmuxUbc_hIhxl5Ji8t4O6lPAOpHaCLR), so you can watch them whenever it suits you.\n\nAll course materials are in the [ML Zoomcamp GitHub repository](https://github.com/DataTalksClub/machine-learning-zoomcamp). Each module has its own folder (for example, 01-intro or 03-classification), while cohort-specific homework and deadlines are located in cohorts/2025.\n\nOccasionally, additional workshops or updated implementation videos are released—there will be additional announcements if this happens.",
+          "id": "faq-are-there-office-hours-or-live-sessions",
+          "question": "Are there office hours or live sessions?"
+        },
+        {
+          "answer": "To maximize the course's career impact, we recommend starting your project planning early and building portfolio-worthy projects that solve real problems. Stay engaged with the Slack community and share your learning journey on social media using #mlzoomcamp. Take time to review and learn from other students' projects. When job hunting, use your projects to demonstrate practical skills in applications and interviews—many of our alumni have successfully leveraged their course projects to showcase their machine learning capabilities during the hiring process.",
+          "id": "faq-how-can-ml-zoomcamp-help-my-career",
+          "question": "How can ML Zoomcamp help my career?"
+        },
+        {
+          "answer": "The Machine Learning Zoomcamp is a free machine learning engineering course by [DataTalks.Club](https://datatalks.club/) that teaches you to build and deploy ML models in production environments—bridging the gap between training models in notebooks and running them in real-world applications.\n\nThis 4-month course covers the complete ML workflow: from fundamental algorithms (linear regression, logistic regression, decision trees, neural networks) to production deployment (Docker, FastAPI, Kubernetes, AWS Lambda). You'll learn model persistence, containerization, API development, and deployment strategies while building two portfolio-ready projects. All materials are open and available on [GitHub](https://github.com/DataTalksClub/machine-learning-zoomcamp). [Learn more](#what-is-machine-learning-zoomcamp).",
+          "id": "faq-what-is-ml-zoomcamp",
+          "question": "What is ML Zoomcamp?"
+        },
+        {
+          "answer": "Unlike most ML courses that stop at model training in Jupyter notebooks, ML Zoomcamp teaches the complete production workflow. You'll learn practical deployment skills that most courses skip: model persistence and containerization with Docker, API development with FastAPI for turning models into web services, and deployment strategies including both server-based deployments (Kubernetes) and serverless architectures (AWS Lambda). You'll understand trade-offs, cost implications, and when to choose each approach. The course emphasizes hands-on learning with real projects that demonstrate you can build, deploy, and maintain production ML systems—not just train models.",
+          "id": "faq-what-makes-ml-zoomcamp-different-from-other-ml-courses",
+          "question": "What makes ML Zoomcamp different from other ML courses?"
+        },
+        {
+          "answer": "Yes, ML Zoomcamp is completely free. There are no hidden costs, no tuition fees, and no paid tiers. All course materials, videos, homework assignments, and access to the [Slack community](https://datatalks.club/slack.html) are provided at no cost. Unlike traditional bootcamps that charge $10,000-$20,000+, this course is entirely community-driven and open source.",
+          "id": "faq-is-ml-zoomcamp-really-free",
+          "question": "Is ML Zoomcamp really free?"
+        },
+        {
+          "answer": "ML Zoomcamp differs from traditional machine learning bootcamps in several key ways:\n\n1. **Cost**: Completely free vs. $2,000-$10,000+ for bootcamps\n2. **Format**: 4-month cohort with fixed schedule vs. typically 12-24 weeks for bootcamps\n3. **Community**: [80,000+ member community](https://datatalks.club/slack.html) vs. smaller closed cohorts\n4. **Projects**: 2 peer-reviewed projects (midterm + capstone OR two capstones) vs. instructor-reviewed projects\n5. **Learning in Public**: Encouraged with bonus points vs. rarely emphasized\n6. **Access**: All materials remain on [GitHub](https://github.com/DataTalksClub/machine-learning-zoomcamp) forever vs. locked behind paywalls\n7. **Flexibility**: Can continue self-paced after cohort vs. rigid bootcamp schedules\n\nML Zoomcamp is best for career switchers and experienced engineers who want community and accountability. Bootcamps suit those who need intensive structured mentorship. [See detailed comparison](#machine-learning-zoomcamp-vs-bootcamp-whats-the-difference).",
+          "id": "faq-how-does-ml-zoomcamp-compare-to-bootcamps",
+          "question": "How does ML Zoomcamp compare to bootcamps?"
+        }
+      ],
+      "slug": "machine-learning-zoomcamp",
+      "source_path": "_data/faqs/machine-learning-zoomcamp.yml",
+      "source_sha256": "bbc406e7b8f8cc1577aea324cc8b81cd752971094ad9b20114c8c3fbf10a059e"
+    },
+    {
+      "article_source_path": "articles/2024-03-07-mlops-zoomcamp.md",
+      "article_source_sha256": "7cbd7b4e5d99bc92dd11dde48f4b68cf7b49c2873c6535406ce4dacf576bdd45",
+      "block_index": 86,
+      "blocks_sha256": "e1bdf3974db0a5148063d1aa19215f700a0b033a5a43af31cd31a97b33dc7770",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/mlops-zoomcamp.html",
+      "questions": [
+        {
+          "answer": "The MLOps Zoomcamp is a free, community-driven program by [DataTalks.Club](/) that teaches core MLOps skills through hands-on project work.\n\nThis 3-month course covers a comprehensive [curriculum](#course-curriculum) with all materials open and available anytime on [GitHub](https://github.com/DataTalksClub/mlops-zoomcamp). You'll work with an industry-standard stack including MLflow, Docker, AWS, Prometheus, Grafana, and GitHub Actions and earn a [certificate](#can-i-get-a-certificate).",
+          "id": "faq-what-is-the-mlops-zoomcamp",
+          "question": "What is the MLOps Zoomcamp?"
+        },
+        {
+          "answer": "\"Zoomcamp\" is a term that originated from [Alexey Grigorev](/people/alexeygrigorev.html), the founder of DataTalks.Club. It started with his book \"ML Bookcamp.\" When Alexey decided to create a video course based on the book, he called it \"[Machine Learning Zoomcamp](/blog/machine-learning-zoomcamp.html)\" - a free, cohort-based course in video format. The name \"zoomcamp\" is a play on \"bookcamp,\" referring to the video format of the course. The Zoomcamp series has since expanded to include other free courses like the [Data Engineering Zoomcamp](/blog/data-engineering-zoomcamp.html), [MLOps Zoomcamp](/blog/mlops-zoomcamp.html), and [LLM Zoomcamp](/blog/llm-zoomcamp.html), all following the same community-driven, open-source philosophy.",
+          "id": "faq-what-does-zoomcamp-mean",
+          "question": "What does zoomcamp mean?"
+        },
+        {
+          "answer": "Yes, the MLOps Zoomcamp is completely free. There are no hidden costs, no tuition fees, and no paid tiers. All course materials, videos, homework assignments, and access to the [community](#what-is-the-datatalksclub-mlops-community) are provided at no cost. Unlike traditional bootcamps that charge $10,000-$20,000+, this course is entirely community-driven and open source.",
+          "id": "faq-is-it-really-free",
+          "question": "Is it really free?"
+        },
+        {
+          "answer": "The MLOps Zoomcamp differs from traditional MLOps bootcamps in several key ways:\n\n1. **Cost**: Completely free vs. $10,000-$20,000+ for bootcamps\n2. **Community**: Community-driven and open source with all materials available forever on GitHub vs. content locked behind paywalls\n3. **Flexibility**: Can continue at your own pace after the cohort ends vs. rigid schedules and limited access periods",
+          "id": "faq-how-does-the-mlops-zoomcamp-compare-to-traditional-mlops-bootcamps",
+          "question": "How does the MLOps Zoomcamp compare to traditional MLOps bootcamps?"
+        },
+        {
+          "answer": "To earn a [certificate](#can-i-get-a-certificate), you need to complete one [end-to-end MLOps project](#project-phase) that demonstrates your mastery of all course concepts. After submitting your project, you must also review at least 3 other students' projects by the deadline and provide constructive feedback.",
+          "id": "faq-how-does-the-mlops-zoomcamp-certificate-work",
+          "question": "How does the MLOps Zoomcamp certificate work?"
+        },
+        {
+          "answer": "The next cohort of the MLOps Zoomcamp typically starts in the spring each year. Register here: [https://airtable.com/appYdhA23GVZd1iN2/shrCb8y6eTbPKwSTL](https://airtable.com/appYdhA23GVZd1iN2/shrCb8y6eTbPKwSTL) before the course starts.",
+          "id": "faq-when-does-the-next-cohort-of-the-mlops-zoomcamp-start",
+          "question": "When does the next cohort of the MLOps Zoomcamp start?"
+        },
+        {
+          "answer": "The MLOps Zoomcamp is run by [DataTalks.Club](/), a global online community of data professionals and learners. While the initial idea and most of the content were created by [Alexey Grigorev](/people/alexeygrigorev.html), members of the DataTalks.Club community contribute as instructors and maintainers. Expert instructors include Cristian Martinez, Emeli Dral, and others.\n\nDataTalks.Club is often referred to as \"the DataTalks Club\", \"data talks club\", or \"datatalks club\".",
+          "id": "faq-who-runs-the-mlops-zoomcamp",
+          "question": "Who runs the MLOps Zoomcamp?"
+        },
+        {
+          "answer": "To get the most out of this MLOps course, you should have prior programming experience (1+ year), basic understanding of machine learning concepts, familiarity with Python, basic command line knowledge, and previous exposure to Docker (recommended). Prior exposure to machine learning from work or other courses (e.g., from [ML Zoomcamp](/blog/machine-learning-zoomcamp.html)) is helpful.",
+          "id": "faq-what-background-knowledge-do-i-need-to-take-the-mlops-zoomcamp-course",
+          "question": "What background knowledge do I need to take the MLOps Zoomcamp? Course prerequisites."
+        },
+        {
+          "answer": "Expect to spend 5-15 hours per week, depending on your background. This includes watching videos, completing homework, and working on [the final project](#project-phase). More time may be needed during the final project weeks.",
+          "id": "faq-how-much-time-should-i-expect-to-spend",
+          "question": "How much time should I expect to spend?"
+        },
+        {
+          "answer": "Yes! All course materials, videos, and recordings remain available after the cohort ends, and you can learn at your own pace. You'll have access to the [Slack community](/slack.html) for support. However, self-paced learning does not include homework submissions, project evaluations, or the ability to earn a [certificate](#can-i-get-a-certificate). To receive a certificate, you need to join an active cohort.",
+          "id": "faq-can-i-take-the-course-in-self-paced-mode",
+          "question": "Can I take the course in self-paced mode?"
+        },
+        {
+          "answer": "You have multiple support channels available. Join the [DataTalks.Club Slack community](/slack.html) where you can ask questions and get help from instructors and fellow students. We also have an [FAQ repository](https://github.com/DataTalksClub/faq) with answers to common questions and a @ZoomcampQABot in Slack for quick help.",
+          "id": "faq-what-if-i-get-stuck",
+          "question": "What if I get stuck?"
+        },
+        {
+          "answer": "The GitHub repository is [https://github.com/DataTalksClub/mlops-zoomcamp](https://github.com/DataTalksClub/mlops-zoomcamp).",
+          "id": "faq-where-is-the-official-mlops-zoomcamp-github-repository",
+          "question": "Where is the official MLOps Zoomcamp GitHub repository?"
+        },
+        {
+          "answer": "Course videos are available in the [YouTube playlist](https://www.youtube.com/playlist?list=PL3MmuxUbc_hIhxl5Ji8t4O6lPAOpHaCLR). For easier navigation, refer to the [GitHub repository](https://github.com/DataTalksClub/mlops-zoomcamp). We also maintain [year-specific playlists](https://www.youtube.com/@DataTalksClub/playlists) for updates.",
+          "id": "faq-where-can-i-find-the-course-videos",
+          "question": "Where can I find the course videos?"
+        },
+        {
+          "answer": "There are no office hours—all lectures are pre-recorded and available in the [YouTube playlist](https://www.youtube.com/playlist?list=PL3MmuxUbc_hIhxl5Ji8t4O6lPAOpHaCLR), so you can watch them whenever it suits you.\n\nAll course materials are in the [GitHub repository](https://github.com/DataTalksClub/mlops-zoomcamp). Each module has its own folder (for example, 01-intro or 03-classification), while cohort-specific homework and deadlines are located in cohorts/2025.\n\nOccasionally, additional workshops or updated implementation videos are released—there will be additional announcements if this happens.",
+          "id": "faq-how-do-i-join-the-office-hours-or-live-sessions",
+          "question": "How do I join the office hours or live sessions?"
+        },
+        {
+          "answer": "You need to complete one end-to-end MLOps project to earn a certificate. The project is a comprehensive MLOps solution that demonstrates your mastery of all course concepts including experiment tracking, pipeline orchestration, model deployment, and monitoring. After submitting your project, you'll also need to review at least 3 other students' projects. [Learn more about the final project](#project-phase) and [certificate requirements](#can-i-get-a-certificate).",
+          "id": "faq-how-many-projects-do-i-need-to-complete-for-the-certificate",
+          "question": "How many projects do I need to complete for the certificate?"
+        },
+        {
+          "answer": "MLOps (Machine Learning Operations) is a set of practices that combines Machine Learning, DevOps, and Data Engineering. It enables automating ML pipelines, deploying models to production, monitoring model performance, and ensuring ML system reliability. Learning MLOps is essential for anyone working with machine learning in production environments.",
+          "id": "faq-what-is-mlops-and-why-should-i-learn-it",
+          "question": "What is MLOps and why should I learn it?"
+        },
+        {
+          "answer": "The course covers essential MLOps tools and platforms including MLflow for experiment tracking, Docker for containerization, AWS services (including Kinesis), Prometheus and Grafana for monitoring, ML pipeline orchestration concepts, and GitHub Actions for CI/CD.",
+          "id": "faq-what-tools-and-technologies-will-i-learn",
+          "question": "What tools and technologies will I learn?"
+        },
+        {
+          "answer": "MLOps experiment tracking is a core component of the course. You'll learn to use MLflow for comprehensive experiment tracking, including tracking model parameters, metrics, and artifacts. The course covers implementing model registry and versioning, organizing ML experiments effectively, and comparing experiment results. This hands-on training ensures you can manage and reproduce ML experiments in production environments.",
+          "id": "faq-how-does-mlops-experiment-tracking-work-in-this-course",
+          "question": "How does MLOps experiment tracking work in this course?"
+        },
+        {
+          "answer": "While this course does not provide an official MLflow certification from the MLflow creators, you'll receive comprehensive MLflow training as part of the MLOps Zoomcamp. The course includes in-depth coverage of MLflow for experiment tracking, model registry, and versioning. Upon completing the course with a live cohort, you'll earn a DataTalks.Club MLOps Zoomcamp certificate that demonstrates your proficiency with MLflow and other MLOps tools. This practical training is more valuable than a standalone certification as it's integrated into a complete production ML workflow.",
+          "id": "faq-does-this-course-provide-mlflow-certification",
+          "question": "Does this course provide MLflow certification?"
+        },
+        {
+          "answer": "The DataTalks.Club MLOps community is a supportive network of 80,000+ data professionals and learners. As part of the MLOps Zoomcamp, you'll have access to a dedicated course channel in [Slack](/slack.html) where you can ask questions, get help from instructors and peers, share your progress, and connect with like-minded individuals. The community provides technical support, peer learning opportunities, and networking that can lead to collaborations and career opportunities. This active community is one of the key differentiators of the MLOps Zoomcamp experience.",
+          "id": "faq-what-is-the-datatalks-club-mlops-community",
+          "question": "What is the DataTalks.Club MLOps community?"
+        },
+        {
+          "answer": "This comprehensive training covers the complete machine learning operations lifecycle. You'll receive hands-on training in experiment tracking with MLflow, containerization with Docker, ML pipeline orchestration concepts, model deployment (batch, real-time, and streaming), monitoring with Prometheus and Grafana, and CI/CD with GitHub Actions. The course includes 6 core technical modules, weekly homework assignments, and a final end-to-end project. This practical training prepares you for real-world production ML systems and is taught by expert instructors including Cristian Martinez, Alexey Grigorev, and Emeli Dral.",
+          "id": "faq-what-mlops-training-does-this-course-provide",
+          "question": "What MLOps training does this course provide?"
+        },
+        {
+          "answer": "Yes! This is a completely free MLOps course, with a certificate available when you complete the course with a live cohort. There are no hidden costs or tuition fees. To earn your certificate, you'll need to complete the technical modules, build one end-to-end MLOps project, participate in peer reviews, and follow MLOps best practices. This free course provides the same quality training as paid bootcamps but at no cost. Certificates, homework submissions, and project evaluations are only available when participating in a live cohort, not in self-paced mode.",
+          "id": "faq-is-this-a-free-mlops-course-with-certificate",
+          "question": "Is this a free MLOps course with certificate?"
+        },
+        {
+          "answer": "Yes, certificates are available when completing the course with a live cohort. Requirements include completing the technical modules, building one final end-to-end MLOps project, participating in peer reviews, and following MLOps best practices. Note that certificates, homework submissions, and project evaluations are not available in self-paced mode.",
+          "id": "faq-can-i-get-a-certificate",
+          "question": "Can I get a certificate?"
+        }
+      ],
+      "slug": "mlops-zoomcamp",
+      "source_path": "_data/faqs/mlops-zoomcamp.yml",
+      "source_sha256": "0fed174314cd7fcb89c3bf04b38d0b5eada8e6b25c733b7493c4d46c39e87f23"
+    },
+    {
+      "article_source_path": "articles/2025-12-25-open-source-free-ai-agent-evaluation-tools.md",
+      "article_source_sha256": "11603339a20a515f867c5c588e55918a1632b35efda4fcc10de8362f31fa3bfa",
+      "block_index": 95,
+      "blocks_sha256": "1d906e7072f0221b385e515e5429c55bd67411c5c9714a4260c182c0898e72e8",
+      "heading_id": "faqs",
+      "public_path": "/blog/open-source-free-ai-agent-evaluation-tools.html",
+      "questions": [
+        {
+          "answer": "Open-source tools like Arize Phoenix, DeepEval, and Ragas are fully public and self-hosted. You can inspect or modify code, use them at no cost, and run them locally or in your cloud environment. Free hosted services such as LangSmith's free tier or Arize AX's free tier provide a managed platform with UIs and storage, but may have usage limits.",
+          "id": "faq-what-s-the-difference-between-open-source-and-free-ai-agent-evaluation-tools",
+          "question": "What's the difference between open-source and free AI agent evaluation tools?"
+        },
+        {
+          "answer": "Most tools have free, open-source versions. OpenAI Evals, DeepEval, Ragas, Promptfoo, and Comet Opik, are completely free. Arize Phoenix is open-source; Arize AX has a free tier. LangSmith offers a free developer plan with 5k traces/month.",
+          "id": "faq-do-i-need-to-pay-to-use-these-ai-agent-evaluation-tools",
+          "question": "Do I need to pay to use these AI agent evaluation tools?"
+        },
+        {
+          "answer": "Yes. Tools like Arize Phoenix and Arize AX, LangSmith, DeepEval, Ragas, and Opik are built for multi-turn, multi-tool agents. They can trace an entire agent trajectory and compute metrics on full sessions.",
+          "id": "faq-can-these-ai-agent-evaluation-tools-evaluate-multi-step-agents",
+          "question": "Can these AI agent evaluation tools evaluate multi-step agents?"
+        },
+        {
+          "answer": "Yes. They serve complementary needs. For example, OpenAI Evals or DeepEval can handle offline benchmarking, while Arize or Opik can monitor live traffic. Promptfoo can be used in CI pipelines for security checks.",
+          "id": "faq-can-i-use-multiple-ai-agent-evaluation-tools-together",
+          "question": "Can I use multiple AI agent evaluation tools together?"
+        },
+        {
+          "answer": "Yes. Nearly all tools allow user-defined metrics. Arize Phoenix and Arize AX both support LLM-judge rubrics or Python or TypeScript code. Ragas supports custom Python metrics via callbacks or decorators.",
+          "id": "faq-do-these-tools-support-custom-evaluation-metrics",
+          "question": "Do these tools support custom evaluation metrics?"
+        },
+        {
+          "answer": "Arize Phoenix and Arize AX provide dedicated TypeScript (Node) SDKs for instrumentation and evaluation. Promptfoo and LangSmith are primarily CLI/web tools but integrate with any codebase.",
+          "id": "faq-which-ai-agent-evaluation-tool-has-the-best-typescript-support",
+          "question": "Which AI agent evaluation tool has the best TypeScript support?"
+        },
+        {
+          "answer": "All listed tools are free to use; open-source ones have permissive licenses. Some, like Arize AX or LangSmith, have paid tiers but offer generous free plans. Scoring may involve LLM calls, which can incur API costs, but the frameworks themselves don't charge.",
+          "id": "faq-are-these-ai-agent-evaluation-tools-truly-free",
+          "question": "Are these AI agent evaluation tools truly free?"
+        },
+        {
+          "answer": "Observability captures what the agent is doing in real time through tracing, logging, and dashboards. Evaluation measures quality against criteria or ground truth. Tools like Arize and Opik combine both by logging traces and attaching evaluators.",
+          "id": "faq-what-s-the-difference-between-observability-and-evaluation-in-ai-agent-tools",
+          "question": "What's the difference between observability and evaluation in AI agent tools?"
+        }
+      ],
+      "slug": "open-source-free-ai-agent-evaluation-tools",
+      "source_path": "_data/faqs/open-source-free-ai-agent-evaluation-tools.yml",
+      "source_sha256": "8135dbb7eb59cf51d8696faf34ec50cc851cbc897cd134806467873e776b47ce"
+    },
+    {
+      "article_source_path": "articles/2020-12-23-slack-communities.md",
+      "article_source_sha256": "da28b0e9b65005342aedf79fca6a7616a98ab38acd9e92e0d08c4c28982f3c7f",
+      "block_index": 119,
+      "blocks_sha256": "4164fa350b470714cf3c6ac7f397172ab788dbb19932a1dd5682a5a3082dc8f3",
+      "heading_id": "frequently-searched-questions",
+      "public_path": "/blog/slack-communities.html",
+      "questions": [
+        {
+          "answer": "Most communities have a public invitation link that you can click to join directly. For invite-only communities, you'll need to sign up on their website or request an invitation from an existing member. Some require approval before you can join.",
+          "id": "faq-how-do-i-join-these-slack-communities",
+          "question": "How do I join these Slack communities?"
+        },
+        {
+          "answer": "Go to the <a href=\"#mlops-community\">MLOps Community</a> section and click “Join here.” That link takes you to the community's official signup page for instant Slack access.",
+          "id": "faq-how-do-i-join-the-mlops-community-slack",
+          "question": "How do I join the MLOps Community Slack?"
+        },
+        {
+          "answer": "Go to the <a href=\"#dbt-community\">dbt Community</a> section and click “Join here.” That link takes you to the community's official signup page for instant Slack access.",
+          "id": "faq-how-do-i-join-the-dbt-community-slack",
+          "question": "How do I join the dbt Community Slack?"
+        },
+        {
+          "answer": "Go to the <a href=\"#locally-optimistic\">Locally Optimistic</a> section and click “Join here.” That link takes you to the community's official signup page for instant Slack access.",
+          "id": "faq-how-do-i-join-the-locally-optimistic-slack",
+          "question": "How do I join the Locally Optimistic Slack?"
+        },
+        {
+          "answer": "Go to the <a href=\"#open-data-science-community\">Open Data Science Community</a> section and click “Join here.” That link takes you to the community's official signup page for instant Slack access.",
+          "id": "faq-how-do-i-join-the-open-data-science-ods-ai-slack",
+          "question": "How do I join the Open Data Science (ODS.ai) Slack?"
+        },
+        {
+          "answer": "Yes, this page. Browse the table at the top for categories, then jump to any section for a description and a direct join link.",
+          "id": "faq-is-there-a-list-of-public-slack-communities-i-can-join",
+          "question": "Is there a list of public Slack communities I can join?"
+        },
+        {
+          "answer": "Go to the <a href=\"#open-data-science-community\">Open Data Science Community</a> section and click “Join here.” That link takes you to the community's official signup page for instant Slack access.",
+          "id": "faq-how-do-i-join-open-data-science-ods-ai-slack",
+          "question": "How do I join Open Data Science (ODS.ai) Slack?"
+        },
+        {
+          "answer": "Yes, all the Slack communities listed here are free to join. However, some may have premium tiers or paid events associated with their broader organizations.",
+          "id": "faq-are-these-communities-free-to-join",
+          "question": "Are these communities free to join?"
+        },
+        {
+          "answer": "Most communities have an introduction channel where you can introduce yourself as a new member. Take time to read the community guidelines, explore different channels, and observe the conversation style before jumping in. Many have specific channels for beginners or newcomers.",
+          "id": "faq-what-should-i-expect-when-i-first-join",
+          "question": "What should I expect when I first join?"
+        },
+        {
+          "answer": "Activity levels vary significantly. Large communities like MLOps Community (27,900+ members) and PySlackers (38,600+ members) have constant activity, while smaller, specialized groups may have more focused but less frequent discussions. We've only included communities that are currently active as of 2025.",
+          "id": "faq-how-active-are-these-communities",
+          "question": "How active are these communities?"
+        },
+        {
+          "answer": "Absolutely! You can be a member of several communities to get diverse perspectives and access different types of expertise. Just be mindful of managing notifications across multiple Slack workspaces.",
+          "id": "faq-can-i-join-multiple-communities",
+          "question": "Can I join multiple communities?"
+        },
+        {
+          "answer": "Several communities are explicitly beginner-friendly, including Data Science Learning Community, KaggleNoobs, and the general channels in DataTalks.Club. Look for channels labeled \"beginners,\" \"newbies,\" or \"help\" in any community you join.",
+          "id": "faq-what-if-i-m-a-complete-beginner",
+          "question": "What if I'm a complete beginner?"
+        },
+        {
+          "answer": "Many communities have dedicated job boards or career channels. MLOps Community, DataTalks.Club, and Data Science Salon are particularly good for job postings. Always read the community guidelines about job posting etiquette before you share opportunities.",
+          "id": "faq-how-do-i-find-job-opportunities-in-these-communities",
+          "question": "How do I find job opportunities in these communities?"
+        },
+        {
+          "answer": "Most communities allow self-promotion in moderation, but always check the specific rules first. Many have dedicated channels for sharing projects, blog posts, or resources. The key is for you to be genuinely helpful to the community, not just promotional.",
+          "id": "faq-can-i-promote-my-own-projects-or-content",
+          "question": "Can I promote my own projects or content?"
+        },
+        {
+          "answer": "Since the Slack ecosystem changes frequently, some links may break over time. We've verified all links as of September 2025, but if you find an issue, try searching for the community's main website or reaching out to current members on other platforms like LinkedIn or Twitter.",
+          "id": "faq-what-if-a-community-becomes-inactive-or-the-link-doesn-t-work",
+          "question": "What if a community becomes inactive or the link doesn't work?"
+        }
+      ],
+      "slug": "slack-communities",
+      "source_path": "_data/faqs/data-science-slack-communities.yml",
+      "source_sha256": "fb5f148871e077676427191828606910d15066a4d4bd939d4ec5091b862eaccb"
+    },
+    {
+      "article_source_path": "articles/2026-07-28-sponsor-datatalks-club.md",
+      "article_source_sha256": "13a24719cf8a21caa2026f7fa15e35bc57679491adbb37539e404e484da1d16c",
+      "block_index": 131,
+      "blocks_sha256": "2d156401ba40dcf5482577f4f111d44d9a08d665885dd613e0f9843c485a9d86",
+      "heading_id": "frequently-asked-questions",
+      "public_path": "/blog/sponsor-datatalks-club.html",
+      "questions": [
+        {
+          "answer": "Companies that develop products to help data engineers, ML engineers, AI engineers, data scientists, and analytics teams. That includes developer tool vendors, cloud and data infrastructure providers, ML and LLM platforms, observability and orchestration tools, open-source projects looking for adoption, conferences and events looking for attendees, and recruiters hiring data talent. If the people who adopt your product are practitioners rather than a procurement department, our audience is a good fit.",
+          "id": "faq-who-should-sponsor-datatalks-club",
+          "question": "Who should sponsor DataTalks.Club?"
+        },
+        {
+          "answer": "Our weekly newsletter (three placement types, including a dedicated stand-alone send), free Zoomcamp courses (a brand mention, a hands-on workshop inside a module, or an entire course module built around your tool), stand-alone live workshops streamed on YouTube, podcast episodes, guest posts on the DataTalks.Club blog, in-person Berlin meetups and workshops, and personal recommendations from Alexey Grigorev on LinkedIn and X. You can combine formats into a single campaign.",
+          "id": "faq-what-can-we-sponsor",
+          "question": "What can we sponsor?"
+        },
+        {
+          "answer": "Pricing depends on the format and on how many placements you book. Newsletter placements are the most accessible entry point, while full course modules are the deepest and most expensive integration. Email alexey@datatalks.club and we'll send you our media kit, which lists the current rates for every format along with the numbers behind them, plus a recommendation for what fits your goals and budget.",
+          "id": "faq-how-much-does-sponsorship-cost",
+          "question": "How much does sponsorship cost?"
+        },
+        {
+          "answer": "We never share subscriber email addresses or personal information with sponsors. For workshops and events, attendees can opt in to share their contact details with you, and only those opt-in contacts are passed on. This is a hard rule and it is the reason our audience trusts what we send them.",
+          "id": "faq-do-you-share-our-leads-or-your-subscriber-emails",
+          "question": "Do you share our leads or your subscriber emails?"
+        },
+        {
+          "answer": "You can send us a draft, and we'll adapt it. Every placement goes through a content template that we refine together before it runs. Copy that reads like a vendor ad underperforms with this audience, so we push toward the technical, specific version of your message. You approve the final version before it goes out.",
+          "id": "faq-can-we-write-the-copy-ourselves",
+          "question": "Can we write the copy ourselves?"
+        },
+        {
+          "answer": "After a newsletter placement runs, you get a report with opens, clicks, and click-through rate. For workshops and courses, you get view counts, live attendance, and homework submission numbers where applicable. For podcasts and articles, you get listen and traffic numbers. We share the actual data, including when a campaign underperforms.",
+          "id": "faq-what-kind-of-reporting-do-we-get",
+          "question": "What kind of reporting do we get?"
+        },
+        {
+          "answer": "Newsletter slots are best booked one to two months in advance, and popular weeks go earlier. Course sponsorships need the most lead time, since the content has to be built into the curriculum before a cohort starts. Our courses launch in January (Data Engineering), May (MLOps), June (LLM), September (Machine Learning), and November (AI Dev Tools), so plan several months ahead for those.",
+          "id": "faq-how-far-in-advance-do-we-need-to-book",
+          "question": "How far in advance do we need to book?"
+        },
+        {
+          "answer": "Yes. Many of our sponsors were Series A or earlier when they first worked with us, and several ran their first developer marketing campaign with us. Newsletter placements and podcast episodes are the usual starting point for smaller budgets. Full course modules are open-source only, which also makes them a fit for young projects building adoption.",
+          "id": "faq-do-you-work-with-early-stage-startups",
+          "question": "Do you work with early-stage startups?"
+        },
+        {
+          "answer": "Yes, and some of our best collaborations started that way. We've done swag giveaways, hackathons and competitions, course design help, roundtable discussions, and sponsored community lunches. If you have an idea for reaching data and AI practitioners, email us and we'll tell you honestly whether we think it will work.",
+          "id": "faq-can-we-do-something-that-isn-t-on-this-list",
+          "question": "Can we do something that isn't on this list?"
+        }
+      ],
+      "slug": "sponsor-datatalks-club",
+      "source_path": "_data/faqs/sponsor-datatalks-club.yml",
+      "source_sha256": "570b29149f0b4e5f46df806b14de694192bddd0620bf8dcd6f955beece18e465"
+    }
+  ],
+  "content_sha256": "babcf58c2c9ac094bc0aaf1d441c50e109f0884a1896eeb4f938235d2a38e141",
+  "counts": {
+    "articles": 10,
+    "questions": 159
+  },
+  "projection": {
+    "article_count": 55,
+    "path": "content/public_projection/articles.json",
+    "sha256": "119972c04b7b6df972f35950bea20e00ff7f90f7820c07105126fa0b616211db"
+  },
+  "schema_version": 1,
+  "source": {
+    "directory": "_data/faqs",
+    "repository": "DataTalksClub/datatalksclub.github.io",
+    "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5"
+  }
+}
