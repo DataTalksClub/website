@@ -1,6 +1,11 @@
 {% comment %}
 Reusable "Extend deadline" submenu for the Studio Courses actions dropdown.
 
+Design 5a (issue #179): the icon font is one of the stylesheets a page in this
+system does not load, so the open/closed marker is drawn by the base's
+.admin-submenu-toggle rule from the [open] state instead of by a glyph.  Every
+action, URL, confirm prompt and posted value is unchanged.
+
 Context:
   extend_url         action URL that applies the extension (POST)
   title              homework/project title, used in the confirm prompt
@@ -8,18 +13,17 @@ Context:
                      "both deadlines")
   extension_options  iterable of ExtensionOption(days, label)
 {% endcomment %}
-<details class="studio-courses-submenu">
-  <summary class="studio-courses-action-item studio-courses-submenu-toggle">
-    <i class="fas fa-clock" aria-hidden="true"></i> Extend deadline
-    <i class="fas fa-chevron-down studio-courses-submenu-caret" aria-hidden="true"></i>
+<details class="admin-submenu">
+  <summary class="admin-menu-item admin-submenu-toggle">
+    Extend deadline
   </summary>
-  <div class="studio-courses-submenu-panel">
+  <div class="admin-submenu-panel">
     {% for option in extension_options %}
       <form method="post" action="{{ extend_url }}" onsubmit="return confirm('Extend {{ deadline_label }} for {{ title }} by {{ option.label }}?');">
         {% csrf_token %}
         <input type="hidden" name="days" value="{{ option.days }}">
-        <button type="submit" class="studio-courses-action-item studio-courses-submenu-item">
-          <i class="fas fa-plus" aria-hidden="true"></i> {{ option.label }}
+        <button type="submit" class="admin-menu-item">
+          {{ option.label }}
         </button>
       </form>
     {% endfor %}

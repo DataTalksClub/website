@@ -1,15 +1,37 @@
-{% extends 'site_base.html' %}
+{% extends "studio/base.html" %}
+{% load static %}
+{% comment %}
+  The design 5a shell for the Studio Courses pages (issue #179).
 
-{% block title %}Courses · Studio{% endblock %}
+  It extends studio/base.html rather than repeating it, for the reason that base
+  gives: these are ~15 more near-identical staff pages, and the admin patterns they
+  need — the data table, the filter bar, the actions menu, the fact list, the
+  notice — are the same ones the rest of Studio needs.  Defining them once, in the
+  Studio base's own style block, is what keeps the two sections one surface instead
+  of two that drift.  A Studio Courses page therefore inherits the whole design 5a
+  document (one inline stylesheet, no external CSS, the shared masthead/footer/script
+  partials) and adds only what is its own: the breadcrumb trail back to Studio, the
+  local-date script its deadline columns use, and its content block.
 
-{% block body_class %}studio-courses-page{% endblock %}
+  Blocks a page fills here: title, breadcrumbs (the li items after "Studio"),
+  studio_courses_content, and everything studio/base.html exposes (head_meta,
+  extra_styles, page_head, extra_js).
+
+  The trail is the design system's .breadcrumbs primitive: a nav holding an ol, one
+  li per level, every ancestor a link, and the page itself as plain text on
+  li[aria-current="page"] — a page's own breadcrumbs block supplies its levels and
+  marks its last one.
+{% endcomment %}
+
+{% block title %}
+  Courses · Studio
+{% endblock %}
 
 {% block breadcrumbs_nav %}
-  <nav class="breadcrumbs mb-6 text-sm app-muted md:mb-8"
-       aria-label="Breadcrumb">
-    <ul class="m-0 flex list-none flex-wrap items-center gap-y-2 p-0">
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      {% url 'studio:home' as studio_home_url %}
       <li>
-        {% url 'studio:home' as studio_home_url %}
         {% if studio_home_url %}
           <a href="{{ studio_home_url }}">Studio</a>
         {% else %}
@@ -17,32 +39,25 @@
         {% endif %}
       </li>
       {% block breadcrumbs %}
-        <li>
-          <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+        <li aria-current="page">
+          Courses
         </li>
       {% endblock %}
-    </ul>
+    </ol>
   </nav>
 {% endblock %}
 
 {% block content %}
-  {% if messages %}
-    <div class="space-y-3">
-      {% for message in messages %}
-        <div class="rounded-md border app-alert-warning px-4 py-3 text-sm" role="alert">
-          <div class="flex items-start justify-between gap-3">
-            <span>{{ message }}</span>
-            <button type="button"
-                    class="-m-2 flex h-9 w-9 flex-none items-center justify-center text-lg leading-none opacity-70 hover:opacity-100"
-                    data-dismiss="alert"
-                    aria-label="Close">&times;</button>
-          </div>
-        </div>
-      {% endfor %}
-    </div>
-  {% endif %}
-  <div class="studio-courses-shell">
-    {% block studio_courses_content %}
-    {% endblock %}
-  </div>
+  {% block studio_courses_content %}
+  {% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+  {% comment %}
+    The deadline and submission columns render a server-side timestamp that
+    local_date.js rewrites into the reader's own timezone; the design 5a shell
+    carries only the site-wide script set, so this surface adds its own after it.
+  {% endcomment %}
+  <script src="{% static 'local_date.js' %}"></script>
+  <script src="{% static 'time_left.js' %}"></script>
 {% endblock %}

@@ -1,170 +1,215 @@
 {% extends 'studio_courses/base.html' %}
 {% load custom_filters %}
-{% block breadcrumbs %}
-  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
-  <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
-  <li><a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">{{ homework.title }} Submissions</a></li>
-  <li><a href="{% url 'studio_courses_homework_submission_edit' course.slug homework.slug submission.id %}">Edit Submission</a></li>
+{% comment %}
+  Design 5a (issue #179): the homework submission grading form.
+
+  A grading surface, so the port is presentational only: the form still posts
+  to its own URL with the same CSRF token, the same answer_<question id>,
+  learning_in_public_links, faq_contribution_url and faq_score field names and
+  the same clear-links confirm prompt.  The classes changed because a design
+  5a page loads no Tailwind, no courses.css and no icon font: the slabs are
+  the Studio base's .admin-section, the fields are the system's
+  .field/.field-label/.field-input, the read-only scores are .admin-facts and
+  the correct/incorrect marker is a .status-pill (the system has no danger
+  colour, so "Incorrect" is carried by its word on the attention surface).
+{% endcomment %}
+
+{% block title %}
+  Edit homework submission
 {% endblock %}
+
+{% block breadcrumbs %}
+  <li>
+    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+  </li>
+  <li>
+    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
+  </li>
+  <li>
+    <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">{{ homework.title }} Submissions</a>
+  </li>
+  <li aria-current="page">
+    Edit Submission
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">{{ homework.title }}</p>
+    <h1>Edit Homework Submission</h1>
+  </div>
+{% endblock %}
+
 {% block studio_courses_content %}
-  <section class="border-b app-border pb-5">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ homework.title }}</p>
-    <h1 class="mt-2 text-2xl font-semibold app-heading md:text-3xl">Edit Homework Submission</h1>
-    <div class="dense-utility-links mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-      <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}" class="app-link">Back to Submissions</a>
-      <a href="{% url 'homework' course.slug homework.slug %}" class="app-link">
-        <i class="fas fa-external-link-alt"></i> Public
-      </a>
-      <a href="/admin/courses/submission/{{ submission.id }}/change/" class="app-link">
-        <i class="fas fa-edit"></i> Django
-      </a>
+  <section class="admin-section" aria-labelledby="homework-submission-heading">
+    <div class="admin-section-head">
+      <h2 id="homework-submission-heading">Submission</h2>
     </div>
-  </section>
-  <section class="mt-5 text-sm">
-    <dl class="grid gap-x-6 gap-y-3 border-b app-border pb-5 md:grid-cols-[minmax(0,1fr)_10rem_7rem] md:items-start">
-      <div class="min-w-0">
-        <dt class="text-xs font-semibold uppercase app-muted">Student</dt>
-        <dd class="mt-1 min-w-0">
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span class="font-semibold app-heading">{{ submission.student.username }}</span>
-            <a href="{% url 'studio_courses_enrollment_edit' course.slug submission.enrollment.id %}" class="app-link">
-              <i class="fas fa-user-edit"></i> Manage enrollment
-            </a>
-          </div>
-          {% if submission.student.email %}
-            <div class="mt-1 truncate text-xs app-muted">{{ submission.student.email }}</div>
-          {% endif %}
+
+    <div class="admin-toolbar">
+      <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">Back to Submissions</a>
+      <a href="{% url 'homework' course.slug homework.slug %}" title="View public homework page">Public</a>
+      <a href="/admin/courses/submission/{{ submission.id }}/change/" title="Edit in Django Admin">Django</a>
+    </div>
+
+    <dl class="admin-facts">
+      <div>
+        <dt>Student</dt>
+        <dd>{{ submission.student.username }}</dd>
+        {% if submission.student.email %}
+          <dd class="admin-note">{{ submission.student.email }}</dd>
+        {% endif %}
+        <dd>
+          <a href="{% url 'studio_courses_enrollment_edit' course.slug submission.enrollment.id %}">Manage enrollment</a>
         </dd>
       </div>
       <div>
-        <dt class="text-xs font-semibold uppercase app-muted">Submitted</dt>
-        <dd class="mt-1 font-medium app-heading">{{ submission.submitted_at|date:"Y-m-d H:i" }}</dd>
+        <dt>Submitted</dt>
+        <dd>{{ submission.submitted_at|date:"Y-m-d H:i" }}</dd>
       </div>
       <div>
-        <dt class="text-xs font-semibold uppercase app-muted">Total score</dt>
-        <dd class="mt-1 text-lg font-semibold app-heading">{{ submission.total_score }}</dd>
+        <dt>Total score</dt>
+        <dd>{{ submission.total_score }}</dd>
       </div>
     </dl>
   </section>
-  <form class="mt-6 space-y-8" method="post">
+
+  <form method="post" class="admin-stack">
     {% csrf_token %}
-    <section class="rounded-md border app-border app-surface">
-      <div class="border-b app-border app-surface-muted px-4 py-3">
-        <h2 class="text-base font-semibold app-heading">Current Scores (Read-Only)</h2>
+
+    <section class="admin-section" aria-labelledby="current-scores-heading">
+      <div class="admin-section-head">
+        <h2 id="current-scores-heading">Current Scores (Read-Only)</h2>
       </div>
-      <dl class="grid gap-3 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-md app-surface-muted p-3 ">
-          <dt class="text-xs font-semibold uppercase app-muted">Questions Score</dt>
-          <dd class="mt-1 text-lg font-semibold app-heading">{{ submission.questions_score }}</dd>
+      <dl class="admin-facts">
+        <div>
+          <dt>Questions Score</dt>
+          <dd>{{ submission.questions_score }}</dd>
         </div>
-        <div class="rounded-md app-surface-muted p-3 ">
-          <dt class="text-xs font-semibold uppercase app-muted">FAQ Score</dt>
-          <dd class="mt-1 text-lg font-semibold app-heading">{{ faq_score }}</dd>
+        <div>
+          <dt>FAQ Score</dt>
+          <dd>{{ faq_score }}</dd>
         </div>
-        <div class="rounded-md app-surface-muted p-3 ">
-          <dt class="text-xs font-semibold uppercase app-muted">LiP Score</dt>
-          <dd class="mt-1 text-lg font-semibold app-heading">{{ submission.learning_in_public_score }}</dd>
+        <div>
+          <dt>LiP Score</dt>
+          <dd>{{ submission.learning_in_public_score }}</dd>
         </div>
-        <div class="rounded-md app-surface-muted p-3 ">
-          <dt class="text-xs font-semibold uppercase app-muted">Total Score</dt>
-          <dd class="mt-1 text-lg font-semibold app-heading">{{ submission.total_score }}</dd>
+        <div>
+          <dt>Total Score</dt>
+          <dd>{{ submission.total_score }}</dd>
         </div>
       </dl>
-      <p class="border-t app-border px-4 py-3 text-sm app-muted ">Scores are recalculated on save. If the total changes, the leaderboard is updated.</p>
+      <p class="admin-note">Scores are recalculated on save. If the total changes, the leaderboard is updated.</p>
     </section>
-    <section>
-      <h2 class="text-base font-semibold app-heading">Question Answers</h2>
+
+    <section class="admin-section" aria-labelledby="question-answers-heading">
+      <div class="admin-section-head">
+        <h2 id="question-answers-heading">Question Answers</h2>
+      </div>
       {% if questions_with_answers %}
-        <div class="mt-3 divide-y app-divide border-y app-border">
+        <div class="row-list">
           {% for item in questions_with_answers %}
-            <article class="py-4">
-              <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div class="min-w-0">
-                  <h3 class="font-medium app-heading">Question {{ forloop.counter }}: {{ item.question.text }}</h3>
-                  <p class="mt-1 text-sm app-muted"> Type: {{ item.question.get_question_type_display }}
-                    {% if item.question.correct_answer %}
-                      · Correct Answer: {{ item.question.correct_answer }}
+            <article class="list-row" style="--row-cols: minmax(0, 1fr)">
+              <div>
+                <h3>Question {{ forloop.counter }}: {{ item.question.text }}</h3>
+                <p class="admin-note">
+                  Type: {{ item.question.get_question_type_display }}
+                  {% if item.question.correct_answer %}
+                    · Correct Answer: {{ item.question.correct_answer }}
+                  {% endif %}
+                </p>
+                {% if item.answer %}
+                  <p>
+                    {% if item.answer.is_correct %}
+                      <span class="status-pill status-pill-live">Correct</span>
+                    {% else %}
+                      <span class="status-pill status-pill-wait">Incorrect</span>
                     {% endif %}
                   </p>
-                </div>
-                {% if item.answer %}
-                  <span class="app-badge {% if item.answer.is_correct %}app-badge-success{% else %}app-badge-danger{% endif %}">
-                    {% if item.answer.is_correct %}
-                      Correct
-                    {% else %}
-                      Incorrect
-                    {% endif %}
-                  </span>
                 {% endif %}
               </div>
-              <div class="mt-4">
+              <div class="field">
                 {% if item.question.question_type == "MC" %}
-                  <label class="settings-label mb-2 block text-sm font-semibold" for="answer_{{ item.question.id }}">Answer (option number)</label>
-                  <input type="text" class="form-control" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" value="{{ item.answer_text }}" placeholder="Enter option number">
+                  <label class="field-label" for="answer_{{ item.question.id }}">Answer (option number)</label>
+                  <input type="text" class="field-input" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" value="{{ item.answer_text }}" placeholder="Enter option number">
                 {% elif item.question.question_type == "CB" %}
-                  <label class="settings-label mb-2 block text-sm font-semibold" for="answer_{{ item.question.id }}">Answer (comma-separated option numbers)</label>
-                  <input type="text" class="form-control" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" value="{{ item.answer_text }}" placeholder="e.g., 1,3,4">
+                  <label class="field-label" for="answer_{{ item.question.id }}">Answer (comma-separated option numbers)</label>
+                  <input type="text" class="field-input" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" value="{{ item.answer_text }}" placeholder="e.g., 1,3,4">
                 {% elif item.question.question_type == "FL" %}
-                  <label class="settings-label mb-2 block text-sm font-semibold" for="answer_{{ item.question.id }}">Answer</label>
-                  <textarea class="form-control" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" rows="4">{{ item.answer_text }}</textarea>
+                  <label class="field-label" for="answer_{{ item.question.id }}">Answer</label>
+                  <textarea class="field-input" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" rows="4">{{ item.answer_text }}</textarea>
                 {% else %}
-                  <label class="settings-label mb-2 block text-sm font-semibold" for="answer_{{ item.question.id }}">Answer</label>
-                  <input type="text" class="form-control" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" value="{{ item.answer_text }}">
+                  <label class="field-label" for="answer_{{ item.question.id }}">Answer</label>
+                  <input type="text" class="field-input" id="answer_{{ item.question.id }}" name="answer_{{ item.question.id }}" value="{{ item.answer_text }}">
                 {% endif %}
                 {% if item.question.possible_answers %}
-                  <p class="settings-helper mt-1 text-xs leading-5"> Options: {% for option in item.question.get_possible_answers %} {{ forloop.counter }}. {{ option }}{% if not forloop.last %}, {% endif %}{% endfor %} </p>
+                  <p class="field-hint">
+                    Options: {% for option in item.question.get_possible_answers %}{{ forloop.counter }}. {{ option }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                  </p>
                 {% endif %}
               </div>
             </article>
           {% endfor %}
         </div>
       {% else %}
-        <p class="px-4 py-6 text-sm app-muted">No questions found for this homework.</p>
+        <p class="admin-empty">No questions found for this homework.</p>
       {% endif %}
     </section>
-    <section class="space-y-8">
-      <section>
-        <h2 class="text-base font-semibold app-heading">Learning in Public Links</h2>
-        <div class="mt-3">
-          <label class="settings-label mb-2 block text-sm font-semibold" for="learning_in_public_links">Links (one per line)</label>
-          <textarea class="form-control" id="learning_in_public_links" name="learning_in_public_links" rows="4" placeholder="https://example.com/post1&#10;https://example.com/post2">{{ learning_in_public_links_text }}</textarea>
-          <p class="settings-helper mt-1 text-xs leading-5">Each link contributes to the learning in public score, capped at {{ homework.learning_in_public_cap }}.</p>
-          <button type="button" class="primer-button primer-button-secondary mt-3" id="clear-lip-links" onclick="clearLearningInPublicLinks()">
-            <i class="fas fa-trash"></i> Remove LiP Links </button>
+
+    <section class="admin-section" aria-labelledby="learning-in-public-heading">
+      <div class="admin-section-head">
+        <h2 id="learning-in-public-heading">Learning in Public Links</h2>
+      </div>
+      <div class="admin-form">
+        <div class="field">
+          <label class="field-label" for="learning_in_public_links">Links (one per line)</label>
+          <textarea class="field-input" id="learning_in_public_links" name="learning_in_public_links" rows="4" placeholder="https://example.com/post1&#10;https://example.com/post2">{{ learning_in_public_links_text }}</textarea>
+          <p class="field-hint">Each link contributes to the learning in public score, capped at {{ homework.learning_in_public_cap }}.</p>
         </div>
-      </section>
-      <section>
-        <h2 class="text-base font-semibold app-heading">FAQ Contribution</h2>
-        <div class="mt-3 space-y-4">
-          <div>
-            <label class="settings-label mb-2 block text-sm font-semibold" for="faq_contribution_url">FAQ entry</label>
-            <input type="text"
-                   class="form-control"
-                   id="faq_contribution_url"
-                   name="faq_contribution_url"
-                   placeholder="https://github.com/DataTalksClub/faq/issues/281"
-                   value="{{ faq_contribution_url }}">
-            <p class="settings-helper mt-1 text-xs leading-5">Admin-editable FAQ issue, PR, or reference submitted for this homework.</p>
-          </div>
-          <div>
-            <label class="settings-label mb-2 block text-sm font-semibold" for="faq_score">FAQ score</label>
-            <input type="number"
-                   class="form-control"
-                   id="faq_score"
-                   name="faq_score"
-                   min="0"
-                   value="{{ faq_score }}">
-          </div>
+        <div class="admin-form-actions">
+          <button type="button" class="cta cta-compact cta-secondary" id="clear-lip-links" onclick="clearLearningInPublicLinks()">Remove LiP Links</button>
         </div>
-      </section>
+      </div>
     </section>
-    <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-      <button type="submit" class="primer-button studio-courses-primary">Save Changes</button>
-      <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}" class="primer-button primer-button-secondary">Cancel</a>
+
+    <section class="admin-section" aria-labelledby="faq-contribution-heading">
+      <div class="admin-section-head">
+        <h2 id="faq-contribution-heading">FAQ Contribution</h2>
+      </div>
+      <div class="admin-form">
+        <div class="field">
+          <label class="field-label" for="faq_contribution_url">FAQ entry</label>
+          <input type="text"
+                 class="field-input"
+                 id="faq_contribution_url"
+                 name="faq_contribution_url"
+                 placeholder="https://github.com/DataTalksClub/faq/issues/281"
+                 value="{{ faq_contribution_url }}">
+          <p class="field-hint">Admin-editable FAQ issue, PR, or reference submitted for this homework.</p>
+        </div>
+        <div class="field">
+          <label class="field-label" for="faq_score">FAQ score</label>
+          <input type="number"
+                 class="field-input"
+                 id="faq_score"
+                 name="faq_score"
+                 min="0"
+                 value="{{ faq_score }}">
+        </div>
+      </div>
+    </section>
+
+    <div class="admin-form-actions">
+      <button type="submit" class="cta cta-compact cta-primary">Save Changes</button>
+      <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}" class="cta cta-compact cta-secondary">Cancel</a>
     </div>
   </form>
+
   <script>
-    function clearLearningInPublicLinks() { if (confirm('Are you sure you want to remove all learning in public links for this submission? This will set the learning in public score to 0.')) { document.getElementById('learning_in_public_links').value = ''; }
+    function clearLearningInPublicLinks() {
+      if (confirm('Are you sure you want to remove all learning in public links for this submission? This will set the learning in public score to 0.')) {
+        document.getElementById('learning_in_public_links').value = '';
+      }
     }
   </script>
 {% endblock %}

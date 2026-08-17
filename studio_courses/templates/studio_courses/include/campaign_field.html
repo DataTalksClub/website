@@ -1,18 +1,30 @@
 {% load accessibility %}
+{% comment %}
+  One campaign form field, on design 5a (issue #179).
+
+  The label, the help text and the error line are the design system's own
+  `.field` primitives now, so the campaign form no longer has to restate a
+  label or a helper rule of its own for them.  The widget still carries the
+  copied platform's `form-control` / `form-check-input` class from
+  `studio_courses/forms.py`, which the page it is included on styles.
+
+  Behaviour is untouched: the same accessible widget renderer, the same
+  help-text and error identifiers wired to it, and the same error copy.
+{% endcomment %}
 {% accessibility_help_id field as help_id %}
 {% accessibility_error_id field as error_id %}
-<div>
-  <label for="{{ field.id_for_label }}" class="settings-label mb-2 block text-sm font-semibold">
+<div class="field">
+  <label class="field-label" for="{{ field.id_for_label }}">
     {{ field.label }}
   </label>
   {% accessible_widget field %}
   {% if field.help_text %}
-    <p id="{{ help_id }}" class="settings-helper mt-1 text-xs leading-5">
+    <p id="{{ help_id }}" class="field-hint">
       {{ field.help_text }}
     </p>
   {% endif %}
   {% if field.errors %}
-    <p id="{{ error_id }}" class="a11y-error mt-1 text-sm app-danger-text">
+    <p id="{{ error_id }}" class="a11y-error">
       <span class="sr-only">Error:</span>
       {{ field.errors|join:" " }}
     </p>

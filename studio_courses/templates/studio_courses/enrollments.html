@@ -1,284 +1,323 @@
 {% extends 'studio_courses/base.html' %}
+{% comment %}
+  Enrollment support for one course, on design 5a (issue #179).
 
-{% block title %}Enrollments - {{ course.title }}{% endblock %}
+  The status views became the system's filter pills (their hrefs, and the
+  query parameters they carry, are unchanged), and the nine-column record
+  table is the admin table inside a keyboard-reachable scroll frame, so the
+  copied duplicate mobile-card list is gone and the sorter has one table to
+  sort.  The column order the sorter indexes by is unchanged; its sort
+  controls are now real buttons, so the sort is reachable from the keyboard.
+{% endcomment %}
+
+{% block title %}
+  Enrollments · {{ course.title }} · Studio
+{% endblock %}
+
+{% block extra_styles %}
+  /* The sortable column headers: a real button so the sort is operable from
+     the keyboard, drawn as the mono uppercase header cell it sits in. */
+  .admin-sort {
+    align-items: center;
+    background: none;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    font: inherit;
+    gap: 0.25rem;
+    letter-spacing: inherit;
+    min-height: 2.75rem;
+    padding: 0;
+    text-align: inherit;
+    text-transform: inherit;
+  }
+
+  .admin-sort-arrow {
+    display: inline-block;
+    width: 0.75rem;
+  }
+{% endblock %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
-  <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
-  <li>Enrollments</li>
+  <li>
+    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+  </li>
+  <li>
+    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
+  </li>
+  <li aria-current="page">
+    Enrollments
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Student support</p>
+    <h1>Enrollments for {{ course.title }}</h1>
+    <p class="admin-lede">
+      Find students, inspect score visibility, and handle Learning in Public exceptions.
+    </p>
+    <div class="admin-toolbar">
+      <a href="{% url 'studio_courses_course' course.slug %}" class="cta cta-secondary cta-compact">
+        Back to Courses
+      </a>
+      <a href="{% url 'leaderboard' course.slug %}" class="cta cta-secondary cta-compact">
+        View Leaderboard
+      </a>
+    </div>
+    <nav class="filter-pills" aria-label="Enrollment views">
+      <a href="?{% if search_query %}q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'all' %}aria-current="page"{% endif %}>
+        All · {{ enrollment_filter_counts.all }}
+      </a>
+      <a href="?status=lip-disabled{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'lip-disabled' %}aria-current="page"{% endif %}>
+        LiP disabled · {{ enrollment_filter_counts.lip_disabled }}
+      </a>
+      <a href="?status=zero-score{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'zero-score' %}aria-current="page"{% endif %}>
+        Zero score · {{ enrollment_filter_counts.zero_score }}
+      </a>
+      <a href="?status=hidden{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'hidden' %}aria-current="page"{% endif %}>
+        Hidden · {{ enrollment_filter_counts.hidden }}
+      </a>
+      <a href="?status=no-submissions{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="filter-pill" {% if status_filter == 'no-submissions' %}aria-current="page"{% endif %}>
+        No submissions · {{ enrollment_filter_counts.no_submissions }}
+      </a>
+    </nav>
+  </div>
 {% endblock %}
 
 {% block studio_courses_content %}
-<section class="border-b app-border pb-5">
-  <div>
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Student support</p>
-    <h1 class="mt-2 text-2xl font-semibold app-heading md:text-3xl">Enrollments for {{ course.title }}</h1>
-    <p class="mt-1 text-sm app-muted">Find students, inspect score visibility, and handle Learning in Public exceptions.</p>
-  </div>
-  <div class="mt-3 flex flex-wrap gap-2">
-    <a href="{% url 'studio_courses_course' course.slug %}" class="primer-button primer-button-secondary">Back to Courses</a>
-    <a href="{% url 'leaderboard' course.slug %}" class="primer-button primer-button-secondary">View Leaderboard</a>
-  </div>
-
-  <div class="mt-4 grid grid-cols-2 gap-2 md:grid-cols-5">
-    <a href="?{% if search_query %}q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'all' %}studio-courses-active-filter{% endif %}">
-      <span class="block text-xs font-semibold uppercase app-muted">All</span>
-      <span class="mt-1 block text-lg font-semibold app-heading">{{ enrollment_filter_counts.all }}</span>
-    </a>
-    <a href="?status=lip-disabled{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'lip-disabled' %}studio-courses-active-filter{% endif %}">
-      <span class="block text-xs font-semibold uppercase app-muted">LiP disabled</span>
-      <span class="mt-1 block text-lg font-semibold app-heading">{{ enrollment_filter_counts.lip_disabled }}</span>
-    </a>
-    <a href="?status=zero-score{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'zero-score' %}studio-courses-active-filter{% endif %}">
-      <span class="block text-xs font-semibold uppercase app-muted">Zero score</span>
-      <span class="mt-1 block text-lg font-semibold app-heading">{{ enrollment_filter_counts.zero_score }}</span>
-    </a>
-    <a href="?status=hidden{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'hidden' %}studio-courses-active-filter{% endif %}">
-      <span class="block text-xs font-semibold uppercase app-muted">Hidden</span>
-      <span class="mt-1 block text-lg font-semibold app-heading">{{ enrollment_filter_counts.hidden }}</span>
-    </a>
-    <a href="?status=no-submissions{% if search_query %}&q={{ search_query|urlencode }}{% endif %}" class="rounded-md border app-border app-surface-muted px-3 py-2 text-left {% if status_filter == 'no-submissions' %}studio-courses-active-filter{% endif %}">
-      <span class="block text-xs font-semibold uppercase app-muted">No submissions</span>
-      <span class="mt-1 block text-lg font-semibold app-heading">{{ enrollment_filter_counts.no_submissions }}</span>
-    </a>
-  </div>
-</section>
-
-{% if enrollments or search_query or status_filter != 'all' %}
-<section class="mt-6 overflow-hidden rounded-md border app-border app-surface">
-  <div class="flex flex-col gap-3 border-b app-border app-surface-muted px-4 py-3">
-    <div>
-      <h2 class="text-base font-semibold app-heading">Student records</h2>
-      <p class="mt-0.5 text-sm app-muted">
-        {{ total_enrollments }} result{{ total_enrollments|pluralize }}{% if search_query %} for "{{ search_query }}"{% endif %}
-      </p>
-    </div>
-    <form method="get" class="flex flex-col gap-2 sm:flex-row sm:items-end">
-      {% if status_filter != 'all' %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
-      <input
-        type="search"
-        name="q"
-        value="{{ search_query }}"
-        class="form-control w-full sm:w-80"
-        placeholder="Search by email, username, or display name..."
-      >
-      <div class="flex flex-wrap gap-2">
-        <button type="submit" class="primer-button w-fit">Search</button>
-        {% if search_query %}
-          <a href="?{% if status_filter != 'all' %}status={{ status_filter }}{% endif %}" class="primer-button primer-button-secondary">Clear</a>
-        {% endif %}
+  {% if enrollments or search_query or status_filter != 'all' %}
+    <section class="admin-section" aria-labelledby="student-records-heading">
+      <div class="admin-section-head">
+        <h2 id="student-records-heading">Student records</h2>
+        <p class="mono-note">
+          {{ total_enrollments }} result{{ total_enrollments|pluralize }}
+          {% if search_query %}
+            for "{{ search_query }}"
+          {% endif %}
+        </p>
       </div>
-    </form>
-  </div>
-
-  <div class="divide-y app-divide md:hidden">
-    {% for enrollment in enrollments %}
-      <article class="px-4 py-4">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <p class="font-medium app-heading">{{ enrollment.student.username }}</p>
-            {% if enrollment.student.email %}
-              <p class="mt-1 break-all text-xs app-muted">{{ enrollment.student.email }}</p>
-            {% endif %}
-          </div>
-          <div class="text-right">
-            <p class="text-sm font-semibold app-heading">{{ enrollment.total_score }}</p>
-            <p class="text-xs app-muted">points</p>
-          </div>
+      <form method="get" class="admin-filters">
+        {% if status_filter != 'all' %}
+          <input type="hidden" name="status" value="{{ status_filter }}">
+        {% endif %}
+        <div class="field">
+          <label class="field-label" for="enrollment-search">Search students</label>
+          <input
+            type="search"
+            id="enrollment-search"
+            name="q"
+            value="{{ search_query }}"
+            class="field-input"
+            placeholder="Search by email, username, or display name..."
+          >
         </div>
-
-        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-          <span class="rounded-md app-surface-muted px-2 py-1 font-medium app-text">
-            Pos {% if enrollment.position_on_leaderboard %}{{ enrollment.position_on_leaderboard }}{% else %}-{% endif %}
-          </span>
-          <span class="rounded-md app-surface-muted px-2 py-1 font-medium app-text">HW {{ enrollment.homework_count }}</span>
-          <span class="rounded-md app-surface-muted px-2 py-1 font-medium app-text">Projects {{ enrollment.project_count }}</span>
-          {% if enrollment.disable_learning_in_public %}
-            <span class="app-badge app-badge-danger">LiP disabled</span>
-          {% else %}
-            <span class="app-badge app-badge-success">LiP enabled</span>
-          {% endif %}
-          {% if not enrollment.display_on_leaderboard %}
-            <span class="app-badge app-badge-warning">Hidden</span>
-          {% endif %}
-          {% if enrollment.has_no_submissions %}
-            <span class="app-badge app-badge-neutral">No submissions</span>
-          {% endif %}
-        </div>
-
-        <dl class="mt-3 grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <dt class="text-xs font-semibold uppercase app-muted">Display</dt>
-            <dd class="mt-0.5 app-text">{{ enrollment.display_name }}</dd>
-          </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase app-muted">Enrolled</dt>
-            <dd class="mt-0.5 app-text">{{ enrollment.enrollment_date|date:"Y-m-d" }}</dd>
-          </div>
-        </dl>
-
-        <div class="mt-3 flex flex-wrap gap-2">
-          <a href="{% url 'studio_courses_enrollment_edit' course.slug enrollment.id %}" class="primer-button">
-            <i class="fas fa-edit"></i> Manage
+        <button type="submit" class="cta cta-primary cta-compact">
+          Search
+        </button>
+        {% if search_query %}
+          <a href="?{% if status_filter != 'all' %}status={{ status_filter }}{% endif %}" class="cta cta-secondary cta-compact">
+            Clear
           </a>
-          <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=enrollment.id %}" class="primer-button primer-button-secondary">
-            <i class="fas fa-chart-line"></i> Scores
-          </a>
-        </div>
-      </article>
-    {% empty %}
-      <p class="px-4 py-6 text-sm app-muted">No students match this view.</p>
-    {% endfor %}
+        {% endif %}
+      </form>
+      <div class="admin-scroll" tabindex="0" role="region" aria-labelledby="student-records-heading">
+        <table class="admin-table" id="enrollmentsTable">
+          <thead>
+            <tr>
+              <th class="admin-cell-numeric" scope="col">
+                <button type="button" class="admin-sort" onclick="sortTable('position')">
+                  Pos
+                  <span class="admin-sort-arrow" id="arrow-position"></span>
+                </button>
+              </th>
+              <th scope="col">
+                <button type="button" class="admin-sort" onclick="sortTable('student')">
+                  Student
+                  <span class="admin-sort-arrow" id="arrow-student"></span>
+                </button>
+              </th>
+              <th scope="col">Display</th>
+              <th class="admin-cell-numeric" scope="col">
+                <button type="button" class="admin-sort" onclick="sortTable('total_score')">
+                  Score
+                  <span class="admin-sort-arrow" id="arrow-total_score"></span>
+                </button>
+              </th>
+              <th class="admin-cell-numeric" scope="col">
+                <button type="button" class="admin-sort" onclick="sortTable('hw_count')">
+                  HW
+                  <span class="admin-sort-arrow" id="arrow-hw_count"></span>
+                </button>
+              </th>
+              <th class="admin-cell-numeric" scope="col">
+                <button type="button" class="admin-sort" onclick="sortTable('proj_count')">
+                  Projects
+                  <span class="admin-sort-arrow" id="arrow-proj_count"></span>
+                </button>
+              </th>
+              <th scope="col">Flags</th>
+              <th scope="col">
+                <button type="button" class="admin-sort" onclick="sortTable('enrolled')">
+                  Enrolled
+                  <span class="admin-sort-arrow" id="arrow-enrolled"></span>
+                </button>
+              </th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for enrollment in enrollments %}
+              <tr>
+                <td class="admin-cell-numeric">
+                  {% if enrollment.position_on_leaderboard %}
+                    {{ enrollment.position_on_leaderboard }}
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td>
+                  <strong>{{ enrollment.student.username }}</strong>
+                  {% if enrollment.student.email %}
+                    <br>
+                    <span class="admin-note">{{ enrollment.student.email }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ enrollment.display_name }}</td>
+                <td class="admin-cell-numeric">{{ enrollment.total_score }}</td>
+                <td class="admin-cell-numeric">{{ enrollment.homework_count }}</td>
+                <td class="admin-cell-numeric">{{ enrollment.project_count }}</td>
+                <td>
+                  <span class="admin-toolbar">
+                    {% if enrollment.disable_learning_in_public %}
+                      <span class="status-pill status-pill-wait">LiP disabled</span>
+                    {% endif %}
+                    {% if not enrollment.display_on_leaderboard %}
+                      <span class="status-pill status-pill-wait">Hidden</span>
+                    {% endif %}
+                    {% if enrollment.has_no_submissions %}
+                      <span class="status-pill">No submissions</span>
+                    {% endif %}
+                    {% if not enrollment.has_support_flags %}
+                      <span>-</span>
+                    {% endif %}
+                  </span>
+                </td>
+                <td>{{ enrollment.enrollment_date|date:"Y-m-d" }}</td>
+                <td>
+                  <span class="admin-toolbar">
+                    <a href="{% url 'studio_courses_enrollment_edit' course.slug enrollment.id %}" title="Manage enrollment">
+                      Manage
+                    </a>
+                    <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=enrollment.id %}" title="Scores">
+                      Scores
+                    </a>
+                  </span>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="9">No students match this view.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% include 'include/pagination.html' with pagination_page=enrollments_page pagination_range=page_range pagination_querystring=pagination_querystring pagination_label='Enrollment pages' %}
+    </section>
+  {% else %}
+    <p class="admin-empty">No enrollments found for this course.</p>
+  {% endif %}
+
+  <div class="admin-notice admin-notice-info">
+    <p class="mono-label">Note</p>
+    <p>
+      LiP-disabled enrollments have learning-in-public scores set to zero and cannot earn new
+      learning-in-public points until re-enabled.
+    </p>
   </div>
+{% endblock %}
 
-  <div class="hidden overflow-x-auto md:block">
-    <table class="min-w-full text-sm" id="enrollmentsTable">
-      <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted">
-        <tr>
-          <th class="cursor-pointer px-2 py-2 text-right" onclick="sortTable('position')">Pos <span class="inline-block w-3" id="arrow-position"></span></th>
-          <th class="cursor-pointer px-2 py-2" onclick="sortTable('student')">Student <span class="inline-block w-3" id="arrow-student"></span></th>
-          <th class="px-2 py-2">Display</th>
-          <th class="cursor-pointer whitespace-nowrap px-2 py-2 text-right" onclick="sortTable('total_score')">Score <span class="inline-block w-3" id="arrow-total_score"></span></th>
-          <th class="cursor-pointer whitespace-nowrap px-2 py-2 text-right" onclick="sortTable('hw_count')">HW <span class="inline-block w-3" id="arrow-hw_count"></span></th>
-          <th class="cursor-pointer whitespace-nowrap px-2 py-2 text-right" onclick="sortTable('proj_count')">Projects <span class="inline-block w-3" id="arrow-proj_count"></span></th>
-          <th class="px-2 py-2">Flags</th>
-          <th class="cursor-pointer px-2 py-2" onclick="sortTable('enrolled')">Enrolled <span class="inline-block w-3" id="arrow-enrolled"></span></th>
-          <th class="px-2 py-2 text-right">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y app-divide">
-        {% for enrollment in enrollments %}
-          <tr class="align-top">
-            <td class="px-2 py-2 text-right font-medium app-heading">
-              {% if enrollment.position_on_leaderboard %}{{ enrollment.position_on_leaderboard }}{% else %}-{% endif %}
-            </td>
-            <td class="px-2 py-2">
-              <strong>{{ enrollment.student.username }}</strong>
-              {% if enrollment.student.email %}
-                <br><small class="app-muted">{{ enrollment.student.email }}</small>
-              {% endif %}
-            </td>
-            <td class="px-2 py-2 app-text">{{ enrollment.display_name }}</td>
-            <td class="px-2 py-2 text-right font-semibold app-heading">{{ enrollment.total_score }}</td>
-            <td class="px-2 py-2 text-right app-text">{{ enrollment.homework_count }}</td>
-            <td class="px-2 py-2 text-right app-text">{{ enrollment.project_count }}</td>
-            <td class="px-2 py-2">
-              <div class="flex flex-wrap gap-1">
-                {% if enrollment.disable_learning_in_public %}
-                  <span class="app-badge app-badge-danger">LiP disabled</span>
-                {% endif %}
-                {% if not enrollment.display_on_leaderboard %}
-                  <span class="app-badge app-badge-warning">Hidden</span>
-                {% endif %}
-                {% if enrollment.has_no_submissions %}
-                  <span class="app-badge app-badge-neutral">No submissions</span>
-                {% endif %}
-                {% if not enrollment.has_support_flags %}
-                  <span class="app-muted">-</span>
-                {% endif %}
-              </div>
-            </td>
-            <td class="whitespace-nowrap px-2 py-2 app-text">{{ enrollment.enrollment_date|date:"Y-m-d" }}</td>
-            <td class="px-2 py-2">
-              <div class="flex flex-nowrap justify-end gap-1">
-                <a href="{% url 'studio_courses_enrollment_edit' course.slug enrollment.id %}" class="primer-button studio-courses-compact-button" title="Manage enrollment">
-                  <i class="fas fa-edit"></i><span class="sr-only"> Manage</span>
-                </a>
-                <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=enrollment.id %}" class="primer-button primer-button-secondary studio-courses-compact-button" title="Scores">
-                  <i class="fas fa-chart-line"></i><span class="sr-only"> Scores</span>
-                </a>
-              </div>
-            </td>
-          </tr>
-        {% empty %}
-          <tr>
-            <td colspan="9" class="px-3 py-6 text-center text-sm app-muted">No students match this view.</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</section>
-{% include 'include/pagination.html' with pagination_page=enrollments_page pagination_range=page_range pagination_querystring=pagination_querystring pagination_label='Enrollment pages' %}
+{% block extra_js %}
+  {{ block.super }}
+  {% comment %}
+    The client-side column sort, unchanged: it still reads the same cell
+    indexes of the same table and writes the same arrow markers.  It runs
+    after the document because the shell loads page scripts at the end of the
+    body.
+  {% endcomment %}
+  <script>
+    const MISSING_VALUE = -999;
+    let currentSort = 'position';
+    let currentDir = 'asc';
+    const defaultDirs = {
+      position: 'asc',
+      student: 'asc',
+      total_score: 'desc',
+      hw_count: 'desc',
+      proj_count: 'desc',
+      enrolled: 'desc',
+    };
 
-<script>
-const MISSING_VALUE = -999;
-let currentSort = 'position';
-let currentDir = 'asc';
-const defaultDirs = {
-  position: 'asc',
-  student: 'asc',
-  total_score: 'desc',
-  hw_count: 'desc',
-  proj_count: 'desc',
-  enrolled: 'desc',
-};
+    function sortTable(column) {
+      if (column === currentSort) {
+        currentDir = currentDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort = column;
+        currentDir = defaultDirs[column] || 'desc';
+      }
 
-function sortTable(column) {
-  if (column === currentSort) {
-    currentDir = currentDir === 'asc' ? 'desc' : 'asc';
-  } else {
-    currentSort = column;
-    currentDir = defaultDirs[column] || 'desc';
-  }
+      const table = document.getElementById('enrollmentsTable');
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
 
-  const table = document.getElementById('enrollmentsTable');
-  const tbody = table.querySelector('tbody');
-  const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a, b) => {
+        let aVal;
+        let bVal;
+        let result;
 
-  rows.sort((a, b) => {
-    let aVal;
-    let bVal;
-    let result;
+        if (column === 'position') {
+          aVal = a.cells[0].textContent.trim();
+          bVal = b.cells[0].textContent.trim();
+          aVal = aVal === '-' ? MISSING_VALUE : parseInt(aVal);
+          bVal = bVal === '-' ? MISSING_VALUE : parseInt(bVal);
+          result = aVal - bVal;
+        } else if (column === 'student') {
+          aVal = a.cells[1].textContent.trim().toLowerCase();
+          bVal = b.cells[1].textContent.trim().toLowerCase();
+          result = aVal.localeCompare(bVal);
+        } else if (column === 'total_score') {
+          aVal = parseFloat(a.cells[3].textContent.trim()) || 0;
+          bVal = parseFloat(b.cells[3].textContent.trim()) || 0;
+          result = aVal - bVal;
+        } else if (column === 'hw_count') {
+          aVal = parseInt(a.cells[4].textContent.trim()) || 0;
+          bVal = parseInt(b.cells[4].textContent.trim()) || 0;
+          result = aVal - bVal;
+        } else if (column === 'proj_count') {
+          aVal = parseInt(a.cells[5].textContent.trim()) || 0;
+          bVal = parseInt(b.cells[5].textContent.trim()) || 0;
+          result = aVal - bVal;
+        } else if (column === 'enrolled') {
+          aVal = a.cells[7].textContent.trim();
+          bVal = b.cells[7].textContent.trim();
+          result = aVal.localeCompare(bVal);
+        }
 
-    if (column === 'position') {
-      aVal = a.cells[0].textContent.trim();
-      bVal = b.cells[0].textContent.trim();
-      aVal = aVal === '-' ? MISSING_VALUE : parseInt(aVal);
-      bVal = bVal === '-' ? MISSING_VALUE : parseInt(bVal);
-      result = aVal - bVal;
-    } else if (column === 'student') {
-      aVal = a.cells[1].textContent.trim().toLowerCase();
-      bVal = b.cells[1].textContent.trim().toLowerCase();
-      result = aVal.localeCompare(bVal);
-    } else if (column === 'total_score') {
-      aVal = parseFloat(a.cells[3].textContent.trim()) || 0;
-      bVal = parseFloat(b.cells[3].textContent.trim()) || 0;
-      result = aVal - bVal;
-    } else if (column === 'hw_count') {
-      aVal = parseInt(a.cells[4].textContent.trim()) || 0;
-      bVal = parseInt(b.cells[4].textContent.trim()) || 0;
-      result = aVal - bVal;
-    } else if (column === 'proj_count') {
-      aVal = parseInt(a.cells[5].textContent.trim()) || 0;
-      bVal = parseInt(b.cells[5].textContent.trim()) || 0;
-      result = aVal - bVal;
-    } else if (column === 'enrolled') {
-      aVal = a.cells[7].textContent.trim();
-      bVal = b.cells[7].textContent.trim();
-      result = aVal.localeCompare(bVal);
+        return currentDir === 'desc' ? -result : result;
+      });
+
+      rows.forEach(row => tbody.appendChild(row));
+      updateArrows();
     }
 
-    return currentDir === 'desc' ? -result : result;
-  });
+    function updateArrows() {
+      document.querySelectorAll('[id^="arrow-"]').forEach(el => el.textContent = '');
+      const arrowEl = document.getElementById('arrow-' + currentSort);
+      if (arrowEl) arrowEl.textContent = currentDir === 'asc' ? ' ▲' : ' ▼';
+    }
 
-  rows.forEach(row => tbody.appendChild(row));
-  updateArrows();
-}
-
-function updateArrows() {
-  document.querySelectorAll('[id^="arrow-"]').forEach(el => el.textContent = '');
-  const arrowEl = document.getElementById('arrow-' + currentSort);
-  if (arrowEl) arrowEl.textContent = currentDir === 'asc' ? ' ▲' : ' ▼';
-}
-
-updateArrows();
-</script>
-{% else %}
-<p class="mt-6 rounded-md border app-border app-surface px-4 py-6 text-sm app-muted">No enrollments found for this course.</p>
-{% endif %}
-
-<div class="mt-6 rounded-md border app-border app-surface-muted px-4 py-3 text-sm app-text">
-  <strong>Note:</strong> LiP-disabled enrollments have learning-in-public scores set to zero and cannot earn new learning-in-public points until re-enabled.
-</div>
+    updateArrows();
+  </script>
 {% endblock %}

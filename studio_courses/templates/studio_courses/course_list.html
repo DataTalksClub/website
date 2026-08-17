@@ -1,101 +1,81 @@
 {% extends 'studio_courses/base.html' %}
+{% comment %}
+  The Studio Courses inventory, on design 5a (issue #179).
+
+  Three columns of short values reshape better as the system's dashed
+  .row-list than as a table that scrolls sideways on a phone, so the copied
+  duplicate mobile-card / desktop-table pair collapses into one list.  Every
+  destination the page has always offered — the workspace, the public course
+  page, the Django admin record, the landing-page builder, Datamailer and the
+  dashboard — is unchanged.
+{% endcomment %}
+
+{% block title %}
+  Courses · Studio · DataTalks.Club
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio</p>
+    <h1>Courses</h1>
+    <p class="admin-lede">
+      Every course in the catalogue, with its visibility and completion state.
+    </p>
+    <div class="admin-toolbar">
+      <a href="{% url 'studio_courses_campaign_create' %}" class="cta cta-primary cta-compact">
+        New landing page
+      </a>
+      <a href="{% url 'studio_courses_datamailer_operations' %}" class="cta cta-secondary cta-compact">
+        Datamailer ops
+      </a>
+      <a href="{% url 'studio_courses_cloudwatch_dashboard' %}" class="cta cta-secondary cta-compact">
+        CloudWatch
+      </a>
+    </div>
+  </div>
+{% endblock %}
+
 {% block studio_courses_content %}
-  <section class="border-b app-border pb-5">
-    <p class="text-xs font-semibold uppercase tracking-wide app-muted">Studio</p>
-    <h1 class="mt-1 text-2xl font-semibold app-heading md:text-3xl">Courses</h1>
-    <div class="mt-3 flex flex-wrap gap-2">
-      <a href="{% url 'studio_courses_campaign_create' %}" class="primer-button studio-courses-primary">
-        <i class="fas fa-plus" aria-hidden="true"></i> New landing page
-      </a>
-      <a href="{% url 'studio_courses_datamailer_operations' %}" class="primer-button primer-button-secondary">
-        <i class="fas fa-envelope-open-text" aria-hidden="true"></i> Datamailer ops
-      </a>
-      <a href="{% url 'studio_courses_cloudwatch_dashboard' %}" class="primer-button primer-button-secondary">
-        <i class="fas fa-chart-line" aria-hidden="true"></i> CloudWatch
-      </a>
+  <section class="admin-section" aria-labelledby="course-inventory-heading">
+    <div class="admin-section-head">
+      <h2 id="course-inventory-heading">All courses</h2>
+      <p class="mono-note">{{ courses|length }} courses</p>
     </div>
-  </section>
-  <section class="mt-6 overflow-hidden rounded-md border app-border app-surface ">
-    <div class="divide-y app-divide md:hidden">
-      {% for course in courses %}
-        <article class="px-4 py-4">
-          <div class="flex items-center gap-2">
-            <a href="{% url 'studio_courses_course' course.slug %}" class="font-medium app-link hover:underline ">{{ course.title }}</a>
-            <a href="{% url 'course' course.slug %}" class="app-link text-sm" title="Open student view" aria-label="Open student view">
-              <i class="fas fa-external-link-alt"></i>
-              <span class="sr-only">Student view</span>
-            </a>
-            <a href="/admin/courses/course/{{ course.id }}/change/" class="app-link text-sm" title="Edit in Django Admin" aria-label="Edit in Django Admin">
-              <i class="fas fa-edit"></i>
-              <span class="sr-only">Django admin</span>
-            </a>
-          </div>
-          <p class="mt-1 text-xs app-muted">{{ course.slug }}</p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            {% if course.visible %}
-              <span class="app-badge app-badge-success">Visible</span>
-            {% else %}
-              <span class="app-badge app-badge-neutral">Hidden</span>
-            {% endif %}
-            {% if course.finished %}
-              <span class="app-badge app-badge-info">Finished</span>
-            {% else %}
-              <span class="app-badge app-badge-warning">In progress</span>
-            {% endif %}
-          </div>
-        </article>
-      {% empty %}
-        <p class="px-4 py-8 text-center text-sm app-muted">No courses found</p>
-      {% endfor %}
-    </div>
-    <div class="hidden overflow-x-auto md:block">
-      <table class="min-w-full text-sm">
-        <thead class="app-surface-muted text-left text-xs font-semibold uppercase app-muted ">
-          <tr>
-            <th class="px-4 py-3">Course</th>
-            <th class="px-4 py-3">Visible</th>
-            <th class="px-4 py-3">Finished</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y app-divide">
-          {% for course in courses %}
-            <tr class="align-top">
-              <td class="px-4 py-3">
-                <div class="flex items-center gap-2">
-                  <a href="{% url 'studio_courses_course' course.slug %}" class="font-medium app-link hover:underline ">{{ course.title }}</a>
-                  <a href="{% url 'course' course.slug %}" class="app-link text-xs" title="Open student view" aria-label="Open student view">
-                    <i class="fas fa-external-link-alt"></i>
-                    <span class="sr-only">Student view</span>
-                  </a>
-                  <a href="/admin/courses/course/{{ course.id }}/change/" class="app-link text-xs" title="Edit in Django Admin" aria-label="Edit in Django Admin">
-                    <i class="fas fa-edit"></i>
-                    <span class="sr-only">Django admin</span>
-                  </a>
-                </div>
-                <div class="mt-1 text-xs app-muted">{{ course.slug }}</div>
-              </td>
-              <td class="px-4 py-3">
-                {% if course.visible %}
-                  <span class="app-badge app-badge-success">Yes</span>
-                {% else %}
-                  <span class="app-badge app-badge-neutral">No</span>
-                {% endif %}
-              </td>
-              <td class="px-4 py-3">
-                {% if course.finished %}
-                  <span class="app-badge app-badge-info">Yes</span>
-                {% else %}
-                  <span class="app-badge app-badge-warning">No</span>
-                {% endif %}
-              </td>
-            </tr>
-          {% empty %}
-            <tr>
-              <td colspan="3" class="px-4 py-8 text-center text-sm app-muted">No courses found</td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    {% if courses %}
+      <div class="row-list">
+        {% for course in courses %}
+          <article class="list-row" style="--row-cols: minmax(0, 1fr) auto">
+            <div>
+              <h3>
+                <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
+              </h3>
+              <p class="mono-note">{{ course.slug }}</p>
+              <p class="admin-toolbar">
+                <a href="{% url 'course' course.slug %}" title="Open student view">
+                  Student view
+                </a>
+                <a href="/admin/courses/course/{{ course.id }}/change/" title="Edit in Django Admin">
+                  Django record
+                </a>
+              </p>
+            </div>
+            <p class="admin-toolbar">
+              {% if course.visible %}
+                <span class="status-pill status-pill-live">Visible</span>
+              {% else %}
+                <span class="status-pill">Hidden</span>
+              {% endif %}
+              {% if course.finished %}
+                <span class="status-pill status-pill-open">Finished</span>
+              {% else %}
+                <span class="status-pill status-pill-wait">In progress</span>
+              {% endif %}
+            </p>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="admin-empty">No courses found</p>
+    {% endif %}
   </section>
 {% endblock %}

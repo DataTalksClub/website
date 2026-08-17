@@ -1,159 +1,249 @@
 {% extends 'studio_courses/base.html' %}
 {% load custom_filters %}
-{% block breadcrumbs %}
-  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
-  <li><a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a></li>
-  <li><a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}">{{ project.title }} Submissions</a></li>
-  <li><a href="{% url 'studio_courses_project_submission_edit' course.slug project.slug submission.id %}">Edit Submission</a></li>
+{% comment %}
+  Design 5a (issue #179): the project submission grading form.
+
+  A grading surface, so the port is presentational only: the form still posts
+  to its own URL with the same CSRF token and the same criteria_score_<id>,
+  project_faq_score, project_learning_in_public_score, peer_review_score,
+  peer_review_learning_in_public_score, reviewed_enough_peers and passed field
+  names, and the live-total script still finds .criteria-score,
+  .additional-score, .peer-review-score, #project_score, #total_score and
+  #passed, so the running total and the pass threshold behave identically.
+  The classes changed because a design 5a page loads no Tailwind, no
+  courses.css and no icon font: the slabs are the Studio base's
+  .admin-section, the fields are the system's .field/.field-label/.field-input
+  and the two flags are .admin-check.
+{% endcomment %}
+
+{% block title %}
+  Edit project submission
 {% endblock %}
+
+{% block extra_styles %}
+  /* The per-criterion "Score options" disclosure: a native details with a
+     control-height summary, so it opens without JavaScript and still offers
+     the 2.75rem target the system guarantees. */
+  .admin-disclosure > summary {
+    align-items: center;
+    color: var(--body-text);
+    cursor: pointer;
+    display: flex;
+    font-size: 0.9rem;
+    font-weight: 700;
+    min-height: 2.75rem;
+  }
+
+  /* The computed read-outs (project total, overall total): a value the script
+     rewrites as the criteria change, so it reads at display size. */
+  .admin-total {
+    color: var(--ink);
+    font-size: 1.6rem;
+    font-weight: 800;
+    line-height: 1.15;
+  }
+{% endblock %}
+
+{% block breadcrumbs %}
+  <li>
+    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+  </li>
+  <li>
+    <a href="{% url 'studio_courses_course' course.slug %}">{{ course.title }}</a>
+  </li>
+  <li>
+    <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}">{{ project.title }} Submissions</a>
+  </li>
+  <li aria-current="page">
+    Edit Submission
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">{{ project.title }}</p>
+    <h1>Edit Project Submission</h1>
+  </div>
+{% endblock %}
+
 {% block studio_courses_content %}
-  <section class="border-b app-border pb-5">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">{{ project.title }}</p>
-    <h1 class="mt-2 text-2xl font-semibold app-heading md:text-3xl">Edit Project Submission</h1>
-    <div class="dense-utility-links mt-3 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-      <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}" class="app-link">Back to Submissions</a>
-      <a href="{% url 'project' course.slug project.slug %}" class="app-link">
-        <i class="fas fa-external-link-alt"></i> Public
-      </a>
-      <a href="/admin/courses/projectsubmission/{{ submission.id }}/change/" class="app-link">
-        <i class="fas fa-edit"></i> Django
-      </a>
+  <section class="admin-section" aria-labelledby="project-submission-heading">
+    <div class="admin-section-head">
+      <h2 id="project-submission-heading">Submission</h2>
     </div>
-  </section>
-  <section class="mt-5 text-sm">
-    <dl class="grid gap-x-6 gap-y-3 border-b app-border pb-5 md:grid-cols-[minmax(0,1fr)_10rem_8rem_10rem] md:items-start">
-      <div class="min-w-0">
-        <dt class="text-xs font-semibold uppercase app-muted">Student</dt>
-        <dd class="mt-1 min-w-0">
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span class="font-semibold app-heading">{{ submission.student.username }}</span>
-            <a href="{% url 'studio_courses_enrollment_edit' course.slug submission.enrollment.id %}" class="app-link">
-              <i class="fas fa-user-edit"></i> Manage enrollment
-            </a>
-          </div>
-          {% if submission.student.email %}
-            <div class="mt-1 truncate text-xs app-muted">{{ submission.student.email }}</div>
-          {% endif %}
+
+    <div class="admin-toolbar">
+      <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}">Back to Submissions</a>
+      <a href="{% url 'project' course.slug project.slug %}" title="View public project page">Public</a>
+      <a href="/admin/courses/projectsubmission/{{ submission.id }}/change/" title="Edit in Django Admin">Django</a>
+    </div>
+
+    <dl class="admin-facts">
+      <div>
+        <dt>Student</dt>
+        <dd>{{ submission.student.username }}</dd>
+        {% if submission.student.email %}
+          <dd class="admin-note">{{ submission.student.email }}</dd>
+        {% endif %}
+        <dd>
+          <a href="{% url 'studio_courses_enrollment_edit' course.slug submission.enrollment.id %}">Manage enrollment</a>
         </dd>
       </div>
       <div>
-        <dt class="text-xs font-semibold uppercase app-muted">Submitted</dt>
-        <dd class="mt-1 font-medium app-heading">{{ submission.submitted_at|date:"Y-m-d H:i" }}</dd>
+        <dt>Submitted</dt>
+        <dd>{{ submission.submitted_at|date:"Y-m-d H:i" }}</dd>
       </div>
       <div>
-        <dt class="text-xs font-semibold uppercase app-muted">Total score</dt>
-        <dd class="mt-1 text-lg font-semibold app-heading">{{ submission.total_score }}</dd>
+        <dt>Total score</dt>
+        <dd>{{ submission.total_score }}</dd>
       </div>
-      <div class="min-w-0">
-        <dt class="text-xs font-semibold uppercase app-muted">Repository</dt>
-        <dd class="mt-1 min-w-0">
+      <div>
+        <dt>Repository</dt>
+        <dd>
           {% if submission.github_link %}
-            <a href="{{ submission.github_link }}" target="_blank" class="app-link">View repository</a>
+            <a href="{{ submission.github_link }}" target="_blank">View repository</a>
           {% else %}
-            <span class="app-muted">Not provided</span>
+            Not provided
           {% endif %}
         </dd>
       </div>
     </dl>
   </section>
-  <form class="mt-6 space-y-8" method="post">
+
+  <form method="post" class="admin-stack">
     {% csrf_token %}
-    <section>
-      <h2 class="text-base font-semibold app-heading">Review Criteria Scores</h2>
+
+    <section class="admin-section" aria-labelledby="criteria-scores-heading">
+      <div class="admin-section-head">
+        <h2 id="criteria-scores-heading">Review Criteria Scores</h2>
+      </div>
       {% if criteria_with_scores %}
-        <div class="mt-3 divide-y app-divide border-y app-border">
+        <div class="row-list">
           {% for item in criteria_with_scores %}
-            <article class="py-4">
-              <div class="studio-courses-criteria-row grid items-start gap-3">
-                <div>
-                  <h3 class="font-medium app-heading">{{ item.criteria.description }}</h3>
-                  <details class="mt-1 text-sm app-muted">
-                    <summary class="cursor-pointer font-medium">Score options</summary>
-                    <ul class="mt-2 list-disc pl-5">
-                      {% for option in item.criteria.options %}
-                        <li>{{ option.criteria }}: {{ option.score }} points</li>
-                      {% endfor %}
-                    </ul>
-                  </details>
-                </div>
-                <div>
-                  <label class="mb-1 block text-xs font-semibold app-heading" for="criteria_score_{{ item.criteria.id }}">Score</label>
-                  <input type="number" class="form-control studio-courses-score-input criteria-score" id="criteria_score_{{ item.criteria.id }}" name="criteria_score_{{ item.criteria.id }}" value="{{ item.score }}" min="0" required>
-                </div>
+            <article class="list-row" style="--row-cols: minmax(0, 1fr) 8rem">
+              <div>
+                <h3>{{ item.criteria.description }}</h3>
+                <details class="admin-disclosure">
+                  <summary>Score options</summary>
+                  <ul class="admin-list">
+                    {% for option in item.criteria.options %}
+                      <li>{{ option.criteria }}: {{ option.score }} points</li>
+                    {% endfor %}
+                  </ul>
+                </details>
+              </div>
+              <div class="field">
+                <label class="field-label" for="criteria_score_{{ item.criteria.id }}">Score</label>
+                <input type="number"
+                       class="field-input criteria-score"
+                       id="criteria_score_{{ item.criteria.id }}"
+                       name="criteria_score_{{ item.criteria.id }}"
+                       value="{{ item.score }}"
+                       min="0"
+                       required>
               </div>
             </article>
           {% endfor %}
         </div>
       {% else %}
-        <p class="py-6 text-sm app-muted">No review criteria defined for this course.</p>
+        <p class="admin-empty">No review criteria defined for this course.</p>
       {% endif %}
-      <dl class="mt-4">
-        <dt class="text-sm font-semibold app-heading">Total Project Score</dt>
-        <dd class="mt-1 text-lg font-semibold app-heading" id="project_score">{{ submission.project_score }}</dd>
-        <dd class="mt-1 text-sm app-muted">Automatically calculated from the criteria scores above.</dd>
+      <dl>
+        <dt class="mono-label">Total Project Score</dt>
+        <dd class="admin-total" id="project_score">{{ submission.project_score }}</dd>
+        <dd class="admin-note">Automatically calculated from the criteria scores above.</dd>
       </dl>
     </section>
-    <section>
-      <h2 class="text-base font-semibold app-heading">Additional Project Scores</h2>
-      <div class="mt-3 space-y-4">
-        <div>
-          <label class="settings-label mb-2 block text-sm font-semibold" for="project_faq_score">Project FAQ Score</label>
-          <input type="number" class="form-control additional-score" id="project_faq_score" name="project_faq_score" value="{{ submission.project_faq_score }}" required>
+
+    <section class="admin-section" aria-labelledby="additional-scores-heading">
+      <div class="admin-section-head">
+        <h2 id="additional-scores-heading">Additional Project Scores</h2>
+      </div>
+      <div class="admin-form">
+        <div class="field">
+          <label class="field-label" for="project_faq_score">Project FAQ Score</label>
+          <input type="number"
+                 class="field-input additional-score"
+                 id="project_faq_score"
+                 name="project_faq_score"
+                 value="{{ submission.project_faq_score }}"
+                 required>
         </div>
-        <div>
-          <label class="settings-label mb-2 block text-sm font-semibold" for="project_learning_in_public_score">Project Learning in Public Score</label>
-          <input type="number" class="form-control additional-score" id="project_learning_in_public_score" name="project_learning_in_public_score" value="{{ submission.project_learning_in_public_score }}" required>
-          <button type="button" class="primer-button primer-button-secondary mt-2" onclick="clearProjectLearningInPublicScore()">
-            <i class="fas fa-trash"></i> Remove LiP Score </button>
+        <div class="field">
+          <label class="field-label" for="project_learning_in_public_score">Project Learning in Public Score</label>
+          <input type="number"
+                 class="field-input additional-score"
+                 id="project_learning_in_public_score"
+                 name="project_learning_in_public_score"
+                 value="{{ submission.project_learning_in_public_score }}"
+                 required>
+        </div>
+        <div class="admin-form-actions">
+          <button type="button" class="cta cta-compact cta-secondary" onclick="clearProjectLearningInPublicScore()">Remove LiP Score</button>
         </div>
       </div>
     </section>
-    <section class="border-t app-border pt-6">
-      <h2 class="text-base font-semibold app-heading">Peer Review Scores</h2>
-      <div class="mt-3 space-y-4">
-        <div>
-          <label class="settings-label mb-2 block text-sm font-semibold" for="peer_review_score">Peer Review Score</label>
-          <input type="number" class="form-control peer-review-score" id="peer_review_score" name="peer_review_score" value="{{ submission.peer_review_score }}" required>
+
+    <section class="admin-section" aria-labelledby="peer-review-scores-heading">
+      <div class="admin-section-head">
+        <h2 id="peer-review-scores-heading">Peer Review Scores</h2>
+      </div>
+      <div class="admin-form">
+        <div class="field">
+          <label class="field-label" for="peer_review_score">Peer Review Score</label>
+          <input type="number"
+                 class="field-input peer-review-score"
+                 id="peer_review_score"
+                 name="peer_review_score"
+                 value="{{ submission.peer_review_score }}"
+                 required>
         </div>
-        <div>
-          <label class="settings-label mb-2 block text-sm font-semibold" for="peer_review_learning_in_public_score">Peer Review Learning in Public Score</label>
-          <input type="number" class="form-control peer-review-score" id="peer_review_learning_in_public_score" name="peer_review_learning_in_public_score" value="{{ submission.peer_review_learning_in_public_score }}" required>
-          <button type="button" class="primer-button primer-button-secondary mt-2" onclick="clearPeerReviewLearningInPublicScore()">
-            <i class="fas fa-trash"></i> Remove LiP Score </button>
+        <div class="field">
+          <label class="field-label" for="peer_review_learning_in_public_score">Peer Review Learning in Public Score</label>
+          <input type="number"
+                 class="field-input peer-review-score"
+                 id="peer_review_learning_in_public_score"
+                 name="peer_review_learning_in_public_score"
+                 value="{{ submission.peer_review_learning_in_public_score }}"
+                 required>
+        </div>
+        <div class="admin-form-actions">
+          <button type="button" class="cta cta-compact cta-secondary" onclick="clearPeerReviewLearningInPublicScore()">Remove LiP Score</button>
         </div>
       </div>
     </section>
-    <section class="border-t app-border pt-6">
-      <h2 class="text-base font-semibold app-heading">Overall Results</h2>
-      <dl class="mt-3">
-        <dt class="text-sm font-semibold app-heading">Total Score</dt>
-        <dd class="mt-1 text-2xl font-semibold app-heading" id="total_score">{{ submission.total_score }}</dd>
-        <dd class="mt-1 text-sm app-muted">Calculated from the individual scores above.</dd>
+
+    <section class="admin-section" aria-labelledby="overall-results-heading">
+      <div class="admin-section-head">
+        <h2 id="overall-results-heading">Overall Results</h2>
+      </div>
+      <dl>
+        <dt class="mono-label">Total Score</dt>
+        <dd class="admin-total" id="total_score">{{ submission.total_score }}</dd>
+        <dd class="admin-note">Calculated from the individual scores above.</dd>
       </dl>
-      <div class="mt-4 space-y-3">
-        <div class="checkbox-row">
-          <input type="checkbox" id="reviewed_enough_peers" name="reviewed_enough_peers"
-                 {% if submission.reviewed_enough_peers %}
-                   checked
-                 {% endif %}
-          >
-          <label class="checkbox-label" for="reviewed_enough_peers">Reviewed enough peers</label>
-        </div>
-        <div class="checkbox-row">
-          <input type="checkbox" id="passed" name="passed"
-                 {% if submission.passed %}
-                   checked
-                 {% endif %}
-          >
-          <label class="checkbox-label" for="passed">Passed</label>
-        </div>
+      <div class="admin-check">
+        <input type="checkbox"
+               id="reviewed_enough_peers"
+               name="reviewed_enough_peers"
+               {% if submission.reviewed_enough_peers %}checked{% endif %}>
+        <label for="reviewed_enough_peers">Reviewed enough peers</label>
+      </div>
+      <div class="admin-check">
+        <input type="checkbox"
+               id="passed"
+               name="passed"
+               {% if submission.passed %}checked{% endif %}>
+        <label for="passed">Passed</label>
       </div>
     </section>
-    <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-      <button type="submit" class="primer-button studio-courses-primary">Save Changes</button>
-      <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}" class="primer-button primer-button-secondary">Cancel</a>
+
+    <div class="admin-form-actions">
+      <button type="submit" class="cta cta-compact cta-primary">Save Changes</button>
+      <a href="{% url 'studio_courses_project_submissions' course.slug project.slug %}" class="cta cta-compact cta-secondary">Cancel</a>
     </div>
   </form>
+
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const criteriaScoreFields = document.querySelectorAll('.criteria-score');

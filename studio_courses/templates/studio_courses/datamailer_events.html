@@ -1,118 +1,172 @@
 {% extends 'studio_courses/base.html' %}
+{% comment %}
+  Design 5a (issue #179): the stored Datamailer callback log.
 
-{% block title %}Datamailer events{% endblock %}
+  The page carries no classes of its own beyond the Studio base's admin
+  patterns — the metric tiles are the system's .stat-tiles, the event-type
+  chips are .filter-pills, and the six-column log is a real table in the
+  base's .admin-scroll frame so a screen reader can announce its columns and
+  a narrow viewport scrolls it instead of widening the page.  Every route,
+  query parameter and rendered field is unchanged.
+{% endcomment %}
+
+{% block title %}
+  Datamailer events
+{% endblock %}
+
+{% block extra_styles %}
+  /* The system's .stat-tiles is the two-up hero fact grid; a metric strip of
+     three to five counts wants as many columns as the width allows. */
+  .admin-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  }
+{% endblock %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
-  <li>Datamailer events</li>
+  <li>
+    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+  </li>
+  <li aria-current="page">
+    Datamailer events
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Operations</p>
+    <h1>Datamailer events</h1>
+    <p class="admin-lede">Stored callback events for support and audit.</p>
+  </div>
 {% endblock %}
 
 {% block studio_courses_content %}
-<section class="border-b app-border pb-5">
-  <div class="min-w-0">
-    <p class="text-xs font-semibold uppercase tracking-wide app-muted">Operations</p>
-    <h1 class="mt-1 text-2xl font-semibold app-heading md:text-3xl">Datamailer events</h1>
-    <p class="mt-1 text-sm app-muted">Stored callback events for support and audit.</p>
-  </div>
-</section>
-
-<section class="mt-5">
-  <div class="studio-courses-metrics-grid">
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Total</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ metrics.total }}</p>
+  <section class="admin-section" aria-labelledby="datamailer-events-overview-heading">
+    <div class="admin-section-head">
+      <h2 id="datamailer-events-overview-heading">Overview</h2>
     </div>
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Last 24h</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ metrics.last_24h }}</p>
+    <div class="stat-tiles admin-metrics">
+      <div class="stat-tile">
+        <strong>{{ metrics.total }}</strong>
+        <span>Total</span>
+      </div>
+      <div class="stat-tile">
+        <strong>{{ metrics.last_24h }}</strong>
+        <span>Last 24h</span>
+      </div>
+      <div class="stat-tile">
+        <strong>{{ metrics.duplicates }}</strong>
+        <span>Duplicates</span>
+      </div>
     </div>
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Duplicates</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ metrics.duplicates }}</p>
+    <h3>Event types</h3>
+    {% if metrics.by_type %}
+      <div class="filter-pills">
+        {% for row in metrics.by_type %}
+          <a
+            href="?event_type={{ row.event_type|urlencode }}"
+            class="filter-pill"
+            {% if selected_event_type == row.event_type %}
+              aria-current="page"
+            {% endif %}
+          >
+            {{ row.event_type }} · {{ row.count }}
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="admin-note">No callback events yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="admin-section" aria-labelledby="datamailer-callback-log-heading">
+    <div class="admin-section-head">
+      <h2 id="datamailer-callback-log-heading">Callback log</h2>
+      <p class="mono-note">{{ events_page.paginator.count }} records</p>
     </div>
-  </div>
 
-  <div class="mt-5">
-    <h2 class="text-sm font-semibold uppercase app-muted">Event types</h2>
-    <div class="mt-2 flex flex-wrap gap-2 text-sm">
-      {% for row in metrics.by_type %}
-        <a href="?event_type={{ row.event_type|urlencode }}" class="rounded-md border app-border px-2 py-1 app-link">
-          {{ row.event_type }} <span class="app-muted">{{ row.count }}</span>
-        </a>
-      {% empty %}
-        <p class="app-muted">No callback events yet.</p>
-      {% endfor %}
-    </div>
-  </div>
-</section>
+    <form method="get" class="admin-filters">
+      <div class="field">
+        <label class="field-label" for="datamailer-event-type">Event type</label>
+        <select name="event_type" id="datamailer-event-type" class="field-input">
+          <option value="">All event types</option>
+          {% for type in event_types %}
+            <option value="{{ type }}" {% if selected_event_type == type %}selected{% endif %}>{{ type }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="datamailer-event-search">Search</label>
+        <input
+          type="search"
+          name="q"
+          id="datamailer-event-search"
+          value="{{ search_query }}"
+          class="field-input"
+          placeholder="Search email, event id, client, audience, or preference"
+        >
+      </div>
+      <button type="submit" class="cta cta-compact cta-secondary">Filter</button>
+    </form>
 
-<section class="mt-6 border-t app-border pt-5">
-  <div class="studio-courses-section-heading mb-3">
-    <h2 class="text-base font-semibold app-heading">Callback log</h2>
-    <span class="studio-courses-count-badge">{{ events_page.paginator.count }} records</span>
-  </div>
+    {% if selected_event_type or search_query %}
+      <p class="admin-note">
+        Filters are active.
+        <a href="{% url 'studio_courses_datamailer_events' %}">Clear filters</a>
+      </p>
+    {% endif %}
 
-  <form method="get" class="mb-4 grid gap-2 md:grid-cols-[14rem_minmax(0,1fr)_auto]">
-    <select name="event_type" class="form-control">
-      <option value="">All event types</option>
-      {% for type in event_types %}
-        <option value="{{ type }}" {% if selected_event_type == type %}selected{% endif %}>{{ type }}</option>
-      {% endfor %}
-    </select>
-    <input type="search"
-           name="q"
-           value="{{ search_query }}"
-           class="form-control"
-           placeholder="Search email, event id, client, audience, or preference">
-    <button type="submit" class="primer-button primer-button-secondary">Filter</button>
-  </form>
+    {% if events_page.object_list %}
+      <div class="admin-scroll" tabindex="0" role="region" aria-label="Datamailer callback log">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Received</th>
+              <th scope="col">Event</th>
+              <th scope="col">Contact</th>
+              <th scope="col">Preference</th>
+              <th scope="col">Source</th>
+              <th scope="col" class="admin-cell-numeric">Duplicates</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in events_page.object_list %}
+              <tr>
+                <td>
+                  {{ event.created_at|date:"Y-m-d H:i" }}
+                  {% if event.occurred_at %}
+                    <p class="admin-note">Occurred {{ event.occurred_at|date:"Y-m-d H:i" }}</p>
+                  {% endif %}
+                </td>
+                <td>
+                  {{ event.event_type }}
+                  <p class="admin-note" title="{{ event.event_id }}">
+                    <code class="mono-code">{{ event.event_id }}</code>
+                  </p>
+                </td>
+                <td>
+                  {{ event.email }}
+                  {% if event.audience %}
+                    <p class="admin-note">{{ event.audience }}</p>
+                  {% endif %}
+                </td>
+                <td>
+                  {{ event.preference_key|default:"-" }}
+                </td>
+                <td>
+                  {{ event.client|default:"-" }}
+                </td>
+                <td class="admin-cell-numeric">
+                  {{ event.duplicate_count }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="admin-empty">No Datamailer events found.</p>
+    {% endif %}
 
-  {% if selected_event_type or search_query %}
-    <p class="mb-4 text-sm app-muted">
-      Filters are active.
-      <a href="{% url 'studio_courses_datamailer_events' %}" class="app-link">Clear filters</a>
-    </p>
-  {% endif %}
-
-  <div class="hidden border-b app-border pb-2 text-xs font-semibold uppercase app-muted md:grid md:grid-cols-[9rem_12rem_minmax(0,1fr)_10rem_8rem_7rem] md:gap-3">
-    <div>Received</div>
-    <div>Event</div>
-    <div>Contact</div>
-    <div>Preference</div>
-    <div>Source</div>
-    <div class="text-right">Duplicates</div>
-  </div>
-
-  <div class="divide-y app-divide">
-    {% for event in events_page.object_list %}
-      <article class="grid gap-2 py-3 text-sm md:grid-cols-[9rem_12rem_minmax(0,1fr)_10rem_8rem_7rem] md:items-center md:gap-3">
-        <div class="app-muted">
-          {{ event.created_at|date:"Y-m-d H:i" }}
-          {% if event.occurred_at %}
-            <p class="text-xs">Occurred {{ event.occurred_at|date:"Y-m-d H:i" }}</p>
-          {% endif %}
-        </div>
-        <div>
-          <p class="font-medium app-heading">{{ event.event_type }}</p>
-          <p class="truncate text-xs app-muted" title="{{ event.event_id }}">{{ event.event_id }}</p>
-        </div>
-        <div class="min-w-0">
-          <p class="truncate font-medium app-heading">{{ event.email }}</p>
-          {% if event.audience %}
-            <p class="truncate text-xs app-muted">{{ event.audience }}</p>
-          {% endif %}
-        </div>
-        <div>{{ event.preference_key|default:"-" }}</div>
-        <div class="min-w-0">
-          <p class="truncate">{{ event.client|default:"-" }}</p>
-        </div>
-        <div class="md:text-right">{{ event.duplicate_count }}</div>
-      </article>
-    {% empty %}
-      <p class="py-4 text-sm app-muted">No Datamailer events found.</p>
-    {% endfor %}
-  </div>
-
-  {% include 'include/pagination.html' with pagination_page=events_page pagination_range=page_range pagination_querystring=pagination_querystring pagination_label='Datamailer event pages' %}
-</section>
+    {% include 'include/pagination.html' with pagination_page=events_page pagination_range=page_range pagination_querystring=pagination_querystring pagination_label='Datamailer event pages' %}
+  </section>
 {% endblock %}

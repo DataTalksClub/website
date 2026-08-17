@@ -1,99 +1,182 @@
 {% extends 'studio_courses/base.html' %}
+{% comment %}
+  Design 5a (issue #179): the CloudWatch app-event dashboard.
 
-{% block title %}CloudWatch metrics{% endblock %}
+  The sparkline is drawn by the page itself from the view's precomputed
+  polyline points, so nothing is embedded from or linked to an external
+  monitoring surface and the port changes no destination.  The chart frame is
+  the only rule the page owns that the Studio base does not already define; it
+  is built from the system's own tokens, and its stroke takes --indigo so the
+  line keeps its contrast against the tinted frame in both themes.  Every
+  filter name, value and submitted query parameter is unchanged.
+{% endcomment %}
 
-{% block breadcrumbs %}
-  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
-  <li>CloudWatch metrics</li>
+{% block title %}
+  CloudWatch metrics
 {% endblock %}
 
-{% block studio_courses_content %}
-<section class="border-b app-border pb-5">
-  <div class="min-w-0">
-    <p class="text-xs font-semibold uppercase tracking-wide app-muted">Observability</p>
-    <h1 class="mt-1 text-2xl font-semibold app-heading md:text-3xl">CloudWatch metrics</h1>
-    <p class="mt-1 text-sm app-muted">
+{% block extra_styles %}
+  /* The sparkline frame: a fixed-height tinted well the inline SVG fills.
+     currentColor is what the polyline strokes, so the colour is set here. */
+  .cloudwatch-chart {
+    background: var(--lavender);
+    border: 1.5px solid var(--line-soft);
+    border-radius: 0.5rem;
+    color: var(--indigo);
+    height: 5rem;
+    overflow: hidden;
+  }
+
+  .cloudwatch-chart svg {
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+
+  .cloudwatch-empty-chart {
+    align-items: center;
+    color: var(--body-text);
+    display: flex;
+    font-size: 0.85rem;
+    height: 100%;
+    justify-content: center;
+  }
+
+  /* One card per metric series, as many across as the width allows. */
+  .cloudwatch-graphs {
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  }
+
+  .cloudwatch-series-head {
+    align-items: start;
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+  }
+
+  .cloudwatch-series-total {
+    flex: none;
+    text-align: end;
+  }
+
+  .cloudwatch-series-total strong {
+    color: var(--ink);
+    display: block;
+    font-size: 1.35rem;
+    line-height: 1.15;
+  }
+
+  .cloudwatch-series-foot {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: space-between;
+  }
+{% endblock %}
+
+{% block breadcrumbs %}
+  <li>
+    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+  </li>
+  <li aria-current="page">
+    CloudWatch metrics
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Observability</p>
+    <h1>CloudWatch metrics</h1>
+    <p class="admin-lede">
       App event counts from {{ namespace }} / {{ metric_name }}.
     </p>
   </div>
-  <form method="get" class="mt-3 flex flex-wrap items-end gap-2">
-    <label class="block">
-      <span class="block text-xs font-semibold uppercase app-muted">Environment</span>
-      <input
-        type="text"
-        name="environment"
-        value="{{ environment }}"
-        class="form-control mt-1 w-40"
-      >
-    </label>
-    <label class="block">
-      <span class="block text-xs font-semibold uppercase app-muted">Range</span>
-      <select name="hours" class="form-control mt-1">
-        <option value="6" {% if hours == 6 %}selected{% endif %}>6 hours</option>
-        <option value="24" {% if hours == 24 %}selected{% endif %}>24 hours</option>
-        <option value="72" {% if hours == 72 %}selected{% endif %}>3 days</option>
-        <option value="168" {% if hours == 168 %}selected{% endif %}>7 days</option>
-      </select>
-    </label>
-    <button type="submit" class="primer-button primer-button-secondary">
-      <i class="fas fa-sync" aria-hidden="true"></i> Refresh
-    </button>
-  </form>
-</section>
+{% endblock %}
 
-{% if dashboard_error %}
-  <section class="mt-5 rounded-md border app-alert-warning px-4 py-3 text-sm">
-    <h2 class="text-sm font-semibold app-heading">CloudWatch data unavailable</h2>
-    <p class="mt-1 app-muted">{{ dashboard_error }}</p>
-  </section>
-{% else %}
-  <section class="mt-5">
-    <div class="studio-courses-section-heading mb-3">
-      <div>
-        <h2 class="text-base font-semibold app-heading">Event trends</h2>
-        <p class="mt-1 text-sm app-muted">
-          One point per {{ period_label }} for {{ environment }}.
-        </p>
+{% block studio_courses_content %}
+  <section class="admin-section" aria-labelledby="cloudwatch-filters-heading">
+    <div class="admin-section-head">
+      <h2 id="cloudwatch-filters-heading">Window</h2>
+    </div>
+    <form method="get" class="admin-filters">
+      <div class="field">
+        <label class="field-label" for="cloudwatch-environment">Environment</label>
+        <input
+          type="text"
+          name="environment"
+          id="cloudwatch-environment"
+          value="{{ environment }}"
+          class="field-input"
+        >
       </div>
-      <span class="studio-courses-count-badge">{{ hours }}h</span>
-    </div>
-
-    <div class="cloudwatch-graphs-grid">
-      {% for series in metric_series %}
-        <article class="cloudwatch-graph-card rounded-md border app-border app-surface">
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <h3 class="text-sm font-semibold app-heading">{{ series.title }}</h3>
-              <p class="mt-1 text-xs app-muted">{{ series.description }}</p>
-              <p class="mt-1 truncate text-xs app-muted">{{ series.event }}</p>
-            </div>
-            <div class="shrink-0 text-right">
-              <p class="text-lg font-semibold app-heading">{{ series.total }}</p>
-              <p class="text-xs app-muted">total</p>
-            </div>
-          </div>
-
-          <div class="mt-3 cloudwatch-chart" role="img" aria-label="{{ series.title }} trend">
-            {% if series.has_data %}
-              <svg viewBox="0 0 280 80" preserveAspectRatio="none" aria-hidden="true">
-                <polyline points="{{ series.points }}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
-              </svg>
-            {% else %}
-              <div class="cloudwatch-empty-chart text-xs app-muted">No data</div>
-            {% endif %}
-          </div>
-
-          <div class="mt-2 flex justify-between gap-3 text-xs app-muted">
-            <span>Latest {{ series.latest_value }}</span>
-            <span>Peak {{ series.max_value }}</span>
-          </div>
-        </article>
-      {% empty %}
-        <p class="rounded-md border app-border app-surface px-4 py-6 text-sm app-muted">
-          No CloudWatch metric series configured.
-        </p>
-      {% endfor %}
-    </div>
+      <div class="field">
+        <label class="field-label" for="cloudwatch-hours">Range</label>
+        <select name="hours" id="cloudwatch-hours" class="field-input">
+          <option value="6" {% if hours == 6 %}selected{% endif %}>6 hours</option>
+          <option value="24" {% if hours == 24 %}selected{% endif %}>24 hours</option>
+          <option value="72" {% if hours == 72 %}selected{% endif %}>3 days</option>
+          <option value="168" {% if hours == 168 %}selected{% endif %}>7 days</option>
+        </select>
+      </div>
+      <button type="submit" class="cta cta-compact cta-secondary">Refresh</button>
+    </form>
   </section>
-{% endif %}
+
+  {% if dashboard_error %}
+    <section class="admin-notice admin-notice-warning" aria-labelledby="cloudwatch-error-heading">
+      <p class="mono-label">Unavailable</p>
+      <h2 id="cloudwatch-error-heading">CloudWatch data unavailable</h2>
+      <p>{{ dashboard_error }}</p>
+    </section>
+  {% else %}
+    <section class="admin-section" aria-labelledby="cloudwatch-trends-heading">
+      <div class="admin-section-head">
+        <h2 id="cloudwatch-trends-heading">Event trends</h2>
+        <p class="mono-note">{{ hours }}h</p>
+      </div>
+      <p class="admin-note">
+        One point per {{ period_label }} for {{ environment }}.
+      </p>
+
+      {% if metric_series %}
+        <div class="cloudwatch-graphs">
+          {% for series in metric_series %}
+            <article class="card">
+              <div class="cloudwatch-series-head">
+                <div>
+                  <h3>{{ series.title }}</h3>
+                  <p class="admin-note">{{ series.description }}</p>
+                  <p class="admin-note">
+                    <code class="mono-code">{{ series.event }}</code>
+                  </p>
+                </div>
+                <p class="cloudwatch-series-total">
+                  <strong>{{ series.total }}</strong>
+                  <span class="mono-note">total</span>
+                </p>
+              </div>
+
+              <div class="cloudwatch-chart" role="img" aria-label="{{ series.title }} trend">
+                {% if series.has_data %}
+                  <svg viewBox="0 0 280 80" preserveAspectRatio="none" aria-hidden="true">
+                    <polyline points="{{ series.points }}" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                  </svg>
+                {% else %}
+                  <div class="cloudwatch-empty-chart">No data</div>
+                {% endif %}
+              </div>
+
+              <p class="cloudwatch-series-foot mono-note">
+                <span>Latest {{ series.latest_value }}</span>
+                <span>Peak {{ series.max_value }}</span>
+              </p>
+            </article>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="admin-empty">No CloudWatch metric series configured.</p>
+      {% endif %}
+    </section>
+  {% endif %}
 {% endblock %}

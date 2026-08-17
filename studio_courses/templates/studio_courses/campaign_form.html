@@ -1,5 +1,58 @@
 {% extends 'studio_courses/base.html' %}
 {% load accessibility %}
+{% comment %}
+  The registration landing-page builder, on design 5a (issue #179).
+
+  The form keeps its method, CSRF token, field names, accessible error
+  summary and per-field help/error relationships; only its presentation
+  moved onto the admin section, form and notice patterns.  The Datamailer
+  controls keep their five POST actions and the exact hidden values that
+  select them.
+{% endcomment %}
+
+{% block title %}
+  {{ page_title }} · Courses · Studio
+{% endblock %}
+
+{% block extra_styles %}
+  /* The campaign fields are drawn by the shared field include and by the
+     form's own widgets, which carry the copied platform's class names.  A
+     design 5a page loads no stylesheet that defines them, so they are given
+     the system's own field treatment here, on this page, rather than in the
+     shared partial. */
+  .settings-label {
+    color: var(--ink);
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+
+  .form-control {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 0.625rem;
+    color: var(--ink);
+    font: inherit;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.8rem;
+    width: 100%;
+  }
+
+  .settings-helper {
+    color: var(--muted);
+    display: block;
+    font-size: 0.8rem;
+    margin-top: 0.35rem;
+  }
+
+  .form-check-input {
+    accent-color: var(--green);
+    flex: none;
+    height: 1.1rem;
+    width: 1.1rem;
+  }
+{% endblock %}
 
 {% block breadcrumbs %}
   <li>
@@ -11,179 +64,180 @@
     </li>
   {% endif %}
   {% if campaign %}
-    <li>
-      <a href="{% url 'studio_courses_campaign_edit' campaign.slug %}">{{ campaign.title }}</a>
+    <li aria-current="page">
+      {{ campaign.title }}
     </li>
   {% else %}
-    <li>Create registration landing page</li>
+    <li aria-current="page">
+      Create registration landing page
+    </li>
   {% endif %}
 {% endblock %}
 
-{% block studio_courses_content %}
-<section class="studio-courses-page-header border-b app-border pb-5">
-  <div class="min-w-0">
-    <p class="text-xs font-semibold uppercase tracking-wide app-muted">Registration campaign</p>
-    <h1 class="mt-1 text-2xl font-semibold app-heading md:text-3xl">{{ page_title }}</h1>
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Registration campaign</p>
+    <h1>{{ page_title }}</h1>
     {% if campaign %}
-      <p class="mt-1 text-sm app-muted">
-        <a href="{% url 'registration_campaign' campaign.slug %}" class="app-link">/register/{{ campaign.slug }}/</a>
+      <p>
+        <a href="{% url 'registration_campaign' campaign.slug %}">/register/{{ campaign.slug }}/</a>
       </p>
     {% endif %}
-  </div>
-  <div class="flex flex-wrap gap-2">
-    {% if campaign %}
-      <a href="{% url 'registration_campaign' campaign.slug %}" class="primer-button primer-button-secondary">
-        <i class="fas fa-external-link-alt" aria-hidden="true"></i> Public
-      </a>
-      <a href="{% url 'studio_courses_campaign_registrations' campaign.slug %}" class="primer-button primer-button-secondary">
-        <i class="fas fa-list" aria-hidden="true"></i> Registrations
-      </a>
-    {% endif %}
-    {% if course %}
-      <a href="{% url 'studio_courses_course' course.slug %}" class="primer-button primer-button-secondary">Back to course</a>
-    {% endif %}
-  </div>
-</section>
-
-<form method="post" class="mt-6 space-y-7">
-  {% csrf_token %}
-  {% accessibility_error_summary form %}
-
-  {% if form.non_field_errors %}
-    <div class="rounded-md border app-alert-warning px-4 py-3 text-sm">
-      {{ form.non_field_errors }}
+    <div class="admin-toolbar">
+      {% if campaign %}
+        <a href="{% url 'registration_campaign' campaign.slug %}" class="cta cta-secondary cta-compact">
+          Public
+        </a>
+        <a href="{% url 'studio_courses_campaign_registrations' campaign.slug %}" class="cta cta-secondary cta-compact">
+          Registrations
+        </a>
+      {% endif %}
+      {% if course %}
+        <a href="{% url 'studio_courses_course' course.slug %}" class="cta cta-secondary cta-compact">
+          Back to course
+        </a>
+      {% endif %}
     </div>
-  {% endif %}
+  </div>
+{% endblock %}
 
-  <section class="space-y-5">
-    {% include 'studio_courses/include/campaign_field.html' with field=form.title %}
-    {% include 'studio_courses/include/campaign_field.html' with field=form.slug %}
-    {% include 'studio_courses/include/campaign_field.html' with field=form.edition_label %}
-    {% include 'studio_courses/include/campaign_field.html' with field=form.current_course %}
-    <div>
-      {% accessibility_help_id form.is_active as active_help_id %}
-      {% accessibility_error_id form.is_active as active_error_id %}
-      <div class="checkbox-row">
-        {% accessible_widget form.is_active %}
+{% block studio_courses_content %}
+  <form method="post" class="admin-stack">
+    {% csrf_token %}
+    {% accessibility_error_summary form %}
+    {% if form.non_field_errors %}
+      <div class="admin-notice admin-notice-error">
+        <p class="mono-label">Error</p>
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+    <section class="admin-section" aria-labelledby="campaign-details-heading">
+      <div class="admin-section-head">
+        <h2 id="campaign-details-heading">Campaign</h2>
+      </div>
+      <div class="admin-form">
+        {% include 'studio_courses/include/campaign_field.html' with field=form.title %}
+        {% include 'studio_courses/include/campaign_field.html' with field=form.slug %}
+        {% include 'studio_courses/include/campaign_field.html' with field=form.edition_label %}
+        {% include 'studio_courses/include/campaign_field.html' with field=form.current_course %}
         <div>
-          <label class="checkbox-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
-          {% if form.is_active.help_text %}
-            <p id="{{ active_help_id }}" class="checkbox-help">
-              {{ form.is_active.help_text }}
+          {% accessibility_help_id form.is_active as active_help_id %}
+          {% accessibility_error_id form.is_active as active_error_id %}
+          <div class="admin-check">
+            {% accessible_widget form.is_active %}
+            <div>
+              <label class="field-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+              {% if form.is_active.help_text %}
+                <p id="{{ active_help_id }}" class="field-hint">
+                  {{ form.is_active.help_text }}
+                </p>
+              {% endif %}
+            </div>
+          </div>
+          {% if form.is_active.errors %}
+            <p id="{{ active_error_id }}" class="a11y-error">
+              <span class="sr-only">Error:</span>
+              {{ form.is_active.errors|join:" " }}
             </p>
           {% endif %}
         </div>
       </div>
-      {% if form.is_active.errors %}
-        <p id="{{ active_error_id }}" class="a11y-error mt-1 text-sm app-danger-text">
-          <span class="sr-only">Error:</span>
-          {{ form.is_active.errors|join:" " }}
-        </p>
+    </section>
+    <section class="admin-section" aria-labelledby="landing-content-heading">
+      <div class="admin-section-head">
+        <h2 id="landing-content-heading">Landing page content</h2>
+      </div>
+      <div class="admin-form">
+        {% include 'studio_courses/include/campaign_field.html' with field=form.hero_image_url %}
+        {% include 'studio_courses/include/campaign_field.html' with field=form.video_url %}
+        {% include 'studio_courses/include/campaign_field.html' with field=form.meta_description %}
+        {% include 'studio_courses/include/campaign_field.html' with field=form.marketing_markdown %}
+      </div>
+    </section>
+    <div class="admin-form-actions">
+      <button type="submit" class="cta cta-primary cta-compact">{{ submit_label }}</button>
+      {% if course %}
+        <a href="{% url 'studio_courses_course' course.slug %}" class="cta cta-secondary cta-compact">Cancel</a>
+      {% else %}
+        <a href="{% url 'studio_courses_course_list' %}" class="cta cta-secondary cta-compact">Cancel</a>
       {% endif %}
     </div>
-  </section>
+  </form>
 
-  <section class="border-t app-border pt-5">
-    <h2 class="text-base font-semibold app-heading">Landing page content</h2>
-    <div class="mt-4 space-y-5">
-      {% include 'studio_courses/include/campaign_field.html' with field=form.hero_image_url %}
-      {% include 'studio_courses/include/campaign_field.html' with field=form.video_url %}
-      {% include 'studio_courses/include/campaign_field.html' with field=form.meta_description %}
-      {% include 'studio_courses/include/campaign_field.html' with field=form.marketing_markdown %}
-    </div>
-  </section>
-
-  <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-    <button type="submit" class="primer-button studio-courses-primary">{{ submit_label }}</button>
-    {% if course %}
-      <a href="{% url 'studio_courses_course' course.slug %}" class="primer-button primer-button-secondary">Cancel</a>
-    {% else %}
-      <a href="{% url 'studio_courses_course_list' %}" class="primer-button primer-button-secondary">Cancel</a>
-    {% endif %}
-  </div>
-</form>
-
-{% if campaign %}
-  <section class="mt-7 border-t app-border pt-5">
-    <div class="studio-courses-section-heading mb-3">
-      <h2 class="text-base font-semibold app-heading">Datamailer campaign</h2>
-      <span class="studio-courses-count-badge">{{ datamailer_external_key }}</span>
-    </div>
-
-    <div class="studio-courses-metrics-grid">
-      <div class="studio-courses-metric">
-        <p class="text-xs font-semibold uppercase app-muted">Recipient list</p>
-        <p class="mt-1 truncate text-sm app-heading" title="{{ datamailer_payload.recipient_list_key|default:'Audience default' }}">
-          {{ datamailer_payload.recipient_list_key|default:"Audience default" }}
-        </p>
+  {% if campaign %}
+    <section class="admin-section" aria-labelledby="datamailer-heading">
+      <div class="admin-section-head">
+        <h2 id="datamailer-heading">Datamailer campaign</h2>
+        <p class="mono-note">{{ datamailer_external_key }}</p>
       </div>
-      <div class="studio-courses-metric">
-        <p class="text-xs font-semibold uppercase app-muted">Category</p>
-        <p class="mt-1 text-sm app-heading">{{ datamailer_payload.category_tag }}</p>
-      </div>
-      <div class="studio-courses-metric">
-        <p class="text-xs font-semibold uppercase app-muted">Subject</p>
-        <p class="mt-1 truncate text-sm app-heading" title="{{ datamailer_payload.subject }}">{{ datamailer_payload.subject }}</p>
-      </div>
-    </div>
-
-    <div class="mt-4 flex flex-wrap gap-2">
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="datamailer_action" value="sync">
-        <button type="submit" class="primer-button studio-courses-primary">
-          <i class="fas fa-sync" aria-hidden="true"></i> Sync draft
-        </button>
-      </form>
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="datamailer_action" value="preview">
-        <button type="submit" class="primer-button primer-button-secondary">
-          <i class="fas fa-eye" aria-hidden="true"></i> Preview
-        </button>
-      </form>
-      <form method="post" class="flex flex-wrap gap-2">
-        {% csrf_token %}
-        <input type="hidden" name="datamailer_action" value="test_send">
-        <label class="sr-only" for="test_recipients">Test recipients</label>
-        <input
-          id="test_recipients"
-          name="test_recipients"
-          class="form-control min-w-64"
-          placeholder="ops@example.com"
-        >
-        <button type="submit" class="primer-button primer-button-secondary">
-          <i class="fas fa-paper-plane" aria-hidden="true"></i> Test send
-        </button>
-      </form>
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="datamailer_action" value="queue">
-        <button type="submit" class="primer-button primer-button-secondary">
-          <i class="fas fa-play" aria-hidden="true"></i> Queue
-        </button>
-      </form>
-      <form method="post">
-        {% csrf_token %}
-        <input type="hidden" name="datamailer_action" value="cancel">
-        <button type="submit" class="primer-button primer-button-secondary">
-          <i class="fas fa-ban" aria-hidden="true"></i> Cancel
-        </button>
-      </form>
-    </div>
-
-    {% if datamailer_preview %}
-      <div class="mt-5 divide-y app-divide rounded-md border app-border app-surface-muted">
-        <div class="px-3 py-2 text-sm">
-          <p class="text-xs font-semibold uppercase app-muted">Subject</p>
-          <p class="mt-1 app-heading">{{ datamailer_preview.preview.subject|default:datamailer_payload.subject }}</p>
+      <dl class="admin-facts">
+        <div>
+          <dt>Recipient list</dt>
+          <dd>{{ datamailer_payload.recipient_list_key|default:"Audience default" }}</dd>
         </div>
-        <div class="px-3 py-2 text-sm">
-          <p class="text-xs font-semibold uppercase app-muted">Text</p>
-          <pre class="mt-1 whitespace-pre-wrap text-sm app-heading">{{ datamailer_preview.preview.text|default:datamailer_payload.text_body }}</pre>
+        <div>
+          <dt>Category</dt>
+          <dd>{{ datamailer_payload.category_tag }}</dd>
         </div>
+        <div>
+          <dt>Subject</dt>
+          <dd>{{ datamailer_payload.subject }}</dd>
+        </div>
+      </dl>
+      <div class="admin-toolbar">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="datamailer_action" value="sync">
+          <button type="submit" class="cta cta-primary cta-compact">
+            Sync draft
+          </button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="datamailer_action" value="preview">
+          <button type="submit" class="cta cta-secondary cta-compact">
+            Preview
+          </button>
+        </form>
+        <form method="post" class="admin-toolbar">
+          {% csrf_token %}
+          <input type="hidden" name="datamailer_action" value="test_send">
+          <label class="sr-only" for="test_recipients">Test recipients</label>
+          <input
+            id="test_recipients"
+            name="test_recipients"
+            class="field-input"
+            placeholder="ops@example.com"
+          >
+          <button type="submit" class="cta cta-secondary cta-compact">
+            Test send
+          </button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="datamailer_action" value="queue">
+          <button type="submit" class="cta cta-secondary cta-compact">
+            Queue
+          </button>
+        </form>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="datamailer_action" value="cancel">
+          <button type="submit" class="cta cta-secondary cta-compact">
+            Cancel
+          </button>
+        </form>
       </div>
-    {% endif %}
-  </section>
-{% endif %}
+      {% if datamailer_preview %}
+        <div>
+          <p class="mono-label">Preview subject</p>
+          <p>{{ datamailer_preview.preview.subject|default:datamailer_payload.subject }}</p>
+        </div>
+        <div>
+          <p class="mono-label">Preview text</p>
+          <code class="admin-code">{{ datamailer_preview.preview.text|default:datamailer_payload.text_body }}</code>
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
 {% endblock %}

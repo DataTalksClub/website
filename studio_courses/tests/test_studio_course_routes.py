@@ -77,7 +77,12 @@ class StudioCourseRouteTests(TestCase):
         self.assertContains(response, course.title)
         self.assertContains(response, "Studio")
         self.assertContains(response, "Courses")
-        self.assertContains(response, 'href="/studio/courses"')
+        # The canonical root is the page the reader is on, and the design 5a
+        # breadcrumb marks the current page instead of linking to itself
+        # (_docs/design/design-5a.md), so the trail names it rather than
+        # carrying its own href.
+        self.assertContains(response, 'aria-label="Breadcrumb"')
+        self.assertContains(response, '<li aria-current="page">')
         self.assertEqual(self.client.head(CANONICAL_ROOT).status_code, 200)
         self.assertEqual(
             self.client.post(CANONICAL_ROOT, {"probe": "body"}).status_code,

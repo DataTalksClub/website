@@ -1,212 +1,287 @@
 {% extends 'studio_courses/base.html' %}
+{% comment %}
+  Design 5a (issue #179): the Datamailer delivery-health console.
 
-{% block title %}Datamailer operations{% endblock %}
+  This is an operational surface — the requeue button posts a real repair — so
+  the port changes only presentation: the counts became the system's
+  .stat-tiles, the run/error summaries and the operator commands became
+  .admin-facts and .admin-code inside .admin-section slabs, and the icon-font
+  glyphs on the outbound links were dropped because a design 5a page loads no
+  icon font.  Every href, form method, hidden field, CSRF token and posted
+  value is exactly as it was.
+{% endcomment %}
+
+{% block title %}
+  Datamailer operations
+{% endblock %}
+
+{% block extra_styles %}
+  /* The system's .stat-tiles is the two-up hero fact grid; a metric strip of
+     three to five counts wants as many columns as the width allows. */
+  .admin-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  }
+
+  /* The tally lists (sends by status, sends by type): a label on the left and
+     its count on the right, on the same dashed rule the row list uses. */
+  .admin-tally {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .admin-tally div {
+    border-bottom: 1.5px dashed var(--line-soft);
+    display: flex;
+    gap: 1rem;
+    justify-content: space-between;
+    padding-bottom: 0.35rem;
+  }
+{% endblock %}
 
 {% block breadcrumbs %}
-  <li><a href="{% url 'studio_courses_course_list' %}">Courses</a></li>
-  <li>Datamailer operations</li>
+  <li>
+    <a href="{% url 'studio_courses_course_list' %}">Courses</a>
+  </li>
+  <li aria-current="page">
+    Datamailer operations
+  </li>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Operations</p>
+    <h1>Datamailer operations</h1>
+    <p class="admin-lede">Delivery health, API errors, and send audit counts.</p>
+  </div>
 {% endblock %}
 
 {% block studio_courses_content %}
-<section class="border-b app-border pb-5">
-  <div class="min-w-0">
-    <p class="text-xs font-semibold uppercase tracking-wide app-muted">Operations</p>
-    <h1 class="mt-1 text-2xl font-semibold app-heading md:text-3xl">Datamailer operations</h1>
-    <p class="mt-1 text-sm app-muted">Delivery health, API errors, and send audit counts.</p>
-  </div>
-  <div class="mt-3 flex flex-wrap gap-2">
-    <a href="{% url 'studio_courses_datamailer_events' %}" class="primer-button primer-button-secondary">
-      <i class="fas fa-envelope-open-text" aria-hidden="true"></i> Callback log
-    </a>
-    <a href="/admin/data/datamaileroutboxevent/" class="primer-button primer-button-secondary">
-      <i class="fas fa-tools" aria-hidden="true"></i> Django outbox
-    </a>
-    <a href="/admin/data/datamailersendaudit/" class="primer-button primer-button-secondary">
-      <i class="fas fa-list" aria-hidden="true"></i> Django sends
-    </a>
-  </div>
-</section>
-
-<section class="mt-5">
-  <div class="studio-courses-section-heading mb-3">
-    <h2 class="text-base font-semibold app-heading">Event delivery</h2>
-    <span class="studio-courses-count-badge">{{ outbox_summary.due_count }} due</span>
-  </div>
-
-  <div class="studio-courses-metrics-grid">
-    {% for row in outbox_statuses %}
-      <div class="studio-courses-metric">
-        <p class="text-xs font-semibold uppercase app-muted">{{ row.status }}</p>
-        <p class="mt-1 text-lg font-semibold app-heading">{{ row.count }}</p>
-      </div>
-    {% endfor %}
-  </div>
-
-  <div class="mt-4 grid gap-3 md:grid-cols-3">
-    <div class="rounded-md border app-border app-surface-muted px-3 py-2">
-      <p class="text-xs font-semibold uppercase app-muted">Last successful run</p>
-      {% if outbox_summary.last_successful_run %}
-        <p class="mt-1 text-sm app-heading">{{ outbox_summary.last_successful_run.finished_at|default:outbox_summary.last_successful_run.started_at|date:"Y-m-d H:i" }}</p>
-        <p class="text-xs app-muted">{{ outbox_summary.last_successful_run.processed_count }} processed</p>
-      {% else %}
-        <p class="mt-1 text-sm app-muted">None</p>
-      {% endif %}
+  <section class="admin-section" aria-labelledby="datamailer-delivery-heading">
+    <div class="admin-section-head">
+      <h2 id="datamailer-delivery-heading">Event delivery</h2>
+      <p class="mono-note">{{ outbox_summary.due_count }} due</p>
     </div>
-    <div class="rounded-md border app-border app-surface-muted px-3 py-2">
-      <p class="text-xs font-semibold uppercase app-muted">Last run</p>
-      {% if outbox_summary.last_run %}
-        <p class="mt-1 text-sm app-heading">{{ outbox_summary.last_run.status }}</p>
-        <p class="text-xs app-muted">{{ outbox_summary.last_run.processed_count }} processed</p>
-      {% else %}
-        <p class="mt-1 text-sm app-muted">None</p>
-      {% endif %}
-    </div>
-    <div class="rounded-md border app-border app-surface-muted px-3 py-2">
-      <p class="text-xs font-semibold uppercase app-muted">Last API error</p>
-      {% if outbox_summary.last_error_event %}
-        <p class="mt-1 truncate text-sm app-heading" title="{{ outbox_summary.last_error_event.event_id }}">{{ outbox_summary.last_error_event.event_type }}</p>
-        <p class="truncate text-xs app-muted" title="{{ outbox_summary.last_error_event.last_error }}">{{ outbox_summary.last_error_event.last_error }}</p>
-      {% else %}
-        <p class="mt-1 text-sm app-muted">None</p>
-      {% endif %}
-    </div>
-  </div>
 
-  <form method="post" class="mt-4 flex flex-wrap gap-2 border-t app-border pt-4">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="requeue">
-    <button type="submit" class="primer-button primer-button-secondary">
-      <i class="fas fa-redo" aria-hidden="true"></i> Requeue failed/dead events
-    </button>
-  </form>
+    <div class="admin-toolbar">
+      <a href="{% url 'studio_courses_datamailer_events' %}" class="cta cta-compact cta-secondary">Callback log</a>
+      <a href="/admin/data/datamaileroutboxevent/" class="cta cta-compact cta-secondary">Django outbox</a>
+      <a href="/admin/data/datamailersendaudit/" class="cta cta-compact cta-secondary">Django sends</a>
+    </div>
 
-  <div class="mt-5 border-t app-border pt-5">
-    <div class="studio-courses-section-heading mb-3">
+    <div class="stat-tiles admin-metrics">
+      {% for row in outbox_statuses %}
+        <div class="stat-tile">
+          <strong>{{ row.count }}</strong>
+          <span>{{ row.status }}</span>
+        </div>
+      {% endfor %}
+    </div>
+
+    <dl class="admin-facts">
       <div>
-        <h2 class="text-base font-semibold app-heading">Bootstrap and repair</h2>
-        <p class="mt-1 text-sm app-muted">
-          Run these commands from a configured CMP shell when Datamailer needs initial load,
-          drift audit, or targeted repair.
-        </p>
+        <dt>Last successful run</dt>
+        <dd>
+          {% if outbox_summary.last_successful_run %}
+            {{ outbox_summary.last_successful_run.finished_at|default:outbox_summary.last_successful_run.started_at|date:"Y-m-d H:i" }}
+            <p class="admin-note">{{ outbox_summary.last_successful_run.processed_count }} processed</p>
+          {% else %}
+            None
+          {% endif %}
+        </dd>
       </div>
-      <span class="studio-courses-count-badge">{{ recipient_list_kinds|length }} list kinds</span>
-    </div>
+      <div>
+        <dt>Last run</dt>
+        <dd>
+          {% if outbox_summary.last_run %}
+            {{ outbox_summary.last_run.status }}
+            <p class="admin-note">{{ outbox_summary.last_run.processed_count }} processed</p>
+          {% else %}
+            None
+          {% endif %}
+        </dd>
+      </div>
+      <div>
+        <dt>Last API error</dt>
+        <dd>
+          {% if outbox_summary.last_error_event %}
+            <span title="{{ outbox_summary.last_error_event.event_id }}">{{ outbox_summary.last_error_event.event_type }}</span>
+            <p class="admin-note" title="{{ outbox_summary.last_error_event.last_error }}">{{ outbox_summary.last_error_event.last_error }}</p>
+          {% else %}
+            None
+          {% endif %}
+        </dd>
+      </div>
+    </dl>
 
-    <div class="grid gap-3 md:grid-cols-2">
+    <form method="post" class="admin-form-actions">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="requeue">
+      <button type="submit" class="cta cta-compact cta-secondary">Requeue failed/dead events</button>
+    </form>
+
+    <h3>Recent API errors</h3>
+    {% if recent_failed_events %}
+      <div class="admin-scroll" tabindex="0" role="region" aria-label="Recent Datamailer API errors">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Attempted</th>
+              <th scope="col">Event</th>
+              <th scope="col">Error</th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in recent_failed_events %}
+              <tr>
+                <td>
+                  {{ event.last_attempt_at|default:event.updated_at|date:"Y-m-d H:i" }}
+                </td>
+                <td>
+                  {{ event.event_type }}
+                  <p class="admin-note" title="{{ event.event_id }}">
+                    <code class="mono-code">{{ event.event_id }}</code>
+                  </p>
+                </td>
+                <td title="{{ event.last_error }}">
+                  {{ event.last_error }}
+                </td>
+                <td>
+                  {{ event.status }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="admin-empty">No recent Datamailer API errors.</p>
+    {% endif %}
+  </section>
+
+  <section class="admin-section" aria-labelledby="datamailer-bootstrap-heading">
+    <div class="admin-section-head">
+      <h2 id="datamailer-bootstrap-heading">Bootstrap and repair</h2>
+      <p class="mono-note">{{ recipient_list_kinds|length }} list kinds</p>
+    </div>
+    <p class="admin-lede">
+      Run these commands from a configured CMP shell when Datamailer needs initial load,
+      drift audit, or targeted repair.
+    </p>
+
+    <div class="row-list">
       {% for item in operator_commands %}
-        <article class="rounded-md border app-border app-surface-muted px-3 py-3">
-          <h3 class="text-sm font-semibold app-heading">{{ item.title }}</h3>
-          <p class="mt-1 text-xs app-muted">{{ item.description }}</p>
-          <code class="mt-3 block whitespace-normal break-all rounded app-surface px-2 py-2 text-xs app-heading">
-            {{ item.command }}
-          </code>
+        <article class="list-row" style="--row-cols: minmax(0, 1fr) minmax(0, 1.4fr)">
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p class="admin-note">{{ item.description }}</p>
+          </div>
+          <code class="admin-code">{{ item.command }}</code>
         </article>
       {% endfor %}
     </div>
 
-    <p class="mt-3 text-xs app-muted">
-      Replace <code>&lt;kind&gt;</code> with one of:
+    <p class="admin-note">
+      Replace <code class="mono-code">&lt;kind&gt;</code> with one of:
       {% for kind in recipient_list_kinds %}
-        <code>{{ kind }}</code>{% if not forloop.last %},{% endif %}
+        <code class="mono-code">{{ kind }}</code>{% if not forloop.last %},{% endif %}
       {% endfor %}.
     </p>
-  </div>
+  </section>
 
-  <div class="mt-5">
-    <h3 class="text-sm font-semibold uppercase app-muted">Recent API errors</h3>
-    <div class="mt-2 divide-y app-divide">
-      {% for event in recent_failed_events %}
-        <article class="grid gap-2 py-3 text-sm md:grid-cols-[10rem_12rem_minmax(0,1fr)_8rem] md:items-center md:gap-3">
-          <div class="app-muted">{{ event.last_attempt_at|default:event.updated_at|date:"Y-m-d H:i" }}</div>
-          <div>
-            <p class="font-medium app-heading">{{ event.event_type }}</p>
-            <p class="truncate text-xs app-muted" title="{{ event.event_id }}">{{ event.event_id }}</p>
-          </div>
-          <div class="truncate app-muted" title="{{ event.last_error }}">{{ event.last_error }}</div>
-          <div class="md:text-right">{{ event.status }}</div>
-        </article>
-      {% empty %}
-        <p class="py-3 text-sm app-muted">No recent Datamailer API errors.</p>
-      {% endfor %}
+  <section class="admin-section" aria-labelledby="datamailer-send-audits-heading">
+    <div class="admin-section-head">
+      <h2 id="datamailer-send-audits-heading">Send audits</h2>
+      <p class="mono-note">{{ send_totals.total }} sends</p>
     </div>
-  </div>
-</section>
 
-<section class="mt-6 border-t app-border pt-5">
-  <div class="studio-courses-section-heading mb-3">
-    <h2 class="text-base font-semibold app-heading">Send audits</h2>
-    <span class="studio-courses-count-badge">{{ send_totals.total }} sends</span>
-  </div>
-
-  <div class="studio-courses-metrics-grid">
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Intended</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ send_totals.intended_count }}</p>
-    </div>
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Created</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ send_totals.created_count }}</p>
-    </div>
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Enqueued</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ send_totals.enqueued_count }}</p>
-    </div>
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Skipped</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ send_totals.skipped_count }}</p>
-    </div>
-    <div class="studio-courses-metric">
-      <p class="text-xs font-semibold uppercase app-muted">Failed</p>
-      <p class="mt-1 text-lg font-semibold app-heading">{{ send_totals.failed }}</p>
-    </div>
-  </div>
-
-  <div class="mt-5 grid gap-4 md:grid-cols-2">
-    <div>
-      <h3 class="text-sm font-semibold uppercase app-muted">By status</h3>
-      <div class="mt-2 space-y-1 text-sm">
-        {% for row in send_by_status %}
-          <div class="flex justify-between gap-3">
-            <span>{{ row.status|default:"Unset" }}</span>
-            <span>{{ row.count }}</span>
-          </div>
-        {% empty %}
-          <p class="app-muted">No send audits yet.</p>
-        {% endfor %}
+    <div class="stat-tiles admin-metrics">
+      <div class="stat-tile">
+        <strong>{{ send_totals.intended_count }}</strong>
+        <span>Intended</span>
+      </div>
+      <div class="stat-tile">
+        <strong>{{ send_totals.created_count }}</strong>
+        <span>Created</span>
+      </div>
+      <div class="stat-tile">
+        <strong>{{ send_totals.enqueued_count }}</strong>
+        <span>Enqueued</span>
+      </div>
+      <div class="stat-tile">
+        <strong>{{ send_totals.skipped_count }}</strong>
+        <span>Skipped</span>
+      </div>
+      <div class="stat-tile">
+        <strong>{{ send_totals.failed }}</strong>
+        <span>Failed</span>
       </div>
     </div>
-    <div>
-      <h3 class="text-sm font-semibold uppercase app-muted">By type</h3>
-      <div class="mt-2 space-y-1 text-sm">
-        {% for row in send_by_type %}
-          <div class="flex justify-between gap-3">
-            <span>{{ row.send_type|default:"Unset" }}</span>
-            <span>{{ row.count }}</span>
-          </div>
-        {% empty %}
-          <p class="app-muted">No send audits yet.</p>
-        {% endfor %}
+
+    <div class="admin-form-grid">
+      <div>
+        <h3>By status</h3>
+        <div class="admin-tally">
+          {% for row in send_by_status %}
+            <div>
+              <span>{{ row.status|default:"Unset" }}</span>
+              <span>{{ row.count }}</span>
+            </div>
+          {% empty %}
+            <p class="admin-note">No send audits yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+      <div>
+        <h3>By type</h3>
+        <div class="admin-tally">
+          {% for row in send_by_type %}
+            <div>
+              <span>{{ row.send_type|default:"Unset" }}</span>
+              <span>{{ row.count }}</span>
+            </div>
+          {% empty %}
+            <p class="admin-note">No send audits yet.</p>
+          {% endfor %}
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="mt-5">
-    <h3 class="text-sm font-semibold uppercase app-muted">Recent send failures</h3>
-    <div class="mt-2 divide-y app-divide">
-      {% for send in recent_failed_sends %}
-        <article class="grid gap-2 py-3 text-sm md:grid-cols-[10rem_10rem_minmax(0,1fr)_8rem] md:items-center md:gap-3">
-          <div class="app-muted">{{ send.occurred_at|date:"Y-m-d H:i" }}</div>
-          <div>{{ send.send_type }}</div>
-          <div class="min-w-0">
-            <p class="truncate font-medium app-heading" title="{{ send.idempotency_key }}">{{ send.idempotency_key }}</p>
-            <p class="truncate text-xs app-muted" title="{{ send.error }}">{{ send.error|default:"No error message" }}</p>
-          </div>
-          <div class="md:text-right">{{ send.template_key|default:"-" }}</div>
-        </article>
-      {% empty %}
-        <p class="py-3 text-sm app-muted">No recent send failures.</p>
-      {% endfor %}
-    </div>
-  </div>
-</section>
+    <h3>Recent send failures</h3>
+    {% if recent_failed_sends %}
+      <div class="admin-scroll" tabindex="0" role="region" aria-label="Recent Datamailer send failures">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Occurred</th>
+              <th scope="col">Send type</th>
+              <th scope="col">Idempotency key</th>
+              <th scope="col">Template</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for send in recent_failed_sends %}
+              <tr>
+                <td>
+                  {{ send.occurred_at|date:"Y-m-d H:i" }}
+                </td>
+                <td>
+                  {{ send.send_type }}
+                </td>
+                <td>
+                  <code class="mono-code" title="{{ send.idempotency_key }}">{{ send.idempotency_key }}</code>
+                  <p class="admin-note" title="{{ send.error }}">{{ send.error|default:"No error message" }}</p>
+                </td>
+                <td>
+                  {{ send.template_key|default:"-" }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="admin-empty">No recent send failures.</p>
+    {% endif %}
+  </section>
 {% endblock %}
