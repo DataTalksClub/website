@@ -20,6 +20,27 @@ make run
 
 The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. The deployed development hostname is `web.dtcdev.click` and is always marked `noindex, nofollow`.
 
+### Local course data
+
+A freshly migrated database has no courses, while the homepage renders its course
+catalogue from the checked public projection in `content/public_projection/courses.json`.
+Seed the database so `/` and `/courses` show the same real courses:
+
+```bash
+uv run python manage.py seed_local_courses          # write the catalogue
+uv run python manage.py seed_local_courses --check  # validate without writing
+```
+
+The command writes the 12 real cohorts, their homework titles, and their deadlines from
+`scripts/production_like_course_specs.json`, the pinned
+`DataTalksClub/course-management-platform@98a2352` catalogue that the public projection is
+also built from; it verifies that file's SHA-256 and refuses to run if the projection and
+the catalogue would disagree. It is repeatable, creates no learners, enrollments, or
+submissions, and preserves operational state you have set locally (homework/project state,
+registration URLs, scoring flags). It is a development tool: it refuses to run outside a
+local or test SQLite database. Generating production-like participants, submissions, and
+leaderboards remains `uv run python scripts/generate_production_like_leaderboard_data.py`.
+
 Local development and ordinary CI require no PostgreSQL installation or service. Tests always use isolated SQLite and ignore an ambient `DATABASE_URL`. Deployed development and production continue to use PostgreSQL/RDS through their fail-closed settings and deployment migration/readiness/smoke path.
 
 ## Common commands
