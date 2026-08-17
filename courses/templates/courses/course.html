@@ -44,6 +44,12 @@
        * partial above.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       /* --- hero --------------------------------------------------------- */
 
       /* The breadcrumb links carry the system's 2.75rem target height, so the
@@ -464,17 +470,7 @@
                       {% endif %}
                     </div>
                     <div class="course-row-state">
-                      {% if hw.state == 'CL' %}
-                        <span class="status-pill status-pill-wait">Closed</span>
-                      {% elif hw.is_scored and hw.submitted %}
-                        <span class="status-pill status-pill-live">Scored ({{ hw.score }})</span>
-                      {% elif hw.is_scored %}
-                        <span class="status-pill status-pill-mint">Scored</span>
-                      {% elif hw.submitted %}
-                        <span class="status-pill status-pill-live">Submitted</span>
-                      {% else %}
-                        <span class="status-pill status-pill-open">Open</span>
-                      {% endif %}
+                      <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
                     </div>
                   </div>
                 {% endfor %}
@@ -542,15 +538,7 @@
                       {% endif %}
                     </div>
                     <div class="course-row-state">
-                      {% if project.badge_css_class == 'bg-success' or project.badge_css_class == 'bg-info' %}
-                        <span class="status-pill status-pill-live">{{ project.badge_state_name }}</span>
-                      {% elif project.badge_css_class == 'bg-warning' %}
-                        <span class="status-pill status-pill-open">{{ project.badge_state_name }}</span>
-                      {% elif project.badge_css_class == 'bg-danger' %}
-                        <span class="status-pill status-pill-wait">{{ project.badge_state_name }}</span>
-                      {% else %}
-                        <span class="status-pill">{{ project.badge_state_name }}</span>
-                      {% endif %}
+                      <span class="status-pill {{ project.badge_pill }}">{{ project.badge_state_name }}</span>
                     </div>
                   </div>
                 {% endfor %}
