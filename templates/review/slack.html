@@ -1,30 +1,74 @@
-{% extends "core/base.html" %}
-{% block title %}
-  Join our Slack — DataTalks.Club
+{% extends "public/text_page.html" %}
+{% comment %}
+  The Slack landing page (issue #179).  A short page with one job: say what the
+  community is, show where the conversations happen, and offer the one action the
+  page owns.  That is a text page, so it is one — public/text_page.html — and all
+  this template holds is the page's own words, the channels it lists, and the
+  little CSS the chip row needs.
+{% endcomment %}
+
+{% block kicker %}
+  Community
 {% endblock %}
+
+{% block title %}
+  {{ slack.title }}
+{% endblock %}
+
+{% block lede %}
+  {{ slack.lead }}
+{% endblock %}
+
 {% block content %}
-  <article class="max-w-4xl">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">Community</p>
-    <h1 class="mt-2 text-3xl font-semibold sm:text-4xl">{{ slack.title }}</h1>
-    <p class="mt-4 text-lg leading-8 app-text">{{ slack.lead }}</p>
-    <section class="mt-10">
-      <h2 class="text-2xl font-semibold">Find your conversation</h2>
-      <ul class="mt-4 flex flex-wrap gap-2">
-        {% for channel in slack.channels %}
-          <li class="app-badge app-badge-info">{{ channel }}</li>
-        {% endfor %}
-      </ul>
-    </section>
-    <p class="mt-8 app-text">
-      Having trouble joining?
-      <a
-        class="app-link"
-        href="{{ slack.troubleshooting_url }}"
-        target="_blank"
-        rel="noreferrer"
-      >
-        Contact the community team <span class="sr-only">(opens in a new tab)</span>
-      </a>.
-    </p>
-  </article>
+  <h2 id="slack-channels-heading">Find your conversation</h2>
+  <ul class="channel-list">
+    {% for channel in slack.channels %}
+      <li class="chip chip-plain channel">
+        <code class="mono-code">{{ channel }}</code>
+      </li>
+    {% endfor %}
+  </ul>
+  <h2 id="slack-help-heading">Having trouble joining?</h2>
+{% endblock %}
+
+{% block actions %}
+  <a
+    class="cta cta-primary"
+    href="{{ slack.troubleshooting_url }}"
+    target="_blank"
+    rel="noreferrer"
+  >
+    Contact the community team
+    <span class="sr-only">(opens in a new tab)</span>
+  </a>
+{% endblock %}
+
+{% block page_styles %}
+      /* ------------------------------------------------------------------ *
+       * Slack page rules.  Everything visual is a shared primitive
+       * (.prose, .chip, .mono-code, .cta); what follows is only the one row
+       * this page adds — the channels, as chips rather than as a bulleted
+       * list inside the body's prose.
+       * ------------------------------------------------------------------ */
+
+      .channel-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        list-style: none;
+        padding-left: 0;
+      }
+
+      /* The chips sit on one baseline: the row's gap spaces them, not the
+         body's list rhythm. */
+      .channel-list li + li {
+        margin-top: 0;
+      }
+
+      /* A channel name is a literal, so it keeps the mono face (.mono-code);
+         inside a chip it reads at the chip's own size rather than shrinking
+         again against it. */
+      .channel .mono-code {
+        font-size: 1em;
+      }
 {% endblock %}

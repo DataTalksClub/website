@@ -1,0 +1,200 @@
+{% load seo %}
+{% comment %}
+  The shared text page (issue #179).
+
+  Several pages on this site are the same page: a kicker, a heading, an optional
+  date, an optional standfirst, an optional notice, a body of prose, and an
+  optional call to action.  The legal documents are that shape, /slack is that
+  shape, and so is the page a lost visitor lands on.  They used to be three
+  separately designed documents; they are one document now, so the next text-only
+  page is written by supplying words rather than by designing a page.
+
+  Fill in what the page has and leave the rest alone:
+
+    {% extends "public/text_page.html" %}
+
+    kicker    the small monospaced line above the heading (defaults to the site name)
+    title     the page's one <h1>
+    meta      a monospaced note under the heading, e.g. "Last updated: ..."
+    lede      the standfirst under the heading
+    notice    a panel above the body, for a page that must qualify its own text
+    content   the body, rendered inside the shared .prose/.prose-reading column
+    actions   the calls to action below the body
+
+  Every empty slot collapses: the opening block spaces itself with margins rather
+  than a grid gap, so an unused kicker, date or standfirst leaves no gap behind.
+
+  In the head, `document_title` carries the <title> element and `document_meta`
+  the canonical, description and social card, so a page that is not a destination
+  (the 404) can drop them; `robots` is the per-page directive the legal pages set
+  from their view; `page_styles` is where a page adds its own CSS.
+
+  This is a complete page, not a child of the older base chain: it carries the
+  shared stylesheet partial and includes the shell partials, exactly as every
+  other page in the system does.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    {% block document_title %}
+      <title>{{ seo_title }}</title>
+    {% endblock %}
+    {% block document_meta %}
+      {% block robots %}
+      {% endblock %}
+      {% canonical_link canonical_url %}
+      <meta name="description" content="{{ seo_description }}">
+      <meta property="og:type" content="{{ og_type|default:'website' }}">
+      <meta property="og:site_name" content="DataTalks.Club">
+      <meta property="og:title" content="{{ seo_title }}">
+      <meta property="og:description" content="{{ seo_description }}">
+      <meta property="og:url" content="{{ canonical_url }}">
+      <meta name="twitter:card" content="summary">
+      <meta name="twitter:site" content="@DataTalksClub">
+      <meta name="twitter:title" content="{{ seo_title }}">
+      <meta name="twitter:description" content="{{ seo_description }}">
+    {% endblock %}
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Text pages, design 5a (issue #179).  These pages are prose, so almost
+       * everything they need is the system's shared `.prose`/`.prose-reading`
+       * primitive; the page adds only the column the document is read in, the
+       * rhythm of its opening block, and the row its actions sit in.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Text page rules.
+       * ------------------------------------------------------------------ */
+
+      /* One column at the system's reading measure, plus the shell's own
+         inline padding, so the title, the date and the body all line up on
+         the width `.prose-reading` sets. */
+      .text-page-shell {
+        max-width: calc(var(--measure) + 2.5rem);
+      }
+
+      /* The opening block spaces itself with margins rather than a grid gap:
+         margins collapse through an empty element, so a page that carries no
+         date or no standfirst loses that line's space with it. */
+      .text-page-head > * + * {
+        margin-top: 0.9rem;
+      }
+
+      .text-page-head h1 {
+        font-size: clamp(1.9rem, 4.2vw, 2.75rem);
+        letter-spacing: -0.025em;
+      }
+
+      /* A notice qualifying the document below it — the Impressum's unresolved
+         identity — as an outlined panel at the reading column's width. */
+      .text-page-notice {
+        margin-top: 2rem;
+        max-width: var(--measure);
+      }
+
+      .text-page-notice h2 {
+        font-size: 1.1rem;
+      }
+
+      .text-page-body {
+        margin-top: 2rem;
+      }
+
+      /* The actions a text page owns, in one wrapping row below the body. */
+      .text-page-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.75rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Narrow: the opening block tightens so the first clause of the
+           document is reached in one screen rather than two. */
+        .text-page-head > * + * {
+          margin-top: 0.7rem;
+        }
+
+        .text-page-notice,
+        .text-page-body {
+          margin-top: 1.5rem;
+        }
+
+        /* Each action becomes a full-width tap target rather than a sliver. */
+        .text-page-actions .cta {
+          flex: 1 1 100%;
+        }
+      }
+
+      {% block page_styles %}
+      {% endblock %}
+    </style>
+  </head>
+  {% comment %}
+    Every URL below is resolved as an "as" assignment, the way the shared shell
+    does it: this document also answers Django's own handler404, which can run
+    under a reduced URLconf, and a route that cannot be reversed there must
+    shorten the page rather than turn a 404 into a 500.
+  {% endcomment %}
+  {% url 'toggle_dark_mode' as dark_mode_toggle_url %}
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{{ dark_mode_toggle_url }}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream" aria-labelledby="text-page-heading">
+        <div class="shell text-page-shell">
+          <article>
+            <header class="text-page-head">
+              <p class="mono-label mono-label-indigo">
+                {% block kicker %}
+                  DataTalks.Club
+                {% endblock %}
+              </p>
+              <h1 id="text-page-heading">
+                {% block title %}
+                {% endblock %}
+              </h1>
+              <p class="mono-note">
+                {% block meta %}
+                {% endblock %}
+              </p>
+              <p class="prose-lede">
+                {% block lede %}
+                {% endblock %}
+              </p>
+            </header>
+            {% block notice %}
+            {% endblock %}
+            <div class="prose prose-reading text-page-body">
+              {% block content %}
+              {% endblock %}
+            </div>
+            <div class="text-page-actions">
+              {% block actions %}
+              {% endblock %}
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

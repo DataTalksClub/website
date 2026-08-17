@@ -1,167 +1,136 @@
 {% extends "public/legal/base.html" %}
 
-{% block legal_content %}
-  <header class="legal-document-header">
-    <p class="legal-document-kicker app-muted">Legal</p>
-    <h1>Terms of Service</h1>
-    <p class="legal-document-updated app-muted">
-      Last updated: 11 August 2026
-    </p>
-    <p class="legal-document-lede app-text">
-      These terms explain the conditions for using the free DataTalks.Club website, community,
-      events, and learning services.
-    </p>
-  </header>
+{% block title %}
+  Terms of Service
+{% endblock %}
 
-  <section>
-    <h2>1. Scope and acceptance</h2>
-    <p>
-      These terms apply when you browse DataTalks.Club, create an account or member profile, use a
-      community access flow, register for an event or course cohort, or submit work or another
-      contribution. By using those services, you agree to these terms. If you do not agree, do not
-      use the affected service.
-    </p>
-  </section>
+{% block lede %}
+  These terms explain the conditions for using the free DataTalks.Club website, community,
+  events, and learning services.
+{% endblock %}
 
-  <section>
-    <h2>2. The free community and services</h2>
-    <p>
-      DataTalks.Club provides free community and educational services. They can include public
-      articles, podcasts, books, documentation and wiki pages; accounts and private member
-      profiles; access to the community Slack workspace; online events; courses and cohorts;
-      homework, projects, peer review, scoring, leaderboards, and certificates.
-    </p>
-    <p>
-      A course, cohort, event, or third-party destination may have additional clearly presented
-      rules. Those rules supplement these terms for that activity and do not silently change the
-      rest of this agreement.
-    </p>
-  </section>
+{% block content %}
+  <h2>1. Scope and acceptance</h2>
+  <p>
+    These terms apply when you browse DataTalks.Club, create an account or member profile, use a
+    community access flow, register for an event or course cohort, or submit work or another
+    contribution. By using those services, you agree to these terms. If you do not agree, do not
+    use the affected service.
+  </p>
 
-  <section>
-    <h2>3. Accounts, profiles, and security</h2>
-    <p>
-      Provide accurate information, keep your sign-in methods secure, and tell the operator if you
-      believe your account has been compromised. You are responsible for activity performed through
-      your account unless applicable law says otherwise. Do not share private access links, session
-      data, course management links, or other credentials.
-    </p>
-    <p>
-      Member profiles are private operational records, not public editorial profiles. You control
-      the information you enter and should keep it current before requesting Slack access or making
-      a new course registration.
-    </p>
-  </section>
+  <h2>2. The free community and services</h2>
+  <p>
+    DataTalks.Club provides free community and educational services. They can include public
+    articles, podcasts, books, documentation and wiki pages; accounts and private member
+    profiles; access to the community Slack workspace; online events; courses and cohorts;
+    homework, projects, peer review, scoring, leaderboards, and certificates.
+  </p>
+  <p>
+    A course, cohort, event, or third-party destination may have additional clearly presented
+    rules. Those rules supplement these terms for that activity and do not silently change the
+    rest of this agreement.
+  </p>
 
-  <section>
-    <h2>4. Acceptable use</h2>
-    <p>You must not use DataTalks.Club to:</p>
-    <ul>
-      <li>break the law, infringe rights, harass others, or distribute harmful or deceptive material;</li>
-      <li>gain unauthorized access, interfere with service operation, or evade safety controls;</li>
-      <li>submit malware, secrets, personal data you are not authorized to share, or misleading work;</li>
-      <li>impersonate another person or misrepresent course, review, event, or certificate activity; or</li>
-      <li>scrape, overload, or automate the service in a way that harms people or availability.</li>
-    </ul>
-  </section>
+  <h2>3. Accounts, profiles, and security</h2>
+  <p>
+    Provide accurate information, keep your sign-in methods secure, and tell the operator if you
+    believe your account has been compromised. You are responsible for activity performed through
+    your account unless applicable law says otherwise. Do not share private access links, session
+    data, course management links, or other credentials.
+  </p>
+  <p>
+    Member profiles are private operational records, not public editorial profiles. You control
+    the information you enter and should keep it current before requesting Slack access or making
+    a new course registration.
+  </p>
 
-  <section>
-    <h2>5. Courses, events, and contributions</h2>
-    <p>
-      You remain responsible for work you submit, including homework, project links, peer reviews,
-      event contributions, and community messages. Follow the activity instructions and make sure
-      you have the right to share submitted material. Scores, rankings, certificates, schedules,
-      and participation features may be corrected when evidence shows an error or abuse.
-    </p>
-    <p>
-      Public GitHub-authored content and named public people records follow the licence or source
-      terms shown with that material. A private member profile does not become a public person record
-      merely because names or other fields happen to match.
-    </p>
-  </section>
+  <h2>4. Acceptable use</h2>
+  <p>You must not use DataTalks.Club to:</p>
+  <ul>
+    <li>break the law, infringe rights, harass others, or distribute harmful or deceptive material;</li>
+    <li>gain unauthorized access, interfere with service operation, or evade safety controls;</li>
+    <li>submit malware, secrets, personal data you are not authorized to share, or misleading work;</li>
+    <li>impersonate another person or misrepresent course, review, event, or certificate activity; or</li>
+    <li>scrape, overload, or automate the service in a way that harms people or availability.</li>
+  </ul>
 
-  <section>
-    <h2>6. Intellectual property and licences</h2>
-    <p>
-      DataTalks.Club and its contributors retain their rights in site design, software, course
-      material, editorial content, and branding. Published repositories or pages may grant an open
-      licence; use them under the licence stated at the source. If you submit material for public
-      publication, you grant the permissions reasonably needed to review, display, distribute, and
-      maintain that contribution in the intended community or educational context.
-    </p>
-  </section>
+  <h2>5. Courses, events, and contributions</h2>
+  <p>
+    You remain responsible for work you submit, including homework, project links, peer reviews,
+    event contributions, and community messages. Follow the activity instructions and make sure
+    you have the right to share submitted material. Scores, rankings, certificates, schedules,
+    and participation features may be corrected when evidence shows an error or abuse.
+  </p>
+  <p>
+    Public GitHub-authored content and named public people records follow the licence or source
+    terms shown with that material. A private member profile does not become a public person record
+    merely because names or other fields happen to match.
+  </p>
 
-  <section>
-    <h2>7. Third-party destinations</h2>
-    <p>
-      DataTalks.Club links to services such as GitHub, Google, Slack, calendars, video platforms,
-      and event destinations. Those services have their own terms and privacy practices. A link does
-      not mean the operator controls or guarantees the third-party service.
-    </p>
-  </section>
+  <h2>6. Intellectual property and licences</h2>
+  <p>
+    DataTalks.Club and its contributors retain their rights in site design, software, course
+    material, editorial content, and branding. Published repositories or pages may grant an open
+    licence; use them under the licence stated at the source. If you submit material for public
+    publication, you grant the permissions reasonably needed to review, display, distribute, and
+    maintain that contribution in the intended community or educational context.
+  </p>
 
-  <section>
-    <h2>8. Availability and changes</h2>
-    <p>
-      Services may change, pause, or end, and schedules or content may be corrected. The operator
-      aims to communicate material changes reasonably but cannot promise uninterrupted availability
-      or that every cohort, event, feature, or external integration will continue.
-    </p>
-  </section>
+  <h2>7. Third-party destinations</h2>
+  <p>
+    DataTalks.Club links to services such as GitHub, Google, Slack, calendars, video platforms,
+    and event destinations. Those services have their own terms and privacy practices. A link does
+    not mean the operator controls or guarantees the third-party service.
+  </p>
 
-  <section>
-    <h2>9. Suspension and termination</h2>
-    <p>
-      Access may be restricted or ended to protect people, the community, data, or the service; to
-      investigate abuse; or to comply with law. You may stop using the services and request account
-      deletion subject to legal, security, and educational-record obligations described in the
-      Privacy Policy.
-    </p>
-  </section>
+  <h2>8. Availability and changes</h2>
+  <p>
+    Services may change, pause, or end, and schedules or content may be corrected. The operator
+    aims to communicate material changes reasonably but cannot promise uninterrupted availability
+    or that every cohort, event, feature, or external integration will continue.
+  </p>
 
-  <section>
-    <h2>10. Disclaimers</h2>
-    <p>
-      Community and educational material is provided for learning and general information. It is not
-      professional, legal, financial, or employment advice. Contributions may contain mistakes or
-      opinions, and you should verify information before relying on it.
-    </p>
-  </section>
+  <h2>9. Suspension and termination</h2>
+  <p>
+    Access may be restricted or ended to protect people, the community, data, or the service; to
+    investigate abuse; or to comply with law. You may stop using the services and request account
+    deletion subject to legal, security, and educational-record obligations described in the
+    Privacy Policy.
+  </p>
 
-  <section>
-    <h2>11. Liability</h2>
-    <p>
-      Liability is limited only to the extent permitted by applicable law. Nothing in these terms
-      excludes liability that cannot lawfully be excluded, including mandatory liability for intent,
-      gross negligence, injury to life, body, or health, or mandatory consumer rights.
-    </p>
-  </section>
+  <h2>10. Disclaimers</h2>
+  <p>
+    Community and educational material is provided for learning and general information. It is not
+    professional, legal, financial, or employment advice. Contributions may contain mistakes or
+    opinions, and you should verify information before relying on it.
+  </p>
 
-  <section>
-    <h2>12. Privacy</h2>
-    <p>
-      The <a class="app-link" href="{% url 'privacy' %}">Privacy Policy</a> explains how personal
-      data, cookies, course and event records, Slack access, transactional email, security logs, and
-      optional analytics choices are handled.
-    </p>
-  </section>
+  <h2>11. Liability</h2>
+  <p>
+    Liability is limited only to the extent permitted by applicable law. Nothing in these terms
+    excludes liability that cannot lawfully be excluded, including mandatory liability for intent,
+    gross negligence, injury to life, body, or health, or mandatory consumer rights.
+  </p>
 
-  <section>
-    <h2>13. Governing law and disputes</h2>
-    <p>
-      The governing-law, venue, consumer-protection, and dispute-resolution wording must be read
-      together with the verified operator details in the Impressum. Mandatory protections in the
-      country where a consumer lives continue to apply where the law requires them.
-    </p>
-  </section>
+  <h2>12. Privacy</h2>
+  <p>
+    The <a href="{% url 'privacy' %}">Privacy Policy</a> explains how personal
+    data, cookies, course and event records, Slack access, transactional email, security logs, and
+    optional analytics choices are handled.
+  </p>
 
-  <section>
-    <h2>14. Operator and contact</h2>
-    <p>
-      The legal operator and contact details belong in the
-      <a class="app-link" href="{% url 'impressum' %}">Impressum</a>. Those exact details are an
-      explicit owner/legal review gate for this source candidate and must be confirmed before
-      production acceptance.
-    </p>
-  </section>
+  <h2>13. Governing law and disputes</h2>
+  <p>
+    The governing-law, venue, consumer-protection, and dispute-resolution wording must be read
+    together with the verified operator details in the Impressum. Mandatory protections in the
+    country where a consumer lives continue to apply where the law requires them.
+  </p>
+
+  <h2>14. Operator and contact</h2>
+  <p>
+    The legal operator and contact details belong in the
+    <a href="{% url 'impressum' %}">Impressum</a>. Those exact details are an
+    explicit owner/legal review gate for this source candidate and must be confirmed before
+    production acceptance.
+  </p>
 {% endblock %}

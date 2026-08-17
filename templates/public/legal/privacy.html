@@ -1,212 +1,189 @@
 {% extends "public/legal/base.html" %}
 
-{% block legal_content %}
-  <header class="legal-document-header">
-    <p class="legal-document-kicker app-muted">Legal</p>
-    <h1>Privacy Policy</h1>
-    <p class="legal-document-updated app-muted">
-      Last updated: 11 August 2026
-    </p>
-    <p class="legal-document-lede app-text">
-      This policy describes the DataTalks.Club website data boundary. It distinguishes public
-      editorial content from private account, community, event, and learning records.
-    </p>
-  </header>
+{% block title %}
+  Privacy Policy
+{% endblock %}
 
-  <section>
-    <h2>1. Controller and contact</h2>
-    <p>
-      The controller is the verified DataTalks.Club operator identified in the
-      <a class="app-link" href="{% url 'impressum' %}">Impressum</a>. The exact operator identity,
-      address, representative, privacy contact, and tax details remain subject to explicit
-      owner/legal confirmation before this source candidate can be accepted for production.
-    </p>
-  </section>
+{% block lede %}
+  This policy describes the DataTalks.Club website data boundary. It distinguishes public
+  editorial content from private account, community, event, and learning records.
+{% endblock %}
 
-  <section>
-    <h2>2. Data we handle</h2>
-    <h3>Website and public content</h3>
-    <p>
-      Public pages include GitHub-authored and versioned articles, podcasts, books, documentation,
-      wiki material, courses, events, and public editorial people records. Source revision and
-      validation data support publication. A public editorial person is separate from a private
-      member profile and is never linked by inference.
-    </p>
+{% block content %}
+  <h2>1. Controller and contact</h2>
+  <p>
+    The controller is the verified DataTalks.Club operator identified in the
+    <a href="{% url 'impressum' %}">Impressum</a>. The exact operator identity,
+    address, representative, privacy contact, and tax details remain subject to explicit
+    owner/legal confirmation before this source candidate can be accepted for production.
+  </p>
 
-    <h3>Accounts, sign-in, and member profiles</h3>
-    <p>
-      Account records can include email identity, authentication-provider links, security and
-      session state, preferences, and audit evidence. Private member profiles can include the
-      fields a member enters for community and learner onboarding, such as display or certificate
-      name, country or region, organization, work status, professional role, and seniority.
-    </p>
+  <h2>2. Data we handle</h2>
+  <h3>Website and public content</h3>
+  <p>
+    Public pages include GitHub-authored and versioned articles, podcasts, books, documentation,
+    wiki material, courses, events, and public editorial people records. Source revision and
+    validation data support publication. A public editorial person is separate from a private
+    member profile and is never linked by inference.
+  </p>
 
-    <h3>Slack onboarding</h3>
-    <p>
-      The website records profile completion and eligibility for the shared DataTalks.Club Slack
-      access link. It does not infer Slack membership, operate a Slack invitation API, synchronize a
-      public member directory, or make the private profile public.
-    </p>
+  <h3>Accounts, sign-in, and member profiles</h3>
+  <p>
+    Account records can include email identity, authentication-provider links, security and
+    session state, preferences, and audit evidence. Private member profiles can include the
+    fields a member enters for community and learner onboarding, such as display or certificate
+    name, country or region, organization, work status, professional role, and seniority.
+  </p>
 
-    <h3>Courses and cohorts</h3>
-    <p>
-      Course records can include enrollment and registration data, a deliberately limited snapshot
-      of confirmed profile fields, the selected course or cohort, comments, privacy-notice and
-      separate optional marketing-consent evidence, homework and project links, answers, scores,
-      peer reviews, complaints, leaderboard results, and certificates. Profile changes apply to
-      future registrations unless a specific correction process says otherwise.
-    </p>
+  <h3>Slack onboarding</h3>
+  <p>
+    The website records profile completion and eligibility for the shared DataTalks.Club Slack
+    access link. It does not infer Slack membership, operate a Slack invitation API, synchronize a
+    public member directory, or make the private profile public.
+  </p>
 
-    <h3>Events and registrations</h3>
-    <p>
-      Event records can include the event, email, name or other fields requested by the registration
-      flow, attendance or status, the accepted privacy notice, and separate optional marketing
-      consent. Verification and management tokens are stored and handled as protected credentials,
-      not as analytics or public content.
-    </p>
+  <h3>Courses and cohorts</h3>
+  <p>
+    Course records can include enrollment and registration data, a deliberately limited snapshot
+    of confirmed profile fields, the selected course or cohort, comments, privacy-notice and
+    separate optional marketing-consent evidence, homework and project links, answers, scores,
+    peer reviews, complaints, leaderboard results, and certificates. Profile changes apply to
+    future registrations unless a specific correction process says otherwise.
+  </p>
 
-    <h3>Transactional email</h3>
-    <p>
-      The website commits a versioned delivery intent and sends transactional email through Relay,
-      the approved website email boundary. The website keeps only the intent, redacted delivery
-      status, reconciliation, and audit data needed for that purpose. Provider delivery systems and
-      sender infrastructure remain behind Relay rather than becoming a second website integration.
-    </p>
+  <h3>Events and registrations</h3>
+  <p>
+    Event records can include the event, email, name or other fields requested by the registration
+    flow, attendance or status, the accepted privacy notice, and separate optional marketing
+    consent. Verification and management tokens are stored and handled as protected credentials,
+    not as analytics or public content.
+  </p>
 
-    <h3>Country suggestion</h3>
-    <p>
-      On approved zero-cache onboarding routes, an AWS CloudFront country header may be used only to
-      suggest an editable country value. The member confirms or changes it. The raw header is not a
-      public cache key and is not retained or logged by the application as a separate profile fact.
-    </p>
+  <h3>Transactional email</h3>
+  <p>
+    The website commits a versioned delivery intent and sends transactional email through Relay,
+    the approved website email boundary. The website keeps only the intent, redacted delivery
+    status, reconciliation, and audit data needed for that purpose. Provider delivery systems and
+    sender infrastructure remain behind Relay rather than becoming a second website integration.
+  </p>
 
-    <h3>Security and operational data</h3>
-    <p>
-      The service handles bounded request and correlation identifiers, safe path and response
-      metadata, security events, audit records, job state, and error diagnostics. Logs exclude
-      authorization data, cookies, complete query strings, raw IP addresses, profile values,
-      registration answers, Slack secrets, and message bodies under the documented application and
-      infrastructure policy.
-    </p>
-  </section>
+  <h3>Country suggestion</h3>
+  <p>
+    On approved zero-cache onboarding routes, an AWS CloudFront country header may be used only to
+    suggest an editable country value. The member confirms or changes it. The raw header is not a
+    public cache key and is not retained or logged by the application as a separate profile fact.
+  </p>
 
-  <section>
-    <h2>3. Why we use data and lawful bases</h2>
-    <ul>
-      <li>to provide an account, community access, events, courses, submissions, reviews, and certificates;</li>
-      <li>to perform requested services and manage the relationship with participants;</li>
-      <li>to secure, diagnose, audit, and maintain the website and its integrations;</li>
-      <li>to publish content or contributions when the contributor has authorized publication;</li>
-      <li>to comply with legal duties and establish, exercise, or defend legal claims; and</li>
-      <li>to use optional analytics or marketing data only when a separate valid consent applies.</li>
-    </ul>
-    <p>
-      Depending on the activity and applicable law, these purposes rely on performance of a
-      requested service, legitimate interests in operating a safe educational community, consent,
-      or legal obligations. Consent can be withdrawn for future processing without changing the
-      lawfulness of earlier processing.
-    </p>
-  </section>
+  <h3>Security and operational data</h3>
+  <p>
+    The service handles bounded request and correlation identifiers, safe path and response
+    metadata, security events, audit records, job state, and error diagnostics. Logs exclude
+    authorization data, cookies, complete query strings, raw IP addresses, profile values,
+    registration answers, Slack secrets, and message bodies under the documented application and
+    infrastructure policy.
+  </p>
 
-  <section>
-    <h2>4. Cookies and analytics</h2>
-    <p>
-      Necessary session and CSRF cookies protect sign-in and form submissions. A minimal
-      <code>dtc_analytics_consent</code> cookie stores version 1 of the allow or deny choice for 180
-      days using a site-wide path, SameSite=Lax, and Secure on HTTPS. It contains no account,
-      profile, country, or session identifier.
-    </p>
-    <p>
-      Optional analytics fail closed. This source candidate contains no analytics provider loader,
-      measurement ID, or event taxonomy, and local, CI, development, and preview traffic contacts no
-      analytics endpoint. If optional measurement is introduced after the required privacy and
-      configuration review, it may start only after an affirmative choice and must not receive an
-      email, profile value, country signal, raw IP, account or database ID, session or CSRF value,
-      credential, Slack secret, or other direct identifier.
-    </p>
-    <p>
-      Use the Analytics preferences button in any footer to allow, reject, or withdraw the choice.
-      Rejection and withdrawal expire optional first-party analytics cookies and do not block site,
-      signup, Slack, course, or event functionality.
-    </p>
-  </section>
+  <h2>3. Why we use data and lawful bases</h2>
+  <ul>
+    <li>to provide an account, community access, events, courses, submissions, reviews, and certificates;</li>
+    <li>to perform requested services and manage the relationship with participants;</li>
+    <li>to secure, diagnose, audit, and maintain the website and its integrations;</li>
+    <li>to publish content or contributions when the contributor has authorized publication;</li>
+    <li>to comply with legal duties and establish, exercise, or defend legal claims; and</li>
+    <li>to use optional analytics or marketing data only when a separate valid consent applies.</li>
+  </ul>
+  <p>
+    Depending on the activity and applicable law, these purposes rely on performance of a
+    requested service, legitimate interests in operating a safe educational community, consent,
+    or legal obligations. Consent can be withdrawn for future processing without changing the
+    lawfulness of earlier processing.
+  </p>
 
-  <section>
-    <h2>5. Recipients, subprocessors, and transfers</h2>
-    <p>
-      Data is shared only as needed with the services that operate the requested function. Current
-      boundaries include AWS hosting, database, storage, edge delivery, and operational logging;
-      GitHub for public source content and a chosen sign-in method; Google for a chosen sign-in
-      method; Slack when a member follows the community access link; and Relay for transactional
-      email. Course, event, and public-content destinations may use their own linked services.
-    </p>
-    <p>
-      These services may process data outside the country where a participant lives. The controller
-      must document the applicable regions, transfer mechanism, and contractual safeguards during
-      the owner/legal review. No optional analytics processor is configured in this candidate.
-    </p>
-  </section>
+  <h2>4. Cookies and analytics</h2>
+  <p>
+    Necessary session and CSRF cookies protect sign-in and form submissions. A minimal
+    <code>dtc_analytics_consent</code> cookie stores version 1 of the allow or
+    deny choice for 180 days using a site-wide path, SameSite=Lax, and Secure on HTTPS. It
+    contains no account, profile, country, or session identifier.
+  </p>
+  <p>
+    Optional analytics fail closed. This source candidate contains no analytics provider loader,
+    measurement ID, or event taxonomy, and local, CI, development, and preview traffic contacts no
+    analytics endpoint. If optional measurement is introduced after the required privacy and
+    configuration review, it may start only after an affirmative choice and must not receive an
+    email, profile value, country signal, raw IP, account or database ID, session or CSRF value,
+    credential, Slack secret, or other direct identifier.
+  </p>
+  <p>
+    Use the Analytics preferences button in any footer to allow, reject, or withdraw the choice.
+    Rejection and withdrawal expire optional first-party analytics cookies and do not block site,
+    signup, Slack, course, or event functionality.
+  </p>
 
-  <section>
-    <h2>6. Retention</h2>
-    <p>The current architecture uses bounded records and the following provisional schedule:</p>
-    <ul>
-      <li>unverified course or event registrations are removed after 14 days;</li>
-      <li>event registration personal data is removed or anonymized 90 days after the event;</li>
-      <li>course enrollment, submissions, grading, certificates, and consent evidence remain while the educational record is active, then follow the published deletion or anonymization schedule;</li>
-      <li>website Relay intent and redacted delivery metadata are retained for 180 days;</li>
-      <li>security audit evidence is retained for one year; and</li>
-      <li>development logs are retained for 30 days.</li>
-    </ul>
-    <p>
-      Account and profile data is retained while the account is active and then deleted or
-      anonymized subject to legal, security, abuse-prevention, and educational-record requirements.
-      The educational-record schedule and any production exceptions require owner/privacy approval.
-    </p>
-  </section>
+  <h2>5. Recipients, subprocessors, and transfers</h2>
+  <p>
+    Data is shared only as needed with the services that operate the requested function. Current
+    boundaries include AWS hosting, database, storage, edge delivery, and operational logging;
+    GitHub for public source content and a chosen sign-in method; Google for a chosen sign-in
+    method; Slack when a member follows the community access link; and Relay for transactional
+    email. Course, event, and public-content destinations may use their own linked services.
+  </p>
+  <p>
+    These services may process data outside the country where a participant lives. The controller
+    must document the applicable regions, transfer mechanism, and contractual safeguards during
+    the owner/legal review. No optional analytics processor is configured in this candidate.
+  </p>
 
-  <section>
-    <h2>7. Your choices and rights</h2>
-    <p>
-      Depending on applicable law, you may ask for access, export, correction, deletion, restriction,
-      or portability of personal data, and may object to processing based on legitimate interests.
-      You may withdraw analytics or marketing consent for future processing at any time. You may
-      also complain to the competent data protection authority.
-    </p>
-    <p>
-      Some public GitHub-authored material is corrected through its reviewed source workflow, while
-      private account, profile, course, and event records use the relevant account or support
-      process. Identity and authorization may be checked before fulfilling a request.
-    </p>
-  </section>
+  <h2>6. Retention</h2>
+  <p>The current architecture uses bounded records and the following provisional schedule:</p>
+  <ul>
+    <li>unverified course or event registrations are removed after 14 days;</li>
+    <li>event registration personal data is removed or anonymized 90 days after the event;</li>
+    <li>course enrollment, submissions, grading, certificates, and consent evidence remain while the educational record is active, then follow the published deletion or anonymization schedule;</li>
+    <li>website Relay intent and redacted delivery metadata are retained for 180 days;</li>
+    <li>security audit evidence is retained for one year; and</li>
+    <li>development logs are retained for 30 days.</li>
+  </ul>
+  <p>
+    Account and profile data is retained while the account is active and then deleted or
+    anonymized subject to legal, security, abuse-prevention, and educational-record requirements.
+    The educational-record schedule and any production exceptions require owner/privacy approval.
+  </p>
 
-  <section>
-    <h2>8. Security</h2>
-    <p>
-      DataTalks.Club uses access control, secure cookies, request forgery protection, encryption in
-      transit, bounded audit records, redaction, least-privilege service roles, protected credentials,
-      and reviewed deployment controls. No internet service can promise absolute security.
-    </p>
-  </section>
+  <h2>7. Your choices and rights</h2>
+  <p>
+    Depending on applicable law, you may ask for access, export, correction, deletion, restriction,
+    or portability of personal data, and may object to processing based on legitimate interests.
+    You may withdraw analytics or marketing consent for future processing at any time. You may
+    also complain to the competent data protection authority.
+  </p>
+  <p>
+    Some public GitHub-authored material is corrected through its reviewed source workflow, while
+    private account, profile, course, and event records use the relevant account or support
+    process. Identity and authorization may be checked before fulfilling a request.
+  </p>
 
-  <section>
-    <h2>9. Minors</h2>
-    <p>
-      DataTalks.Club is an educational community, not a service designed to profile children. The
-      exact age threshold, parental authorization process, and deletion response for a minor require
-      owner/privacy confirmation before production acceptance. A person who cannot validly agree to
-      these terms where they live should use the service only with appropriate parent or guardian
-      involvement.
-    </p>
-  </section>
+  <h2>8. Security</h2>
+  <p>
+    DataTalks.Club uses access control, secure cookies, request forgery protection, encryption in
+    transit, bounded audit records, redaction, least-privilege service roles, protected credentials,
+    and reviewed deployment controls. No internet service can promise absolute security.
+  </p>
 
-  <section>
-    <h2>10. Changes and contact</h2>
-    <p>
-      Material policy changes will receive a new last-updated date and follow the reviewed source
-      workflow. Contact and complaint details will be the verified details published in the
-      <a class="app-link" href="{% url 'impressum' %}">Impressum</a>; they remain an explicit human
-      acceptance gate for this candidate.
-    </p>
-  </section>
+  <h2>9. Minors</h2>
+  <p>
+    DataTalks.Club is an educational community, not a service designed to profile children. The
+    exact age threshold, parental authorization process, and deletion response for a minor require
+    owner/privacy confirmation before production acceptance. A person who cannot validly agree to
+    these terms where they live should use the service only with appropriate parent or guardian
+    involvement.
+  </p>
+
+  <h2>10. Changes and contact</h2>
+  <p>
+    Material policy changes will receive a new last-updated date and follow the reviewed source
+    workflow. Contact and complaint details will be the verified details published in the
+    <a href="{% url 'impressum' %}">Impressum</a>; they remain an explicit human
+    acceptance gate for this candidate.
+  </p>
 {% endblock %}

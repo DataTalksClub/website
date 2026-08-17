@@ -1,15 +1,52 @@
-{% extends "core/base.html" %}
-{% block title %}
-  Page not found — DataTalks.Club
+{% extends "public/text_page.html" %}
+{% comment %}
+  Page not found (issue #179).  The page a lost visitor lands on, so it is
+  deliberately the smallest page in the system: the shared text page with a
+  heading, one sentence and two ways back, and nothing that depends on context a
+  failed request may not have supplied.
+
+  It renders in an error condition, so it states its own title and carries no
+  canonical, no social card and no structured data: it is not a destination, and
+  playwright_tests/test_course_design_parity.py asserts a missing page links no
+  canonical.
+
+  Both ways back are resolved as "as" assignments behind a conditional, the way
+  the shared shell and the shared text page do it: this template also answers
+  Django's own handler404, which can run under a URLconf that does not hold every
+  route the site normally has, and a route that cannot be reversed there must
+  drop out of the page rather than turn a 404 into a 500.
+{% endcomment %}
+
+{% block document_title %}
+  <title>Page not found — DataTalks.Club</title>
 {% endblock %}
-{% block content %}
-  <section class="mx-auto max-w-2xl py-12 text-center">
-    <p class="text-sm font-semibold uppercase tracking-wide app-muted">404</p>
-    <h1 class="mt-3 text-4xl font-semibold">Page not found</h1>
-    <p class="mt-4 text-lg app-text">We couldn't find that page.</p>
-    <div class="mt-7 flex flex-wrap justify-center gap-3">
-      <a class="primer-button primer-button-primary" href="{% url 'home' %}">Return home</a>
-      <a class="primer-button primer-button-secondary" href="{% url 'wiki-home' %}">Browse the Wiki</a>
-    </div>
-  </section>
+
+{% block document_meta %}
+  {% comment %}
+    Deliberately empty: a miss is not a destination, so it claims no canonical,
+    no description and no social card.
+  {% endcomment %}
+{% endblock %}
+
+{% block kicker %}
+  404
+{% endblock %}
+
+{% block title %}
+  Page not found
+{% endblock %}
+
+{% block lede %}
+  We couldn't find that page.
+{% endblock %}
+
+{% block actions %}
+  {% url 'home' as site_home_url %}
+  {% if site_home_url %}
+    <a class="cta cta-primary" href="{{ site_home_url }}">Return home</a>
+  {% endif %}
+  {% url 'wiki-home' as wiki_url %}
+  {% if wiki_url %}
+    <a class="cta cta-secondary" href="{{ wiki_url }}">Browse the Wiki</a>
+  {% endif %}
 {% endblock %}

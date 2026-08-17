@@ -1,16 +1,25 @@
-{% extends "core/base.html" %}
+{% extends "public/text_page.html" %}
+{% comment %}
+  The three legal documents — /terms, /privacy, /impressum — are text pages
+  (public/text_page.html), and this is the little they share beyond that shape:
+  the kicker above the heading, the date the text was last changed, and the
+  robots directive.
 
-{% block title %}
-  {{ seo_title }}
-{% endblock %}
+  The robots directive stays a per-page value the view supplies (`legal_robots`),
+  because a legal page is the one public page family whose indexability is
+  decided by the deployment rather than by the shell.
 
-{% block meta_robots %}
+  Everything else — the document itself — each page supplies as its own words.
+{% endcomment %}
+
+{% block robots %}
   <meta name="robots" content="{{ legal_robots }}">
 {% endblock %}
 
-{% block content %}
-  <article class="legal-document">
-    {% block legal_content %}
-    {% endblock %}
-  </article>
+{% block kicker %}
+  Legal
+{% endblock %}
+
+{% block meta %}
+  Last updated: 11 August 2026
 {% endblock %}
