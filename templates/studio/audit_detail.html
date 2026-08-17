@@ -1,16 +1,100 @@
 {% extends "studio/base.html" %}
-{% block title %}Audit event · Studio · {{ brand_name }}{% endblock %}
+
+{% comment %}
+  Design 5a (issue #179).  The h1 moved into the base's page_head block, the old
+  page slab became .admin-section, the section links became the design system's
+  .filter-pills, and the redacted field list became the base's .admin-facts —
+  the JSON-shaped fields render in the .admin-code block literal and the rest as
+  inline .mono-code.  The page stays read-only: it offers no action, and every
+  value still comes from the view's already-redacted presentation.
+{% endcomment %}
+
+{% block title %}
+  Audit event · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block breadcrumbs_nav %}
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li>
+        <a href="{% url 'studio:home' %}">Studio</a>
+      </li>
+      <li>
+        <a href="{% url 'studio:audit-list' %}">Audit events</a>
+      </li>
+      <li aria-current="page">
+        Audit event
+      </li>
+    </ol>
+  </nav>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Immutable · Read only
+    </p>
+    <h1>
+      Audit event
+    </h1>
+  </div>
+{% endblock %}
+
 {% block content %}
-  <section class="panel studio-panel">
-    <p class="eyebrow">Studio · Immutable · Read only</p>
-    <h1>Audit event</h1>
-    <nav aria-label="Studio sections" class="studio-navigation">
-      {% for item in studio_navigation %}<a href="{% url item.route %}">{{ item.label }}</a>{% endfor %}
-    </nav>
-    <p><a href="{% url 'studio:audit-list' %}">Back to audit events</a></p>
-    <dl class="audit-detail">
+  <nav aria-label="Studio sections" class="filter-pills">
+    {% for item in studio_navigation %}
+      <a class="filter-pill" href="{% url item.route %}">{{ item.label }}</a>
+    {% endfor %}
+  </nav>
+
+  <section class="admin-section" aria-labelledby="audit-event-heading">
+    <div class="admin-section-head">
+      <h2 id="audit-event-heading">
+        Recorded fields
+      </h2>
+      <p class="mono-note">
+        Immutable record
+      </p>
+    </div>
+    <dl class="admin-facts">
       {% for label, value in event.items %}
-        <div><dt>{{ label|title }}</dt><dd><code>{{ value }}</code></dd></div>
+        {% if label != "changes" and label != "metadata" %}
+          <div>
+            <dt>{{ label|title }}</dt>
+            <dd>
+              <code class="mono-code">{{ value }}</code>
+            </dd>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </dl>
+  </section>
+
+  <section class="admin-section" aria-labelledby="audit-payload-heading">
+    <div class="admin-section-head">
+      <h2 id="audit-payload-heading">
+        Recorded payload
+      </h2>
+      <p class="mono-note">
+        Redacted before display
+      </p>
+    </div>
+    {% comment %}
+      The payload fields are JSON documents rather than single values, so they
+      take the full measure of the section instead of a 12rem facts column: the
+      grid template is the only thing that changes, the label and value
+      typography stays the base's .admin-facts.
+    {% endcomment %}
+    <dl class="admin-facts" style="grid-template-columns: minmax(0, 1fr)">
+      {% for label, value in event.items %}
+        {% if label == "changes" or label == "metadata" %}
+          <div>
+            <dt>{{ label|title }}</dt>
+            <dd>
+              <code class="admin-code">{{ value }}</code>
+            </dd>
+          </div>
+        {% endif %}
       {% endfor %}
     </dl>
   </section>

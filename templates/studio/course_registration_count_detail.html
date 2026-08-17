@@ -1,60 +1,134 @@
 {% extends "studio/base.html" %}
 
-{% block title %}Course count detail · Studio · {{ brand_name }}{% endblock %}
+{% comment %}
+  Design 5a (issue #179).  Checksums are block-shaped literals, so they take the
+  system's inline .mono-code inside the .admin-facts record; the campaign
+  baselines are an .admin-table because the baseline count, the two coverage
+  timestamps, the state and the preview link do not reshape into four columns.
+  Each confirmed action keeps its own form, expected_revision and idempotency
+  key.
+{% endcomment %}
+
+{% block title %}
+  Course count detail · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Courses · Registration total</p>
+    <h1>Course count reconciliation</h1>
+    <p class="admin-lede">Safe campaign/cohort aggregate metadata only.</p>
+  </div>
+{% endblock %}
 
 {% block content %}
-  <section class="panel studio-panel" aria-labelledby="course-count-detail-heading">
-    <p class="eyebrow">Studio · Courses · Registration total</p>
-    <h1 id="course-count-detail-heading">Course count reconciliation</h1>
-    <p class="lede">Safe campaign/cohort aggregate metadata only.</p>
-    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
-
-    <dl class="credential-metadata">
-      <div><dt>State</dt><dd>{{ run.state }}</dd></div>
-      <div><dt>Source checksum</dt><dd><code>{{ run.source_checksum }}</code></dd></div>
-      <div><dt>Schema checksum</dt><dd><code>{{ run.schema_checksum }}</code></dd></div>
-      <div><dt>Manifest checksum</dt><dd><code>{{ run.manifest_checksum }}</code></dd></div>
-      <div><dt>Campaigns</dt><dd>{{ run.campaign_total }}</dd></div>
-      <div><dt>Rows counted</dt><dd>{{ run.row_total }}</dd></div>
-      <div><dt>Revision</dt><dd>{{ run.revision }}</dd></div>
+  {% if error_message %}
+    <div class="admin-notice admin-notice-error" role="alert">
+      <p class="mono-label">Error</p>
+      <p>{{ error_message }}</p>
+    </div>
+  {% endif %}
+  <section class="admin-section" aria-labelledby="course-count-summary-heading">
+    <div class="admin-section-head">
+      <h2 id="course-count-summary-heading">Run summary</h2>
+    </div>
+    <dl class="admin-facts">
+      <div>
+        <dt>State</dt>
+        <dd>{{ run.state }}</dd>
+      </div>
+      <div>
+        <dt>Source checksum</dt>
+        <dd>
+          <code class="mono-code">{{ run.source_checksum }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Schema checksum</dt>
+        <dd>
+          <code class="mono-code">{{ run.schema_checksum }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Manifest checksum</dt>
+        <dd>
+          <code class="mono-code">{{ run.manifest_checksum }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Campaigns</dt>
+        <dd>{{ run.campaign_total }}</dd>
+      </div>
+      <div>
+        <dt>Rows counted</dt>
+        <dd>{{ run.row_total }}</dd>
+      </div>
+      <div>
+        <dt>Revision</dt>
+        <dd>{{ run.revision }}</dd>
+      </div>
     </dl>
-
-    <section aria-labelledby="course-count-actions-heading">
+  </section>
+  <section class="admin-section" aria-labelledby="course-count-actions-heading">
+    <div class="admin-section-head">
       <h2 id="course-count-actions-heading">Confirmed actions</h2>
+    </div>
+    <div class="admin-form-grid">
       {% for action in actions %}
-        <form method="post" action="{% url 'studio:course-registration-count-action' run_id=run.id action=action %}">
+        <form class="admin-form" method="post" action="{% url 'studio:course-registration-count-action' run_id=run.id action=action %}">
           {% csrf_token %}
           <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}-{{ action }}">
           <input type="hidden" name="expected_revision" value="{{ run.revision }}">
           <input type="hidden" name="reason_code" value="operator_{{ action|cut:'-' }}">
-          <label class="check-field">
+          <label class="admin-check">
             <input type="checkbox" name="confirmed" value="true" required>
             <span>Confirm {{ action }}</span>
           </label>
-          <button type="submit">{{ action|title }}</button>
+          <div class="admin-form-actions">
+            <button class="cta cta-secondary cta-compact" type="submit">{{ action|title }}</button>
+          </div>
         </form>
       {% endfor %}
-    </section>
-
-    <section aria-labelledby="course-count-campaigns-heading">
+    </div>
+  </section>
+  <section class="admin-section" aria-labelledby="course-count-campaigns-heading">
+    <div class="admin-section-head">
       <h2 id="course-count-campaigns-heading">Campaign baselines</h2>
-      <div class="credential-grid">
-        {% for count in run.counts %}
-          <article class="audit-card">
-            <h3>{{ count.campaign_slug }} · {{ count.cohort_slug }}</h3>
-            <dl class="credential-metadata">
-              <div><dt>Baseline</dt><dd>{{ count.baseline_count }}</dd></div>
-              <div><dt>Coverage cutoff</dt><dd>{{ count.coverage_cutoff_at }}</dd></div>
-              <div><dt>Native start</dt><dd>{{ count.native_start_at }}</dd></div>
-              <div><dt>State</dt><dd>{{ count.state }}</dd></div>
-              <div><dt>Revision</dt><dd>{{ count.revision }}</dd></div>
-            </dl>
-            <p><a href="{% url 'studio:course-registration-count-total' campaign_slug=count.campaign_slug %}">Preview public count</a></p>
-          </article>
-        {% empty %}
-          <p>No campaign baseline is available.</p>
-        {% endfor %}
+      <p class="mono-note">{{ run.counts|length }} campaign{{ run.counts|length|pluralize }}</p>
+    </div>
+    {% if run.counts %}
+      <div class="admin-scroll" tabindex="0" role="region" aria-label="Campaign baselines">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Campaign · cohort</th>
+              <th class="admin-cell-numeric" scope="col">Baseline</th>
+              <th scope="col">Coverage cutoff</th>
+              <th scope="col">Native start</th>
+              <th scope="col">State</th>
+              <th class="admin-cell-numeric" scope="col">Revision</th>
+              <th scope="col">Preview</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for count in run.counts %}
+              <tr>
+                <td>{{ count.campaign_slug }} · {{ count.cohort_slug }}</td>
+                <td class="admin-cell-numeric">{{ count.baseline_count }}</td>
+                <td>{{ count.coverage_cutoff_at }}</td>
+                <td>{{ count.native_start_at }}</td>
+                <td>{{ count.state }}</td>
+                <td class="admin-cell-numeric">{{ count.revision }}</td>
+                <td>
+                  <a href="{% url 'studio:course-registration-count-total' campaign_slug=count.campaign_slug %}">Preview public count</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </section>
+    {% else %}
+      <p class="admin-empty">No campaign baseline is available.</p>
+    {% endif %}
   </section>
 {% endblock %}

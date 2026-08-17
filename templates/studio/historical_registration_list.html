@@ -1,68 +1,120 @@
 {% extends "studio/base.html" %}
 
-{% block title %}Historical registration totals · Studio · {{ brand_name }}{% endblock %}
+{% comment %}
+  Design 5a (issue #179).  The staging form is the shared .field primitives in
+  the base's .admin-form, and the run list is an .admin-table: every column but
+  the run link is a count, so the figures take .admin-cell-numeric and line up
+  in tabular numerals.  Every field name, hidden input, CSRF token and POST
+  target is unchanged.
+{% endcomment %}
 
-{% block content %}
-  <section class="panel studio-panel" aria-labelledby="historical-runs-heading">
-    <p class="eyebrow">Studio · Events</p>
-    <h1 id="historical-runs-heading">Historical registration totals</h1>
-    <p class="lede">
+{% block title %}
+  Historical registration totals · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Events</p>
+    <h1>Historical registration totals</h1>
+    <p class="admin-lede">
       Stage aggregate-only counts from a code-registered protected source. Attendee rows and
       provider payloads are never stored.
     </p>
-
-    <nav aria-label="Historical registration sections" class="studio-navigation">
-      <a href="{% url 'studio:historical-registration-mappings' %}">Review mappings</a>
+    <nav class="admin-toolbar" aria-label="Historical registration sections">
+      <a class="cta cta-secondary cta-compact" href="{% url 'studio:historical-registration-mappings' %}">
+        Review mappings
+      </a>
     </nav>
+  </div>
+{% endblock %}
 
-    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
-
-    <section aria-labelledby="stage-source-heading">
+{% block content %}
+  {% if error_message %}
+    <div class="admin-notice admin-notice-error" role="alert">
+      <p class="mono-label">Error</p>
+      <p>{{ error_message }}</p>
+    </div>
+  {% endif %}
+  <section class="admin-section" aria-labelledby="stage-source-heading">
+    <div class="admin-section-head">
       <h2 id="stage-source-heading">Stage a registered source</h2>
-      {% if source_references %}
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
-          <label for="provider">Provider</label>
-          <select id="provider" name="provider" required>
-            {% for value, label in providers %}<option value="{{ value }}">{{ label }}</option>{% endfor %}
-          </select>
-          <label for="source-reference">Registered source reference</label>
-          <select id="source-reference" name="source_reference" required>
-            {% for reference in source_references %}<option value="{{ reference }}">{{ reference }}</option>{% endfor %}
-          </select>
-          <label for="mapping-set-revision">Mapping-set revision</label>
-          <input id="mapping-set-revision" name="mapping_set_revision" type="number" min="1" value="1" required>
-          <label class="check-field">
-            <input type="checkbox" name="confirmed" value="true" required>
-            <span>Confirm aggregate-only staging</span>
-          </label>
-          <button type="submit">Stage source</button>
-        </form>
-      {% else %}
-        <p class="foundation-note">No protected source reference is registered in this environment.</p>
-      {% endif %}
-    </section>
-
-    <section aria-labelledby="source-runs-heading">
+    </div>
+    {% if source_references %}
+      <form class="admin-form" method="post">
+        {% csrf_token %}
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        <div class="admin-form-grid">
+          <div class="field">
+            <label class="field-label" for="provider">Provider</label>
+            <select class="field-input" id="provider" name="provider" required>
+              {% for value, label in providers %}
+                <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="source-reference">Registered source reference</label>
+            <select class="field-input" id="source-reference" name="source_reference" required>
+              {% for reference in source_references %}
+                <option value="{{ reference }}">{{ reference }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label" for="mapping-set-revision">Mapping-set revision</label>
+            <input class="field-input" id="mapping-set-revision" name="mapping_set_revision" type="number" min="1" value="1" required>
+          </div>
+        </div>
+        <label class="admin-check">
+          <input type="checkbox" name="confirmed" value="true" required>
+          <span>Confirm aggregate-only staging</span>
+        </label>
+        <div class="admin-form-actions">
+          <button class="cta cta-primary cta-compact" type="submit">Stage source</button>
+        </div>
+      </form>
+    {% else %}
+      <p class="admin-note">No protected source reference is registered in this environment.</p>
+    {% endif %}
+  </section>
+  <section class="admin-section" aria-labelledby="source-runs-heading">
+    <div class="admin-section-head">
       <h2 id="source-runs-heading">Source runs</h2>
-      <div class="credential-grid">
-        {% for run in runs %}
-          <article class="audit-card">
-            <h3><a href="{% url 'studio:historical-registration-detail' run_id=run.id %}">{{ run.provider }} · {{ run.state }}</a></h3>
-            <dl class="credential-metadata">
-              <div><dt>Events</dt><dd>{{ run.manifest_event_total }}</dd></div>
-              <div><dt>Rows reconciled</dt><dd>{{ run.parsed_row_total }}</dd></div>
-              <div><dt>Eligible</dt><dd>{{ run.eligible_row_total }}</dd></div>
-              <div><dt>Excluded</dt><dd>{{ run.excluded_row_total }}</dd></div>
-              <div><dt>Quarantined events</dt><dd>{{ run.quarantined_event_total }}</dd></div>
-              <div><dt>Revision</dt><dd>{{ run.revision }}</dd></div>
-            </dl>
-          </article>
-        {% empty %}
-          <p>No source runs have been staged.</p>
-        {% endfor %}
+      <p class="mono-note">{{ runs|length }} staged</p>
+    </div>
+    {% if runs %}
+      <div class="admin-scroll" tabindex="0" role="region" aria-label="Source runs">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Run</th>
+              <th class="admin-cell-numeric" scope="col">Events</th>
+              <th class="admin-cell-numeric" scope="col">Rows reconciled</th>
+              <th class="admin-cell-numeric" scope="col">Eligible</th>
+              <th class="admin-cell-numeric" scope="col">Excluded</th>
+              <th class="admin-cell-numeric" scope="col">Quarantined events</th>
+              <th class="admin-cell-numeric" scope="col">Revision</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for run in runs %}
+              <tr>
+                <td>
+                  <a href="{% url 'studio:historical-registration-detail' run_id=run.id %}">{{ run.provider }} · {{ run.state }}</a>
+                </td>
+                <td class="admin-cell-numeric">{{ run.manifest_event_total }}</td>
+                <td class="admin-cell-numeric">{{ run.parsed_row_total }}</td>
+                <td class="admin-cell-numeric">{{ run.eligible_row_total }}</td>
+                <td class="admin-cell-numeric">{{ run.excluded_row_total }}</td>
+                <td class="admin-cell-numeric">{{ run.quarantined_event_total }}</td>
+                <td class="admin-cell-numeric">{{ run.revision }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </section>
+    {% else %}
+      <p class="admin-empty">No source runs have been staged.</p>
+    {% endif %}
   </section>
 {% endblock %}

@@ -1,36 +1,157 @@
 {% extends "studio/base.html" %}
 
-{% block title %}{{ identity.title }} identity · Studio · {{ brand_name }}{% endblock %}
+{% comment %}
+  Design 5a (issue #179).  The record's h1 moved into the base's page_head, the
+  page slab became .admin-section, the credential-metadata lists became the
+  base's .admin-facts, and the bare alias list became .admin-list (the design
+  system drops list markers by default).  The trail back to the identity index
+  is the design system's .breadcrumbs primitive.  Every value shown is
+  unchanged.
+{% endcomment %}
+
+{% block title %}
+  {{ identity.title }} identity · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block breadcrumbs_nav %}
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li>
+        <a href="{% url 'studio:home' %}">Studio</a>
+      </li>
+      <li>
+        <a href="{% url 'studio:event-identity-list' %}">Event identities</a>
+      </li>
+      <li aria-current="page">
+        {{ identity.title }}
+      </li>
+    </ol>
+  </nav>
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Event identity
+    </p>
+    <h1>
+      {{ identity.title }}
+    </h1>
+  </div>
+{% endblock %}
 
 {% block content %}
-  <section class="panel studio-panel" aria-labelledby="event-identity-heading">
-    <p class="eyebrow">Studio · Event identity</p>
-    <h1 id="event-identity-heading">{{ identity.title }}</h1>
-    <dl class="credential-metadata">
-      <div><dt>UUID</dt><dd><code>{{ identity.id }}</code></dd></div>
-      <div><dt>Public ID (read-only)</dt><dd><code>{{ identity.public_id }}</code></dd></div>
-      <div><dt>Current slug</dt><dd><code>{{ identity.slug }}</code></dd></div>
-      <div><dt>Canonical detail</dt><dd><code>{{ identity.canonical_path }}</code></dd></div>
-      <div><dt>Public URL</dt><dd><code>{{ identity.public_url }}</code></dd></div>
-      <div><dt>Canonical registration</dt><dd><code>{{ identity.registration_path }}</code></dd></div>
+  <section class="admin-section" aria-labelledby="event-identity-heading">
+    <div class="admin-section-head">
+      <h2 id="event-identity-heading">
+        Identity
+      </h2>
+    </div>
+    <dl class="admin-facts">
+      <div>
+        <dt>UUID</dt>
+        <dd>
+          <code class="mono-code">{{ identity.id }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Public ID (read-only)</dt>
+        <dd>
+          <code class="mono-code">{{ identity.public_id }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Current slug</dt>
+        <dd>
+          <code class="mono-code">{{ identity.slug }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Canonical detail</dt>
+        <dd>
+          <code class="mono-code">{{ identity.canonical_path }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Public URL</dt>
+        <dd>
+          <code class="mono-code">{{ identity.public_url }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Canonical registration</dt>
+        <dd>
+          <code class="mono-code">{{ identity.registration_path }}</code>
+        </dd>
+      </div>
     </dl>
+  </section>
 
-    <h2>Source provenance</h2>
-    <dl class="credential-metadata">
-      <div><dt>Repository</dt><dd><code>{{ identity.provenance.repository }}</code></dd></div>
-      <div><dt>Revision</dt><dd><code>{{ identity.provenance.revision }}</code></dd></div>
-      <div><dt>Source key</dt><dd><code>{{ identity.provenance.source_key }}</code></dd></div>
-      <div><dt>Source path</dt><dd><code>{{ identity.provenance.source_path }}</code></dd></div>
-      <div><dt>Checksum</dt><dd><code>{{ identity.provenance.source_checksum }}</code></dd></div>
+  <section class="admin-section" aria-labelledby="event-identity-provenance-heading">
+    <div class="admin-section-head">
+      <h2 id="event-identity-provenance-heading">
+        Source provenance
+      </h2>
+      <p class="mono-note">
+        Authorized view only
+      </p>
+    </div>
+    <dl class="admin-facts">
+      <div>
+        <dt>Repository</dt>
+        <dd>
+          <code class="mono-code">{{ identity.provenance.repository }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Revision</dt>
+        <dd>
+          <code class="mono-code">{{ identity.provenance.revision }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Source key</dt>
+        <dd>
+          <code class="mono-code">{{ identity.provenance.source_key }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Source path</dt>
+        <dd>
+          <code class="mono-code">{{ identity.provenance.source_path }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Checksum</dt>
+        <dd>
+          <code class="mono-code">{{ identity.provenance.source_checksum }}</code>
+        </dd>
+      </div>
     </dl>
+  </section>
 
-    <h2>Retained aliases</h2>
-    <ul>
-      {% for alias in identity.aliases %}
-        <li><code>{{ alias.path }}</code> · {{ alias.kind }} · {{ alias.reason }}</li>
-      {% empty %}
-        <li>No aliases are retained.</li>
-      {% endfor %}
-    </ul>
+  <section class="admin-section" aria-labelledby="event-identity-aliases-heading">
+    <div class="admin-section-head">
+      <h2 id="event-identity-aliases-heading">
+        Retained aliases
+      </h2>
+      <p class="mono-note">
+        {{ identity.aliases|length }} alias{{ identity.aliases|length|pluralize:"es" }}
+      </p>
+    </div>
+    {% if identity.aliases %}
+      <ul class="admin-list">
+        {% for alias in identity.aliases %}
+          <li>
+            <code class="mono-code">{{ alias.path }}</code>
+            · {{ alias.kind }} · {{ alias.reason }}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="admin-empty">
+        No aliases are retained.
+      </p>
+    {% endif %}
   </section>
 {% endblock %}

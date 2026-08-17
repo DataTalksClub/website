@@ -1,58 +1,83 @@
 {% extends "studio/base.html" %}
 
-{% block title %}Site settings · Studio · {{ brand_name }}{% endblock %}
+{% comment %}
+  Design 5a (issue #179).  The h1 moved into the base's page_head block, the old
+  page slab became .admin-section, the section links became the design system's
+  .filter-pills, the saved state became an .admin-notice and the error summary
+  the base's .a11y-error-summary (core/static/core/accessibility.css is one of
+  the stylesheets a design 5a page deliberately does not load).  The form itself
+  is unchanged: same action, same CSRF token, same hidden revision and
+  idempotency fields, same field names, ids and aria-describedby wiring, and the
+  save control still appears only when the reader may write.
+{% endcomment %}
 
-{% block content %}
-  <section class="panel studio-panel" aria-labelledby="site-settings-heading">
-    <p class="eyebrow">Studio · Site</p>
-    <h1 id="site-settings-heading">Site settings</h1>
-    <p class="lede">
+{% block title %}
+  Site settings · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Site
+    </p>
+    <h1>
+      Site settings
+    </h1>
+    <p class="admin-lede">
       Manage public-safe operational settings. Never enter secrets, credentials, personal data,
       private links, or HTML here.
     </p>
+  </div>
+{% endblock %}
 
-    <nav aria-label="Studio sections" class="studio-navigation">
-      {% for item in studio_navigation %}
-        <a href="{% url item.route %}">
-          {{ item.label }}
-        </a>
-      {% endfor %}
-    </nav>
+{% block content %}
+  <nav aria-label="Studio sections" class="filter-pills">
+    {% for item in studio_navigation %}
+      <a class="filter-pill" href="{% url item.route %}">{{ item.label }}</a>
+    {% endfor %}
+  </nav>
 
-    {% if saved %}
-      <p class="foundation-note" role="status">
-        Site settings saved.
-      </p>
-    {% endif %}
+  {% if saved %}
+    <div class="admin-notice admin-notice-success" role="status">
+      <p class="mono-label">Saved</p>
+      <p>Site settings saved.</p>
+    </div>
+  {% endif %}
 
-    {% if error_message %}
-      <section
-        id="settings-errors"
-        class="error"
-        role="alert"
-        aria-labelledby="settings-errors-heading"
-        tabindex="-1"
-      >
-        <h2 id="settings-errors-heading">There is a problem</h2>
-        <p>{{ error_message }}</p>
-        <ul>
-          {% for field, message in field_errors.items %}
-            <li>
-              {% if field == "announcement_message" %}
-                <a href="#announcement-message">{{ message }}</a>
-              {% else %}
-                <a href="#site-announcement-fields">{{ message }}</a>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      </section>
-      <script>
-        document.getElementById("settings-errors").focus();
-      </script>
-    {% endif %}
+  {% if error_message %}
+    <section
+      id="settings-errors"
+      class="a11y-error-summary"
+      role="alert"
+      aria-labelledby="settings-errors-heading"
+      tabindex="-1"
+    >
+      <h2 id="settings-errors-heading">There is a problem</h2>
+      <p>{{ error_message }}</p>
+      <ul>
+        {% for field, message in field_errors.items %}
+          <li>
+            {% if field == "announcement_message" %}
+              <a href="#announcement-message">{{ message }}</a>
+            {% else %}
+              <a href="#site-announcement-fields">{{ message }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <script>
+      document.getElementById("settings-errors").focus();
+    </script>
+  {% endif %}
 
-    <form method="post" action="{% url 'studio:settings' %}">
+  <section class="admin-section" aria-labelledby="site-settings-heading">
+    <div class="admin-section-head">
+      <h2 id="site-settings-heading">Announcement settings</h2>
+      <p class="mono-note">Public-safe values only</p>
+    </div>
+
+    <form class="admin-form" method="post" action="{% url 'studio:settings' %}">
       {% csrf_token %}
       <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
       <input
@@ -66,10 +91,10 @@
         value="{{ message_setting.revision }}"
       >
 
-      <fieldset id="site-announcement-fields">
+      <fieldset class="admin-fieldset" id="site-announcement-fields">
         <legend>Site announcement</legend>
 
-        <label class="check-field" for="announcement-enabled">
+        <label class="admin-check" for="announcement-enabled">
           <input
             id="announcement-enabled"
             type="checkbox"
@@ -81,7 +106,7 @@
           >
           <span>{{ enabled_setting.label }}</span>
         </label>
-        <p id="announcement-enabled-help">
+        <p class="field-hint" id="announcement-enabled-help">
           {{ enabled_setting.description }} Type: Boolean. Default: Off. Current source:
           {% if enabled_setting.source == "code_default" %}
             Code default.
@@ -93,17 +118,20 @@
           Revision {{ enabled_setting.revision }}.
         </p>
 
-        <label for="announcement-message">{{ message_setting.label }}</label>
-        <input
-          id="announcement-message"
-          name="announcement_message"
-          value="{{ message_value }}"
-          maxlength="500"
-          aria-describedby="announcement-message-help"
-          {% if field_errors.announcement_message %}aria-invalid="true"{% endif %}
-          {% if not can_write %}readonly{% endif %}
-        >
-        <p id="announcement-message-help">
+        <div class="field">
+          <label class="field-label" for="announcement-message">{{ message_setting.label }}</label>
+          <input
+            class="field-input"
+            id="announcement-message"
+            name="announcement_message"
+            value="{{ message_value }}"
+            maxlength="500"
+            aria-describedby="announcement-message-help"
+            {% if field_errors.announcement_message %}aria-invalid="true"{% endif %}
+            {% if not can_write %}readonly{% endif %}
+          >
+        </div>
+        <p class="field-hint" id="announcement-message-help">
           {{ message_setting.description }} Type: String. Default: empty. Plain text only, up to 500
           characters. Current source:
           {% if message_setting.source == "code_default" %}
@@ -118,7 +146,9 @@
       </fieldset>
 
       {% if can_write %}
-        <button type="submit">Save site settings</button>
+        <div class="admin-form-actions">
+          <button class="cta cta-primary" type="submit">Save site settings</button>
+        </div>
       {% endif %}
     </form>
   </section>

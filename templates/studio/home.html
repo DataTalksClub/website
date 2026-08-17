@@ -1,21 +1,74 @@
 {% extends "studio/base.html" %}
-{% block title %}Studio · {{ brand_name }}{% endblock %}
+
+{% comment %}
+  Design 5a (issue #179).  The h1 moved into the base's page_head block, the old
+  page slab became .admin-section, the capability-filtered section links became
+  the design system's .filter-pills, and the status list became .admin-facts.
+  The sign-out POST, its CSRF token and every navigation URL are unchanged.
+{% endcomment %}
+
+{% block title %}
+  Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Staff workspace
+    </p>
+    <h1>
+      Studio
+    </h1>
+    <p class="admin-lede">
+      Choose an available workspace. Sections appear only when your assigned capabilities allow
+      them.
+    </p>
+  </div>
+{% endblock %}
+
 {% block content %}
-  <section class="panel">
-    <p class="eyebrow">Staff workspace</p>
-    <h1>Studio</h1>
-    <p>Choose an available workspace. Sections appear only when your assigned capabilities allow them.</p>
-    <nav aria-label="Studio sections" class="studio-navigation">
-      {% for item in studio_navigation %}
-        <a href="{% url item.route %}">{{ item.label }}</a>
-      {% empty %}
-        <p>You do not have any Studio sections assigned.</p>
-      {% endfor %}
-    </nav>
-    <dl class="status-grid">
-      <div><dt>Application</dt><dd>Ready</dd></div>
-      <div><dt>Version</dt><dd>{{ VERSION }}</dd></div>
+  <section class="admin-section" aria-labelledby="studio-sections-heading">
+    <div class="admin-section-head">
+      <h2 id="studio-sections-heading">
+        Workspaces
+      </h2>
+    </div>
+    {% if studio_navigation %}
+      <nav aria-label="Studio sections" class="filter-pills">
+        {% for item in studio_navigation %}
+          <a class="filter-pill" href="{% url item.route %}">{{ item.label }}</a>
+        {% endfor %}
+      </nav>
+    {% else %}
+      <p class="admin-empty">
+        You do not have any Studio sections assigned.
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="admin-section" aria-labelledby="studio-status-heading">
+    <div class="admin-section-head">
+      <h2 id="studio-status-heading">
+        Status
+      </h2>
+    </div>
+    <dl class="admin-facts">
+      <div>
+        <dt>Application</dt>
+        <dd>Ready</dd>
+      </div>
+      <div>
+        <dt>Version</dt>
+        <dd>{{ VERSION }}</dd>
+      </div>
     </dl>
-    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="secondary" type="submit">Sign out</button></form>
+    <div class="admin-toolbar">
+      <form method="post" action="{% url 'logout' %}">
+        {% csrf_token %}
+        <button class="cta cta-secondary cta-compact" type="submit">
+          Sign out
+        </button>
+      </form>
+    </div>
   </section>
 {% endblock %}

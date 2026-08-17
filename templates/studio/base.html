@@ -1,35 +1,611 @@
-{% extends "site_base.html" %}
-{% load static %}
-{# The shared base footer renders the readable Version {{ VERSION }} value. #}
+{% comment %}
+  The design 5a shell for the Studio admin surfaces (issue #179).
 
-{% block title %}
-  Studio · DataTalks.Club
-{% endblock %}
+  Every public page in the system is a complete standalone HTML document with no
+  {% extends %}, because every public page is bespoke: the homepage, a course, an
+  episode and a wiki topic share primitives but not a layout.  Studio is the
+  opposite shape.  It is ~30 near-identical staff pages — a heading, a filter bar, a
+  dense table or a form — and 30 copies of the same document skeleton is 30 chances
+  to drop a script, a meta robots tag or the
+  theme-toggle data attributes, which is exactly the drift core/_site_shell_head.html
+  was extracted to stop.  So this surface keeps one base template, and that base is a
+  design 5a document: it includes core/_design_system.html inside its own single
+  <style> element, includes the shared shell partials for the masthead and the script
+  set, and leaves the page's own markup to blocks.  A Studio page therefore carries the
+  same one inline stylesheet and zero <link rel="stylesheet"> the system requires,
+  without each page owning a copy of the document.
 
-{% block meta_robots %}
-  <meta name="robots" content="noindex,nofollow">
-{% endblock %}
+  The style block below adds the admin patterns the public inventory has no use for —
+  a data table, a filter bar, an actions menu, a fact list, a notice — built from the
+  system's own tokens and primitives.  They live here, not in core/_design_system.html,
+  because they are this surface's rules: the design system stays the public contract.
+  _docs/design/design-5a.md is still the authority for tokens, spacing and type.
 
-{% block extra_css %}
-  <link rel="stylesheet" href="{% static 'core/studio.css' %}">
-{% endblock %}
+  Blocks a child page fills: title, meta_robots, head_meta, extra_styles,
+  breadcrumbs_nav, page_head, messages, content, extra_js.
 
-{% block body_class %}
-  studio-page
-{% endblock %}
+  page_head is empty by default, because a page owns its own single h1 and a default
+  heading here would give every page that has not been rebuilt yet two.  Its recipe:
 
-{% block nav_links %}
-  <a href="{% url 'studio:home' %}"
-     class="app-heading app-link"
-     {% if request.resolver_match.view_name == "studio:home" %}
-       aria-current="page"
-     {% endif %}>
-    Studio home
-  </a>
-{% endblock %}
+    <div class="admin-head">
+      <p class="mono-label mono-label-indigo">Studio · Events</p>
+      <h1>Event identities</h1>
+      <p class="admin-lede">One sentence on what this page is for.</p>
+    </div>
 
-{% block breadcrumbs_nav %}
-{% endblock %}
+  And the actions menu, whose classes the style block defines.  It is a native
+  <details>, so it opens without JavaScript; the extra `user-menu` class opts it into
+  the shell's own user_menu.js, which is what closes a disclosure menu on Escape and
+  on an outside click:
 
-{% block timezone_preference_script %}
-{% endblock %}
+    <details class="admin-menu user-menu">
+      <summary class="admin-menu-toggle" aria-label="Actions for …">…</summary>
+      <div class="admin-menu-panel">
+        …one .admin-menu-item per action…
+      </div>
+    </details>
+
+  The shared footer partial renders the readable Version {{ VERSION }} value.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>
+      {% block title %}
+        Studio · DataTalks.Club
+      {% endblock %}
+    </title>
+    {% block meta_robots %}
+      <meta name="robots" content="noindex,nofollow">
+    {% endblock %}
+    {% block head_meta %}
+    {% endblock %}
+    <style>
+      {% include "core/_design_system.html" %}
+
+      /* ------------------------------------------------------------------ *
+       * Studio admin patterns.  Everything below is composed from the tokens
+       * and primitives of the design system above; no new colour, no new
+       * face, no external stylesheet.  A child page should reach for these
+       * (and for the shared .cta-*, .status-pill-*, .filter-pill, .field-*,
+       * .row-list, .stat-tile, .mono-* primitives) before writing its own CSS
+       * in the extra_styles block at the end of this stylesheet.
+       * ------------------------------------------------------------------ */
+
+      /* Admin pages are full of definition lists and of real bullet lists.
+         The system drops list markers for its card and row layouts, and the
+         design document asks a page using dl markup to reset the dd indent, so
+         both are settled here once instead of in thirty pages. */
+      dl,
+      dd {
+        margin: 0;
+      }
+
+      .admin-list {
+        list-style: disc;
+        padding-inline-start: 1.25rem;
+      }
+
+      .admin-list li {
+        display: list-item;
+      }
+
+      .admin-list li + li {
+        margin-top: 0.35rem;
+      }
+
+      /* The trail sits at the top of the band, above the page head.  Its links
+         already carry the system's 2.75rem target height, so it needs only a
+         little air under it. */
+      .shell > .breadcrumbs {
+        margin-bottom: 0.75rem;
+      }
+
+      /* The page head: the kicker, the h1 and the one-line lede a page opens
+         with (markup recipe in this template's opening comment).  The h1 takes
+         the type scale's featured size rather than the public hero size: an
+         admin page's title sits directly above a table it must not shout
+         over. */
+      .admin-head {
+        display: grid;
+        gap: 0.5rem;
+        margin-bottom: 1.75rem;
+      }
+
+      .admin-head h1 {
+        font-size: clamp(1.6rem, 3.2vw, 2.35rem);
+        overflow-wrap: anywhere;
+      }
+
+      .admin-lede {
+        color: var(--body-text);
+        font-size: 0.95rem;
+        max-width: 58rem;
+      }
+
+      .admin-note {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      /* One vertical rhythm for the page body, so a page can emit sections
+         without carrying spacing of its own.  The base wraps the content
+         block in it. */
+      .admin-stack {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      /* A section slab: the card surface at page scale.  Use it for each
+         group a page shows (a table, a form, a set of facts). */
+      .admin-section {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: grid;
+        gap: 0.9rem;
+        padding: 1.25rem;
+      }
+
+      .admin-section-head {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+        justify-content: space-between;
+      }
+
+      .admin-section-head h2 {
+        font-size: 1.15rem;
+      }
+
+      /* A row of actions: above a table, beside a heading, under a form. */
+      .admin-toolbar {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      /* --- data tables -------------------------------------------------- *
+       * The dashed-divided row treatment of .row-list, on real table markup,
+       * because a staff table has column headers a screen reader has to be
+       * able to announce.  Wrap every table in .admin-scroll so a wide one
+       * scrolls inside its own frame instead of widening the page; give that
+       * wrapper tabindex="0" and a role/label so the scroll region is
+       * reachable by keyboard.  A table of four columns or fewer reshapes
+       * better as .row-list/.list-row (the system's narrow rule: reshape, not
+       * reflow) — reach for that first, and keep this for the wide ones. */
+      .admin-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+        overscroll-behavior-inline: contain;
+      }
+
+      .admin-scroll:focus-visible {
+        outline-offset: -3px;
+      }
+
+      .admin-table {
+        border-collapse: collapse;
+        font-size: 0.92rem;
+        text-align: left;
+        width: 100%;
+      }
+
+      .admin-table th,
+      .admin-table td {
+        padding-block: 0.75rem;
+        padding-inline-end: 1.25rem;
+        vertical-align: top;
+      }
+
+      .admin-table th:last-child,
+      .admin-table td:last-child {
+        padding-inline-end: 0;
+      }
+
+      .admin-table thead th {
+        border-bottom: 2px dashed var(--line-soft);
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        padding-block: 0.4rem 0.6rem;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .admin-table td {
+        border-bottom: 1.5px dashed var(--line-soft);
+      }
+
+      .admin-table tbody tr:last-child td {
+        border-bottom: 0;
+      }
+
+      /* A link inside a dense table is surrounded by text, so it is underlined:
+         colour alone is not a distinction the contract accepts. */
+      .admin-table a {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      .admin-table .admin-cell-numeric {
+        font-family: var(--font-mono);
+        font-variant-numeric: tabular-nums;
+        text-align: right;
+      }
+
+      /* --- facts -------------------------------------------------------- *
+       * Label-over-value records (a credential's metadata, an audit event's
+       * fields, an identity's ids).  The public system's .spec-strip is the
+       * same idea bounded by dashed rules; this one wraps into as many
+       * columns as the width allows, which is what a record page wants. */
+      .admin-facts {
+        display: grid;
+        gap: 0.75rem 1.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+      }
+
+      .admin-facts dt {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        font-weight: 700;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+      }
+
+      .admin-facts dd {
+        color: var(--ink);
+        font-weight: 700;
+        margin-top: 0.2rem;
+        overflow-wrap: anywhere;
+      }
+
+      /* A block literal: a payload, a one-time secret, a rendered identifier.
+         Inline literals inside running copy stay on the system's .mono-code. */
+      .admin-code {
+        background: var(--lavender);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        display: block;
+        font-family: var(--font-mono);
+        font-size: 0.85rem;
+        overflow-x: auto;
+        overflow-wrap: anywhere;
+        padding: 0.75rem 0.9rem;
+        white-space: pre-wrap;
+      }
+
+      /* --- forms and filters -------------------------------------------- *
+       * Fields themselves are the system's .field / .field-label /
+       * .field-input / .field-hint; these are the shapes a form is laid out
+       * in.  A form is held to a usable measure, a filter bar is not: its
+       * fields sit on one line and wrap. */
+      .admin-form {
+        display: grid;
+        gap: 1.1rem;
+        max-width: 46rem;
+      }
+
+      .admin-form-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+      }
+
+      .admin-fieldset {
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        display: grid;
+        gap: 0.75rem;
+        padding: 1rem 1.1rem;
+      }
+
+      .admin-fieldset legend {
+        color: var(--ink);
+        font-weight: 800;
+        padding-inline: 0.4rem;
+      }
+
+      .admin-check {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+        min-height: 2.75rem;
+      }
+
+      .admin-check input {
+        accent-color: var(--green);
+        flex: none;
+        height: 1.1rem;
+        width: 1.1rem;
+      }
+
+      .admin-form-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      .admin-filters {
+        align-items: end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .admin-filters .field {
+        flex: 1 1 12rem;
+        min-width: 0;
+      }
+
+      .admin-filters .cta {
+        flex: none;
+      }
+
+      /* The shared accessible form primitives (core/templates/accessibility/)
+         carry these two class names, and their stylesheet is one of the ones a
+         design 5a page deliberately does not load — so the summary and the
+         field error are styled here instead.  The system has no danger colour:
+         an error is carried by its words on the attention surface (--olive on
+         --sand clears 4.5:1 in both themes), never by colour alone. */
+      .a11y-error-summary {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        color: var(--ink);
+        margin-block: 1rem;
+        max-width: 48rem;
+        padding: 1rem 1.15rem;
+      }
+
+      .a11y-error-summary h2 {
+        font-size: 1.15rem;
+      }
+
+      .a11y-error-summary ul {
+        display: grid;
+        gap: 0.35rem;
+        list-style: disc;
+        margin-top: 0.6rem;
+        padding-inline-start: 1.25rem;
+      }
+
+      .a11y-error-summary li {
+        display: list-item;
+      }
+
+      .a11y-error {
+        color: var(--olive);
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      /* --- notices ------------------------------------------------------ *
+       * Django messages and the pages' own saved/failed states.  The variant
+       * classes are named after Django's own message level tags so the
+       * messages loop can build the class from the level, and every notice
+       * leads with a .mono-label naming that level: the surface is
+       * reinforcement and the word is the state.  The system has no danger
+       * colour, so warning and error share the attention surface and are told
+       * apart by their label. */
+      .admin-notice {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        color: var(--body-text);
+        display: grid;
+        gap: 0.3rem;
+        padding: 0.9rem 1.1rem;
+      }
+
+      .admin-notice-success {
+        background: var(--mint);
+      }
+
+      .admin-notice-info,
+      .admin-notice-debug {
+        background: var(--lavender);
+      }
+
+      .admin-notice-warning,
+      .admin-notice-error {
+        background: var(--sand);
+        color: var(--olive);
+      }
+
+      .admin-notices {
+        display: grid;
+        gap: 0.6rem;
+        margin-bottom: 1.5rem;
+      }
+
+      /* --- empty state and pagination ----------------------------------- */
+      .admin-empty {
+        border: 2px dashed var(--line-soft);
+        border-radius: 0.9rem;
+        color: var(--body-text);
+        padding: 1.75rem 1rem;
+        text-align: center;
+      }
+
+      .admin-pagination {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+      }
+
+      /* --- actions menu ------------------------------------------------- *
+       * The per-row disclosure of everything that can be done to that row.
+       * It is a native details/summary, so it opens without JavaScript, and
+       * the extra `user-menu` class opts it into the shell's own user_menu.js
+       * for the Escape and outside-click closes a disclosure menu owes its
+       * reader.  Markup recipe in this template's opening comment. */
+      .admin-menu {
+        display: inline-block;
+        position: relative;
+      }
+
+      .admin-menu-toggle {
+        align-items: center;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.6rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font-weight: 700;
+        justify-content: center;
+        list-style: none;
+        min-height: 2.75rem;
+        min-width: 2.75rem;
+        padding-inline: 0.6rem;
+      }
+
+      .admin-menu-toggle::-webkit-details-marker {
+        display: none;
+      }
+
+      .admin-menu-panel {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.7rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        display: grid;
+        gap: 0.15rem;
+        inset-inline-end: 0;
+        min-width: 15rem;
+        padding: 0.35rem;
+        position: absolute;
+        text-align: start;
+        top: calc(100% + 0.35rem);
+        z-index: 40;
+      }
+
+      .admin-menu-panel form {
+        margin: 0;
+      }
+
+      .admin-menu-item {
+        align-items: center;
+        background: none;
+        border: 0;
+        border-radius: 0.45rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: flex;
+        font: inherit;
+        font-weight: 600;
+        gap: 0.5rem;
+        min-height: 2.75rem;
+        padding: 0.4rem 0.7rem;
+        text-align: start;
+        text-decoration: none;
+        width: 100%;
+      }
+
+      .admin-menu-item:hover {
+        background: var(--lavender);
+      }
+
+      /* A submenu inside the panel.  Its open/closed marker is CSS-drawn from
+         the [open] state, so the menu needs no icon font and no script. */
+      .admin-submenu-toggle {
+        justify-content: space-between;
+        list-style: none;
+      }
+
+      .admin-submenu-toggle::-webkit-details-marker {
+        display: none;
+      }
+
+      .admin-submenu-toggle::after {
+        content: "+";
+        font-family: var(--font-mono);
+      }
+
+      .admin-submenu[open] > .admin-submenu-toggle::after {
+        content: "−";
+      }
+
+      .admin-submenu-panel {
+        display: grid;
+        gap: 0.15rem;
+        padding-inline-start: 0.7rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* A 15rem panel hanging off a row on a 390px screen pushes the page
+           sideways, so on a phone the panel takes the narrower width its
+           labels still fit in. */
+        .admin-menu-panel {
+          min-width: 12rem;
+        }
+
+        .admin-section {
+          padding: 1rem;
+        }
+      }
+
+      {% block extra_styles %}
+      {% endblock %}
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream">
+        <div class="shell">
+          {% block breadcrumbs_nav %}
+          {% endblock %}
+          {% block page_head %}
+          {% endblock %}
+          {% block messages %}
+            {% if messages %}
+              <div class="admin-notices">
+                {% for message in messages %}
+                  <div class="admin-notice admin-notice-{{ message.level_tag }}" role="status">
+                    <p class="mono-label">{{ message.level_tag }}</p>
+                    <p>{{ message }}</p>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          {% endblock %}
+          <div class="admin-stack">
+            {% block content %}
+            {% endblock %}
+          </div>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+    {% block extra_js %}
+    {% endblock %}
+  </body>
+</html>

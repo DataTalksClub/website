@@ -1,65 +1,118 @@
 {% extends "studio/base.html" %}
 
-{% block title %}Historical event mappings · Studio · {{ brand_name }}{% endblock %}
+{% comment %}
+  Design 5a (issue #179).  Each proposal keeps its own review form, so the
+  records are the system's dashed .row-list rather than a table: a table cell
+  is the wrong container for six labelled controls.  The rows carry
+  data-mapping-id as the stable hook the browser suite locates a proposal by.
+  Every control id, field name, hidden revision and POST target is unchanged —
+  the exact provider identifier is still the only thing that approves a
+  mapping, and it is still shown only on this page.
+{% endcomment %}
 
-{% block content %}
-  <section class="panel studio-panel" aria-labelledby="historical-mappings-heading">
-    <p class="eyebrow">Studio · Events</p>
-    <h1 id="historical-mappings-heading">Historical event mappings</h1>
-    <p class="lede">
+{% block title %}
+  Historical event mappings · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Events</p>
+    <h1>Historical event mappings</h1>
+    <p class="admin-lede">
       Exact provider event identifiers are visible on this capability-restricted page only.
       Similar titles, dates, or slugs never approve a mapping.
     </p>
-    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
+  </div>
+{% endblock %}
 
-    <div class="credential-grid">
-      {% for mapping in mappings %}
-        <article class="audit-card">
-          <h2>{{ mapping.provider }} · {{ mapping.state }}</h2>
-          <p><code>{{ mapping.external_event_identifier }}</code></p>
-          <form method="post">
-            {% csrf_token %}
-            <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}-{{ mapping.id }}">
-            <input type="hidden" name="mapping_id" value="{{ mapping.id }}">
-            <input type="hidden" name="mapping_set_revision" value="{{ mapping.mapping_set_revision }}">
-            <input type="hidden" name="expected_revision" value="{{ mapping.revision }}">
-            <label for="state-{{ mapping.id }}">Decision</label>
-            <select id="state-{{ mapping.id }}" name="state" required>
-              {% if mapping.state != "mapped" and mapping.state != "excluded" %}
-                <option value="" selected disabled>Choose a reviewed decision</option>
-              {% endif %}
-              {% for value in mapping_states %}
-                <option value="{{ value }}" {% if value == mapping.state %}selected{% endif %}>{{ value }}</option>
-              {% endfor %}
-            </select>
-            <label for="event-{{ mapping.id }}">Exact Event identity</label>
-            <select id="event-{{ mapping.id }}" name="event_id">
-              <option value="">No target (exclude)</option>
-              {% for identity in event_identities %}
-                <option value="{{ identity.id }}" {% if identity.id == mapping.event_id %}selected{% endif %}>{{ identity.title }} · {{ identity.slug }}</option>
-              {% endfor %}
-            </select>
-            <label for="coverage-{{ mapping.id }}">Coverage boundary</label>
-            <input id="coverage-{{ mapping.id }}" name="coverage_boundary" value="historical" maxlength="128" required>
-            <label for="combination-{{ mapping.id }}">Combination policy</label>
-            <select id="combination-{{ mapping.id }}" name="combination_policy" required>
-              {% for value in combination_policies %}
-                <option
-                  value="{{ value }}"
-                  {% if mapping.state == "excluded" and value == "exclude" %}selected{% elif mapping.state != "excluded" and value == "replacement" %}selected{% endif %}
-                >{{ value }}</option>
-              {% endfor %}
-            </select>
-            <label for="reason-code-{{ mapping.id }}">Reason code</label>
-            <input id="reason-code-{{ mapping.id }}" name="reason_code" value="{{ mapping.reason_code|default:'reviewed_mapping' }}" pattern="[a-z][a-z0-9_]{0,63}" required>
-            <label for="reason-{{ mapping.id }}">Private review note</label>
-            <textarea id="reason-{{ mapping.id }}" name="reason" maxlength="2000"></textarea>
-            <button type="submit">Save reviewed decision</button>
-          </form>
-        </article>
-      {% empty %}
-        <p>No mapping proposal is available.</p>
-      {% endfor %}
+{% block content %}
+  {% if error_message %}
+    <div class="admin-notice admin-notice-error" role="alert">
+      <p class="mono-label">Error</p>
+      <p>{{ error_message }}</p>
     </div>
+  {% endif %}
+  <section class="admin-section" aria-labelledby="mapping-proposals-heading">
+    <div class="admin-section-head">
+      <h2 id="mapping-proposals-heading">Mapping proposals</h2>
+      <p class="mono-note">{{ mappings|length }} proposal{{ mappings|length|pluralize }}</p>
+    </div>
+    {% if mappings %}
+      <div class="row-list">
+        {% for mapping in mappings %}
+          <article class="list-row" style="--row-cols: minmax(0, 1fr)" data-mapping-id="{{ mapping.id }}">
+            <h3>{{ mapping.provider }} · {{ mapping.state }}</h3>
+            <p>
+              <code class="mono-code">{{ mapping.external_event_identifier }}</code>
+            </p>
+            <form class="admin-form" method="post">
+              {% csrf_token %}
+              <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}-{{ mapping.id }}">
+              <input type="hidden" name="mapping_id" value="{{ mapping.id }}">
+              <input type="hidden" name="mapping_set_revision" value="{{ mapping.mapping_set_revision }}">
+              <input type="hidden" name="expected_revision" value="{{ mapping.revision }}">
+              <div class="admin-form-grid">
+                <div class="field">
+                  <label class="field-label" for="state-{{ mapping.id }}">Decision</label>
+                  <select class="field-input" id="state-{{ mapping.id }}" name="state" required>
+                    {% if mapping.state != "mapped" and mapping.state != "excluded" %}
+                      <option value="" selected disabled>Choose a reviewed decision</option>
+                    {% endif %}
+                    {% for value in mapping_states %}
+                      {% if value == mapping.state %}
+                        <option value="{{ value }}" selected>{{ value }}</option>
+                      {% else %}
+                        <option value="{{ value }}">{{ value }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="event-{{ mapping.id }}">Exact Event identity</label>
+                  <select class="field-input" id="event-{{ mapping.id }}" name="event_id">
+                    <option value="">No target (exclude)</option>
+                    {% for identity in event_identities %}
+                      {% if identity.id == mapping.event_id %}
+                        <option value="{{ identity.id }}" selected>{{ identity.title }} · {{ identity.slug }}</option>
+                      {% else %}
+                        <option value="{{ identity.id }}">{{ identity.title }} · {{ identity.slug }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="coverage-{{ mapping.id }}">Coverage boundary</label>
+                  <input class="field-input" id="coverage-{{ mapping.id }}" name="coverage_boundary" value="historical" maxlength="128" required>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="combination-{{ mapping.id }}">Combination policy</label>
+                  <select class="field-input" id="combination-{{ mapping.id }}" name="combination_policy" required>
+                    {% for value in combination_policies %}
+                      <option
+                        value="{{ value }}"
+                        {% if mapping.state == "excluded" and value == "exclude" %}selected{% elif mapping.state != "excluded" and value == "replacement" %}selected{% endif %}
+                      >{{ value }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="field">
+                  <label class="field-label" for="reason-code-{{ mapping.id }}">Reason code</label>
+                  <input class="field-input" id="reason-code-{{ mapping.id }}" name="reason_code" value="{{ mapping.reason_code|default:'reviewed_mapping' }}" pattern="[a-z][a-z0-9_]{0,63}" required>
+                </div>
+              </div>
+              <div class="field">
+                <label class="field-label" for="reason-{{ mapping.id }}">Private review note</label>
+                <textarea class="field-input" id="reason-{{ mapping.id }}" name="reason" rows="3" maxlength="2000"></textarea>
+              </div>
+              <div class="admin-form-actions">
+                <button class="cta cta-primary cta-compact" type="submit">Save reviewed decision</button>
+              </div>
+            </form>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="admin-empty">No mapping proposal is available.</p>
+    {% endif %}
   </section>
 {% endblock %}

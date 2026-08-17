@@ -1,30 +1,87 @@
 {% extends "studio/base.html" %}
 
-{% block title %}Event identities · Studio · {{ brand_name }}{% endblock %}
+{% comment %}
+  Design 5a (issue #179).  The page's h1 moved into the base's page_head block so
+  the document keeps exactly one top-level heading, the old page slab became the
+  base's .admin-section, and the credential-grid of cards became the design
+  system's dashed .row-list — none of core/studio.css is loaded any more.  Every
+  URL and value shown is unchanged.
+{% endcomment %}
 
-{% block content %}
-  <section class="panel studio-panel" aria-labelledby="event-identities-heading">
-    <p class="eyebrow">Studio · Events</p>
-    <h1 id="event-identities-heading">Event identities</h1>
-    <p class="lede">
+{% block title %}
+  Event identities · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Events
+    </p>
+    <h1>
+      Event identities
+    </h1>
+    <p class="admin-lede">
       Reviewed UUID identities and retained aliases. The UUID is the only lookup key; slugs are
       cosmetic and source provenance is visible only on this authorized page.
     </p>
-    <div class="credential-grid">
-      {% for identity in identities %}
-        <article class="audit-card">
-          <h2><a href="{% url 'studio:event-identity-detail' event_id=identity.id %}">{{ identity.title }}</a></h2>
-          <dl class="credential-metadata">
-            <div><dt>UUID</dt><dd><code>{{ identity.id }}</code></dd></div>
-            <div><dt>Public ID (read-only)</dt><dd><code>{{ identity.public_id }}</code></dd></div>
-            <div><dt>Slug</dt><dd><code>{{ identity.slug }}</code></dd></div>
-            <div><dt>Canonical</dt><dd><code>{{ identity.canonical_path }}</code></dd></div>
-            <div><dt>Aliases</dt><dd>{{ identity.aliases|length }}</dd></div>
-          </dl>
-        </article>
-      {% empty %}
-        <p>No Event identities are available.</p>
-      {% endfor %}
+  </div>
+{% endblock %}
+
+{% block content %}
+  <section class="admin-section" aria-labelledby="event-identities-heading">
+    <div class="admin-section-head">
+      <h2 id="event-identities-heading">
+        Reviewed identities
+      </h2>
+      <p class="mono-note">
+        {{ identities|length }} identit{{ identities|length|pluralize:"y,ies" }}
+      </p>
     </div>
+    {% if identities %}
+      <div class="row-list">
+        {% for identity in identities %}
+          <article class="list-row" style="--row-cols: minmax(0, 1fr) minmax(0, 1.8fr); align-items: start">
+            <div>
+              <h3>
+                <a href="{% url 'studio:event-identity-detail' event_id=identity.id %}">{{ identity.title }}</a>
+              </h3>
+              <p class="admin-note">
+                {{ identity.aliases|length }} retained alias{{ identity.aliases|length|pluralize:"es" }}
+              </p>
+            </div>
+            <dl class="admin-facts">
+              <div>
+                <dt>UUID</dt>
+                <dd>
+                  <code class="mono-code">{{ identity.id }}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>Public ID (read-only)</dt>
+                <dd>
+                  <code class="mono-code">{{ identity.public_id }}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>Slug</dt>
+                <dd>
+                  <code class="mono-code">{{ identity.slug }}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>Canonical</dt>
+                <dd>
+                  <code class="mono-code">{{ identity.canonical_path }}</code>
+                </dd>
+              </div>
+            </dl>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="admin-empty">
+        No Event identities are available.
+      </p>
+    {% endif %}
   </section>
 {% endblock %}

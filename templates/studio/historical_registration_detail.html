@@ -1,62 +1,134 @@
 {% extends "studio/base.html" %}
 
-{% block title %}Historical import detail · Studio · {{ brand_name }}{% endblock %}
+{% comment %}
+  Design 5a (issue #179).  The run's safe metadata is an .admin-facts record,
+  the five confirmed actions keep one form each (own checkbox, own idempotency
+  key, own action URL), and the per-event reconciliation is an .admin-table
+  because it is nine columns wide and five of them are counts.  Masking is
+  unchanged: the aggregate rows still show only the masked external event.
+{% endcomment %}
+
+{% block title %}
+  Historical import detail · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Events · Historical total</p>
+    <h1>{{ run.provider }} reconciliation</h1>
+    <p class="admin-lede">Safe aggregate metadata only. Provider event identifiers remain masked here.</p>
+  </div>
+{% endblock %}
 
 {% block content %}
-  <section class="panel studio-panel" aria-labelledby="historical-detail-heading">
-    <p class="eyebrow">Studio · Events · Historical total</p>
-    <h1 id="historical-detail-heading">{{ run.provider }} reconciliation</h1>
-    <p class="lede">Safe aggregate metadata only. Provider event identifiers remain masked here.</p>
-    {% if error_message %}<p class="error" role="alert">{{ error_message }}</p>{% endif %}
-
-    <dl class="credential-metadata">
-      <div><dt>State</dt><dd>{{ run.state }}</dd></div>
-      <div><dt>Source checksum</dt><dd><code>{{ run.source_checksum }}</code></dd></div>
-      <div><dt>Schema</dt><dd>{{ run.schema_version }}</dd></div>
-      <div><dt>Events</dt><dd>{{ run.manifest_event_total }}</dd></div>
-      <div><dt>Rows reconciled</dt><dd>{{ run.parsed_row_total }}</dd></div>
-      <div><dt>Eligible</dt><dd>{{ run.eligible_row_total }}</dd></div>
-      <div><dt>Excluded</dt><dd>{{ run.excluded_row_total }}</dd></div>
-      <div><dt>Mapping-set revision</dt><dd>{{ run.mapping_set_revision }}</dd></div>
+  {% if error_message %}
+    <div class="admin-notice admin-notice-error" role="alert">
+      <p class="mono-label">Error</p>
+      <p>{{ error_message }}</p>
+    </div>
+  {% endif %}
+  <section class="admin-section" aria-labelledby="run-summary-heading">
+    <div class="admin-section-head">
+      <h2 id="run-summary-heading">Run summary</h2>
+    </div>
+    <dl class="admin-facts">
+      <div>
+        <dt>State</dt>
+        <dd>{{ run.state }}</dd>
+      </div>
+      <div>
+        <dt>Source checksum</dt>
+        <dd>
+          <code class="mono-code">{{ run.source_checksum }}</code>
+        </dd>
+      </div>
+      <div>
+        <dt>Schema</dt>
+        <dd>{{ run.schema_version }}</dd>
+      </div>
+      <div>
+        <dt>Events</dt>
+        <dd>{{ run.manifest_event_total }}</dd>
+      </div>
+      <div>
+        <dt>Rows reconciled</dt>
+        <dd>{{ run.parsed_row_total }}</dd>
+      </div>
+      <div>
+        <dt>Eligible</dt>
+        <dd>{{ run.eligible_row_total }}</dd>
+      </div>
+      <div>
+        <dt>Excluded</dt>
+        <dd>{{ run.excluded_row_total }}</dd>
+      </div>
+      <div>
+        <dt>Mapping-set revision</dt>
+        <dd>{{ run.mapping_set_revision }}</dd>
+      </div>
     </dl>
-
-    <section aria-labelledby="actions-heading">
+  </section>
+  <section class="admin-section" aria-labelledby="actions-heading">
+    <div class="admin-section-head">
       <h2 id="actions-heading">Confirmed actions</h2>
+    </div>
+    <div class="admin-form-grid">
       {% for action in actions %}
-        <form method="post" action="{% url 'studio:historical-registration-action' run_id=run.id action=action %}">
+        <form class="admin-form" method="post" action="{% url 'studio:historical-registration-action' run_id=run.id action=action %}">
           {% csrf_token %}
           <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}-{{ action }}">
           <input type="hidden" name="reason_code" value="operator_{{ action|cut:'-' }}">
-          <label class="check-field">
+          <label class="admin-check">
             <input type="checkbox" name="confirmed" value="true" required>
             <span>Confirm {{ action }}</span>
           </label>
-          <button type="submit">{{ action|title }}</button>
+          <div class="admin-form-actions">
+            <button class="cta cta-secondary cta-compact" type="submit">{{ action|title }}</button>
+          </div>
         </form>
       {% endfor %}
-    </section>
-
-    <section aria-labelledby="aggregate-heading">
+    </div>
+  </section>
+  <section class="admin-section" aria-labelledby="aggregate-heading">
+    <div class="admin-section-head">
       <h2 id="aggregate-heading">Aggregate reconciliation</h2>
-      <div class="credential-grid">
-        {% for aggregate in run.aggregates %}
-          <article class="audit-card">
-            <h3>{{ aggregate.external_event }}</h3>
-            <dl class="credential-metadata">
-              <div><dt>Mapping</dt><dd>{{ aggregate.mapping_state }}</dd></div>
-              <div><dt>Canonical event</dt><dd>{{ aggregate.canonical_slug|default:"Not mapped" }}</dd></div>
-              <div><dt>Eligible</dt><dd>{{ aggregate.eligible_count }}</dd></div>
-              <div><dt>Excluded</dt><dd>{{ aggregate.excluded_count }}</dd></div>
-              <div><dt>Quarantined</dt><dd>{{ aggregate.quarantined_count }}</dd></div>
-              <div><dt>Coverage</dt><dd>{{ aggregate.coverage_boundary }}</dd></div>
-              <div><dt>Combination</dt><dd>{{ aggregate.combination_policy }}</dd></div>
-              <div><dt>State</dt><dd>{{ aggregate.state }}</dd></div>
-            </dl>
-          </article>
-        {% empty %}
-          <p>No aggregate candidate is available.</p>
-        {% endfor %}
+      <p class="mono-note">{{ run.aggregates|length }} event{{ run.aggregates|length|pluralize }}</p>
+    </div>
+    {% if run.aggregates %}
+      <div class="admin-scroll" tabindex="0" role="region" aria-label="Aggregate reconciliation">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Event</th>
+              <th scope="col">Mapping</th>
+              <th scope="col">Canonical event</th>
+              <th class="admin-cell-numeric" scope="col">Eligible</th>
+              <th class="admin-cell-numeric" scope="col">Excluded</th>
+              <th class="admin-cell-numeric" scope="col">Quarantined</th>
+              <th scope="col">Coverage</th>
+              <th scope="col">Combination</th>
+              <th scope="col">State</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for aggregate in run.aggregates %}
+              <tr>
+                <td>{{ aggregate.external_event }}</td>
+                <td>{{ aggregate.mapping_state }}</td>
+                <td>{{ aggregate.canonical_slug|default:"Not mapped" }}</td>
+                <td class="admin-cell-numeric">{{ aggregate.eligible_count }}</td>
+                <td class="admin-cell-numeric">{{ aggregate.excluded_count }}</td>
+                <td class="admin-cell-numeric">{{ aggregate.quarantined_count }}</td>
+                <td>{{ aggregate.coverage_boundary }}</td>
+                <td>{{ aggregate.combination_policy }}</td>
+                <td>{{ aggregate.state }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
-    </section>
+    {% else %}
+      <p class="admin-empty">No aggregate candidate is available.</p>
+    {% endif %}
   </section>
 {% endblock %}
