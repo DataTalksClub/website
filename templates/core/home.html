@@ -83,13 +83,6 @@
         margin-top: 1.5rem;
       }
 
-      .hero-fineprint {
-        color: var(--muted);
-        font-size: 0.92rem;
-        margin-top: 1.15rem;
-        max-width: 34rem;
-      }
-
       .hero-figure {
         display: grid;
         gap: 0.85rem;
@@ -485,10 +478,6 @@
        * ------------------------------------------------------------------ */
 
       @media (max-width: 47.99rem) {
-        .hero-fineprint {
-          display: none;
-        }
-
         .hero-actions .cta {
           width: 100%;
         }
@@ -652,10 +641,6 @@
               <a class="cta cta-primary" href="{% url 'account_signup' %}">Create your free account</a>
               <a class="cta cta-secondary" href="#courses">Pick a course ↓</a>
             </div>
-            <p class="hero-fineprint">
-              Takes 20 seconds. No card, no upsell. Courses, weekly events, homework and the Slack
-              come with the account.
-            </p>
           </div>
           <div class="hero-figure">
             {% include "core/_home_illustration.html" with variant="hero" %}
@@ -670,7 +655,6 @@
               <h2 id="climb-heading">The climb, as members describe it</h2>
               <p>Three stages everyone recognises. The middle one is where the courses do their work.</p>
             </div>
-            <p class="kicker">Nine weeks · then the rest of your career</p>
           </div>
           <div class="card-grid card-grid-3">
             <article class="card climb-card">
@@ -784,7 +768,7 @@
           <div class="band-head band-head-secondary">
             <div>
               <h3>The rest of the catalog</h3>
-              <p>Start any of them self-paced today, or register to hold a seat in the next cohort.</p>
+              <p>Every finished cohort keeps its materials public, and the next one is open to register for.</p>
             </div>
             <div class="scroller-controls">
               <button
