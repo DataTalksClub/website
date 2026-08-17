@@ -1,32 +1,96 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Sign-in needs review · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Fail-closed social linking, design 5a (issue #179).  The adapter
+       * renders this with a 409 when it cannot prove a sign-in belongs to
+       * exactly one durable account (accounts/auth.py).  It says what did
+       * not happen, and offers the two safe ways on — it never names the
+       * accounts involved and never carries the conflict reason into the
+       * copy.
+       * ------------------------------------------------------------------ */
 
-{% block title %}Sign-in needs review · DataTalks.Club{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block breadcrumbs %}{% endblock %}
+      /* ------------------------------------------------------------------ *
+       * Conflict-page rules.
+       * ------------------------------------------------------------------ */
 
-{% block content %}
-    <section class="mx-auto max-w-xl space-y-4"
-             aria-labelledby="identity-conflict-title">
-        <p class="text-sm font-semibold uppercase tracking-wide app-muted">
-            Account safety
-        </p>
-        <h1 id="identity-conflict-title"
-            class="text-2xl font-semibold app-heading md:text-3xl">
+      .auth-shell {
+        max-width: 34rem;
+      }
+
+      .auth-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .auth-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+
+      .auth-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        .auth-actions {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section
+        class="band band-cream auth-hero"
+        aria-labelledby="identity-conflict-title"
+      >
+        <div class="shell auth-shell">
+          <p class="mono-label mono-label-indigo">Account safety</p>
+          <h1 id="identity-conflict-title">
             We could not safely link this sign-in
-        </h1>
-        <p class="text-sm leading-6 app-muted">
+          </h1>
+          <p class="auth-lede">
             No account was created or linked. Use a login method that is already
             connected to your account, or contact support for a reviewed recovery.
-        </p>
-        <div class="flex flex-wrap gap-3">
-            <a href="{% url 'login' %}"
-               class="primer-button primer-button-secondary">
-                Try another login method
+          </p>
+          <div class="auth-actions">
+            <a class="cta cta-secondary" href="{% url 'login' %}">
+              Try another login method
             </a>
-            <a href="{% url 'home' %}"
-               class="primer-button primer-button-secondary">
-                Return home
+            <a class="cta cta-secondary" href="{% url 'home' %}">
+              Return home
             </a>
+          </div>
         </div>
-    </section>
-{% endblock %}
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

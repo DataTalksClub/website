@@ -1,34 +1,119 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Sign out · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Sign out, design 5a (issue #179).  The allauth logout confirmation,
+       * rebuilt on the shared system: one narrow column, the account the
+       * visitor is signed in as, and the two actions.
+       *
+       * The POST target, the CSRF token and the cancel destination are
+       * unchanged; only the presentation moved.
+       * ------------------------------------------------------------------ */
 
-{% block title %}Sign out · DataTalks.Club{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section class="mx-auto max-w-md overflow-hidden rounded-md border app-border app-surface shadow-subtle">
-    <div class="border-b app-border app-surface-muted px-5 py-4 text-center">
-        <h1 class="text-xl font-semibold app-heading">
-            <i class="fas fa-sign-out-alt"></i> Sign Out
-        </h1>
-        <p class="mt-1 text-sm app-muted">Are you sure you want to sign out?</p>
-    </div>
+      /* ------------------------------------------------------------------ *
+       * Sign-out rules.  Shared with the rest of the account pages in shape,
+       * kept local because each page carries its own stylesheet.
+       * ------------------------------------------------------------------ */
 
-    <form method="post" action="{% url 'account_logout' %}" class="p-5">
-        {% csrf_token %}
-        <div class="rounded-md border app-alert-warning px-4 py-3 text-sm">
-            <i class="fas fa-user"></i>
-            {% if user.is_authenticated %}
+      .auth-shell {
+        max-width: 30rem;
+      }
+
+      .auth-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .auth-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+
+      .auth-panel {
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding: 1.35rem;
+      }
+
+      /* The identity notice: sand under ink, the pairing the system already
+         uses for a "wait, read this" state, and never colour alone. */
+      .auth-notice {
+        background: var(--sand);
+        border: 1.5px dashed var(--line-soft);
+        border-radius: 0.7rem;
+        color: var(--ink);
+        font-size: 0.92rem;
+        padding: 0.85rem 1rem;
+      }
+
+      .auth-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Reshape on a phone: the two actions become full-width rows so the
+           destructive one is never a narrow target beside its cancel. */
+        .auth-panel {
+          padding: 1.1rem;
+        }
+
+        .auth-actions {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream auth-hero" aria-labelledby="sign-out-heading">
+        <div class="shell auth-shell">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="sign-out-heading">Sign Out</h1>
+          <p class="auth-lede">Are you sure you want to sign out?</p>
+          <div class="card auth-panel">
+            <div class="auth-notice">
+              {% if user.is_authenticated %}
                 You are currently signed in as <strong>{{ user.username }}</strong>.
-            {% else %}
+              {% else %}
                 You are about to sign out.
-            {% endif %}
+              {% endif %}
+            </div>
+            <form method="post" action="{% url 'account_logout' %}">
+              {% csrf_token %}
+              <div class="auth-actions">
+                <button class="cta cta-ink" type="submit">Sign Out</button>
+                <a class="cta cta-secondary" href="{% url 'course_list' %}">Cancel</a>
+              </div>
+            </form>
+          </div>
         </div>
-        <div class="mt-5 flex flex-wrap gap-2 border-t app-border pt-5">
-            <button type="submit" class="primer-button primer-button-warning">
-                <i class="fas fa-sign-out-alt"></i> Sign Out
-            </button>
-            <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary">
-                <i class="fas fa-times"></i> Cancel
-            </a>
-        </div>
-    </form>
-</section>
-{% endblock %}
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

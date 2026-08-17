@@ -1,74 +1,179 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Account connections · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Account connections, design 5a (issue #179).  The connected sign-in
+       * providers as the system's dashed row list, and the providers that can
+       * still be added below them.
+       *
+       * Every POST target, CSRF token and confirmation on this page is
+       * unchanged: only the presentation moved.
+       * ------------------------------------------------------------------ */
 
-{% block title %}Account connections · DataTalks.Club{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section class="mx-auto max-w-3xl overflow-hidden rounded-md border app-border app-surface shadow-subtle">
-    <div class="border-b app-border app-surface-muted px-5 py-4">
-        <h1 class="text-xl font-semibold app-heading">
-            <i class="fas fa-link"></i> Account Connections
-        </h1>
-        <p class="mt-1 text-sm app-muted">Manage connected social accounts.</p>
-    </div>
+      /* ------------------------------------------------------------------ *
+       * Connections rules.
+       * ------------------------------------------------------------------ */
 
-    <div class="space-y-6 p-5">
-        {% if socialaccount_list %}
-            <section>
-                <h2 class="text-base font-semibold app-heading">Connected Accounts</h2>
-                <div class="mt-3 divide-y app-divide overflow-hidden rounded-md border app-border">
-                    {% for account in socialaccount_list %}
-                        <div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div class="flex items-center gap-3">
-                                {% if account.provider == 'google' %}
-                                    <i class="fab fa-google text-lg"></i>
-                                {% elif account.provider == 'github' %}
-                                    <i class="fab fa-github text-lg app-heading"></i>
-                                {% elif account.provider == 'slack' %}
-                                    <i class="fab fa-slack text-lg app-muted"></i>
-                                {% else %}
-                                    <i class="fas fa-user text-lg app-muted"></i>
-                                {% endif %}
-                                <div>
-                                    <p class="font-medium app-heading">{{ account.provider|title }}</p>
-                                    <p class="text-sm app-muted">{{ account.extra_data.email|default:account.uid }}</p>
-                                </div>
-                            </div>
-                            <form method="post" action="{% url 'socialaccount_remove' account.id %}">
-                                {% csrf_token %}
-                                <button type="submit"
-                                        class="primer-button primer-button-secondary"
-                                        onclick="return confirm('Are you sure you want to disconnect this account?')">
-                                    <i class="fas fa-unlink"></i> Disconnect
-                                </button>
-                            </form>
-                        </div>
-                    {% endfor %}
-                </div>
-            </section>
-        {% endif %}
+      .auth-shell {
+        max-width: 48rem;
+      }
 
-        <section>
-            <h2 class="text-base font-semibold app-heading">Add Connection</h2>
-            <p class="mt-1 text-sm app-muted">Connect another provider for easier login.</p>
-            <div class="mt-3 flex flex-col items-start gap-2">
-                {% for provider in providers %}
-                    <a href="{{ provider.login_url }}?process=connect"
-                       class="primer-button primer-button-secondary justify-start">
-                        <i class="fas fa-plus"></i> Connect {{ provider.name }}
-                    </a>
-                {% empty %}
-                    <div class="rounded-md border app-alert-info px-4 py-3 text-sm app-text">
-                        No additional providers are available to connect.
-                    </div>
-                {% endfor %}
+      .auth-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .auth-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+
+      /* One connection per row: the provider and the address it is known by on
+         the left, the disconnect action on the right. */
+      .connection-name {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .connection-address {
+        color: var(--muted);
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+
+      .connection-form {
+        margin: 0;
+      }
+
+      .auth-choices {
+        display: grid;
+        gap: 0.75rem;
+        justify-items: start;
+      }
+
+      /* The system carries no red, so a quiet state note takes the sand/ink
+         pairing and lets the words carry the meaning. */
+      .auth-notice {
+        background: var(--sand);
+        border: 1.5px dashed var(--line-soft);
+        border-radius: 0.7rem;
+        color: var(--ink);
+        font-size: 0.92rem;
+        padding: 0.85rem 1rem;
+      }
+
+      .connections-return {
+        margin-top: 1.5rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Reshape rather than reflow: the disconnect action becomes a full
+           width row under the connection it belongs to. */
+        .connection-form .cta {
+          width: 100%;
+        }
+
+        .auth-choices .cta {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream auth-hero" aria-labelledby="connections-heading">
+        <div class="shell auth-shell">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="connections-heading">Account Connections</h1>
+          <p class="auth-lede">Manage connected social accounts.</p>
+        </div>
+      </section>
+      {% if socialaccount_list %}
+        <section class="band band-cream" aria-labelledby="connected-accounts-heading">
+          <div class="shell auth-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="connected-accounts-heading">Connected Accounts</h2>
+              </div>
             </div>
+            <div class="row-list">
+              {% for account in socialaccount_list %}
+                <div class="list-row">
+                  <div>
+                    <p class="connection-name">{{ account.provider|title }}</p>
+                    <p class="connection-address">
+                      {{ account.extra_data.email|default:account.uid }}
+                    </p>
+                  </div>
+                  <form
+                    class="connection-form"
+                    method="post"
+                    action="{% url 'socialaccount_remove' account.id %}"
+                  >
+                    {% csrf_token %}
+                    <button
+                      class="cta cta-compact cta-secondary"
+                      type="submit"
+                      onclick="return confirm('Are you sure you want to disconnect this account?')"
+                    >
+                      Disconnect
+                      <span class="sr-only">&nbsp;{{ account.provider|title }}</span>
+                    </button>
+                  </form>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
         </section>
-    </div>
-
-    <div class="border-t app-border app-surface-muted px-5 py-3">
-        <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary">
-            <i class="fas fa-arrow-left"></i> Back to Courses
-        </a>
-    </div>
-</section>
-{% endblock %}
+      {% endif %}
+      <section class="band band-lavender" aria-labelledby="add-connection-heading">
+        <div class="shell auth-shell">
+          <div class="band-head">
+            <div>
+              <h2 id="add-connection-heading">Add Connection</h2>
+              <p>Connect another provider for easier login.</p>
+            </div>
+          </div>
+          <div class="auth-choices">
+            {% for provider in providers %}
+              <a class="cta cta-compact cta-secondary" href="{{ provider.login_url }}?process=connect">
+                Connect {{ provider.name }}
+              </a>
+            {% empty %}
+              <div class="auth-notice">
+                No additional providers are available to connect.
+              </div>
+            {% endfor %}
+          </div>
+          <p class="connections-return">
+            <a class="band-link" href="{% url 'course_list' %}">Back to Courses</a>
+          </p>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

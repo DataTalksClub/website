@@ -1,29 +1,112 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Authentication error · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Provider authentication error, design 5a (issue #179).  One narrow
+       * column: what happened, why it might have happened, and the two ways
+       * on.  The recovery destinations are unchanged.
+       * ------------------------------------------------------------------ */
 
-{% block title %}Authentication error · DataTalks.Club{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section class="mx-auto max-w-lg overflow-hidden rounded-md border app-border app-surface shadow-subtle">
-    <div class="border-b app-border app-surface-muted px-5 py-4 text-center">
-        <h1 class="text-xl font-semibold app-heading">
-            <i class="fas fa-exclamation-triangle"></i> Authentication Error
-        </h1>
-        <p class="mt-1 text-sm app-muted">Something went wrong during login.</p>
-    </div>
+      /* ------------------------------------------------------------------ *
+       * Outcome-page rules.
+       * ------------------------------------------------------------------ */
 
-    <div class="p-5">
-        <div class="rounded-md border app-alert-warning px-4 py-3 text-sm">
-            <strong>Login failed.</strong>
-            This could be due to network connectivity, temporary provider unavailability, or account access restrictions.
+      .auth-shell {
+        max-width: 32rem;
+      }
+
+      .auth-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .auth-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+
+      .auth-panel {
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding: 1.35rem;
+      }
+
+      /* The system carries no red, and it does not need one here: the words
+         carry the state and the sand/ink pairing gives the notice a surface
+         that clears 4.5:1 on both themes. */
+      .auth-notice {
+        background: var(--sand);
+        border: 1.5px dashed var(--line-soft);
+        border-radius: 0.7rem;
+        color: var(--ink);
+        font-size: 0.92rem;
+        padding: 0.85rem 1rem;
+      }
+
+      .auth-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        .auth-panel {
+          padding: 1.1rem;
+        }
+
+        .auth-actions {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section
+        class="band band-cream auth-hero"
+        aria-labelledby="authentication-error-heading"
+      >
+        <div class="shell auth-shell">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="authentication-error-heading">Authentication Error</h1>
+          <p class="auth-lede">Something went wrong during login.</p>
+          <div class="card auth-panel">
+            <div class="auth-notice">
+              <strong>Login failed.</strong>
+              This could be due to network connectivity, temporary provider
+              unavailability, or account access restrictions.
+            </div>
+            <div class="auth-actions">
+              <a class="cta cta-primary" href="{% url 'login' %}">Try Again</a>
+              <a class="cta cta-secondary" href="{% url 'course_list' %}">Go Home</a>
+            </div>
+          </div>
         </div>
-        <div class="mt-5 flex flex-wrap gap-2 border-t app-border pt-5">
-            <a href="{% url 'login' %}" class="primer-button">
-                <i class="fas fa-redo"></i> Try Again
-            </a>
-            <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary">
-                <i class="fas fa-home"></i> Go Home
-            </a>
-        </div>
-    </div>
-</section>
-{% endblock %}
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

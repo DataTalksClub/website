@@ -1,101 +1,220 @@
-{% extends 'base.html' %}
 {% load accessibility %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Sign in — DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Sign in, design 5a (issue #179).  One narrow column on the cream
+       * band: who you are signing in as, the ways in, and nothing else.  The
+       * page carries its complete stylesheet and loads no external CSS.
+       *
+       * Nothing about the sign-in behaviour moved with the design: the form
+       * method, the CSRF token, the field names, the accessible widget
+       * relationships, the generic error copy and the provider destinations
+       * are exactly what accounts/views/login.py already rendered.
+       * ------------------------------------------------------------------ */
 
-{% block title %}
-    Sign in — DataTalks.Club
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section class="mx-auto max-w-md">
-    <div class="rounded-md border app-border app-surface">
-        <div class="border-b app-border app-surface-muted px-5 py-4 text-center">
-            <h1 class="text-2xl font-semibold app-heading">
-                <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
-                Sign In
-            </h1>
-            <p class="mt-1 text-sm app-muted">
-                Use your DataTalks.Club account.
-            </p>
-        </div>
+      /* ------------------------------------------------------------------ *
+       * Sign-in rules.
+       * ------------------------------------------------------------------ */
 
-        {% if development_owner_login_enabled %}
-            <div class="border-b app-border px-5 py-5">
-                <p class="mb-4 text-sm app-muted">
-                    Sign in with your DataTalks.Club account.
-                </p>
+      /* A sign-in page is a single decision, so it is held well inside the
+         reading measure instead of the full shell. */
+      .auth-shell {
+        max-width: 30rem;
+      }
 
-                {% if login_error %}
-                    <div class="mb-4 rounded-md border app-alert-warning px-4 py-3 text-sm"
-                         id="login-error"
-                         role="alert"
-                         tabindex="-1"
-                         data-focus-error-summary>
-                        {{ login_error }}
-                    </div>
-                {% endif %}
+      .auth-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
 
-                <form method="post">
-                    {% csrf_token %}
+      .auth-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
 
-                    <div class="mb-4">
-                        <label for="{{ development_owner_form.email.id_for_label }}"
-                               class="mb-1 block text-sm font-semibold">
-                            Email
-                        </label>
-                        {% accessible_widget development_owner_form.email %}
-                    </div>
+      .auth-panel {
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding: 1.35rem;
+      }
 
-                    <div class="mb-4">
-                        <label for="{{ development_owner_form.password.id_for_label }}"
-                               class="mb-1 block text-sm font-semibold">
-                            Password
-                        </label>
-                        {% accessible_widget development_owner_form.password %}
-                    </div>
+      .auth-panel h2 {
+        font-size: 1.05rem;
+      }
 
-                    <button type="submit"
-                            class="primer-button primer-button-primary"
-                            data-busy-label="Signing in…">
-                        Sign in
-                    </button>
-                </form>
-            </div>
-        {% endif %}
+      .auth-form {
+        display: grid;
+        gap: 1rem;
+      }
 
-        <div class="flex flex-col items-center gap-3 px-5 py-5">
-            {% if providers %}
-                <p class="text-sm app-muted">Or continue with</p>
-            {% endif %}
-            {% for provider in providers %}
-                <a href="{{ provider.login_url }}"
-                   class="primer-button primer-button-secondary w-fit">
-                    {% if 'Google' in provider.name %}
-                        <i class="fab fa-google" aria-hidden="true"></i>
-                    {% elif 'GitHub' in provider.name %}
-                        <i class="fab fa-github" aria-hidden="true"></i>
-                    {% elif 'Slack' in provider.name %}
-                        <i class="fab fa-slack" aria-hidden="true"></i>
-                    {% else %}
-                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
-                    {% endif %}
+      /* The bound fields arrive from accounts/forms.py with its own widget
+         class, so the system's control treatment is attached to that class
+         here rather than by editing the form: the field then reads exactly
+         like every other design 5a input, in both themes. */
+      .auth-form .form-control {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.625rem;
+        color: var(--ink);
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.8rem;
+        width: 100%;
+      }
+
+      /* State is never colour-only in this system: the notice carries the
+         words, and the sand/ink pairing gives it a surface that reads at well
+         over 4.5:1 on both themes without inventing a red the system has no
+         token for. */
+      .auth-notice {
+        background: var(--sand);
+        border: 1.5px dashed var(--line-soft);
+        border-radius: 0.7rem;
+        color: var(--ink);
+        display: grid;
+        font-size: 0.92rem;
+        gap: 0.35rem;
+        padding: 0.85rem 1rem;
+      }
+
+      .auth-choices {
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      /* With no provider configured there is no panel to draw: the state note
+         and the way back stand on the band on their own. */
+      .auth-fallback {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+
+      .auth-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        /* On a phone the panel gives up its inset and the actions become full
+           width rows, so the whole decision fits above the fold. */
+        .auth-panel {
+          padding: 1.1rem;
+        }
+
+        .auth-choices .cta {
+          width: 100%;
+        }
+
+        .auth-actions {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream auth-hero" aria-labelledby="sign-in-heading">
+        <div class="shell auth-shell">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="sign-in-heading">Sign In</h1>
+          <p class="auth-lede">Use your DataTalks.Club account.</p>
+          {% if development_owner_login_enabled %}
+            <section class="card auth-panel" aria-labelledby="sign-in-password-heading">
+              <h2 id="sign-in-password-heading">Sign in with your DataTalks.Club account</h2>
+              {% if login_error %}
+                <div
+                  class="auth-notice"
+                  id="login-error"
+                  role="alert"
+                  tabindex="-1"
+                  data-focus-error-summary
+                >
+                  <p>{{ login_error }}</p>
+                </div>
+              {% endif %}
+              <form class="auth-form" method="post">
+                {% csrf_token %}
+                <div class="field">
+                  <label class="field-label" for="{{ development_owner_form.email.id_for_label }}">
+                    Email
+                  </label>
+                  {% accessible_widget development_owner_form.email %}
+                </div>
+                <div class="field">
+                  <label class="field-label" for="{{ development_owner_form.password.id_for_label }}">
+                    Password
+                  </label>
+                  {% accessible_widget development_owner_form.password %}
+                </div>
+                <div>
+                  <button
+                    class="cta cta-primary"
+                    type="submit"
+                    data-busy-label="Signing in…"
+                  >Sign in</button>
+                </div>
+              </form>
+            </section>
+          {% endif %}
+          {% if providers %}
+            <div class="card auth-panel">
+              <h2>Or continue with</h2>
+              <div class="auth-choices">
+                {% for provider in providers %}
+                  <a class="cta cta-secondary" href="{{ provider.login_url }}">
                     Continue with {{ provider.name }}
+                  </a>
+                {% endfor %}
+              </div>
+            </div>
+          {% else %}
+            <div class="auth-fallback">
+              {% if not development_owner_login_enabled %}
+                <div class="auth-notice" role="status">
+                  <p>
+                    <strong>Sign-in is temporarily unavailable</strong>
+                  </p>
+                  <p>
+                    Please try again later or contact the community team.
+                  </p>
+                </div>
+              {% endif %}
+              <div class="auth-actions">
+                <a class="cta cta-secondary" href="{% url 'course_list' %}">
+                  Back to courses
                 </a>
-            {% empty %}
-                {% if not development_owner_login_enabled %}
-                    <div class="rounded-md border app-alert-warning px-4 py-3 text-center text-sm"
-                         role="status">
-                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                        <strong>Sign-in is temporarily unavailable</strong>
-                        <br>
-                        Please try again later or contact the community team.
-                    </div>
-                {% endif %}
-                <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary">
-                    Back to courses
-                </a>
-            {% endfor %}
+              </div>
+            </div>
+          {% endif %}
         </div>
-
-    </div>
-</section>
-{% endblock %}
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

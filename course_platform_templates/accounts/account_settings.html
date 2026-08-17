@@ -1,292 +1,542 @@
-{% extends 'base.html' %}
 {% load accessibility static %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Account settings · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Account settings, design 5a (issue #179).  Four bands, one per thing
+       * an account owns: the profile and display preferences the single form
+       * saves, the email subscriptions the immediate toggles persist, and the
+       * courses the account is enrolled in.
+       *
+       * Behaviour is untouched.  Every field name, widget, accessible-widget
+       * help/error relationship, toggle hook (js-immediate-toggle-row,
+       * js-email-preference-toggle, data-toggle-url,
+       * data-email-preferences-url) and POST target is exactly what
+       * settings_toggles.js and accounts/views/account_settings.py already
+       * drive; the script itself is loaded after the shared shell foot.
+       * ------------------------------------------------------------------ */
 
-{% block title %}
-    Account settings · DataTalks.Club
-{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block breadcrumbs %}
-{% endblock %}
+      /* ------------------------------------------------------------------ *
+       * Account-settings rules.
+       * ------------------------------------------------------------------ */
 
-{% block content %}
-    <section class="settings-section border-b pb-5">
-        <p class="settings-page-kicker text-sm font-semibold uppercase tracking-wide">Account</p>
-        <div class="mt-2 flex flex-col gap-2">
-            <h1 class="settings-page-title text-2xl font-semibold md:text-3xl">Account settings</h1>
-            <p class="settings-section-copy max-w-2xl text-sm">
-                Manage your certificate name, timezone, theme preference, and course enrollments.
-            </p>
+      .settings-shell {
+        max-width: 46rem;
+      }
+
+      .settings-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .settings-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+
+      .settings-group {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+      }
+
+      .settings-fields {
+        display: grid;
+        gap: 1.25rem;
+      }
+
+      /* The bound fields keep the widget classes accounts/forms.py gives them,
+         so the system's control treatment is attached to those classes here
+         instead of restyling the form in Python. */
+      .settings-fields .form-control {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.625rem;
+        color: var(--ink);
+        font: inherit;
+        min-height: 2.75rem;
+        padding: 0.65rem 0.8rem;
+        width: 100%;
+      }
+
+      .settings-optional {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .settings-value {
+        color: var(--ink);
+        overflow-wrap: anywhere;
+      }
+
+      /* Secondary copy uses the body-text token, not --muted: this page puts
+         the same roles on the lavender band, where --muted reads at only about
+         3.9:1 in the dark theme. */
+      .settings-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+        margin-top: 1rem;
+      }
+
+      /* A field's own error, under the control it belongs to.  The system
+         carries no red, and does not need one: the words say "Error", and the
+         sand/ink pairing clears 4.5:1 on both themes. */
+      .settings-error {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.5rem;
+        color: var(--ink);
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        padding: 0.5rem 0.7rem;
+      }
+
+      /* The shared error summary partial, given the same treatment as a field
+         error one size up.  core/accessibility.js focuses it on load. */
+      .a11y-error-summary {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.7rem;
+        color: var(--ink);
+        display: grid;
+        gap: 0.6rem;
+        margin-bottom: 1.25rem;
+        padding: 1rem 1.15rem;
+      }
+
+      .a11y-error-summary h2 {
+        font-size: 1.05rem;
+      }
+
+      .a11y-error-summary ul {
+        display: grid;
+        gap: 0.35rem;
+        list-style: disc;
+        padding-inline-start: 1.25rem;
+      }
+
+      /* Announced before the status text while a fetch is in flight, exactly
+         as core/accessibility.css did on the older shell. */
+      .a11y-status[aria-busy="true"]::before {
+        content: "Loading: ";
+        font-weight: 700;
+      }
+
+      /* An immediately persisted preference: the switch, then its label and
+         help.  The class names are the script's hooks and do not change. */
+      .toggle-row {
+        align-items: start;
+        display: grid;
+        gap: 0.75rem;
+        grid-template-columns: 2.6rem minmax(0, 1fr);
+      }
+
+      .toggle-row input[type="checkbox"] {
+        appearance: none;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        cursor: pointer;
+        height: 1.5rem;
+        margin: 0.1rem 0 0;
+        position: relative;
+        width: 2.6rem;
+      }
+
+      .toggle-row input[type="checkbox"]::before {
+        background: var(--line);
+        border-radius: 999px;
+        content: "";
+        height: 0.9rem;
+        left: 0.2rem;
+        position: absolute;
+        top: 0.2rem;
+        transition: transform 0.15s ease;
+        width: 0.9rem;
+      }
+
+      .toggle-row input[type="checkbox"]:checked {
+        background: var(--green);
+        border-color: var(--green);
+      }
+
+      .toggle-row input[type="checkbox"]:checked::before {
+        background: var(--on-green);
+        transform: translateX(1.1rem);
+      }
+
+      .toggle-row input[type="checkbox"]:disabled {
+        cursor: wait;
+        opacity: 0.65;
+      }
+
+      .toggle-copy {
+        display: grid;
+        gap: 0.2rem;
+      }
+
+      .toggle-label {
+        color: var(--ink);
+        font-weight: 700;
+      }
+
+      .toggle-help {
+        color: var(--body-text);
+        font-size: 0.85rem;
+      }
+
+      .toggle-list {
+        display: grid;
+        gap: 1.1rem;
+        margin-top: 1.25rem;
+      }
+
+      .settings-actions {
+        margin-top: 1.5rem;
+      }
+
+      /* One enrolment per dashed row: the course and the name its leaderboard
+         shows, with the per-course profile action on the right. */
+      .enrollment-name {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .toggle-row input[type="checkbox"]::before {
+          transition: none;
+        }
+      }
+
+      @media (max-width: 47.99rem) {
+        /* Reshape on a phone: the save action and each row action take the
+           full width instead of sitting as narrow targets in a wrapped row. */
+        .settings-actions .cta {
+          width: 100%;
+        }
+
+        .enrollment-action {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section
+        class="band band-cream settings-hero"
+        aria-labelledby="account-settings-heading"
+      >
+        <div class="shell settings-shell">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="account-settings-heading">Account settings</h1>
+          <p class="settings-lede">
+            Manage your certificate name, timezone, theme preference, and course
+            enrollments.
+          </p>
         </div>
-    </section>
+      </section>
 
-    <form method="post" class="settings-form mt-6 space-y-8">
-        {% csrf_token %}
-        {% accessibility_error_summary form %}
-        <section class="settings-section space-y-4">
-            <div>
-                <h2 class="settings-section-title text-lg font-semibold">Profile</h2>
-                <p class="settings-section-copy mt-1 text-sm leading-6">
-                    Your account-level certificate name and public profile details.
-                </p>
-            </div>
-            <div class="space-y-5">
+      <section class="band band-cream">
+        <div class="shell settings-shell">
+          <form method="post">
+            {% csrf_token %}
+            {% accessibility_error_summary form %}
+            <section aria-labelledby="profile-heading">
+              <div class="band-head">
                 <div>
-                    <p class="settings-label mb-2 block text-sm font-semibold">Signed in as</p>
-                    <p class="settings-meta-value break-all text-sm">{{ user.email|default:user.username }}</p>
+                  <h2 id="profile-heading">Profile</h2>
+                  <p>Your account-level certificate name and public profile details.</p>
                 </div>
-                <div>
-                    <label for="{{ form.certificate_name.id_for_label }}"
-                           class="settings-label mb-2 block text-sm font-semibold">
-                        {{ form.certificate_name.label }}
-                    </label>
-                    {% accessible_widget form.certificate_name %}
-                    <p id="{{ form.certificate_name.id_for_label }}-help"
-                       class="settings-helper mt-1 text-xs leading-5">
-                        {{ form.certificate_name.help_text }}
-                    </p>
-                    {% if form.certificate_name.errors %}
-                        <div id="{{ form.certificate_name.id_for_label }}-error"
-                             class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                            <span class="sr-only">Error:</span>
-                            {{ form.certificate_name.errors|join:" " }}
-                        </div>
-                    {% endif %}
+              </div>
+              <div class="settings-group settings-fields">
+                <div class="field">
+                  <p class="field-label">Signed in as</p>
+                  <p class="settings-value">{{ user.email|default:user.username }}</p>
                 </div>
-                <div>
-                    <label for="{{ form.github_url.id_for_label }}"
-                           class="settings-label mb-2 block text-sm font-semibold">
-                        GitHub URL <span class="settings-helper app-muted font-normal">(optional)</span>
-                    </label>
-                    {% accessible_widget form.github_url %}
-                    {% if form.github_url.errors %}
-                        <div id="{{ form.github_url.id_for_label }}-error"
-                             class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                            <span class="sr-only">Error:</span>
-                            {{ form.github_url.errors|join:" " }}
-                        </div>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="{{ form.linkedin_url.id_for_label }}"
-                           class="settings-label mb-2 block text-sm font-semibold">
-                        LinkedIn URL <span class="settings-helper app-muted font-normal">(optional)</span>
-                    </label>
-                    {% accessible_widget form.linkedin_url %}
-                    {% if form.linkedin_url.errors %}
-                        <div id="{{ form.linkedin_url.id_for_label }}-error"
-                             class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                            <span class="sr-only">Error:</span>
-                            {{ form.linkedin_url.errors|join:" " }}
-                        </div>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="{{ form.personal_website_url.id_for_label }}"
-                           class="settings-label mb-2 block text-sm font-semibold">
-                        Website URL <span class="settings-helper app-muted font-normal">(optional)</span>
-                    </label>
-                    {% accessible_widget form.personal_website_url %}
-                    {% if form.personal_website_url.errors %}
-                        <div id="{{ form.personal_website_url.id_for_label }}-error"
-                             class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                            <span class="sr-only">Error:</span>
-                            {{ form.personal_website_url.errors|join:" " }}
-                        </div>
-                    {% endif %}
-                </div>
-                <div>
-                    <label for="{{ form.about_me.id_for_label }}"
-                           class="settings-label mb-2 block text-sm font-semibold">
-                        About me <span class="settings-helper app-muted font-normal">(optional)</span>
-                    </label>
-                    {% accessible_widget form.about_me %}
-                    {% if form.about_me.errors %}
-                        <div id="{{ form.about_me.id_for_label }}-error"
-                             class="mt-2 text-sm font-medium app-danger-text">
-                            <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                            <span class="sr-only">Error:</span>
-                            {{ form.about_me.errors|join:" " }}
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-            <p class="settings-section-copy text-sm leading-6">
-                Public profile details can be shown on course leaderboard records when enabled per enrollment.
-            </p>
-        </section>
-
-        <section class="settings-section space-y-4 border-t pt-6" id="display-preferences-section">
-            <div>
-                <h2 class="settings-section-title text-lg font-semibold">Display preferences</h2>
-                <p class="settings-section-copy mt-1 text-sm leading-6">
-                    Deadlines and notification emails use this timezone.
-                </p>
-            </div>
-            <div>
-                <label for="{{ form.preferred_timezone.id_for_label }}"
-                       class="settings-label mb-2 block text-sm font-semibold">
-                    {{ form.preferred_timezone.label }}
-                </label>
-                {% accessible_widget form.preferred_timezone %}
-                <p id="timezone-preference-status"
-                   class="settings-helper mt-1 text-xs leading-5"
-                   role="status"
-                   aria-live="polite">
-                    {% if preferred_timezone_label %}
-                        Current timezone: {{ preferred_timezone_label }}
-                    {% elif browser_timezone_label %}
-                        Using browser timezone: {{ browser_timezone_label }}
-                    {% else %}
-                        Using UTC until your browser timezone is detected.
-                    {% endif %}
-                </p>
-                <p id="{{ form.preferred_timezone.id_for_label }}-help"
-                   class="settings-helper mt-1 text-xs leading-5">
-                    {{ form.preferred_timezone.help_text }}
-                </p>
-                {% if form.preferred_timezone.errors %}
-                    <div id="{{ form.preferred_timezone.id_for_label }}-error"
-                         class="mt-2 text-sm font-medium app-danger-text">
-                        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                        <span class="sr-only">Error:</span>
-                        {{ form.preferred_timezone.errors|join:" " }}
+                <div class="field">
+                  <label class="field-label" for="{{ form.certificate_name.id_for_label }}">
+                    {{ form.certificate_name.label }}
+                  </label>
+                  {% accessible_widget form.certificate_name %}
+                  <p class="field-hint" id="{{ form.certificate_name.id_for_label }}-help">
+                    {{ form.certificate_name.help_text }}
+                  </p>
+                  {% if form.certificate_name.errors %}
+                    <div class="settings-error" id="{{ form.certificate_name.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.certificate_name.errors|join:" " }}
                     </div>
-                {% endif %}
-            </div>
-            <div class="toggle-row js-immediate-toggle-row"
-                 data-toggle-url="{% url 'update_account_toggle' %}">
-                {% accessible_widget form.dark_mode %}
-                <span class="toggle-copy">
-                    <label for="{{ form.dark_mode.id_for_label }}" class="toggle-label">
-                        {{ form.dark_mode.label }}
+                  {% endif %}
+                </div>
+                <div class="field">
+                  <label class="field-label" for="{{ form.github_url.id_for_label }}">
+                    GitHub URL
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.github_url %}
+                  {% if form.github_url.errors %}
+                    <div class="settings-error" id="{{ form.github_url.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.github_url.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="field">
+                  <label class="field-label" for="{{ form.linkedin_url.id_for_label }}">
+                    LinkedIn URL
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.linkedin_url %}
+                  {% if form.linkedin_url.errors %}
+                    <div class="settings-error" id="{{ form.linkedin_url.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.linkedin_url.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="field">
+                  <label class="field-label" for="{{ form.personal_website_url.id_for_label }}">
+                    Website URL
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.personal_website_url %}
+                  {% if form.personal_website_url.errors %}
+                    <div class="settings-error" id="{{ form.personal_website_url.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.personal_website_url.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="field">
+                  <label class="field-label" for="{{ form.about_me.id_for_label }}">
+                    About me
+                    <span class="settings-optional">(optional)</span>
+                  </label>
+                  {% accessible_widget form.about_me %}
+                  {% if form.about_me.errors %}
+                    <div class="settings-error" id="{{ form.about_me.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.about_me.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+              <p class="settings-note">
+                Public profile details can be shown on course leaderboard records
+                when enabled per enrollment.
+              </p>
+            </section>
+
+            <section
+              class="settings-preferences"
+              id="display-preferences-section"
+              aria-labelledby="display-preferences-heading"
+            >
+              <div class="band-head band-head-secondary">
+                <div>
+                  <h2 id="display-preferences-heading">Display preferences</h2>
+                  <p>Deadlines and notification emails use this timezone.</p>
+                </div>
+              </div>
+              <div class="settings-group settings-fields">
+                <div class="field">
+                  <label class="field-label" for="{{ form.preferred_timezone.id_for_label }}">
+                    {{ form.preferred_timezone.label }}
+                  </label>
+                  {% accessible_widget form.preferred_timezone %}
+                  <p
+                    class="field-hint"
+                    id="timezone-preference-status"
+                    role="status"
+                    aria-live="polite"
+                  >
+                    {% if preferred_timezone_label %}
+                      Current timezone: {{ preferred_timezone_label }}
+                    {% elif browser_timezone_label %}
+                      Using browser timezone: {{ browser_timezone_label }}
+                    {% else %}
+                      Using UTC until your browser timezone is detected.
+                    {% endif %}
+                  </p>
+                  <p class="field-hint" id="{{ form.preferred_timezone.id_for_label }}-help">
+                    {{ form.preferred_timezone.help_text }}
+                  </p>
+                  {% if form.preferred_timezone.errors %}
+                    <div class="settings-error" id="{{ form.preferred_timezone.id_for_label }}-error">
+                      <span class="sr-only">Error:</span>
+                      {{ form.preferred_timezone.errors|join:" " }}
+                    </div>
+                  {% endif %}
+                </div>
+                <div
+                  class="toggle-row js-immediate-toggle-row"
+                  data-toggle-url="{% url 'update_account_toggle' %}"
+                >
+                  {% accessible_widget form.dark_mode %}
+                  <span class="toggle-copy">
+                    <label class="toggle-label" for="{{ form.dark_mode.id_for_label }}">
+                      {{ form.dark_mode.label }}
                     </label>
                     <span class="toggle-help">Choose the default theme for your account.</span>
-                </span>
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <div class="settings-actions">
+              <button
+                class="cta cta-primary"
+                type="submit"
+                data-busy-label="Saving…"
+              >Save changes</button>
             </div>
-        </section>
-
-        <div class="flex flex-wrap gap-2 border-t app-border pt-5">
-            <button type="submit"
-                    class="primer-button"
-                    data-busy-label="Saving…">
-                Save changes
-            </button>
+          </form>
         </div>
-    </form>
+      </section>
 
-    <section class="settings-section mt-8 space-y-4 border-t pt-6"
-             data-email-preferences-url="{% url 'account_email_preferences' %}">
-        <div>
-            <h2 class="settings-section-title text-lg font-semibold">Email subscriptions</h2>
-            <p class="settings-section-copy mt-1 text-sm leading-6">
-                Choose which course workflow emails you want to receive.
-            </p>
-        </div>
-        <p class="settings-helper js-email-preferences-status a11y-status text-xs leading-5"
-           role="status"
-           aria-live="polite"
-           aria-busy="true">
+      <section
+        class="band band-lavender"
+        aria-labelledby="email-subscriptions-heading"
+        data-email-preferences-url="{% url 'account_email_preferences' %}"
+      >
+        <div class="shell settings-shell">
+          <div class="band-head">
+            <div>
+              <h2 id="email-subscriptions-heading">Email subscriptions</h2>
+              <p>Choose which course workflow emails you want to receive.</p>
+            </div>
+          </div>
+          <p
+            class="settings-note js-email-preferences-status a11y-status"
+            role="status"
+            aria-live="polite"
+            aria-busy="true"
+          >
             Loading email subscriptions...
-        </p>
-        <div class="space-y-4">
-            <div>
-                <div class="toggle-row js-immediate-toggle-row js-email-preference-row"
-                     data-toggle-url="{% url 'account_email_preferences' %}">
-                    <input type="checkbox"
-                           name="email_submission_confirmations"
-                           id="id_email_submission_confirmations"
-                           class="js-email-preference-toggle"
-                           disabled>
-                    <span class="toggle-copy">
-                        <label for="id_email_submission_confirmations"
-                               class="toggle-label">
-                            {{ email_preference_categories.email_submission_confirmations.label }}
-                        </label>
-                        <span class="toggle-help">
-                            {{ email_preference_categories.email_submission_confirmations.description }}
-                        </span>
-                    </span>
-                </div>
+          </p>
+          <div class="toggle-list">
+            <div
+              class="toggle-row js-immediate-toggle-row js-email-preference-row"
+              data-toggle-url="{% url 'account_email_preferences' %}"
+            >
+              <input
+                class="js-email-preference-toggle"
+                type="checkbox"
+                name="email_submission_confirmations"
+                id="id_email_submission_confirmations"
+                disabled
+              >
+              <span class="toggle-copy">
+                <label class="toggle-label" for="id_email_submission_confirmations">
+                  {{ email_preference_categories.email_submission_confirmations.label }}
+                </label>
+                <span class="toggle-help">
+                  {{ email_preference_categories.email_submission_confirmations.description }}
+                </span>
+              </span>
             </div>
-            <div>
-                <div class="toggle-row js-immediate-toggle-row js-email-preference-row"
-                     data-toggle-url="{% url 'account_email_preferences' %}">
-                    <input type="checkbox"
-                           name="email_deadline_reminders"
-                           id="id_email_deadline_reminders"
-                           class="js-email-preference-toggle"
-                           disabled>
-                    <span class="toggle-copy">
-                        <label for="id_email_deadline_reminders"
-                               class="toggle-label">
-                            {{ email_preference_categories.email_deadline_reminders.label }}
-                        </label>
-                        <span class="toggle-help">
-                            {{ email_preference_categories.email_deadline_reminders.description }}
-                        </span>
-                    </span>
-                </div>
+            <div
+              class="toggle-row js-immediate-toggle-row js-email-preference-row"
+              data-toggle-url="{% url 'account_email_preferences' %}"
+            >
+              <input
+                class="js-email-preference-toggle"
+                type="checkbox"
+                name="email_deadline_reminders"
+                id="id_email_deadline_reminders"
+                disabled
+              >
+              <span class="toggle-copy">
+                <label class="toggle-label" for="id_email_deadline_reminders">
+                  {{ email_preference_categories.email_deadline_reminders.label }}
+                </label>
+                <span class="toggle-help">
+                  {{ email_preference_categories.email_deadline_reminders.description }}
+                </span>
+              </span>
             </div>
-            <div>
-                <div class="toggle-row js-immediate-toggle-row js-email-preference-row"
-                     data-toggle-url="{% url 'account_email_preferences' %}">
-                    <input type="checkbox"
-                           name="email_course_updates"
-                           id="id_email_course_updates"
-                           class="js-email-preference-toggle"
-                           disabled>
-                    <span class="toggle-copy">
-                        <label for="id_email_course_updates"
-                               class="toggle-label">
-                            {{ email_preference_categories.email_course_updates.label }}
-                        </label>
-                        <span class="toggle-help">
-                            {{ email_preference_categories.email_course_updates.description }}
-                        </span>
-                    </span>
-                </div>
+            <div
+              class="toggle-row js-immediate-toggle-row js-email-preference-row"
+              data-toggle-url="{% url 'account_email_preferences' %}"
+            >
+              <input
+                class="js-email-preference-toggle"
+                type="checkbox"
+                name="email_course_updates"
+                id="id_email_course_updates"
+                disabled
+              >
+              <span class="toggle-copy">
+                <label class="toggle-label" for="id_email_course_updates">
+                  {{ email_preference_categories.email_course_updates.label }}
+                </label>
+                <span class="toggle-help">
+                  {{ email_preference_categories.email_course_updates.description }}
+                </span>
+              </span>
             </div>
+          </div>
         </div>
-    </section>
+      </section>
 
-    <section class="settings-section space-y-4 border-t pt-6">
-        <div>
-            <h2 class="settings-section-title text-lg font-semibold">Courses enrolled</h2>
-            <p class="settings-section-copy mt-1 text-sm leading-6">Course-specific profile details can still be edited per course.</p>
-        </div>
-        <div class="overflow-hidden rounded-md border app-border app-surface">
-            {% if enrollments %}
-                <div class="divide-y app-divide">
-                    {% for enrollment in enrollments %}
-                        <article class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div class="min-w-0">
-                                <a href="{% url 'course' enrollment.course.slug %}"
-                                   class="font-medium app-link">
-                                    {{ enrollment.course.title }}
-                                </a>
-                                <p class="mt-1 truncate text-xs app-muted">
-                                    Leaderboard: {{ enrollment.display_name }}
-                                </p>
-                            </div>
-                            <a href="{% url 'enrollment' enrollment.course.slug %}"
-                               class="primer-button primer-button-secondary w-fit">
-                                Edit course profile
-                            </a>
-                        </article>
-                    {% endfor %}
+      <section class="band band-cream" aria-labelledby="courses-enrolled-heading">
+        <div class="shell settings-shell">
+          <div class="band-head">
+            <div>
+              <h2 id="courses-enrolled-heading">Courses enrolled</h2>
+              <p>Course-specific profile details can still be edited per course.</p>
+            </div>
+          </div>
+          {% if enrollments %}
+            <div class="row-list">
+              {% for enrollment in enrollments %}
+                <div class="list-row">
+                  <div>
+                    <a href="{% url 'course' enrollment.course.slug %}">
+                      {{ enrollment.course.title }}
+                    </a>
+                    <p class="enrollment-name">Leaderboard: {{ enrollment.display_name }}</p>
+                  </div>
+                  <a
+                    class="cta cta-compact cta-secondary enrollment-action"
+                    href="{% url 'enrollment' enrollment.course.slug %}"
+                  >
+                    Edit course profile
+                  </a>
                 </div>
-            {% else %}
-                <p class="px-4 py-5 text-sm app-muted">You are not enrolled in any courses yet.</p>
-            {% endif %}
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="settings-note">You are not enrolled in any courses yet.</p>
+          {% endif %}
         </div>
-    </section>
-{% endblock %}
-
-{% block extra_js %}
-    {{ block.super }}
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
     <script src="{% static 'settings_toggles.js' %}"></script>
-{% endblock %}
+  </body>
+</html>

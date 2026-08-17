@@ -34,6 +34,15 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
         self.assertNotContains(response, courses_studio_url)
 
     def test_account_menu_uses_studio_for_authorized_course_operator(self):
+        """Studio is the one management entry point the account menu offers.
+
+        The account page joined the design 5a shell with issue #179, and that
+        shell's account menu carries a single ``Studio`` destination instead of
+        the adopted shell's deeper ``Studio Courses`` row.  The characterized
+        rule is unchanged: an explicitly authorized course operator reaches
+        management through Studio, and through nothing else.
+        """
+
         self.user.is_staff = True
         self.user.save()
         groups = {group.name: group for group in synchronize_studio_roles()}
@@ -46,9 +55,8 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
         response = self.client.get(account_settings_url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, studio_url)
-        self.assertContains(response, courses_studio_url)
-        self.assertContains(response, "Studio Courses")
+        self.assertContains(response, f'href="{studio_url}">Studio</a>')
+        self.assertNotContains(response, courses_studio_url)
 
     @patch("accounts.views.email_preferences.get_email_preferences_for_user")
     def test_account_settings_does_not_block_on_datamailer_preferences(

@@ -1,29 +1,103 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Login cancelled · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Cancelled provider login, design 5a (issue #179).  Nothing failed, so
+       * the page says so quietly and offers the same two ways on it always
+       * did.
+       * ------------------------------------------------------------------ */
 
-{% block title %}Login cancelled · DataTalks.Club{% endblock %}
+      {% include "core/_design_system.html" %}
 
-{% block content %}
-<section class="mx-auto max-w-md overflow-hidden rounded-md border app-border app-surface shadow-subtle">
-    <div class="border-b app-border app-surface-muted px-5 py-4 text-center">
-        <h1 class="text-xl font-semibold app-heading">
-            <i class="fas fa-times-circle app-warning-text"></i> Login Cancelled
-        </h1>
-        <p class="mt-1 text-sm app-muted">You cancelled the login process.</p>
-    </div>
+      /* ------------------------------------------------------------------ *
+       * Outcome-page rules.
+       * ------------------------------------------------------------------ */
 
-    <div class="p-5">
-        <div class="rounded-md border app-alert-info px-4 py-3 text-sm app-text">
-            <i class="fas fa-info-circle"></i>
-            You can try logging in again whenever you are ready.
+      .auth-shell {
+        max-width: 32rem;
+      }
+
+      .auth-hero h1 {
+        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+        letter-spacing: -0.025em;
+        margin-top: 0.6rem;
+      }
+
+      .auth-lede {
+        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+        margin-top: 0.75rem;
+      }
+
+      .auth-panel {
+        gap: 1rem;
+        margin-top: 1.5rem;
+        padding: 1.35rem;
+      }
+
+      .auth-note {
+        color: var(--body-text);
+        font-size: 0.92rem;
+      }
+
+      .auth-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      @media (max-width: 47.99rem) {
+        .auth-panel {
+          padding: 1.1rem;
+        }
+
+        .auth-actions {
+          display: grid;
+        }
+      }
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section
+        class="band band-cream auth-hero"
+        aria-labelledby="login-cancelled-heading"
+      >
+        <div class="shell auth-shell">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="login-cancelled-heading">Login Cancelled</h1>
+          <p class="auth-lede">You cancelled the login process.</p>
+          <div class="card auth-panel">
+            <p class="auth-note">
+              You can try logging in again whenever you are ready.
+            </p>
+            <div class="auth-actions">
+              <a class="cta cta-primary" href="{% url 'login' %}">Try Login Again</a>
+              <a class="cta cta-secondary" href="{% url 'course_list' %}">Browse Courses</a>
+            </div>
+          </div>
         </div>
-        <div class="mt-5 flex flex-wrap gap-2 border-t app-border pt-5">
-            <a href="{% url 'login' %}" class="primer-button">
-                <i class="fas fa-sign-in-alt"></i> Try Login Again
-            </a>
-            <a href="{% url 'course_list' %}" class="primer-button primer-button-secondary">
-                <i class="fas fa-home"></i> Browse Courses
-            </a>
-        </div>
-    </div>
-</section>
-{% endblock %}
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

@@ -1071,15 +1071,21 @@ class SocialLinkingTests(TestCase):
 
 class SharedAccountSurfaceTests(TestCase):
     def test_login_heading_matches_deployed_smoke_contract(self) -> None:
+        """The one h1 the deployed smoke and every browser flow look for.
+
+        The page moved to design 5a (issue #179), so the heading no longer
+        carries the adopted shell's utility classes or its icon.  What the
+        smoke contract actually depends on is unchanged and is what this
+        asserts: a single level-one heading whose whole accessible name is
+        ``Sign In``.
+        """
+
         response = self.client.get("/accounts/login/")
+        body = response.content.decode("utf-8")
 
         self.assertEqual(response.status_code, 200)
-        self.assertRegex(
-            response.content.decode("utf-8"),
-            r'<h1 class="text-2xl font-semibold app-heading">\s*'
-            r'<i class="fas fa-sign-in-alt" aria-hidden="true"></i>\s*'
-            r"Sign In\s*</h1>",
-        )
+        self.assertRegex(body, r"<h1[^>]*>\s*Sign In\s*</h1>")
+        self.assertEqual(body.count("<h1"), 1)
 
     def test_signed_out_shell_uses_one_same_host_login_and_no_account_rows(self) -> None:
         identity_counts = {
