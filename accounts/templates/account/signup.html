@@ -1,0 +1,157 @@
+{% load accessibility socialaccount %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Create your account · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * Sign up, design 5a.  This is where the homepage's primary call to
+       * action lands, so it was the last page in the account flow still
+       * wearing allauth's unstyled default document.  It now carries its
+       * complete stylesheet inline and loads no external CSS, like every
+       * other page in the system.
+       *
+       * Nothing about the sign-up behaviour moved with the design.  The POST
+       * target and CSRF token, every field allauth's SignupForm renders
+       * (including any hidden one it grows later), the `redirect_field`
+       * `next` input, the login destination, the SOCIALACCOUNT_ONLY and
+       * PASSKEY_SIGNUP_ENABLED branches and the provider login URLs are
+       * exactly what allauth's own account/signup.html rendered.  Who may
+       * reach this page is unchanged: this is a redesign, not a gate.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      /* The hero is the only warm band; the decision below it reads on the
+         content ground, so the tail under the last band moves with it. */
+      :root {
+        --page: var(--lavender);
+      }
+
+      {% include "account/_entrance_styles.html" %}
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream entrance-hero" aria-labelledby="signup-heading">
+        <div class="shell shell-reading">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="signup-heading">Create your account</h1>
+          <p class="entrance-lede">
+            One DataTalks.Club account covers every free course: enrolling, submitting
+            homework and appearing on the leaderboard.
+          </p>
+          <p class="entrance-alternative">
+            Already have an account?
+            <a class="band-link" href="{{ login_url }}">Sign in</a>.
+          </p>
+        </div>
+      </section>
+      <section class="band band-lavender" aria-labelledby="signup-ways-heading">
+        <div class="shell shell-reading">
+          <div class="band-head">
+            <div>
+              <h2 id="signup-ways-heading">Choose how you sign up</h2>
+              <p>Every route below creates the same account.</p>
+            </div>
+          </div>
+          {% get_providers as socialaccount_providers %}
+          {% if socialaccount_providers %}
+            <div class="provider-choices">
+              {% for provider in socialaccount_providers %}
+                {% provider_login_url provider process="login" as provider_url %}
+                <a class="cta cta-secondary provider-choice" href="{{ provider_url }}">
+                  {% include "account/_provider_mark.html" with provider_id=provider.id only %}
+                  Continue with {{ provider.name }}
+                </a>
+              {% endfor %}
+            </div>
+            {% if not SOCIALACCOUNT_ONLY %}
+              <p class="entrance-or">
+                <span>or</span>
+              </p>
+            {% endif %}
+          {% endif %}
+          {% if not SOCIALACCOUNT_ONLY %}
+            <div class="card entrance-panel">
+              <h2 id="signup-email-heading">Sign up with an email address</h2>
+              <form
+                class="entrance-form"
+                method="post"
+                action="{% url 'account_signup' %}"
+                aria-labelledby="signup-email-heading"
+              >
+                {% csrf_token %}
+                {% accessibility_error_summary form %}
+                <p class="entrance-fineprint">
+                  Fields marked
+                  <span class="a11y-required" aria-hidden="true">*</span>
+                  are required.
+                </p>
+                {% for field in form.hidden_fields %}
+                  {{ field }}
+                {% endfor %}
+                {% for field in form.visible_fields %}
+                  {% accessibility_help_id field as help_id %}
+                  {% accessibility_error_id field as error_id %}
+                  <div>
+                    <label class="field-label" for="{{ field.id_for_label }}">
+                      {{ field.label }}
+                      {% if field.field.required %}
+                        <span class="a11y-required" aria-hidden="true">*</span>
+                        <span class="sr-only">(required)</span>
+                      {% endif %}
+                    </label>
+                    {% accessible_widget field %}
+                    {% if field.help_text %}
+                      <p id="{{ help_id }}" class="a11y-help">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% if field.errors %}
+                      <p id="{{ error_id }}" class="a11y-error">
+                        <span class="sr-only">Error:</span>
+                        {{ field.errors|join:" " }}
+                      </p>
+                    {% endif %}
+                  </div>
+                {% endfor %}
+                {{ redirect_field }}
+                <div class="entrance-actions">
+                  <button class="cta cta-primary" type="submit">Sign up</button>
+                </div>
+              </form>
+            </div>
+          {% endif %}
+          {% if PASSKEY_SIGNUP_ENABLED %}
+            <p class="entrance-or">
+              <span>or</span>
+            </p>
+            <div class="entrance-actions">
+              <a class="cta cta-secondary" href="{{ signup_by_passkey_url }}">
+                Sign up using a passkey
+              </a>
+            </div>
+          {% endif %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

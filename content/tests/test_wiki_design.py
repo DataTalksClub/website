@@ -99,9 +99,7 @@ class WikiDesignSystemTests(TestCase):
     def test_the_hub_is_an_index_and_carries_no_breadcrumb_trail(self) -> None:
         """An index is marked by the masthead; a lone "Wiki" crumb would repeat it."""
 
-        self.assertNotRegex(
-            self.bodies()["hub"], r'<nav class="shell[^"]*\bbreadcrumbs\b'
-        )
+        self.assertNotRegex(self.bodies()["hub"], r'<nav class="shell[^"]*\bbreadcrumbs\b')
 
     def test_every_wiki_page_keeps_its_social_card_and_canonical(self) -> None:
         og_image = "https://datatalks.club/wiki/assets/og-default.png"

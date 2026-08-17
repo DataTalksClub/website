@@ -234,12 +234,35 @@ system — so it is written down here rather than derived again.
   ground. A reader moving from `/events` to `/blog` to a person profile should
   meet the same ground under the same kind of content; a page that alternates on
   its own reads as a different site with the same masthead.
-- A page whose hero and body are one band (the legal `text_page.html`) keeps
-  cream: it has no band after the hero. If it ever grows a second band, that one
-  is lavender.
+- **The warm band marks where the page starts; it is not the page.** Everything
+  below the seam is content, and content is cool: prose, cards, list rows, a
+  detail body, a state panel, a form. What stays above it is the masthead, the
+  breadcrumb trail, the title block and its dateline — plus the actions and
+  facts that belong to the title block (the event page's links, the course
+  page's spec strip, an index's filter pills). A page whose heading block is
+  shaped differently puts the seam somewhere else, not nowhere: the docs page's
+  `h1` arrives inside its imported body, so its warm band is the trail alone.
+- A page that is genuinely nothing but a hero has no band after the hero and so
+  stays entirely cream. No page in the system is that today — `text_page.html`
+  and the cohort registration preview both read as one once, and both turned out
+  to have a body under the title block.
 
 Enforced by `content/tests/test_band_grounds.py`, which reads the band sequence
-out of every public page template.
+out of every public page template and pins where each page's body sits.
+
+**`--page` follows the cool ground.** `--page` is the body background, and the
+strip below the last band — the analytics dialog's ground, and everything under
+the footer — is drawn with it. A page whose last band is lavender therefore sets
+
+```css
+:root {
+  --page: var(--lavender);
+}
+```
+
+in its own stylesheet block, or that strip snaps back to cream between the
+lavender it continues and the cream footer. The dark theme keeps its own
+`--page` from the partial, which is why the override names the light token only.
 
 **When mint is still correct.** `band-mint` marks an events *section* inside a
 page that is about several things — it says "this part is events" only where the
@@ -547,7 +570,7 @@ distinct from the round `.chip`:
 | *(bare)* | cream, soft border, body text | quiet facts: "enrolled · week 9 of 10" |
 | `status-pill-live` | `--green`, white text | a running cohort, a live event |
 | `status-pill-open` | `--lavender-deep`, ink text | registration open, next cohort dates, workshop kind |
-| `status-pill-wait` | `--sand`, olive text | waitlist, self-paced only, past events |
+| `status-pill-wait` | `--sand`, olive text | waitlist, finished courses, past events |
 | `status-pill-mint` | `--mint`, `--green-ship` text | podcast kind, season/episode marker |
 
 The words carry the state; colour is reinforcement only. `.status-dot` is the
@@ -614,7 +637,7 @@ LENGTH / PRICE / DEADLINES / REGISTERED):
 
 ### List rows
 
-The dashed-divided row pattern for index surfaces (self-paced course table,
+The dashed-divided row pattern for index surfaces (finished-course table,
 podcast episodes; the events index combines it with the date rail):
 
 ```html
@@ -759,6 +782,24 @@ disclose; no page uses it today.
 
 `.field-input` styles `input`, `select` and `textarea` alike; readonly and
 disabled fields sit on `--sand`.
+
+A form that can be wrong also draws the shared accessible form marks, which
+`core/templates/accessibility/` renders and which live in the partial because
+four pages now need the same rules:
+
+- **`.a11y-error-summary`** — the form-level summary (`role="alert"`,
+  `tabindex="-1"`, `data-focus-error-summary`), one list item per error linking
+  to the field it names. It sits on `--sand` inside a 2px ink border.
+- **`.a11y-required`** — the `*` beside a required label. Always paired with a
+  `.sr-only` "(required)" and a fineprint line saying what the mark means:
+  the requirement is stated in words, never carried by the glyph alone.
+- **`.a11y-help`** and **`.a11y-error`** — the hint and the error under a
+  field, linked to it by `aria-describedby` / `aria-errormessage` through the
+  `accessible_widget` tag. The error opens with a `.sr-only` "Error:".
+
+The system has no danger colour and does not need one: an error reads as
+`--olive` on the page's own ground and inside the `--sand` summary (≈5.5:1 in
+both themes), so colour is reinforcement and the words are the message.
 
 Mockup 6b draws this form on the course page itself, but the site already owns
 one registration form, on the registration campaign page (`registration_campaign`,
@@ -1015,6 +1056,60 @@ The composition (grouping, ordering, counts, markers) lives in
 `content/person_content.py`, the same way the podcast pages keep theirs in
 `content/podcast_content.py`, so the template holds no editorial logic.
 
+## The account entrance family, as built
+
+The pages between "I want to join" and "I am signed in" are one page in several
+states, and they are the first thing a new member meets after the homepage's
+primary call to action. They have no mockup either.
+
+The family is: **sign up** (`account/signup.html`) and its closed state, **sign
+in** (`accounts/login.html`), **sign out** (`account/logout.html`), the four
+**password reset** steps (request, "check your email", the form the emailed link
+opens, "your password is changed"), the **inactive account** notice, and the
+provider outcomes (`socialaccount/signup.html`, the authentication error, the
+cancelled login and the identity conflict). Every one of them is a design 5a
+document: one inline `<style>`, no external CSS, both shell partials, and the
+band-ground rule — a cream hero holding the heading, then lavender for the
+decision, with `:root { --page: var(--lavender); }` so the tail matches.
+`content/tests/test_band_grounds.py` reads them along with the public pages.
+
+- **The column is the reading measure** (`.shell.shell-reading`). A sign-up page
+  is a single decision and does not want the full 76rem shell.
+- **The shared block is a partial, not seven copies.**
+  `accounts/templates/account/_entrance_styles.html` holds the family's own
+  rules — the hero sizes, the card, the notice plate, the action row, the
+  provider stack and the divider — and each page includes it inside its own
+  single style element, straight after `core/_design_system.html`. An include
+  inside that element is how the design system itself is carried; a family may
+  share a block the same way. Nothing in it is site-wide, so it does not belong
+  in the partial every page loads.
+- **The provider buttons are the primary path.** They are `.cta.cta-secondary`
+  at full width, one per row, so three of them read as one decision instead of a
+  row that rewraps by width. Each carries a `.provider-mark`: a single
+  monochrome path filled with `currentColor`, so the mark takes the control's
+  own `--ink` and survives the theme without a hex or a second asset, and it is
+  `aria-hidden` because the button already says "Continue with GitHub".
+  `accounts/templates/account/_provider_mark.html` is the drawing; a provider it
+  has no mark for keeps its words, which are what actually name it.
+- **`.entrance-or`** is the seam between the two ways in: the system's dashed
+  rule on both sides of the word, which is real text rather than a drawn gap, so
+  the choice is announced.
+- **The email form is the alternative**, in a `.card` below the divider, using
+  the shared field and `.a11y-*` primitives above. Every allauth control stays:
+  the POST target, the CSRF token, every visible *and* hidden field the form
+  renders, the `redirect_field` `next` input, the `SOCIALACCOUNT_ONLY` and
+  passkey branches, and the reset page's cancel button with its separate
+  `logout-from-stage` form.
+- **Who may reach these pages is not a design decision.** The redesign changed
+  no route, gate or rate limit; `/accounts/password/reset/` is still answered
+  with a 403 by `accounts/urls.py` ahead of allauth, and the template exists so
+  the step wears the site's design if that routing is ever opened.
+
+Locally the provider block only renders once the database has a `SocialApp`, so
+`python manage.py seed_local_social_providers` writes one obviously-fake
+placeholder app per installed provider. It refuses to run against anything but a
+local or test SQLite database.
+
 ## Responsive rules
 
 Breakpoints in use:
@@ -1033,7 +1128,7 @@ and events become dashed lists, stories collapse their chips to one mono-style
 line, and the wiki graph swaps its landscape SVG ring for a portrait one
 (same data, long labels wrapped over more lines, geometry computed in
 `core/graph_layout.py`). New pages should make
-the same kind of decision (e.g. the self-paced table stacks each row; the
+the same kind of decision (e.g. the finished-course table stacks each row; the
 events row puts the date rail above the card) instead of letting a grid wrap
 arbitrarily. Shared narrow behaviour (card-grid gaps, the catalogue's narrower
 carousel columns) already lives in the partial; put page reshaping in the

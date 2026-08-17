@@ -1,0 +1,171 @@
+{% comment %}
+  The account entrance family, design 5a.
+
+  Sign up, the closed sign-up state, the password reset request, its "check
+  your email" and "your password is changed" outcomes, the reset form itself
+  and the inactive-account notice are one page in seven states: a warm hero
+  carrying the heading, then the content ground carrying the decision.
+
+  They share these rules, so the rules live here once and each page includes
+  them inside its own single style element, straight after
+  "core/_design_system.html".  The system's rule is one inline stylesheet and
+  no external CSS per page — an include inside that style element is how the
+  design system itself is carried, so a family of pages may share a block the
+  same way rather than keeping seven copies that drift.
+
+  Nothing here is a site-wide primitive: everything below is either an
+  entrance-page layout or the design system's own field treatment attached to
+  the allauth widgets, which render with no class of their own.
+{% endcomment %}
+/* The hero holds one heading and one sentence, so its title sits a step under
+   the index-page h1 rather than at hero size. */
+.entrance-hero h1 {
+  font-size: clamp(1.7rem, 3.4vw, 2.5rem);
+  letter-spacing: -0.025em;
+  margin-top: 0.6rem;
+}
+
+.entrance-lede {
+  font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+  margin-top: 0.75rem;
+  max-width: var(--measure);
+}
+
+.entrance-alternative {
+  color: var(--body-text);
+  font-size: 0.92rem;
+  margin-top: 0.75rem;
+}
+
+/* The card a decision sits in.  `.card` sets the body of a card at 0.9rem,
+   which is a size for a summary and not for a form a reader types into. */
+.entrance-panel {
+  font-size: 1rem;
+  gap: 1rem;
+  padding: 1.35rem 1.5rem;
+}
+
+.entrance-panel h2 {
+  font-size: 1.15rem;
+}
+
+.entrance-form {
+  display: grid;
+  gap: 1.1rem;
+}
+
+/* The allauth signup, reset-request and set-password forms render plain
+   widgets with no class of their own, so the system's `.field-input`
+   treatment is attached to the controls themselves here.  This is the same
+   move `accounts/templates/accounts/login.html` makes for its own widget
+   class: give the copied control the system's look rather than edit the form
+   in Python to carry a class name. */
+.entrance-form input[type="email"],
+.entrance-form input[type="password"],
+.entrance-form input[type="text"] {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 0.625rem;
+  color: var(--ink);
+  font: inherit;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  width: 100%;
+}
+
+/* allauth's own widgets carry a placeholder that repeats the label.  The
+   label is the field's name; the placeholder is kept because it is the form's
+   control and not this page's, and it is given a token that clears 4.5:1 on
+   the card in both themes so it can never read as a filled-in value. */
+.entrance-form ::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+
+.entrance-fineprint {
+  color: var(--body-text);
+  font-size: 0.85rem;
+}
+
+.entrance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+/* A state note: sand under ink, the pairing the system already uses for a
+   "wait, read this" surface.  The words carry the state; the surface is
+   reinforcement, never the message. */
+.entrance-notice {
+  background: var(--sand);
+  border: 1.5px dashed var(--line-soft);
+  border-radius: 0.7rem;
+  color: var(--ink);
+  display: grid;
+  font-size: 0.92rem;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+}
+
+/* The provider stack: one full-width control per configured provider, so the
+   three read as one decision rather than as a row that rewraps by width. */
+.provider-choices {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.provider-choice {
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.provider-mark {
+  flex: none;
+  height: 1.25rem;
+  width: 1.25rem;
+}
+
+/* The seam between the two ways in.  The rule is the system's own dashed
+   separator, and the word between them is real text so the choice is
+   announced rather than drawn. */
+.entrance-or {
+  align-items: center;
+  color: var(--muted);
+  display: grid;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  gap: 0.85rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  letter-spacing: 0.1em;
+  margin-block: 1.5rem;
+  text-transform: uppercase;
+}
+
+.entrance-or::before,
+.entrance-or::after {
+  border-top: 2px dashed var(--line-soft);
+  content: "";
+}
+
+@media (max-width: 47.99rem) {
+  /* Reshape on a phone: the card gives up its inset, and every action becomes
+     a full-width row so a destructive or primary control is never a narrow
+     target beside its neighbour.  Three provider buttons plus a three-field
+     form is a tall page at 360px, so the space between the two ways in
+     closes rather than the controls shrinking. */
+  .entrance-panel {
+    padding: 1.1rem;
+  }
+
+  .entrance-actions {
+    display: grid;
+  }
+
+  .entrance-actions .cta {
+    width: 100%;
+  }
+
+  .entrance-or {
+    margin-block: 1.15rem;
+  }
+}

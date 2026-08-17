@@ -2280,6 +2280,62 @@ Rules for editing:
         font-size: 0.8rem;
       }
 
+      /* The shared accessible form primitives.  `core/templates/accessibility/`
+         renders these class names (the error summary partial and the field
+         help/required/error marks a page writes beside `accessible_widget`),
+         and their stylesheet is one of the ones a design 5a page deliberately
+         does not load — so the treatment lives here, once, rather than being
+         re-invented by every page that owns a form.
+
+         The system has no danger colour and does not need one: an error is
+         carried by its words on the attention surface.  --olive on --sand
+         clears 4.5:1 in both themes, so colour is reinforcement and never the
+         message. */
+      .a11y-error-summary {
+        background: var(--sand);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        color: var(--ink);
+        display: grid;
+        gap: 0.6rem;
+        padding: 1rem 1.15rem;
+      }
+
+      .a11y-error-summary h2 {
+        font-size: 1.05rem;
+      }
+
+      .a11y-error-summary ul {
+        display: grid;
+        gap: 0.35rem;
+        list-style: disc;
+        padding-inline-start: 1.25rem;
+      }
+
+      .a11y-error-summary li {
+        display: list-item;
+      }
+
+      .a11y-required {
+        color: var(--olive);
+        font-weight: 800;
+      }
+
+      .a11y-help {
+        color: var(--body-text);
+        display: block;
+        font-size: 0.85rem;
+        margin-top: 0.35rem;
+      }
+
+      .a11y-error {
+        color: var(--olive);
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        margin-top: 0.35rem;
+      }
+
       /* Tinted inset panels (what you'll build, next assignment, questions). */
       .panel {
         border-radius: 1.1rem;

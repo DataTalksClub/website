@@ -215,6 +215,19 @@ AXE_EXCEPTIONS: tuple[AxeException, ...] = ()
 
 ACCESSIBILITY_AUTHORED_TEMPLATES = (
     "accounts/templates/accounts/login.html",
+    # The account entrance family, rebuilt on design 5a: sign up and its closed
+    # state, the password reset request and its three outcomes, and the
+    # inactive-account notice.  Each owns a form or a decision, so each answers
+    # to the readability contract like every other authored page.
+    "accounts/templates/account/_entrance_styles.html",
+    "accounts/templates/account/_provider_mark.html",
+    "accounts/templates/account/account_inactive.html",
+    "accounts/templates/account/password_reset.html",
+    "accounts/templates/account/password_reset_done.html",
+    "accounts/templates/account/password_reset_from_key.html",
+    "accounts/templates/account/password_reset_from_key_done.html",
+    "accounts/templates/account/signup.html",
+    "accounts/templates/account/signup_closed.html",
     "studio_courses/templates/studio_courses/campaign_form.html",
     "studio_courses/templates/studio_courses/include/campaign_field.html",
     "core/templates/accessibility/email.html",

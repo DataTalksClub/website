@@ -1,0 +1,80 @@
+{% load accessibility %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>Sign-up is closed · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * The sign-up page's closed state, design 5a.  allauth renders this
+       * instead of the sign-up form when registration is not open, so it is
+       * the same page in another state and wears the same document.  It
+       * decides nothing: whether registration is open is settings and
+       * adapter work, and this template only says so.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      :root {
+        --page: var(--lavender);
+      }
+
+      {% include "account/_entrance_styles.html" %}
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream entrance-hero" aria-labelledby="signup-closed-heading">
+        <div class="shell shell-reading">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="signup-closed-heading">Sign-up is closed</h1>
+          <p class="entrance-lede">
+            New accounts are not being created at the moment.
+          </p>
+        </div>
+      </section>
+      <section class="band band-lavender" aria-labelledby="signup-closed-next-heading">
+        <div class="shell shell-reading">
+          <div class="band-head">
+            <div>
+              <h2 id="signup-closed-next-heading">What you can still do</h2>
+            </div>
+          </div>
+          <div class="card entrance-panel">
+            <div class="entrance-notice">
+              <p>
+                Every course page, article, podcast episode and wiki page stays open
+                without an account.
+              </p>
+            </div>
+            <p>
+              If you already have an account, you can still sign in.
+            </p>
+            <div class="entrance-actions">
+              <a class="cta cta-primary" href="{% url 'login' %}">Sign in</a>
+              <a class="cta cta-secondary" href="{% url 'course_list' %}">Browse courses</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

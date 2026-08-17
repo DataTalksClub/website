@@ -85,6 +85,22 @@ DESIGN_5A_TEMPLATES = (
     "homework/homework.html",
     "homework/stats.html",
     "homework/submissions.html",
+    # The account entrance family: the pages a visitor meets between deciding to
+    # join and being signed in.  Sign in, sign out and the provider outcomes were
+    # rebuilt with the rest of the system; sign up, its closed state, the four
+    # password-reset steps and the inactive-account notice joined afterwards.
+    # They are signed-out surfaces with their own fixtures, so they are not in
+    # `page_paths` below, but the shell they carry has to be the same one.
+    "accounts/login.html",
+    "account/logout.html",
+    "account/signup.html",
+    "account/signup_closed.html",
+    "account/account_inactive.html",
+    "account/password_reset.html",
+    "account/password_reset_done.html",
+    "account/password_reset_from_key.html",
+    "account/password_reset_from_key_done.html",
+    "socialaccount/signup.html",
 )
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 

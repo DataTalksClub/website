@@ -1,0 +1,75 @@
+{% load accessibility %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    <title>This account is inactive · DataTalks.Club</title>
+    <style>
+      /* ------------------------------------------------------------------ *
+       * The inactive-account outcome of a sign-in, design 5a.  It is the one
+       * page in the entrance family a reader reaches by failing, so it says
+       * what happened and offers the way to get it looked at, without
+       * naming the account or the reason.
+       * ------------------------------------------------------------------ */
+
+      {% include "core/_design_system.html" %}
+
+      :root {
+        --page: var(--lavender);
+      }
+
+      {% include "account/_entrance_styles.html" %}
+    </style>
+  </head>
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream entrance-hero" aria-labelledby="inactive-heading">
+        <div class="shell shell-reading">
+          <p class="mono-label mono-label-indigo">Account</p>
+          <h1 id="inactive-heading">This account is inactive</h1>
+          <p class="entrance-lede">
+            Signing in is not possible while an account is inactive.
+          </p>
+        </div>
+      </section>
+      <section class="band band-lavender" aria-labelledby="inactive-next-heading">
+        <div class="shell shell-reading">
+          <div class="band-head">
+            <div>
+              <h2 id="inactive-next-heading">What you can do</h2>
+            </div>
+          </div>
+          <div class="card entrance-panel">
+            <div class="entrance-notice">
+              <p>
+                If you think this is a mistake, ask the community team to look at it.
+              </p>
+            </div>
+            <div class="entrance-actions">
+              <a class="cta cta-secondary" href="{% url 'slack' %}">Ask in Slack</a>
+              <a class="cta cta-secondary" href="{% url 'course_list' %}">Browse courses</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+  </body>
+</html>

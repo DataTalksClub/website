@@ -12,6 +12,11 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 PUBLIC_TEMPLATE_PATHS = (
     REPOSITORY_ROOT / "templates/404.html",
     REPOSITORY_ROOT / "accounts/templates/accounts/login.html",
+    # The rest of the account entrance family, rebuilt on design 5a: the sign-up
+    # page the homepage's call to action lands on, its closed state, the password
+    # reset request and its outcomes, and the inactive-account notice.  They are
+    # public pages a signed-out visitor meets, so they read the same contract.
+    *(sorted((REPOSITORY_ROOT / "accounts/templates/account").glob("*.html"))),
     # `templates/core/base.html` was read here until issue #179 finished porting the
     # site to design 5a: it was the public shell every page extended.  Design 5a pages
     # are complete documents that include the two shell partials below instead, so the

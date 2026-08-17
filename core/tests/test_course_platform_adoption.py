@@ -27,6 +27,10 @@ INVENTORY_PATH = ADOPTION_DIR / "behavior-inventory.md"
 EXPECTED_COMMANDS = {
     "account_identity_inventory": "accounts",
     "audit_datamailer_recipient_lists": "courses",
+    # The entrance pages draw one button per configured provider, and a fresh
+    # local database has none; this writes obviously-fake placeholder apps so
+    # the block a reader actually meets can be built and reviewed locally.
+    "seed_local_social_providers": "accounts",
     "bootstrap_development_owner": "accounts",
     "datamailer_callback_status": "data",
     "datamailer_campaign": "courses",
