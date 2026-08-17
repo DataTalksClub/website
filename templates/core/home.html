@@ -603,6 +603,16 @@
           grid-template-columns: minmax(0, 1.32fr) minmax(0, 1fr);
         }
 
+        /* The drawing carries its own air above the figure and to its right, so
+           centring the box leaves the ink sitting high and wide of the words it
+           belongs to.  Nudged optically rather than by margin, because a margin
+           would grow the band and this is an adjustment to artwork, not layout.
+           Only in the two-column hero: below this width the figure stacks under
+           the text and is already where it should be. */
+        .hero-figure {
+          transform: translate(-1.5rem, 1.25rem);
+        }
+
         .featured {
           grid-template-columns: minmax(0, 1.45fr) minmax(15rem, 1fr);
         }
