@@ -115,7 +115,14 @@ class EventTimelineRouteTests(TestCase):
                     self.assertEqual(response.headers["Cache-Control"], "public, max-age=300")
 
     def test_clean_hub_is_upcoming_and_past_filter_is_paginated(self) -> None:
-        groups = event_groups(datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin")))
+        # The expectation reads the same clock the view reads.  It used to be
+        # frozen at 2026-08-12 while the pages it was compared against were
+        # rendered against the real one, so the test held only until the
+        # calendar reached the first event of that frozen split: on 2026-08-17
+        # the event the frozen clock called upcoming was genuinely past, and
+        # finding it on /events/past failed a test that was describing the
+        # catalogue rather than the routing this test is about.
+        groups = event_groups()
         upcoming = self.client.get("/events")
         past = self.client.get("/events?filter=past")
 
