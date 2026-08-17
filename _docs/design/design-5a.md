@@ -212,21 +212,88 @@ the band it sits in.
 ## The band system
 
 A page is a stack of full-width `section.band` elements, each with a `.shell`
-inside. Bands alternate background to give the page its rhythm:
+inside. Four grounds exist:
 
 | Class | Background | When |
 | --- | --- | --- |
-| `band-cream` | `--cream` | the default; hero and most content bands |
-| `band-lavender` | `--lavender` | alternate emphasis band (climb, catalogue, wiki, "open registration") |
-| `band-mint` | `--mint` | events band |
+| `band-cream` | `--cream` | the hero — the first band on a page, and only that |
+| `band-lavender` | `--lavender` | the content ground — every band after the hero |
+| `band-mint` | `--mint` | an events *section* inside a page about several things (homepage only) |
 | `band-ink` | `--ink` (`#0d0f1c` dark) | the closing call-to-action band only |
 
 Every band ends with the dashed separator (`border-bottom: 2px dashed
 var(--line-soft)`); `band-ink` has none because it closes the page. The
 masthead carries the same dashed rule. Do not invent new band colours.
 
-Alternation is content-driven, not strictly ABAB: consecutive cream bands are
-fine when a dashed rule between them reads clearly.
+### Which ground a band takes
+
+This was rediscovered by hand three times — once per page that joined the
+system — so it is written down here rather than derived again.
+
+**The hero keeps cream. Everything after it is lavender.**
+
+- The **first band on a page is the hero**: masthead-adjacent, breadcrumb,
+  `h1`, byline. It takes `band-cream`, the warm paper. The masthead is the one
+  strip every page shares, and recolouring the ground directly under it makes a
+  page look like it belongs to a different site.
+- **Every band after the hero takes `band-lavender`.** Lavender is the content
+  ground. A reader moving from `/events` to `/blog` to a person profile should
+  meet the same ground under the same kind of content; a page that alternates on
+  its own reads as a different site with the same masthead.
+- A page whose hero and body are one band (the legal `text_page.html`) keeps
+  cream: it has no band after the hero. If it ever grows a second band, that one
+  is lavender.
+
+Enforced by `content/tests/test_band_grounds.py`, which reads the band sequence
+out of every public page template.
+
+**When mint is still correct.** `band-mint` marks an events *section* inside a
+page that is about several things — it says "this part is events" only where the
+rest of the page is not. On a page that is *itself* about an event (the event
+page's speakers band) or about one kind of work among four (a person profile's
+groups) the mint band said nothing the heading did not already say, and it broke
+the content ground; both now take lavender. Mint remains correct on the homepage
+events band, and `--mint` remains correct as a *panel* (`.panel-mint`) and as a
+*pill* (`.status-pill-mint`) on any ground.
+
+**When ink is still correct.** Unchanged: `band-ink` is the closing call to
+action, last on the page, and it draws no dashed rule because nothing follows
+it.
+
+**Lavender after lavender.** Consecutive bands of the same ground are expected
+now, and they are separated the way the system always separated consecutive
+cream bands: the `.band` dashed bottom rule, then `2.25rem` (`2.9rem` at
+≥62rem) of padding, then the next `.band-head` heading. The dashed rule is
+deliberately quiet and reads the same on either ground — `--line-soft` against
+its band is 1.25:1 on light lavender against 1.35:1 on light cream, and 2.02:1
+against 2.10:1 in dark. What actually separates two sections is the heading and
+the space, not the colour; give every band after the hero a real `.band-head`.
+
+**The homepage is the exception.** `templates/core/home.html` is composed
+directly from `datatalks-homepage.source.html` and alternates cream, lavender,
+mint and ink deliberately — it is a magazine cover, not a content page, and the
+alternation is the drawing. Do not flatten it:
+`test_the_homepage_keeps_its_own_alternation` holds the cream hero, the closing
+ink band and the fact that it uses more than two grounds, so a band can still be
+added to the homepage but the alternation cannot be quietly removed.
+
+The 6-series mockup (`datatalks-pages.source.html`) is *not* an exception: it
+draws each of 6a–6d on one cream page ground with lavender used for tiles,
+panels and a single dashed-bounded strip. It never alternates full-width bands,
+so the courses index and the course page follow the rule like every other page.
+
+Outside the rule for now: the course platform's task surfaces (dashboard,
+homework, submissions, statistics, the leaderboard family, enrolment,
+registration, wrapped) and Studio. They arrived through the course-platform
+adoption rather than the editorial system, several of them use alternation to
+pace a long working list, and bringing them across is its own issue.
+
+**Contrast when a band changes ground.** `--cream`, `--lavender` and `--mint`
+all flip with the theme, so a band that reads in light must be checked in dark.
+Muted text clears AA on every ground in both themes (`--muted` on light
+lavender 5.50:1, on light mint 5.58:1; dark lavender 5.90:1, dark mint 6.07:1),
+but that is only true since issue #185 corrected the dark token — check any
+muted text you move onto a new ground rather than assuming.
 
 ## Component inventory (shared primitives)
 
@@ -299,10 +366,59 @@ Markup shapes below are the contract; the CSS lives in the partial.
   pins it to the card foot (see `.course-link`, `.story-person`).
 - **`.card-grid`** + **`.card-grid-2` / `.card-grid-3`** — the band's card
   columns; they collapse to one column on narrow screens.
+- **`.event-card`** — the card for one event, drawn by the events index and by
+  the homepage's three-up band. The whole card is the link: the title is the one
+  real anchor and its `::after` covers the card, so the accessibility tree holds
+  exactly one link per event and focus still lands on it. Anything else
+  interactive inside — a speaker's chip link, the kind pill that takes focus for
+  its tip — sits above that overlay with `position: relative; z-index: 1`. It
+  carries `.event-summary` (clamped to three lines). Both pages held a copy of
+  these rules until they were folded into the shared layer; a page adds only its
+  own layout around the card.
 - **`.chip`** — round uppercase mini-pill (`1.5px` soft border). Variants:
   `.chip-plain` (no uppercase), `.chip-green` (green outline text),
   `.chip-live` (green fill, white text), `.chip-ink` (ink fill, cream text).
 - **`.avatar`** — striped round placeholder disc, `2.6rem`.
+- **`.person-chip`** — one credited person: a small portrait and their name,
+  linked to their profile. Every surface that names a person draws this, so a
+  reader meets the same person the same way wherever they find them.
+
+  ```html
+  {% include "public/_person_chip.html" with person=speaker|person_chip %}
+  ```
+
+  ```html
+  <span class="person-chip">
+    <img class="person-chip-portrait" src="…" alt="" width="96" height="96" loading="lazy">
+    <a class="band-link person-chip-name" href="/people/…">Alexey Grigorev</a>
+  </span>
+  ```
+
+  The chip is an **inline-flex atom**, so it wraps like a word: a row of five
+  faces inside `.shell-reading` breaks onto the next line instead of widening
+  the column. `.person-chips` is the wrapping row that holds several, and
+  `.person-chips-label` sets the optional "By" / "With" that opens it.
+  There is **one face size for the whole site** (`1.6rem`): a chip is a credit
+  standing beside a title, not a portrait shot. The single exception is
+  `.person-chip-lead` (`3rem` portrait, card-title name), for a block whose
+  subject *is* that one person — the episode page's guest.
+
+  On a card, the credit is the card's last line rather than something wedged
+  between the title and the summary, so pair `.person-chips` with
+  `.card-credit`; its `margin-top: auto` also pins the credit to the floor of a
+  fixed-height card column (the homepage's three-up events).
+
+  Three facts can each be missing and each degrades on its own: no portrait
+  keeps `.avatar.avatar-striped` (the stand-in disc, `aria-hidden`), no profile
+  keeps the name as plain `span.person-chip-name` in `--ink` rather than a link
+  to nowhere, and the portrait always carries `alt=""` — it is decorative
+  because the name beside it is already the credit, and a screen reader must
+  not hear the name twice. The picture is given its intrinsic square so the
+  line cannot shift as it arrives.
+
+  The blog article byline is where this shape was first drawn (issue #179);
+  it still carries its own `.article-author` copy of the rules while the FAQ
+  work owns that template, and should adopt the partial next.
 
 ### Actions
 
@@ -510,6 +626,55 @@ Rows stack on narrow screens; from 48rem each row lays out to `--row-cols`
 (default `minmax(0,1fr) auto`). The row owns the dashed bottom border — never
 draw separators inside cells.
 
+### Archive row (every dated index)
+
+One row of a dated index: the date on a fixed rail, and the record beside it as
+a card. It is a partial, not a pattern to copy —
+`templates/public/_archive_row.html`, whose comment is the interface:
+
+```html
+{% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published row_summary=record.description row_credits=record.author_profiles only %}
+```
+
+Optional slots: `row_date` (absent drops the rail, and the row gives that column
+back to the card), `row_mark="play"` for the podcast disc, `row_eyebrow` for one
+mono line above the title, `row_pill`/`row_pill_variant`/`row_pill_extra`,
+`row_summary`, `row_credits`, and `row_class`/`row_hook` for a surface's own
+hooks. Always pass `only`. A Django tag cannot be broken across lines, so the
+call is one long line.
+
+Inside the card the order is fixed: leading mark, eyebrow, pills, `h3` title,
+clamped summary, and the credited people last as `.person-chips.card-credit`
+with no "By"/"With" label. The rail is `.date-rail`, day above year.
+
+Drawn by `/blog`, `/books`, `/podcast` and every contribution band of a person's
+profile. **Not** by the events index: that row's rail carries three facts (day,
+weekday, start clock) rather than a publication date, and its card holds the
+kind pill and a link stretched over the whole card. Its card is shared with the
+homepage as `.event-card` instead.
+
+### Folded rows (`.row-fold`)
+
+A list long enough to be a wall keeps its first rows in view and puts the rest
+behind one `<details>` that names what it holds:
+
+```html
+<details class="row-fold" id="person-events-more">
+  <summary class="row-fold-summary">
+    <span class="row-fold-open">Show 44 more events</span>
+    <span class="row-fold-close">Show fewer events</span>
+    <span class="row-fold-marker" aria-hidden="true"></span>
+  </summary>
+  …the remaining .list-rows…
+</details>
+```
+
+It sits inside the `.row-list`, so the folded rows keep the list's dashed
+division. `<details>` is doing the work, as in the FAQ folds: keyboard behaviour
+and announced expanded state come free and it opens with JavaScript off. Name
+the control with the count — a bare "Show more" makes the reader click to find
+out how much they are in for.
+
 ### Play disc and player frame
 
 ```html
@@ -543,7 +708,7 @@ bubble disc: a white disc disappears on a light thumbnail. Use
 
 The same shape carries transcript rows with the speaker name as the mark.
 
-### Module accordion (course page)
+### Module accordion (unused)
 
 ```html
 <details class="module" open>
@@ -569,13 +734,15 @@ module tints its summary lavender; the `+`/`−` marker is CSS-drawn from the
 `[open]` state, so it needs no script. `.module-title` is set at the card-title
 weight, not body weight.
 
-As built (course page, issue #179): a module is one homework or one project, in
-the order the course already lists them, numbered continuously across both.
-There is no per-module blurb in the data, so `.module-summary` carries the
-module's `.status-pill` instead — the state a learner needs at a glance without
-opening the module — and `.module-body` carries the full deadline, the live
-countdown and the link to the page where work is handed in. Only the first
-module is open by default, as in the mockup.
+**Not used by the course page.** Issue #179 built the course page's assignments
+as this accordion; the page it replaced showed a Homework table and a Projects
+table, and folding both into one disclosure list put every deadline and every
+state behind a click on the page whose whole job is to show them. The course
+page now draws those two tables from the list rows above (`.row-list` with
+`--row-cols: minmax(0, 1fr) 11.5rem auto`, a caption row at the top of each and
+the assignment's `.status-pill` in the last column). The accordion primitive
+stays in the partial for a surface that genuinely has per-module content to
+disclose; no page uses it today.
 
 ### Form fields (course page register form)
 
@@ -604,50 +771,62 @@ primitives are still the ones a page in this system uses when it does own a form
 ink border) — the tinted inset blocks: "what you'll build", "next assignment",
 "questions before you start?".
 
-### Knowledge graph (`/wiki/graph`; homepage draws its own SVG)
+### Knowledge graph (`/wiki/graph` and the homepage wiki band)
 
-`/wiki/graph` plots a hub and its spokes, then lists every node the graph
-carries, using these primitives from the partial. The homepage's wiki band no
-longer uses the plotted-pill form: it draws hub, spokes and edges as one
-inline SVG per width (`.graph-svg-*`, page-local in `templates/core/home.html`,
-geometry computed in `core/home_content.py`), so the drawing scales as a unit
-and cannot overflow a phone. The homepage still shares `.graph-frame`, the
-legend and `--graph-edge`; the pill primitives stay here for `/wiki/graph`,
-which should eventually follow the SVG approach in its own issue.
+Both surfaces draw the wiki the same way: a hub, a ring of its real neighbours,
+and the edges between them, as **one SVG per width** with a `viewBox`, so the
+drawing scales as a unit, a label cannot escape the node it names, and nothing
+overflows a phone. `/wiki/graph` then names the rest of the graph as clouds of
+pills. Everything here is in the partial; neither page forks it.
 
 ```html
 <div class="graph-frame">
-  <div class="graph-plot">
-    <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-      <line x1="50" y1="50" x2="18" y2="19"/>
-    </svg>
-    <a class="graph-node graph-node-hub" href="…">MLOps</a>
-    <a class="graph-node" href="…" style="left: 18%; top: 19%">Feature Stores</a>
-  </div>
+  <svg class="graph-svg graph-svg-wide" viewBox="0 0 640 400" role="group" aria-label="MLOps and 8 of its 135 linked wiki topics">
+    <g aria-hidden="true">
+      <line class="graph-svg-edge" x1="320.0" y1="200.0" x2="115.0" y2="76.0"/>
+    </g>
+    <a class="graph-svg-node" href="…">
+      <rect class="graph-svg-shape" x="36.5" y="60.0" width="157.0" height="32.0" rx="16.0"/>
+      <text text-anchor="middle" font-size="14.0"><tspan x="115.0" y="80.9">MLOps Architecture</tspan></text>
+    </a>
+    <a class="graph-svg-node graph-svg-hub" href="…">…</a>
+  </svg>
+  <svg class="graph-svg graph-svg-narrow" viewBox="0 0 320 408" …>…</svg>
   <p class="graph-legend">…</p>
 </div>
 ```
 
-- **`.graph-node`** — one node: a lavender pill with an indigo edge. It carries
-  no position of its own, so the same node reads inside a plotted frame and
-  inside a flowing cloud. `.graph-node-hub` is the green centre.
-- **`.graph-plot`** — the landscape frame the spokes are positioned in
-  (`.graph-plot .graph-node` is the absolute placement). Below 48rem the plot
-  becomes a centred cloud with the hub first and the edges hidden: absolute
-  percentages cannot hold a long label in a narrow box.
-- **`.graph-cloud`** — a wrapping row of nodes, for a set too large to plot.
-  `/wiki/graph` draws one per node type.
-- **`.graph-edges line`** — styled from the partial (`--graph-edge`, a
-  non-scaling `0.4` stroke), never from an attribute in the page.
+- **`.graph-svg`** with **`.graph-svg-wide`** / **`.graph-svg-narrow`** — the
+  two arrangements of the same drawing. Both are in the markup and one is
+  `display: none` at a time, which also keeps the hidden one out of the tab
+  order. Each is capped near its design size (44rem / 24rem) so labels stay
+  label-sized instead of scaling with the column.
+- **`.graph-svg-node`** (`.graph-svg-shape` + `text`) — one node, drawn as an
+  SVG link so it is keyboard reachable; `.graph-svg-hub` is the green centre.
+  The focus ring is a thickened `--focus` stroke for engines that draw no
+  outline on an SVG link.
+- **`.graph-svg-edge`** — a drawn relation, `--graph-edge`, styled from the
+  partial and never from an attribute in the page.
+- **`.graph-node`** — one node *outside* the drawing: a lavender pill with an
+  indigo edge, carrying no position of its own.
+- **`.graph-cloud`** — a wrapping row of those pills, for a set too large to
+  draw. `/wiki/graph` uses one for the busiest nodes of a type and one for the
+  rest of that type.
+- **`.graph-index`** / **`.graph-index-summary`** — the `<details>` that folds
+  the complete list of a node type away behind its ways in.
 - **`.graph-legend`** with `.legend-key` / `.legend-swatch` / `.legend-hub` /
-  `.legend-page` — the key and the count under a frame.
+  `.legend-page` / `.legend-swatch-line` — the key and the count under a frame.
 - **`.topic-list`** / **`.topic`** — the bordered topic cards the homepage
-  stacks beside its plot.
+  stacks beside its drawing.
 
-The homepage's SVG geometry (frames, ring positions, label wrapping) is a
-layout constant in `core/home_content.py`; which node sits where is read from
-the graph's own edges, and a hub or a spoke the data cannot supply raises
-rather than rendering an invented edge.
+The geometry (frames, ring positions, label wrapping, the font's own advance
+widths) is a layout constant in `core/graph_layout.py`, shared by both pages;
+which node sits where is read from the graph's own edges, and a hub or a spoke
+the data cannot supply raises rather than rendering an invented edge. A label
+too long for its node wraps to as many lines as it needs — the node grows
+taller, never wider than its frame's bound — because the hub `/wiki/graph`
+draws is whatever the data makes busiest. `core/tests/test_graph_layout.py`
+holds the result: no drawn node overlaps another or leaves its frame.
 
 ### Long-form prose (`.prose`)
 
@@ -687,11 +866,24 @@ The blog article page extended the same primitive rather than forking one
   really are a list (a page may group *consecutive* source list items into one
   real list, which also tells a screen reader how many items there are);
   `--ink` strong; a `--bubble`-ruled italic `blockquote`; inline `code` and a
-  `pre` block that **scrolls inside its own frame** so the page never scrolls
-  sideways; `img` bounded to the column with the system's border and radius;
-  `figcaption` (also available as `.prose-caption`) in `--muted` at the meta
-  size; a dashed `hr`; and table cells on dashed rules — wrap a table in
-  `.prose-scroll` so a wide one scrolls by itself.
+  `pre` block that **wraps rather than scrolling** (the FAQ pages settled that
+  first: a box that scrolls sideways with no focus stop of its own cannot be
+  reached from a keyboard, and a command or a traceback stays readable when it
+  wraps); `img` bounded to the column with the system's border and radius —
+  give it the source file's own `width`/`height` so the box is reserved before
+  the picture arrives; `figcaption` (also available as `.prose-caption`) in
+  `--muted` at the meta size; a dashed `hr`; and table cells on dashed rules.
+- **`.prose-scroll`** — the frame a wide table sits in. It is a **named region
+  with its own focus stop** (`role="region"` + `tabindex="0"` + an
+  `aria-label`, the same shape the Studio tables use), because a scrollable box
+  no keyboard can reach is a barrier; two frames in one document may not share
+  a name.
+- **`.prose-embed`** — one already-sanitized fragment from a source that wrote
+  its own block markup. `.prose > * + *` only reaches the fragment's outer
+  element, so this keeps the rhythm inside it.
+- **`.prose-unavailable`** — a dashed plate that names an element this site
+  cannot draw (a survey chart that needs a script), the way a missing article
+  cover says so where the picture would have been.
 
 Headings inside `.prose` also get `scroll-margin-top`, so an anchored heading
 does not land against the top of the viewport.
@@ -699,9 +891,14 @@ does not land against the top of the viewport.
 Turning a *projected* body (`kind`/`text` blocks) into this markup is
 `content.article_content.prose_sections` plus
 `templates/public/_prose_blocks.html`: headings keep their fragment id, a run
-of list items becomes one real list, and any other kind keeps its text as a
-paragraph, so a block kind the projection grows later is rendered rather than
-dropped.
+of list items of the same kind becomes one real ordered or unordered list, an
+illustration, table, code sample, quotation, rule or unavailable chart is drawn
+from its own fields, and any other kind keeps its text as a paragraph, so a
+block kind the projection grows later is rendered rather than dropped. A block
+that carries a source segment as well as its plain text is rendered through
+Markdown and the shared sanitizer (`content.services.sanitize_rendered_html`),
+which is how an article's links keep their addresses; no page writes
+unsanitized external HTML.
 
 ### Search row
 
@@ -725,8 +922,11 @@ The field grows and the button keeps its size; both wrap on a narrow screen.
 </div>
 ```
 
-A `--bubble` left rule with the date stacked beside each event card; typically
-the first cell of a `.list-row` (`--row-cols: 6.5rem minmax(0,1fr)`).
+A `--bubble` left rule with the date stacked beside each event card; the first
+cell of a `.list-row` (`--row-cols: 6.5rem minmax(0,1fr)`). It carries three
+facts, including the start clock, which is why the events index keeps it instead
+of the archive row's two-line `.date-rail`. Only the events index draws it: a
+dated index that publishes a day uses the archive row.
 
 ## The wiki surfaces, as built
 
@@ -745,13 +945,18 @@ count, a group or an edge the data does not carry.
   naming what the hit is (the index holds whole pages and sections inside
   them), the title, and the section title underneath. No hits keeps the
   original empty state verbatim.
-- **`/wiki/graph`** — the hero plots the wiki page with the most wiki
-  neighbours on the shared `.graph-frame`, with two `.stat-tile` totals beside
-  it, and then gives each node type its own band: heading, one-line
-  description, a mono count, and every node as a `.graph-cloud` of
-  `.graph-node`s. Each node keeps the identifier the graph gives it, so a
-  `#wiki:mlops` link into the page still lands, and a node the data has no
-  destination for stays a named `span`, never a link.
+- **`/wiki/graph`** — one reading column, no two-up grid: the hero draws the
+  wiki page with the most wiki neighbours inside the shared `.graph-frame` as
+  one scalable SVG per width, with the two `.stat-tile` totals under it. Then
+  each node type gets a band: heading, one-line description, a mono count, the
+  dozen nodes the graph puts on the most connections as a `.graph-cloud` of
+  `.graph-node`s, a link to the page that indexes that kind in full, and the
+  rest of the type folded into a `.graph-index` `<details>`. The page is a way
+  into the graph, not a third copy of the catalogue — `/wiki` holds the A–Z
+  pages and `/wiki/special-pages` holds them filed by kind — but no node is
+  dropped: each keeps the identifier the graph gives it, so a `#wiki:mlops`
+  link into the page still lands, and a node the data has no destination for
+  stays a named `span`, never a link.
 - **`/wiki/special-pages[/<category>]`** — the categories are `.filter-pills`
   as links with `aria-current="page"` on the current one; the pages themselves
   are the hub's rows, so a reader meets one catalogue shape and not two.
@@ -775,22 +980,33 @@ draws.
   `.prose-paragraph` / `.prose-item`, exactly as a wiki page's body does —
   through the same partial, `public/_prose_body.html` (named for the primitive
   rather than for the wiki, now that two pages share it).
-- **One band per kind of work**, in a fixed order — podcast episodes (cream),
-  events (mint, the events band), articles (lavender), books (cream) — each a
-  `.band-head` plus one `.row-list`. A group appears only when the profile
-  actually links to that kind of work.
-- **Each row is drawn with the primitive that kind already uses elsewhere**, so
-  a piece of work looks the same wherever the reader meets it: an episode row
-  leads with the podcast index's `.play-disc` and carries the episode page's
-  `.status-pill-mint` season marker; an event row leads with the events index's
-  `.when` date rail and carries the same type pill with the same
-  open/mint/wait mapping; an article or book row is title, role and date.
-  Because a profile mixes past and future work in one list — unlike the events
-  index, whose whole page is one or the other — a future event also carries the
-  bare `.status-pill` reading `upcoming`, so that state is never colour-only.
-- **Rows, not cards.** The widest profile links to 63 pieces of work; 63 card
-  slabs is a wall, while the dashed row list is what the system already uses for
-  dense catalogues. The cards on this page are the stat tiles.
+- **One band per kind of work**, in a fixed order — podcast episodes, events,
+  articles, books — each a `.band-head` plus one `.row-list` on the content
+  ground. A group appears only when the profile actually links to that kind of
+  work. The four groups used to take four different grounds (cream, mint,
+  lavender, cream), which made one profile look like four pages stitched
+  together; the heading and the row's own marks name the kind of work, so the
+  ground does not have to.
+- **Every row is the shared archive row**, through
+  `public/_contribution_row.html`, which maps one `Contribution` onto the slots
+  above. The four groups each had a row shape of their own, and none of them was
+  the shape the same episode or article had on the page it came from; now a
+  piece of work looks the same wherever the reader meets it. An episode keeps
+  the `.play-disc` and its `.status-pill-mint` season marker; an event keeps its
+  type pill with the same open/mint/wait mapping, and — because a profile mixes
+  past and future work in one list, unlike the events index, whose whole page is
+  one or the other — a future event also carries the bare `.status-pill` reading
+  `upcoming`, so that state is never colour-only. The role the profile states
+  for a link is the row's mono eyebrow.
+- **A long group folds.** The widest profile links to 63 pieces of work, 50 of
+  them events, and 50 rows is a wall rather than a list. A group shows its first
+  six rows and puts the rest behind one `.row-fold`, named with the count it is
+  holding. Six is about one screen of rows under a band heading, and the fold
+  appears only when it would hide at least three: hiding one or two rows behind
+  a control is worse than showing them. Both numbers are
+  `ROWS_BEFORE_FOLD`/`SMALLEST_FOLD` in `content/person_content.py`. The profile
+  folds rather than paginating: it is one person's whole body of work on one
+  page, and every row of it is in the document for a reader who searches it.
 
 The composition (grouping, ordering, counts, markers) lives in
 `content/person_content.py`, the same way the podcast pages keep theirs in
@@ -812,8 +1028,8 @@ The narrow principle: below 48rem a surface changes shape rather than merely
 squeezing. On the homepage the hero drops its drawing and fineprint, the climb
 and events become dashed lists, stories collapse their chips to one mono-style
 line, and the wiki graph swaps its landscape SVG ring for a portrait one
-(same data, labels wrapped to two lines, geometry computed in
-`core/home_content.py`). New pages should make
+(same data, long labels wrapped over more lines, geometry computed in
+`core/graph_layout.py`). New pages should make
 the same kind of decision (e.g. the self-paced table stacks each row; the
 events row puts the date rail above the card) instead of letting a grid wrap
 arbitrarily. Shared narrow behaviour (card-grid gaps, the catalogue's narrower

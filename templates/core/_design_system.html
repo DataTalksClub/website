@@ -71,6 +71,20 @@ Rules for editing:
         /* The long-form reading measure: about 70 characters of `.prose` body
            text, the width a page of prose is set to. */
         --measure: 38rem;
+        /* The drawn circle.  Every round mark the pages draw by hand — step
+           discs, promise marks, the play disc, module numbers — carries this
+           lopsided radius instead of a true 999px circle, so a mark sitting
+           beside a hand-drawn illustration looks like it was made by the same
+           hand.  The value is the 4a mockup's own; the final sheet replaced it
+           with a perfect circle.
+
+           Three rotations of the same four numbers, so a column of marks does
+           not repeat one shape and stop reading as drawing.  Anything that is a
+           stadium rather than a circle — pills, buttons, toggles — keeps 999px,
+           and so do portraits, which are photographs in a frame. */
+        --drawn-circle: 50% 44% 55% 46%;
+        --drawn-circle-b: 46% 55% 44% 50%;
+        --drawn-circle-c: 55% 46% 50% 44%;
         /* Extended tokens introduced with the 6-series pages (courses, course
            detail, events, podcast).  The mono face carries machine-flavoured
            metadata: status pills, spec labels, timestamps and due dates.  The
@@ -245,6 +259,195 @@ Rules for editing:
         max-width: var(--shell);
         padding-inline: 1rem;
         width: 100%;
+      }
+
+      /* The kind pill and the explanation bound to it.  The tip shows on hover and
+         on keyboard focus — see public/_event_kind.html for why it is not
+         hover-only.  It lives here, not on the events page, because the
+         homepage draws the same pill: kept page-local, the partial rendered its
+         explanation as visible body text on every page that was not /events. */
+      .kind {
+        display: inline-block;
+        position: relative;
+      }
+
+      .kind .status-pill {
+        cursor: help;
+      }
+
+      .kind-tip {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.6rem;
+        bottom: calc(100% + 0.45rem);
+        box-shadow: 0.2rem 0.2rem 0 var(--shadow-soft);
+        color: var(--body-text);
+        display: block;
+        font-size: 0.85rem;
+        left: 0;
+        line-height: 1.4;
+        opacity: 0;
+        padding: 0.55rem 0.7rem;
+        pointer-events: none;
+        position: absolute;
+        transition: opacity 0.12s ease;
+        width: max-content;
+        max-width: min(22rem, 70vw);
+        z-index: 5;
+      }
+
+      .kind:hover .kind-tip,
+      .kind .status-pill:focus-visible ~ .kind-tip {
+        opacity: 1;
+      }
+
+      /* Anyone who asked for less motion gets the tip without the fade. */
+      @media (prefers-reduced-motion: reduce) {
+        .kind-tip {
+          transition: none;
+        }
+      }
+
+      /* A card's credit — the people who made the thing the card is about — sits
+         at the foot of the card, under what the card says about it, not wedged
+         between the title and the summary.  `margin-top: auto` puts it on the
+         floor when the card is a column of a fixed-height grid (the homepage's
+         three-up events), and is harmless when the card is only as tall as its
+         content (the archive rows). */
+      .card-credit {
+        margin-top: auto;
+        padding-top: 0.35rem;
+      }
+
+      /* A folded question and answer.  Both FAQ surfaces — the course FAQ pages
+         and the recovered FAQ at the foot of a blog article — draw this, so the
+         site has one way of writing a question, not two.
+
+         <details> is doing the work: the keyboard behaviour and the announced
+         expanded state come for free, and it still folds with JavaScript off,
+         which a scripted accordion would not.  `:target` opens the question a
+         deep link names, so a link to #faq-… lands on an open answer. */
+      .faq-fold {
+        border-top: 1.5px dashed var(--line-soft);
+        min-width: 0;
+        scroll-margin-top: 1.5rem;
+      }
+
+      .faq-fold:first-child {
+        border-top: 0;
+      }
+
+      .faq-fold-summary {
+        align-items: baseline;
+        cursor: pointer;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        list-style: none;
+        min-height: 2.75rem;
+        padding-block: 0.9rem;
+      }
+
+      /* Safari draws its own disclosure triangle unless this is said. */
+      .faq-fold-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .faq-fold-summary:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      /* A question can be a line of source text carrying a product name with no
+         space in it, so the title breaks rather than widening the page. */
+      .faq-question-title {
+        font-size: 1.05rem;
+        font-weight: 700;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      /* Drawn rather than typed, so it needs no icon font: a chevron that turns
+         a quarter when the fold opens.  One chevron under two names: the FAQ
+         question and the archive list's "show more" (`.row-fold`, below) are the
+         same control, so they are drawn by the same declarations rather than by
+         two blocks that have to be kept in step. */
+      .faq-fold-marker,
+      .row-fold-marker {
+        border-bottom: 2px solid var(--indigo);
+        border-right: 2px solid var(--indigo);
+        flex: none;
+        height: 0.5rem;
+        margin-top: 0.25rem;
+        transform: rotate(45deg);
+        transition: transform 0.15s ease;
+        width: 0.5rem;
+      }
+
+      .faq-fold[open] .faq-fold-marker,
+      .row-fold[open] .row-fold-marker {
+        transform: rotate(-135deg);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .faq-fold-marker,
+        .row-fold-marker {
+          transition: none;
+        }
+      }
+
+      /* An answer is one rendered fragment, so nothing inside it can be wrapped
+         in a scrolling frame by the page.  A long address breaks instead. */
+      .faq-answer {
+        overflow-wrap: anywhere;
+        padding-bottom: 1.1rem;
+      }
+
+      .faq-panel {
+        padding: 0.4rem 1.25rem;
+      }
+
+      /* A wide element inside a reading column.  Some content genuinely cannot be
+         read at 40rem — a graph, a wide table — so it is allowed out of the
+         column while everything around it stays in.
+
+         A child cannot simply be wider than its parent, so it is widened and
+         then pulled back by half the difference, which recentres it on the page.
+         It is bounded by the full shell and by the viewport, so it grows to the
+         page rather than to the screen edge, and it never widens the document —
+         below the reading measure the two widths are equal and this is inert. */
+      .shell-breakout {
+        --breakout-width: min(var(--shell), calc(100vw - 2rem));
+        margin-inline: calc((100% - var(--breakout-width)) / 2);
+        max-width: none;
+        width: var(--breakout-width);
+      }
+
+      /* The archive date rail: day above year, always two lines.  On one line
+         "January 25, 2026" wraps and "August 11, 2025" does not, so a column of
+         rows would sit at two different heights for no reason a reader can see.
+         Used by every dated index — the blog and books archive, the podcast. */
+      .date-rail time {
+        display: grid;
+        gap: 0.1rem;
+      }
+
+      /* The reading width: the same column an article's prose sits in, for the
+         index pages that lead into one.  A list of titles and summaries set at
+         the full 76rem shell gives every line a long way to track back from,
+         and moving from a wide index into a 40rem article was a visible change
+         of shape.  It lives here rather than in each page because the blog, the
+         books archive, the podcast, the events index, the wiki and the docs all
+         want the identical measure.
+
+         The course page holds it too, and it is the one page here that is not
+         prose: its homework and project rows are title / deadline / status, and
+         at this measure the fixed columns leave the title about 18rem — one row
+         reads as one line of body copy.  A page in this system that genuinely
+         cannot hold the column says so with evidence rather than inventing a
+         width of its own. */
+      .shell-reading {
+        max-width: calc(var(--measure) + 2.5rem);
       }
 
       /* --- masthead ----------------------------------------------------- */
@@ -800,6 +1003,66 @@ Rules for editing:
         gap: 1.25rem;
       }
 
+      /* The event card, drawn by the events index and by the homepage's three-up
+         band.  It is one component and it lived twice: both pages carried a
+         near-identical block, agreeing only because someone edited both.
+         Whatever is true of the card wherever it appears is said here; what each
+         page adds — the events row's horizontal layout, the homepage's clock and
+         its flattened narrow list — stays with the page.
+
+         The whole card is the link.  There is no "Event details" button: the
+         card is a link to the event, and saying so twice added a control to
+         every row that carried no information.  The title stays the one real
+         anchor and its ::after covers the card, so the accessibility tree still
+         holds exactly one link per event, named by the title, and keyboard focus
+         still lands on it.  Anything else interactive inside — a speaker's
+         profile link, the kind pill that takes focus for its tip — has to sit
+         above that overlay. */
+      .event-card {
+        position: relative;
+      }
+
+      .event-card h3 {
+        font-size: 1.15rem;
+      }
+
+      .event-card h3 a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .event-card h3 a:hover {
+        text-decoration: underline;
+      }
+
+      .event-card h3 a::after {
+        content: "";
+        inset: 0;
+        position: absolute;
+      }
+
+      .event-card .person-chip a,
+      .event-card .kind {
+        position: relative;
+        z-index: 1;
+      }
+
+      .event-card:hover {
+        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
+      }
+
+      /* Enough of the event to know whether it is for you, clamped so a long
+         description cannot make one card taller than the screen. */
+      .event-summary {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        color: var(--body-text);
+        font-size: 0.9rem;
+        overflow: hidden;
+      }
+
       .chip {
         align-items: center;
         border: 1.5px solid var(--line-soft);
@@ -848,6 +1111,93 @@ Rules for editing:
         flex: none;
         height: 2.6rem;
         width: 2.6rem;
+      }
+
+      /* --- person chip -------------------------------------------------- */
+
+      /* One person, drawn the same way everywhere they are credited: a small
+         portrait and their name, linked to their profile.  Factored out of the
+         blog article byline, which was the only surface drawing it, so a book's
+         authors, an event's speakers and an episode's guests stop each having
+         their own idea of what a credit looks like.
+
+         The chip is an inline-flex atom rather than a block, so it wraps like a
+         word: a row of five faces inside a narrow reading column breaks onto the
+         next line instead of widening the page. */
+      .person-chip {
+        align-items: center;
+        display: inline-flex;
+        gap: 0.5rem;
+        max-width: 100%;
+        min-width: 0;
+      }
+
+      .person-chip a {
+        align-items: center;
+        display: inline-flex;
+        min-height: 2.75rem;
+        min-width: 0;
+      }
+
+      /* The name is one size and one weight whichever surface the chip sits on,
+         so a byline does not shrink when the line around it does.  A linked name
+         keeps `.band-link`'s indigo underline — it is a link and says so — while
+         a credit with no profile is plain ink. */
+      .person-chip-name {
+        font-size: 0.95rem;
+        font-weight: 700;
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      span.person-chip-name {
+        color: var(--ink);
+      }
+
+      /* The portrait sits in the disc the stand-in avatar draws, at the same
+         size, so a person the people records hold no picture for keeps the shape
+         of the row.  It is decorative: the name beside it is the credit, and a
+         screen reader must not hear it twice. */
+      /* One face size for the whole site.  A chip is a credit sitting beside a
+         title in a row or a card - an article's byline, an event's speaker, a
+         podcast guest - so the portrait is a small mark, not a portrait shot.
+         The only exception is .person-chip-lead below, where the person IS the
+         subject of the block. */
+      .person-chip-portrait {
+        align-self: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        flex: none;
+        height: 1.6rem;
+        object-fit: cover;
+        width: 1.6rem;
+      }
+
+      /* The standalone treatment: one credited person who is the subject of the
+         block rather than one of several names in a line (an episode's guest). */
+      .person-chip-lead .person-chip-portrait {
+        height: 3rem;
+        width: 3rem;
+      }
+
+      .person-chip-lead .person-chip-name {
+        font-size: 1.05rem;
+        font-weight: 800;
+      }
+
+      /* A row of chips: the byline, the speaker line, the guest line.  It wraps
+         to as many lines as the credit needs and never forces a wider column. */
+      .person-chips {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.85rem;
+        min-width: 0;
+      }
+
+      .person-chips-label {
+        color: var(--muted);
+        font-size: 0.92rem;
       }
 
       /* --- catalogue scroller ------------------------------------------- */
@@ -1306,6 +1656,60 @@ Rules for editing:
         color: var(--green-ship);
       }
 
+      /* Pagination: the one page-number control every paginated surface shares —
+         the public catalogues through `templates/public/_pagination.html` and the
+         eight adopted pages through `course_platform_templates/include/
+         pagination.html` (issue #178).  Two templates because their behaviour
+         differs; one component, so a reader cannot tell two paginators apart.
+
+         It is a filter-pill row — the same "one row of controls where exactly one
+         is current" shape, and the same ink-filled `aria-current="page"` state —
+         and the numbers are drawn marks rather than struck ones, the same lopsided
+         radius the step discs, the play disc and the module numbers use.  A number
+         is a square box so that radius reads as a circle, and it holds three digits
+         before it has to grow.
+
+         The wobble rotates across the row rather than repeating: three identical
+         lopsided circles side by side stop reading as hand-drawn.  It is positional
+         so both templates get it without either of them computing anything — the
+         public row nests each control in an <li>, the adopted row does not, so each
+         rule is written for both shapes. */
+      .pagination {
+        margin-top: 2rem;
+      }
+
+      .pagination-pills {
+        align-items: center;
+      }
+
+      .pagination-number {
+        border-radius: var(--drawn-circle);
+        min-width: 2.75rem;
+        padding-inline: 0.5rem;
+      }
+
+      .pagination-pills > :nth-child(3n + 2) .pagination-number,
+      .pagination-pills > .pagination-number:nth-child(3n + 2) {
+        border-radius: var(--drawn-circle-b);
+      }
+
+      .pagination-pills > :nth-child(3n) .pagination-number,
+      .pagination-pills > .pagination-number:nth-child(3n) {
+        border-radius: var(--drawn-circle-c);
+      }
+
+      /* The two directions stay stadium-shaped, the way every other control in the
+         system that carries a word or a glyph does. */
+      .pagination-step {
+        min-width: 2.75rem;
+        padding-inline: 0.9rem;
+      }
+
+      .pagination-gap {
+        justify-content: center;
+        min-width: 1.75rem;
+      }
+
       /* The little state dot, on a status pill or beside a band heading. */
       .status-dot {
         background: var(--green-bright);
@@ -1458,12 +1862,157 @@ Rules for editing:
         }
       }
 
+      /* --- archive rows ------------------------------------------------- *
+       *
+       * The list row every dated index draws: the date on a fixed rail, and the
+       * record beside it as a card.  The blog, the books archive, the podcast
+       * index and each band of a person's profile all use it, through the one
+       * partial `public/_archive_row.html` — see that file for the slots.  It
+       * lives here rather than in four page stylesheets because it had to be
+       * converged by hand in four of them once already.
+       */
+
+      .archive-row {
+        --row-cols: 7rem minmax(0, 1fr);
+        align-items: start;
+        column-gap: 1.25rem;
+      }
+
+      /* A record with no date gives the rail back to the card instead of
+         leaving a column of empty space down the page. */
+      .archive-row-undated {
+        --row-cols: minmax(0, 1fr);
+      }
+
+      /* The rail meets the card's first line rather than its top edge. */
+      .archive-date {
+        padding-top: 0.9rem;
+      }
+
+      .archive-card {
+        align-items: flex-start;
+        flex-direction: row;
+        gap: 0.9rem;
+        min-width: 0;
+        padding: 0.9rem 1rem;
+      }
+
+      .archive-body {
+        display: grid;
+        flex: 1;
+        gap: 0.3rem;
+        justify-items: start;
+        min-width: 0;
+      }
+
+      .archive-title {
+        font-size: 1.05rem;
+      }
+
+      .archive-title a {
+        color: var(--ink);
+        text-decoration: none;
+      }
+
+      .archive-title a:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* Two pills at most: what the record is, and — where a list mixes past and
+         future work — which of the two this one is. */
+      .archive-marks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      /* Enough of the record to know whether it is for you; a book summary runs
+         to a full page, so the record's own page carries the rest. */
+      .archive-summary {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        font-size: 0.9rem;
+        overflow: hidden;
+      }
+
+      /* A credit under a row's title is a footnote to it, not a second title. */
+      .archive-card .person-chip-name {
+        font-size: 0.85rem;
+      }
+
+      /* Narrow: the rail has no room to be a column, so the date becomes the
+         dateline directly above the card. */
+      @media (max-width: 47.99rem) {
+        .archive-date {
+          padding-top: 0;
+        }
+      }
+
+      /* --- folded rows -------------------------------------------------- *
+       *
+       * A list long enough to be a wall keeps its first rows in view and puts
+       * the remainder behind one control that says how many it is holding.  It
+       * is the same `<details>` the FAQ folds are built from, for the same
+       * reasons: the keyboard behaviour and the announced expanded state come
+       * for free, and it still opens with JavaScript off.
+       *
+       * The fold sits inside the `.row-list`, so the rows it holds keep the
+       * list's dashed division; the last of them gives its border to the
+       * fold itself.
+       */
+
+      .row-fold > .list-row {
+        border-bottom: 1.5px dashed var(--line-soft);
+      }
+
+      .row-fold > .list-row:last-child {
+        border-bottom: 0;
+      }
+
+      .row-fold-summary {
+        align-items: center;
+        color: var(--indigo);
+        cursor: pointer;
+        display: flex;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        gap: 0.5rem;
+        letter-spacing: 0.06em;
+        list-style: none;
+        min-height: 2.75rem;
+        padding-block: 0.9rem;
+        text-transform: uppercase;
+      }
+
+      .row-fold-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .row-fold-summary:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .row-fold-summary:hover {
+        text-decoration: underline;
+        text-underline-offset: 0.2em;
+      }
+
+      /* One control, two words: the label states what the fold will do next. */
+      .row-fold[open] .row-fold-open,
+      .row-fold:not([open]) .row-fold-close {
+        display: none;
+      }
+
       /* Play disc: the podcast play marker on the brand's bubble lavender. */
       .play-disc {
         align-items: center;
         background: var(--bubble);
         border: 2px solid var(--line);
-        border-radius: 999px;
+        border-radius: var(--drawn-circle);
         display: inline-flex;
         flex: none;
         height: 2.4rem;
@@ -1473,8 +2022,8 @@ Rules for editing:
 
       .play-disc svg {
         fill: var(--on-bubble);
-        height: 1.1rem;
-        width: 1.1rem;
+        height: 1.5rem;
+        width: 1.5rem;
       }
 
       .play-disc-card {
@@ -1539,10 +2088,19 @@ Rules for editing:
       }
 
       /* Numbered step disc (the homepage climb; modules use .module-number). */
+      /* The step disc is drawn, not struck: a lopsided radius rather than a true
+         circle, so it reads as a mark someone made by hand next to a drawing
+         that was.  The value is the 4a mockup's own (`50% 44% 55% 46%`), which
+         the final sheet dropped for a perfect circle.
+
+         Each step is given its own rotation of that radius.  One shared value
+         repeated three times down a column stops looking hand-drawn and starts
+         looking like a repeated asset — the wobble has to differ for the effect
+         to survive being seen three times at once. */
       .step-number {
         align-items: center;
         border: 2px solid var(--line);
-        border-radius: 999px;
+        border-radius: var(--drawn-circle);
         display: inline-flex;
         flex: none;
         font-size: 0.8rem;
@@ -1554,10 +2112,12 @@ Rules for editing:
 
       .step-number-2 {
         background: var(--indigo-soft);
+        border-radius: var(--drawn-circle-b);
       }
 
       .step-number-3 {
         background: var(--green);
+        border-radius: var(--drawn-circle-c);
         color: var(--on-green);
       }
 
@@ -1595,11 +2155,12 @@ Rules for editing:
         display: none;
       }
 
+      /* Same drawn mark as the step disc — see --drawn-circle. */
       .module-number {
         align-items: center;
         background: var(--bubble);
         border: 2px solid var(--line);
-        border-radius: 999px;
+        border-radius: var(--drawn-circle);
         color: var(--on-bubble);
         display: inline-flex;
         flex: none;
@@ -1769,11 +2330,16 @@ Rules for editing:
       }
 
       /* ------------------------------------------------------------------ *
-       * Knowledge graph.  The homepage draws the wiki as a hub-and-spokes
-       * plot; /wiki/graph draws the same graph in full.  Both surfaces read
-       * the same projection, so they share one visual language: these
-       * primitives moved here from the homepage when the wiki pages joined
-       * the system, rather than the graph page inventing a second one.
+       * Knowledge graph.  The homepage draws the wiki as a hub with a ring
+       * of neighbours; /wiki/graph draws the same shape around its own hub
+       * and then names the rest of the graph.  Both surfaces read the same
+       * projection and draw the same language, so all of it lives here.
+       *
+       * The drawing is one SVG per width (`.graph-svg`, geometry computed in
+       * `core/graph_layout.py`): nodes, labels and edges share a viewBox, so
+       * it scales as a unit and a label can neither escape its pill nor
+       * overflow a phone.  Absolutely positioned pills used to draw it, and
+       * did both.
        * ------------------------------------------------------------------ */
 
       .graph-frame {
@@ -1785,30 +2351,76 @@ Rules for editing:
         padding: 1rem;
       }
 
-      /* The mockup draws the hub and its spokes in a landscape frame, not a square. */
-      .graph-plot {
-        aspect-ratio: 1.45 / 1;
-        position: relative;
-      }
-
-      .graph-edges {
-        height: 100%;
-        left: 0;
-        position: absolute;
-        top: 0;
+      /* Two arrangements of the same drawing are in the markup: a landscape
+         ring for wide screens and a portrait ring for phones (display:none
+         keeps the hidden one out of the tab order).  Each is capped near its
+         design size so labels stay label-sized instead of scaling with the
+         column. */
+      .graph-svg {
+        display: block;
+        height: auto;
+        margin-inline: auto;
         width: 100%;
       }
 
-      /* The edges are drawn in a stretched viewBox, so the stroke keeps its own
-         width rather than being scaled with the box. */
-      .graph-edges line {
-        stroke: var(--graph-edge);
-        stroke-width: 0.4;
-        vector-effect: non-scaling-stroke;
+      .graph-svg-narrow {
+        max-width: 24rem;
       }
 
-      /* One node of the graph.  The pill itself carries no position, so the
-         same node reads inside a plotted frame and inside a flowing cloud. */
+      .graph-svg-wide {
+        display: none;
+        max-width: 44rem;
+      }
+
+      @media (min-width: 48rem) {
+        .graph-svg-narrow {
+          display: none;
+        }
+
+        .graph-svg-wide {
+          display: block;
+        }
+      }
+
+      .graph-svg-edge {
+        stroke: var(--graph-edge);
+        stroke-width: 2;
+      }
+
+      .graph-svg-node .graph-svg-shape {
+        fill: var(--lavender);
+        stroke: var(--indigo);
+        stroke-width: 2;
+      }
+
+      .graph-svg-node text {
+        fill: var(--ink);
+        font-weight: 600;
+      }
+
+      .graph-svg-hub .graph-svg-shape {
+        fill: var(--green);
+        stroke: var(--line);
+      }
+
+      .graph-svg-hub text {
+        fill: var(--on-green);
+        font-weight: 800;
+      }
+
+      .graph-svg-node:hover .graph-svg-shape {
+        stroke-width: 3.5;
+      }
+
+      /* SVG links get the page's focus outline where engines draw it, and a
+         thickened focus-coloured border where they do not. */
+      .graph-svg-node:focus-visible .graph-svg-shape {
+        stroke: var(--focus);
+        stroke-width: 4;
+      }
+
+      /* One node of the graph, outside the drawing: a lavender pill with an
+         indigo edge, in a flowing cloud. */
       .graph-node {
         background: var(--lavender);
         border: 2px solid var(--indigo);
@@ -1821,29 +2433,38 @@ Rules for editing:
         text-decoration: none;
       }
 
-      .graph-plot .graph-node {
-        left: 50%;
-        max-width: 44%;
-        position: absolute;
-        top: 50%;
-        transform: translate(-50%, -50%);
-      }
-
-      .graph-node-hub {
-        background: var(--green);
-        border-color: var(--line);
-        color: var(--on-green);
-        font-size: 0.95rem;
-        font-weight: 800;
-        padding: 0.45rem 1rem;
-      }
-
-      /* A cloud of nodes: the shape a plotted frame cannot hold, used for a
-         whole node type on /wiki/graph and for the plot itself on a phone. */
+      /* A cloud of nodes: the shape a ring cannot hold, used on /wiki/graph
+         for the busiest nodes of a type and for the rest of that type. */
       .graph-cloud {
         display: flex;
         flex-wrap: wrap;
         gap: 0.4rem;
+      }
+
+      /* The complete list of a node type, folded away behind its ways in: a
+         `<details>`, so it works with JavaScript off and the browser gives the
+         summary its keyboard behaviour and its announced state for free. */
+      .graph-index {
+        border-top: 1.5px dashed var(--line-soft);
+        margin-top: 1.1rem;
+        padding-top: 0.9rem;
+      }
+
+      .graph-index-summary {
+        color: var(--indigo);
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        padding: 0.3rem 0;
+      }
+
+      .graph-index-summary:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      .graph-index-cloud {
+        margin-top: 0.8rem;
       }
 
       .graph-legend {
@@ -1887,6 +2508,14 @@ Rules for editing:
       .legend-page {
         background: var(--lavender);
         border-color: var(--indigo);
+      }
+
+      /* The third key: the drawn edge between two nodes. */
+      .legend-swatch-line {
+        background: var(--graph-edge);
+        border-radius: 999px;
+        height: 0.2rem;
+        width: 1.1rem;
       }
 
       .topic-list {
@@ -2110,14 +2739,20 @@ Rules for editing:
         padding: 0.1rem 0.3rem;
       }
 
-      /* A code block scrolls inside its own frame; the page never does. */
+      /* A code sample wraps rather than scrolling.  The FAQ pages settled this
+         first (templates/review/faq_detail.html): a box that scrolls sideways
+         with no focus stop of its own cannot be reached from a keyboard, and a
+         command or a traceback stays readable when it wraps.  The sample keeps
+         its own line breaks and indentation either way. */
       .prose pre {
         background: var(--lavender);
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         margin: 0;
-        overflow-x: auto;
+        overflow-wrap: anywhere;
         padding: 1rem 1.1rem;
+        white-space: pre-wrap;
+        word-break: break-word;
       }
 
       .prose pre code {
@@ -2127,13 +2762,26 @@ Rules for editing:
         padding: 0;
       }
 
-      /* An illustration never outgrows the reading column. */
+      /* An illustration never outgrows the reading column.  The element carries
+         the source file's own width and height, so `height: auto` keeps that
+         ratio and the browser reserves the right box before the picture
+         arrives — the text below it does not jump as the page loads. */
       .prose img {
         border: 2px solid var(--line);
         border-radius: 0.9rem;
         display: block;
         height: auto;
         width: 100%;
+      }
+
+      /* Some source bodies wrote their own block markup — a callout, a card
+         grid, a run of `<p>` — and it arrives as one sanitized fragment.  The
+         shared `.prose > * + *` rhythm only reaches that fragment's outer
+         element, so the fragment keeps the rhythm inside itself.  A vertical
+         margin has no effect on an inline element, which is why this can be
+         written once for everything the fragment contains. */
+      .prose-embed * + * {
+        margin-top: 0.75rem;
       }
 
       .prose figcaption,
@@ -2143,15 +2791,37 @@ Rules for editing:
         margin-top: 0.5rem;
       }
 
+      /* Said out loud rather than left as a gap: a body element this site cannot
+         draw (a survey chart that needs a script) keeps its place and names
+         itself, the way a missing article cover does. */
+      .prose-unavailable {
+        border: 2px dashed var(--line-soft);
+        border-radius: 0.9rem;
+        padding: 1.1rem 1.25rem;
+        text-align: center;
+      }
+
+      .prose-unavailable figcaption {
+        margin-top: 0.35rem;
+      }
+
       .prose hr {
         border: 0;
         border-top: 2px dashed var(--line-soft);
         margin-block: 2rem;
       }
 
-      /* Wrap a table in `.prose-scroll` so a wide one scrolls by itself. */
+      /* Wrap a table in `.prose-scroll` so a wide one scrolls by itself.  The
+         frame is a named region with its own focus stop, so the scroll can be
+         reached and driven from a keyboard; the outline says where that focus
+         landed. */
       .prose-scroll {
         overflow-x: auto;
+      }
+
+      .prose-scroll:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
       }
 
       .prose table {
@@ -2189,35 +2859,6 @@ Rules for editing:
       @media (max-width: 47.99rem) {
         .card-grid-3 {
           gap: 0.9rem;
-        }
-
-        /* Absolute spoke coordinates cannot hold a long label inside a narrow frame —
-           "MLOps Roadmap" centred at 9% hangs off the left edge.  Narrow screens read
-           the plot as the hub followed by its relations: the same cloud shape
-           /wiki/graph uses at every width. */
-        .graph-plot {
-          aspect-ratio: auto;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 0.4rem;
-          justify-content: center;
-        }
-
-        .graph-edges {
-          display: none;
-        }
-
-        .graph-plot .graph-node {
-          /* The coordinates are inline styles, so they take a deliberate override. */
-          left: auto !important;
-          max-width: none;
-          position: static;
-          top: auto !important;
-          transform: none;
-        }
-
-        .graph-node-hub {
-          order: -1;
         }
 
         /* The catalogue stays a carousel at every width; phones just see a

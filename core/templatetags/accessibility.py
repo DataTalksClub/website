@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sized
 from datetime import date
 
 from django import template
@@ -50,6 +51,32 @@ def human_day(value: object) -> str:
 
 
 @register.filter
+def day_and_month(value: object) -> str:
+    """The day half of a publication date: ``August 11``.
+
+    The archive rails set the date on two lines, day above year, so that every
+    rail is the same height whatever the month is called.  Read as one line,
+    ``January 25, 2026`` wraps and ``August 11, 2025`` does not, and a column of
+    rows then sits at two different heights for no reason a reader can see.
+    """
+
+    parsed = _publication_day(value)
+    if parsed is None:
+        return str(value)
+    return f"{parsed:%B} {parsed.day}"
+
+
+@register.filter
+def year_only(value: object) -> str:
+    """The year half of a publication date, the second line of a date rail."""
+
+    parsed = _publication_day(value)
+    if parsed is None:
+        return ""
+    return f"{parsed:%Y}"
+
+
+@register.filter
 def iso_day(value: object) -> str:
     """The machine-readable counterpart of ``human_day``, for ``<time datetime>``."""
 
@@ -57,6 +84,32 @@ def iso_day(value: object) -> str:
     if parsed is None:
         return str(value)
     return f"{parsed:%Y-%m-%d}"
+
+
+@register.filter
+def counted(value: object, noun: str) -> str:
+    """Name a count in the words a reader reads: ``12 questions``.
+
+    A count with nothing in it has nothing to say, so it renders as the empty
+    string and the pill, line or label that would have carried it does not
+    appear at all.  This exists because the shared archive row takes its pill as
+    one piece of text: a template can count and it can pluralise, but it cannot
+    join the two back together without three nested ``{% with %}`` blocks.
+
+    ``noun`` is one word, or the singular and the plural separated by a comma
+    when adding an ``s`` is wrong: ``|counted:"entry,entries"``.
+    """
+
+    if isinstance(value, Sized):
+        total = len(value)
+    elif isinstance(value, int) and not isinstance(value, bool):
+        total = value
+    else:
+        return ""
+    if not total:
+        return ""
+    singular, _, plural = noun.partition(",")
+    return f"{total} {singular if total == 1 else (plural or f'{singular}s')}"
 
 
 @register.filter

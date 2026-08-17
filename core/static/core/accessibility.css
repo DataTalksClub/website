@@ -7,20 +7,12 @@ body {
 }
 
 /*
- * Public detail artwork is rendered before the Tailwind runtime runs. Keep the
- * source-backed media inside the readable article column when JavaScript is
- * disabled (the utility classes still provide the richer JS-enabled styling).
+ * Two rules were removed here with issue #179.  `#main-content > #content >
+ * article > img` sized public detail artwork before the Tailwind runtime ran, and
+ * `.faq-answer :is(code, pre)` wrapped long code in a FAQ answer.  Both belonged to
+ * the old shell: `#content` only ever existed inside it, and the FAQ page is now a
+ * design 5a document that loads no external stylesheet and sets its own `pre` rules.
  */
-#main-content > #content > article > img {
-  height: auto;
-  max-width: 100%;
-}
-
-.faq-answer :is(code, pre) {
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
 
 .skip-link {
   background: var(--text-heading, #0f172a);
@@ -79,16 +71,11 @@ header a {
   min-width: 1.5rem;
 }
 
-.a11y-inline-target {
-  min-height: 1.5rem;
-}
-
-.dense-utility-links a,
-.studio-courses-shell a.app-link {
-  align-items: center;
-  display: inline-flex;
-  min-height: 1.5rem;
-}
+/*
+ * `.a11y-inline-target`, `.dense-utility-links a` and `.studio-courses-shell
+ * a.app-link` were removed with issue #179: no element in the repository carries
+ * any of those three class names any more.
+ */
 
 .site-navigation-links a[aria-current="page"] {
   text-decoration: underline;
@@ -166,19 +153,11 @@ input[type="radio"] {
   font-weight: 700;
 }
 
-.a11y-table-scroll {
-  max-width: 100%;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
-}
-
-.a11y-table-scroll:focus-visible {
-  outline-offset: -3px;
-}
-
-.a11y-timezone {
-  white-space: nowrap;
-}
+/*
+ * `.a11y-table-scroll` (and its focus offset) and `.a11y-timezone` were removed
+ * with issue #179: no element in the repository carries either class name.  The
+ * design 5a pages scroll a wide table through their own `.admin-scroll` frame.
+ */
 
 body.login button[type="submit"] {
   background-color: #5b21b6 !important;
@@ -256,9 +235,10 @@ body.login button[type="submit"]:hover {
     outline-color: Highlight !important;
   }
 
+  /* `.one-time-secret` left this list with issue #179: the class only ever
+     existed in the deleted core/studio.css. */
   .app-badge,
-  .a11y-error-summary,
-  .one-time-secret {
+  .a11y-error-summary {
     border: 1px solid CanvasText;
   }
 
