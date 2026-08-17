@@ -1,0 +1,14 @@
+{% comment %}
+  One node of the knowledge graph, as a pill.
+
+  It keeps the identifier the graph gives it, so a link to `#wiki:mlops` still
+  lands on the node it names, and a node the data has no destination for is
+  named but never a link: a pill that goes nowhere is worse than a plain word.
+
+  Expects `node`: one record of the graph's `nodes`.
+{% endcomment %}
+{% if node.url %}
+  <a class="graph-node" id="{{ node.id }}" href="{{ node.url }}">{{ node.label|default:node.title }}</a>
+{% else %}
+  <span class="graph-node" id="{{ node.id }}">{{ node.label|default:node.title }}</span>
+{% endif %}

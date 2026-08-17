@@ -11,11 +11,17 @@
     {% include "public/_wiki_head_meta.html" %}
     <style>
       /* ------------------------------------------------------------------ *
-       * Podcast graph, design 5a (issue #179).  The homepage already draws
-       * the wiki as a hub-and-spokes plot; this page draws the same graph in
-       * full, so it uses the same primitives (now shared in the partial): a
-       * plotted neighbourhood, then every node as a cloud of graph nodes,
-       * one band per node type.
+       * Podcast graph, design 5a (issue #179).  The page answers one
+       * question - what is connected to what - so it leads with the drawing
+       * and then gives each node type the nodes the graph itself makes
+       * busiest, with the complete list folded behind them.  The A-Z
+       * catalogue lives on /wiki and the pages filed by kind live on
+       * /wiki/special-pages; this page links to those rather than being a
+       * third copy of them.
+       *
+       * The drawing is the homepage's: one scalable SVG per width from the
+       * shared `.graph-svg` primitives, not absolutely positioned pills,
+       * which collided with each other below full width.
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
@@ -41,35 +47,32 @@
         max-width: 40rem;
       }
 
-      .graph-grid {
-        display: grid;
-        gap: 1.25rem;
+      /* The drawing and the two totals under it are one column: the drawing
+         is a ring in a viewBox, so it reads at the reading measure without
+         being broken out of it. */
+      .graph-frame {
         margin-top: 1.5rem;
       }
 
       .graph-totals {
-        align-content: start;
-        gap: 0.75rem;
-        grid-template-columns: minmax(0, 1fr);
+        margin-top: 1rem;
+      }
+
+      /* What a band leads with: the ways in, not the inventory. */
+      .group-entry-note {
+        color: var(--body-text);
+        font-size: 0.85rem;
+        margin-bottom: 0.75rem;
+      }
+
+      .group-browse {
+        display: inline-block;
+        margin-top: 0.9rem;
       }
 
       /* The count belongs to the heading, not to the cloud below it. */
       .group-count {
         margin-top: 0.4rem;
-      }
-
-      /* Six node types in a row of bands: the dashed rule alone would not give
-         the page its rhythm, so the groups alternate ground the way the band
-         table does.  Both grounds are the band tokens themselves. */
-      .graph-group:nth-of-type(even) {
-        background: var(--lavender);
-      }
-
-      @media (min-width: 62rem) {
-        .graph-grid {
-          gap: 1.75rem;
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        }
       }
     </style>
   </head>
@@ -88,7 +91,7 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream wiki-hero" aria-labelledby="graph-heading">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'wiki-home' %}">Wiki</a>
@@ -98,60 +101,90 @@
             </li>
           </ol>
         </nav>
-        <div class="shell">
+        <div class="shell shell-reading">
           <h1 id="graph-heading">Podcast Graph</h1>
           <p class="graph-lede">
             Start from any page and explore what it connects to across the DataTalks.Club podcast
             archive. The graph includes wiki topics and typed content pages. It also includes
             people, podcasts, and books.
           </p>
-          <div class="graph-grid">
-            {% comment %}
-              The plotted neighbourhood is the wiki page with the most wiki neighbours and
-              the strongest of those connections; the hub, the spokes and their order all
-              come from the graph's own edges, and only the ring is a layout constant.
-            {% endcomment %}
-            <div class="graph-frame">
-              <div class="graph-plot">
-                <svg class="graph-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
-                  {% for spoke in neighbourhood.spokes %}
-                    <line x1="50" y1="50" x2="{{ spoke.left }}" y2="{{ spoke.top }}"/>
+          {% comment %}
+            The drawn neighbourhood is the wiki page with the most wiki neighbours and the
+            strongest of those connections; the hub, the spokes and their order all come from
+            the graph's own edges, and only the ring is a layout constant.  Each arrangement
+            is one SVG: labels, pills and edges share a viewBox, so the drawing scales as a
+            unit and every label stays inside the pill it names.  The wide and the narrow
+            arrangement draw the same nodes, and the partial shows one at a time.
+          {% endcomment %}
+          <div class="graph-frame">
+            {% for layout in neighbourhood.layouts %}
+              <svg
+                class="graph-svg graph-svg-{{ layout.kind }}"
+                viewBox="0 0 {{ layout.width }} {{ layout.height }}"
+                role="group"
+                aria-label="{{ neighbourhood.title }} and {{ neighbourhood.spokes|length }} of its {{ neighbourhood.connections }} linked wiki topics"
+              >
+                <g aria-hidden="true">
+                  {% for edge in layout.edges %}
+                    <line class="graph-svg-edge" x1="{{ edge.x1 }}" y1="{{ edge.y1 }}" x2="{{ edge.x2 }}" y2="{{ edge.y2 }}"/>
                   {% endfor %}
-                </svg>
-                <a class="graph-node graph-node-hub" href="{{ neighbourhood.url }}">{{ neighbourhood.title }}</a>
-                {% for spoke in neighbourhood.spokes %}
-                  <a class="graph-node" href="{{ spoke.url }}" style="left: {{ spoke.left }}%; top: {{ spoke.top }}%">{{ spoke.title }}</a>
+                </g>
+                {% for node in layout.nodes %}
+                  <a class="graph-svg-node" href="{{ node.url }}">
+                    <rect class="graph-svg-shape" x="{{ node.left }}" y="{{ node.top }}" width="{{ node.width }}" height="{{ node.height }}" rx="{{ node.radius }}"/>
+                    {% spaceless %}
+                      <text text-anchor="middle" font-size="{{ node.font_size }}">
+                        {% for line in node.lines %}
+                          <tspan x="{{ node.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                        {% endfor %}
+                      </text>
+                    {% endspaceless %}
+                  </a>
                 {% endfor %}
-              </div>
-              <p class="graph-legend">
-                <span class="legend-key">
-                  <span>
-                    <span class="legend-swatch legend-hub"></span>
-                    topic hub
-                  </span>
-                  <span>
-                    <span class="legend-swatch legend-page"></span>
-                    wiki page
-                  </span>
+                <a class="graph-svg-node graph-svg-hub" href="{{ layout.hub.url }}">
+                  <rect class="graph-svg-shape" x="{{ layout.hub.left }}" y="{{ layout.hub.top }}" width="{{ layout.hub.width }}" height="{{ layout.hub.height }}" rx="{{ layout.hub.radius }}"/>
+                  {% spaceless %}
+                    <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">
+                      {% for line in layout.hub.lines %}
+                        <tspan x="{{ layout.hub.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                      {% endfor %}
+                    </text>
+                  {% endspaceless %}
+                </a>
+              </svg>
+            {% endfor %}
+            <p class="graph-legend">
+              <span class="legend-key">
+                <span>
+                  <span class="legend-swatch legend-hub"></span>
+                  topic hub
                 </span>
-                <span>{{ neighbourhood.connections }} connections from {{ neighbourhood.title }}</span>
-              </p>
-            </div>
-            <div class="stat-tiles graph-totals">
-              {% for total in graph_totals %}
-                <div class="stat-tile">
-                  <strong>{{ total.value }}</strong>
-                  <span>{{ total.label }}</span>
-                </div>
-              {% endfor %}
-            </div>
+                <span>
+                  <span class="legend-swatch legend-page"></span>
+                  wiki page
+                </span>
+                <span>
+                  <span class="legend-swatch-line"></span>
+                  connection
+                </span>
+              </span>
+              <span>{{ neighbourhood.spokes|length }} of {{ neighbourhood.connections }} connections from {{ neighbourhood.title }} drawn</span>
+            </p>
+          </div>
+          <div class="stat-tiles graph-totals">
+            {% for total in graph_totals %}
+              <div class="stat-tile">
+                <strong>{{ total.value }}</strong>
+                <span>{{ total.label }}</span>
+              </div>
+            {% endfor %}
           </div>
         </div>
       </section>
 
       {% for group in graph_groups %}
-        <section class="band band-cream graph-group" aria-labelledby="{{ group.heading_id }}">
-          <div class="shell">
+        <section class="band band-lavender graph-group" aria-labelledby="{{ group.heading_id }}">
+          <div class="shell shell-reading">
             <div class="band-head">
               <div>
                 <h2 id="{{ group.heading_id }}">{{ group.title }}</h2>
@@ -159,15 +192,38 @@
               </div>
               <p class="mono-note group-count">{{ group.count }} in the graph</p>
             </div>
+            {% if group.rest %}
+              <p class="group-entry-note">
+                The {{ group.entries|length }} with the most connections, as ways in.
+              </p>
+            {% endif %}
             <div class="graph-cloud">
-              {% for node in group.nodes %}
-                {% if node.url %}
-                  <a class="graph-node" id="{{ node.id }}" href="{{ node.url }}">{{ node.label|default:node.title }}</a>
-                {% else %}
-                  <span class="graph-node" id="{{ node.id }}">{{ node.label|default:node.title }}</span>
-                {% endif %}
+              {% for node in group.entries %}
+                {% include "public/_graph_node.html" %}
               {% endfor %}
             </div>
+            {% if group.browse %}
+              <a class="band-link group-browse" href="{% url group.browse.url_name %}">{{ group.browse.label }} →</a>
+            {% endif %}
+            {% comment %}
+              The rest of the type stays on the page, folded: the graph is the only
+              index the site has for some of these nodes, so folding is the honest
+              move and deleting is not.  It is a `<details>`, so the fold works with
+              JavaScript off, the browser announces its own state, and a link to a
+              node's identifier inside it opens the fold it lands in.
+            {% endcomment %}
+            {% if group.rest %}
+              <details class="graph-index">
+                <summary class="graph-index-summary">
+                  The other {{ group.rest_count }} {{ group.title|lower }}, A&ndash;Z
+                </summary>
+                <div class="graph-cloud graph-index-cloud">
+                  {% for node in group.rest %}
+                    {% include "public/_graph_node.html" %}
+                  {% endfor %}
+                </div>
+              </details>
+            {% endif %}
           </div>
         </section>
       {% endfor %}
