@@ -1,0 +1,99 @@
+{% load people accessibility %}
+{% comment %}
+  One row of an archive: a date on the left, and the thing itself as a card.
+
+  Every dated index on the site draws the same row — the blog and the books
+  archive, the podcast index, and each band of contributions on a person's
+  profile — and until this partial existed each of them drew it again in its own
+  template.  The row had been converged by hand four times in one session (drop
+  the "By"/"With" label, shrink the face, move the credit to the foot of the
+  card, put the date on the left in two lines), and every one of those changes
+  had to be made in four files.  This is the one place to make the fifth.
+
+  Call it once per record, passing only the parts that record actually has:
+
+      {% include "public/_archive_row.html" with row_title=record.title row_url=record.public_path row_date=record.published only %}
+
+  The call is one long line because a Django tag cannot be broken across lines.
+
+  The slots, all optional except the title and the link:
+
+  * `row_date` — anything a publication date parses out of.  It is drawn as the
+    fixed-width rail, day above year, so every rail down a page is the same
+    height.  A record with no date gives its rail back to the card rather than
+    leaving a column of empty space (seventeen podcast episodes have none).
+  * `row_mark` — `"play"` draws the podcast disc as the card's leading mark.
+  * `row_eyebrow` — one mono line above the title: what this row is to the
+    reader of this page ("guest", "speaker", "author").
+  * `row_pill`, `row_pill_variant`, `row_pill_extra` — the status pill and, when
+    a list mixes past and future work, the second bare pill that says which.
+  * `row_summary` — clamped, because the record's own page carries the rest.
+  * `row_credits` — the people who made it, resolved through `person_chip`, at
+    the foot of the card and with no "By": a face beside a name under a title is
+    already read as the person who made it.
+  * `row_class`, `row_hook` — a class and one bare `data-` attribute for the
+    surface's own hooks.
+
+  Every caller passes `only`, and `content/tests/test_archive_row.py` holds them
+  to it: the row draws what it was given and never something the page around it
+  happened to have in scope.
+
+  What it deliberately does not do is the events index (`templates/public/
+  events.html`).  That row's rail carries three facts rather than a publication
+  date — the day, the weekday and the start clock — and its card holds the kind
+  pill, which takes focus for its explanation, above a link stretched over the
+  whole card.  Expressing either here would have meant a flag per difference.
+  The events card's own shared rules live in `templates/core/_design_system.html`
+  instead, so the homepage and the events index still draw one card.
+{% endcomment %}
+{% with row_rail=row_date|yesno:"archive-row,archive-row archive-row-undated" %}
+  <article class="list-row {{ row_rail }} {{ row_class }}" {{ row_hook }}>
+    {% if row_date %}
+      <p class="mono-note archive-date date-rail">
+        <time datetime="{{ row_date|iso_day }}">
+          <span>{{ row_date|day_and_month }}</span>
+          <span>{{ row_date|year_only }}</span>
+        </time>
+      </p>
+    {% endif %}
+    <div class="card archive-card">
+      {% if row_mark == "play" %}
+        <span class="play-disc" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path d="M9 6.5l9 5.5-9 5.5z"/>
+          </svg>
+        </span>
+      {% endif %}
+      <div class="archive-body">
+        {% if row_eyebrow %}
+          <p class="mono-label">{{ row_eyebrow }}</p>
+        {% endif %}
+        {% if row_pill %}
+          <p class="archive-marks">
+            {% if row_pill_variant %}
+              <span class="status-pill {{ row_pill_variant }}">{{ row_pill }}</span>
+            {% else %}
+              <span class="status-pill">{{ row_pill }}</span>
+            {% endif %}
+            {% if row_pill_extra %}
+              <span class="status-pill">{{ row_pill_extra }}</span>
+            {% endif %}
+          </p>
+        {% endif %}
+        <h3 class="archive-title">
+          <a href="{{ row_url }}">{{ row_title }}</a>
+        </h3>
+        {% if row_summary %}
+          <p class="archive-summary">{{ row_summary }}</p>
+        {% endif %}
+        {% if row_credits %}
+          <p class="person-chips card-credit">
+            {% for credit in row_credits %}
+              {% include "public/_person_chip.html" with person=credit|person_chip %}
+            {% endfor %}
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </article>
+{% endwith %}

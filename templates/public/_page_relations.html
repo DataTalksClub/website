@@ -1,0 +1,17 @@
+{% comment %}
+  The head relations a paginated catalogue publishes (issue #178).
+
+  A crawler reading page six of the books archive is told which page precedes and
+  follows it, so the archive reads as one ordered sequence rather than as thirteen
+  unrelated pages.  Both values are absolute canonical URLs built by the view from
+  `content.pagination`, so the relation for page one is the clean path.
+
+  It is a partial rather than three copies for the reason the shell partials exist:
+  a copied head is how one page quietly loses a relation.
+{% endcomment %}
+{% if previous_url %}
+  <link rel="prev" href="{{ previous_url }}">
+{% endif %}
+{% if next_url %}
+  <link rel="next" href="{{ next_url }}">
+{% endif %}

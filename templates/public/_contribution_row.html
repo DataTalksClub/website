@@ -1,0 +1,17 @@
+{% comment %}
+  One contribution on a person's profile, as the shared archive row.
+
+  It is its own partial only because the profile draws its rows in two places —
+  the ones in view and the ones behind the group's "show more" fold — and the
+  mapping from a `content.person_content.Contribution` onto the row's slots
+  should be written once rather than in both.
+
+      {% include "public/_contribution_row.html" with item=item only %}
+
+  A Django tag cannot be broken across lines, so the call below is one long one.
+  Every slot comes from the value the composition already prepared: the role the
+  profile states for this link, the pill the kind of work carries (and the second
+  bare pill that says an event has not happened yet), the play disc on an
+  episode, and an article's own one-line description.
+{% endcomment %}
+{% include "public/_archive_row.html" with row_title=item.title row_url=item.public_path row_date=item.date row_mark=item.mark row_eyebrow=item.role row_pill=item.pill_label row_pill_variant=item.pill_variant row_pill_extra=item.state_label row_summary=item.note row_class="person-row" only %}
