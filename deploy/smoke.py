@@ -189,7 +189,7 @@ def run_http_smoke(
     for expected in (
         "DataTalks.Club — free courses for data and AI engineers",
         HOME_IDENTITY_MARKER,
-        "Free, project-based courses where you build",
+        "Free, project-based courses where you learn to build and build to learn",
     ):
         if expected not in html:
             raise ReleaseContractError(f"home page lacks expected content: {expected}")
