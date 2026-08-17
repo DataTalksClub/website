@@ -52,6 +52,7 @@ from .public_data import (
     podcast_seasons,
     public_projection,
 )
+from .public_query import selector_query
 from .sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
 WIKI_SPECIAL_CATEGORIES = {
@@ -62,10 +63,12 @@ WIKI_SPECIAL_CATEGORIES = {
     "how-tos": "how-to",
 }
 PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
+PODCAST_SEASON_SELECTORS = frozenset({"season"})
 # `/events?filter=past[&page=N]` is the one legacy spelling that still redirects into the
 # archive, so the hub keeps a parser for it.  The archive itself no longer has a parser of
 # its own: past events, books and the Wiki catalogue all read `content.pagination`.
 EVENT_PAST_PAGE_QUERY = re.compile(r"filter=past(?:&page=([1-9][0-9]{0,2}))?\Z", re.ASCII)
+EVENT_FILTER_SELECTORS = frozenset({"filter", "page"})
 
 
 def _canonical(path: str) -> str:
@@ -232,10 +235,14 @@ def _public_event_route(view):
 
 
 def _podcast_season_number(request: HttpRequest) -> tuple[bool, int | None]:
-    raw_query = request.META.get("QUERY_STRING", "")
+    raw_query = selector_query(
+        request.META.get("QUERY_STRING", ""), selectors=PODCAST_SEASON_SELECTORS
+    )
+    if raw_query is None:
+        return False, None
     if not raw_query:
         return True, None
-    if not isinstance(raw_query, str) or len(raw_query) > 32:
+    if len(raw_query) > 32:
         return False, None
     match = PODCAST_SEASON_QUERY.fullmatch(raw_query)
     return (True, int(match.group(1))) if match else (False, None)
@@ -250,7 +257,11 @@ def events(request: HttpRequest) -> HttpResponse:
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
 
-    raw_query = request.META.get("QUERY_STRING", "")
+    raw_query = selector_query(
+        request.META.get("QUERY_STRING", ""), selectors=EVENT_FILTER_SELECTORS
+    )
+    if raw_query is None:
+        return _no_store(HttpResponseBadRequest("Bad request."))
     if raw_query:
         match = EVENT_PAST_PAGE_QUERY.fullmatch(raw_query)
         if match is None:

@@ -159,6 +159,18 @@ class EventTimelineRouteTests(TestCase):
                 self.assertEqual(bad.status_code, 400)
                 self.assertEqual(bad.headers["Cache-Control"], "no-store, max-age=0")
 
+        # A campaign tag selects nothing, so a tagged link is the plain index, and a
+        # tagged legacy link still redirects on the selector it does carry.
+        for query in ("utm_source=newsletter", "fbclid=IwAR0synthetic"):
+            with self.subTest(query=query):
+                tagged = self.client.get(f"/events?{query}")
+                self.assertEqual(tagged.status_code, 200)
+                self.assertNotIn(query, tagged.content.decode())
+
+                redirected = self.client.get(f"/events?filter=past&page=2&{query}")
+                self.assertEqual(redirected.status_code, 301)
+                self.assertEqual(redirected["Location"], "/events/past?page=2")
+
     def test_event_catalogue_rejects_unsafe_methods_and_supports_head(self) -> None:
         response = self.client.post("/events")
         self.assertEqual(response.status_code, 405)

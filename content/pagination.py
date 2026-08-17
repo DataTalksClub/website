@@ -22,6 +22,8 @@ from typing import Literal
 from django.http import HttpRequest, HttpResponse, HttpResponseNotAllowed
 from django.shortcuts import render
 
+from .public_query import selector_query
+
 PUBLIC_PAGE_SIZE = 20
 PUBLIC_MAX_PAGE = 999
 
@@ -32,6 +34,10 @@ PUBLIC_PAGINATION_PATHS = frozenset({"/blog", "/books", "/events/past", "/wiki"}
 
 _PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,2})\Z", re.ASCII)
 _MAX_RAW_QUERY_LENGTH = len("page=999")
+
+# The only parameter a paginated catalogue selects on; `content.public_query` drops
+# the rest (campaign tags and the like) before the grammar below reads anything.
+_PAGE_SELECTORS = frozenset({"page"})
 
 ControlKind = Literal["page", "ellipsis"]
 
@@ -93,15 +99,20 @@ def parse_page_query(raw_query: object) -> int:
     """Parse the exact bounded ASCII public catalogue query grammar.
 
     The raw query string is read, never `request.GET`: a dictionary view has already
-    thrown away the duplicate, the ordering and the extra parameter that make a
-    request something other than the one spelling this contract accepts.
+    thrown away the duplicate and the ordering that make a request something other
+    than the one spelling this contract accepts.  A parameter this catalogue does not
+    select on is dropped first, so `?page=2&utm_source=newsletter` selects page two
+    and a bare campaign tag selects the first page.
     """
 
-    if raw_query == "":
-        return 1
-    if not isinstance(raw_query, str) or len(raw_query) > _MAX_RAW_QUERY_LENGTH:
+    selected = selector_query(raw_query, selectors=_PAGE_SELECTORS)
+    if selected is None:
         raise InvalidPaginationQuery
-    match = _PAGE_QUERY.fullmatch(raw_query)
+    if selected == "":
+        return 1
+    if len(selected) > _MAX_RAW_QUERY_LENGTH:
+        raise InvalidPaginationQuery
+    match = _PAGE_QUERY.fullmatch(selected)
     if match is None:
         raise InvalidPaginationQuery
     return int(match.group(1))

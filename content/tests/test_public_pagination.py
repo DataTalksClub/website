@@ -11,6 +11,7 @@ and books archives, `test_wiki_design.py` for the Wiki catalogue and
 
 from __future__ import annotations
 
+import ast
 import re
 from pathlib import Path
 
@@ -36,6 +37,25 @@ from core.seo import validated_canonical_url
 FIXTURE_URLCONF = "content.tests.pagination_fixture_urls"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATE_COMMENT = re.compile(r"{%\s*comment\s*%}.*?{%\s*endcomment\s*%}", re.DOTALL)
+
+
+def _docstring_line_numbers(source: str) -> frozenset[int]:
+    """Every line a module, class or function docstring occupies."""
+
+    documented = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+    lines: set[int] = set()
+    for node in ast.walk(ast.parse(source)):
+        if not isinstance(node, documented) or not node.body:
+            continue
+        first = node.body[0]
+        if (
+            isinstance(first, ast.Expr)
+            and isinstance(first.value, ast.Constant)
+            and isinstance(first.value.value, str)
+            and first.end_lineno is not None
+        ):
+            lines.update(range(first.lineno, first.end_lineno + 1))
+    return frozenset(lines)
 
 
 def pagination_markup(body: str) -> str:
@@ -64,18 +84,45 @@ class PublicPaginationParserTests(SimpleTestCase):
             "page=１００",
             "page=%31",
             "page=1000",
-            "Page=1",
-            "PAGE=1",
-            "page=1&",
             "page=1&page=2",
-            "page=1&sort=title",
-            "sort=title&page=1",
-            " page=1",
+            "page=" + "9" * 600,
+            "page=2&utm_source=" + "x" * 600,
         )
         for raw_query in malformed:
             with self.subTest(raw_query=raw_query):
                 with self.assertRaises(InvalidPaginationQuery):
                     parse_page_query(raw_query)
+
+    def test_parameters_this_catalogue_does_not_select_on_are_ignored(self) -> None:
+        """Only `page` selects; everything else is somebody else's parameter.
+
+        A campaign tag, a referral tag or a stray separator is not a statement
+        about which page of the catalogue the reader wants, so it does not change
+        the answer and does not make the request an error.  A misspelled selector
+        is in the same position: it selects nothing, so it selects the first page.
+        """
+
+        for raw_query in (
+            "utm_source=newsletter",
+            "utm_source=x&utm_medium=y&utm_campaign=z",
+            "fbclid=IwAR0synthetic",
+            "Page=1",
+            "PAGE=1",
+            " page=1",
+            "page=1&",
+            "page=1&sort=title",
+            "sort=title&page=1",
+        ):
+            with self.subTest(raw_query=raw_query):
+                self.assertEqual(parse_page_query(raw_query), 1)
+
+        for raw_query in (
+            "page=2&utm_source=newsletter",
+            "utm_source=newsletter&page=2",
+            "page=2&",
+        ):
+            with self.subTest(raw_query=raw_query):
+                self.assertEqual(parse_page_query(raw_query), 2)
 
     def test_url_builder_emits_only_reviewed_clean_or_page_paths(self) -> None:
         for base_path in sorted(PUBLIC_PAGINATION_PATHS):
@@ -418,9 +465,9 @@ class PublicPaginationRouteContractTests(TestCase):
             "page=01",
             "page=%31",
             "page=1&page=2",
-            "page=1&private=synthetic-canary",
             "page=1000",
-            "sort=title",
+            "page=2&page=synthetic-canary",
+            f"page=2&utm_source={'x' * 600}",
         )
         for query in malformed:
             with self.subTest(query=query):
@@ -432,6 +479,51 @@ class PublicPaginationRouteContractTests(TestCase):
                 self.assertNotContains(response, query, status_code=400)
                 self.assertNotContains(response, "synthetic-canary", status_code=400)
                 self.assertNotContains(response, 'rel="canonical"', status_code=400)
+
+    def test_campaign_tags_ride_along_without_changing_the_page_or_canonical(self) -> None:
+        """A tagged link is a link to the catalogue (issue #174 follow-up).
+
+        Every one of these arrives on real newsletter, social and referral links.
+        They are addressed to an analytics tool rather than to this site, so they
+        select nothing, change nothing, and are absent from the canonical the page
+        declares — but they must not turn a shared link into an error.
+        """
+
+        ignored = (
+            "utm_source=newsletter",
+            "utm_source=twitter&utm_medium=social&utm_campaign=launch",
+            "fbclid=IwAR0synthetic",
+            "gclid=synthetic",
+            "ref=producthunt",
+            "mc_cid=1a2b3c&mc_eid=4d5e6f",
+            "igshid=synthetic",
+            "SORT=title",
+            "unknown_vendor_tag=synthetic",
+        )
+        first = self.client.get("/books").content.decode()
+        second = self.client.get("/books?page=2").content.decode()
+        for query in ignored:
+            with self.subTest(query=query, page="first"):
+                response = self.client.get(f"/books?{query}")
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.content.decode(), first)
+                self.assertContains(
+                    response,
+                    '<link rel="canonical" href="https://datatalks.club/books">',
+                    count=1,
+                )
+                self.assertNotContains(response, query)
+
+            with self.subTest(query=query, page="second"):
+                tagged = self.client.get(f"/books?page=2&{query}")
+                self.assertEqual(tagged.status_code, 200)
+                self.assertEqual(tagged.content.decode(), second)
+                self.assertContains(
+                    tagged,
+                    '<link rel="canonical" href="https://datatalks.club/books?page=2">',
+                    count=1,
+                )
+                self.assertNotContains(tagged, query)
 
     def test_valid_out_of_range_and_unsafe_methods_are_bounded(self) -> None:
         missing = self.client.get("/books?page=13")
@@ -575,17 +667,21 @@ class PublicPaginationSeoAndRepositoryTests(SimpleTestCase):
     def test_public_sources_reject_bespoke_page_urls_templates_and_css(self) -> None:
         """No fifth catalogue may assemble a page URL or style a paginator of its own.
 
-        Prose is exempt — a comment is allowed to name the spelling it is explaining —
-        so Python comment lines and template comment blocks are stripped before the
-        scan, and only code and markup are read.
+        Prose is exempt — writing is allowed to name the spelling it is explaining —
+        so Python comment lines, Python docstrings and template comment blocks are
+        stripped before the scan, and only code and markup are read.
         """
 
         violations: list[str] = []
         for path in sorted((REPOSITORY_ROOT / "content").glob("*.py")):
             if path.name == "pagination.py":
                 continue
-            for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-                if "?page=" in line and not line.strip().startswith("#"):
+            source = path.read_text(encoding="utf-8")
+            prose = _docstring_line_numbers(source)
+            for line_number, line in enumerate(source.splitlines(), 1):
+                if line_number in prose or line.strip().startswith("#"):
+                    continue
+                if "?page=" in line:
                     violations.append(f"{path.relative_to(REPOSITORY_ROOT)}:{line_number}")
 
         for path in sorted((REPOSITORY_ROOT / "templates/public").glob("*.html")):

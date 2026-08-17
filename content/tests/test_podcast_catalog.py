@@ -525,17 +525,11 @@ class PodcastSeasonNavigationTests(TestCase):
             "season=01",
             "season=1.0",
             "season=1&season=2",
-            "season=1&",
             "season=%32",
             "season=%D9%A2",
             "season=٢",
-            "Season=2",
-            "other=2",
-            "season=2&other=1",
             "season=9999999999",
-            "page=1",
-            "page=2",
-            "page=999999999",
+            "season=2&season=3",
         )
         for query in invalid_queries:
             with self.subTest(query=query):
@@ -552,6 +546,26 @@ class PodcastSeasonNavigationTests(TestCase):
                     self.assertNotIn('rel="prev"', body)
                     self.assertNotIn('rel="next"', body)
                     self.assertNotIn("data-podcast-episode", body)
+
+    def test_campaign_tags_ride_along_without_changing_the_season(self) -> None:
+        """A tagged podcast link selects no season and is not an error (issue #174 follow-up)."""
+
+        latest = self.client.get("/podcast").content.decode()
+        for query in (
+            "utm_source=newsletter&utm_medium=email",
+            "fbclid=IwAR0synthetic",
+            "Season=2",
+            "other=2",
+            "season=1&",
+        ):
+            with self.subTest(query=query):
+                response = self.client.generic("GET", "/podcast", QUERY_STRING=query)
+                self.assertEqual(response.status_code, 200)
+                body = response.content.decode()
+                self.assertNotIn(query, body)
+                self.assertIn('<link rel="canonical" href="https://datatalks.club/podcast', body)
+                if not query.startswith("season="):
+                    self.assertEqual(body, latest)
 
     def test_normalized_absent_seasons_are_404_no_store_without_fallback(self) -> None:
         for season in (25, 999_999_999):
