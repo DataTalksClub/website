@@ -108,7 +108,12 @@ Rules for editing:
         --card: #1b1f3a;
         --ink: #eaeaf7;
         --body-text: #aeb2d2;
-        --muted: #8286a8;
+        /* #8286a8, the value this shipped with, fails AA as text on two of the four
+           dark bands: 3.89:1 on --lavender and 4.01:1 on --mint.  The documented
+           value in the design doc's dark token table was always #a4a9bd, which
+           clears every band (5.90 lavender, 6.08 mint, 6.89 card, 7.64 cream); the
+           stylesheet had simply drifted from it.  See issue #185. */
+        --muted: #a4a9bd;
         --line: #6a72ab;
         --line-soft: rgba(169, 176, 242, 0.34);
         --green: #2b8146;
