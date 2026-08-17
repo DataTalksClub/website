@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from django.test import SimpleTestCase
 
-from core.accessibility_registry import template_readability_issues
-
 from content.public_data import EVENT_TYPE_ICONS
+from core.accessibility_registry import template_readability_issues
 from core.templatetags.public import public_text
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
