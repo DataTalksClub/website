@@ -15,6 +15,8 @@ from content.public_data import public_paths, public_projection
 from content.review_projection import review_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
 
+from .pagination_support import catalogue_body
+
 SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 
@@ -243,15 +245,7 @@ class PublicRouteAndSeoTests(TestCase):
         projection = public_projection()
         home = self.client.get("/").content.decode()
         hub = self.client.get("/events").content.decode()
-        archive = self.client.get("/events/past").content.decode()
-        page_match = re.search(r"Page 1 of (\d+)", archive)
-        if page_match is not None:
-            archive_pages = [archive]
-            for page in range(2, int(page_match.group(1)) + 1):
-                response = self.client.get(f"/events/past?page={page}")
-                self.assertEqual(response.status_code, 200)
-                archive_pages.append(response.content.decode())
-            archive = "".join(archive_pages)
+        archive = catalogue_body(self.client, "/events/past")
         for body in (home, hub):
             self.assertNotRegex(body, r'href="https://(?:luma\.com|lu\.ma)')
             self.assertNotIn(" · workshop", body.casefold())
@@ -335,16 +329,24 @@ class PublicRouteAndSeoTests(TestCase):
         )
         self.assertTrue(any("Omdena" in block.get("text", "") for block in person["blocks"]))
         for record in (*projection["articles"], *projection["people"]):
-            body = " ".join(block["text"] for block in record["blocks"])
+            body = " ".join(
+                str(block.get(name, ""))
+                for block in record["blocks"]
+                for name in ("text", "markdown")
+            )
             self.assertNotRegex(body, r"\{:[ \t]*target[ \t]*=")
 
         raw_article = json.loads((projection_root / "articles.json").read_text(encoding="utf-8"))
         raw_person = json.loads((projection_root / "people.json").read_text(encoding="utf-8"))
-        self.assertTrue(
+        # Article bodies are projected by the article block builder, which removes the legacy
+        # directive at build time, so the checked file carries none of them.  Person bios still
+        # take the older plain-text path, and their markers are still removed at runtime above.
+        self.assertFalse(
             any(
-                '{:target="blank"}' in block.get("text", "")
+                "{:target=" in str(block.get(name, ""))
                 for record in raw_article
                 for block in record.get("blocks", [])
+                for name in ("text", "markdown")
             )
         )
         self.assertTrue(
@@ -365,10 +367,12 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertEqual(after, before)
 
     def test_affected_article_person_and_control_bodies_render_cleanly(self) -> None:
+        # The article copy is a link label.  Its trailing full stop belongs to the sentence,
+        # not to the link, so it now sits outside the anchor the restored body draws.
         affected = (
             (
                 "/blog/ai-dev-tools-zoomcamp.html",
-                "AI-Native Development: Specifications, Loop Engineering, and Graph Engineering.",
+                "AI-Native Development: Specifications, Loop Engineering, and Graph Engineering",
             ),
             ("/people/agnieszkamikolajczyk.html", "Omdena - AI for Good"),
         )

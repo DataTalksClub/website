@@ -82,10 +82,10 @@ SOURCE_PINS: dict[str, dict[str, str]] = {
 }
 
 MANIFEST_ARTIFACTS = {
-    "articles.json": "3eb3127a3615e3ff21817e4cf43fb3798303fe3f7098632c6d659c7b9538309d",
+    "articles.json": "119972c04b7b6df972f35950bea20e00ff7f90f7820c07105126fa0b616211db",
     "books.json": "64f14434dee15dd12e12ae510554a80dfe5d635022f431ee552a05c0e0511c5f",
     "courses.json": "318d7cb156cdcf74f346695d3db2b526e81c3321426c33365e91d3f471211c4d",
-    "editorial_route_migration.json": "7d8111eca8f2bdb8927cc48da449ac36624f69f9c45e99961fbe0243ecbac531",
+    "editorial_route_migration.json": "fd68c7e1dd474303e3839c71e0dab0143a0d8ff7c16ce6df71be340cddd64078",
     "events.json": "260eeeb2974a436b80621d87df30bfea743273b3d38a6dfe9532dfb7d99f00ec",
     "media.json": "6b6670d01407c72649f89a7671e240d7c75d9653b9bb25b30f362e14b0325aea",
     "people.json": "f1bc223aee48ff614bcc24351f3253897459b1b7e75ea70ecd5dec98ff1b0a44",
@@ -138,7 +138,7 @@ ARTIFACTS = (
         "content/public_projection/articles.json",
         f"{CONTENT_REVISION} / DataTalksClub/content",
         "items=55",
-        "3eb3127a3615e3ff21817e4cf43fb3798303fe3f7098632c6d659c7b9538309d",
+        "119972c04b7b6df972f35950bea20e00ff7f90f7820c07105126fa0b616211db",
     ),
     ArtifactExpectation(
         "podcasts/transcripts",
@@ -222,7 +222,7 @@ ARTIFACTS = (
         "content/public_projection/editorial_route_migration.json",
         f"{CONTENT_REVISION} + {SOURCE_PINS['dtc-main-site']['revision']} / DataTalksClub/content + DataTalksClub/datatalksclub.github.io",
         "finals=796; aliases=1592",
-        "7d8111eca8f2bdb8927cc48da449ac36624f69f9c45e99961fbe0243ecbac531",
+        "fd68c7e1dd474303e3839c71e0dab0143a0d8ff7c16ce6df71be340cddd64078",
     ),
     ArtifactExpectation(
         "manifest",

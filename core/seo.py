@@ -7,7 +7,12 @@ PRODUCTION_CANONICAL_HOST = "datatalks.club"
 _ENCODED_AMBIGUOUS_CHARACTER = re.compile(r"%(?:0[0-9a-f]|5c|7f)", re.IGNORECASE)
 _PODCAST_SEASON_QUERY = re.compile(r"season=([1-9][0-9]{0,8})\Z", re.ASCII)
 _EVENTS_QUERY = re.compile(r"filter=past(?:&page=([1-9][0-9]{0,2}))?\Z", re.ASCII)
-_EVENTS_PAST_QUERY = re.compile(r"page=([1-9][0-9]{0,2})\Z", re.ASCII)
+_PUBLIC_PAGE_QUERY = re.compile(r"page=([1-9][0-9]{0,2})\Z", re.ASCII)
+# The public catalogues that share one paginator (issue #178).  Kept here rather than
+# imported from `content.pagination` so the canonical validator stays a leaf with no
+# application dependency; `content/tests/test_public_pagination.py` pins the two lists
+# to each other.
+_PUBLIC_PAGINATION_PATHS = frozenset({"/blog", "/books", "/events/past", "/wiki"})
 
 
 def _is_normalized_podcast_season(path: str, query: str) -> bool:
@@ -22,10 +27,8 @@ def _is_normalized_events_filter(path: str, query: str) -> bool:
     return _EVENTS_QUERY.fullmatch(query) is not None
 
 
-def _is_normalized_events_past(path: str, query: str) -> bool:
-    if path != "/events/past":
-        return False
-    return query == "" or _EVENTS_PAST_QUERY.fullmatch(query) is not None
+def _is_normalized_public_page(path: str, query: str) -> bool:
+    return path in _PUBLIC_PAGINATION_PATHS and _PUBLIC_PAGE_QUERY.fullmatch(query) is not None
 
 
 def validated_canonical_url(value: object) -> str:
@@ -57,7 +60,7 @@ def validated_canonical_url(value: object) -> str:
             parsed.query
             and not _is_normalized_podcast_season(parsed.path, parsed.query)
             and not _is_normalized_events_filter(parsed.path, parsed.query)
-            and not _is_normalized_events_past(parsed.path, parsed.query)
+            and not _is_normalized_public_page(parsed.path, parsed.query)
         )
         or parsed.fragment
         or not parsed.path.startswith("/")

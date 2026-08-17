@@ -111,7 +111,10 @@ class DevelopmentResponsePolicyTests(TestCase):
     def test_whitenoise_static_short_circuit_receives_outer_policy(self) -> None:
         for headers in ({}, {"cookie": "sessionid=opaque-session"}):
             with self.subTest(headers=headers):
-                response = Client().get("/static/core/site_shell.css", headers=headers)
+                # Any real served static file exercises the WhiteNoise short circuit.
+                # This used to be `core/site_shell.css`, the old shell's stylesheet,
+                # which issue #179 deleted once every page carried design 5a inline.
+                response = Client().get("/static/core/accessibility.css", headers=headers)
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.headers["X-Robots-Tag"], ROBOTS_VALUE)
                 self.assertIn("Content-Length", response.headers)
