@@ -1,37 +1,55 @@
+{% comment %}
+  The shared paginator, on design 5a (issue #179).
+
+  Eight pages across three families include this partial — the project lists,
+  the Studio Courses tables and the campaign registrations — and every one of
+  them now carries the design 5a stylesheet, which defines no Tailwind utility
+  and no `app-*` class.  The row is therefore built from the shared primitives
+  only, so it needs no rule of its own on any of the eight pages: the numbers
+  are `.filter-pill`s, which is the system's own "one row of controls where
+  exactly one is current" shape, and the current page is marked with
+  `aria-current="page"`, the state the primitive already fills ink for.
+  A direction that leads nowhere keeps the span it has always been, drawn as
+  the quiet bare `.status-pill` so it reads as a marker rather than a control,
+  and the elided range keeps its ellipsis in the same quiet marker.
+
+  Nothing about the paginator's behaviour moves: the same `?page=` links, the
+  same `pagination_querystring` carried through, the same `aria-label`s on the
+  two directions and the same accessible name on the nav itself.
+{% endcomment %}
 {% if pagination_page.has_other_pages %}
-  <nav class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-t app-border px-4 py-3 text-sm"
-       aria-label="{{ pagination_label|default:'Pagination' }}">
-    <div class="min-w-0">
-      {% if pagination_page.has_previous %}
-        <a href="?page={{ pagination_page.previous_page_number }}{{ pagination_querystring|default:'' }}"
-           class="app-link text-lg font-medium hover:underline"
-           aria-label="Previous page">&larr;</a>
+  <nav class="filter-pills" aria-label="{{ pagination_label|default:'Pagination' }}">
+    {% if pagination_page.has_previous %}
+      <a
+        class="filter-pill"
+        href="?page={{ pagination_page.previous_page_number }}{{ pagination_querystring|default:'' }}"
+        rel="prev"
+        aria-label="Previous page"
+      >Previous</a>
+    {% else %}
+      <span class="status-pill" aria-label="Previous page">Previous</span>
+    {% endif %}
+    {% for page_number in pagination_range %}
+      {% if page_number == pagination_page.paginator.ELLIPSIS %}
+        <span class="status-pill">{{ page_number }}</span>
+      {% elif page_number == pagination_page.number %}
+        <span class="filter-pill" aria-current="page">{{ page_number }}</span>
       {% else %}
-        <span class="app-muted text-lg" aria-label="Previous page">&larr;</span>
+        <a
+          class="filter-pill"
+          href="?page={{ page_number }}{{ pagination_querystring|default:'' }}"
+        >{{ page_number }}</a>
       {% endif %}
-    </div>
-
-    <div class="flex min-w-0 flex-wrap items-center justify-center gap-x-2 gap-y-1 sm:gap-x-3">
-      {% for page_number in pagination_range %}
-        {% if page_number == pagination_page.paginator.ELLIPSIS %}
-          <span class="app-muted">{{ page_number }}</span>
-        {% elif page_number == pagination_page.number %}
-          <span class="font-semibold app-heading" aria-current="page">{{ page_number }}</span>
-        {% else %}
-          <a href="?page={{ page_number }}{{ pagination_querystring|default:'' }}"
-             class="app-link hover:underline">{{ page_number }}</a>
-        {% endif %}
-      {% endfor %}
-    </div>
-
-    <div class="min-w-0 text-right">
-      {% if pagination_page.has_next %}
-        <a href="?page={{ pagination_page.next_page_number }}{{ pagination_querystring|default:'' }}"
-           class="app-link text-lg font-medium hover:underline"
-           aria-label="Next page">&rarr;</a>
-      {% else %}
-        <span class="app-muted text-lg" aria-label="Next page">&rarr;</span>
-      {% endif %}
-    </div>
+    {% endfor %}
+    {% if pagination_page.has_next %}
+      <a
+        class="filter-pill"
+        href="?page={{ pagination_page.next_page_number }}{{ pagination_querystring|default:'' }}"
+        rel="next"
+        aria-label="Next page"
+      >Next</a>
+    {% else %}
+      <span class="status-pill" aria-label="Next page">Next</span>
+    {% endif %}
   </nav>
 {% endif %}
