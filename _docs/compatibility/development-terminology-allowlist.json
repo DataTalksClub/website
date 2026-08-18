@@ -180,7 +180,7 @@
     },
     {
       "path": "core/tests/test_deployment_release.py",
-      "sha256": "733cb692b06b9cbfcb9682cc41ee19142c00812a067472ecee7a16f24354f418",
+      "sha256": "4a1a597ee03bf8a2ea00f74a823bb0548fbe0a9dd1633261d9a93db98891cf30",
       "class": "legacy_contract_test",
       "reason": "Release tests exercise exact physical task, secret, repository, and tag values.",
       "follow_up": "#94",

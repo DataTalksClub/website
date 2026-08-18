@@ -6,6 +6,7 @@ from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
 from django.test import TestCase
+from django.utils.html import escape
 
 from content import public_views
 from content.pagination import PUBLIC_PAGE_SIZE
@@ -140,8 +141,11 @@ class EventTimelineRouteTests(TestCase):
             len(re.findall(r'<article class="card event-card">', past_page.content.decode())),
             min(PUBLIC_PAGE_SIZE, len(groups.recent)),
         )
-        self.assertNotContains(upcoming, groups.recent[0]["title"])
-        self.assertNotContains(past_page, groups.upcoming[0]["title"])
+        # The pages escape the titles they draw, so the needle has to be the
+        # escaped form: the raw string could never match and the check would
+        # pass even if the other timeline leaked onto the page.
+        self.assertNotContains(upcoming, escape(groups.recent[0]["title"]))
+        self.assertNotContains(past_page, escape(groups.upcoming[0]["title"]))
         self.assertContains(
             past_page,
             '<link rel="canonical" href="https://datatalks.club/events/past">',
@@ -516,7 +520,9 @@ class EventDetailDesignSystemTests(TestCase):
         self.assertIn(f'<time class="when event-when" datetime="{event["starts_at"]}">', body)
         self.assertIn('<span class="when-time">', body)
         self.assertIn(f"<strong>{event['display_date']}</strong>", body)
-        self.assertIn(f'<h1 id="event-heading">{event["title"]}</h1>', body)
+        # The h1 escapes the title it draws (an "&" in a title reaches the
+        # document as "&amp;"), so the expected markup is the escaped form.
+        self.assertIn(f'<h1 id="event-heading">{escape(event["title"])}</h1>', body)
         # One h1, and nothing on the page reaches back into the retired shell.
         self.assertEqual(body.count("<h1"), 1)
         self.assertNotIn("primer-button", body)
@@ -591,7 +597,7 @@ class EventDetailDesignSystemTests(TestCase):
         with patch.object(public_views, "event_groups", lambda: EventGroups((bare,), ())):
             body = self.detail(bare)
 
-        self.assertIn(f'<h1 id="event-heading">{bare["title"]}</h1>', body)
+        self.assertIn(f'<h1 id="event-heading">{escape(bare["title"])}</h1>', body)
         # Asserted on the markup rather than on the words, because the page's own
         # stylesheet comments name the parts it draws.
         self.assertNotIn('id="event-speakers-heading"', body)

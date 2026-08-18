@@ -14,7 +14,7 @@ EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
-HOME_HEADING = "Ship data pipelines and AI systems that run in production."
+HOME_HEADING = "Start with the foundations. Finish with a project you can present."
 # The podcast index carries the design 5a headline from mockup 6d (issue #179).
 PODCAST_HEADING = "Conversations with people who ship data"
 # The events index is a design 5a page (issue #179, mockup 6c) and leads with the
