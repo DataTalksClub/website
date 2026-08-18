@@ -7,6 +7,19 @@ app_name = "studio"
 urlpatterns = [
     path("", views.home, name="home"),
     path("settings", views.site_settings, name="settings"),
+    path("sponsors/", views.sponsors, name="sponsor-list"),
+    path("sponsors/export/", views.sponsor_export, name="sponsor-export"),
+    path("sponsors/<uuid:sponsor_id>/", views.sponsor_detail, name="sponsor-detail"),
+    path(
+        "sponsors/<uuid:sponsor_id>/archive/",
+        views.sponsor_archive,
+        name="sponsor-archive",
+    ),
+    path(
+        "sponsors/<uuid:sponsor_id>/reactivate/",
+        views.sponsor_reactivate,
+        name="sponsor-reactivate",
+    ),
     path("access/api-credentials/", views.credential_list, name="credential-list"),
     path(
         "access/api-credentials/<uuid:credential_id>/rotate/",

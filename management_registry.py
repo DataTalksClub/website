@@ -21,6 +21,7 @@ from core.capabilities import (
 )
 from core.management_health import management_health_factory, read_management_health
 from core.site_settings import SITE_SETTING_CAPABILITIES
+from core.sponsors import SPONSOR_CAPABILITIES
 from courses.capabilities import COURSE_REGISTRATION_COUNT_CAPABILITIES
 from events.capabilities import EVENT_CAPABILITIES
 from management_auth.fixture_capabilities import CREDENTIAL_FIXTURE_CAPABILITIES
@@ -131,6 +132,7 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,
         *SITE_SETTING_CAPABILITIES,
+        *SPONSOR_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,
         *EVENT_CAPABILITIES,
         *COURSE_REGISTRATION_COUNT_CAPABILITIES,

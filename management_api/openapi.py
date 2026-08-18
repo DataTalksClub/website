@@ -48,6 +48,7 @@ def _error_schema() -> dict[str, Any]:
                 "oneOf": [
                     {"$ref": "#/components/schemas/CredentialMetadata"},
                     {"$ref": "#/components/schemas/SiteSettingRevisionConflict"},
+                    {"$ref": "#/components/schemas/SponsorRevisionConflict"},
                 ]
             },
         },
@@ -903,6 +904,173 @@ def generate_document() -> dict[str, Any]:
                         },
                         "baseline_count": {"type": ["integer", "null"], "minimum": 0},
                         "native_count": {"type": ["integer", "null"], "minimum": 0},
+                    },
+                },
+                "SponsorAssignment": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["placement", "position", "enabled"],
+                    "properties": {
+                        "placement": {"type": "string", "enum": ["events_hub"]},
+                        "position": {"type": "integer", "minimum": 1},
+                        "enabled": {"type": "boolean"},
+                    },
+                },
+                "Sponsor": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "id",
+                        "key",
+                        "name",
+                        "url",
+                        "tagline",
+                        "lifecycle",
+                        "source",
+                        "revision",
+                        "assignments",
+                        "created_at",
+                        "updated_at",
+                    ],
+                    "properties": {
+                        "id": {"type": "string", "format": "uuid"},
+                        "key": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                        },
+                        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+                        "url": {"type": "string", "maxLength": 500},
+                        "tagline": {"type": "string", "maxLength": 200},
+                        "lifecycle": {
+                            "type": "string",
+                            "enum": ["draft", "active", "archived"],
+                        },
+                        "source": {"type": "string", "enum": ["studio", "admin_api"]},
+                        "revision": {"type": "integer", "minimum": 1},
+                        "assignments": {
+                            "type": "array",
+                            "maxItems": 1,
+                            "items": {"$ref": "#/components/schemas/SponsorAssignment"},
+                        },
+                        "created_at": {"type": "string", "format": "date-time"},
+                        "updated_at": {"type": "string", "format": "date-time"},
+                    },
+                },
+                "SponsorList": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["items", "page", "page_size", "total_count"],
+                    "properties": {
+                        "items": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/Sponsor"},
+                        },
+                        "page": {"type": "integer", "minimum": 1},
+                        "page_size": {"type": "integer", "minimum": 1, "maximum": 100},
+                        "total_count": {"type": "integer", "minimum": 0},
+                    },
+                },
+                "SponsorCommandResult": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["sponsor", "replayed"],
+                    "properties": {
+                        "sponsor": {"$ref": "#/components/schemas/Sponsor"},
+                        "replayed": {"type": "boolean"},
+                    },
+                },
+                "SponsorCreateRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["key", "name", "lifecycle", "assignments"],
+                    "properties": {
+                        "key": {
+                            "type": "string",
+                            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                        },
+                        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+                        "url": {"type": "string", "maxLength": 500},
+                        "tagline": {"type": "string", "maxLength": 200},
+                        "lifecycle": {"type": "string", "enum": ["draft", "active"]},
+                        "assignments": {
+                            "type": "array",
+                            "maxItems": 1,
+                            "items": {"$ref": "#/components/schemas/SponsorAssignment"},
+                        },
+                    },
+                },
+                "SponsorUpdateRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["name", "lifecycle", "assignments"],
+                    "properties": {
+                        "name": {"type": "string", "minLength": 1, "maxLength": 120},
+                        "url": {"type": "string", "maxLength": 500},
+                        "tagline": {"type": "string", "maxLength": 200},
+                        "lifecycle": {"type": "string", "enum": ["draft", "active"]},
+                        "assignments": {
+                            "type": "array",
+                            "maxItems": 1,
+                            "items": {"$ref": "#/components/schemas/SponsorAssignment"},
+                        },
+                        "expected_revision": {"type": "integer", "minimum": 1},
+                    },
+                },
+                "SponsorActionRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["confirmed"],
+                    "properties": {
+                        "confirmed": {"type": "boolean", "const": True},
+                        "expected_revision": {"type": "integer", "minimum": 1},
+                    },
+                },
+                "SponsorDirectoryExportRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["confirmed", "reason"],
+                    "properties": {
+                        "confirmed": {"type": "boolean", "const": True},
+                        "reason": {"type": "string", "minLength": 1, "maxLength": 200},
+                        "filters": {
+                            "type": "object",
+                            "additionalProperties": False,
+                            "properties": {
+                                "lifecycle": {
+                                    "type": "string",
+                                    "enum": ["draft", "active", "archived"],
+                                },
+                                "placement": {
+                                    "type": "string",
+                                    "enum": ["events_hub"],
+                                },
+                            },
+                        },
+                        "lifecycle": {
+                            "type": "string",
+                            "enum": ["draft", "active", "archived"],
+                        },
+                        "placement": {"type": "string", "enum": ["events_hub"]},
+                    },
+                },
+                "SponsorDirectoryExport": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["filename", "row_count", "csv", "replayed"],
+                    "properties": {
+                        "filename": {"type": "string", "const": "sponsor-directory.csv"},
+                        "row_count": {"type": "integer", "minimum": 0},
+                        "csv": {"type": "string"},
+                        "replayed": {"type": "boolean"},
+                    },
+                },
+                "SponsorRevisionConflict": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["id", "revision"],
+                    "properties": {
+                        "id": {"type": "string", "format": "uuid"},
+                        "revision": {"type": "integer", "minimum": 1},
                     },
                 },
                 "APIError": _error_schema(),

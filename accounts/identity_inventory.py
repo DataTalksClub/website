@@ -56,6 +56,11 @@ ACCOUNT_RELATIONS = (
         "changed_by",
         "provenance_alias",
     ),
+    AccountRelationSpec(
+        "core.SponsorRevision",
+        "changed_by",
+        "provenance_alias",
+    ),
     AccountRelationSpec("core.Operation", "actor", "provenance_alias"),
     AccountRelationSpec("accounts.Token", "user", "compatibility_alias"),
     AccountRelationSpec("courses.CourseRegistration", "user", "reparent"),

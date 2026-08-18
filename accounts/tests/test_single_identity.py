@@ -1267,7 +1267,7 @@ class SharedAccountSurfaceTests(TestCase):
 
         self.assertEqual(inventory["auth_user_model"], "accounts.CustomUser")
         self.assertEqual(inventory["user_table"], "accounts_customuser")
-        self.assertEqual(len(inventory["dependent_relations"]), 21)
+        self.assertEqual(len(inventory["dependent_relations"]), 22)
         self.assertEqual(len(inventory["many_to_many_relations"]), 3)
         relation_keys = {
             f"{item['model_label']}.{item['field_name']}"
@@ -1275,6 +1275,7 @@ class SharedAccountSurfaceTests(TestCase):
         }
         self.assertIn("courses.Enrollment.student", relation_keys)
         self.assertIn("core.AuditEvent.actor", relation_keys)
+        self.assertIn("core.SponsorRevision.changed_by", relation_keys)
         self.assertIn("management_auth.APIPrincipal.user", relation_keys)
         self.assertIn("socialaccount.SocialAccount.user", relation_keys)
         self.assertIsNone(inventory["session"]["cookie_domain"])

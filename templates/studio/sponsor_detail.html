@@ -1,0 +1,237 @@
+{% extends "studio/base.html" %}
+
+{% block title %}
+  {{ sponsor.key }} · Sponsors · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Site
+    </p>
+    <h1>
+      {{ sponsor.key }}
+    </h1>
+    <p class="admin-lede">
+      Inspect one sponsor record. Source {{ sponsor.source }}. Revision {{ sponsor.revision }}.
+      Lifecycle {{ sponsor.lifecycle }}.
+    </p>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <nav aria-label="Studio sections" class="filter-pills">
+    {% for item in studio_navigation %}
+      <a class="filter-pill" href="{% url item.route %}">{{ item.label }}</a>
+    {% endfor %}
+  </nav>
+  <p><a href="{% url 'studio:sponsor-list' %}">Back to sponsors</a></p>
+
+  {% if saved %}
+    <div class="admin-notice admin-notice-success" role="status">
+      <p class="mono-label">Saved</p>
+      <p>Sponsor saved.</p>
+    </div>
+  {% endif %}
+
+  {% if error_message %}
+    <section
+      id="sponsor-errors"
+      class="a11y-error-summary"
+      role="alert"
+      aria-labelledby="sponsor-errors-heading"
+      tabindex="-1"
+    >
+      <h2 id="sponsor-errors-heading">There is a problem</h2>
+      <p>{{ error_message }}</p>
+      <p>Current revision {{ sponsor.revision }}.</p>
+      <ul>
+        {% for field, message in field_errors.items %}
+          <li>
+            {% if field == "name" %}
+              <a href="#sponsor-name">{{ message }}</a>
+            {% elif field == "url" %}
+              <a href="#sponsor-url">{{ message }}</a>
+            {% elif field == "tagline" %}
+              <a href="#sponsor-tagline">{{ message }}</a>
+            {% elif field == "lifecycle" %}
+              <a href="#sponsor-lifecycle">{{ message }}</a>
+            {% elif field == "assignments" %}
+              <a href="#sponsor-placement">{{ message }}</a>
+            {% elif field == "confirmed" %}
+              <a href="#sponsor-confirm">{{ message }}</a>
+            {% else %}
+              <a href="#edit-sponsor">{{ message }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <script>
+      document.getElementById("sponsor-errors").focus();
+    </script>
+  {% endif %}
+
+  <section class="admin-section" aria-labelledby="sponsor-facts-heading">
+    <div class="admin-section-head">
+      <h2 id="sponsor-facts-heading">Record</h2>
+    </div>
+    <dl class="admin-facts">
+      <div>
+        <dt>Key</dt>
+        <dd>{{ sponsor.key }}</dd>
+      </div>
+      <div>
+        <dt>Lifecycle</dt>
+        <dd>{{ sponsor.lifecycle }}</dd>
+      </div>
+      <div>
+        <dt>Source</dt>
+        <dd>{{ sponsor.source }}</dd>
+      </div>
+      <div>
+        <dt>Revision</dt>
+        <dd>{{ sponsor.revision }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="admin-section" id="edit-sponsor" aria-labelledby="edit-sponsor-heading">
+    <div class="admin-section-head">
+      <h2 id="edit-sponsor-heading">Edit sponsor</h2>
+    </div>
+    <form class="admin-form" method="post" action="{% url 'studio:sponsor-detail' sponsor.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <input type="hidden" name="expected_revision" value="{{ sponsor.revision }}">
+      <div class="field">
+        <label class="field-label" for="sponsor-name">Name</label>
+        <input
+          class="field-input"
+          id="sponsor-name"
+          name="name"
+          value="{{ submitted.name }}"
+          maxlength="120"
+          required
+          {% if field_errors.name %}aria-invalid="true"{% endif %}
+          {% if not can_write %}readonly{% endif %}
+        >
+      </div>
+      <div class="field">
+        <label class="field-label" for="sponsor-url">HTTPS URL</label>
+        <input
+          class="field-input"
+          id="sponsor-url"
+          name="url"
+          value="{{ submitted.url }}"
+          maxlength="500"
+          {% if field_errors.url %}aria-invalid="true"{% endif %}
+          {% if not can_write %}readonly{% endif %}
+        >
+      </div>
+      <div class="field">
+        <label class="field-label" for="sponsor-tagline">Tagline</label>
+        <input
+          class="field-input"
+          id="sponsor-tagline"
+          name="tagline"
+          value="{{ submitted.tagline }}"
+          maxlength="200"
+          {% if field_errors.tagline %}aria-invalid="true"{% endif %}
+          {% if not can_write %}readonly{% endif %}
+        >
+      </div>
+      <div class="field">
+        <label class="field-label" for="sponsor-lifecycle">Lifecycle</label>
+        <select class="field-input" id="sponsor-lifecycle" name="lifecycle" {% if not can_write %}disabled{% endif %}>
+          <option value="draft"{% if submitted.lifecycle != "active" %} selected{% endif %}>Draft</option>
+          <option value="active"{% if submitted.lifecycle == "active" %} selected{% endif %}>Active</option>
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="sponsor-placement">Placement</label>
+        <select class="field-input" id="sponsor-placement" name="placement" {% if not can_write %}disabled{% endif %}>
+          <option value="">None</option>
+          {% for placement in placements %}
+            <option value="{{ placement }}"{% if submitted.placement == placement %} selected{% endif %}>{{ placement }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label class="field-label" for="sponsor-position">Position</label>
+        <input
+          class="field-input"
+          id="sponsor-position"
+          name="position"
+          type="number"
+          min="1"
+          value="{{ submitted.position|default:1 }}"
+          {% if not can_write %}readonly{% endif %}
+        >
+      </div>
+      <label class="admin-check" for="sponsor-assignment-enabled">
+        <input
+          id="sponsor-assignment-enabled"
+          type="checkbox"
+          name="assignment_enabled"
+          value="true"
+          {% if submitted.assignment_enabled %}checked{% endif %}
+          {% if not can_write %}disabled{% endif %}
+        >
+        <span>Enable this placement</span>
+      </label>
+      {% if can_write and sponsor.lifecycle != "archived" %}
+        <div class="admin-form-actions">
+          <button class="cta cta-primary" type="submit">Save sponsor</button>
+        </div>
+      {% endif %}
+    </form>
+  </section>
+
+  {% if can_write and sponsor.lifecycle != "archived" %}
+    <section class="admin-section" aria-labelledby="archive-sponsor-heading">
+      <div class="admin-section-head">
+        <h2 id="archive-sponsor-heading">Archive</h2>
+      </div>
+      <p>
+        Archive <strong>{{ sponsor.key }}</strong> from {{ sponsor.lifecycle }} to archived.
+        The record and its history are preserved.
+      </p>
+      <form class="admin-form" method="post" action="{% url 'studio:sponsor-archive' sponsor.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        <input type="hidden" name="expected_revision" value="{{ sponsor.revision }}">
+        <label class="admin-check" for="sponsor-confirm">
+          <input id="sponsor-confirm" type="checkbox" name="confirmed" value="true" required>
+          <span>Confirm archival of {{ sponsor.key }}</span>
+        </label>
+        <div class="admin-form-actions">
+          <button class="cta cta-secondary" type="submit">Archive sponsor</button>
+        </div>
+      </form>
+    </section>
+  {% endif %}
+
+  {% if can_write and sponsor.lifecycle == "archived" %}
+    <section class="admin-section" aria-labelledby="reactivate-sponsor-heading">
+      <div class="admin-section-head">
+        <h2 id="reactivate-sponsor-heading">Reactivate</h2>
+      </div>
+      <p>
+        Reactivate <strong>{{ sponsor.key }}</strong> from archived to active.
+      </p>
+      <form class="admin-form" method="post" action="{% url 'studio:sponsor-reactivate' sponsor.id %}">
+        {% csrf_token %}
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        <input type="hidden" name="expected_revision" value="{{ sponsor.revision }}">
+        <label class="admin-check" for="sponsor-confirm">
+          <input id="sponsor-confirm" type="checkbox" name="confirmed" value="true" required>
+          <span>Confirm reactivation of {{ sponsor.key }}</span>
+        </label>
+        <div class="admin-form-actions">
+          <button class="cta cta-primary" type="submit">Reactivate sponsor</button>
+        </div>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

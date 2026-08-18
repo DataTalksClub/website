@@ -45,6 +45,13 @@ from core.site_settings import (
     InvalidSiteSettingsBatch,
     SiteSettingsRevisionConflict,
 )
+from core.sponsors import (
+    SPONSOR_FILTER_FIELDS,
+    SPONSOR_PLACEMENTS,
+    InvalidSponsor,
+    SponsorNotFound,
+    SponsorRevisionConflict,
+)
 from courses.models import CourseRegistrationCountSourceRun
 from courses.registration_count_importer import CourseCountSourceError
 from courses.services.registration_counts import (
@@ -100,6 +107,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                 "events.identity.detail",
                 "courses.registration_count_baseline.detail",
                 "courses.registration_count_baseline.total",
+                "site.sponsors.detail",
             }
         ):
             continue
@@ -125,6 +133,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                     "events.historical_registration_total.read": "Registration total preview",
                     "events.identity.read": "Event identities",
                     "courses.registration_count_baseline.manage": ("Course registration totals"),
+                    "site.sponsors.read": "Sponsors",
                 }.get(capability.key, capability.description),
                 "route": capability.studio.route,
             }
@@ -587,6 +596,489 @@ site_settings.management_capability_views = {  # type: ignore[attr-defined]
     "GET": site_settings_read,
     "POST": site_settings_write,
 }
+
+
+def _sponsor_can(request: HttpRequest, key: str) -> bool:
+    try:
+        authorize_studio_request(
+            request_user=request.user,
+            session_reference=session_reference(request),
+            capability=CAPABILITY_REGISTRY.require(key),
+        )
+    except (StudioAuthenticationRequired, StudioAuthorizationDenied):
+        return False
+    return True
+
+
+def _sponsor_query(request: HttpRequest):
+    from types import SimpleNamespace
+
+    filters = {
+        name: value
+        for name in SPONSOR_FILTER_FIELDS
+        if (value := request.GET.get(name, "").strip())
+    }
+    raw_sort = request.GET.get("sort", "").strip()
+    sort = tuple(part for part in raw_sort.split(",") if part) if raw_sort else ()
+    try:
+        page = int(request.GET.get("page", "1"))
+        page_size = int(request.GET.get("page_size", "20"))
+    except ValueError as error:
+        raise InvalidSponsor("page is invalid") from error
+    return SimpleNamespace(page=page, page_size=page_size, sort=sort, filters=filters)
+
+
+def _sponsor_form_payload(post) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "name": post.get("name", ""),
+        "url": post.get("url", ""),
+        "tagline": post.get("tagline", ""),
+        "lifecycle": post.get("lifecycle", "draft"),
+    }
+    if "key" in post:
+        payload["key"] = post.get("key", "")
+    placement = (post.get("placement") or "").strip()
+    if placement:
+        raw_position = post.get("position", "1")
+        try:
+            position = int(raw_position)
+        except (TypeError, ValueError):
+            position = 0
+        payload["assignments"] = [
+            {
+                "placement": placement,
+                "position": position,
+                "enabled": post.get("assignment_enabled") == "true",
+            }
+        ]
+    else:
+        payload["assignments"] = []
+    return payload
+
+
+def _sponsor_submitted(post) -> dict[str, object]:
+    return {
+        "key": post.get("key", ""),
+        "name": post.get("name", ""),
+        "url": post.get("url", ""),
+        "tagline": post.get("tagline", ""),
+        "lifecycle": post.get("lifecycle", "draft"),
+        "placement": post.get("placement", ""),
+        "position": post.get("position", "1"),
+        "assignment_enabled": post.get("assignment_enabled") == "true",
+    }
+
+
+def _sponsor_list_context(
+    request: HttpRequest,
+    *,
+    submitted: dict[str, object] | None = None,
+    idempotency_key: object | None = None,
+    export_idempotency_key: object | None = None,
+    error_message: str = "",
+    field_errors: dict[str, str] | None = None,
+) -> dict[str, object]:
+    result = CAPABILITY_REGISTRY.require("site.sponsors.read").service(
+        _sponsor_query(request),
+        context=_service_context(request),
+    )
+    return {
+        "sponsors": result["items"],
+        "page": result["page"],
+        "page_size": result["page_size"],
+        "total_count": result["total_count"],
+        "filters": request.GET,
+        "placements": SPONSOR_PLACEMENTS,
+        "submitted": submitted or {},
+        "can_write": _sponsor_can(request, "site.sponsors.write"),
+        "can_export": _sponsor_can(request, "site.sponsors.export"),
+        "idempotency_key": idempotency_key or uuid.uuid4(),
+        "export_idempotency_key": export_idempotency_key or uuid.uuid4(),
+        "error_message": error_message,
+        "field_errors": field_errors or {},
+        "saved": request.GET.get("saved") == "1",
+        "studio_navigation": _navigation(request),
+    }
+
+
+def _sponsor_detail_context(
+    request: HttpRequest,
+    sponsor: dict[str, object],
+    *,
+    submitted: dict[str, object] | None = None,
+    idempotency_key: object | None = None,
+    error_message: str = "",
+    field_errors: dict[str, str] | None = None,
+) -> dict[str, object]:
+    assignments = sponsor.get("assignments")
+    current = assignments[0] if isinstance(assignments, list) and assignments else {}
+    defaults = {
+        "name": sponsor.get("name", ""),
+        "url": sponsor.get("url", ""),
+        "tagline": sponsor.get("tagline", ""),
+        "lifecycle": sponsor.get("lifecycle", "draft"),
+        "placement": current.get("placement", "") if isinstance(current, dict) else "",
+        "position": current.get("position", 1) if isinstance(current, dict) else 1,
+        "assignment_enabled": (
+            current.get("enabled", False) if isinstance(current, dict) else False
+        ),
+    }
+    return {
+        "sponsor": sponsor,
+        "submitted": submitted or defaults,
+        "placements": SPONSOR_PLACEMENTS,
+        "can_write": _sponsor_can(request, "site.sponsors.update"),
+        "idempotency_key": idempotency_key or uuid.uuid4(),
+        "error_message": error_message,
+        "field_errors": field_errors or {},
+        "saved": request.GET.get("saved") == "1",
+        "studio_navigation": _navigation(request),
+    }
+
+
+def _sponsor_error_message(error: Exception) -> tuple[str, dict[str, str], int]:
+    if isinstance(error, SponsorRevisionConflict):
+        return (
+            "This sponsor changed in another session. Review and save again.",
+            {"form": "A submitted revision is stale."},
+            409,
+        )
+    if isinstance(error, (IdempotencyConflict, IdempotencyInProgress)):
+        return (
+            "This save request conflicts with an earlier submission.",
+            {"form": "Reload the page before trying again."},
+            409,
+        )
+    if isinstance(error, InvalidSponsor):
+        return (
+            "Correct the highlighted fields and try again.",
+            error.fields or {"form": "The sponsor form is invalid."},
+            400,
+        )
+    if isinstance(error, (TypeError, ValueError)):
+        return (
+            "Correct the highlighted fields and try again.",
+            {"form": "The sponsor form is invalid."},
+            400,
+        )
+    raise error
+
+
+@capability_required("site.sponsors.read")
+def sponsor_list_read(request: HttpRequest) -> HttpResponse:
+    try:
+        context = _sponsor_list_context(request)
+    except Exception:
+        return HttpResponse("Sponsors are unavailable", status=500)
+    return render(request, "studio/sponsors.html", context)
+
+
+@capability_required("site.sponsors.write")
+def sponsor_list_write(request: HttpRequest) -> HttpResponse:
+    if not _sponsor_can(request, "site.sponsors.read"):
+        return HttpResponseForbidden("Studio access denied")
+    raw_idempotency = request.POST.get("idempotency_key", "")
+    try:
+        parsed = uuid.UUID(raw_idempotency)
+        if str(parsed) != raw_idempotency:
+            raise ValueError("non-canonical idempotency key")
+    except (AttributeError, TypeError, ValueError):
+        context = _sponsor_list_context(
+            request,
+            submitted=_sponsor_submitted(request.POST),
+            idempotency_key=uuid.uuid4(),
+            error_message="Correct the highlighted fields and try again.",
+            field_errors={"form": "The sponsor form state is invalid."},
+        )
+        return render(request, "studio/sponsors.html", context, status=400)
+    capability = request.studio_principal.capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            payload=_sponsor_form_payload(request.POST),
+            source="studio",
+            idempotency_key=raw_idempotency,
+            actor_ref=f"user:{request.user.pk}",
+            actor_id=request.user.pk,
+            context=_service_context(request),
+        )
+    except (
+        InvalidSponsor,
+        IdempotencyConflict,
+        IdempotencyInProgress,
+        TypeError,
+        ValueError,
+    ) as error:
+        message, fields, status = _sponsor_error_message(error)
+        context = _sponsor_list_context(
+            request,
+            submitted=_sponsor_submitted(request.POST),
+            idempotency_key=raw_idempotency,
+            error_message=message,
+            field_errors=fields,
+        )
+        return render(request, "studio/sponsors.html", context, status=status)
+    except Exception:
+        return HttpResponse("Sponsors could not be saved", status=500)
+    return HttpResponseRedirect(
+        f"{reverse('studio:sponsor-detail', args=[result.sponsor['id']])}?saved=1"
+    )
+
+
+def sponsors(request: HttpRequest) -> HttpResponse:
+    if request.method in {"GET", "HEAD"}:
+        return sponsor_list_read(request)
+    return sponsor_list_write(request)
+
+
+sponsors.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.sponsors.read",
+    "site.sponsors.write",
+)
+sponsors.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": sponsor_list_read,
+    "POST": sponsor_list_write,
+}
+
+
+@capability_required("site.sponsors.detail")
+def sponsor_detail_read(request: HttpRequest, sponsor_id: uuid.UUID) -> HttpResponse:
+    capability = request.studio_principal.capability  # type: ignore[attr-defined]
+    try:
+        sponsor = capability.service(sponsor_id, context=_service_context(request))
+    except Exception:
+        return HttpResponse("Sponsor is unavailable", status=500)
+    if sponsor is None:
+        return HttpResponse("Sponsor unavailable", status=404)
+    return render(request, "studio/sponsor_detail.html", _sponsor_detail_context(request, sponsor))
+
+
+@capability_required("site.sponsors.update")
+def sponsor_detail_write(request: HttpRequest, sponsor_id: uuid.UUID) -> HttpResponse:
+    if not _sponsor_can(request, "site.sponsors.detail"):
+        return HttpResponseForbidden("Studio access denied")
+    raw_idempotency = request.POST.get("idempotency_key", "")
+    try:
+        parsed = uuid.UUID(raw_idempotency)
+        if str(parsed) != raw_idempotency:
+            raise ValueError("non-canonical idempotency key")
+        expected_revision = int(request.POST.get("expected_revision", ""))
+        if expected_revision < 1:
+            raise ValueError("invalid revision")
+    except (AttributeError, TypeError, ValueError):
+        current = CAPABILITY_REGISTRY.require("site.sponsors.detail").service(
+            sponsor_id,
+            context=_service_context(request),
+        )
+        if current is None:
+            return HttpResponse("Sponsor unavailable", status=404)
+        context = _sponsor_detail_context(
+            request,
+            current,
+            submitted=_sponsor_submitted(request.POST),
+            idempotency_key=uuid.uuid4(),
+            error_message="Correct the highlighted fields and try again.",
+            field_errors={"form": "The sponsor form state is invalid."},
+        )
+        return render(request, "studio/sponsor_detail.html", context, status=400)
+    capability = request.studio_principal.capability  # type: ignore[attr-defined]
+    try:
+        capability.service(
+            sponsor_id=sponsor_id,
+            payload=_sponsor_form_payload(request.POST),
+            expected_revision=expected_revision,
+            source="studio",
+            idempotency_key=raw_idempotency,
+            actor_ref=f"user:{request.user.pk}",
+            actor_id=request.user.pk,
+            context=_service_context(request),
+        )
+    except SponsorNotFound:
+        return HttpResponse("Sponsor unavailable", status=404)
+    except (
+        InvalidSponsor,
+        SponsorRevisionConflict,
+        IdempotencyConflict,
+        IdempotencyInProgress,
+        TypeError,
+        ValueError,
+    ) as error:
+        current = CAPABILITY_REGISTRY.require("site.sponsors.detail").service(
+            sponsor_id,
+            context=_service_context(request),
+        )
+        if current is None:
+            return HttpResponse("Sponsor unavailable", status=404)
+        message, fields, status = _sponsor_error_message(error)
+        context = _sponsor_detail_context(
+            request,
+            current,
+            submitted=_sponsor_submitted(request.POST),
+            idempotency_key=raw_idempotency,
+            error_message=message,
+            field_errors=fields,
+        )
+        return render(request, "studio/sponsor_detail.html", context, status=status)
+    except Exception:
+        return HttpResponse("Sponsors could not be saved", status=500)
+    return HttpResponseRedirect(f"{reverse('studio:sponsor-detail', args=[sponsor_id])}?saved=1")
+
+
+def sponsor_detail(request: HttpRequest, sponsor_id: uuid.UUID) -> HttpResponse:
+    if request.method in {"GET", "HEAD"}:
+        return sponsor_detail_read(request, sponsor_id)
+    return sponsor_detail_write(request, sponsor_id)
+
+
+sponsor_detail.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.sponsors.detail",
+    "site.sponsors.update",
+)
+sponsor_detail.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": sponsor_detail_read,
+    "POST": sponsor_detail_write,
+}
+
+
+def _sponsor_lifecycle_action(
+    request: HttpRequest,
+    sponsor_id: uuid.UUID,
+    *,
+    capability_key: str,
+) -> HttpResponse:
+    raw_idempotency = request.POST.get("idempotency_key", "")
+    try:
+        parsed = uuid.UUID(raw_idempotency)
+        if str(parsed) != raw_idempotency:
+            raise ValueError("non-canonical idempotency key")
+        expected_revision = int(request.POST.get("expected_revision", ""))
+        if expected_revision < 1:
+            raise ValueError("invalid revision")
+    except (AttributeError, TypeError, ValueError):
+        current = CAPABILITY_REGISTRY.require("site.sponsors.detail").service(
+            sponsor_id,
+            context=_service_context(request),
+        )
+        if current is None:
+            return HttpResponse("Sponsor unavailable", status=404)
+        context = _sponsor_detail_context(
+            request,
+            current,
+            idempotency_key=uuid.uuid4(),
+            error_message="Confirm the lifecycle change before continuing.",
+            field_errors={"confirmed": "Confirm this action before continuing."},
+        )
+        return render(request, "studio/sponsor_detail.html", context, status=400)
+    capability = request.studio_principal.capability  # type: ignore[attr-defined]
+    try:
+        capability.service(
+            sponsor_id=sponsor_id,
+            confirmed=request.POST.get("confirmed") == "true",
+            expected_revision=expected_revision,
+            source="studio",
+            idempotency_key=raw_idempotency,
+            actor_ref=f"user:{request.user.pk}",
+            actor_id=request.user.pk,
+            context=_service_context(request),
+        )
+    except SponsorNotFound:
+        return HttpResponse("Sponsor unavailable", status=404)
+    except (
+        InvalidSponsor,
+        SponsorRevisionConflict,
+        IdempotencyConflict,
+        IdempotencyInProgress,
+        TypeError,
+        ValueError,
+    ) as error:
+        current = CAPABILITY_REGISTRY.require("site.sponsors.detail").service(
+            sponsor_id,
+            context=_service_context(request),
+        )
+        if current is None:
+            return HttpResponse("Sponsor unavailable", status=404)
+        message, fields, status = _sponsor_error_message(error)
+        context = _sponsor_detail_context(
+            request,
+            current,
+            idempotency_key=raw_idempotency,
+            error_message=message,
+            field_errors=fields,
+        )
+        return render(request, "studio/sponsor_detail.html", context, status=status)
+    except Exception:
+        return HttpResponse("Sponsors could not be saved", status=500)
+    return HttpResponseRedirect(f"{reverse('studio:sponsor-detail', args=[sponsor_id])}?saved=1")
+
+
+@capability_required("site.sponsors.archive")
+def sponsor_archive(request: HttpRequest, sponsor_id: uuid.UUID) -> HttpResponse:
+    return _sponsor_lifecycle_action(
+        request,
+        sponsor_id,
+        capability_key="site.sponsors.archive",
+    )
+
+
+@capability_required("site.sponsors.reactivate")
+def sponsor_reactivate(request: HttpRequest, sponsor_id: uuid.UUID) -> HttpResponse:
+    return _sponsor_lifecycle_action(
+        request,
+        sponsor_id,
+        capability_key="site.sponsors.reactivate",
+    )
+
+
+@capability_required("site.sponsors.export")
+def sponsor_export(request: HttpRequest) -> HttpResponse:
+    raw_idempotency = request.POST.get("idempotency_key", "")
+    try:
+        parsed = uuid.UUID(raw_idempotency)
+        if str(parsed) != raw_idempotency:
+            raise ValueError("non-canonical idempotency key")
+    except (AttributeError, TypeError, ValueError):
+        context = _sponsor_list_context(
+            request,
+            export_idempotency_key=uuid.uuid4(),
+            error_message="Confirm the export before continuing.",
+            field_errors={"form": "The export form state is invalid."},
+        )
+        return render(request, "studio/sponsors.html", context, status=400)
+    filters = {
+        name: value
+        for name in ("lifecycle", "placement")
+        if (value := request.POST.get(name, "").strip())
+    }
+    capability = request.studio_principal.capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            confirmed=request.POST.get("confirmed") == "true",
+            reason=request.POST.get("reason", ""),
+            filters=filters,
+            idempotency_key=raw_idempotency,
+            actor_ref=f"user:{request.user.pk}",
+            actor_id=request.user.pk,
+            context=_service_context(request),
+        )
+    except (
+        InvalidSponsor,
+        IdempotencyConflict,
+        IdempotencyInProgress,
+        TypeError,
+        ValueError,
+    ) as error:
+        message, fields, status = _sponsor_error_message(error)
+        context = _sponsor_list_context(
+            request,
+            export_idempotency_key=raw_idempotency,
+            error_message=message,
+            field_errors=fields,
+        )
+        return render(request, "studio/sponsors.html", context, status=status)
+    except Exception:
+        return HttpResponse("Sponsors could not be exported", status=500)
+    response = HttpResponse(result.csv, content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{result.filename}"'
+    return response
 
 
 @capability_required("studio.audit.browse")

@@ -97,9 +97,61 @@ site_settings_collection.management_capability_views = {  # type: ignore[attr-de
     "POST": views.site_settings_write,
 }
 
+
+@csrf_exempt
+def sponsor_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.sponsor_list(request, *args, **kwargs)
+    return views.sponsor_create(request, *args, **kwargs)
+
+
+sponsor_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.sponsors.read",
+    "site.sponsors.write",
+)
+sponsor_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.sponsor_list,
+    "POST": views.sponsor_create,
+}
+
+
+@csrf_exempt
+def sponsor_item(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.sponsor_detail(request, *args, **kwargs)
+    return views.sponsor_update(request, *args, **kwargs)
+
+
+sponsor_item.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.sponsors.detail",
+    "site.sponsors.update",
+)
+sponsor_item.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.sponsor_detail,
+    "PATCH": views.sponsor_update,
+}
+
+
 urlpatterns = [
     path("health", views.admin_health, name="admin-health"),
     path("settings", site_settings_collection, name="admin-site-settings"),
+    path("sponsors", sponsor_collection, name="admin-sponsor-list"),
+    path("sponsors/<uuid:sponsor_id>", sponsor_item, name="admin-sponsor-detail"),
+    path(
+        "sponsors/<uuid:sponsor_id>/archive",
+        views.sponsor_archive,
+        name="admin-sponsor-archive",
+    ),
+    path(
+        "sponsors/<uuid:sponsor_id>/reactivate",
+        views.sponsor_reactivate,
+        name="admin-sponsor-reactivate",
+    ),
+    path(
+        "sponsor-directory-exports",
+        views.sponsor_export,
+        name="admin-sponsor-export",
+    ),
     path("credentials", credential_collection, name="admin-credential-list"),
     path(
         "historical-registration-imports",

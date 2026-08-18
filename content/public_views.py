@@ -21,6 +21,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
+from core.sponsors import public_events_hub_sponsors
 from courses.models import Course
 from events.identity import (
     EventIdentityNotFound,
@@ -331,6 +332,7 @@ def _render_events(
             "upcoming_path": "/events",
             "past_path": "/events/past",
             "count": count,
+            "events_hub_sponsors": () if past else public_events_hub_sponsors(),
             **extra_context,
         },
     )

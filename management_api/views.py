@@ -11,6 +11,7 @@ from core.idempotency import IdempotencyConflict, IdempotencyInProgress, execute
 from core.models import AuditEvent, RevisionConflict
 from core.services import ServiceContext
 from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionConflict
+from core.sponsors import InvalidSponsor, SponsorNotFound, SponsorRevisionConflict
 from courses.models import CourseRegistrationCountSourceRun
 from courses.registration_count_importer import CourseCountSourceError
 from courses.services.registration_counts import (
@@ -38,7 +39,7 @@ from management_auth.policies import require_high_risk_policy
 from management_auth.services import CredentialStateConflict, principal_has_permission
 from management_registry import CAPABILITY_REGISTRY
 
-from .concurrency import require_if_match
+from .concurrency import require_if_match, revision_etag
 from .dispatch import admin_capability
 from .errors import APIError, error_response, permission_denied
 from .json_input import parse_json_object
@@ -186,6 +187,32 @@ def _course_count_error(error: Exception) -> APIError:
     return APIError(500, "internal_error", "The course count request failed safely.")
 
 
+def _sponsor_error(error: Exception) -> APIError:
+    if isinstance(error, APIError):
+        return error
+    if isinstance(error, (IdempotencyConflict, IdempotencyInProgress)):
+        return APIError(409, "idempotency_conflict", "The idempotency request conflicts.")
+    if isinstance(error, SponsorRevisionConflict):
+        return APIError(
+            409,
+            "revision_conflict",
+            "The sponsor revision changed.",
+            safe_result={"id": str(error.sponsor_id), "revision": error.actual},
+        )
+    if isinstance(error, SponsorNotFound):
+        return APIError(404, "not_found", "The sponsor was not found.")
+    if isinstance(error, InvalidSponsor):
+        return APIError(
+            400,
+            "invalid_request",
+            "The sponsor request is invalid.",
+            fields={key: [message] for key, message in error.fields.items()} or None,
+        )
+    if isinstance(error, (TypeError, ValueError)):
+        return APIError(400, "invalid_request", "The sponsor request is invalid.")
+    return APIError(500, "internal_error", "The sponsor request failed safely.")
+
+
 def _site_settings_error(error: Exception) -> APIError:
     if isinstance(error, APIError):
         return error
@@ -269,6 +296,180 @@ def site_settings_write(request: HttpRequest) -> JsonResponse:
         )
     except Exception as error:
         raise _site_settings_error(error) from error
+    return JsonResponse(result.as_dict())
+
+
+@admin_capability("site.sponsors.read")
+def sponsor_list(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        query = parse_page_query(
+            request.GET,
+            filter_fields=capability.admin_api.filter_fields,
+            sort_fields=capability.admin_api.sort_fields,
+        )
+        result = capability.service(query, context=_historical_context(request))
+    except Exception as error:
+        raise _sponsor_error(error) from error
+    return JsonResponse(result)
+
+
+@admin_capability("site.sponsors.write")
+def sponsor_create(request: HttpRequest) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    read_capability = CAPABILITY_REGISTRY.require("site.sponsors.read")
+    if not principal_has_permission(identity.principal, read_capability.django_permission):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset({"key", "name", "lifecycle", "assignments"}),
+        optional=frozenset({"url", "tagline"}),
+    )
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            payload=payload,
+            source="admin_api",
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _sponsor_error(error) from error
+    return JsonResponse(result.as_dict(), status=201)
+
+
+@admin_capability("site.sponsors.detail")
+def sponsor_detail(request: HttpRequest, sponsor_id: uuid.UUID) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(sponsor_id, context=_historical_context(request))
+    except Exception as error:
+        raise _sponsor_error(error) from error
+    if result is None:
+        raise APIError(404, "not_found", "The sponsor was not found.")
+    response = JsonResponse(result)
+    response["ETag"] = revision_etag(result["revision"])
+    return response
+
+
+@admin_capability("site.sponsors.update")
+def sponsor_update(request: HttpRequest, sponsor_id: uuid.UUID) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    if not principal_has_permission(
+        identity.principal,
+        CAPABILITY_REGISTRY.require("site.sponsors.read").django_permission,
+    ):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset({"name", "lifecycle", "assignments"}),
+        optional=frozenset({"url", "tagline", "expected_revision"}),
+    )
+    expected = require_if_match(request)
+    body_revision = payload.get("expected_revision")
+    if body_revision is not None and body_revision != expected:
+        raise APIError(400, "invalid_request", "The sponsor request is invalid.")
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            sponsor_id=sponsor_id,
+            payload=payload,
+            expected_revision=expected,
+            source="admin_api",
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _sponsor_error(error) from error
+    return JsonResponse(result.as_dict())
+
+
+def _sponsor_lifecycle_view(request: HttpRequest, sponsor_id: uuid.UUID) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    if not principal_has_permission(
+        identity.principal,
+        CAPABILITY_REGISTRY.require("site.sponsors.read").django_permission,
+    ):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset({"confirmed"}),
+        optional=frozenset({"expected_revision"}),
+    )
+    expected = payload.get("expected_revision")
+    if expected is None:
+        expected = require_if_match(request)
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            sponsor_id=sponsor_id,
+            confirmed=payload["confirmed"],
+            expected_revision=expected,
+            source="admin_api",
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _sponsor_error(error) from error
+    return JsonResponse(result.as_dict())
+
+
+@admin_capability("site.sponsors.archive")
+def sponsor_archive(request: HttpRequest, sponsor_id: uuid.UUID) -> JsonResponse:
+    return _sponsor_lifecycle_view(request, sponsor_id)
+
+
+@admin_capability("site.sponsors.reactivate")
+def sponsor_reactivate(request: HttpRequest, sponsor_id: uuid.UUID) -> JsonResponse:
+    return _sponsor_lifecycle_view(request, sponsor_id)
+
+
+@admin_capability("site.sponsors.export")
+def sponsor_export(request: HttpRequest) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset({"confirmed", "reason"}),
+        optional=frozenset({"filters", "lifecycle", "placement"}),
+    )
+    filters = payload.get("filters", {})
+    if not isinstance(filters, dict):
+        raise APIError(400, "invalid_request", "The sponsor request is invalid.")
+    if payload.get("lifecycle"):
+        filters = {**filters, "lifecycle": payload["lifecycle"]}
+    if payload.get("placement"):
+        filters = {**filters, "placement": payload["placement"]}
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            confirmed=payload["confirmed"],
+            reason=payload["reason"],
+            filters=filters,
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _sponsor_error(error) from error
     return JsonResponse(result.as_dict())
 
 
