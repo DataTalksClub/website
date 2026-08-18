@@ -46,6 +46,9 @@ _FAQ_IMAGE_WRAPPER = re.compile(
     r"\{IMAGE:(?P<bare>[A-Za-z0-9_-]+)\}"
     r")\s*\)"
 )
+_COMMUNITY_WORKSPACE_HOST = "datatalks-club.slack.com"
+_SLACK_CLIENT_HOST = "app.slack.com"
+_COMMUNITY_WORKSPACE_ID = "T01ATQK62F8"
 
 
 class _FAQRenderer(mistune.HTMLRenderer):
@@ -65,6 +68,7 @@ class _FAQRenderer(mistune.HTMLRenderer):
         self._faq_question_slugs = faq_question_slugs or {}
 
     def link(self, text: str, url: str, title: str | None = None) -> str:
+        url = _community_slack_destination(url)
         url = _resolve_faq_question_link(
             url,
             course_slug=self._faq_course_slug,
@@ -146,6 +150,32 @@ def _faq_question_reference_index(
         {key: value for key, value in filenames.items() if value is not None},
         {key: value for key, value in slugs.items() if value is not None},
     )
+
+
+def _community_slack_destination(value: str) -> str:
+    """Send one community-workspace Slack link destination to the canonical ``/slack`` page.
+
+    Workspace links point into Slack's own UI (``datatalks-club.slack.com/<anything>`` or
+    ``app.slack.com/client/T01ATQK62F8/<channel>`` for this workspace's ID), so the rewrite
+    drops their query and fragment.  Slack's product documentation (``slack.com/help/...``)
+    and every other destination pass through unchanged.  Resolving this in the renderer's
+    ``link`` hook keeps Markdown code spans and plain literal text byte-for-byte intact.
+    """
+
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return value
+    segments = [segment for segment in parsed.path.split("/") if segment]
+    if parsed.netloc == _COMMUNITY_WORKSPACE_HOST or (
+        parsed.netloc == _SLACK_CLIENT_HOST
+        and (
+            segments[:1] == [_COMMUNITY_WORKSPACE_ID]
+            or segments[:2] == ["client", _COMMUNITY_WORKSPACE_ID]
+        )
+    ):
+        return "/slack"
+    return value
 
 
 def _resolve_faq_question_link(

@@ -308,18 +308,86 @@ class DocsProjectionTests(TestCase):
                 "[guidelines](/slack#rules) "
                 "newsletter newsletter "
                 "[our events page](/events) "
-                "[channel](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA)"
+                "[channel](/slack)"
             ),
         )
         self.assertNotIn("newsletter.html", prepared)
         self.assertNotIn("luma.com", prepared)
+
+    def test_community_workspace_slack_links_rewrite_to_the_slack_hub(self) -> None:
+        """Workspace deep links become plain ``/slack``; their query and fragment are dropped."""
+
+        source = (
+            "[channel](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA) "
+            "[thread](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA/thread_ts=161?x=1#p1) "
+            "[workspace root](https://app.slack.com/client/T01ATQK62F8) "
+            "[archive]"
+            "(https://datatalks-club.slack.com/archives/C06L1RTF10F/p1690?src=docs#anchor) "
+            "[any archive path](https://datatalks-club.slack.com/C06L1RTF10F)"
+        )
+        prepared = _prepare_markdown(source)
+        self.assertEqual(
+            prepared,
+            (
+                "[channel](/slack) "
+                "[thread](/slack) "
+                "[workspace root](/slack) "
+                "[archive](/slack) "
+                "[any archive path](/slack)"
+            ),
+        )
+
+    def test_absolute_canonical_slack_links_normalize_with_query_and_fragment(self) -> None:
+        prepared = _prepare_markdown(
+            "[community](https://datatalks.club/slack) "
+            "[tagged](https://datatalks.club/slack?utm_source=docs#join) "
+            "[relative stays relative](/slack?utm_source=docs#join)"
+        )
+        self.assertEqual(
+            prepared,
+            (
+                "[community](/slack) "
+                "[tagged](/slack?utm_source=docs#join) "
+                "[relative stays relative](/slack?utm_source=docs#join)"
+            ),
+        )
+
+    def test_non_community_slack_links_stay_byte_for_byte(self) -> None:
+        source = (
+            "[how to join a channel](https://slack.com/help/articles/205239967-Join-a-channel) "
+            "[threads](https://slack.com/help/articles/115000769927-Use-threads-"
+            "to-organize-discussions-) "
+            "[another workspace](https://app.slack.com/client/T0OTHERTEAM/C0288NJ5XSA) "
+            "[another workspace archives]"
+            "(https://another-community.slack.com/archives/C06L1RTF10F) "
+            "[docs about slack]({{ '/general/slack/' | relative_url }}) "
+            "[plain docs link](https://datatalks.club/docs/general/slack/)"
+        )
+        prepared = _prepare_markdown(source)
+        self.assertEqual(
+            prepared,
+            (
+                "[how to join a channel](https://slack.com/help/articles/205239967-Join-a-channel) "
+                "[threads](https://slack.com/help/articles/115000769927-Use-threads-"
+                "to-organize-discussions-) "
+                "[another workspace](https://app.slack.com/client/T0OTHERTEAM/C0288NJ5XSA) "
+                "[another workspace archives]"
+                "(https://another-community.slack.com/archives/C06L1RTF10F) "
+                "[docs about slack](/docs/general/slack/) "
+                "[plain docs link](https://datatalks.club/docs/general/slack/)"
+            ),
+        )
 
     def test_link_rewrites_do_not_touch_markdown_outside_intended_spans(self) -> None:
         source = (
             "Literal /events.html and https://datatalks.club/slack.html stay unchanged.\n\n"
             "`[events](/events.html)` and `[Luma](https://luma.com/dtc-events)` stay unchanged.\n\n"
             "[external](https://example.com/events.html) and "
-            "[other host](https://www.datatalks.club/events.html) stay unchanged."
+            "[other host](https://www.datatalks.club/events.html) stay unchanged.\n\n"
+            "Literal https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA and "
+            "https://datatalks-club.slack.com/archives/C06L1RTF10F stay unchanged.\n\n"
+            "`[channel](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA)` stays unchanged.\n\n"
+            "```\n[channel](https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA)\n```"
         )
         self.assertEqual(_prepare_markdown(source), source)
 
@@ -377,6 +445,51 @@ class DocsProjectionTests(TestCase):
                     r'href="(?:https://datatalks\.club)?/slack(?:/guidelines)?\.html',
                 )
                 self.assertIn('href="/slack', rendered)
+
+    def test_every_workspace_link_on_the_sixteen_affected_pages_renders_as_slack(self) -> None:
+        """The 32 distinct workspace URLs (72 occurrences) all land on the canonical hub."""
+
+        workspace_destination = re.compile(
+            r"\]\(\s*(?:<)?https://(?:app\.slack\.com|datatalks-club\.slack\.com)/"
+        )
+        affected = 0
+        for page in docs_projection()["pages"]:
+            rendered, _ = render_docs_markdown(page)
+            with self.subTest(public_path=page["public_path"]):
+                self.assertNotRegex(rendered, r'href="[^"]*app\.slack\.com')
+                self.assertNotRegex(rendered, r'href="[^"]*datatalks-club\.slack\.com')
+            if workspace_destination.search(str(page["body"])):
+                affected += 1
+                with self.subTest(affected=page["public_path"]):
+                    self.assertIn('href="/slack"', rendered)
+        self.assertEqual(affected, 16)
+
+    def test_absolute_canonical_slack_destinations_render_root_relative(self) -> None:
+        canonical_absolute = re.compile(r"\]\(\s*(?:<)?https://datatalks\.club/slack(?![\w./-])")
+        affected = [
+            page
+            for page in docs_projection()["pages"]
+            if canonical_absolute.search(str(page["body"]))
+        ]
+        self.assertEqual(len(affected), 6)
+        for page in affected:
+            with self.subTest(public_path=page["public_path"]):
+                rendered, _ = render_docs_markdown(page)
+                self.assertNotRegex(rendered, r'href="https://(?:www\.)?datatalks\.club/slack[?"]')
+                self.assertIn('href="/slack"', rendered)
+
+    def test_slack_product_documentation_citations_stay_external(self) -> None:
+        help_destination = re.compile(r"\]\(\s*(?:<)?(https://slack\.com/help/[^\s)>]+)")
+        citations: dict[str, set[str]] = {}
+        for page in docs_projection()["pages"]:
+            for match in help_destination.finditer(str(page["body"])):
+                citations.setdefault(page["public_path"], set()).add(match.group(1))
+        self.assertEqual(len(citations), 2)
+        for public_path, urls in citations.items():
+            with self.subTest(public_path=public_path):
+                rendered, _ = render_docs_markdown(docs_page(public_path) or {})
+                for url in urls:
+                    self.assertIn(f'href="{url}"', rendered)
 
     def test_rendering_keeps_projection_source_and_metadata_immutable(self) -> None:
         before_bytes = DOCS_PROJECTION_PATH.read_bytes()

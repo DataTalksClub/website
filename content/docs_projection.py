@@ -149,9 +149,13 @@ _INTERNAL_HUB_PATHS = {
     "/books.html": "/books",
     "/slack.html": "/slack",
     "/slack/guidelines.html": "/slack",
+    "/slack": "/slack",
 }
 _NEWSLETTER_PATH = "/newsletter.html"
 _LUMA_EVENTS_URL = "https://luma.com/dtc-events"
+_COMMUNITY_WORKSPACE_HOST = "datatalks-club.slack.com"
+_SLACK_CLIENT_HOST = "app.slack.com"
+_COMMUNITY_WORKSPACE_ID = "T01ATQK62F8"
 
 
 def _rewritten_internal_destination(value: str) -> str | None:
@@ -168,6 +172,28 @@ def _rewritten_internal_destination(value: str) -> str | None:
     query = f"?{parsed.query}" if "?" in query_source else ""
     fragment = f"#{parsed.fragment}" if "#" in value else ""
     return f"{replacement}{query}{fragment}"
+
+
+def _community_workspace_destination(value: str) -> str | None:
+    """Return ``/slack`` for a DataTalks.Club community-workspace link destination.
+
+    The workspace forms in the source are ``datatalks-club.slack.com/<anything>`` and
+    ``app.slack.com/client/T01ATQK62F8/<channel>``, where ``T01ATQK62F8`` is this workspace's
+    ID.  Both address Slack's own UI rather than anchors on ``/slack``, so unlike the hub
+    aliases the rewrite drops the query and fragment.  Slack's product documentation
+    (``slack.com/help/...``) and every other external host stay untouched.
+    """
+
+    parsed = urlsplit(value)
+    if parsed.netloc == _COMMUNITY_WORKSPACE_HOST:
+        return "/slack"
+    segments = [segment for segment in parsed.path.split("/") if segment]
+    if parsed.netloc == _SLACK_CLIENT_HOST and (
+        segments[:1] == [_COMMUNITY_WORKSPACE_ID]
+        or segments[:2] == ["client", _COMMUNITY_WORKSPACE_ID]
+    ):
+        return "/slack"
+    return None
 
 
 def _is_newsletter_destination(value: str) -> bool:
@@ -290,6 +316,8 @@ def _rewrite_markdown_links(value: str) -> str:
             continue
         token_start, token_end, destination = token
         replacement_url = _rewritten_internal_destination(destination)
+        if replacement_url is None:
+            replacement_url = _community_workspace_destination(destination)
         remove_wrapper = _is_newsletter_destination(destination)
         replace_luma_label = destination == _LUMA_EVENTS_URL and value[index + 1 : label_end] == (
             "Luma"

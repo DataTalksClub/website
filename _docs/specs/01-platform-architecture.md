@@ -185,6 +185,8 @@ remain visible.
 5. Reveal Slack status/link only at `/accounts/community/slack/` to an eligible authenticated
    member through a private, no-store, noindex, referrer-safe response. The link is absent from the
    profile, grant, delivery context/body retention, logs, metrics, URLs, API examples, and evidence.
+   The public `/slack` landing page is a separate surface that introduces the community and its
+   channels without a join or invite link; this member-flow reveal does not change it.
 6. For a new course registration, require the verified durable account and complete shared profile,
    then ask only the course-specific comment, versioned privacy acknowledgement, and separate
    optional unchecked marketing consent. Commit the registration without first creating an
