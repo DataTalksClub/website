@@ -19,11 +19,11 @@ CMP_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc2156
 CMP_CSS_SHA256 = "282ed7b15df2502a8d4c2e9cd45ef1f8e92771835243d3cbc590f78db9ed5f8f"
 LIGHT_SURFACE_BACKGROUND = "rgb(255, 255, 255)"
 DARK_SURFACE_BACKGROUND = "rgb(13, 17, 23)"
-# The homepage, the events index and the event detail page all carry the design-5a
-# palette (issue #179, mockups 5a and 6c); the detail page joined them when the
-# click-through from the index stopped changing design mid-journey.
-DESIGN_5A_LIGHT_BACKGROUND = "rgb(253, 250, 243)"
-DESIGN_5A_DARK_BACKGROUND = "rgb(19, 22, 42)"
+# Cream is the default `--page` token; events and event detail override `--page`
+# to lavender so the ground below the last band matches those templates.
+CREAM_PAGE_BACKGROUND = "rgb(253, 250, 243)"
+LAVENDER_PAGE_BACKGROUND = "rgb(239, 241, 252)"
+DARK_PAGE_BACKGROUND = "rgb(19, 22, 42)"
 HOME_HEADING = "Start with the foundations. Finish with a project you can present."
 EVENTS_HEADING = "Something happening every week"
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -41,7 +41,8 @@ def _featured_event_path() -> str:
     )
 
 
-DESIGN_5A_PATHS = frozenset({"/", "/unified/", "/events", _featured_event_path()})
+DESIGN_SYSTEM_PATHS = frozenset({"/", "/unified/", "/events", _featured_event_path()})
+LAVENDER_PAGE_PATHS = frozenset({"/events", _featured_event_path()})
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
     ({"width": 390, "height": 844}, "mobile"),
@@ -54,15 +55,19 @@ SURFACES = (
 
 
 def _light_background(path: str) -> str:
-    return DESIGN_5A_LIGHT_BACKGROUND if path in DESIGN_5A_PATHS else LIGHT_SURFACE_BACKGROUND
+    # Homepage keeps cream `--page`. Events/detail override `--page` to lavender
+    # so the ground below the last band matches those templates as shipped.
+    if path in LAVENDER_PAGE_PATHS:
+        return LAVENDER_PAGE_BACKGROUND
+    return CREAM_PAGE_BACKGROUND if path in DESIGN_SYSTEM_PATHS else LIGHT_SURFACE_BACKGROUND
 
 
 def _dark_background(path: str) -> str:
-    return DESIGN_5A_DARK_BACKGROUND if path in DESIGN_5A_PATHS else DARK_SURFACE_BACKGROUND
+    return DARK_PAGE_BACKGROUND if path in DESIGN_SYSTEM_PATHS else DARK_SURFACE_BACKGROUND
 
 
-# The CMP surfaces act through .primer-button; the design-5a pages act through .cta and
-# the filter pills, and both kinds are held to the same 44px target floor.
+# CMP leftover surfaces still use .primer-button; the design-system pages use .cta and
+# the filter pills. Both kinds are held to the same 44px target floor.
 SCOPED_ACTION_SELECTOR = (
     "#dark-mode-toggle, "
     "main a.primer-button, "
@@ -338,7 +343,7 @@ def test_keyboard_theme_reduced_motion_and_320px_reflow(
         expect(page.locator("body.dark-mode")).to_have_count(1)
         expect(page.locator("body")).to_have_css(
             "background-color",
-            DESIGN_5A_DARK_BACKGROUND,
+            DARK_PAGE_BACKGROUND,
         )
     finally:
         context.close()

@@ -138,7 +138,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                     self.fail(f"template has no loader origin: {logical_name}")
                 self.assertEqual(Path(origin.name).resolve(), adopted_destination)
 
-    def test_course_list_template_records_its_design_5a_rebuild_against_the_cmp_source(self):
+    def test_course_list_template_records_its_design_system_rebuild_against_the_cmp_source(self):
         """The courses index left the byte-exact CMP copy with issue #179.
 
         The copied ledger still records the pinned CMP source it started from, and the

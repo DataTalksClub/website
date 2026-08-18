@@ -615,7 +615,7 @@ class PodcastSeasonNavigationTests(TestCase):
                 self.assertContains(oldest, f'href="{guest["public_path"]}"')
         self.assertFalse(any(not item["description"] for item in public_projection()["podcasts"]))
 
-    def test_design_5a_pages_carry_one_inline_stylesheet_and_no_legacy_css(self) -> None:
+    def test_design_system_pages_carry_one_inline_stylesheet_and_no_legacy_css(self) -> None:
         """Mockup 6d (issue #179) rebuilt both surfaces on the shared design system."""
 
         episode = ordered_podcasts()[0]

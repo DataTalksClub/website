@@ -15,10 +15,9 @@ FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
 HOME_HEADING = "Start with the foundations. Finish with a project you can present."
-# The podcast index carries the design 5a headline from mockup 6d (issue #179).
+CLIMB_HEADING = "From “What does that mean?” to “Let me show you.”"
 PODCAST_HEADING = "Conversations with people who ship data"
-# The events index is a design 5a page (issue #179, mockup 6c) and leads with the
-# mockup's own headline; "Events" is now only the navigation label and the page title.
+# "Events" is the navigation label and the page title; the index leads with this headline.
 EVENTS_HEADING = "Something happening every week"
 
 
@@ -67,9 +66,7 @@ def test_public_home_and_hubs(
     assert response is not None and response.status == 200
     expect(page).to_have_title("DataTalks.Club — free courses for data and AI engineers")
     expect(page.get_by_role("heading", name=HOME_HEADING)).to_be_visible()
-    expect(
-        page.get_by_role("heading", name="The climb, as members describe it", exact=True)
-    ).to_be_visible()
+    expect(page.get_by_role("heading", name=CLIMB_HEADING, exact=True)).to_be_visible()
     expect(
         page.get_by_role("heading", name="Something to attend this week", exact=True)
     ).to_be_visible()
@@ -115,8 +112,7 @@ def test_public_home_and_hubs(
 
         if label == "Wiki":
             # The three ways into the wiki stay one stacked list at every width.
-            # The design 5a rebuild (issue #179) draws them as the system's
-            # divided rows, which are a grid rather than a flex column, so the
+            # They are divided rows (a grid rather than a flex column), so the
             # contract is the stacking itself: three rows, each below the last.
             exploration = page.locator('nav[aria-label="Wiki exploration"] a')
             expect(exploration).to_have_count(3)
