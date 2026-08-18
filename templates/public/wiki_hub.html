@@ -151,7 +151,10 @@
               <strong>Graph</strong>
               <span>Explore topic, episode, people, and book connections.</span>
             </a>
-            <a class="list-row explore-row" href="{% url 'wiki-home' %}?q=data">
+            {% comment %}
+              Empty `?q=` is the existing search mode. `/wiki/search` is an editorial page.
+            {% endcomment %}
+            <a class="list-row explore-row" href="{% url 'wiki-home' %}?q=">
               <strong>Search</strong>
               <span>Find wiki pages, guides, summaries, people, and books.</span>
             </a>
