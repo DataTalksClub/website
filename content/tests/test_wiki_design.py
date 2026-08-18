@@ -16,10 +16,11 @@ from unittest.mock import patch
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.html import escape
 
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import public_projection
-from content.public_views import WIKI_SPECIAL_CATEGORIES
+from content.public_views import WIKI_SPECIAL_CATEGORIES, _wiki_search_results
 from content.wiki_content import (
     GRAPH_GROUPS,
     GROUP_ENTRY_POINTS,
@@ -130,14 +131,22 @@ class WikiHubTests(TestCase):
         """The exploration links are the graph's and the special pages' only entry."""
 
         self.assertIn('aria-label="Wiki exploration"', self.body)
+        self.assertIn(
+            '<form class="search-row wiki-search" action="/wiki" method="get">',
+            self.body,
+        )
+        explore = self.body.split('aria-label="Wiki exploration"', 1)[1].split("</nav>", 1)[0]
         for href, label in (
             (reverse("wiki-graph"), "Graph"),
-            (f"{reverse('wiki-home')}?q=data", "Search"),
+            (f"{reverse('wiki-home')}?q=", "Search"),
             (reverse("wiki-special"), "Special pages"),
         ):
             with self.subTest(href=href):
-                self.assertIn(f'href="{href}"', self.body)
-                self.assertIn(f"<strong>{label}</strong>", self.body)
+                self.assertIn(f'href="{href}"', explore)
+                self.assertIn(f"<strong>{label}</strong>", explore)
+        # Search mode is the empty existing `?q=` query, never the editorial slug.
+        self.assertNotIn('href="/wiki/search"', explore)
+        self.assertNotIn("?q=data", explore)
 
     def test_the_catalogue_lists_every_topic_twice_over_as_title_and_read_action(self) -> None:
         """Across its pages the catalogue still carries every topic, exactly once.
@@ -148,14 +157,46 @@ class WikiHubTests(TestCase):
         """
 
         records = public_projection()["wiki"]
+        self.assertEqual(len(records), 282)
+        self.assertEqual(
+            [(record["title"], record["slug"]) for record in records],
+            sorted(
+                ((record["title"], record["slug"]) for record in records),
+                key=lambda item: (item[0].casefold(), item[1]),
+            ),
+        )
         pages = catalogue_page_bodies(self.client, reverse("wiki-home"))
         body = "".join(pages)
+        expected_page_count = (len(records) + PUBLIC_PAGE_SIZE - 1) // PUBLIC_PAGE_SIZE
+        self.assertEqual(len(pages), expected_page_count)
 
-        for record in (records[0], records[-1]):
+        collected: list[dict] = []
+        for page_number in range(1, expected_page_count + 1):
+            path = (
+                reverse("wiki-home")
+                if page_number == 1
+                else f"{reverse('wiki-home')}?page={page_number}"
+            )
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 200)
+            page_records = list(response.context["records"])
+            expected_size = (
+                PUBLIC_PAGE_SIZE
+                if page_number < expected_page_count
+                else len(records) - PUBLIC_PAGE_SIZE * (expected_page_count - 1)
+            )
+            self.assertEqual(len(page_records), expected_size)
+            collected.extend(page_records)
+
+        self.assertEqual(
+            [(record["title"], record["summary"], record["public_path"]) for record in collected],
+            [(record["title"], record["summary"], record["public_path"]) for record in records],
+        )
+        for record in records:
             with self.subTest(slug=record["slug"]):
                 self.assertEqual(body.count(f'href="{record["public_path"]}"'), 2)
-                self.assertIn(str(record["title"]), body)
-                self.assertIn(str(record["summary"]), body)
+                self.assertIn(escape(str(record["title"])), body)
+                self.assertIn(escape(str(record["summary"])), body)
         self.assertEqual(body.count("Read topic"), len(records))
         # The first page holds the first slice of the existing order, and the last
         # page holds the last, so the pages are cut from the catalogue rather than
@@ -177,11 +218,14 @@ class WikiCataloguePaginationTests(TestCase):
         for path in (reverse("wiki-home"), f"{reverse('wiki-home')}?page=2"):
             with self.subTest(path=path):
                 body = self.client.get(path).content.decode()
+                explore = body.split('aria-label="Wiki exploration"', 1)[1].split("</nav>", 1)[0]
                 self.assertIn('<h1 id="wiki-heading">DataTalks.Club Podcast Wiki</h1>', body)
                 self.assertIn('name="q"', body)
                 self.assertIn('aria-label="Wiki exploration"', body)
-                self.assertIn(f'href="{reverse("wiki-graph")}"', body)
-                self.assertIn(f'href="{reverse("wiki-special")}"', body)
+                self.assertIn(f'href="{reverse("wiki-graph")}"', explore)
+                self.assertIn(f'href="{reverse("wiki-home")}?q="', explore)
+                self.assertIn(f'href="{reverse("wiki-special")}"', explore)
+                self.assertNotIn('href="/wiki/search"', explore)
                 self.assertIn('<h2 id="catalog-heading">Wiki pages</h2>', body)
                 self.assertIn('aria-label="Wiki catalogue pages"', body)
 
@@ -225,7 +269,17 @@ class WikiCataloguePaginationTests(TestCase):
                 self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
 
     def test_the_catalogue_selector_accepts_one_spelling_and_fails_closed(self) -> None:
-        for bad_query in ("page=0", "page=01", "page=%32", "page=2&page=3"):
+        for bad_query in (
+            "page=",
+            "page=0",
+            "page=+2",
+            "page=-2",
+            "page=01",
+            "page=%32",
+            "page=١",
+            "page=1000",
+            "page=2&page=3",
+        ):
             with self.subTest(bad_query=bad_query):
                 response = self.client.get(f"{reverse('wiki-home')}?{bad_query}")
                 self.assertEqual(response.status_code, 400)
@@ -247,6 +301,28 @@ class WikiCataloguePaginationTests(TestCase):
         self.assertEqual(rejected.status_code, 405)
         self.assertEqual(rejected.headers["Allow"], "GET, HEAD")
         self.assertEqual(rejected.headers["Cache-Control"], "no-store, max-age=0")
+
+    def test_head_matches_get_status_metadata_and_empty_bodies(self) -> None:
+        for path in (
+            reverse("wiki-home"),
+            f"{reverse('wiki-home')}?page=1",
+            f"{reverse('wiki-home')}?page=2",
+            f"{reverse('wiki-home')}?page=0",
+            f"{reverse('wiki-home')}?page=999",
+        ):
+            with self.subTest(path=path):
+                get_response = self.client.get(path)
+                head_response = self.client.head(path)
+                self.assertEqual(head_response.status_code, get_response.status_code)
+                self.assertEqual(
+                    head_response.headers.get("Cache-Control"),
+                    get_response.headers.get("Cache-Control"),
+                )
+                self.assertEqual(
+                    head_response.headers.get("Allow"),
+                    get_response.headers.get("Allow"),
+                )
+                self.assertEqual(head_response.content, b"")
 
     def test_the_slash_alias_still_forwards_its_raw_query_in_one_hop(self) -> None:
         response = self.client.get("/wiki/?page=2", follow=False)
@@ -272,6 +348,19 @@ class WikiCataloguePaginationTests(TestCase):
 
         self.assertIn("<loc>https://datatalks.club/wiki</loc>", sitemap)
         self.assertNotIn("?page=", sitemap)
+
+    def test_the_hub_uses_the_shared_paginator_include_and_no_wiki_only_control(self) -> None:
+        source = (REPOSITORY_ROOT / "templates/public/wiki_hub.html").read_text(encoding="utf-8")
+        markup = re.sub(
+            r"{%\s*comment\s*%}.*?{%\s*endcomment\s*%}",
+            "",
+            source,
+            flags=re.DOTALL,
+        )
+
+        self.assertIn('include "public/_pagination.html"', markup)
+        self.assertNotIn("?page=", markup)
+        self.assertFalse((REPOSITORY_ROOT / "templates/public/_wiki_pagination.html").exists())
 
 
 class WikiSearchTests(TestCase):
@@ -309,6 +398,68 @@ class WikiSearchTests(TestCase):
 
         self.assertNotIn("results for", body)
         self.assertNotIn("No matching Wiki pages were found.", body)
+
+    def test_the_editorial_search_slug_stays_a_wiki_page(self) -> None:
+        response = self.client.get("/wiki/search")
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "public/wiki_detail.html")
+        self.assertIn("<title>Search — DataTalks.Club Wiki</title>", body)
+        self.assertIn(
+            "Search as the product system that turns retrieval, ranking, answers",
+            body,
+        )
+        self.assertNotIn("results for", body)
+        self.assertNotIn('<nav class="pagination"', body)
+
+    def test_search_still_trims_bounds_and_matches_every_term(self) -> None:
+        trimmed = self.client.get(reverse("wiki-home"), {"q": "  volunteer nonprofit  "})
+        plain = self.client.get(reverse("wiki-home"), {"q": "volunteer nonprofit"})
+        volunteer = self.client.get(reverse("wiki-home"), {"q": "volunteer"})
+
+        self.assertEqual(trimmed.context["query"], "volunteer nonprofit")
+        self.assertEqual(
+            [result["url"] for result in trimmed.context["results"]],
+            [result["url"] for result in plain.context["results"]],
+        )
+        self.assertTrue(plain.context["results"])
+        self.assertLess(len(plain.context["results"]), len(volunteer.context["results"]))
+        self.assertTrue(
+            {result["url"] for result in plain.context["results"]}.issubset(
+                {result["url"] for result in volunteer.context["results"]}
+            )
+        )
+        for result in plain.context["results"]:
+            haystack = " ".join(
+                str(result.get(field, ""))
+                for field in ("title", "page_title", "segment_title", "text", "related_terms")
+            ).casefold()
+            self.assertIn("volunteer", haystack)
+            self.assertIn("nonprofit", haystack)
+
+        long_query = "x" * 250
+        bounded = self.client.get(reverse("wiki-home"), {"q": long_query})
+        self.assertEqual(bounded.context["query"], "x" * 200)
+        self.assertEqual(len(bounded.context["query"]), 200)
+
+    def test_search_still_caps_results_at_one_hundred(self) -> None:
+        results = _wiki_search_results("data")
+        response = self.client.get(reverse("wiki-home"), {"q": "data"})
+
+        self.assertEqual(len(results), 100)
+        self.assertEqual(len(response.context["results"]), 100)
+        self.assertIn("100 results for &ldquo;data&rdquo;", response.content.decode())
+        self.assertNotIn('<nav class="pagination"', response.content.decode())
+
+    def test_accepted_companion_search_parameters_do_not_page_or_leave_search(self) -> None:
+        response = self.client.get("/wiki?q=machine+learning&document_type=page")
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("results for", body)
+        self.assertNotIn('<nav class="pagination"', body)
+        self.assertIn('<link rel="canonical" href="https://datatalks.club/wiki">', body)
 
 
 class WikiGraphTests(TestCase):

@@ -371,6 +371,8 @@ def test_public_pages_remain_meaningful_without_javascript(
             (_featured_event_path(), FEATURED_EVENT_TITLE),
             (FEATURED_SPEAKER_PATH, FEATURED_SPEAKER_NAME),
             ("/wiki/search", "Search"),
+            ("/wiki", "DataTalks.Club Podcast Wiki"),
+            ("/wiki?page=2", "DataTalks.Club Podcast Wiki"),
         ):
             response = page.goto(f"{live_server.url}{path}")
             assert response is not None and response.status == 200
@@ -464,6 +466,34 @@ def test_mobile_keyboard_navigation_and_no_results(page: Page, live_server) -> N
     expect(page.get_by_text("No matching Wiki pages were found.")).to_be_visible()
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     _shot(page, "wiki-search-empty-mobile.png")
+
+
+@pytest.mark.core
+def test_wiki_catalogue_page_two_is_usable_without_javascript(
+    browser: Browser,
+    live_server,
+) -> None:
+    context = browser.new_context(
+        java_script_enabled=False,
+        viewport={"width": 390, "height": 844},
+        reduced_motion="reduce",
+    )
+    page = context.new_page()
+    try:
+        response = page.goto(f"{live_server.url}/wiki?page=2")
+        assert response is not None and response.status == 200
+        expect(
+            page.get_by_role("heading", name="DataTalks.Club Podcast Wiki", exact=True)
+        ).to_be_visible()
+        expect(page.get_by_role("navigation", name="Wiki exploration")).to_be_visible()
+        expect(page.get_by_role("link", name="Graph", exact=False).first).to_be_visible()
+        expect(page.locator('a[href="/wiki?q="]')).to_be_visible()
+        expect(page.get_by_role("navigation", name="Wiki catalogue pages")).to_be_visible()
+        expect(page.get_by_text("Showing 21–40.")).to_be_visible()
+        expect(page.get_by_label("Page 2, current page")).to_be_visible()
+        assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    finally:
+        context.close()
 
 
 @pytest.mark.core
