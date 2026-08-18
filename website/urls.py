@@ -71,6 +71,11 @@ urlpatterns = [
     path("faq/<slug:course_slug>.html", review_views.faq_course, name="faq-course"),
     path("slack", review_views.slack, name="slack"),
     path("slack.html", public_views.permanent_public_redirect, {"target": "/slack"}),
+    path(
+        "slack/guidelines.html",
+        public_views.permanent_public_redirect,
+        {"target": "/slack"},
+    ),
     path("health/live", core_views.liveness, name="health-live"),
     path("health/ready", core_views.readiness, name="health-ready"),
     path("studio", core_views.management_slash_redirect, name="studio-slash-redirect"),

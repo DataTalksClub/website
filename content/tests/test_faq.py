@@ -182,6 +182,39 @@ class FaqRoutesTests(TestCase):
             rendered,
         )
 
+    def test_workspace_slack_links_render_as_the_canonical_slack_page(self) -> None:
+        """Both projected workspace links land on ``/slack``; other Slack hosts stay external."""
+
+        cases = {
+            "machine-learning-zoomcamp": ("https://app.slack.com/client/T01ATQK62F8/C0288NJ5XSA",),
+            "llm-zoomcamp": ("https://datatalks-club.slack.com/archives/C0791HB4A58",),
+        }
+        seen = 0
+        for course_slug, fragments in cases.items():
+            course = next(course for course in faq_courses() if course["slug"] == course_slug)
+            for question in faq_questions(course):
+                if not any(fragment in question["answer"] for fragment in fragments):
+                    continue
+                seen += 1
+                with self.subTest(course=course_slug, question=question["id"]):
+                    rendered = render_faq_answer(question)
+                    self.assertIn('href="/slack"', rendered)
+                    self.assertNotIn("app.slack.com", rendered)
+                    self.assertNotIn("datatalks-club.slack.com", rendered)
+        self.assertEqual(seen, 2)
+
+        ml_course = next(
+            course for course in faq_courses() if course["slug"] == "machine-learning-zoomcamp"
+        )
+        help_question = next(
+            question
+            for question in faq_questions(ml_course)
+            if "https://slack.com/help/" in question["answer"]
+        )
+        rendered = render_faq_answer(help_question)
+        self.assertIn('href="https://slack.com/help/articles/205239967-Join-a-channel"', rendered)
+        self.assertNotIn('href="/slack"', rendered)
+
     def test_faq_rendering_does_not_mutate_projection_or_question_source(self) -> None:
         course = next(course for course in faq_courses() if course["slug"] == "llm-zoomcamp")
         question = next(
