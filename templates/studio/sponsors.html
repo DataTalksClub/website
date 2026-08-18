@@ -1,0 +1,273 @@
+{% extends "studio/base.html" %}
+
+{% block title %}
+  Sponsors · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Site
+    </p>
+    <h1>
+      Sponsors
+    </h1>
+    <p class="admin-lede">
+      Manage the public sponsor directory. Use plain organization names only. Never enter
+      personal data, attendee details, consent statements, or HTML.
+    </p>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <nav aria-label="Studio sections" class="filter-pills">
+    {% for item in studio_navigation %}
+      <a class="filter-pill" href="{% url item.route %}">{{ item.label }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if saved %}
+    <div class="admin-notice admin-notice-success" role="status">
+      <p class="mono-label">Saved</p>
+      <p>Sponsor directory updated.</p>
+    </div>
+  {% endif %}
+
+  {% if error_message %}
+    <section
+      id="sponsor-errors"
+      class="a11y-error-summary"
+      role="alert"
+      aria-labelledby="sponsor-errors-heading"
+      tabindex="-1"
+    >
+      <h2 id="sponsor-errors-heading">There is a problem</h2>
+      <p>{{ error_message }}</p>
+      <ul>
+        {% for field, message in field_errors.items %}
+          <li>
+            {% if field == "key" %}
+              <a href="#sponsor-key">{{ message }}</a>
+            {% elif field == "name" %}
+              <a href="#sponsor-name">{{ message }}</a>
+            {% elif field == "url" %}
+              <a href="#sponsor-url">{{ message }}</a>
+            {% elif field == "tagline" %}
+              <a href="#sponsor-tagline">{{ message }}</a>
+            {% elif field == "lifecycle" %}
+              <a href="#sponsor-lifecycle">{{ message }}</a>
+            {% elif field == "assignments" %}
+              <a href="#sponsor-placement">{{ message }}</a>
+            {% elif field == "reason" %}
+              <a href="#sponsor-export-reason">{{ message }}</a>
+            {% else %}
+              <a href="#create-sponsor">{{ message }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <script>
+      document.getElementById("sponsor-errors").focus();
+    </script>
+  {% endif %}
+
+  <section class="admin-section" aria-labelledby="sponsor-list-heading">
+    <div class="admin-section-head">
+      <h2 id="sponsor-list-heading">Directory</h2>
+      <p class="mono-note">{{ total_count }} records</p>
+    </div>
+    <form class="admin-form" method="get" action="{% url 'studio:sponsor-list' %}">
+      <div class="admin-form-grid">
+        <div class="field">
+          <label class="field-label" for="filter-key">Key</label>
+          <input class="field-input" id="filter-key" name="key" value="{{ filters.key }}">
+        </div>
+        <div class="field">
+          <label class="field-label" for="filter-lifecycle">Lifecycle</label>
+          <select class="field-input" id="filter-lifecycle" name="lifecycle">
+            <option value="">All</option>
+            <option value="draft"{% if filters.lifecycle == "draft" %} selected{% endif %}>Draft</option>
+            <option value="active"{% if filters.lifecycle == "active" %} selected{% endif %}>Active</option>
+            <option value="archived"{% if filters.lifecycle == "archived" %} selected{% endif %}>Archived</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="filter-placement">Placement</label>
+          <select class="field-input" id="filter-placement" name="placement">
+            <option value="">All</option>
+            {% for placement in placements %}
+              <option value="{{ placement }}"{% if filters.placement == placement %} selected{% endif %}>{{ placement }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="admin-form-actions">
+        <button class="cta cta-secondary" type="submit">Filter</button>
+      </div>
+    </form>
+    {% if sponsors %}
+      <div class="admin-scroll" tabindex="0" role="region" aria-label="Sponsor directory">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th scope="col">Key</th>
+              <th scope="col">Name</th>
+              <th scope="col">Lifecycle</th>
+              <th scope="col">Source</th>
+              <th scope="col">Revision</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sponsor in sponsors %}
+              <tr>
+                <th scope="row">
+                  <a href="{% url 'studio:sponsor-detail' sponsor.id %}">{{ sponsor.key }}</a>
+                </th>
+                <td>{{ sponsor.name }}</td>
+                <td>{{ sponsor.lifecycle }}</td>
+                <td>{{ sponsor.source }}</td>
+                <td>{{ sponsor.revision }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p>
+        There are no sponsors yet.
+        {% if can_write %}
+          <a href="#create-sponsor">Create the first sponsor</a>.
+        {% endif %}
+      </p>
+    {% endif %}
+  </section>
+
+  {% if can_write %}
+    <section class="admin-section" id="create-sponsor" aria-labelledby="create-sponsor-heading">
+      <div class="admin-section-head">
+        <h2 id="create-sponsor-heading">Create a sponsor</h2>
+      </div>
+      <form class="admin-form" method="post" action="{% url 'studio:sponsor-list' %}">
+        {% csrf_token %}
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        <div class="field">
+          <label class="field-label" for="sponsor-key">Key</label>
+          <input
+            class="field-input"
+            id="sponsor-key"
+            name="key"
+            value="{{ submitted.key }}"
+            maxlength="64"
+            required
+            {% if field_errors.key %}aria-invalid="true"{% endif %}
+          >
+        </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-name">Name</label>
+          <input
+            class="field-input"
+            id="sponsor-name"
+            name="name"
+            value="{{ submitted.name }}"
+            maxlength="120"
+            required
+            {% if field_errors.name %}aria-invalid="true"{% endif %}
+          >
+        </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-url">HTTPS URL</label>
+          <input
+            class="field-input"
+            id="sponsor-url"
+            name="url"
+            value="{{ submitted.url }}"
+            maxlength="500"
+            {% if field_errors.url %}aria-invalid="true"{% endif %}
+          >
+        </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-tagline">Tagline</label>
+          <input
+            class="field-input"
+            id="sponsor-tagline"
+            name="tagline"
+            value="{{ submitted.tagline }}"
+            maxlength="200"
+            {% if field_errors.tagline %}aria-invalid="true"{% endif %}
+          >
+        </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-lifecycle">Lifecycle</label>
+          <select class="field-input" id="sponsor-lifecycle" name="lifecycle">
+            <option value="draft"{% if submitted.lifecycle != "active" %} selected{% endif %}>Draft</option>
+            <option value="active"{% if submitted.lifecycle == "active" %} selected{% endif %}>Active</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-placement">Placement</label>
+          <select class="field-input" id="sponsor-placement" name="placement">
+            <option value="">None</option>
+            {% for placement in placements %}
+              <option value="{{ placement }}"{% if submitted.placement == placement %} selected{% endif %}>{{ placement }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label" for="sponsor-position">Position</label>
+          <input
+            class="field-input"
+            id="sponsor-position"
+            name="position"
+            type="number"
+            min="1"
+            value="{{ submitted.position|default:1 }}"
+          >
+        </div>
+        <label class="admin-check" for="sponsor-assignment-enabled">
+          <input
+            id="sponsor-assignment-enabled"
+            type="checkbox"
+            name="assignment_enabled"
+            value="true"
+            {% if submitted.assignment_enabled %}checked{% endif %}
+          >
+          <span>Enable this placement</span>
+        </label>
+        <div class="admin-form-actions">
+          <button class="cta cta-primary" type="submit">Create sponsor</button>
+        </div>
+      </form>
+    </section>
+  {% endif %}
+
+  {% if can_export %}
+    <section class="admin-section" aria-labelledby="export-sponsor-heading">
+      <div class="admin-section-head">
+        <h2 id="export-sponsor-heading">Export directory</h2>
+      </div>
+      <form class="admin-form" method="post" action="{% url 'studio:sponsor-export' %}">
+        {% csrf_token %}
+        <input type="hidden" name="idempotency_key" value="{{ export_idempotency_key }}">
+        <div class="field">
+          <label class="field-label" for="sponsor-export-reason">Reason</label>
+          <input
+            class="field-input"
+            id="sponsor-export-reason"
+            name="reason"
+            maxlength="200"
+            required
+            {% if field_errors.reason %}aria-invalid="true"{% endif %}
+          >
+        </div>
+        <label class="admin-check" for="sponsor-export-confirmed">
+          <input id="sponsor-export-confirmed" type="checkbox" name="confirmed" value="true" required>
+          <span>Confirm a public-safe CSV export of the sponsor directory</span>
+        </label>
+        <div class="admin-form-actions">
+          <button class="cta cta-secondary" type="submit">Export CSV</button>
+        </div>
+      </form>
+    </section>
+  {% endif %}
+{% endblock %}

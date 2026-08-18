@@ -71,6 +71,9 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("courses", "registration_count_baseline_manage"),
                 ("core", "read_operational_settings"),
                 ("core", "change_operational_settings"),
+                ("core", "read_sponsors"),
+                ("core", "change_sponsors"),
+                ("core", "export_sponsors"),
             },
         )
 
@@ -89,6 +92,9 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("core", "access_studio"),
                 ("core", "read_operational_settings"),
                 ("core", "change_operational_settings"),
+                ("core", "read_sponsors"),
+                ("core", "change_sponsors"),
+                ("core", "export_sponsors"),
                 ("management_auth", "manage_api_credentials"),
             },
         )
@@ -103,6 +109,8 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("core", "access_studio"),
                 ("core", "read_operational_settings"),
                 ("core", "change_operational_settings"),
+                ("core", "read_sponsors"),
+                ("core", "change_sponsors"),
                 ("events", "historical_registration_import_manage"),
                 ("events", "historical_registration_mapping_manage"),
                 ("courses", "registration_count_baseline_manage"),

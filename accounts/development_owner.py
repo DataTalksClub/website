@@ -20,6 +20,9 @@ from accounts.studio_roles import (
     MANAGE_API_CREDENTIALS,
     SITE_SETTINGS_READ,
     SITE_SETTINGS_WRITE,
+    SPONSORS_EXPORT,
+    SPONSORS_READ,
+    SPONSORS_WRITE,
     STUDIO_ACCESS,
     synchronize_studio_roles,
 )
@@ -196,6 +199,9 @@ def bootstrap_development_owner(
         )
         site_settings_read = _permission(SITE_SETTINGS_READ, using=using)
         site_settings_write = _permission(SITE_SETTINGS_WRITE, using=using)
+        sponsors_read = _permission(SPONSORS_READ, using=using)
+        sponsors_write = _permission(SPONSORS_WRITE, using=using)
+        sponsors_export = _permission(SPONSORS_EXPORT, using=using)
 
         if existing_user is None:
             if (
@@ -270,6 +276,9 @@ def bootstrap_development_owner(
                 credential_management,
                 site_settings_read,
                 site_settings_write,
+                sponsors_read,
+                sponsors_write,
+                sponsors_export,
             )
         )
 
@@ -298,6 +307,8 @@ def bootstrap_development_owner(
                 course_count_baseline,
                 site_settings_read,
                 site_settings_write,
+                sponsors_read,
+                sponsors_write,
             )
         )
 

@@ -35,6 +35,9 @@ from core.models import (
     OperationalSetting,
     OperationalSettingRevision,
     RevisionConflict,
+    Sponsor,
+    SponsorPlacementAssignment,
+    SponsorRevision,
 )
 from core.operations import (
     InvalidOperationTransition,
@@ -624,6 +627,23 @@ class SchemaConstraintTests(TransactionTestCase):
                 "core_operation_status_time",
                 "core_operation_kind_time",
                 "core_operation_correlation",
+            },
+            Sponsor._meta.db_table: {
+                "core_sponsor_revision_positive",
+                "core_sponsor_lifecycle_allowlist",
+                "core_sponsor_lifecycle_key",
+            },
+            SponsorPlacementAssignment._meta.db_table: {
+                "core_sponsor_assignment_unique",
+                "core_sponsor_assignment_position_unique",
+                "core_sponsor_placement_allowlist",
+                "core_sponsor_assignment_position_positive",
+                "core_sponsor_assignment_public",
+            },
+            SponsorRevision._meta.db_table: {
+                "core_sponsor_history_revision_unique",
+                "core_sponsor_history_revision_positive",
+                "core_sponsor_history_key",
             },
         }
         with connection.cursor() as cursor:

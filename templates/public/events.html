@@ -122,6 +122,41 @@
         margin-top: 0.5rem;
       }
 
+      .events-sponsors {
+        padding-top: 1.5rem;
+        padding-bottom: 2rem;
+      }
+
+      .events-sponsors h2 {
+        font-size: clamp(1.35rem, 2.4vw, 1.8rem);
+      }
+
+      .sponsor-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem 1.5rem;
+        list-style: none;
+        margin: 1rem 0 0;
+        padding: 0;
+      }
+
+      .sponsor-strip li {
+        display: grid;
+        gap: 0.2rem;
+        max-width: 28rem;
+        min-width: 0;
+      }
+
+      .sponsor-strip a {
+        overflow-wrap: anywhere;
+      }
+
+      .sponsor-tagline {
+        color: var(--muted);
+        font-size: 0.9rem;
+        overflow-wrap: anywhere;
+      }
+
       /* The archive used to draw a paginator of its own, and styled it here, until
          issue #177.  Past events now include the shared public paginator, drawn from
          `.filter-pills`/`.filter-pill`/`.status-pill` and carries its one
@@ -262,6 +297,27 @@
           {% include "public/_pagination.html" %}
         </div>
       </section>
+      {% if events_hub_sponsors %}
+        <section class="band band-lavender events-sponsors" aria-labelledby="events-sponsors-heading">
+          <div class="shell shell-reading">
+            <h2 id="events-sponsors-heading">Supported by</h2>
+            <ul class="sponsor-strip">
+              {% for sponsor in events_hub_sponsors %}
+                <li>
+                  {% if sponsor.url %}
+                    <a href="{{ sponsor.url }}" rel="sponsored noopener noreferrer">{{ sponsor.name }}</a>
+                  {% else %}
+                    <span>{{ sponsor.name }}</span>
+                  {% endif %}
+                  {% if sponsor.tagline %}
+                    <span class="sponsor-tagline">{{ sponsor.tagline }}</span>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </section>
+      {% endif %}
     </main>
     {% include "core/_site_shell_foot.html" %}
   </body>

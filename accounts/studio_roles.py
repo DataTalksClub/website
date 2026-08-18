@@ -18,6 +18,9 @@ HISTORICAL_REGISTRATION_MAPPING_MANAGE = "events.historical_registration_mapping
 COURSE_REGISTRATION_COUNT_BASELINE_MANAGE = "courses.registration_count_baseline_manage"
 SITE_SETTINGS_READ = "core.read_operational_settings"
 SITE_SETTINGS_WRITE = "core.change_operational_settings"
+SPONSORS_READ = "core.read_sponsors"
+SPONSORS_WRITE = "core.change_sponsors"
+SPONSORS_EXPORT = "core.export_sponsors"
 
 _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
@@ -31,9 +34,21 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 COURSE_REGISTRATION_COUNT_BASELINE_MANAGE,
                 SITE_SETTINGS_READ,
                 SITE_SETTINGS_WRITE,
+                SPONSORS_READ,
+                SPONSORS_WRITE,
+                SPONSORS_EXPORT,
             }
         ),
-        "content_operator": frozenset({STUDIO_ACCESS, SITE_SETTINGS_READ, SITE_SETTINGS_WRITE}),
+        "content_operator": frozenset(
+            {
+                STUDIO_ACCESS,
+                SITE_SETTINGS_READ,
+                SITE_SETTINGS_WRITE,
+                SPONSORS_READ,
+                SPONSORS_WRITE,
+                SPONSORS_EXPORT,
+            }
+        ),
         "course_operator": frozenset(
             {STUDIO_ACCESS, COURSE_REGISTRATION_COUNT_BASELINE_MANAGE}
         ),
@@ -46,7 +61,9 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
         ),
         "email_operator": frozenset({STUDIO_ACCESS}),
         "support_operator": frozenset({STUDIO_ACCESS}),
-        "auditor": frozenset({STUDIO_ACCESS, AUDIT_BROWSE, SITE_SETTINGS_READ}),
+        "auditor": frozenset(
+            {STUDIO_ACCESS, AUDIT_BROWSE, SITE_SETTINGS_READ, SPONSORS_READ}
+        ),
     }
 )
 ROLE_PERMISSIONS = _ROLE_PERMISSIONS
@@ -60,6 +77,16 @@ def _validate_role_dependencies() -> None:
     )
     if invalid:
         raise RuntimeError("site settings writers must also have read authority")
+    invalid_sponsors = sorted(
+        role
+        for role, permissions in ROLE_PERMISSIONS.items()
+        if (
+            (SPONSORS_WRITE in permissions or SPONSORS_EXPORT in permissions)
+            and SPONSORS_READ not in permissions
+        )
+    )
+    if invalid_sponsors:
+        raise RuntimeError("sponsor writers and exporters must also have read authority")
 
 
 _validate_role_dependencies()
