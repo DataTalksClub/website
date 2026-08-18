@@ -12,14 +12,14 @@
     {% canonical_link canonical_url %}
     <meta
       name="description"
-      content="Free, project-based courses where you learn to build and build to learn, with a community of other learners and builders."
+      content="Free, hands-on courses in data and AI, with a clear path, practical work, and a community to help you get unstuck."
     >
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="DataTalks.Club">
     <meta property="og:title" content="DataTalks.Club — free courses for data and AI engineers">
     <meta
       property="og:description"
-      content="Free, project-based courses where you learn to build and build to learn, with a community of other learners and builders."
+      content="Free, hands-on courses in data and AI, with a clear path, practical work, and a community to help you get unstuck."
     >
     <meta property="og:url" content="{{ canonical_url }}">
     <meta name="twitter:card" content="summary">
@@ -27,7 +27,7 @@
     <meta name="twitter:title" content="DataTalks.Club — free courses for data and AI engineers">
     <meta
       name="twitter:description"
-      content="Free, project-based courses where you learn to build and build to learn."
+      content="Free, hands-on courses in data and AI, with a clear path, practical work, and a community to help you get unstuck."
     >
     <style>
       /* ------------------------------------------------------------------ *
@@ -641,14 +641,13 @@
       <section class="band band-cream hero" aria-labelledby="hero-heading">
         <div class="shell hero-grid">
           <div>
-            <h1 id="hero-heading">Ship data pipelines and AI systems that run in production.</h1>
+            <h1 id="hero-heading">Start with the foundations. Finish with a project you can present.</h1>
             <p class="hero-lede">
-              Free, project-based courses where you learn to build and build to learn — with a
-              community of other learners and builders.
+              Free, hands-on courses in data and AI, with a clear path, practical work, and a community to help you get unstuck.
             </p>
             <div class="hero-actions">
-              <a class="cta cta-primary" href="{% url 'account_signup' %}">Create your free account</a>
-              <a class="cta cta-secondary" href="#courses">Pick a course ↓</a>
+              <a class="cta cta-primary" href="{% url 'course_list' %}">Explore free courses</a>
+              <a class="cta cta-secondary" href="{% url 'slack' %}">Join the community</a>
             </div>
           </div>
           <div class="hero-figure">
@@ -661,8 +660,8 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="climb-heading">The climb, as members describe it</h2>
-              <p>Three stages everyone recognises. The middle one is where the courses do their work.</p>
+              <h2 id="climb-heading">From “What does that mean?” to “Let me show you.”</h2>
+              <p>Learn the concepts, connect the pieces, and leave ready to explain what you built.</p>
             </div>
           </div>
           <div class="card-grid card-grid-3">
@@ -670,25 +669,25 @@
               {% include "core/_home_illustration.html" with variant="stuck" %}
               <div class="climb-step">
                 <span class="step-number" aria-hidden="true">1</span>
-                <h3>Right now</h3>
+                <h3>I don’t know where to start</h3>
               </div>
-              <p>Job posts full of words you'd have to google. No portfolio you'd show anyone.</p>
+              <p>The tools and terms are unfamiliar, and I’m not sure what to learn first.</p>
             </article>
             <article class="card climb-card">
               {% include "core/_home_illustration.html" with variant="learning" %}
               <div class="climb-step">
                 <span class="step-number step-number-2" aria-hidden="true">2</span>
-                <h3>Nine weeks in</h3>
+                <h3>I’m connecting the pieces</h3>
               </div>
-              <p>An orchestrated pipeline running on a schedule, reviewed by classmates, on your GitHub.</p>
+              <p>The course gives me a path. The community helps me solve problems and keep moving.</p>
             </article>
             <article class="card climb-card">
               {% include "core/_home_illustration.html" with variant="shipping" %}
               <div class="climb-step">
                 <span class="step-number step-number-3" aria-hidden="true">3</span>
-                <h3>In production</h3>
+                <h3>I can talk through my project</h3>
               </div>
-              <p>Deployed models, monitored agents, and the interview where you talk about your own system.</p>
+              <p>At an interview, I can explain what I built, why I built it, and how it works.</p>
             </article>
           </div>
         </div>

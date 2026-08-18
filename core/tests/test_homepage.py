@@ -33,8 +33,14 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "DataTalks.Club")
         self.assertContains(
             response,
-            "Ship data pipelines and AI systems that run in production.",
+            "Start with the foundations. Finish with a project you can present.",
         )
+        self.assertContains(response, "Explore free courses")
+        self.assertContains(response, "Join the community")
+        self.assertContains(response, "From “What does that mean?” to “Let me show you.”")
+        self.assertContains(response, "I don’t know where to start")
+        self.assertContains(response, "I’m connecting the pieces")
+        self.assertContains(response, "I can talk through my project")
         self.assertContains(response, "Courses")
         self.assertContains(response, "AI Dev Tools Zoomcamp")
         self.assertContains(response, "Starts August 31")
@@ -92,7 +98,7 @@ class MainHomepageRoutingTests(TestCase):
             self.assertEqual(rendered.status_code, 200)
             self.assertContains(
                 rendered,
-                "Ship data pipelines and AI systems that run in production.",
+                "Start with the foundations. Finish with a project you can present.",
             )
             self.assertContains(rendered, "AI Dev Tools Zoomcamp")
             self.assertContains(rendered, "The wiki, as a graph")
