@@ -27,7 +27,7 @@ ROBOTS_VALUE = "noindex, nofollow"
 ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
 # The public home identity, as design 5a renders it (issue #179).
-HOME_IDENTITY_MARKER = "Ship data pipelines and AI systems that run in production."
+HOME_IDENTITY_MARKER = "Start with the foundations. Finish with a project you can present."
 
 
 class _TextParser(html.parser.HTMLParser):

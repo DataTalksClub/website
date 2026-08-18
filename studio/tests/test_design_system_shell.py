@@ -1,7 +1,7 @@
-"""The Studio surfaces carry the design 5a shell (issue #179).
+"""The Studio surfaces carry the shared design-system shell.
 
 Studio is ~30 near-identical staff pages, so unlike the public pages — which are
-each a standalone design 5a document — this surface keeps one base template per
+each a standalone design-system document — this surface keeps one base template per
 section: ``templates/studio/base.html`` and the Studio Courses base that extends
 it.  These tests pin what that base guarantees every page below it, whatever the
 page itself renders: one inline stylesheet and no external CSS, the shared

@@ -333,7 +333,7 @@ def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_database_course_catalog_renders_the_design_5a_index(
+def test_database_course_catalog_renders_the_design_system_index(
     page: Page,
     live_server,
     cmp_course_catalog: dict[str, Course],
@@ -683,7 +683,7 @@ def test_registration_hero_fits_success_state_without_javascript(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_no_database_course_catalog_uses_the_design_5a_empty_state(
+def test_no_database_course_catalog_uses_the_design_system_empty_state(
     page: Page,
     live_server,
     viewport: dict[str, int],
@@ -718,7 +718,7 @@ def test_no_database_course_catalog_uses_the_design_5a_empty_state(
 
 
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
-def test_database_backed_empty_catalog_keeps_the_design_5a_empty_composition(
+def test_database_backed_empty_catalog_keeps_the_design_system_empty_composition(
     page: Page,
     live_server,
     viewport: dict[str, int],

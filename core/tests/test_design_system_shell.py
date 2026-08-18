@@ -1,6 +1,6 @@
-"""One shell for every design 5a page (issue #179).
+"""One shell for every public design-system page.
 
-The pages rebuilt on design 5a each inline their own document rather than
+The pages each inline their own document rather than
 extending a base template, and for a while each also inlined its own copy of the
 masthead, the footer and the script block.  Copying a shell five times is how
 `/slack` left the primary navigation and `user_menu.js` left the script set
@@ -29,9 +29,9 @@ from accounts.navigation import login_url_for_path
 from content.public_data import public_projection
 from courses.models.course import Course
 
-# Every page built in the design 5a system, and the navigation entry each one is.
+# Every public page in the design system, and the navigation entry each one is.
 # A new page in the system belongs in this list.
-DESIGN_5A_TEMPLATES = (
+DESIGN_SYSTEM_TEMPLATES = (
     "core/home.html",
     "courses/course_list.html",
     "courses/course.html",
@@ -236,7 +236,7 @@ class DesignFiveAShellTests(TestCase):
             bodies[name] = response.content.decode()
         return bodies
 
-    def test_every_design_5a_page_offers_the_same_navigation_entries(self) -> None:
+    def test_every_design_system_page_offers_the_same_navigation_entries(self) -> None:
         destinations = [(label, reverse(route)) for label, route in EXPECTED_NAVIGATION]
         paths = self.page_paths()
 
@@ -266,7 +266,7 @@ class DesignFiveAShellTests(TestCase):
                 entries = navigation_entries(body)
                 self.assertEqual([(label, href) for label, href, _ in entries], expected)
 
-    def test_every_design_5a_page_reaches_the_community_slack(self) -> None:
+    def test_every_design_system_page_reaches_the_community_slack(self) -> None:
         """The regression that started this: four pages had no Slack link at all."""
 
         for name, body in self.rendered_pages().items():
@@ -274,7 +274,7 @@ class DesignFiveAShellTests(TestCase):
                 slack = [href for label, href, _ in navigation_entries(body) if label == "Slack"]
                 self.assertEqual(slack, [reverse("slack")])
 
-    def test_every_design_5a_page_marks_only_the_entry_it_is(self) -> None:
+    def test_every_design_system_page_marks_only_the_entry_it_is(self) -> None:
         expected_current = {
             "home": None,
             "courses index": "Courses",
@@ -316,7 +316,7 @@ class DesignFiveAShellTests(TestCase):
                     [] if expected_current[name] is None else [expected_current[name]],
                 )
 
-    def test_every_design_5a_page_loads_the_same_script_set(self) -> None:
+    def test_every_design_system_page_loads_the_same_script_set(self) -> None:
         """user_menu.js closes the account menu, and left every page with the rebuild."""
 
         expected = [static(source) for source in EXPECTED_SCRIPTS]
@@ -327,10 +327,10 @@ class DesignFiveAShellTests(TestCase):
                 # A page may append its own scripts, never reorder or drop the shared set.
                 self.assertEqual(sources[: len(expected)], expected)
 
-    def test_no_design_5a_page_keeps_its_own_copy_of_the_shell(self) -> None:
+    def test_no_design_system_page_keeps_its_own_copy_of_the_shell(self) -> None:
         """The shell is included, never inlined: that is what stops the next drift."""
 
-        for name in DESIGN_5A_TEMPLATES:
+        for name in DESIGN_SYSTEM_TEMPLATES:
             with self.subTest(template=name):
                 origin = cast(ResolvedTemplate, get_template(name)).origin
                 if origin is None:

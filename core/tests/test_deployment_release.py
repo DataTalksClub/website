@@ -2686,7 +2686,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 200,
                 noindex,
                 b"<title>DataTalks.Club \xe2\x80\x94 free courses for data and AI engineers</title>"
-                b"Ship data pipelines and AI systems that run in production."
+                b"Start with the foundations. Finish with a project you can present."
                 b"Free, project-based courses where you learn to build and build to learn"
                 + f"Version {VERSION_A}".encode()
                 + b'<link rel="canonical" href="https://datatalks.club/">'
@@ -2695,7 +2695,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"Ship data pipelines and AI systems that run in production."
+                b"Start with the foundations. Finish with a project you can present."
                 b'<link rel="canonical" href="https://datatalks.club/">',
             ),
             Response(
@@ -2802,7 +2802,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 Response(
                     200,
                     noindex,
-                    b"Ship data pipelines and AI systems that run in production."
+                    b"Start with the foundations. Finish with a project you can present."
                     + f"Version {VERSION_A}".encode()
                     + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
                 ),

@@ -502,7 +502,7 @@ Do not copy that markup into a page. The first five pages in the system each
 carried their own copy, and the copies drifted: `/slack` left the navigation on
 all five and `user_menu.js` left the script set on all five, so the account
 menu would not close on Escape or on an outside click (issue #179).
-`core/tests/test_design_5a_shell.py` now renders every page in the system and
+`core/tests/test_design_system_shell.py` now renders every page in the system and
 compares their navigation entries and script sets to each other.
 
 The navigation is **nine entries** — Events, Courses, Blog, Podcast, Wiki,
@@ -1193,8 +1193,8 @@ WebP**. The convention:
    `core/site_navigation.js`, `core/accessibility.js`,
    `core/analytics_preferences.js`). Do not copy any of it into the page, and
    do not set `aria-current` by hand — the shell reads it from
-   `primary_navigation_current`. Add the page to `DESIGN_5A_TEMPLATES` in
-   `core/tests/test_design_5a_shell.py`.
+   `primary_navigation_current`. Add the page to `DESIGN_SYSTEM_TEMPLATES` in
+   `core/tests/test_design_system_shell.py`.
 3. Compose the page as `section.band` elements with `.shell` inside; pick band
    colours from the band table; use `.band-head` for every section heading.
 4. Reach for the inventory before writing CSS: cards, chips, CTAs, status
