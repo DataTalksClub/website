@@ -203,6 +203,9 @@ class ArticleFaqCompositionTests(SimpleTestCase):
         for slug, expected in sorted(RECOVERED_SECTIONS.items()):
             record = projection["articles_by_slug"][slug]
             faq = article_faq(slug)
+            # A slug in RECOVERED_SECTIONS without a recovered FAQ is a
+            # fixture failure, not a case to skip past.
+            assert faq is not None
             with self.subTest(slug=slug):
                 view = article_view(record, people, faq)
 
@@ -248,6 +251,7 @@ class ArticleFaqPageTests(TestCase):
     def test_every_recovered_question_and_answer_reaches_the_page(self) -> None:
         for slug in sorted(RECOVERED_SECTIONS):
             faq = article_faq(slug)
+            assert faq is not None
             with self.subTest(slug=slug):
                 body = self.client.get(f"/blog/{slug}.html").content.decode()
 
@@ -331,15 +335,14 @@ class ArticleFaqPageTests(TestCase):
     def test_the_section_publishes_the_faq_data_the_legacy_accordion_published(self) -> None:
         for slug in sorted(RECOVERED_SECTIONS):
             faq = article_faq(slug)
+            assert faq is not None
             with self.subTest(slug=slug):
                 body = self.client.get(f"/blog/{slug}.html").content.decode()
-                graph = json.loads(
-                    re.search(
-                        r'<script type="application/ld\+json">\s*(.*?)\s*</script>', body, re.S
-                    )
-                    .group(1)
-                    .replace("\\u003c", "<")
-                )["@graph"]
+                structured = re.search(
+                    r'<script type="application/ld\+json">\s*(.*?)\s*</script>', body, re.S
+                )
+                assert structured is not None
+                graph = json.loads(structured.group(1).replace("\\u003c", "<"))["@graph"]
                 page = next(node for node in graph if node["@type"] == "FAQPage")
                 canonical = f"https://datatalks.club/blog/{slug}.html"
 
