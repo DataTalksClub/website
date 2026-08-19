@@ -57,11 +57,12 @@ HISTORICAL_WORKFLOW_SHA256 = "d6730d36c41866adcfd933ef733132e26ea67d292ddd0334ca
 # Issue #116 mechanically moves the copied legacy package and therefore retargets only
 # the Ruff and mypy exclusions to studio_courses. Issue #141 additionally raises
 # cryptography to >=50,<51 after pip-audit reported four advisories in 46.0.7, and the
-# sqlparse bump to 0.6.0 clears four 2026 advisories the same way; keep both
-# workflow-isolation seals pinned to this exact reviewed dependency policy.
+# sqlparse bump to 0.6.0 clears four 2026 advisories the same way; the Django 6.0.8
+# bump for issue #201 clears PYSEC-2026-3717 the same way. Keep both workflow-isolation
+# seals pinned to this exact reviewed dependency policy.
 STUDIO_COURSES_PYPROJECT_SHA256 = "832e5a9f985b840dc401b1fb563e0f3366c16c7387d0ec6763940100aa6f1956"
 SECURITY_REMEDIATED_UV_LOCK_SHA256 = (
-    "839a35927dfe09a74c0217baa6cf89f7a60e61197b17c265d499f8ac2d70e6e0"
+    "19c4d94ddfb753e5a1b85fc817a268d23ec6829162400c14734119915f00e458"
 )
 DATABASE_SECRET_ARN = (
     "arn:aws:secretsmanager:eu-west-1:817685572750:secret:website-sandbox/database-url-Ab12Cd"
