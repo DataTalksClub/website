@@ -28,6 +28,16 @@ ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
 # The public home identity, as design 5a renders it (issue #179).
 HOME_IDENTITY_MARKER = "Start with the foundations. Finish with a project you can present."
+# Every home content string run_http_smoke asserts against the live homepage: the
+# document title, the hero identity marker, and the hero lede (issue #198). The pins
+# follow templates/core/home.html; core/tests/test_home_release_contract.py imports
+# this tuple and fails Django CI when the rendered homepage drifts from the contract.
+HOME_CONTENT_PINS: tuple[str, ...] = (
+    "DataTalks.Club — free courses for data and AI engineers",
+    HOME_IDENTITY_MARKER,
+    "Free, hands-on courses in data and AI, with a clear path, practical work, and "
+    "a community to help you get unstuck.",
+)
 
 
 class _TextParser(html.parser.HTMLParser):
@@ -186,11 +196,7 @@ def run_http_smoke(
     html = home.body.decode("utf-8")
     if f"Version {version}" not in _visible_text(html):
         raise ReleaseContractError("home page footer lacks the exact version")
-    for expected in (
-        "DataTalks.Club — free courses for data and AI engineers",
-        HOME_IDENTITY_MARKER,
-        "Free, project-based courses where you learn to build and build to learn",
-    ):
+    for expected in HOME_CONTENT_PINS:
         if expected not in html:
             raise ReleaseContractError(f"home page lacks expected content: {expected}")
     canonical = '<link rel="canonical" href="https://datatalks.club/">'
