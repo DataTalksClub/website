@@ -99,6 +99,23 @@ site_settings_collection.management_capability_views = {  # type: ignore[attr-de
 
 
 @csrf_exempt
+def site_navigation_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.site_navigation_read(request, *args, **kwargs)
+    return views.site_navigation_write(request, *args, **kwargs)
+
+
+site_navigation_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.navigation.read",
+    "site.navigation.write",
+)
+site_navigation_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.site_navigation_read,
+    "PUT": views.site_navigation_write,
+}
+
+
+@csrf_exempt
 def sponsor_collection(request, *args, **kwargs):
     if request.method in {"GET", "HEAD"}:
         return views.sponsor_list(request, *args, **kwargs)
@@ -135,6 +152,7 @@ sponsor_item.management_capability_views = {  # type: ignore[attr-defined]
 urlpatterns = [
     path("health", views.admin_health, name="admin-health"),
     path("settings", site_settings_collection, name="admin-site-settings"),
+    path("navigation", site_navigation_collection, name="admin-site-navigation"),
     path("sponsors", sponsor_collection, name="admin-sponsor-list"),
     path("sponsors/<uuid:sponsor_id>", sponsor_item, name="admin-sponsor-detail"),
     path(

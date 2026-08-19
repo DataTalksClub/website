@@ -1,0 +1,172 @@
+{% extends "studio/base.html" %}
+
+{% block title %}
+  Site navigation · Studio · {{ brand_name }}
+{% endblock %}
+
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">
+      Studio · Site
+    </p>
+    <h1>
+      Site navigation
+    </h1>
+    <p class="admin-lede">
+      Manage the public masthead row. Labels are plain text only. Targets must be
+      registered public routes. Authentication links stay code-owned.
+    </p>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <nav aria-label="Studio sections" class="filter-pills">
+    {% for item in studio_navigation %}
+      <a class="filter-pill" href="{% url item.route %}">{{ item.label }}</a>
+    {% endfor %}
+  </nav>
+
+  {% if saved %}
+    <div class="admin-notice admin-notice-success" role="status">
+      <p class="mono-label">Saved</p>
+      <p>Site navigation saved.</p>
+    </div>
+  {% endif %}
+
+  {% if error_message %}
+    <section
+      id="navigation-errors"
+      class="a11y-error-summary"
+      role="alert"
+      aria-labelledby="navigation-errors-heading"
+      tabindex="-1"
+    >
+      <h2 id="navigation-errors-heading">There is a problem</h2>
+      <p>{{ error_message }}</p>
+      <ul>
+        {% for item in error_links %}
+          <li>
+            <a href="{{ item.href }}">{{ item.message }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+    <script>
+      document.getElementById("navigation-errors").focus();
+    </script>
+  {% endif %}
+
+  <section class="admin-section" aria-labelledby="site-navigation-heading">
+    <div class="admin-section-head">
+      <h2 id="site-navigation-heading">Primary navigation</h2>
+      <p class="mono-note">
+        Current source: {{ source_label }}. Revision {{ menu.revision }}.
+      </p>
+    </div>
+
+    <form class="admin-form" method="post" action="{% url 'studio:navigation' %}">
+      {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <input type="hidden" name="expected_revision" value="{{ menu.revision }}">
+
+      <div id="site-navigation-fields">
+        {% for slot in entry_slots %}
+          <fieldset class="admin-fieldset" id="navigation-entry-{{ slot.index }}">
+            <legend>Entry {{ slot.number }}</legend>
+
+            <div class="field">
+              <label class="field-label" for="entry-{{ slot.index }}-key">Key</label>
+              <input
+                class="field-input"
+                id="entry-{{ slot.index }}-key"
+                name="entry-{{ slot.index }}-key"
+                value="{{ slot.key }}"
+                maxlength="32"
+                autocomplete="off"
+                aria-describedby="entry-{{ slot.index }}-key-help"
+                {% if not can_write %}readonly{% endif %}
+              >
+              <p class="field-hint" id="entry-{{ slot.index }}-key-help">
+                Lowercase letters, numbers, and underscores. Unique in this menu.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="entry-{{ slot.index }}-label">Label</label>
+              <input
+                class="field-input"
+                id="entry-{{ slot.index }}-label"
+                name="entry-{{ slot.index }}-label"
+                value="{{ slot.label }}"
+                maxlength="80"
+                aria-describedby="entry-{{ slot.index }}-label-help"
+                {% if not can_write %}readonly{% endif %}
+              >
+              <p class="field-hint" id="entry-{{ slot.index }}-label-help">
+                One plain-text line of 1 to 80 characters. Markup is rejected.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="entry-{{ slot.index }}-target">Target</label>
+              <select
+                class="field-input"
+                id="entry-{{ slot.index }}-target"
+                name="entry-{{ slot.index }}-target"
+                aria-describedby="entry-{{ slot.index }}-target-help"
+                {% if not can_write %}disabled{% endif %}
+              >
+                <option value="">Select a public route</option>
+                {% for target, target_label in target_choices %}
+                  <option
+                    value="{{ target }}"
+                    {% if slot.target == target %}selected{% endif %}
+                  >
+                    {{ target_label }} ({{ target }})
+                  </option>
+                {% endfor %}
+              </select>
+              <p class="field-hint" id="entry-{{ slot.index }}-target-help">
+                Named public routes only. Remote or free-text URLs are rejected.
+              </p>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="entry-{{ slot.index }}-position">Position</label>
+              <input
+                class="field-input"
+                id="entry-{{ slot.index }}-position"
+                name="entry-{{ slot.index }}-position"
+                value="{{ slot.position }}"
+                inputmode="numeric"
+                aria-describedby="entry-{{ slot.index }}-position-help"
+                {% if not can_write %}readonly{% endif %}
+              >
+              <p class="field-hint" id="entry-{{ slot.index }}-position-help">
+                Unique integer from 1 to 12.
+              </p>
+            </div>
+
+            <label class="admin-check" for="entry-{{ slot.index }}-visible">
+              <input
+                id="entry-{{ slot.index }}-visible"
+                type="checkbox"
+                name="entry-{{ slot.index }}-visible"
+                value="true"
+                {% if slot.visible %}checked{% endif %}
+                {% if not can_write %}disabled{% endif %}
+              >
+              <span>Visible in the public masthead</span>
+            </label>
+          </fieldset>
+        {% endfor %}
+      </div>
+
+      {% if can_write %}
+        <div class="admin-form-actions">
+          <button class="cta cta-primary" type="submit">Save site navigation</button>
+        </div>
+      {% endif %}
+    </form>
+  </section>
+{% endblock %}

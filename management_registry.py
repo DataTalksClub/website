@@ -20,6 +20,7 @@ from core.capabilities import (
     ServiceKind,
 )
 from core.management_health import management_health_factory, read_management_health
+from core.navigation import SITE_NAVIGATION_CAPABILITIES
 from core.site_settings import SITE_SETTING_CAPABILITIES
 from core.sponsors import SPONSOR_CAPABILITIES
 from courses.capabilities import COURSE_REGISTRATION_COUNT_CAPABILITIES
@@ -132,6 +133,7 @@ CAPABILITY_REGISTRY = CapabilityRegistry(
         STUDIO_AUDIT,
         STUDIO_AUDIT_DETAIL,
         *SITE_SETTING_CAPABILITIES,
+        *SITE_NAVIGATION_CAPABILITIES,
         *SPONSOR_CAPABILITIES,
         *CREDENTIAL_RUNTIME_CAPABILITIES,
         *EVENT_CAPABILITIES,

@@ -48,6 +48,7 @@ def _error_schema() -> dict[str, Any]:
                 "oneOf": [
                     {"$ref": "#/components/schemas/CredentialMetadata"},
                     {"$ref": "#/components/schemas/SiteSettingRevisionConflict"},
+                    {"$ref": "#/components/schemas/SiteNavigationRevisionConflict"},
                     {"$ref": "#/components/schemas/SponsorRevisionConflict"},
                 ]
             },
@@ -271,12 +272,17 @@ def generate_document() -> dict[str, Any]:
                 }
             )
         if capability.concurrency is ConcurrencyPolicy.IF_MATCH:
+            if_match_pattern = (
+                '^"rev-[0-9]+"$'
+                if capability.key == "site.navigation.write"
+                else '^"rev-[1-9][0-9]*"$'
+            )
             parameters.append(
                 {
                     "name": "If-Match",
                     "in": "header",
                     "required": True,
-                    "schema": {"type": "string", "pattern": '^"rev-[1-9][0-9]*"$'},
+                    "schema": {"type": "string", "pattern": if_match_pattern},
                 }
             )
         if parameters:
@@ -904,6 +910,104 @@ def generate_document() -> dict[str, Any]:
                         },
                         "baseline_count": {"type": ["integer", "null"], "minimum": 0},
                         "native_count": {"type": ["integer", "null"], "minimum": 0},
+                    },
+                },
+                "SiteNavigationEntry": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["key", "label", "target", "position", "visible"],
+                    "properties": {
+                        "key": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+                        },
+                        "label": {"type": "string", "minLength": 1, "maxLength": 80},
+                        "target": {
+                            "type": "string",
+                            "enum": [
+                                "home",
+                                "events",
+                                "course_list",
+                                "articles",
+                                "podcast",
+                                "wiki-home",
+                                "books",
+                                "docs-home",
+                                "faq-home",
+                                "slack",
+                            ],
+                        },
+                        "position": {"type": "integer", "minimum": 1, "maximum": 12},
+                        "visible": {"type": "boolean"},
+                    },
+                },
+                "SiteNavigation": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["menu", "source", "revision", "entries"],
+                    "properties": {
+                        "menu": {"type": "string", "const": "primary"},
+                        "source": {
+                            "type": "string",
+                            "enum": ["code_default", "studio", "admin_api"],
+                        },
+                        "revision": {"type": "integer", "minimum": 0},
+                        "entries": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 12,
+                            "items": {"$ref": "#/components/schemas/SiteNavigationEntry"},
+                        },
+                    },
+                },
+                "SiteNavigationReplaceRequest": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["entries"],
+                    "properties": {
+                        "entries": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 12,
+                            "items": {"$ref": "#/components/schemas/SiteNavigationEntry"},
+                        }
+                    },
+                },
+                "SiteNavigationCommandResult": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "menu",
+                        "source",
+                        "revision",
+                        "entries",
+                        "changed",
+                        "replayed",
+                    ],
+                    "properties": {
+                        "menu": {"type": "string", "const": "primary"},
+                        "source": {
+                            "type": "string",
+                            "enum": ["code_default", "studio", "admin_api"],
+                        },
+                        "revision": {"type": "integer", "minimum": 0},
+                        "entries": {
+                            "type": "array",
+                            "minItems": 1,
+                            "maxItems": 12,
+                            "items": {"$ref": "#/components/schemas/SiteNavigationEntry"},
+                        },
+                        "changed": {"type": "boolean"},
+                        "replayed": {"type": "boolean"},
+                    },
+                },
+                "SiteNavigationRevisionConflict": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["menu", "revision"],
+                    "properties": {
+                        "menu": {"type": "string", "const": "primary"},
+                        "revision": {"type": "integer", "minimum": 0},
                     },
                 },
                 "SponsorAssignment": {

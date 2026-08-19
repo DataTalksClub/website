@@ -372,6 +372,7 @@ class RuntimeCredentialAPITests(RuntimeCredentialAPIBase):
                 "oneOf": [
                     {"$ref": "#/components/schemas/CredentialMetadata"},
                     {"$ref": "#/components/schemas/SiteSettingRevisionConflict"},
+                    {"$ref": "#/components/schemas/SiteNavigationRevisionConflict"},
                     # The sponsor directory's revision conflicts ride the same
                     # error envelope (#188); the pin follows the real payload.
                     {"$ref": "#/components/schemas/SponsorRevisionConflict"},

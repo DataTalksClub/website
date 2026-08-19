@@ -38,6 +38,12 @@ from core.idempotency import (
     hash_idempotency_key,
 )
 from core.models import AuditEvent, RevisionConflict
+from core.navigation import (
+    NAVIGATION_FORM_SLOTS,
+    NAVIGATION_TARGETS,
+    InvalidSiteNavigation,
+    SiteNavigationRevisionConflict,
+)
 from core.services import ServiceContext
 from core.site_settings import (
     ANNOUNCEMENT_ENABLED_KEY,
@@ -80,7 +86,12 @@ from management_auth.policies import require_high_risk_policy
 from management_auth.services import manageable_service_principals, principal_has_permission
 from management_registry import CAPABILITY_REGISTRY
 
-from .auth import audit_site_settings_denial, capability_required, staff_required
+from .auth import (
+    audit_site_navigation_denial,
+    audit_site_settings_denial,
+    capability_required,
+    staff_required,
+)
 
 
 def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
@@ -126,6 +137,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                     "studio.audit.browse": "Audit",
                     "management.credentials.list": "API credentials",
                     "site.settings.read": "Site settings",
+                    "site.navigation.read": "Site navigation",
                     "events.historical_registration_import.manage": (
                         "Historical registration totals"
                     ),
@@ -595,6 +607,263 @@ site_settings.management_capability_keys = (  # type: ignore[attr-defined]
 site_settings.management_capability_views = {  # type: ignore[attr-defined]
     "GET": site_settings_read,
     "POST": site_settings_write,
+}
+
+
+def _site_navigation_can_write(request: HttpRequest) -> bool:
+    capability = CAPABILITY_REGISTRY.require("site.navigation.write")
+    try:
+        authorize_studio_request(
+            request_user=request.user,
+            session_reference=session_reference(request),
+            capability=capability,
+        )
+    except (StudioAuthenticationRequired, StudioAuthorizationDenied):
+        return False
+    return True
+
+
+def _audit_site_navigation_denial(request: HttpRequest, *, reason: str) -> None:
+    audit_site_navigation_denial(
+        request,
+        reason=reason,
+        idempotency_key=request.POST.get("idempotency_key", ""),
+    )
+
+
+def _navigation_source_label(source: object) -> str:
+    if source == "admin_api":
+        return "Admin API"
+    if source == "studio":
+        return "Studio"
+    return "Code default"
+
+
+def _empty_navigation_slot(index: int) -> dict[str, object]:
+    return {
+        "index": index,
+        "number": index + 1,
+        "key": "",
+        "label": "",
+        "target": "",
+        "position": "",
+        "visible": False,
+    }
+
+
+def _navigation_slots(entries: object) -> list[dict[str, object]]:
+    slots: list[dict[str, object]] = []
+    if isinstance(entries, list):
+        for index, item in enumerate(entries[:NAVIGATION_FORM_SLOTS]):
+            if not isinstance(item, dict):
+                continue
+            slots.append(
+                {
+                    "index": index,
+                    "number": index + 1,
+                    "key": item.get("key", ""),
+                    "label": item.get("label", ""),
+                    "target": item.get("target", ""),
+                    "position": item.get("position", ""),
+                    "visible": item.get("visible") is True,
+                }
+            )
+    while len(slots) < NAVIGATION_FORM_SLOTS:
+        slots.append(_empty_navigation_slot(len(slots)))
+    return slots
+
+
+def _parse_navigation_form(request: HttpRequest) -> tuple[list[dict[str, object]], bool]:
+    entries: list[dict[str, object]] = []
+    form_state_valid = (
+        len(request.POST.getlist("idempotency_key")) == 1
+        and len(request.POST.getlist("expected_revision")) == 1
+    )
+    for index in range(NAVIGATION_FORM_SLOTS):
+        keys = request.POST.getlist(f"entry-{index}-key")
+        labels = request.POST.getlist(f"entry-{index}-label")
+        targets = request.POST.getlist(f"entry-{index}-target")
+        positions = request.POST.getlist(f"entry-{index}-position")
+        visibles = request.POST.getlist(f"entry-{index}-visible")
+        if any(len(values) > 1 for values in (keys, labels, targets, positions, visibles)):
+            form_state_valid = False
+        key = keys[0] if keys else ""
+        label = labels[0] if labels else ""
+        target = targets[0] if targets else ""
+        position = positions[0] if positions else ""
+        visible = visibles[0] == "true" if visibles else False
+        if not key and not label and not target and not position and not visibles:
+            continue
+        parsed_position: object = position
+        if position == "":
+            parsed_position = None
+        else:
+            try:
+                parsed_position = int(position)
+            except (TypeError, ValueError):
+                form_state_valid = False
+        entries.append(
+            {
+                "key": key,
+                "label": label,
+                "target": target,
+                "position": parsed_position,
+                "visible": visible,
+            }
+        )
+    return entries, form_state_valid
+
+
+def _navigation_error_links(field_errors: dict[str, str]) -> list[dict[str, str]]:
+    links: list[dict[str, str]] = []
+    for field, message in field_errors.items():
+        href = "#site-navigation-fields"
+        if field.startswith("entries."):
+            parts = field.split(".")
+            if len(parts) >= 2 and parts[1].isdigit():
+                href = f"#navigation-entry-{parts[1]}"
+        links.append({"href": href, "message": message})
+    return links
+
+
+def _site_navigation_page_context(
+    request: HttpRequest,
+    *,
+    submitted_entries: object | None = None,
+    idempotency_key: object | None = None,
+    error_message: str = "",
+    field_errors: dict[str, str] | None = None,
+) -> dict[str, object]:
+    read_capability = CAPABILITY_REGISTRY.require("site.navigation.read")
+    result = read_capability.service(context=_service_context(request))
+    current_entries = result["entries"] if isinstance(result.get("entries"), list) else []
+    display_entries = submitted_entries if submitted_entries is not None else current_entries
+    return {
+        "menu": result,
+        "source_label": _navigation_source_label(result.get("source")),
+        "entry_slots": _navigation_slots(display_entries),
+        "target_choices": NAVIGATION_TARGETS,
+        "can_write": _site_navigation_can_write(request),
+        "idempotency_key": idempotency_key or uuid.uuid4(),
+        "error_message": error_message,
+        "field_errors": field_errors or {},
+        "error_links": _navigation_error_links(field_errors or {}),
+        "saved": request.GET.get("saved") == "1",
+        "studio_navigation": _navigation(request),
+    }
+
+
+@capability_required("site.navigation.read")
+def site_navigation_read(request: HttpRequest) -> HttpResponse:
+    try:
+        context = _site_navigation_page_context(request)
+    except Exception:
+        return HttpResponse("Site navigation is unavailable", status=500)
+    return render(request, "studio/navigation.html", context)
+
+
+@capability_required("site.navigation.write")
+def site_navigation_write(request: HttpRequest) -> HttpResponse:
+    read_capability = CAPABILITY_REGISTRY.require("site.navigation.read")
+    try:
+        authorize_studio_request(
+            request_user=request.user,
+            session_reference=session_reference(request),
+            capability=read_capability,
+        )
+    except (StudioAuthenticationRequired, StudioAuthorizationDenied):
+        _audit_site_navigation_denial(request, reason="permission_denied")
+        return HttpResponseForbidden("Studio access denied")
+
+    raw_idempotency = request.POST.get("idempotency_key", "")
+    safe_idempotency: object = uuid.uuid4()
+    entries, form_state_valid = _parse_navigation_form(request)
+    try:
+        parsed_idempotency = uuid.UUID(raw_idempotency)
+        if str(parsed_idempotency) != raw_idempotency:
+            raise ValueError("non-canonical idempotency key")
+        safe_idempotency = raw_idempotency
+    except (AttributeError, TypeError, ValueError):
+        form_state_valid = False
+    try:
+        expected_revision = int(request.POST.get("expected_revision", ""))
+        if expected_revision < 0:
+            raise ValueError("negative revision")
+    except (TypeError, ValueError):
+        form_state_valid = False
+        expected_revision = -1
+    if not form_state_valid:
+        _audit_site_navigation_denial(request, reason="invalid_request")
+        context = _site_navigation_page_context(
+            request,
+            submitted_entries=entries,
+            idempotency_key=safe_idempotency,
+            error_message="Correct the highlighted navigation entries and try again.",
+            field_errors={"form": "The navigation form state is invalid."},
+        )
+        return render(request, "studio/navigation.html", context, status=400)
+
+    capability = request.studio_principal.capability  # type: ignore[attr-defined]
+    try:
+        capability.service(
+            entries=entries,
+            expected_revision=expected_revision,
+            source="studio",
+            idempotency_key=raw_idempotency,
+            actor_ref=f"user:{request.user.pk}",
+            actor_id=request.user.pk,
+            context=_service_context(request),
+        )
+    except SiteNavigationRevisionConflict:
+        _audit_site_navigation_denial(request, reason="revision_conflict")
+        context = _site_navigation_page_context(
+            request,
+            submitted_entries=entries,
+            idempotency_key=raw_idempotency,
+            error_message="The navigation changed in another session. Review and save again.",
+            field_errors={"form": "The submitted revision is stale."},
+        )
+        return render(request, "studio/navigation.html", context, status=409)
+    except (IdempotencyConflict, IdempotencyInProgress):
+        _audit_site_navigation_denial(request, reason="idempotency_conflict")
+        context = _site_navigation_page_context(
+            request,
+            submitted_entries=entries,
+            idempotency_key=raw_idempotency,
+            error_message="This save request conflicts with an earlier submission.",
+            field_errors={"form": "Reload the page before trying again."},
+        )
+        return render(request, "studio/navigation.html", context, status=409)
+    except InvalidSiteNavigation as error:
+        _audit_site_navigation_denial(request, reason="invalid_request")
+        context = _site_navigation_page_context(
+            request,
+            submitted_entries=entries,
+            idempotency_key=raw_idempotency,
+            error_message="Correct the highlighted navigation entries and try again.",
+            field_errors=error.fields
+            or {"entries": "Enter a complete valid menu of 1 to 12 entries."},
+        )
+        return render(request, "studio/navigation.html", context, status=400)
+    except Exception:
+        _audit_site_navigation_denial(request, reason="internal_error")
+        return HttpResponse("Site navigation could not be saved", status=500)
+    return HttpResponseRedirect(f"{reverse('studio:navigation')}?saved=1")
+
+
+def site_navigation(request: HttpRequest) -> HttpResponse:
+    if request.method in {"GET", "HEAD"}:
+        return site_navigation_read(request)
+    return site_navigation_write(request)
+
+
+site_navigation.management_capability_keys = (  # type: ignore[attr-defined]
+    "site.navigation.read",
+    "site.navigation.write",
+)
+site_navigation.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": site_navigation_read,
+    "POST": site_navigation_write,
 }
 
 

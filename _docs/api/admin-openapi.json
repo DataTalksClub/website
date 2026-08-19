@@ -42,6 +42,9 @@
                 "$ref": "#/components/schemas/SiteSettingRevisionConflict"
               },
               {
+                "$ref": "#/components/schemas/SiteNavigationRevisionConflict"
+              },
+              {
                 "$ref": "#/components/schemas/SponsorRevisionConflict"
               }
             ]
@@ -1216,6 +1219,166 @@
           "count",
           "total_revision",
           "contributions"
+        ],
+        "type": "object"
+      },
+      "SiteNavigation": {
+        "additionalProperties": false,
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/SiteNavigationEntry"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "type": "array"
+          },
+          "menu": {
+            "const": "primary",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "code_default",
+              "studio",
+              "admin_api"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "menu",
+          "source",
+          "revision",
+          "entries"
+        ],
+        "type": "object"
+      },
+      "SiteNavigationCommandResult": {
+        "additionalProperties": false,
+        "properties": {
+          "changed": {
+            "type": "boolean"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/SiteNavigationEntry"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "type": "array"
+          },
+          "menu": {
+            "const": "primary",
+            "type": "string"
+          },
+          "replayed": {
+            "type": "boolean"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "source": {
+            "enum": [
+              "code_default",
+              "studio",
+              "admin_api"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "menu",
+          "source",
+          "revision",
+          "entries",
+          "changed",
+          "replayed"
+        ],
+        "type": "object"
+      },
+      "SiteNavigationEntry": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "pattern": "^[a-z][a-z0-9_]{0,31}$",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 80,
+            "minLength": 1,
+            "type": "string"
+          },
+          "position": {
+            "maximum": 12,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "target": {
+            "enum": [
+              "home",
+              "events",
+              "course_list",
+              "articles",
+              "podcast",
+              "wiki-home",
+              "books",
+              "docs-home",
+              "faq-home",
+              "slack"
+            ],
+            "type": "string"
+          },
+          "visible": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "target",
+          "position",
+          "visible"
+        ],
+        "type": "object"
+      },
+      "SiteNavigationReplaceRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/SiteNavigationEntry"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "type": "object"
+      },
+      "SiteNavigationRevisionConflict": {
+        "additionalProperties": false,
+        "properties": {
+          "menu": {
+            "const": "primary",
+            "type": "string"
+          },
+          "revision": {
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "menu",
+          "revision"
         ],
         "type": "object"
       },
@@ -6285,6 +6448,319 @@
         "x-idempotency": "required",
         "x-rate-class": "write",
         "x-rate-cost": 5
+      }
+    },
+    "/navigation": {
+      "get": {
+        "operationId": "site.navigation.read",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteNavigation"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "site.navigation.read"
+            ]
+          }
+        ],
+        "summary": "Read the public site primary navigation",
+        "x-audit-action": "core.site_navigation.read",
+        "x-capability-key": "site.navigation.read",
+        "x-concurrency": "none",
+        "x-django-permission": "core.read_site_navigation",
+        "x-idempotency": "none",
+        "x-rate-class": "read",
+        "x-rate-cost": 1
+      },
+      "put": {
+        "operationId": "site.navigation.write",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "pattern": "^\"rev-[0-9]+\"$",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiteNavigationReplaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteNavigationCommandResult"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "405": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "428": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/APIError"
+                }
+              }
+            },
+            "description": "Safe management API error"
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": [
+              "site.navigation.write"
+            ]
+          }
+        ],
+        "summary": "Replace the public site primary navigation",
+        "x-audit-action": "core.site_navigation.updated",
+        "x-capability-key": "site.navigation.write",
+        "x-concurrency": "if_match",
+        "x-django-permission": "core.change_site_navigation",
+        "x-idempotency": "required",
+        "x-rate-class": "write",
+        "x-rate-cost": 1
       }
     },
     "/registration-campaigns/{campaign_slug}/public-count": {

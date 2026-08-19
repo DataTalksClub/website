@@ -9,6 +9,7 @@ from django.utils import timezone
 from core.audit import AuditWriteContext, record_audit_event
 from core.idempotency import IdempotencyConflict, IdempotencyInProgress, execute_idempotent
 from core.models import AuditEvent, RevisionConflict
+from core.navigation import InvalidSiteNavigation, SiteNavigationRevisionConflict
 from core.services import ServiceContext
 from core.site_settings import InvalidSiteSettingsBatch, SiteSettingsRevisionConflict
 from core.sponsors import InvalidSponsor, SponsorNotFound, SponsorRevisionConflict
@@ -39,7 +40,12 @@ from management_auth.policies import require_high_risk_policy
 from management_auth.services import CredentialStateConflict, principal_has_permission
 from management_registry import CAPABILITY_REGISTRY
 
-from .concurrency import require_if_match, revision_etag
+from .concurrency import (
+    navigation_revision_etag,
+    require_if_match,
+    require_navigation_if_match,
+    revision_etag,
+)
 from .dispatch import admin_capability
 from .errors import APIError, error_response, permission_denied
 from .json_input import parse_json_object
@@ -213,6 +219,30 @@ def _sponsor_error(error: Exception) -> APIError:
     return APIError(500, "internal_error", "The sponsor request failed safely.")
 
 
+def _site_navigation_error(error: Exception) -> APIError:
+    if isinstance(error, APIError):
+        return error
+    if isinstance(error, (IdempotencyConflict, IdempotencyInProgress)):
+        return APIError(409, "idempotency_conflict", "The idempotency request conflicts.")
+    if isinstance(error, SiteNavigationRevisionConflict):
+        return APIError(
+            409,
+            "revision_conflict",
+            "The navigation revision changed.",
+            safe_result={"menu": "primary", "revision": error.actual},
+        )
+    if isinstance(error, InvalidSiteNavigation):
+        return APIError(
+            400,
+            "invalid_request",
+            "The site navigation request is invalid.",
+            fields={key: [message] for key, message in error.fields.items()} or None,
+        )
+    if isinstance(error, (TypeError, ValueError)):
+        return APIError(400, "invalid_request", "The site navigation request is invalid.")
+    return APIError(500, "internal_error", "The site navigation request failed safely.")
+
+
 def _site_settings_error(error: Exception) -> APIError:
     if isinstance(error, APIError):
         return error
@@ -263,6 +293,44 @@ def admin_health(request: HttpRequest) -> JsonResponse:
         context=ServiceContext.from_current(actor_ref=f"api_principal:{identity.principal.id}"),
     )
     return JsonResponse(result)
+
+
+@admin_capability("site.navigation.read")
+def site_navigation_read(request: HttpRequest) -> JsonResponse:
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(context=_historical_context(request))
+    except Exception as error:
+        raise _site_navigation_error(error) from error
+    response = JsonResponse(result)
+    response["ETag"] = navigation_revision_etag(result["revision"])
+    return response
+
+
+@admin_capability("site.navigation.write")
+def site_navigation_write(request: HttpRequest) -> JsonResponse:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    read_capability = CAPABILITY_REGISTRY.require("site.navigation.read")
+    if not principal_has_permission(identity.principal, read_capability.django_permission):
+        raise permission_denied()
+    payload = parse_json_object(request)
+    _enforce_fields(request, payload, required=frozenset({"entries"}))
+    expected = require_navigation_if_match(request)
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        result = capability.service(
+            entries=payload["entries"],
+            expected_revision=expected,
+            source="admin_api",
+            idempotency_key=_idempotency_key(request),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            actor_id=identity.principal.user_id,
+            api_principal_id=identity.principal.id,
+            context=_historical_context(request),
+        )
+    except Exception as error:
+        raise _site_navigation_error(error) from error
+    return JsonResponse(result.as_dict())
 
 
 @admin_capability("site.settings.read")

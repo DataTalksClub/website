@@ -47,16 +47,17 @@ def _current_studio_denial_actor(request: HttpRequest) -> Any | None:
     return principal.user
 
 
-def audit_site_settings_denial(
+def audit_capability_denial(
     request: HttpRequest,
     *,
+    capability_key: str,
     reason: str,
     idempotency_key: str = "",
     actor: Any | None = None,
 ) -> None:
-    """Match settings API denial evidence for a validated Studio identity."""
+    """Match management API denial evidence for a validated Studio identity."""
 
-    capability = CAPABILITY_REGISTRY.require("site.settings.write")
+    capability = CAPABILITY_REGISTRY.require(capability_key)
     principal = getattr(request, "studio_principal", None)
     user = actor if actor is not None else getattr(principal, "user", None)
     actor_id = getattr(user, "pk", None)
@@ -67,7 +68,7 @@ def audit_site_settings_denial(
     if idempotency_key:
         try:
             key_hash = hash_idempotency_key(
-                f"site.settings.write:{actor_ref}",
+                f"{capability_key}:{actor_ref}",
                 idempotency_key,
             )
         except (TypeError, ValueError):
@@ -84,6 +85,42 @@ def audit_site_settings_denial(
         ),
         changes={},
         metadata={"reason": reason, "state": "denied"},
+    )
+
+
+def audit_site_settings_denial(
+    request: HttpRequest,
+    *,
+    reason: str,
+    idempotency_key: str = "",
+    actor: Any | None = None,
+) -> None:
+    """Match settings API denial evidence for a validated Studio identity."""
+
+    audit_capability_denial(
+        request,
+        capability_key="site.settings.write",
+        reason=reason,
+        idempotency_key=idempotency_key,
+        actor=actor,
+    )
+
+
+def audit_site_navigation_denial(
+    request: HttpRequest,
+    *,
+    reason: str,
+    idempotency_key: str = "",
+    actor: Any | None = None,
+) -> None:
+    """Match navigation API denial evidence for a validated Studio identity."""
+
+    audit_capability_denial(
+        request,
+        capability_key="site.navigation.write",
+        reason=reason,
+        idempotency_key=idempotency_key,
+        actor=actor,
     )
 
 
@@ -107,11 +144,12 @@ def capability_required(
                     return HttpResponseForbidden("Studio access denied")
                 return _safe_login_redirect(request)
             except StudioAuthorizationDenied:
-                if capability.key == "site.settings.write":
+                if capability.key in {"site.settings.write", "site.navigation.write"}:
                     actor = _current_studio_denial_actor(request)
                     if actor is not None:
-                        audit_site_settings_denial(
+                        audit_capability_denial(
                             request,
+                            capability_key=capability.key,
                             reason="permission_denied",
                             actor=actor,
                         )
@@ -120,9 +158,10 @@ def capability_required(
             if capability.studio.method == "GET":
                 allowed_methods.add("HEAD")
             if request.method not in allowed_methods:
-                if capability.key == "site.settings.write":
-                    audit_site_settings_denial(
+                if capability.key in {"site.settings.write", "site.navigation.write"}:
+                    audit_capability_denial(
                         request,
+                        capability_key=capability.key,
                         reason="method_not_allowed",
                     )
                 return HttpResponseNotAllowed(sorted(allowed_methods))
