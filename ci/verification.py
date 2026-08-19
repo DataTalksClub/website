@@ -1800,7 +1800,7 @@ def main() -> None:
     record_parser.add_argument("--run-attempt", type=int, default=1)
     record_parser.add_argument("--job-id", default="")
     record_parser.add_argument("--artifact-id", default="")
-    record_parser.add_argument("--issue", type=int, default=113)
+    record_parser.add_argument("--issue", type=int)
     record_parser.add_argument(
         "--producer-role", choices=("engineer", "tester"), default="engineer"
     )
@@ -1900,6 +1900,11 @@ def main() -> None:
         dump_json(actual_environment, args.output)
         return
     if args.command_name == "record":
+        if args.origin_kind == "local" and args.issue is None:
+            record_parser.error(
+                "--issue is required for --origin-kind local: refusing to attribute "
+                "verification evidence to a default issue number"
+            )
         plan = load_plan(args.plan)
         output_path = Path(args.output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
