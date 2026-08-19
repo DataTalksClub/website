@@ -487,7 +487,11 @@ def test_registration_breadcrumb_matches_cmp_without_losing_target_spacing(
     response = page.goto(f"{live_server.url}{registration_path}", wait_until="networkidle")
 
     assert response is not None and response.status == 200
-    expect(page.get_by_role("heading", name=cmp_registration_campaign.title)).to_be_visible()
+    # Exact match: the page also carries an sr-only "About {title}" section
+    # heading, which a substring lookup would resolve as a second heading.
+    expect(
+        page.get_by_role("heading", name=cmp_registration_campaign.title, exact=True)
+    ).to_be_visible()
     breadcrumb = page.get_by_role("navigation", name="Breadcrumb")
     expect(breadcrumb.get_by_role("link", name="Courses", exact=True)).to_be_visible()
     # Design 5a leaves the page you are on as text, so the second level is read, not linked.

@@ -477,13 +477,25 @@ def _capture_deterministic_screenshot(page: Page, path: Path) -> None:
     page.evaluate(
         """async () => {
             await document.fonts.ready;
+            // A below-the-fold `loading="lazy"` image never fires load or error
+            // until it scrolls into view, and an <img> with no src never fires
+            // either, so the wait below must not park on them: switching the
+            // lazy ones to eager starts their request here (article prose
+            // figures since 289d0ea), and src-less images are skipped.  The
+            // listener-only wait wedged the whole full-profile visual-evidence
+            // pass at 0% CPU — the issue #193 deadlock.
+            for (const image of document.images) {
+                if (image.getAttribute('loading') === 'lazy') image.loading = 'eager';
+            }
             await Promise.all(
-                Array.from(document.images, image =>
-                    image.complete ? image.decode().catch(() => {}) : new Promise(resolve => {
+                Array.from(document.images, image => {
+                    if (!image.currentSrc && !image.getAttribute('src')) return Promise.resolve();
+                    if (image.complete) return image.decode().catch(() => {});
+                    return new Promise(resolve => {
                         image.addEventListener('load', resolve, {once: true});
                         image.addEventListener('error', resolve, {once: true});
-                    })
-                )
+                    });
+                })
             );
         }"""
     )
@@ -558,10 +570,13 @@ def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
     )
     assert len(geometry) == 2, geometry
     first, second = geometry
-    assert first["height"] <= 24 and second["height"] <= 24, geometry
-    required_gap = max(0, 24 - first["height"]) / 2 + max(0, 24 - second["height"]) / 2
-    actual_gap = second["top"] - first["bottom"]
-    assert actual_gap + 0.5 >= required_gap, geometry
+    # Design 5a replaced the adopted shell's compact crumb row (issue #128's
+    # remediation asserted links no taller than 24px plus compensating spacing):
+    # every breadcrumb ancestor now carries the system's 2.75rem (44px) target
+    # floor, so each crumb is its own sufficient target and the WCAG 2.5.8
+    # spacing exception no longer applies (`templates/core/_design_system.html`,
+    # `.breadcrumbs a`; `_docs/design/design-5a.md`).
+    assert first["height"] + 0.5 >= 44 and second["height"] + 0.5 >= 44, geometry
     assert target_size_issues(page, "learner.homework") == []
 
     screenshot_dir = Path(".tmp/screenshots/issue-128-breadcrumb-spacing-remediation")
@@ -683,6 +698,19 @@ class ScenarioRecorder:
 
     def scan_current(self, state: str) -> None:
         assert state not in self.checked, f"state exercised twice: {state}"
+        # A form error page is focused by script as the document finishes
+        # loading: the shared error summary (``data-focus-error-summary``,
+        # ``tabindex="-1"``) on the public shell, and the inline
+        # ``.focus()`` call on the studio shell.  The visible-marker waits
+        # above resolve as soon as the markup is parsed, before those
+        # end-of-body scripts have run, so walking tab order at that moment
+        # lets the programmatic focus land mid-walk and be read as an
+        # untracked control (issue #193's masked signature, reachable once
+        # #177 fixed the events-hub ids that used to abort this test
+        # earlier).  Every scan starts from a settled document instead —
+        # the same load-event discipline as the goto in ``_visit_surface``
+        # and the deterministic-screenshot settle helper.
+        self.page.wait_for_load_state("load")
         assert_accessible_page(self.page, state, comprehensive=True)
         self.checked.add(state)
 
@@ -911,7 +939,12 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
     recorder.page.goto(f"{recorder.live_server.url}/accounts/logout/")
     recorder.page.get_by_role("button", name="Sign Out", exact=False).click()
     recorder.page.goto(f"{recorder.live_server.url}/accounts/login/")
-    expect(recorder.page.get_by_role("heading", name="Sign In")).to_be_visible()
+    # Exact match, same as the owner-credentials suite: the design 5a sign-in
+    # page also carries an sr-visible "Sign in with your DataTalks.Club account"
+    # panel heading, which a substring lookup resolves as a second heading.
+    # Unreachable while the events-hub duplicate ids aborted this test earlier
+    # (issue #193 class 1); #177's merged fix lets the walk reach it.
+    expect(recorder.page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
     recorder.scan_current("account.logout-return")
 
     staff_user = recorder.environment.users["site-admin"]

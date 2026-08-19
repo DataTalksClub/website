@@ -590,7 +590,11 @@ def create_report(
             elif component == "screenshots" and phase == "engineer":
                 entry["reason"] = "independent_tester_required"
                 buckets["skipped"].append(entry)
-                verdict = "pending_independent_tester"
+                # A failed rerun component keeps the failure verdict: the pending
+                # tester screenshot gate never downgrades evidence of a failure,
+                # matching the precedence `validate_report` derives from the buckets.
+                if verdict != "failure":
+                    verdict = "pending_independent_tester"
             else:
                 entry["reason"] = (
                     "required_result_plan_mismatch"

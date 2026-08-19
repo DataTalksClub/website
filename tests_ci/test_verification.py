@@ -406,6 +406,59 @@ def test_report_buckets_are_exhaustive_disjoint_and_required_skips_fail(tmp_path
         validate_plan(malformed)
 
 
+def test_failed_rerun_keeps_failure_verdict_over_pending_screenshot_gate(
+    tmp_path: Path,
+) -> None:
+    """A failing component must still produce the report file (issue #193).
+
+    The engineer phase skips an unproven screenshots component as
+    ``independent_tester_required``.  That skip is processed after the rerun
+    components, so a naive verdict assignment let ``pending_independent_tester``
+    overwrite the ``failure`` a failed rerun had already recorded, and
+    ``create_report`` then contradicted its own evidence instead of emitting
+    ``verification-report.json``.
+    """
+
+    _repository, plan = make_plan(tmp_path, {"templates/core/home.html": "changed\n"})
+    evidence = tmp_path / "evidence"
+    evidence.mkdir()
+    origin = {"issue": 193, "kind": "local", "producer_role": "engineer", "worktree": "193"}
+    for component, item in plan["components"].items():
+        if item["disposition"] != "rerun" or component == "screenshots":
+            continue
+        records, output = component_output(
+            evidence,
+            plan,
+            component,
+            result="failure" if component == "playwright" else "success",
+        )
+        envelope = build_envelope(
+            plan=plan,
+            component=component,
+            result="failure" if component == "playwright" else "success",
+            origin=origin,
+            command=item["command"],
+            execution_environment=item["environment"],
+            artifacts=records,
+            machine_output=output,
+            completed_at=NOW,
+        )
+        (evidence / f"{component}-evidence.json").write_text(
+            __import__("json").dumps(envelope, sort_keys=True), encoding="utf-8"
+        )
+
+    report = create_report(plan=plan, result_directory=evidence, phase="engineer")
+    assert report["verdict"] == "failure"
+    playwright = next(
+        entry for entry in report["buckets"]["rerun"] if entry["component"] == "playwright"
+    )
+    assert playwright["result"] == "failure"
+    assert {entry["reason"] for entry in report["buckets"]["skipped"]} == {
+        "independent_tester_required",
+    }
+    assert {entry["component"] for entry in report["buckets"]["skipped"]} == {"screenshots"}
+
+
 def test_report_and_actions_summary_bind_complete_plan_state_and_machine_evidence(
     tmp_path: Path,
 ) -> None:

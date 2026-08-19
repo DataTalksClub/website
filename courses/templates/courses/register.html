@@ -93,6 +93,11 @@
       .registration-note {
         color: var(--body-text);
         font-size: 0.92rem;
+        /* The note prints an email address, and an address is one long
+           unbreakable token: at WCAG 1.4.12's letter and word spacing the
+           synthetic addresses pushed the card, the band and the page 25 CSS px
+           sideways at 320px, so the token wraps inside the measure instead. */
+        overflow-wrap: anywhere;
       }
 
       .registration-video {
