@@ -22,8 +22,11 @@ SCREENSHOTS = Path(".tmp/screenshots/issue-179/person")
 # The widest body of work in the catalogue, and a profile with none at all.
 RICH_SLUG = "alexeygrigorev"
 SPARSE_SLUG = "aaronwishnick"
-# The design 5a page grounds, as the shared partial defines --cream.
-LIGHT_BACKGROUND = "rgb(253, 250, 243)"
+# The design 5a page ground: the warm band marks where the page starts, and a
+# profile's body of work is the cool lavender content ground that also ends the
+# page, so `--page` follows it (`_docs/design/design-5a.md`).  The dark theme
+# keeps the partial's own `--page` ground.
+LIGHT_BACKGROUND = "rgb(239, 241, 252)"
 DARK_BACKGROUND = "rgb(19, 22, 42)"
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),

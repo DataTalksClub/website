@@ -28,6 +28,23 @@ ROBOTS_BODY = b"User-agent: *\nDisallow: /\n"
 _STATIC_REFERENCE = re.compile(r'(?:href|src)="(?P<path>/static/[^"?#]+)')
 # The public home identity, as design 5a renders it (issue #179).
 HOME_IDENTITY_MARKER = "Start with the foundations. Finish with a project you can present."
+# Every home content string run_http_smoke asserts against the live homepage: the
+# document title, the hero identity marker, and the hero lede (issue #198). The pins
+# follow templates/core/home.html; core/tests/test_home_release_contract.py imports
+# this tuple and fails Django CI when the rendered homepage drifts from the contract.
+HOME_CONTENT_PINS: tuple[str, ...] = (
+    "DataTalks.Club — free courses for data and AI engineers",
+    HOME_IDENTITY_MARKER,
+    "Free, hands-on courses in data and AI, with a clear path, practical work, and "
+    "a community to help you get unstuck.",
+)
+# Every failure token both legs of run_http_smoke reject.  The scans read the
+# screened document (screen_non_rendered_markup below), not the raw response:
+# the inline design-system stylesheet legitimately says "traceback" inside a
+# benign CSS comment, and that comment ships on both the homepage and the 404
+# page (issue #200).  Tokens in attributes stay in scope on both legs.
+HOME_FAILURE_TOKENS: tuple[str, ...] = ("traceback", "page not found", "debug=true")
+MISSING_PAGE_FAILURE_TOKENS: tuple[str, ...] = ("traceback", "technical 404", "debug=true")
 
 
 class _TextParser(html.parser.HTMLParser):
@@ -43,6 +60,79 @@ def _visible_text(document: str) -> str:
     parser = _TextParser()
     parser.feed(document)
     return " ".join(" ".join(parser.parts).split())
+
+
+class _ScreeningParser(html.parser.HTMLParser):
+    """Rebuild a document without the markup a browser never renders as text.
+
+    ``html.parser`` delivers ``<style>``/``<script>`` element content as plain
+    data and HTML comments as their own event, so neither a raw-HTML scan nor
+    ``_visible_text`` can tell markup commentary from failure output.  This
+    parser drops exactly style/script element content and comments, and
+    re-emits every other construct verbatim: start tags come back through
+    ``get_starttag_text()``, so attributes such as ``?debug=true`` in an href
+    stay on the scanned surface.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.screened: list[str] = []
+        self._raw_text_elements = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        start_tag = self.get_starttag_text()
+        if start_tag is not None:
+            self.screened.append(start_tag)
+        if tag in {"style", "script"}:
+            self._raw_text_elements += 1
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        start_tag = self.get_starttag_text()
+        if start_tag is not None:
+            self.screened.append(start_tag)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"style", "script"} and self._raw_text_elements:
+            self._raw_text_elements -= 1
+        self.screened.append(f"</{tag}>")
+
+    def handle_data(self, data: str) -> None:
+        if not self._raw_text_elements:
+            self.screened.append(data)
+
+    def handle_entityref(self, name: str) -> None:
+        self.screened.append(f"&{name};")
+
+    def handle_charref(self, name: str) -> None:
+        self.screened.append(f"&#{name};")
+
+    def handle_comment(self, data: str) -> None:
+        """HTML comments are dropped without re-emitting them."""
+
+    def handle_decl(self, decl: str) -> None:
+        self.screened.append(f"<!{decl}>")
+
+    def handle_pi(self, data: str) -> None:
+        self.screened.append(f"<?{data}>")
+
+    def unknown_decl(self, data: str) -> None:
+        self.screened.append(f"<![{data}]>")
+
+
+def screen_non_rendered_markup(document: str) -> str:
+    """Return the document minus style/script element content and HTML comments.
+
+    Both failure-token scans in ``run_http_smoke`` read this screened document,
+    so markup commentary cannot trip them while visible failure output and
+    tokens in attributes still do (issue #200).  The Django release-contract
+    tests import this helper to hold the rendered home and 404 pages to the
+    exact surface the deployed smoke scans.
+    """
+
+    parser = _ScreeningParser()
+    parser.feed(document)
+    parser.close()
+    return "".join(parser.screened)
 
 
 @dataclass(frozen=True)
@@ -186,11 +276,7 @@ def run_http_smoke(
     html = home.body.decode("utf-8")
     if f"Version {version}" not in _visible_text(html):
         raise ReleaseContractError("home page footer lacks the exact version")
-    for expected in (
-        "DataTalks.Club — free courses for data and AI engineers",
-        HOME_IDENTITY_MARKER,
-        "Free, project-based courses where you learn to build and build to learn",
-    ):
+    for expected in HOME_CONTENT_PINS:
         if expected not in html:
             raise ReleaseContractError(f"home page lacks expected content: {expected}")
     canonical = '<link rel="canonical" href="https://datatalks.club/">'
@@ -198,8 +284,8 @@ def run_http_smoke(
         raise ReleaseContractError("home page production canonical differs")
     if "Learn data skills. For free. Together." in html:
         raise ReleaseContractError("home page regressed to adopted course discovery")
-    lowered = html.lower()
-    if "traceback" in lowered or "page not found" in lowered or "debug=true" in lowered:
+    screened_home = screen_non_rendered_markup(html).lower()
+    if any(token in screened_home for token in HOME_FAILURE_TOKENS):
         raise ReleaseContractError("home page contains debug or 404 output")
     if analytics_runtime_violations(html=html, request_urls=(), cookie_names=()):
         raise ReleaseContractError("home page contains production analytics")
@@ -283,7 +369,8 @@ def run_http_smoke(
     _assert_status(missing, 404, missing_path)
     _assert_noindex(missing, missing_path)
     missing_html = missing.body.decode("utf-8", errors="replace").lower()
-    if any(marker in missing_html for marker in ("traceback", "technical 404", "debug=true")):
+    screened_missing = screen_non_rendered_markup(missing_html).lower()
+    if any(marker in screened_missing for marker in MISSING_PAGE_FAILURE_TOKENS):
         raise ReleaseContractError("missing page exposes debug output")
     if 'rel="canonical"' in missing_html:
         raise ReleaseContractError("missing page has a canonical")

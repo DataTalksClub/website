@@ -553,6 +553,11 @@ The active pill (`[aria-pressed="true"]`, `.is-active`, or
 `[aria-current="page"]` when the pills are links) fills ink with cream text.
 State must be expressed through the ARIA attribute, not the class alone.
 
+A pill never holds its label on one unbreakable line: when a label alone is
+wider than the viewport (a zoomed studio section link at 200% text size), the
+label wraps inside the pill and the pill grows past its 2.75rem target floor
+rather than pushing the page sideways.
+
 ### Status pills
 
 Mono uppercase state markers. Soft-rectangle (`0.45rem` radius) — deliberately

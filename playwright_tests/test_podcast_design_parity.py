@@ -19,8 +19,11 @@ pytestmark = [pytest.mark.core]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/podcast")
 PODCAST_HEADING = "Conversations with people who ship data"
-# The design 5a page grounds, as the shared partial defines --cream.
-LIGHT_BACKGROUND = "rgb(253, 250, 243)"
+# The design 5a page ground: both the season index and an episode page open warm
+# and end on the cool lavender content ground, so `--page` follows it
+# (`_docs/design/design-5a.md`).  The dark theme keeps the partial's own `--page`
+# ground.
+LIGHT_BACKGROUND = "rgb(239, 241, 252)"
 DARK_BACKGROUND = "rgb(19, 22, 42)"
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
@@ -132,9 +135,13 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     )
     assert focus["focused"] is True, focus
     # The artwork carries the episode's identity, and the link carries its own name,
-    # so neither borrows the other's meaning.
+    # so neither borrows the other's meaning.  The guests' portrait chips are also
+    # images in main, but their credit is the name printed beside them, so the
+    # shared `_person_chip` partial keeps them decorative with empty alt text.
+    artwork_alt = f"Artwork for {episode['title']}"
     alts = page.locator("main img").evaluate_all("(nodes) => nodes.map((n) => n.alt)")
-    assert alts == [f"Artwork for {episode['title']}"], alts
+    assert alts.count(artwork_alt) == 1, alts
+    assert set(alts) <= {artwork_alt, ""}, alts
     expect(page.locator("#transcript-heading")).to_be_visible()
 
 

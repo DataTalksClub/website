@@ -339,7 +339,7 @@ def main() -> None:
     parser.add_argument("--plan", required=True)
     parser.add_argument("--repository", type=Path, default=Path.cwd())
     parser.add_argument("--output-directory", required=True)
-    parser.add_argument("--issue", type=int, default=113)
+    parser.add_argument("--issue", type=int)
     parser.add_argument("--worktree", required=True)
     parser.add_argument("--producer-role", choices=("engineer", "tester"), required=True)
     parser.add_argument(
@@ -354,6 +354,12 @@ def main() -> None:
         ),
     )
     args = parser.parse_args()
+    if args.issue is None:
+        parser.error(
+            "--issue is required for local verification origins: refusing to attribute "
+            "verification evidence to a default issue number "
+            "(make verification-run VERIFY_ISSUE=<number>)"
+        )
     raise SystemExit(
         run_plan(
             plan=load_plan(args.plan),

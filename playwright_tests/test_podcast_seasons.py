@@ -369,9 +369,21 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     assert "location" not in competing.headers
     assert "canonical" not in competing.text().casefold()
 
+    # A parameter this catalogue does not select on rides along instead of being
+    # refused (`content.public_query`, issue #174 follow-up): `page` is not a
+    # podcast selector, so `/podcast?page=2` answers the clean latest-season page
+    # and declares the clean canonical, which is what keeps a tagged URL from
+    # duplicating the catalogue across a crawl.  The season grammar itself stays
+    # strict: a malformed or doubled selector is still a bad request.
+    ride_along = page.request.get(f"{origin}/podcast?page=2", max_redirects=0)
+    assert ride_along.status == 200
+    assert "page=2" not in ride_along.text()
+    assert 'canonical" href="https://datatalks.club/podcast"' in ride_along.text()
+    assert ride_along.text() == page.request.get(f"{origin}/podcast").text()
+
     denials = (
-        ("GET", "/podcast?page=2", 400),
         ("GET", "/podcast?season=01", 400),
+        ("GET", "/podcast?season=1&season=2", 400),
         ("GET", "/podcast?season=25", 404),
         ("POST", "/podcast?season=12", 405),
     )
@@ -390,10 +402,10 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
         if method == "POST":
             assert response.headers["allow"] == "GET, HEAD"
 
-    browser_error = page.goto(f"{origin}/podcast?page=2")
+    browser_error = page.goto(f"{origin}/podcast?season=01")
     assert browser_error is not None and browser_error.status == 400
     expect(page.locator('link[rel="canonical"]')).to_have_count(0)
     expect(page.locator('link[rel="prev"]')).to_have_count(0)
     expect(page.locator('link[rel="next"]')).to_have_count(0)
     expect(page.locator("body")).not_to_contain_text("Traceback")
-    _screenshot(page, "podcast-former-page-query-400.png")
+    _screenshot(page, "podcast-malformed-season-query-400.png")

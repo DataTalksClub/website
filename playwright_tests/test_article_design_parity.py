@@ -20,8 +20,12 @@ from content.public_data import public_projection
 pytestmark = [pytest.mark.core]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/article")
-# The design 5a page grounds, as the shared partial defines --cream.
-LIGHT_BACKGROUND = "rgb(253, 250, 243)"
+# The design 5a page ground.  The article opens warm — masthead, trail, title —
+# and hands the page to the cool lavender reading band, which is also the last
+# band, so `--page` follows it (`_docs/design/design-5a.md`, "the warm band marks
+# where the page starts; it is not the page").  The dark theme keeps the
+# partial's own `--page` ground.
+LIGHT_BACKGROUND = "rgb(239, 241, 252)"
 DARK_BACKGROUND = "rgb(19, 22, 42)"
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),

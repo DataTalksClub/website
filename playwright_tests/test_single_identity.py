@@ -302,7 +302,12 @@ def test_staff_navigation_is_capability_filtered(
     page.locator('summary[aria-label="Account menu"]').click()
     expect(page.get_by_role("link", name="Studio", exact=True)).to_be_visible()
     page.get_by_role("link", name="Studio", exact=True).click()
-    studio_courses_link = page.get_by_role("link", name="Courses", exact=True)
+    # Scoped to the studio's own section nav: the design 5a studio shell shares
+    # the page with the public primary navigation, which also holds a "Courses"
+    # link (to /courses, not /studio/courses).
+    studio_courses_link = page.get_by_label("Studio sections").get_by_role(
+        "link", name="Courses", exact=True
+    )
     expect(studio_courses_link).to_be_visible()
     expect(studio_courses_link).to_have_attribute("href", "/studio/courses")
     page.screenshot(

@@ -55,3 +55,33 @@ def test_full_verification_uses_the_owned_sqlite_test_runtime() -> None:
     assert "DTC_TEST_RUN_ID" in result.stdout
     assert "DJANGO_SETTINGS_MODULE=website.settings.test" in result.stdout
     assert "uv run --frozen python manage.py migrate --noinput" in result.stdout
+
+
+def test_verification_run_requires_an_explicit_issue_number() -> None:
+    result = subprocess.run(
+        ["make", "verification-run", "VERIFY_ISSUE="],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "VERIFY_ISSUE is required" in result.stderr
+
+
+def test_verification_run_passes_the_explicit_issue_to_the_runner() -> None:
+    result = subprocess.run(
+        [
+            "make",
+            "-n",
+            "verification-run",
+            "VERIFY_ISSUE=197",
+            "VERIFY_WORKTREE=issue-197-fail-closed-issue",
+        ],
+        cwd=ROOT,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    assert '--issue "197"' in result.stdout
+    assert '--worktree "issue-197-fail-closed-issue"' in result.stdout

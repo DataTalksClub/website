@@ -142,6 +142,19 @@
         gap: 1.5rem;
       }
 
+      /* A grid item's default `min-width: auto` forwards its content's
+         intrinsic width to the track, so one wide child (a section pill row,
+         a heading, a form control under 200% text) pushed the whole column —
+         and the page — past the viewport.  Content wraps inside its box
+         instead. */
+      .admin-stack > *,
+      .admin-section > *,
+      .admin-form > *,
+      .admin-form-grid > *,
+      .admin-fieldset > * {
+        min-width: 0;
+      }
+
       /* A section slab: the card surface at page scale.  Use it for each
          group a page shows (a table, a form, a set of facts). */
       .admin-section {
@@ -322,6 +335,10 @@
       .admin-check {
         align-items: center;
         display: flex;
+        /* The label text wraps to its own line under the checkbox when the two
+           cannot share the row (200% text on a phone), instead of pushing a
+           single unbreakable word past the viewport. */
+        flex-wrap: wrap;
         gap: 0.6rem;
         min-height: 2.75rem;
       }

@@ -20,7 +20,9 @@ VERIFY_EVIDENCE_DIR ?= $(VERIFY_OUTPUT_DIR)/evidence
 VERIFY_REPORT ?= $(if $(VERIFY_REPORT_PATH),$(VERIFY_REPORT_PATH),$(VERIFY_OUTPUT_DIR)/verification-report.json)
 VERIFY_INVARIANT ?= $(VERIFY_EVIDENCE_DIR)/content-invariants.json
 VERIFY_CONTAINER_OUTPUT ?= $(VERIFY_EVIDENCE_DIR)/container-check.json
-VERIFY_ISSUE ?= 113
+# VERIFY_ISSUE has no default on purpose: local verification evidence must never be
+# attributed to an issue number the caller did not supply. The verification-run
+# target fails closed until VERIFY_ISSUE=<number> is passed explicitly.
 VERIFY_WORKTREE ?= local
 VERIFY_CONSUMER ?= engineer
 VERIFY_PHASE ?= $(VERIFY_CONSUMER)
@@ -185,9 +187,24 @@ verification-plan:
 			--include-worktree \
 			--output "$(VERIFY_PLAN)"
 
+# GNU make executes (not merely echoes) any recipe line containing $(MAKE) even under
+# --dry-run, because recursive invocations are supposed to keep traversing the graph.
+# The status-preserving block in verification-run contains $(MAKE), so a plain
+# `make -n verification-run` would really start the runner against the plan instead of
+# just printing the invocation. Detect the dry-run flag at parse time (the first word of
+# MAKEFLAGS is the short-flag cluster, so only a genuine `n` matches) and prefix the
+# block with a shell guard that exits successfully before any evidence is touched: the
+# block is still fully echoed under -n, while a real run sees no guard at all.
+ifeq (,$(findstring n,$(firstword -$(MAKEFLAGS))))
+VERIFY_DRY_RUN_GUARD =
+else
+VERIFY_DRY_RUN_GUARD = exit 0;
+endif
+
 verification-run:
+	@test -n "$(VERIFY_ISSUE)" || (echo "VERIFY_ISSUE is required: refusing to attribute verification evidence to a default issue number (e.g. make verification-run VERIFY_ISSUE=<number> VERIFY_WORKTREE=<branch>)" >&2; exit 2)
 	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
-	@runner_status=0; \
+	@$(VERIFY_DRY_RUN_GUARD)runner_status=0; \
 	uv run --frozen python -m ci.runner \
 			--plan "$(VERIFY_PLAN)" --repository . \
 			--output-directory "$(VERIFY_EVIDENCE_DIR)" \
