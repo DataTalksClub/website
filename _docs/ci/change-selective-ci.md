@@ -180,15 +180,17 @@ candidate changes:
 
 ```text
 make verification-plan
-make verification-run VERIFY_WORKTREE=issue-113-risk-evidence
+make verification-run VERIFY_ISSUE=113 VERIFY_WORKTREE=issue-113-risk-evidence
 make verification-evidence-check VERIFY_PLAN=.tmp/verification/verification-plan.json
 make verification-report-check VERIFY_PLAN=.tmp/verification/verification-plan.json \
   VERIFY_REPORT=.tmp/verification/verification-report.json
 make verification-plan VERIFY_CONSUMER=tester
 make verification-run VERIFY_CONSUMER=tester VERIFY_PRODUCER_ROLE=tester \
-  VERIFY_PHASE=tester VERIFY_WORKTREE=issue-113-risk-evidence
+  VERIFY_PHASE=tester VERIFY_ISSUE=113 VERIFY_WORKTREE=issue-113-risk-evidence
 ```
 
+`VERIFY_ISSUE` is required: `verification-run` has no default issue number and fails closed without
+one, because local evidence must never be silently attributed to an issue the caller did not name.
 Override `VERIFY_BASE_SHA`, `VERIFY_HEAD_SHA`, `VERIFY_OUTPUT_DIR`, or `VERIFY_EVIDENCE_DIR` only
 with explicit reviewed paths/revisions. `verification-run` executes only allowlisted argument
 vectors and records each rerun result below `.tmp/verification/evidence/`.

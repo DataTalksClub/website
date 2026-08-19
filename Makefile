@@ -20,7 +20,9 @@ VERIFY_EVIDENCE_DIR ?= $(VERIFY_OUTPUT_DIR)/evidence
 VERIFY_REPORT ?= $(if $(VERIFY_REPORT_PATH),$(VERIFY_REPORT_PATH),$(VERIFY_OUTPUT_DIR)/verification-report.json)
 VERIFY_INVARIANT ?= $(VERIFY_EVIDENCE_DIR)/content-invariants.json
 VERIFY_CONTAINER_OUTPUT ?= $(VERIFY_EVIDENCE_DIR)/container-check.json
-VERIFY_ISSUE ?= 113
+# VERIFY_ISSUE has no default on purpose: local verification evidence must never be
+# attributed to an issue number the caller did not supply. The verification-run
+# target fails closed until VERIFY_ISSUE=<number> is passed explicitly.
 VERIFY_WORKTREE ?= local
 VERIFY_CONSUMER ?= engineer
 VERIFY_PHASE ?= $(VERIFY_CONSUMER)
@@ -186,6 +188,7 @@ verification-plan:
 			--output "$(VERIFY_PLAN)"
 
 verification-run:
+	@test -n "$(VERIFY_ISSUE)" || (echo "VERIFY_ISSUE is required: refusing to attribute verification evidence to a default issue number (e.g. make verification-run VERIFY_ISSUE=<number> VERIFY_WORKTREE=<branch>)" >&2; exit 2)
 	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
 	uv run --frozen python -m ci.runner \
 			--plan "$(VERIFY_PLAN)" --repository . \
