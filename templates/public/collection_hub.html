@@ -246,9 +246,11 @@
             {% endfor %}
           </div>
           {% comment %}
-            Only the books archive is paged (issue #174); the blog and the podcast
-            pass no `pagination`, so the shared include renders nothing for them
-            without this page testing which collection it is.
+            Both collections behind this template page, through the one shared
+            control (issues #174, #178).  The include decides visibility itself:
+            a catalogue that fits one page — or an empty one — is a single valid
+            page, so it offers no controls and renders nothing here, without this
+            page testing which collection it is.
           {% endcomment %}
           {% include "public/_pagination.html" %}
         </div>
