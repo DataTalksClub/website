@@ -8,6 +8,7 @@ from django.db import OperationalError
 from django.test import Client, TestCase, override_settings
 from django.urls import resolve, reverse
 from django.utils import timezone
+from django.utils.html import escape
 
 from core import views as core_views
 from courses.models.course import Course
@@ -442,7 +443,7 @@ class HomepageWikiGraphTests(TestCase):
             )
             if hub_anchor is None:
                 self.fail(f"{layout.kind}: hub is not a link")
-            self.assertIn(graph.hub.title, hub_anchor.group(0))
+            self.assertIn(escape(graph.hub.title), hub_anchor.group(0))
             for node in layout.nodes:
                 with self.subTest(layout=layout.kind, topic=node.title):
                     # The href is the topic's own public path, and it routes.
@@ -456,7 +457,7 @@ class HomepageWikiGraphTests(TestCase):
                     if anchor is None:
                         self.fail("node is not a link")
                     for line in node.lines:
-                        self.assertIn(f">{line.text}</tspan>", anchor.group(0))
+                        self.assertIn(f">{escape(line.text)}</tspan>", anchor.group(0))
 
     def test_rendered_edge_count_matches_the_validated_relation_data(self) -> None:
         from core.home_content import wiki_graph
@@ -474,6 +475,7 @@ class HomepageWikiGraphTests(TestCase):
         # real relation count, never the other way around.
         body = self.client.get(reverse("home")).content.decode()
         self.assertIn(
-            f"{len(graph.spokes)} of {graph.connections} {graph.hub.title} connections drawn",
+            f"{len(graph.spokes)} of {graph.connections} "
+            f"{escape(graph.hub.title)} connections drawn",
             body,
         )

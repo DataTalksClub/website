@@ -379,7 +379,17 @@ class WikiSearchTests(TestCase):
                     body,
                 )
                 if result["segment_title"]:
-                    self.assertIn(str(result["segment_title"]), body)
+                    self.assertIn(escape(str(result["segment_title"])), body)
+        special_segment = next(
+            result
+            for result in results
+            if result["segment_title"] and "&" in str(result["segment_title"])
+        )
+        self.assertNotEqual(
+            escape(str(special_segment["segment_title"])),
+            str(special_segment["segment_title"]),
+        )
+        self.assertIn(escape(str(special_segment["segment_title"])), body)
 
     def test_a_query_with_no_hits_keeps_its_zero_count_and_its_empty_state(self) -> None:
         body = self.client.get(reverse("wiki-home"), {"q": "no-such-public-topic"}).content.decode()
@@ -495,13 +505,16 @@ class WikiGraphTests(TestCase):
                 self.assertIn(total.label, self.body)
         for group in graph_groups():
             with self.subTest(group=group.key):
-                self.assertIn(f'<h2 id="{group.heading_id}">{group.title}</h2>', self.body)
+                self.assertIn(f'<h2 id="{group.heading_id}">{escape(group.title)}</h2>', self.body)
                 self.assertIn(f"{group.count} in the graph", self.body)
 
     def test_the_drawn_neighbourhood_is_read_from_the_graph_and_never_invented(self) -> None:
         neighbourhood = busiest_neighbourhood()
 
-        self.assertIn(f"{neighbourhood.connections} connections from", self.body)
+        self.assertIn(
+            f"{neighbourhood.connections} connections from {escape(neighbourhood.title)}",
+            self.body,
+        )
         for layout in neighbourhood.layouts:
             with self.subTest(layout=layout.kind):
                 svg = self.rendered_layout(layout.kind)
@@ -534,14 +547,15 @@ class WikiGraphTests(TestCase):
                 svg = self.rendered_layout(layout.kind)
                 self.assertIn(f'viewBox="0 0 {layout.width} {layout.height}"', svg)
                 self.assertIn('role="group"', svg)
+                title = escape(neighbourhood.title)
                 self.assertIn(
-                    f'aria-label="{neighbourhood.title} and {len(neighbourhood.spokes)} of its '
+                    f'aria-label="{title} and {len(neighbourhood.spokes)} of its '
                     f'{neighbourhood.connections} linked wiki topics"',
                     svg,
                 )
                 for node in layout.nodes:
                     for line in node.lines:
-                        self.assertIn(f">{line.text}</tspan>", svg)
+                        self.assertIn(f">{escape(line.text)}</tspan>", svg)
         # The pills the drawing used to be positioned with are gone: they
         # collided with each other and overflowed their labels below full width.
         self.assertNotIn("graph-plot", self.body)
@@ -569,7 +583,8 @@ class WikiGraphTests(TestCase):
                 for node in group.rest:
                     self.assertLessEqual(connections.get(str(node["id"]), 0), weakest_entry)
                 self.assertIn(
-                    f"The other {group.rest_count} {group.title.lower()}, A&ndash;Z", self.body
+                    f"The other {group.rest_count} {escape(group.title.lower())}, A&ndash;Z",
+                    self.body,
                 )
         # Every node is still on the page, each one exactly once.
         self.assertEqual(len(re.findall(r'class="graph-node" id="', self.body)), len(graph_nodes()))
@@ -635,8 +650,8 @@ class WikiSpecialPagesTests(TestCase):
         self.assertIn(f"{len(records)} pages", body)
         for record in records[:5]:
             with self.subTest(slug=record["slug"]):
-                self.assertIn(str(record["title"]), body)
-                self.assertIn(str(record["summary"]), body)
+                self.assertIn(escape(str(record["title"])), body)
+                self.assertIn(escape(str(record["summary"])), body)
                 self.assertEqual(body.count(f'href="{record["public_path"]}"'), 2)
 
     def test_an_empty_category_still_says_so(self) -> None:
@@ -655,14 +670,15 @@ class WikiPageTests(TestCase):
 
     def test_the_page_keeps_its_kicker_title_summary_and_every_relation(self) -> None:
         self.assertIn('<p class="mono-label mono-label-indigo">Wiki</p>', self.body)
-        self.assertIn(str(self.record["title"]), self.body)
-        self.assertIn(str(self.record["summary"]), self.body)
+        self.assertIn(escape(str(self.record["title"])), self.body)
+        self.assertIn(escape(str(self.record["summary"])), self.body)
         self.assertIn('aria-label="Related concepts and sources"', self.body)
         for relation in self.record["relations"]:
             with self.subTest(relation=relation["label"]):
-                self.assertIn(f'data-relation-type="{relation["type"]}"', self.body)
+                self.assertIn(f'data-relation-type="{escape(relation["type"])}"', self.body)
                 self.assertIn(
-                    f'<span class="sr-only">{relation["type"]}: </span>{relation["label"]}',
+                    f'<span class="sr-only">{escape(relation["type"])}: </span>'
+                    f"{escape(relation['label'])}",
                     self.body,
                 )
                 if relation["href"]:
@@ -686,11 +702,39 @@ class WikiPageTests(TestCase):
     def test_the_body_renders_every_block_and_keeps_its_anchor_identifiers(self) -> None:
         for block in self.record["blocks"]:
             with self.subTest(kind=block["kind"]):
+                text = escape(block["text"])
                 if block["kind"] == "heading":
-                    self.assertIn(f'<h2 id="{block["id"]}">{block["text"]}</h2>', self.body)
+                    self.assertIn(f'<h2 id="{block["id"]}">{text}</h2>', self.body)
                 elif block["kind"] == "list_item":
-                    self.assertIn(f'<p class="prose-item">{block["text"]}</p>', self.body)
+                    self.assertIn(f'<p class="prose-item">{text}</p>', self.body)
+                else:
+                    self.assertIn(f'<p class="prose-paragraph">{text}</p>', self.body)
+        self.assertTrue(
+            any(escape(block["text"]) != block["text"] for block in self.record["blocks"])
+        )
         self.assertIn('<div class="prose wiki-prose">', self.body)
+
+    def test_an_ampersand_in_a_wiki_title_is_escaped_in_the_heading(self) -> None:
+        record = public_projection()["wiki_by_slug"]["data-scientist-cv-and-portfolio"]
+        self.assertNotEqual(escape(record["title"]), record["title"])
+        body = self.client.get(str(record["public_path"])).content.decode()
+
+        self.assertIn(f'<h1 id="wiki-page-heading">{escape(record["title"])}</h1>', body)
+
+    def test_an_ampersand_in_a_relation_label_is_escaped(self) -> None:
+        record = next(
+            page
+            for page in public_projection()["wiki"]
+            if any("&" in relation["label"] for relation in page["relations"])
+        )
+        relation = next(item for item in record["relations"] if "&" in item["label"])
+        self.assertNotEqual(escape(relation["label"]), relation["label"])
+        body = self.client.get(str(record["public_path"])).content.decode()
+
+        self.assertIn(
+            f'<span class="sr-only">{escape(relation["type"])}: </span>{escape(relation["label"])}',
+            body,
+        )
 
     def test_an_anchor_the_source_never_defined_still_lands_on_the_page(self) -> None:
         page = next(

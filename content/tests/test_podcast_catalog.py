@@ -9,7 +9,7 @@ from xml.etree import ElementTree
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
 from django.test import Client, SimpleTestCase, TestCase
-from django.utils.html import conditional_escape
+from django.utils.html import conditional_escape, escape
 
 from content.podcast_content import (
     episode_view,
@@ -608,12 +608,23 @@ class PodcastSeasonNavigationTests(TestCase):
         oldest = self.client.get("/podcast?season=1")
         episode = public_projection()["podcasts_by_slug"]["data-team-roles"]
         self.assertTrue(episode["description"])
-        self.assertContains(oldest, episode["description"])
+        self.assertContains(oldest, str(conditional_escape(episode["description"])))
         self.assertContains(oldest, 'datetime="2021-02-23"')
         for guest in episode["guest_profiles"]:
             if guest["public_path"]:
                 self.assertContains(oldest, f'href="{guest["public_path"]}"')
         self.assertFalse(any(not item["description"] for item in public_projection()["podcasts"]))
+        special_description = next(
+            item for item in public_projection()["podcasts"] if "&" in item["description"]
+        )
+        season_path = (
+            "/podcast"
+            if special_description["season"] == 24
+            else f"/podcast?season={special_description['season']}"
+        )
+        escaped_description = str(conditional_escape(special_description["description"]))
+        self.assertNotEqual(escaped_description, special_description["description"])
+        self.assertContains(self.client.get(season_path), escaped_description)
 
     def test_design_system_pages_carry_one_inline_stylesheet_and_no_legacy_css(self) -> None:
         """Mockup 6d (issue #179) rebuilt both surfaces on the shared design system."""
@@ -673,7 +684,7 @@ class PodcastSeasonNavigationTests(TestCase):
             self.assertContains(response, f'href="{episode["links"][platform]}"')
             self.assertContains(response, label)
         for guest in episode["guest_profiles"]:
-            self.assertContains(response, guest["name"])
+            self.assertContains(response, escape(guest["name"]))
             self.assertContains(response, f'href="{guest["public_path"]}"')
         self.assertContains(response, 'id="transcript-heading"')
         self.assertEqual(
@@ -690,17 +701,50 @@ class PodcastSeasonNavigationTests(TestCase):
         response = self.client.get(silent["public_path"])
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, silent["title"])
+        self.assertContains(response, escape(silent["title"]))
         self.assertNotContains(response, 'id="transcript-heading"')
+
+    def test_an_ampersand_in_an_episode_title_is_escaped_on_the_page(self) -> None:
+        episode = next(item for item in public_projection()["podcasts"] if "&" in item["title"])
+        self.assertNotEqual(escape(episode["title"]), episode["title"])
+        response = self.client.get(episode["public_path"])
+
+        self.assertContains(response, f'<h1 id="episode-heading">{escape(episode["title"])}</h1>')
+
+    def test_an_apostrophe_in_a_guest_name_is_escaped_on_the_page(self) -> None:
+        episode = public_projection()["podcasts_by_slug"]["devrel-data-science-open-source-tools"]
+        guest = next(item for item in episode["guest_profiles"] if "'" in item["name"])
+        self.assertNotEqual(escape(guest["name"]), guest["name"])
+        response = self.client.get(episode["public_path"])
+
+        self.assertContains(response, escape(guest["name"]))
 
     def test_homepage_uses_the_same_latest_episode(self) -> None:
         latest = ordered_podcasts()[0]
+        amp = next(
+            episode
+            for episode in ordered_podcasts()
+            if "&" in episode["title"] and episode["public_path"] != latest["public_path"]
+        )
         response = self.client.get("/")
-        self.assertContains(response, latest["title"])
+        self.assertContains(response, escape(latest["title"]))
         self.assertContains(response, f'href="{latest["public_path"]}"', count=1)
-        self.assertNotContains(
+        self.assertNotEqual(escape(amp["title"]), amp["title"])
+        self.assertNotContains(response, escape(amp["title"]))
+
+    def test_homepage_escapes_an_ampersand_in_the_latest_episode_title(self) -> None:
+        amp = next(episode for episode in ordered_podcasts() if "&" in episode["title"])
+        rest = tuple(
+            episode
+            for episode in ordered_podcasts()
+            if episode["public_path"] != amp["public_path"]
+        )
+        self.assertNotEqual(escape(amp["title"]), amp["title"])
+        with patch("core.views.ordered_podcasts", return_value=(amp, *rest)):
+            response = self.client.get("/")
+        self.assertContains(
             response,
-            public_projection()["podcasts"][0]["title"],
+            f'<a class="band-link" href="{amp["public_path"]}">{escape(amp["title"])}</a>',
         )
 
     def test_get_head_post_and_credential_cache_boundaries(self) -> None:

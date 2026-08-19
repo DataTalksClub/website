@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import re
-from html import escape
 
 from django.test import TestCase
+from django.utils.html import escape
 
 from content.faq_data import (
     FAQ_COURSE_ORDER,
@@ -35,7 +35,7 @@ class FaqRoutesTests(TestCase):
             response, '<meta property="og:url" content="https://datatalks.club/faq/">'
         )
         for course in faq_courses():
-            self.assertContains(response, course["name"])
+            self.assertContains(response, escape(course["name"]))
             self.assertContains(response, f'href="{course["public_path"]}"')
 
     def test_course_pages_render_every_question_with_canonical_and_faq_json_ld(self) -> None:
