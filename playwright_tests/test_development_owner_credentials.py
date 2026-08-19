@@ -144,7 +144,10 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     login = page.goto(f"{live_server.url}/accounts/login/?next=%2Fstudio%2F")
     assert login is not None and login.status == 200
     assert_private(login)
-    expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
+    # Exact match: the design 5a sign-in page also carries an sr-visible
+    # "Sign in with your DataTalks.Club account" panel heading, which a
+    # substring lookup would resolve as a second heading.
+    expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
     assert_visible_login_controls(page)
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
     page.screenshot(path=screenshot_path("development-login", viewport), full_page=True)
@@ -251,5 +254,5 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     assert back is not None and back.status == 200
     assert_private(back)
     expect(page).to_have_url(f"{live_server.url}/accounts/login/?next=%2Fstudio%2F")
-    expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
+    expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Studio", exact=True)).to_have_count(0)

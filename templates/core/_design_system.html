@@ -758,6 +758,18 @@ Rules for editing:
         white-space: nowrap;
       }
 
+      /* The account panel hangs left of its anchor and is as wide as its
+         widest line, so on a phone the identity line caps tighter: at
+         WCAG 1.4.12's letter and word spacing the 14rem cap pushed the
+         panel's left edge past the viewport on the 320px registration
+         success surface (the title attribute still carries the whole
+         address; the text has been ellipsized either way). */
+      @media (max-width: 39.99rem) {
+        .user-menu-identity {
+          max-width: 11rem;
+        }
+      }
+
       .user-menu-actions {
         display: grid;
         gap: 0.1rem;
@@ -970,8 +982,13 @@ Rules for editing:
         font-size: 1.05rem;
         font-weight: 700;
         justify-content: center;
+        /* Same reflow rule as a filter pill: a call to action never pushes the
+           page sideways; a label wider than the viewport wraps inside the
+           control, which grows past its 3.25rem floor. */
+        max-width: 100%;
         min-height: 3.25rem;
         padding: 0.65rem 1.5rem;
+        text-align: center;
         text-decoration: none;
       }
 
@@ -1595,7 +1612,13 @@ Rules for editing:
         min-height: 2.75rem;
         padding: 0.3rem 1.1rem;
         text-decoration: none;
-        white-space: nowrap;
+        /* A pill never pushes the page sideways: when its label alone is wider
+           than the viewport (a zoomed studio section link), the pill caps at its
+           container, the label wraps inside it, and the pill grows past its
+           2.75rem floor rather than overflowing.  Short labels are unaffected —
+           there is nothing to wrap. */
+        max-width: 100%;
+        text-align: center;
       }
 
       .filter-pill.is-active,

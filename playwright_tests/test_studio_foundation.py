@@ -144,7 +144,9 @@ def test_audit_filter_detail_redaction_and_layout(
 
     page.get_by_role("link", name="browser.audit.fixture").click()
     expect(page.get_by_role("heading", name="Audit event", exact=True)).to_be_visible()
-    expect(page.get_by_text("Immutable", exact=False)).to_be_visible()
+    # The immutability note by its full text: the design 5a studio page head
+    # also stamps "Studio · Immutable · Read only" above the record.
+    expect(page.get_by_text("Immutable record", exact=True)).to_be_visible()
     expect(page.get_by_text("visible browser fixture", exact=False)).to_be_visible()
     html = page.content()
     for protected in (
@@ -170,15 +172,20 @@ def test_revocation_prevents_back_cache_and_reload(page: Page, live_server) -> N
             timezone_posts.append(request)
 
     page.on("request", record_timezone_post)
-    loaded = page.goto(f"{live_server.url}/studio/audit/")
-    assert loaded is not None and loaded.status == 200
-    expect(page.get_by_role("heading", name="Audit events")).to_be_visible()
-
+    # The passive preference POST is awaited on this first studio load: the
+    # design 5a studio shell runs the same shared footer scripts as the public
+    # shell, so a signed-in page without a stored preference posts it here
+    # already, and the later homepage visit renders the stored preference
+    # instead of posting a second time.
     with page.expect_response(
         lambda response: response.url == timezone_url and response.request.method == "POST",
         timeout=60_000,
     ) as timezone_response_info:
-        home = page.goto(f"{live_server.url}/", wait_until="domcontentloaded", timeout=60_000)
+        loaded = page.goto(f"{live_server.url}/studio/audit/")
+    assert loaded is not None and loaded.status == 200
+    expect(page.get_by_role("heading", name="Audit events")).to_be_visible()
+
+    home = page.goto(f"{live_server.url}/", wait_until="domcontentloaded", timeout=60_000)
     assert home is not None and home.status == 200
     timezone_response = timezone_response_info.value
     assert timezone_response.status == 200
