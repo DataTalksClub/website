@@ -692,12 +692,22 @@ def machine_output_claim(
         raise EvidenceError("machine output component is unsupported")
     artifact = artifact_records((path,), root=root)[0]
     body = Path(path).read_bytes()
-    if result != "success":
+    if component in TEST_OUTPUT_COMPONENTS:
+        output_format = "test-log-v1"
+        try:
+            counts = _test_output_counts(body)
+        except EvidenceError:
+            if result == "success":
+                raise
+            # A failed, cancelled, or timed-out run can leave a truncated or wedged
+            # log with no machine-verifiable summary.  Record zero counts instead
+            # of raising: an unreadable failed log must never block evidence
+            # recording or report creation.  The non-success result remains the
+            # authoritative outcome and the log stays digest-bound either way.
+            counts = _zero_result_counts()
+    elif result != "success":
         counts = _zero_result_counts()
         output_format = next(iter(OUTPUT_FORMATS[component]))
-    elif component in TEST_OUTPUT_COMPONENTS:
-        output_format = "test-log-v1"
-        counts = _test_output_counts(body)
     elif component == "selector":
         output_format = "verification-plan-v3"
         try:
