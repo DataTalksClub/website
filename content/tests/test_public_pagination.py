@@ -598,16 +598,17 @@ class PublicPaginationSeoAndRepositoryTests(SimpleTestCase):
     def test_sitemaps_contain_only_clean_hubs_and_no_page_queries(self) -> None:
         request = RequestFactory().get("/sitemap.xml")
         sections = (
-            ("blog", "/blog"),
-            ("books", "/books"),
-            ("wiki", "/wiki"),
-            ("events", "/events"),
+            ("blog", ("/blog",)),
+            ("books", ("/books",)),
+            ("wiki", ("/wiki",)),
+            ("events", ("/events", "/events/past")),
         )
-        for section, clean_hub in sections:
+        for section, clean_hubs in sections:
             with self.subTest(section=section):
                 sitemap = section_sitemap(request, section=section).content.decode()
                 self.assertNotIn("?page=", sitemap)
-                self.assertIn(f"https://datatalks.club{clean_hub}</loc>", sitemap)
+                for clean_hub in clean_hubs:
+                    self.assertIn(f"https://datatalks.club{clean_hub}</loc>", sitemap)
 
     def test_one_collection_neutral_include_owns_public_page_controls(self) -> None:
         pagination_templates = sorted(

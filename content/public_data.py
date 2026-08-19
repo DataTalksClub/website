@@ -322,6 +322,10 @@ def _apply_runtime_event_public_paths(
             public_path = f"/events/{public_id}/{slug}"
             replacements[event["public_path"]] = public_path
             event["public_path"] = public_path
+            # Numeric public ID is already in the href.  Surface it so each row can
+            # mint a unique kind-tip id without falling back to the date-group loop
+            # counter or exposing the UUID.
+            event["public_id"] = public_id
         events.append(event)
     projection["events"] = tuple(events)
 
@@ -845,6 +849,7 @@ def public_paths() -> tuple[str, ...]:
         "/podcast",
         "/books",
         "/events",
+        "/events/past",
         "/courses",
         "/wiki",
         "/docs/",

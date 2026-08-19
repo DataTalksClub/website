@@ -1056,7 +1056,7 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
     if section == "people":
         return tuple((record["public_path"], "") for record in projection["people"])
     if section == "events":
-        return (("/events", ""),) + tuple(
+        return (("/events", ""), ("/events/past", "")) + tuple(
             (record["public_path"], record["starts_at"][:10]) for record in projection["events"]
         )
     if section == "courses":
