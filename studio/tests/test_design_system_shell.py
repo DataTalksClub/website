@@ -130,6 +130,7 @@ class StudioDesignFiveAShellTests(TestCase):
         return {
             "studio home": reverse("studio:home"),
             "site settings": reverse("studio:settings"),
+            "site navigation": reverse("studio:navigation"),
             "audit events": reverse("studio:audit-list"),
             "audit event detail": reverse(
                 "studio:audit-detail",

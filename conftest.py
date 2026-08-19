@@ -100,7 +100,10 @@ EXPECTED_LOCAL_RESPONSES: dict[str, tuple[tuple[re.Pattern[str], int], ...]] = {
         ),
     ),
     "test_revocation_prevents_back_cache_and_reload": ((re.compile(r"^/studio/audit/$"), 403),),
-    "test_stale_browser_save_is_atomic_and_retryable": ((re.compile(r"^/studio/settings$"), 409),),
+    "test_stale_browser_save_is_atomic_and_retryable": (
+        (re.compile(r"^/studio/settings$"), 409),
+        (re.compile(r"^/studio/navigation$"), 409),
+    ),
     "test_duplicate_conflict_guidance_is_generic_and_accessible": (
         (re.compile(r"^/_identity-fixtures/link-conflict/$"), 409),
     ),

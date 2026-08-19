@@ -6,6 +6,7 @@ from django.db import DatabaseError
 from django.http import HttpRequest
 
 from core.configuration import InvalidOperationalSetting
+from core.navigation import public_primary_navigation
 from core.site_settings import public_announcement
 from courses.models import Course
 
@@ -46,6 +47,7 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
                 "Public site announcement is unavailable (%s).",
                 type(error).__name__,
             )
+    primary_navigation = public_primary_navigation()
     canonical_url = EXPLICIT_PUBLIC_CANONICALS.get(request.path)
     if (
         canonical_url is None
@@ -70,6 +72,7 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         "VERSION": settings.VERSION,
         "app_version": settings.APP_VERSION,
         "primary_navigation_current": _primary_navigation_current(request.path),
+        "primary_navigation": primary_navigation,
         "site_announcement": announcement,
         # Every shared-view canonical is an explicit mapping, never host/path inference.
         "canonical_url": canonical_url,
