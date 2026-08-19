@@ -14,6 +14,7 @@ from content.public_data import (
     EventGroups,
     event_date_groups,
     event_groups,
+    public_paths,
     public_projection,
 )
 from events.identity import canonical_detail_path
@@ -329,6 +330,47 @@ class PastEventPaginationTests(TestCase):
             self.assertRegex(href, r"^/events/[1-9][0-9]*/[-a-z0-9]+$")
         self.assertNotRegex(body, r"/events/[0-9a-f]{8}-[0-9a-f]{4}-")
 
+    def test_clean_archive_hub_is_in_the_public_path_registry(self) -> None:
+        paths = public_paths()
+
+        self.assertIn("/events", paths)
+        self.assertIn("/events/past", paths)
+        self.assertFalse(any("?page=" in path for path in paths))
+
+    def test_the_events_sitemap_lists_both_clean_hubs_and_no_page_query(self) -> None:
+        sitemap = self.client.get("/sitemaps/events.xml").content.decode()
+
+        self.assertIn("<loc>https://datatalks.club/events</loc>", sitemap)
+        self.assertIn("<loc>https://datatalks.club/events/past</loc>", sitemap)
+        self.assertNotIn("?page=", sitemap)
+        self.assertEqual(sitemap.count("https://datatalks.club/events/past"), 1)
+
+    def test_archive_kind_tips_use_the_numeric_public_id_from_the_href(self) -> None:
+        """Date groups reset forloop.counter0, so a fallback id collides across days.
+
+        Each row already links to /events/<public-id>/<slug>.  The tip must reuse
+        that number so aria-describedby stays unique without exposing the UUID.
+        """
+
+        body = self.client.get("/events/past").content.decode()
+        hrefs = re.findall(r'<h3>\s*<a href="(/events/[^"]+)">', body)
+        described = re.findall(r'aria-describedby="(kind-tip-[^"]+)"', body)
+        tip_ids = re.findall(r'<span class="kind-tip" role="tooltip" id="(kind-tip-[^"]+)">', body)
+        public_ids = [href.split("/")[2] for href in hrefs]
+        expected = [f"kind-tip-{public_id}" for public_id in public_ids]
+
+        self.assertTrue(hrefs)
+        self.assertGreater(body.count('<div class="list-row event-row">'), 3)
+        self.assertEqual(described, expected)
+        self.assertEqual(tip_ids, expected)
+        self.assertEqual(len(tip_ids), len(set(tip_ids)))
+        self.assertEqual(len(set(tip_ids)), len(hrefs))
+        for public_id in public_ids:
+            self.assertRegex(public_id, r"^[1-9][0-9]*$")
+        self.assertNotRegex(body, r'id="kind-tip-[0-9a-f]{8}-[0-9a-f]{4}-')
+        archive = "".join(catalogue_page_bodies(self.client, "/events/past"))
+        self.assertNotRegex(archive, r"\bkind-tip-0\b")
+
 
 class EventTimelineTemplateTests(TestCase):
     def test_timeline_uses_numeric_paths_at_runtime(self) -> None:
@@ -342,6 +384,11 @@ class EventTimelineTemplateTests(TestCase):
         self.assertTrue(
             all(event["public_path"].startswith("/events/") for event in projection["events"])
         )
+        for event in projection["events"]:
+            public_id = event.get("public_id")
+            self.assertIsInstance(public_id, int)
+            self.assertGreater(public_id, 0)
+            self.assertEqual(event["public_path"], f"/events/{public_id}/{event['slug']}")
 
 
 class EventIndexDesignSystemTests(TestCase):
@@ -464,17 +511,23 @@ class EventKindsExplainerTests(TestCase):
     def test_every_kind_pill_is_bound_to_its_own_explanation(self) -> None:
         """The tip is reachable, not hover-only, and it names its pill."""
 
-        body = self.collapsed_body("/events")
+        for path in ("/events", "/events/past"):
+            with self.subTest(path=path):
+                body = self.collapsed_body(path)
 
-        described = re.findall(r'aria-describedby="(kind-tip-[^"]+)"', body)
-        self.assertTrue(described)
-        for target in described:
-            self.assertIn(f'<span class="kind-tip" role="tooltip" id="{target}">', body)
-        # A pill that carries a tip takes focus, so a keyboard reaches it.
-        self.assertEqual(body.count('aria-describedby="kind-tip-'), body.count('tabindex="0"'))
-        # No icon font: these pages load no external CSS, so the pill marks the row.
-        self.assertNotIn("fa-tv", body)
-        self.assertNotIn("fa-microphone-alt", body)
+                described = re.findall(r'aria-describedby="(kind-tip-[^"]+)"', body)
+                self.assertTrue(described)
+                self.assertEqual(len(described), len(set(described)))
+                for target in described:
+                    self.assertIn(f'<span class="kind-tip" role="tooltip" id="{target}">', body)
+                    self.assertRegex(target, r"^kind-tip-[1-9][0-9]*$")
+                # A pill that carries a tip takes focus, so a keyboard reaches it.
+                self.assertEqual(
+                    body.count('aria-describedby="kind-tip-'), body.count('tabindex="0"')
+                )
+                # No icon font: these pages load no external CSS, so the pill marks the row.
+                self.assertNotIn("fa-tv", body)
+                self.assertNotIn("fa-microphone-alt", body)
 
 
 class EventDetailDesignSystemTests(TestCase):
