@@ -326,6 +326,109 @@ class PastEventPaginationTests(TestCase):
         self.assertEqual(beyond.headers["Cache-Control"], "no-store, max-age=0")
         self.assertEqual(upcoming.status_code, 200)
 
+    def test_the_slash_alias_is_one_permanent_hop_that_preserves_the_raw_query(self) -> None:
+        """`/events/past/` stays the archive's explicit slash alias (issue #177).
+
+        One hop to the clean path, the viewer's raw query kept byte-for-byte —
+        the rule every hub alias follows — and an unsafe method answered before
+        any redirect work, like the archive itself is.
+        """
+
+        for method in ("get", "head"):
+            with self.subTest(method=method):
+                response = getattr(self.client, method)("/events/past/?utm_source=qa", follow=False)
+                self.assertEqual(response.status_code, 301)
+                self.assertEqual(response["Location"], "/events/past?utm_source=qa")
+                self.assertEqual(response.headers["Cache-Control"], "public, max-age=300")
+        self.assertEqual(self.client.head("/events/past/?utm_source=qa", follow=False).content, b"")
+        post = self.client.post("/events/past/")
+        self.assertEqual(post.status_code, 405)
+        self.assertEqual(post.headers["Allow"], "GET, HEAD")
+        self.assertEqual(post.headers["Cache-Control"], "no-store, max-age=0")
+
+    def test_a_page_beyond_the_last_is_a_rendered_public_404(self) -> None:
+        """A valid number past the real end is a miss, not a nearest-page guess.
+
+        The empty-archive case pins page two of nothing; this one pins the page
+        after the last real page of the populated archive, which is the miss a
+        visitor or a crawler actually reaches by walking the numbers up.
+        """
+
+        page_count = -(-len(event_groups().recent) // PUBLIC_PAGE_SIZE)
+        for page in (page_count + 1, 999):
+            with self.subTest(page=page):
+                response = self.client.get(f"/events/past?page={page}")
+                head = self.client.head(f"/events/past?page={page}")
+                self.assertEqual(response.status_code, 404)
+                self.assertEqual(head.status_code, 404)
+                self.assertEqual(head.content, b"")
+                self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+                self.assertContains(response, "Page not found", status_code=404)
+                # The refusal names neither the page asked for nor the last real
+                # one, and offers no canonical a miss could be indexed under.
+                self.assertNotContains(response, f"page={page}", status_code=404)
+                self.assertNotContains(response, f"page={page_count}", status_code=404)
+                self.assertNotContains(response, 'rel="canonical"', status_code=404)
+                self.assertNotContains(response, "Traceback", status_code=404)
+
+    def test_malformed_page_queries_on_the_real_archive_are_bounded_400s(self) -> None:
+        """The archive itself refuses malformed selectors, not only the fixture.
+
+        The shared paginator's grammar is pinned on its synthetic catalogue; this
+        walks the same malformed spellings through the real route, where a
+        bespoke parser could still be hiding behind the shared include.
+        """
+
+        for query in ("page=", "page=0", "page=01", "page=%31", "page=1&page=2", "page=1000"):
+            with self.subTest(query=query):
+                response = self.client.get(f"/events/past?{query}")
+                self.assertEqual(response.status_code, 400)
+                self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+                self.assertContains(response, "Bad request", status_code=400)
+                # The needle is the escaped form, as #192 pinned for this file:
+                # a reflected selector would reach the document escaped, and the
+                # raw spelling of an ampersand-bearing query could never match.
+                self.assertNotContains(response, escape(query), status_code=400)
+                self.assertNotContains(response, 'rel="canonical"', status_code=400)
+                self.assertNotContains(response, "Traceback", status_code=400)
+                self.assertLess(len(response.content), 200_000)
+
+    def test_page_two_publishes_its_exact_canonical_and_og_url(self) -> None:
+        """Canonical and OG agree with the selected representation on every page.
+
+        Page one — however it is spelled — is the clean URL in both, and a later
+        page is its own query URL in both, so a share and a crawl name the same
+        address.
+        """
+
+        body = self.client.get("/events/past?page=2").content.decode()
+        self.assertIn(
+            '<link rel="canonical" href="https://datatalks.club/events/past?page=2">', body
+        )
+        self.assertIn(
+            '<meta property="og:url" content="https://datatalks.club/events/past?page=2">', body
+        )
+        for spelling in ("/events/past", "/events/past?page=1"):
+            with self.subTest(spelling=spelling):
+                first = self.client.get(spelling).content.decode()
+                self.assertIn(
+                    '<meta property="og:url" content="https://datatalks.club/events/past">', first
+                )
+
+    def test_the_archive_rejects_unsafe_methods_and_answers_head_identically(self) -> None:
+        post = self.client.post("/events/past?page=2")
+        self.assertEqual(post.status_code, 405)
+        self.assertEqual(post.headers["Allow"], "GET, HEAD")
+        self.assertEqual(post.headers["Cache-Control"], "no-store, max-age=0")
+
+        get_response = self.client.get("/events/past?page=2")
+        head_response = self.client.head("/events/past?page=2")
+        self.assertEqual(head_response.status_code, get_response.status_code)
+        self.assertEqual(
+            head_response.headers["Cache-Control"], get_response.headers["Cache-Control"]
+        )
+        self.assertEqual(head_response.content, b"")
+
     def test_every_archive_link_is_the_numeric_current_slug_canonical(self) -> None:
         body = "".join(catalogue_page_bodies(self.client, "/events/past"))
         hrefs = re.findall(r'<h3>\s*<a href="(/events/[^"]+)">', body)
