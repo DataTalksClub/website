@@ -193,6 +193,19 @@ Override `VERIFY_BASE_SHA`, `VERIFY_HEAD_SHA`, `VERIFY_OUTPUT_DIR`, or `VERIFY_E
 with explicit reviewed paths/revisions. `verification-run` executes only allowlisted argument
 vectors and records each rerun result below `.tmp/verification/evidence/`.
 
+Every component execution is bounded by an explicit per-component wall-clock timeout. The default
+is 3600 seconds (one hour), which exceeds the longest legitimate local suite: the full Django run,
+the core browser run, and the exact production-container build each finish well inside it. When the
+bound expires the runner terminates and then kills the component's whole process group, retains the
+partial output below the component's output artifact, records the result envelope as `timed_out`
+with exit code 124 and the exact command, and continues with the remaining components, so
+`verification-report-check` still emits `verification-report.json` with a `failure` verdict; a
+timed-out component is an executed rerun with a failing result, never a skip. Override the bound
+only for deliberate bounded-hang diagnostics by invoking the runner directly with
+`--component-timeout-seconds <positive-seconds>`; the Makefile target always uses the documented
+default. `verification-run` preserves the runner's nonzero status while allowing the report-check
+step to run, so the aggregate report remains the final failure evidence.
+
 The proportional fresh gates remain available:
 
 ```text

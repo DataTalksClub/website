@@ -187,12 +187,16 @@ verification-plan:
 
 verification-run:
 	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
+	@runner_status=0; \
 	uv run --frozen python -m ci.runner \
 			--plan "$(VERIFY_PLAN)" --repository . \
 			--output-directory "$(VERIFY_EVIDENCE_DIR)" \
 			--issue "$(VERIFY_ISSUE)" --worktree "$(VERIFY_WORKTREE)" \
-			--producer-role "$(VERIFY_PRODUCER_ROLE)"
-	$(MAKE) verification-report-check
+			--producer-role "$(VERIFY_PRODUCER_ROLE)" || runner_status=$$?; \
+	report_status=0; \
+	$(MAKE) verification-report-check || report_status=$$?; \
+	if test "$$report_status" -ne 0; then exit "$$report_status"; fi; \
+	exit "$$runner_status"
 
 verification-quality: terminology-check database-portability-check security-check lint format-check typecheck \
 	migrations-check django-check deployment-check test-ci

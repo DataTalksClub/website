@@ -78,21 +78,38 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
             return subprocess.CompletedProcess(command, 0, stdout="uv 0.10.11\n")
         if command[:3] == ["git", "-C", str(tmp_path / "repository")]:
             return subprocess.CompletedProcess(command, 0, stdout=f"{plan['head']}\n")
-        if command == ("make", "verification-container"):
-            output = _kwargs["env"]["VERIFY_CONTAINER_OUTPUT"]
-            with open(output, "w", encoding="utf-8") as stream:
-                json.dump(
-                    {
-                        "assertions": ["container_contract"],
-                        "revision": plan["head"],
-                        "schema_version": 1,
-                        "status": "pass",
-                    },
-                    stream,
-                )
         return subprocess.CompletedProcess(command, 0, stdout="2 passed in 0.01s\n")
 
+    class CompletedPopen:
+        def __init__(self, command, **kwargs):
+            self.args = tuple(command)
+            self.pid = 424_242
+            self.returncode = None
+            if tuple(command) == ("make", "verification-container"):
+                with open(
+                    kwargs["env"]["VERIFY_CONTAINER_OUTPUT"], "w", encoding="utf-8"
+                ) as stream:
+                    json.dump(
+                        {
+                            "assertions": ["container_contract"],
+                            "revision": plan["head"],
+                            "schema_version": 1,
+                            "status": "pass",
+                        },
+                        stream,
+                    )
+            elif kwargs.get("stdout") is not None:
+                kwargs["stdout"].write("2 passed in 0.01s\n")
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, timeout=None):
+            self.returncode = 0
+            return 0
+
     monkeypatch.setattr("ci.runner.subprocess.run", completed)
+    monkeypatch.setattr("ci.runner.subprocess.Popen", CompletedPopen)
     output = tmp_path / "evidence"
     assert (
         run_plan(
