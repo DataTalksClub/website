@@ -144,8 +144,13 @@ class EventTimelineRouteTests(TestCase):
         )
         # The pages escape the titles they draw, so the needle has to be the
         # escaped form: the raw string could never match and the check would
-        # pass even if the other timeline leaked onto the page.
+        # pass even if the other timeline leaked onto the page. Pin an
+        # ampersand-bearing past title so that coverage does not depend on
+        # whichever record happens to be recent[0] or upcoming[0].
+        amp_recent = next(event for event in groups.recent if "&" in event["title"])
+        self.assertNotEqual(escape(amp_recent["title"]), amp_recent["title"])
         self.assertNotContains(upcoming, escape(groups.recent[0]["title"]))
+        self.assertNotContains(upcoming, escape(amp_recent["title"]))
         self.assertNotContains(past_page, escape(groups.upcoming[0]["title"]))
         self.assertContains(
             past_page,
@@ -572,7 +577,7 @@ class EventDetailDesignSystemTests(TestCase):
         # zone only exists in display_clock.
         self.assertIn(f'<time class="when event-when" datetime="{event["starts_at"]}">', body)
         self.assertIn('<span class="when-time">', body)
-        self.assertIn(f"<strong>{event['display_date']}</strong>", body)
+        self.assertIn(f"<strong>{escape(event['display_date'])}</strong>", body)
         # The h1 escapes the title it draws (an "&" in a title reaches the
         # document as "&amp;"), so the expected markup is the escaped form.
         self.assertIn(f'<h1 id="event-heading">{escape(event["title"])}</h1>', body)
@@ -626,7 +631,7 @@ class EventDetailDesignSystemTests(TestCase):
             # name, and the name is the link to their profile.
             self.assertIn(
                 f'<a class="band-link person-chip-name" '
-                f'href="{speaker["public_path"]}">{speaker["name"]}</a>',
+                f'href="{speaker["public_path"]}">{escape(speaker["name"])}</a>',
                 body,
             )
         # The links keep the group label the old heading carried, so the actions are
@@ -635,8 +640,31 @@ class EventDetailDesignSystemTests(TestCase):
         self.assertEqual(body.count('aria-label="Event links"'), 1)
         for link in event["links"]:
             self.assertIn(f'href="{link["url"]}"', body)
-            self.assertIn(link["label"], body)
+            self.assertIn(escape(link["label"]), body)
         self.assertIn('<span class="sr-only"> (opens in a new tab)</span>', body)
+
+    def test_an_ampersand_in_an_event_title_is_escaped_in_the_heading(self) -> None:
+        event = next(item for item in public_projection()["events"] if "&" in item["title"])
+        self.assertNotEqual(escape(event["title"]), event["title"])
+        body = self.detail(event)
+
+        self.assertIn(f'<h1 id="event-heading">{escape(event["title"])}</h1>', body)
+
+    def test_an_apostrophe_in_a_speaker_name_is_escaped_in_the_chip(self) -> None:
+        event = next(
+            item
+            for item in public_projection()["events"]
+            if any("'" in speaker["name"] for speaker in item["speakers"])
+        )
+        speaker = next(item for item in event["speakers"] if "'" in item["name"])
+        self.assertNotEqual(escape(speaker["name"]), speaker["name"])
+        body = self.detail(event)
+
+        self.assertIn(
+            f'<a class="band-link person-chip-name" '
+            f'href="{speaker["public_path"]}">{escape(speaker["name"])}</a>',
+            body,
+        )
 
     def test_an_event_without_speakers_or_links_draws_neither_of_them(self) -> None:
         """Every catalogued event has a speaker or a link, so this state is composed.

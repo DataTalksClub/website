@@ -326,11 +326,11 @@ class PersonPageTests(TestCase):
         response = self.client.get(record["public_path"])
         body = response.content.decode()
 
-        self.assertContains(response, f'alt="Portrait of {record["title"]}"', count=1)
+        self.assertContains(response, f'alt="Portrait of {escape(record["title"])}"', count=1)
         self.assertContains(response, f'src="{record["image_path"]}"')
-        self.assertContains(response, f'<h1 id="person-heading">{record["title"]}</h1>')
+        self.assertContains(response, f'<h1 id="person-heading">{escape(record["title"])}</h1>')
         for role in record["roles"]:
-            self.assertIn(f'<li class="chip">{role.title()}</li>', body)
+            self.assertIn(f'<li class="chip">{escape(role.title())}</li>', body)
         self.assertIn('aria-label="Community roles"', body)
         self.assertIn('aria-label="Public profile links"', body)
         profile_links = re.search(r'<nav class="person-links".*?</nav>', body, re.S)
@@ -338,7 +338,7 @@ class PersonPageTests(TestCase):
         nav = profile_links.group(0)
         for link in record["links"]:
             self.assertIn(f'href="{link["url"]}"', nav)
-            self.assertIn(link["label"], nav)
+            self.assertIn(escape(link["label"]), nav)
         self.assertEqual(nav.count('target="_blank"'), len(record["links"]))
         self.assertEqual(nav.count('rel="noopener noreferrer"'), len(record["links"]))
         self.assertEqual(nav.count("(opens in a new tab)"), len(record["links"]))
@@ -355,10 +355,10 @@ class PersonPageTests(TestCase):
             self.assertIn(f'href="{relationship["public_path"]}"', body)
             self.assertIn(escape(relationship["label"]), body)
         for role in {relationship["role"] for relationship in record["relationships"]}:
-            self.assertIn(f'<p class="mono-label">{role}</p>', body)
+            self.assertIn(f'<p class="mono-label">{escape(role)}</p>', body)
 
         for group in person.groups:
-            self.assertIn(f'<h2 id="{group.anchor}-heading">{group.heading}</h2>', body)
+            self.assertIn(f'<h2 id="{group.anchor}-heading">{escape(group.heading)}</h2>', body)
             self.assertIn(f"person-rows-{group.key}", body)
         # Every contribution is the site's shared archive row — the same row the
         # blog, the books archive and the podcast index draw — and the rows
@@ -421,7 +421,7 @@ class PersonPageTests(TestCase):
         body = self.rendered(SPARSE_SLUG)
 
         self.assertIn("No podcast episode, event, article or book on DataTalks.Club lists", body)
-        self.assertIn(record["title"], body)
+        self.assertIn(escape(record["title"]), body)
         self.assertNotIn('class="stat-tiles person-stats"', body)
         self.assertNotIn('class="row-list', body)
         self.assertNotIn('aria-label="Community roles"', body)
@@ -445,7 +445,18 @@ class PersonPageTests(TestCase):
         self.assertIn('"@type": "Person"', body)
         for link in record["links"]:
             self.assertIn(link["url"], body)
-        self.assertIn(f"<title>{record['title']} — DataTalks.Club</title>", body)
+        self.assertIn(f"<title>{escape(record['title'])} — DataTalks.Club</title>", body)
+
+    def test_an_apostrophe_in_a_profile_title_is_escaped_in_the_heading_and_portrait(
+        self,
+    ) -> None:
+        record = profile("elleobrien")
+        self.assertNotEqual(escape(record["title"]), record["title"])
+        response = self.client.get(record["public_path"])
+
+        self.assertContains(response, f'alt="Portrait of {escape(record["title"])}"', count=1)
+        self.assertContains(response, f'<h1 id="person-heading">{escape(record["title"])}</h1>')
+        self.assertContains(response, f"<title>{escape(record['title'])} — DataTalks.Club</title>")
 
     def test_the_profile_is_one_h1_and_labelled_bands(self) -> None:
         body = self.rendered(RICH_SLUG)
