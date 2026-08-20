@@ -22,7 +22,7 @@ def test_schema_inventory_has_exact_static_baseline() -> None:
 
 def test_validator_rejects_main_sha_drift() -> None:
     mutated = _source().replace(
-        "4cc6ad41caba14da7fad10ea077e1ee10389addd",
+        "4825aa38f27903518b941a251520c60a6845f61a",
         "a" * 40,
         1,
     )
@@ -48,8 +48,8 @@ def test_validator_rejects_unknown_model_key() -> None:
 
 def test_validator_rejects_migration_count_drift() -> None:
     source = _source().replace(
-        "Current migrations: `accounts=12; courses=41; data=5`",
-        "Current migrations: `accounts=12; courses=40; data=5`",
+        "Current migrations: `accounts=12; courses=1; data=5`",
+        "Current migrations: `accounts=12; courses=2; data=5`",
         1,
     )
 
@@ -59,9 +59,9 @@ def test_validator_rejects_migration_count_drift() -> None:
 
 def test_validator_rejects_controlled_vocabulary_drift() -> None:
     source = _source().replace(
-        "| courses.Course | courses | Course | courses_course | courses/models/course.py | "
+        "| courses.Cohort | courses | Cohort | courses_course | courses/models/cohort.py | "
         "courses/migrations/0001_initial.py | pinned-cmp | #30 | definition |",
-        "| courses.Course | courses | Course | courses_course | courses/models/course.py | "
+        "| courses.Cohort | courses | Cohort | courses_course | courses/models/cohort.py | "
         "courses/migrations/0001_initial.py | pinned-cmp | #30 | unknown |",
         1,
     )
@@ -90,4 +90,23 @@ def test_validator_rejects_omitted_unresolved_handoff() -> None:
     )
 
     with pytest.raises(ValidationError, match="unknown or duplicate unresolved hand-off"):
+        validate_text(source)
+
+
+def test_phase1_inventory_records_cohort_outcome() -> None:
+    source = _source()
+
+    assert "| courses.Cohort | courses | Cohort | courses_course |" in source
+    assert "| courses.Cohort | outcome |" in source
+    validate_text(source)
+
+
+def test_validator_rejects_wrong_phase1_schema_assertion() -> None:
+    source = _source().replace(
+        "| courses.Cohort | outcome |",
+        "| courses.Course | outcome |",
+        1,
+    )
+
+    with pytest.raises(ValidationError, match="Cohort.outcome"):
         validate_text(source)

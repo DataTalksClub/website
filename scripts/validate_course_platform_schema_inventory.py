@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the static adopted course-platform schema/data inventory.
+"""Validate the static phase-1 course-platform schema/data inventory.
 
 The audit is intentionally Markdown so it can be reviewed as a normal repository
 artifact.  This validator only reads checked-in files and the captured audit text;
@@ -18,10 +18,10 @@ from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 REPOSITORY = "DataTalksClub/website"
-AUDIT_PATH = Path("_docs/audits/2026-08-14-course-platform-schema-data-inventory.md")
+AUDIT_PATH = Path("_docs/audits/2026-08-20-course-platform-schema-data-inventory-phase-1.md")
 SOURCE_PIN_PATH = Path("_docs/adoption/course-platform/source-pin.json")
 COPIED_MANIFEST_PATH = Path("_docs/adoption/course-platform/copied-files.tsv")
-CURRENT_MAIN_SHA = "4cc6ad41caba14da7fad10ea077e1ee10389addd"
+CURRENT_MAIN_SHA = "4825aa38f27903518b941a251520c60a6845f61a"
 SOURCE_PIN_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 EXPECTED_REF = "refs/heads/main"
 
@@ -77,25 +77,25 @@ MODEL_SPECS: dict[str, ModelSpec] = {
         "#100",
         "history",
     ),
-    "courses.Course": ModelSpec(
-        "courses_course", "courses/models/course.py", "pinned-cmp", "#30", "definition"
+    "courses.Cohort": ModelSpec(
+        "courses_course", "courses/models/cohort.py", "pinned-cmp", "#30", "definition"
     ),
     "courses.RegistrationCampaign": ModelSpec(
         "courses_registrationcampaign",
-        "courses/models/course.py",
+        "courses/models/cohort.py",
         "pinned-cmp",
         "#30",
         "definition",
     ),
     "courses.CourseRegistration": ModelSpec(
-        "courses_courseregistration", "courses/models/course.py", "pinned-cmp", "#30", "operational"
+        "courses_courseregistration", "courses/models/cohort.py", "pinned-cmp", "#30", "operational"
     ),
     "courses.Enrollment": ModelSpec(
-        "courses_enrollment", "courses/models/course.py", "pinned-cmp", "#30", "learner"
+        "courses_enrollment", "courses/models/cohort.py", "pinned-cmp", "#30", "learner"
     ),
     "courses.LeaderboardComplaint": ModelSpec(
         "courses_leaderboardcomplaint",
-        "courses/models/course.py",
+        "courses/models/cohort.py",
         "pinned-cmp",
         "#30",
         "operational",
@@ -188,7 +188,7 @@ RELATIONSHIP_KEYS = frozenset(
     {
         "accounts.Token.user",
         "accounts.AccountIdentityAlias.survivor",
-        "courses.Course.students",
+        "courses.Cohort.students",
         "courses.RegistrationCampaign.current_course",
         "courses.CourseRegistration.campaign",
         "courses.CourseRegistration.course",
@@ -295,6 +295,12 @@ BOUNDARY_COLUMNS = (
     "Hand-off",
 )
 HANDOFF_COLUMNS = ("Issue", "State", "Unresolved contract / hand-off", "Evidence")
+SCHEMA_ASSERTION_COLUMNS = (
+    "Model",
+    "Field",
+    "Declaration evidence",
+    "Migration evidence",
+)
 
 
 def _split_table_row(line: str) -> list[str]:
@@ -382,7 +388,7 @@ def _validate_metadata(lines: list[str]) -> None:
         if not UTC_PATTERN.fullmatch(value):
             raise ValidationError(f"{label} must be an explicit UTC timestamp ending in Z")
     migration_values = {
-        "Current migrations": {"accounts": 12, "courses": 41, "data": 5},
+        "Current migrations": {"accounts": 12, "courses": 1, "data": 5},
         "Pinned CMP migrations": {"accounts": 10, "courses": 40, "data": 5},
     }
     for label, expected_counts in migration_values.items():
@@ -469,13 +475,49 @@ def _validate_model_rows(lines: list[str], audit_path: Path) -> None:
             r"(?:accounts|courses|data)/migrations/\d{4}_[^ ]+\.py", migration
         ):
             raise ValidationError(f"missing migration provenance for {key}")
+        if key.startswith("courses.") and "courses/migrations/0001_initial.py" not in migration:
+            raise ValidationError(f"phase-1 courses model must use the squashed migration: {key}")
         _validate_evidence(evidence, audit_path, minimum=2)
         _validate_handoff(evidence, required=False)
 
 
+def _validate_schema_assertions(lines: list[str], audit_path: Path) -> None:
+    rows = _table(lines, "## Phase-1 schema assertions", SCHEMA_ASSERTION_COLUMNS)
+    if len(rows) != 1:
+        raise ValidationError("phase-1 schema assertions must contain exactly one row")
+    model, field, declaration_evidence, migration_evidence = rows[0]
+    if (model, field) != ("courses.Cohort", "outcome"):
+        raise ValidationError("phase-1 schema assertion must record courses.Cohort.outcome")
+    _validate_evidence(declaration_evidence, audit_path)
+    _validate_evidence(migration_evidence, audit_path)
+
+
+def _validate_phase1_schema_source() -> None:
+    root = Path.cwd()
+    try:
+        cohort_source = (root / "courses/models/cohort.py").read_text(encoding="utf-8")
+        migration_source = (root / "courses/migrations/0001_initial.py").read_text(
+            encoding="utf-8"
+        )
+    except OSError as exc:
+        raise ValidationError("phase-1 Cohort schema evidence is missing") from exc
+    if not re.search(r"^class Cohort\(models\.Model\):", cohort_source, re.MULTILINE):
+        raise ValidationError("phase-1 Cohort model declaration is missing")
+    if not re.search(
+        r"^\s+outcome\s*=\s*models\.TextField\(blank=True\)",
+        cohort_source,
+        re.MULTILINE,
+    ):
+        raise ValidationError("phase-1 Cohort.outcome declaration is missing")
+    if not re.search(r"name=['\"]Cohort['\"]", migration_source):
+        raise ValidationError("phase-1 Cohort migration operation is missing")
+    if not re.search(r"\(['\"]outcome['\"],\s*models\.TextField\(blank=True\)", migration_source):
+        raise ValidationError("phase-1 Cohort.outcome migration field is missing")
+
+
 def _validate_migration_rows(lines: list[str], audit_path: Path) -> None:
     rows = _table(lines, "## Migration baselines", MIGRATION_COLUMNS)
-    expected = {"accounts": (12, 10), "courses": (41, 40), "data": (5, 5)}
+    expected = {"accounts": (12, 10), "courses": (1, 40), "data": (5, 5)}
     if len(rows) != len(expected):
         raise ValidationError(
             "migration baseline must contain exactly accounts, courses, and data rows"
@@ -575,7 +617,7 @@ def _validate_repository_baselines() -> None:
         raise ValidationError(f"source pin is not valid JSON: {SOURCE_PIN_PATH}") from exc
     if source_pin.get("source_commit") != SOURCE_PIN_COMMIT:
         raise ValidationError("checked-in source pin commit does not match the captured source")
-    expected_current = {"accounts": 12, "courses": 41, "data": 5}
+    expected_current = {"accounts": 12, "courses": 1, "data": 5}
     for app, expected in expected_current.items():
         actual = len(list((root / app / "migrations").glob("[0-9]*.py")))
         if actual != expected:
@@ -598,8 +640,10 @@ def validate_text(text: str, path: Path = AUDIT_PATH) -> None:
     lines = text.splitlines()
     _validate_metadata(lines)
     _validate_repository_baselines()
+    _validate_phase1_schema_source()
     _validate_model_rows(lines, path)
     _validate_migration_rows(lines, path)
+    _validate_schema_assertions(lines, path)
     _validate_relationship_rows(lines, path)
     _validate_boundary_rows(lines, path)
     _validate_handoff_rows(lines, path)
@@ -623,7 +667,7 @@ def main(argv: list[str] | None = None) -> int:
     except ValidationError as exc:
         print(f"course-platform schema inventory validation failed: {exc}", file=sys.stderr)
         return 1
-    print(f"validated {args.path}: 32 models, 44 relationships, 17 boundaries")
+    print(f"validated {args.path}: 32 models, Cohort.outcome, 44 relationships, 17 boundaries")
     return 0
 
 
