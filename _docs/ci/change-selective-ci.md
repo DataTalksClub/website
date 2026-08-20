@@ -14,20 +14,20 @@ fail closed.
 ## Ownership and impact closure
 
 The graph owns each known path exactly once and validates duplicate ownership, dangling edges,
-cycles, unknown node kinds, and invalid patterns before making a decision. Its initial application
-closures exactly preserve #104:
+cycles, unknown node kinds, and invalid patterns before making a decision. Its reviewed application
+closures are:
 
 | Changed owner | Django labels |
 | --- | --- |
 | `api` | `api` |
 | `studio_courses` | `studio_courses` |
-| `content` | `accounts content.tests core` |
-| `courses` | `accounts api content.tests core courses data studio_courses` |
+| `content` | `accounts content.tests content_sync core` |
+| `courses` | `accounts api content.tests core courses data management_api studio studio_courses` |
 | `data` | `api courses data studio_courses` |
-| `jobs` | `jobs` |
-| `management_api` | `api management_api` |
-| `management_auth` | `api core management_api management_auth` |
-| `review_import` | `accounts review_import` |
+| `jobs` | `events jobs` |
+| `management_api` | `api management_api studio` |
+| `management_auth` | `accounts api core management_api management_auth studio` |
+| `review_import` | `accounts courses review_import` |
 | `studio` | `accounts core studio` |
 
 A focused profile is allowed only for one ordinary application owner. Unknown or multi-application
@@ -41,6 +41,16 @@ Central `test_support/` factories and runtime code, root `conftest.py`/`sitecust
 settings/runner code, migration files, marker registration, and Playwright fixtures/tests always
 select full coverage. An app-owned factory below an already mapped application root may use that
 root's reviewed closure; a missing or unmapped label never narrows the suite.
+
+The ownership contract also has a deterministic reverse-import check in
+`tests_ci/test_ownership.py`. It reads only repository-local Python source for verification-labeled
+app packages, excludes migration and test-prefixed paths, and inspects direct absolute `import` and
+`from` statements in each module body with `ast`; it never imports or executes application code.
+Relative and local imports are deliberately excluded from the app-level edge set. A literal dynamic
+import of a mapped app is included, while an ambiguous dynamic import fails the contract and must
+be resolved with an explicit reviewed ownership edge. The check compares every importing package's
+test label with the changed `app.*` closure, so a new static reverse import cannot silently narrow
+focused verification.
 
 Templates, CSS, JavaScript, navigation, view/URL/context/serializer data shape, browser fixtures,
 and screenshot-harness changes are render impact. They select the full browser suite and fresh

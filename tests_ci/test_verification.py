@@ -151,6 +151,8 @@ def test_single_app_plan_reruns_affected_closure_and_preserves_baseline_without_
         "core",
         "courses",
         "data",
+        "management_api",
+        "studio",
         "studio_courses",
     ]
     assert plan["components"]["django"]["disposition"] == "rerun"
