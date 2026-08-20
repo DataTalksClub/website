@@ -10,7 +10,7 @@ from .base import (
     normalized_email,
     recipient_list_member_payload,
 )
-from .urls import public_route_url
+from .urls import cohort_route_kwargs, public_route_url
 
 
 def homework_submission_recipient_list_payload(
@@ -65,7 +65,7 @@ def homework_submission_metadata(submission) -> dict[str, Any]:
 
 def homework_public_url(homework):
     homework_kwargs = {
-        "course_slug": homework.course.slug,
+        **cohort_route_kwargs(homework.course),
         "homework_slug": homework.slug,
     }
     homework_url = public_route_url("homework", homework_kwargs)
@@ -134,7 +134,7 @@ def project_submission_status_metadata(submission) -> dict[str, Any]:
 
 def project_public_url(project):
     project_kwargs = {
-        "course_slug": project.course.slug,
+        **cohort_route_kwargs(project.course),
         "project_slug": project.slug,
     }
     project_url = public_route_url("project", project_kwargs)

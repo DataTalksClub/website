@@ -140,6 +140,17 @@
         text-underline-offset: 0.2em;
       }
 
+      .course-card[role="link"],
+      .active-card[role="link"] {
+        cursor: pointer;
+      }
+
+      .course-card[role="link"]:focus-visible,
+      .active-card[role="link"]:focus-visible {
+        outline: 3px solid var(--ink);
+        outline-offset: 4px;
+      }
+
       .active-actions {
         align-items: center;
         display: flex;
@@ -361,7 +372,11 @@
                       panel, and the actions last.  The band heading already announces
                       the active state, so the card repeats no "active" pill.
                     {% endcomment %}
-                    <article class="card active-card">
+                    <article class="card active-card"
+                             role="link"
+                             tabindex="0"
+                             onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.year %}'"
+                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.year %}'; }">
                       {% if course.index_when or course.index_enrolled_state %}
                         <div class="active-card-head">
                           {% if course.index_when %}
@@ -373,7 +388,7 @@
                         </div>
                       {% endif %}
                       <h3>
-                        <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+                        <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
                       </h3>
                       {% if course.home_outcome %}
                         <p>{{ course.home_outcome }}</p>
@@ -387,17 +402,11 @@
                           <span class="assignment-title">{{ course.home_current_assignment.label }}: {{ course.home_current_assignment.title }}</span>
                         </div>
                       {% endif %}
-                      <div class="active-actions">
-                        {% url 'course' course.slug as course_url %}
-                        {% if course.is_enrolled %}
-                          {% include "core/_button.html" with href=course_url label="Continue course →" variant="primary" compact=True %}
-                        {% else %}
-                          {% include "core/_button.html" with href=course_url label="Open course →" variant="secondary" compact=True %}
-                        {% endif %}
-                        {% if course.github_repo_url %}
+                      {% if course.github_repo_url %}
+                        <div class="active-actions">
                           <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>
-                        {% endif %}
-                      </div>
+                        </div>
+                      {% endif %}
                     </article>
                   {% endfor %}
                 </div>
@@ -420,7 +429,11 @@
               </div>
               <div class="card-grid card-grid-2">
                 {% for course in open_registration_courses %}
-                  <article class="card course-card">
+                  <article class="card course-card"
+                           role="link"
+                           tabindex="0"
+                           onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.year %}'"
+                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.year %}'; }">
                     <div class="course-card-head">
                       <span class="status-pill status-pill-open">registration open</span>
                       {% if course.index_dates %}
@@ -428,7 +441,7 @@
                       {% endif %}
                     </div>
                     <h3>
-                      <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+                        <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
                     </h3>
                     {% if course.home_outcome %}
                       <p>{{ course.home_outcome }}</p>
@@ -475,7 +488,7 @@
                       <div class="list-row" style="--row-cols: 1.6fr 1.4fr auto auto">
                         <div>
                           <h4 class="course-row-title">
-                            <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+                            <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
                           </h4>
                           {% if course.index_length %}
                             <p class="course-row-length">{{ course.index_length }}</p>

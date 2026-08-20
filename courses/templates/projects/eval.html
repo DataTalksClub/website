@@ -42,7 +42,7 @@
 
 {% block breadcrumbs %}
   <li>
-    <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
+    <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">{{ project.title }}</a>
   </li>
   <li aria-current="page">
     Evaluations
@@ -58,13 +58,13 @@
     </p>
     <div class="project-toolbar">
       {% if user.is_staff %}
-        <a class="cta cta-compact cta-secondary" href="{% url 'project_submissions' course.slug project.slug %}">
+    <a class="cta cta-compact cta-secondary" href="{% url 'project_submissions' course.course.slug course.year project.slug %}">
           All submissions
         </a>
       {% endif %}
       <a
         class="cta cta-compact cta-secondary"
-        href="{% url 'project_list' course_slug=course.slug project_slug=project.slug %}"
+        href="{% url 'project_list' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}"
       >See all projects</a>
     </div>
   </div>
@@ -93,7 +93,7 @@
   {% elif not has_submission %}
     <p class="notice info">
       You did not submit this project, but you can still volunteer to evaluate submissions.
-      <a href="{% url 'project_list' course_slug=course.slug project_slug=project.slug %}">Choose a project to evaluate</a>.
+      <a href="{% url 'project_list' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">Choose a project to evaluate</a>.
     </p>
     {% if selected_reviews %}
       <section class="project-section" aria-labelledby="volunteer-reviews-heading">
@@ -106,7 +106,7 @@
         <div class="row-list">
           {% for review in selected_reviews %}
             <div class="list-row review-row">
-              <a href="{% url 'projects_eval_submit' course_slug=course.slug project_slug=project.slug review_id=review.id %}">
+              <a href="{% url 'projects_eval_submit' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug review_id=review.id %}">
                 Review {{ review.submission_under_evaluation.enrollment.display_name }}'s submission
               </a>
               <span class="status-pill">{{ review.get_state_display }}</span>
@@ -134,7 +134,7 @@
         <div class="row-list">
           {% for review in assigned_reviews %}
             <div class="list-row review-row">
-              <a href="{% url 'projects_eval_submit' course_slug=course.slug project_slug=project.slug review_id=review.id %}">
+              <a href="{% url 'projects_eval_submit' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug review_id=review.id %}">
                 Evaluate {{ review.submission_under_evaluation.enrollment.display_name }}'s submission
               </a>
               <span class="status-pill">{{ review.get_state_display }}</span>
@@ -158,7 +158,7 @@
         <div class="row-list">
           {% for review in selected_reviews %}
             <div class="list-row review-row">
-              <a href="{% url 'projects_eval_submit' course_slug=course.slug project_slug=project.slug review_id=review.id %}">
+              <a href="{% url 'projects_eval_submit' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug review_id=review.id %}">
                 Evaluate {{ review.submission_under_evaluation.enrollment.display_name }}'s submission
               </a>
               <span class="status-pill">{{ review.get_state_display }}</span>

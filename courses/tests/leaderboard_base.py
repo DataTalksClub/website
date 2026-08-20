@@ -136,7 +136,13 @@ class LeaderboardTestBase(TestCase):
             )
 
     def leaderboard_url(self):
-        return reverse("leaderboard", kwargs={"course_slug": self.course.slug})
+        return reverse(
+            "leaderboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def assert_first_leaderboard_page(self, response):
         self.assertEqual(response.status_code, 200)
@@ -191,7 +197,8 @@ class LeaderboardTestBase(TestCase):
         return reverse(
             "leaderboard_score_breakdown",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "enrollment_id": enrollment.id,
             },
         )

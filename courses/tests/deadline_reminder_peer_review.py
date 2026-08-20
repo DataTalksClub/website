@@ -202,5 +202,5 @@ def assert_peer_review_reminder_payload(test_case, payload, expectation):
     )
     test_case.assertEqual(
         payload["context"]["action_url"],
-        "https://courses.example.com/ml-zoomcamp-2026/project/project-1/eval",
+        "https://courses.example.com/courses/ml-zoomcamp/2026/project/project-1/eval",
     )

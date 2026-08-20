@@ -149,7 +149,7 @@ class DatamailerProjectScoreTestBase(TestCase):
         self.assertEqual(member["metadata"]["commit_id"], "abc123")
         self.assertEqual(
             member["metadata"]["project_url"],
-            "https://courses.example.com/ml-zoomcamp-2026/project/project-1",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/project/project-1",
         )
         self.assertTrue(member["metadata"]["reviewed_enough_peers"])
         self.assertTrue(member["metadata"]["passed"])
@@ -157,15 +157,15 @@ class DatamailerProjectScoreTestBase(TestCase):
     def assert_project_score_context(self, payload):
         self.assertEqual(
             payload["context"]["scores_url"],
-            "https://courses.example.com/ml-zoomcamp-2026/project/project-1/results",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/project/project-1/results",
         )
         self.assertEqual(
             payload["context"]["project_url"],
-            "https://courses.example.com/ml-zoomcamp-2026/project/project-1",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/project/project-1",
         )
         self.assertEqual(
             payload["context"]["leaderboard_url"],
-            "https://courses.example.com/ml-zoomcamp-2026/leaderboard",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/leaderboard",
         )
 
     def assert_latest_project_score_member(self, member, submission):

@@ -188,7 +188,13 @@ class CourseDetailViewTestBase(TestCase):
         )
 
     def course_url(self):
-        return reverse("course", kwargs={"course_slug": self.course.slug})
+        return reverse(
+            "course",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def get_course_response(self, login=False):
         if login:
@@ -251,7 +257,10 @@ class CourseDetailViewTestBase(TestCase):
         self.assertContains(response, "Edit course profile")
         enrollment_url = reverse(
             "enrollment",
-            kwargs={"course_slug": self.course.slug},
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
         self.assertContains(
             response,
@@ -265,7 +274,10 @@ class CourseDetailViewTestBase(TestCase):
         self.assertNotContains(response, "Edit course profile")
         enrollment_url = reverse(
             "enrollment",
-            kwargs={"course_slug": self.course.slug},
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
         self.assertNotContains(
             response,

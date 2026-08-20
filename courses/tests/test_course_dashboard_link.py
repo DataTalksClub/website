@@ -5,7 +5,11 @@ from courses.tests.course_view_base import CourseDetailViewTestBase
 
 class CourseDashboardLinkTest(CourseDetailViewTestBase):
     def test_course_detail_hides_dashboard_until_first_homework_scored(self):
-        url = reverse("course", kwargs={"course_slug": self.course.slug})
+        route_kwargs = {
+            "course_slug": self.course.course.slug,
+            "cohort_year": self.course.year,
+        }
+        url = reverse("course", kwargs=route_kwargs)
 
         response = self.client.get(url)
 
@@ -13,7 +17,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
         self.assertNotContains(response, "Course dashboard")
         dashboard_url = reverse(
             "dashboard",
-            kwargs={"course_slug": self.course.slug},
+            kwargs=route_kwargs,
         )
         self.assertNotContains(
             response,
@@ -23,7 +27,11 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
     def test_course_detail_shows_dashboard_after_first_homework_scored(self):
         self.course.first_homework_scored = True
         self.course.save()
-        url = reverse("course", kwargs={"course_slug": self.course.slug})
+        route_kwargs = {
+            "course_slug": self.course.course.slug,
+            "cohort_year": self.course.year,
+        }
+        url = reverse("course", kwargs=route_kwargs)
 
         response = self.client.get(url)
 
@@ -31,7 +39,7 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
         self.assertContains(response, "Course dashboard")
         dashboard_url = reverse(
             "dashboard",
-            kwargs={"course_slug": self.course.slug},
+            kwargs=route_kwargs,
         )
         self.assertContains(
             response,

@@ -59,7 +59,13 @@ class DashboardIntegrationTestCase(TestCase):
         )
 
     def dashboard_url(self):
-        return reverse("dashboard", args=[self.course.slug])
+        return reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def create_student_enrollments(self):
         users = []

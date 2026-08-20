@@ -50,7 +50,13 @@ class DashboardSubmissionTimingTestCase(TestCase):
         )
 
     def dashboard_url(self):
-        return reverse("dashboard", args=[self.course.slug])
+        return reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def timing_by_label(self, response):
         return {

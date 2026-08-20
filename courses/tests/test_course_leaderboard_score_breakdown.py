@@ -33,7 +33,13 @@ class CourseLeaderboardScoreBreakdownTests(CourseLeaderboardViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Show public profile")
-        enrollment_url = reverse("enrollment", args=[self.course.slug])
+        enrollment_url = reverse(
+            "enrollment",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
         self.assertContains(response, f'href="{enrollment_url}"')
 
     def test_score_breakdown_does_not_prompt_for_other_record(self):

@@ -13,7 +13,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/de-zoomcamp-2026",
+    "public_path": "/courses/de-zoomcamp/2026",
     "slug": "de-zoomcamp-2026",
     "title": "Data Engineering Zoomcamp 2026"
   },
@@ -31,7 +31,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/ai-dev-tools-2025",
+    "public_path": "/courses/ai-dev-tools/2025",
     "slug": "ai-dev-tools-2025",
     "title": "AI Dev Tools Zoomcamp 2025"
   },
@@ -49,7 +49,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/de-zoomcamp-2024",
+    "public_path": "/courses/de-zoomcamp/2024",
     "slug": "de-zoomcamp-2024",
     "title": "Data Engineering Zoomcamp 2024"
   },
@@ -67,7 +67,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/de-zoomcamp-2025",
+    "public_path": "/courses/de-zoomcamp/2025",
     "slug": "de-zoomcamp-2025",
     "title": "Data Engineering Zoomcamp 2025"
   },
@@ -85,7 +85,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/llm-zoomcamp-2024",
+    "public_path": "/courses/llm-zoomcamp/2024",
     "slug": "llm-zoomcamp-2024",
     "title": "LLM Zoomcamp 2024"
   },
@@ -103,7 +103,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/llm-zoomcamp-2025",
+    "public_path": "/courses/llm-zoomcamp/2025",
     "slug": "llm-zoomcamp-2025",
     "title": "LLM Zoomcamp 2025"
   },
@@ -121,7 +121,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/ml-zoomcamp-2024",
+    "public_path": "/courses/ml-zoomcamp/2024",
     "slug": "ml-zoomcamp-2024",
     "title": "Machine Learning Zoomcamp 2024"
   },
@@ -139,7 +139,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/ml-zoomcamp-2025",
+    "public_path": "/courses/ml-zoomcamp/2025",
     "slug": "ml-zoomcamp-2025",
     "title": "Machine Learning Zoomcamp 2025"
   },
@@ -157,7 +157,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/mlops-zoomcamp-2024",
+    "public_path": "/courses/mlops-zoomcamp/2024",
     "slug": "mlops-zoomcamp-2024",
     "title": "MLOps Zoomcamp 2024"
   },
@@ -175,7 +175,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/mlops-zoomcamp-2025",
+    "public_path": "/courses/mlops-zoomcamp/2025",
     "slug": "mlops-zoomcamp-2025",
     "title": "MLOps Zoomcamp 2025"
   },
@@ -193,7 +193,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/sma-zoomcamp-2024",
+    "public_path": "/courses/sma-zoomcamp/2024",
     "slug": "sma-zoomcamp-2024",
     "title": "Stock Markets Analytics Zoomcamp 2024"
   },
@@ -211,7 +211,7 @@
       "source_path": "scripts/production_like_course_specs.json",
       "source_url": "https://github.com/DataTalksClub/course-management-platform/blob/98a235283904b4ef9ad29e196298540756cf1bcc/scripts/production_like_course_specs.json"
     },
-    "public_path": "/courses/sma-zoomcamp-2025",
+    "public_path": "/courses/sma-zoomcamp/2025",
     "slug": "sma-zoomcamp-2025",
     "title": "Stock Markets Analytics Zoomcamp 2025"
   }

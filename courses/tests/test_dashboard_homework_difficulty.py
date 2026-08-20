@@ -17,7 +17,13 @@ class DashboardHomeworkDifficultyTestCase(DashboardHomeworkStatsTestBase):
         self.add_questions(harder_homework, 10)
         self.create_difficulty_submissions(harder_homework)
 
-        url = reverse("dashboard", args=[self.course.slug])
+        url = reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
         response = self.client.get(url)
 
         self.assert_difficulty_ranking(response, harder_homework)
@@ -36,7 +42,13 @@ class DashboardHomeworkDifficultyTestCase(DashboardHomeworkStatsTestBase):
         self.add_questions(unscored, 3)
         self.create_difficulty_submissions(unscored)
 
-        url = reverse("dashboard", args=[self.course.slug])
+        url = reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
         response = self.client.get(url)
 
         difficulty_stats = response.context["homework_difficulty_stats"]

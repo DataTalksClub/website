@@ -198,7 +198,7 @@ def assert_berlin_reviewer_assignments(test_case, payload):
     test_case.assertEqual(assigned_count, 3)
     for item in assigned:
         test_case.assertIn(
-            f"/ml-zoomcamp-2026/project/project-1/eval/{item['review_id']}",
+            f"/courses/ml-zoomcamp/2026/project/project-1/eval/{item['review_id']}",
             item["eval_url"],
         )
         has_secure_eval_url = item["eval_url"].startswith("https://")
@@ -291,7 +291,7 @@ class DatamailerPeerReviewPreviewCommandTest(TestCase):
         self.assertIn("- learner-0@example.com", output)
         self.assertIn("you were assigned 3 projects to review", output)
         self.assertIn(
-            "https://courses.example.com/ml-zoomcamp-2026/project/project-1/eval/",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/project/project-1/eval/",
             output,
         )
         self.assertIn("(project: https://github.com/example/p1)", output)

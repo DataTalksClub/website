@@ -42,7 +42,9 @@ def visible_course_list_queryset():
         project_count=project_count,
         learner_count=learner_count,
     )
-    courses = courses.prefetch_related("homework_set", "project_set")
+    courses = courses.select_related("course").prefetch_related(
+        "homework_set", "project_set"
+    )
     return courses.order_by("-id")
 
 

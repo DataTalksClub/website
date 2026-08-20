@@ -3,6 +3,15 @@ from django.urls import reverse
 from ..client import public_url
 
 
+def cohort_route_kwargs(cohort):
+    """Return canonical public route arguments for a cohort-owned object."""
+
+    return {
+        "course_slug": cohort.course.slug,
+        "cohort_year": cohort.year,
+    }
+
+
 def public_route_url(route_name, route_kwargs=None):
     if route_kwargs is None:
         path = reverse(route_name)

@@ -14,10 +14,11 @@ from courses.views.project_submission_viewer import project_viewer_state
 from courses.views.project_submission_votes import (
     project_vote_response,
 )
+from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
 
 
-def projects_list_view(request, course_slug, project_slug):
-    course = get_object_or_404(Cohort, slug=course_slug)
+def projects_list_view(request, course_slug, project_slug, cohort_year=None):
+    course = get_cohort_or_404(course_slug, cohort_year)
     project = get_object_or_404(Project, course=course, slug=project_slug)
 
     if request.method == "POST":
@@ -32,7 +33,8 @@ def projects_list_view(request, course_slug, project_slug):
     return response
 
 
-def project_submissions(request, course_slug, project_slug):
+def project_submissions(request, course_slug, project_slug, cohort_year=None):
+    course = get_cohort_or_404(course_slug, cohort_year)
     if not can_access_course_studio(request.user):
         messages.error(
             request,
@@ -41,14 +43,14 @@ def project_submissions(request, course_slug, project_slug):
         )
         response = redirect(
             "project",
-            course_slug=course_slug,
+            **cohort_url_kwargs(course),
             project_slug=project_slug,
         )
         return response
 
     response = redirect(
         "studio_courses_project_submissions",
-        course_slug=course_slug,
+        course_slug=course.slug,
         project_slug=project_slug,
     )
     return response

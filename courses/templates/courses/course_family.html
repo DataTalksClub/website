@@ -1,0 +1,25 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ course_family.title }} — DataTalks.Club</title>
+    <meta name="description" content="{{ course_family.description|striptags|truncatechars:180 }}">
+  </head>
+  <body>
+    <main>
+      <p><a href="{% url 'course_list' %}">Courses</a></p>
+      <h1>{{ course_family.title }}</h1>
+      {% if course_family.description %}<p>{{ course_family.description }}</p>{% endif %}
+      <h2>Cohorts</h2>
+      <ul>
+        {% for cohort in cohorts %}
+          <li><a href="{% url 'course' course_family.slug cohort.year %}">{{ cohort.title }}</a></li>
+        {% empty %}
+          <li>No cohorts are available yet.</li>
+        {% endfor %}
+      </ul>
+    </main>
+  </body>
+</html>

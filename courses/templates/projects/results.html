@@ -80,7 +80,7 @@
 
 {% block breadcrumbs %}
   <li>
-    <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
+    <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">{{ project.title }}</a>
   </li>
   <li aria-current="page">
     Results
@@ -96,16 +96,16 @@
     </p>
     <div class="project-toolbar">
       {% if user.is_staff %}
-        <a class="cta cta-compact cta-secondary" href="{% url 'project_submissions' course.slug project.slug %}">
+        <a class="cta cta-compact cta-secondary" href="{% url 'project_submissions' course.course.slug course.year project.slug %}">
           All submissions
         </a>
       {% endif %}
       <a
         class="cta cta-compact cta-secondary"
-        href="{% url 'project_list' course_slug=course.slug project_slug=project.slug %}"
+        href="{% url 'project_list' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}"
       >See all projects</a>
       {% if project.state == 'CO' %}
-        <a class="cta cta-compact cta-secondary" href="{% url 'project_statistics' course.slug project.slug %}">
+        <a class="cta cta-compact cta-secondary" href="{% url 'project_statistics' course.course.slug course.year project.slug %}">
           Project statistics
         </a>
       {% endif %}

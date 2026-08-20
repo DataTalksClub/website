@@ -83,10 +83,10 @@
 
 {% block breadcrumbs %}
   <li>
-    <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
+    <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">{{ project.title }}</a>
   </li>
   <li>
-    <a href="{% url 'projects_eval' course.slug project.slug %}">Evaluations</a>
+    <a href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Evaluations</a>
   </li>
   <li aria-current="page">
     Evaluate submission
@@ -152,7 +152,7 @@
       <span class="status-pill status-pill-wait">Limit reached for this project</span>
     {% endif %}
     {% if review.optional %}
-      {% url 'projects_eval_delete' course.slug project.slug review.id as remove_review_url %}
+      {% url 'projects_eval_delete' course.course.slug course.year project.slug review.id as remove_review_url %}
       {% include "core/_button.html" with tag="button" type="button" label="Remove review" variant="secondary" compact=True onclick_url=remove_review_url %}
     {% endif %}
   </div>
@@ -160,7 +160,7 @@
     <p class="project-note">You selected this review. You can remove it if you do not have time.</p>
   {% endif %}
   <p>
-    <a class="band-link" href="{% url 'projects_eval' course.slug project.slug %}">Back to evaluations</a>
+    <a class="band-link" href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Back to evaluations</a>
   </p>
 {% endblock %}
 
@@ -236,7 +236,7 @@
           {% else %}
             {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update" variant="primary" compact=True %}
           {% endif %}
-          {% url 'projects_eval' course.slug project.slug as evaluations_url %}
+          {% url 'projects_eval' course.course.slug course.year project.slug as evaluations_url %}
           {% include "core/_button.html" with href=evaluations_url label="Cancel" variant="secondary" compact=True %}
         </div>
       {% else %}

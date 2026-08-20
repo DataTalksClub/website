@@ -26,16 +26,18 @@ def add_course_homepage_info(course: Cohort, now) -> None:
 
 
 def get_course_outcome(course: Cohort) -> str:
-    return course.outcome or course.description or ""
+    family = getattr(course, "course", None)
+    return (
+        course.outcome
+        or course.description
+        or getattr(family, "outcome", "")
+        or getattr(family, "description", "")
+        or ""
+    )
 
 
 def course_year(course: Cohort) -> str:
-    title_parts = course.title.split()
-    reversed_title_parts = reversed(title_parts)
-    for part in reversed_title_parts:
-        if part.isdigit() and len(part) == 4:
-            return part
-    return "Archive"
+    return str(course.year)
 
 
 def course_duration_label(course: Cohort) -> str:

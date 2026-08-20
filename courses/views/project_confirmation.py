@@ -17,7 +17,7 @@ from courses.views.submission_formatting import (
     build_account_settings_url,
     request_base_url,
 )
-from courses.views.url_utils import absolute_url_with_fallback
+from courses.views.url_utils import absolute_url_with_fallback, cohort_url_kwargs
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ def build_project_update_url(
     path = reverse(
         "project",
         kwargs={
-            "course_slug": course.slug,
+            **cohort_url_kwargs(course),
             "project_slug": project.slug,
         },
     )

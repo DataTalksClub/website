@@ -100,7 +100,11 @@ class CourseProjectSubmissionsViewBase(TestCase):
 
     def submissions_url(self):
         return reverse(
-            "list_all_project_submissions", args=[self.course.slug]
+            "list_all_project_submissions",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
 
     def get_submissions_response(self, login=False):
@@ -144,7 +148,8 @@ class CourseProjectSubmissionsViewBase(TestCase):
         leaderboard_url = reverse(
             "leaderboard_score_breakdown",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "enrollment_id": self.enrollment.id,
             },
         )
@@ -155,7 +160,8 @@ class CourseProjectSubmissionsViewBase(TestCase):
         completed_project_url = reverse(
             "project_list",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "project_slug": self.completed_project.slug,
             },
         )
@@ -163,7 +169,8 @@ class CourseProjectSubmissionsViewBase(TestCase):
         open_project_url = reverse(
             "project_list",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "project_slug": self.open_project.slug,
             },
         )

@@ -92,7 +92,11 @@ class ProjectListViewTestBase(TestCase):
     def project_list_url(self):
         return reverse(
             "project_list",
-            args=[self.course.slug, self.project.slug],
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+                "project_slug": self.project.slug,
+            },
         )
 
     def get_project_list_response(self, login=False):

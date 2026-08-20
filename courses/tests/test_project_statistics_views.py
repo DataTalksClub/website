@@ -126,7 +126,11 @@ class ProjectStatisticsViewTestCase(TestCase):
 
         project_url = reverse(
             "project",
-            args=[self.course.slug, self.incomplete_project.slug],
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+                "project_slug": self.incomplete_project.slug,
+            },
         )
         self.assertRedirects(
             response,

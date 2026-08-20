@@ -87,7 +87,7 @@ def assert_certificate_availability_context(test_case, payload):
     )
     test_case.assertEqual(
         payload["context"]["course_url"],
-        "https://courses.example.com/courses/ml-zoomcamp-2026",
+        "https://courses.example.com/courses/ml-zoomcamp/2026",
     )
 
 

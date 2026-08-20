@@ -114,11 +114,11 @@ def assert_registration_confirmation_payload(
     )
     test_case.assertEqual(
         payload["context"]["registration_url"],
-        "https://courses.example.com/register/llm-zoomcamp/",
+        "https://courses.example.com/courses/register/llm-zoomcamp/",
     )
     test_case.assertEqual(
         payload["context"]["course_url"],
-        "https://courses.example.com/courses/llm-zoomcamp-2026",
+        "https://courses.example.com/courses/llm-zoomcamp/2026",
     )
     test_case.assertEqual(
         payload["context"]["course_start_date"],

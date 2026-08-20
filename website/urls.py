@@ -12,10 +12,14 @@ from courses.views import course, course_aliases, course_list
 from studio_courses import urls as studio_course_urls
 
 legacy_course_patterns = [
-    pattern for pattern in course_urls.urlpatterns if pattern.name not in {"course", "course_list"}
+    pattern
+    for pattern in course_urls.urlpatterns
+    if pattern.name not in {"course", "course_family", "course_list"}
 ]
 namespaced_course_patterns = [
-    pattern for pattern in course_urls.urlpatterns if pattern.name not in {"course", "course_list"}
+    pattern
+    for pattern in course_urls.urlpatterns
+    if pattern.name not in {"course", "course_family", "course_list"}
 ]
 namespaced_course_patterns.append(
     path(
@@ -137,15 +141,19 @@ urlpatterns = [
         name="course-list-slash-redirect",
     ),
     path(
-        "courses/<slug:course_slug>",
-        course.course_view,
-        name="course",
+        "courses/",
+        include(
+            [
+                pattern
+                for pattern in course_urls.urlpatterns
+                if pattern.name != "course_list"
+            ]
+        ),
     ),
     path(
         "courses/",
         include((namespaced_course_patterns, "courses"), namespace="courses"),
     ),
-    path("", include(legacy_course_patterns)),
     path(
         "<slug:course_slug>/",
         course_aliases.legacy_course_redirect,

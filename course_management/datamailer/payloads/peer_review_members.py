@@ -13,7 +13,7 @@ from .base import (
     recipient_list_member_payload,
     recipient_list_send_member_payload,
 )
-from .urls import public_route_url
+from .urls import cohort_route_kwargs, public_route_url
 
 
 ASSIGNED_REVIEWS_ATTR = "assigned_reviews"
@@ -63,7 +63,7 @@ def assigned_review_link_item(review, course, project) -> dict[str, Any]:
 
 def assigned_review_eval_url(review, course, project) -> str:
     eval_kwargs = {
-        "course_slug": course.slug,
+        **cohort_route_kwargs(course),
         "project_slug": project.slug,
         "review_id": review.id,
     }
@@ -112,7 +112,7 @@ def peer_review_assignment_review_metadata(submission) -> dict[str, Any]:
 
 def peer_review_assignment_evaluations_url(project) -> str:
     evaluations_kwargs = {
-        "course_slug": project.course.slug,
+        **cohort_route_kwargs(project.course),
         "project_slug": project.slug,
     }
     evaluations_url = public_route_url("projects_eval", evaluations_kwargs)

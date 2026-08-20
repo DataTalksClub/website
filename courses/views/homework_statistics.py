@@ -6,6 +6,7 @@ from courses.assignment_statistics import calculate_homework_statistics
 from courses.homework_question_stats import homework_question_stats
 from courses.models.cohort import Cohort
 from courses.models.homework import Homework
+from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
 
 
 def unscored_homework_statistics_response(
@@ -20,7 +21,7 @@ def unscored_homework_statistics_response(
     )
     response = redirect(
         "homework",
-        course_slug=course.slug,
+        **cohort_url_kwargs(course),
         homework_slug=homework.slug,
     )
     return response
@@ -48,8 +49,9 @@ def homework_statistics(
     request: HttpRequest,
     course_slug: str,
     homework_slug: str,
+    cohort_year: int | None = None,
 ):
-    course = get_object_or_404(Cohort, slug=course_slug)
+    course = get_cohort_or_404(course_slug, cohort_year)
     homework = get_object_or_404(
         Homework,
         course=course,

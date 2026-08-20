@@ -10,7 +10,7 @@ from courses.tests.course_view_base import (
 class CourseProjectDisplayTest(CourseDetailViewTestBase):
     def test_course_view_with_completed_projects(self):
         self.client.login(**credentials)
-        course_url = reverse("course", args=[self.course.slug])
+        course_url = self.course_url()
         response = self.client.get(course_url)
 
         self.assertEqual(response.status_code, 200)
@@ -25,7 +25,7 @@ class CourseProjectDisplayTest(CourseDetailViewTestBase):
         self.completed_project.save()
 
         self.client.login(**credentials)
-        course_url = reverse("course", args=[self.course.slug])
+        course_url = self.course_url()
         response = self.client.get(course_url)
 
         self.assertEqual(response.status_code, 200)

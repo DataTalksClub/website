@@ -32,7 +32,8 @@ class ProjectListLinkViewTests(ProjectListViewTestBase):
         leaderboard_url = reverse(
             "leaderboard_score_breakdown",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "enrollment_id": self.enrollment.id,
             },
         )
@@ -40,6 +41,10 @@ class ProjectListLinkViewTests(ProjectListViewTestBase):
         self.assertContains(response, self.submission.github_link)
         self.assertContains(response, 'aria-label="Open repository"')
         submissions_url = reverse(
-            "list_all_project_submissions", args=[self.course.slug]
+            "list_all_project_submissions",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
         self.assertContains(response, submissions_url)

@@ -1,3 +1,6 @@
+import re
+import uuid
+
 from django.db import models
 
 from django.core.validators import URLValidator
@@ -9,8 +12,54 @@ from courses.random_names import generate_random_name
 User = CustomUser
 
 
-class Cohort(models.Model):
+class Course(models.Model):
+    """Reusable course family shared by one or more dated cohorts."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     slug = models.SlugField(unique=True, blank=False)
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    outcome = models.TextField(blank=True, default="")
+    github_repo_url = models.URLField(
+        blank=True,
+        validators=[URLValidator()],
+        help_text="Optional repository shared by the course family.",
+    )
+    docs_url = models.URLField(
+        blank=True,
+        validators=[URLValidator()],
+        help_text="Optional documentation shared by the course family.",
+    )
+    faq_document_url = models.URLField(
+        blank=True,
+        validators=[URLValidator()],
+        help_text="Optional FAQ shared by the course family.",
+    )
+    social_media_hashtag = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="The hashtag associated with the course family.",
+    )
+    visible = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title
+
+    class Meta:
+        db_table = "courses_course_family"
+
+
+class Cohort(models.Model):
+    """One dated delivery of a reusable :class:`Course` family."""
+
+    slug = models.SlugField(unique=True, blank=False)
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="cohorts",
+    )
+    year = models.PositiveIntegerField(default=2026)
     title = models.CharField(max_length=200)
 
     description = models.TextField()
@@ -90,6 +139,28 @@ class Cohort(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def canonical_url_path(self) -> str:
+        return f"/courses/{self.course.slug}/{self.year}"
+
+    def save(self, *args, **kwargs):
+        # Existing copied fixtures create Cohort rows directly.  Keep that
+        # construction ergonomic while the persisted schema remains a
+        # required Course -> Cohort relationship.  The production/local seed
+        # uses the reviewed mapping in course_family_catalog.py explicitly.
+        if self.course_id is None:
+            family_slug = re.sub(r"-\d{4}$", "", self.slug)
+            family_title = re.sub(r"\s+\d{4}$", "", self.title).strip()
+            family, _ = Course.objects.get_or_create(
+                slug=family_slug,
+                defaults={"title": family_title or family_slug.replace("-", " ").title()},
+            )
+            self.course = family
+            match = re.search(r"(?:-|\s)(\d{4})$", self.slug or self.title)
+            if match and self.year == 2026:
+                self.year = int(match.group(1))
+        super().save(*args, **kwargs)
+
     def clean(self):
         super().clean()
 
@@ -105,6 +176,12 @@ class Cohort(models.Model):
 
     class Meta:
         db_table = "courses_course"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("course", "year"),
+                name="courses_cohort_course_year_unique",
+            ),
+        ]
 
 
 class RegistrationCampaign(models.Model):

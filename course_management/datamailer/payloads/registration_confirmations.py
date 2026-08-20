@@ -8,7 +8,7 @@ from course_management import email_templates
 from ..client import DatamailerConfig
 from ..preference_categories import EMAIL_PREFERENCE_CATEGORIES
 from .registration_common import registration_email
-from .urls import public_route_url
+from .urls import cohort_route_kwargs, public_route_url
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ def registration_confirmation_urls(campaign, course) -> dict[str, str]:
     )
     course_url = ""
     if course is not None:
-        course_kwargs = {"course_slug": course.slug}
+        course_kwargs = cohort_route_kwargs(course)
         course_url = public_route_url("course", course_kwargs)
     profile_url = public_route_url("account_settings")
     return {

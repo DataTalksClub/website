@@ -52,7 +52,14 @@ class ProjectViewTestBase(TestCase):
         )
 
     def project_url(self):
-        return reverse("project", args=[self.course.slug, self.project.slug])
+        return reverse(
+            "project",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+                "project_slug": self.project.slug,
+            },
+        )
 
     def mock_url_check_status(self, mock_get, mock_head, status_code):
         mock_response = mock.Mock()

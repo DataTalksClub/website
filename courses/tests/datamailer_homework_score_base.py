@@ -124,17 +124,17 @@ class DatamailerHomeworkScoreTestBase(TestCase):
         self.assertEqual(member["metadata"]["total_score"], 9)
         self.assertEqual(
             member["metadata"]["homework_url"],
-            "https://courses.example.com/ml-zoomcamp-2026/homework/homework-1",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1",
         )
 
     def assert_homework_score_context_urls(self, payload):
         self.assertEqual(
             payload["context"]["scores_url"],
-            "https://courses.example.com/ml-zoomcamp-2026/homework/homework-1",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1",
         )
         self.assertEqual(
             payload["context"]["leaderboard_url"],
-            "https://courses.example.com/ml-zoomcamp-2026/leaderboard",
+            "https://courses.example.com/courses/ml-zoomcamp/2026/leaderboard",
         )
 
     def single_homework_score_member(self, payload):

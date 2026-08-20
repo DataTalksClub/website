@@ -50,7 +50,12 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from core.bootstrap import RuntimeEnvironment
+from courses.course_family_catalog import (
+    COURSE_FAMILY_TITLES,
+    cohort_family_identity,
+)
 from courses.models import (
+    Course,
     Cohort,
     Homework,
     HomeworkState,
@@ -84,6 +89,8 @@ class SeededCourse:
     """One catalogue row and what the seed did to it."""
 
     slug: str
+    family_slug: str
+    year: int
     title: str
     public_path: str
     created: bool
@@ -124,6 +131,7 @@ class LocalCourseSeedResult:
             "homeworks_created": self.homeworks_created,
             "projects_created": self.projects_created,
             "slugs": [course.slug for course in self.courses],
+            "families": sorted({course.family_slug for course in self.courses}),
             "source_path": self.source_path,
             "source_repository": self.source_repository,
             "source_revision": self.source_revision,
@@ -213,7 +221,8 @@ def assert_catalog_matches_projection(
     if sorted(map(_catalog_identity, specs)) != sorted(map(_projected_identity, projected)):
         raise LocalCourseSeedError("catalog-projection-drift")
     for record in projected:
-        if str(record["public_path"]) != f"/courses/{record['slug']}":
+        family_slug, year = cohort_family_identity(str(record["slug"]))
+        if str(record["public_path"]) != f"/courses/{family_slug}/{year}":
             raise LocalCourseSeedError("catalog-projection-path-drift")
 
 
@@ -277,9 +286,20 @@ def _project_state(due_date: datetime, now: datetime) -> str:
 def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
     start_date, end_date = course_bounds(spec)
     slug = str(spec["slug"])
+    family_slug, year = cohort_family_identity(slug)
+    family, _ = Course.objects.update_or_create(
+        slug=family_slug,
+        defaults={
+            "title": COURSE_FAMILY_TITLES[family_slug],
+            "description": COURSE_FAMILY_TITLES[family_slug],
+            "visible": True,
+        },
+    )
     course, created = Cohort.objects.update_or_create(
         slug=slug,
         defaults={
+            "course": family,
+            "year": year,
             "title": str(spec["title"]),
             "description": course_description(spec),
             "start_date": start_date,
@@ -292,8 +312,10 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
     projects_created = _seed_projects(course, spec["projects"], now)
     return SeededCourse(
         slug=slug,
+        family_slug=family_slug,
+        year=year,
         title=course.title,
-        public_path=f"/courses/{slug}",
+        public_path=f"/courses/{family_slug}/{year}",
         created=created,
         homeworks_created=homeworks_created,
         projects_created=projects_created,

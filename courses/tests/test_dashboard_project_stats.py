@@ -144,7 +144,13 @@ class DashboardProjectStatsTestCase(TestCase):
             )
 
     def dashboard_response(self):
-        url = reverse("dashboard", args=[self.course.slug])
+        url = reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
         return self.client.get(url)
 
     def assert_distinct_student_completion_rate(self, response):

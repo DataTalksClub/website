@@ -215,19 +215,27 @@ class CourseLeaderboardViewTestBase(TestCase):
         return self.client.get(url)
 
     def leaderboard_url(self):
-        return reverse("leaderboard", kwargs={"course_slug": self.course.slug})
+        return reverse(
+            "leaderboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def leaderboard_score_breakdown_url(self, enrollment=None):
         target_enrollment = enrollment or self.enrollment
         kwargs = {
-            "course_slug": self.course.slug,
+            "course_slug": self.course.course.slug,
+            "cohort_year": self.course.year,
             "enrollment_id": target_enrollment.id,
         }
         return reverse("leaderboard_score_breakdown", kwargs=kwargs)
 
     def leaderboard_complaint_url(self, enrollment):
         kwargs = {
-            "course_slug": self.course.slug,
+            "course_slug": self.course.course.slug,
+            "cohort_year": self.course.year,
             "enrollment_id": enrollment.id,
         }
         return reverse("leaderboard_complaint", kwargs=kwargs)

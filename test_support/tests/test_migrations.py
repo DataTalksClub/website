@@ -138,12 +138,20 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         applied = MigrationExecutor(self.connection).loader.applied_migrations
         self.assertTrue(all(leaf in applied for leaf in leaves))
 
-    def test_course_phase_one_schema_is_cohort_backed_and_uses_legacy_table(self) -> None:
+    def test_course_phase_two_schema_has_reusable_families_and_cohort_backed_relations(self) -> None:
         courses_target = ("courses", "0001_initial")
         _executor, apps = self._migrate([courses_target])
+        Course = apps.get_model("courses", "Course")
         Cohort = apps.get_model("courses", "Cohort")
 
+        self.assertEqual(Course._meta.db_table, "courses_course_family")
         self.assertEqual(Cohort._meta.db_table, "courses_course")
+        self.assertEqual(
+            Cohort._meta.get_field("course").remote_field.model._meta.model_name,
+            "course",
+        )
+        self.assertEqual(Cohort._meta.get_field("year").default, 2026)
+        self.assertTrue(Cohort._meta.get_field("uuid").unique)
         self.assertTrue(Cohort._meta.get_field("outcome").blank)
         self.assertEqual(
             apps.get_model("courses", "Enrollment")
@@ -157,8 +165,6 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
             .remote_field.model._meta.model_name,
             "cohort",
         )
-        with self.assertRaises(LookupError):
-            apps.get_model("courses", "Course")
 
     def test_accounts_profile_seed_upgrades_with_historical_models_and_noop_reverse(self) -> None:
         seed = load_migration_seed(SEED_ROOT / "accounts-profile-v1.json")
@@ -166,6 +172,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         courses_target = ("courses", "0001_initial")
         executor, apps = self._migrate([seed.start, courses_target])
         User = apps.get_model("accounts", "CustomUser")
+        Course = apps.get_model("courses", "Course")
         Cohort = apps.get_model("courses", "Cohort")
         Enrollment = apps.get_model("courses", "Enrollment")
         user_values = seed.payload["users"][0]
@@ -175,7 +182,12 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
             email="synthetic-profile@example.invalid",
             password="synthetic-hash",
         )
+        family = Course.objects.create(
+            slug="synthetic-profile-family",
+            title="Synthetic profile family",
+        )
         course = Cohort.objects.create(
+            course=family,
             slug="synthetic-profile-course",
             title="Synthetic profile course",
             description="Synthetic",

@@ -4,14 +4,14 @@ from course_management import email_templates
 
 from ..client import DatamailerConfig, public_url
 from .base import normalized_email
-from .urls import public_route_url
+from .urls import cohort_route_kwargs, public_route_url
 
 
 def _certificate_availability_urls(enrollment):
     course = enrollment.course
     certificate_path = enrollment.certificate_url.strip()
     certificate_url = public_url(certificate_path)
-    course_kwargs = {"course_slug": course.slug}
+    course_kwargs = cohort_route_kwargs(course)
     course_url = public_route_url("course", course_kwargs)
     profile_url = public_route_url("account_settings")
     return {

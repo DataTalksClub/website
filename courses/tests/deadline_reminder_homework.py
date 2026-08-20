@@ -178,7 +178,7 @@ def assert_homework_reminder_context(test_case, payload, members_by_email):
     test_case.assertEqual(payload["category_tag"], "deadline-reminders")
     test_case.assertEqual(
         payload["context"]["action_url"],
-        "https://courses.example.com/ml-zoomcamp-2026/homework/homework-1",
+        "https://courses.example.com/courses/ml-zoomcamp/2026/homework/homework-1",
     )
     test_case.assertEqual(
         payload["context"]["deadline_at"],

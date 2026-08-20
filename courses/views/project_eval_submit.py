@@ -20,9 +20,16 @@ from courses.views.project_eval_submit_context import (
 from courses.views.project_eval_submit_save import (
     project_eval_post_submission,
 )
+from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
 
 
-def project_eval_vote_response(request, course_slug, project_slug, review):
+def project_eval_vote_response(
+    request,
+    course_slug,
+    project_slug,
+    review,
+    cohort_year=None,
+):
     action = request.POST.get("action", "vote")
     update_project_vote(
         request.user,
@@ -42,7 +49,7 @@ def project_eval_vote_response(request, course_slug, project_slug, review):
     )
     response = redirect(
         "projects_eval_submit",
-        course_slug=course_slug,
+        **cohort_url_kwargs(get_cohort_or_404(course_slug, cohort_year)),
         project_slug=project_slug,
         review_id=review.id,
     )
@@ -75,7 +82,7 @@ def project_eval_submission_response(
     )
     response = redirect(
         "projects_eval",
-        course_slug=page.course.slug,
+        **cohort_url_kwargs(page.course),
         project_slug=page.project.slug,
     )
     return response
@@ -84,6 +91,7 @@ def project_eval_submission_response(
 def projects_eval_submit_post_response(
     request,
     page: ProjectEvalSubmitPage,
+    cohort_year=None,
 ):
     if request.POST.get("form_action") == "vote":
         return project_eval_vote_response(
@@ -91,6 +99,7 @@ def projects_eval_submit_post_response(
             page.course.slug,
             page.project.slug,
             page.review,
+            cohort_year=cohort_year,
         )
 
     if page.project.state != ProjectState.PEER_REVIEWING.value:
@@ -110,8 +119,9 @@ def project_eval_submit_page(
     course_slug,
     project_slug,
     review,
+    cohort_year=None,
 ) -> ProjectEvalSubmitPage:
-    course = get_object_or_404(Cohort, slug=course_slug)
+    course = get_cohort_or_404(course_slug, cohort_year)
     project = get_object_or_404(
         Project, slug=project_slug, course=course
     )
@@ -130,6 +140,7 @@ def project_eval_unauthorized_response(
     request,
     course_slug,
     project_slug,
+    cohort_year=None,
 ):
     messages.error(
         request,
@@ -138,14 +149,20 @@ def project_eval_unauthorized_response(
     )
     response = redirect(
         "projects_eval",
-        course_slug=course_slug,
+        **cohort_url_kwargs(get_cohort_or_404(course_slug, cohort_year)),
         project_slug=project_slug,
     )
     return response
 
 
 @login_required
-def projects_eval_submit(request, course_slug, project_slug, review_id):
+def projects_eval_submit(
+    request,
+    course_slug,
+    project_slug,
+    review_id,
+    cohort_year=None,
+):
     review = get_object_or_404(PeerReview, id=review_id)
 
     if review.reviewer.student != request.user:
@@ -162,15 +179,22 @@ def projects_eval_submit(request, course_slug, project_slug, review_id):
             request,
             course_slug,
             project_slug,
+            cohort_year,
         )
         return response
 
-    page = project_eval_submit_page(course_slug, project_slug, review)
+    page = project_eval_submit_page(
+        course_slug,
+        project_slug,
+        review,
+        cohort_year,
+    )
 
     if request.method == "POST":
         return projects_eval_submit_post_response(
             request,
             page,
+            cohort_year,
         )
 
     context = project_eval_submit_context(

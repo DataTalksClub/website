@@ -28,7 +28,7 @@ from __future__ import annotations
 # seed writes from scripts/production_like_course_specs.json (eight homeworks,
 # three projects), which is also the course the deployed smoke follows from the
 # courses index.
-REPRESENTATIVE_COURSE_PATH = "/courses/de-zoomcamp-2026"
+REPRESENTATIVE_COURSE_PATH = "/courses/de-zoomcamp/2026"
 REPRESENTATIVE_COURSE_TITLE = "Data Engineering Zoomcamp 2026"
 
 # The assignments band's two tables (846f367).  Each heading is rendered only

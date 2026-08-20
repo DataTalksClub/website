@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
 from courses.models.cohort import (
+    Course,
     Cohort,
     CourseRegistration,
     Enrollment,
@@ -19,6 +20,7 @@ from courses.services.registration_counts import public_course_registration_coun
 from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_homeworks import get_homeworks_for_course
 from courses.views.course_projects import get_projects_for_course
+from courses.views.url_utils import get_cohort_or_404
 
 
 @dataclass(frozen=True)
@@ -156,6 +158,9 @@ def course_page_context(data: CoursePageData) -> dict:
     signup_count = registered_learner_count(data.registration_campaign)
     context = {
         "course": data.course,
+        "course_family": data.course.course,
+        "course_slug": data.course.course.slug,
+        "cohort_year": data.course.year,
         "homeworks": data.homeworks,
         "projects": data.projects,
         "course_modules": modules,
@@ -186,8 +191,12 @@ def course_page_context(data: CoursePageData) -> dict:
     return context
 
 
-def course_page_data(course_slug: str, user) -> CoursePageData:
-    course = get_object_or_404(Cohort, slug=course_slug)
+def course_page_data(
+    course_slug: str,
+    user,
+    cohort_year: int | None = None,
+) -> CoursePageData:
+    course = get_cohort_or_404(course_slug, cohort_year)
     now = timezone.now()
     add_course_homepage_info(course, now)
     homeworks = get_homeworks_for_course(course, user)
@@ -201,4 +210,12 @@ def course_page_data(course_slug: str, user) -> CoursePageData:
         homeworks=homeworks,
         projects=projects,
         registration_campaign=registration_campaign,
+    )
+
+
+def course_family_page_data(course_slug: str):
+    return get_object_or_404(
+        Course.objects.prefetch_related("cohorts"),
+        slug=course_slug,
+        visible=True,
     )

@@ -4,8 +4,47 @@ from urllib.parse import urljoin
 from django.conf import settings
 from django.core.exceptions import DisallowedHost
 from django.http import HttpRequest
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
+
+from courses.models import Cohort
 
 logger = logging.getLogger(__name__)
+
+
+def cohort_url_kwargs(cohort: Cohort) -> dict[str, object]:
+    """Return the canonical public route arguments for a cohort."""
+
+    return {
+        "course_slug": cohort.course.slug,
+        "cohort_year": cohort.year,
+    }
+
+
+def cohort_url(cohort: Cohort, route_name: str = "course", **kwargs) -> str:
+    """Build a public cohort URL without reusing the legacy edition slug."""
+
+    return reverse(
+        route_name,
+        kwargs={**cohort_url_kwargs(cohort), **kwargs},
+    )
+
+
+def get_cohort_or_404(
+    course_slug: str,
+    cohort_year: int | None = None,
+    **filters,
+) -> Cohort:
+    """Resolve a canonical family/year route, with a legacy test shim."""
+
+    if cohort_year is None:
+        return get_object_or_404(Cohort, slug=course_slug, **filters)
+    return get_object_or_404(
+        Cohort,
+        course__slug=course_slug,
+        year=cohort_year,
+        **filters,
+    )
 
 
 def absolute_url_with_fallback(

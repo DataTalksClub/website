@@ -9,13 +9,13 @@ from .peer_review_members import (
     peer_review_assignment_notification_members,
 )
 from .score_notifications import add_from_email_if_configured
-from .urls import public_route_url
+from .urls import cohort_route_kwargs, public_route_url
 
 
 def _peer_review_assignment_urls(course, project) -> dict[str, str]:
-    course_kwargs = {"course_slug": course.slug}
+    course_kwargs = cohort_route_kwargs(course)
     project_kwargs = {
-        "course_slug": course.slug,
+        **cohort_route_kwargs(course),
         "project_slug": project.slug,
     }
     course_url = public_route_url("course", course_kwargs)

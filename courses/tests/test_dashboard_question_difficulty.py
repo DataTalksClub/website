@@ -79,7 +79,13 @@ class DashboardQuestionDifficultyTestCase(TestCase):
             )
 
     def dashboard_url(self):
-        return reverse("dashboard", args=[self.course.slug])
+        return reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def test_question_difficulty_pct_correct(self):
         self.create_answers([True, True, False])

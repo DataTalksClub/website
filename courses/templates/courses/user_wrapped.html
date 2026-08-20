@@ -271,7 +271,7 @@
                 {% for course in user_stats.courses %}
                   <div class="list-row">
                     <p>
-                      <a href="{% url 'leaderboard_score_breakdown' course.slug course.enrollment_id %}">
+                      <a href="{% url 'leaderboard_score_breakdown' course.course_slug course.cohort_year course.enrollment_id %}">
                         {{ course.title }}
                       </a>
                     </p>

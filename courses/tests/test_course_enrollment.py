@@ -14,7 +14,11 @@ class CourseEnrollmentDisplayTest(CourseDetailViewTestBase):
         self.client.login(**credentials)
 
         url = reverse(
-            "enrollment", kwargs={"course_slug": self.course.slug}
+            "enrollment",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
 
         response = self.client.get(url)
@@ -34,7 +38,13 @@ class CourseEnrollmentDisplayTest(CourseDetailViewTestBase):
         self.assertEqual(enrollment_count, 0)
 
         self.client.login(**credentials)
-        url = reverse("course", kwargs={"course_slug": self.course.slug})
+        url = reverse(
+            "course",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)

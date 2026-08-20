@@ -180,7 +180,13 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
 
         body = self.client.get(self.course_url()).content.decode()
 
-        profile_url = reverse("enrollment", kwargs={"course_slug": self.course.slug})
+        profile_url = reverse(
+            "enrollment",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
         self.assertLess(body.index('class="course-actions"'), body.index(profile_url))
         self.assertLess(body.index(profile_url), body.index("Your work in this course"))
 
@@ -225,7 +231,8 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
                 reverse(
                     "homework",
                     kwargs={
-                        "course_slug": self.course.slug,
+                        "course_slug": self.course.course.slug,
+                        "cohort_year": self.course.year,
                         "homework_slug": homework.slug,
                     },
                 ),
@@ -243,7 +250,8 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
             reverse(
                 "project",
                 kwargs={
-                    "course_slug": self.course.slug,
+                    "course_slug": self.course.course.slug,
+                    "cohort_year": self.course.year,
                     "project_slug": self.completed_project.slug,
                 },
             ),

@@ -12,6 +12,7 @@ from courses.models.homework import (
     Submission,
 )
 from courses.views.homework_answers import process_question_options
+from courses.views.url_utils import get_cohort_or_404
 
 
 @dataclass(frozen=True)
@@ -140,8 +141,12 @@ def homework_detail_build_context_authenticated(data) -> dict:
     return context
 
 
-def homework_detail_objects(course_slug: str, homework_slug: str):
-    course = get_object_or_404(Cohort, slug=course_slug)
+def homework_detail_objects(
+    course_slug: str,
+    homework_slug: str,
+    cohort_year: int | None = None,
+):
+    course = get_cohort_or_404(course_slug, cohort_year)
     homework = get_object_or_404(
         Homework,
         course=course,

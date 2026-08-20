@@ -1,15 +1,20 @@
 from django.core.paginator import Paginator
 from django.db.models import Case, Count, IntegerField, Q, Value, When
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import render
 
 from courses.models.cohort import Cohort
 from courses.models.project import Project, ProjectState, ProjectSubmission
+from courses.views.url_utils import get_cohort_or_404
 
 PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 
 
-def list_all_project_submissions_view(request, course_slug: str):
-    course = get_object_or_404(Cohort, slug=course_slug)
+def list_all_project_submissions_view(
+    request,
+    course_slug: str,
+    cohort_year: int | None = None,
+):
+    course = get_cohort_or_404(course_slug, cohort_year)
     submissions_page = _all_project_submissions_page(course, request)
     projects = _projects_with_submission_counts(course)
     page_range = submissions_page.paginator.get_elided_page_range(

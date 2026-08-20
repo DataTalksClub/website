@@ -1,14 +1,14 @@
-from .urls import public_route_url
+from .urls import cohort_route_kwargs, public_route_url
 
 
 def score_notification_urls(course, assignment, route_name, slug_kwarg):
     assignment_kwargs = {
-        "course_slug": course.slug,
+        **cohort_route_kwargs(course),
         slug_kwarg: assignment.slug,
     }
     assignment_url = public_route_url(route_name, assignment_kwargs)
 
-    course_kwargs = {"course_slug": course.slug}
+    course_kwargs = cohort_route_kwargs(course)
     course_url = public_route_url("course", course_kwargs)
     leaderboard_url = public_route_url("leaderboard", course_kwargs)
     profile_url = public_route_url("account_settings")

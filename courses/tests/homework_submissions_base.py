@@ -92,7 +92,8 @@ class HomeworkSubmissionsViewTestBase(TestCase):
         return reverse(
             "homework_submissions",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "homework_slug": self.homework.slug,
             },
         )
@@ -101,7 +102,8 @@ class HomeworkSubmissionsViewTestBase(TestCase):
         return reverse(
             "homework",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "homework_slug": self.homework.slug,
             },
         )

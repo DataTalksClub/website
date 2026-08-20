@@ -74,11 +74,15 @@ def authenticated_homework_post_response(
 
 
 def homework_view(
-    request: HttpRequest, course_slug: str, homework_slug: str
+    request: HttpRequest,
+    course_slug: str,
+    homework_slug: str,
+    cohort_year: int | None = None,
 ):
     detail_objects = homework_detail_objects(
         course_slug,
         homework_slug,
+        cohort_year,
     )
     course = detail_objects.course
     homework = detail_objects.homework

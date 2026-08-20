@@ -106,13 +106,13 @@
         <nav class="shell breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
-              <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+              <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
             </li>
             <li>
-              <a href="{% url 'leaderboard' course.slug %}">Leaderboard</a>
+              <a href="{% url 'leaderboard' course.course.slug course.year %}">Leaderboard</a>
             </li>
             <li>
-              <a href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}">{{ enrollment.display_name }}</a>
+              <a href="{% url 'leaderboard_score_breakdown' course.course.slug course.year enrollment.id %}">{{ enrollment.display_name }}</a>
             </li>
             <li aria-current="page">
               Flag record
@@ -123,7 +123,7 @@
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="complaint-heading">Flag leaderboard record</h1>
           <p class="mono-note">{{ enrollment.display_name }} · {{ enrollment.total_score }} points</p>
-          {% url 'leaderboard_score_breakdown' course.slug enrollment.id as score_breakdown_url %}
+          {% url 'leaderboard_score_breakdown' course.course.slug course.year enrollment.id as score_breakdown_url %}
           {% include "core/_button.html" with href=score_breakdown_url label="Back to record" variant="secondary" compact=True %}
         </div>
       </section>

@@ -55,7 +55,13 @@ class DashboardEngagementTrendTestCase(TestCase):
         return timezone.make_aware(datetime(year, month, day, 12, 0))
 
     def dashboard_url(self):
-        return reverse("dashboard", args=[self.course.slug])
+        return reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def test_engagement_trend_weekly_counts(self):
         # Week of Mon Jan 5, 2026: three mid-week submissions.

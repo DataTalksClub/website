@@ -1,19 +1,19 @@
 from django.http import HttpRequest, HttpResponse
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from courses.models.cohort import Cohort
 from courses.views.course_calendar_events import (
     course_calendar_event_lines,
     course_calendar_lines,
 )
+from courses.views.url_utils import get_cohort_or_404
 
 
 def course_calendar_view(
     request: HttpRequest,
     course_slug: str,
+    cohort_year: int | None = None,
 ) -> HttpResponse:
-    course = get_object_or_404(Cohort, slug=course_slug, visible=True)
+    course = get_cohort_or_404(course_slug, cohort_year, visible=True)
     dtstamp = timezone.now()
     event_lines = course_calendar_event_lines(request, course, dtstamp)
     calendar_lines = course_calendar_lines(course, event_lines)

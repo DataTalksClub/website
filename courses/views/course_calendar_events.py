@@ -10,6 +10,7 @@ from courses.views.calendar_ics import (
     calendar_event,
     escape_ics_text,
 )
+from courses.views.url_utils import cohort_url_kwargs
 
 
 @dataclass(frozen=True)
@@ -35,7 +36,7 @@ def homework_calendar_events(request, course, dtstamp) -> list[list[str]]:
         homework_path = reverse(
             "homework",
             kwargs={
-                "course_slug": course.slug,
+                **cohort_url_kwargs(course),
                 "homework_slug": homework.slug,
             },
         )
@@ -60,7 +61,7 @@ def _project_detail_url(request, course, project) -> str:
     project_path = reverse(
         "project",
         kwargs={
-            "course_slug": course.slug,
+            **cohort_url_kwargs(course),
             "project_slug": project.slug,
         },
     )

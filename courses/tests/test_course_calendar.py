@@ -5,9 +5,7 @@ from courses.tests.course_view_base import CourseDetailViewTestBase
 
 class CourseCalendarLinkTest(CourseDetailViewTestBase):
     def test_course_detail_shows_calendar_feed_link(self):
-        url = reverse(
-            "course", kwargs={"course_slug": self.course.slug}
-        )
+        url = self.course_url()
 
         response = self.client.get(url)
 
@@ -28,7 +26,10 @@ class CourseCalendarLinkTest(CourseDetailViewTestBase):
         )
         calendar_url = reverse(
             "course_calendar",
-            kwargs={"course_slug": self.course.slug},
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
         self.assertContains(
             response,
@@ -40,7 +41,10 @@ class CourseCalendarFeedTest(CourseDetailViewTestBase):
     def test_course_calendar_feed(self):
         url = reverse(
             "course_calendar",
-            kwargs={"course_slug": self.course.slug},
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
 
         response = self.client.get(url)

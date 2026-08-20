@@ -3,6 +3,7 @@ from . import cohort, project, homework, wrapped  # noqa: F401
 from django.contrib.auth import get_user_model
 
 from .cohort import (
+    Course,
     Cohort,
     CourseRegistration,
     Enrollment,
@@ -50,6 +51,7 @@ __all__ = (
     "CourseRegistrationCountRevision",
     "CourseRegistrationCountSlot",
     "CourseRegistrationCountSourceRun",
+    "Course",
     "CriteriaResponse",
     "Enrollment",
     "Homework",

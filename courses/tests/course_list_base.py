@@ -152,14 +152,26 @@ class CourseListViewTestBase(TestCase):
         return None
 
     def course_card_html(self, content, course):
-        course_url = reverse("course", kwargs={"course_slug": course.slug})
+        course_url = reverse(
+            "course",
+            kwargs={
+                "course_slug": course.course.slug,
+                "cohort_year": course.year,
+            },
+        )
         link_position = content.index(f'href="{course_url}"')
         card_start = content.rfind("<article", 0, link_position)
         card_end = content.index("</article>", link_position)
         return content[card_start:card_end]
 
     def course_archive_row_html(self, content, course):
-        archive_url = reverse("course", kwargs={"course_slug": course.slug})
+        archive_url = reverse(
+            "course",
+            kwargs={
+                "course_slug": course.course.slug,
+                "cohort_year": course.year,
+            },
+        )
         link_position = content.index(f'href="{archive_url}"')
         row_end = content.index("</a>", link_position)
         return content[link_position:row_end]
@@ -211,7 +223,13 @@ class CourseListViewTestBase(TestCase):
 
     def course_card_for(self, response, course):
         content = response.content.decode()
-        course_url = reverse("course", kwargs={"course_slug": course.slug})
+        course_url = reverse(
+            "course",
+            kwargs={
+                "course_slug": course.course.slug,
+                "cohort_year": course.year,
+            },
+        )
         course_link_position = content.index(f'href="{course_url}"')
         card_start = content.rfind("<article", 0, course_link_position)
         card_end = content.index("</article>", course_link_position)

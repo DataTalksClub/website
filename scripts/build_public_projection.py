@@ -21,6 +21,7 @@ import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
+
 from urllib.parse import parse_qs, quote, urlsplit
 from zoneinfo import ZoneInfo
 
@@ -28,6 +29,8 @@ import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPOSITORY_ROOT))
+
+from courses.course_family_catalog import cohort_family_identity  # noqa: E402
 
 from content.event_description_bridge import (  # noqa: E402
     EVENT_RECORD_SCHEMA_VERSION,
@@ -2016,7 +2019,10 @@ def _courses(course_specs: Path) -> list[dict[str, Any]]:
         courses.append(
             {
                 "slug": slug,
-                "public_path": f"/courses/{slug}",
+                "public_path": (
+                    f"/courses/{cohort_family_identity(slug)[0]}"
+                    f"/{cohort_family_identity(slug)[1]}"
+                ),
                 "title": _string(item.get("title"), field="course title", maximum=500),
                 "finished": bool(item.get("finished")),
                 "homework_count": len(homeworks),

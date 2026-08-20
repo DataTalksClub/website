@@ -7,6 +7,7 @@ from courses.deadline_reminder_types import (
     ReminderEvent,
     ReminderTemplateContextData,
 )
+from courses.views.url_utils import cohort_url_kwargs
 
 
 def deadline_send_payload(
@@ -87,7 +88,7 @@ def deadline_action_url(data):
     action_path = reverse(
         spec.route_name,
         kwargs={
-            "course_slug": item.course.slug,
+            **cohort_url_kwargs(item.course),
             spec.route_slug_kwarg: item.item_slug,
         },
     )

@@ -15,6 +15,7 @@ from courses.views.homework_submission import (
     HomeworkPostData,
     process_homework_submission,
 )
+from courses.views.url_utils import cohort_url_kwargs
 
 
 def closed_homework_submission_response(
@@ -29,7 +30,7 @@ def closed_homework_submission_response(
     )
     response = redirect(
         "homework",
-        course_slug=course.slug,
+        **cohort_url_kwargs(course),
         homework_slug=homework.slug,
     )
     return response

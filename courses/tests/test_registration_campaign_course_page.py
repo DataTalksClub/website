@@ -18,7 +18,7 @@ class RegistrationCampaignCoursePageTests(RegistrationCampaignBase):
         self.assertNotContains(response, self.campaign_url())
 
     def test_empty_course_redirects_non_staff_to_campaign(self):
-        url = reverse("course", kwargs={"course_slug": self.course.slug})
+        url = self.course_url()
         response = self.client.get(url)
 
         redirect_url = reverse(
@@ -35,7 +35,7 @@ class RegistrationCampaignCoursePageTests(RegistrationCampaignBase):
     ):
         self.create_intro_homework()
 
-        url = reverse("course", kwargs={"course_slug": self.course.slug})
+        url = self.course_url()
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
@@ -50,7 +50,7 @@ class RegistrationCampaignCoursePageTests(RegistrationCampaignBase):
         self.create_intro_homework()
         self.client.force_login(user)
 
-        url = reverse("course", kwargs={"course_slug": self.course.slug})
+        url = self.course_url()
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
@@ -66,7 +66,7 @@ class RegistrationCampaignCoursePageTests(RegistrationCampaignBase):
         self.create_intro_homework()
         self.client.force_login(user)
 
-        url = reverse("course", kwargs={"course_slug": self.course.slug})
+        url = self.course_url()
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)

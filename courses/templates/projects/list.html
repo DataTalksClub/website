@@ -67,7 +67,7 @@
 
 {% block breadcrumbs %}
   <li>
-    <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
+    <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">{{ project.title }}</a>
   </li>
   <li aria-current="page">
     Project submissions
@@ -88,10 +88,10 @@
       </p>
     {% endif %}
     <div class="project-toolbar">
-      <a class="cta cta-compact cta-secondary" href="{% url 'list_all_project_submissions' course.slug %}">
+      <a class="cta cta-compact cta-secondary" href="{% url 'list_all_project_submissions' course.course.slug course.year %}">
         All Projects
       </a>
-      <a class="cta cta-compact cta-secondary" href="{% url 'course' course.slug %}">
+      <a class="cta cta-compact cta-secondary" href="{% url 'course' course.course.slug course.year %}">
         Back to Course
       </a>
     </div>
@@ -121,7 +121,7 @@
             {% endif %}
             <article class="list-row submission-row">
               <div class="submission-student">
-                <a href="{% url 'leaderboard_score_breakdown' course_slug=course.slug enrollment_id=submission.enrollment.id %}">
+                <a href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.year enrollment_id=submission.enrollment.id %}">
                   {{ submission.enrollment.display_name }}
                 </a>
                 {% if submission.github_link %}
@@ -176,7 +176,7 @@
                   {% if submission.to_evaluate %}
                     <a
                       class="cta cta-compact cta-primary"
-                      href="{% url 'projects_eval_submit' course_slug=course.slug project_slug=project.slug review_id=submission.review.id %}"
+                      href="{% url 'projects_eval_submit' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug review_id=submission.review.id %}"
                       title="Review: {{ submission.review.get_state_display }}"
                       aria-label="Review: {{ submission.review.get_state_display }}"
                     >
@@ -191,7 +191,7 @@
                   {% else %}
                     <button
                       type="button"
-                      onclick="confirmEvaluation('{% url 'projects_eval_add' course_slug=course.slug project_slug=project.slug submission_id=submission.id %}')"
+                      onclick="confirmEvaluation('{% url 'projects_eval_add' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug submission_id=submission.id %}')"
                       class="cta cta-compact cta-secondary"
                       title="Add to evaluation"
                       aria-label="Add to evaluation"
@@ -219,7 +219,7 @@
   {% endif %}
   {% if project.state == 'CO' %}
     <div class="project-toolbar">
-      <a class="cta cta-compact cta-secondary" href="{% url 'project_statistics' course.slug project.slug %}">
+      <a class="cta cta-compact cta-secondary" href="{% url 'project_statistics' course.course.slug course.year project.slug %}">
         Project statistics
       </a>
     </div>

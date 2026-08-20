@@ -2,15 +2,15 @@
 <article class="grid cursor-pointer gap-4 rounded-md py-4 md:py-5"
          role="link"
          tabindex="0"
-         onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.slug %}'"
-         onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.slug %}'; }">
+         onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.year %}'"
+         onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.year %}'; }">
     <div>
         <span class="app-badge app-badge-upper {{ badge_class|default:'app-badge-success' }}">{{ badge_label|default:'Active' }}</span>
         {% if course.is_enrolled %}
             <span class="ml-2 app-badge app-badge-upper app-badge-info">Enrolled</span>
         {% endif %}
         <h3 class="mt-2 text-xl font-semibold md:text-2xl">
-            <a href="{% url 'course' course.slug %}" class="app-link">{{ course.title }}</a>
+            <a href="{% url 'course' course.course.slug course.year %}" class="app-link">{{ course.title }}</a>
         </h3>
         <p class="mt-1 max-w-3xl text-sm leading-6 app-text md:text-base">{{ course.home_outcome }}</p>
     </div>

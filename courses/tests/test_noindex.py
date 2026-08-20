@@ -79,14 +79,20 @@ class NoIndexMetaTagTestCase(TestCase):
 
     def test_leaderboard_score_breakdown_has_noindex(self):
         """Test that leaderboard score breakdown page has noindex meta tag."""
-        url = f"/{self.course.slug}/leaderboard/{self.enrollment.id}/"
+        url = (
+            f"/courses/{self.course.course.slug}/{self.course.year}/"
+            f"leaderboard/{self.enrollment.id}/"
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
 
     def test_project_list_has_noindex(self):
         """Test that project list page has noindex meta tag."""
-        url = f"/{self.course.slug}/project/{self.project.slug}/list"
+        url = (
+            f"/courses/{self.course.course.slug}/{self.course.year}/"
+            f"project/{self.project.slug}/list"
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
@@ -100,7 +106,10 @@ class NoIndexMetaTagTestCase(TestCase):
             username=self.credentials["username"],
             password=self.credentials["password"]
         )
-        url = f"/{self.course.slug}/project/{self.project.slug}/eval"
+        url = (
+            f"/courses/{self.course.course.slug}/{self.course.year}/"
+            f"project/{self.project.slug}/eval"
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
@@ -111,21 +120,27 @@ class NoIndexMetaTagTestCase(TestCase):
             username=self.credentials["username"],
             password=self.credentials["password"]
         )
-        url = f"/{self.course.slug}/project/{self.project.slug}/results"
+        url = (
+            f"/courses/{self.course.course.slug}/{self.course.year}/"
+            f"project/{self.project.slug}/results"
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
 
     def test_project_stats_has_noindex(self):
         """Test that project statistics page has noindex meta tag."""
-        url = f"/{self.course.slug}/project/{self.project.slug}/stats"
+        url = (
+            f"/courses/{self.course.course.slug}/{self.course.year}/"
+            f"project/{self.project.slug}/stats"
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
 
     def test_projects_list_all_has_noindex(self):
         """Test that all projects submissions page has noindex meta tag."""
-        url = f"/{self.course.slug}/projects"
+        url = f"/courses/{self.course.course.slug}/{self.course.year}/projects"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
@@ -137,21 +152,24 @@ class NoIndexMetaTagTestCase(TestCase):
             username=self.credentials["username"],
             password=self.credentials["password"]
         )
-        url = f"/{self.course.slug}/enrollment"
+        url = f"/courses/{self.course.course.slug}/{self.course.year}/enrollment"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
 
     def test_homework_stats_has_noindex(self):
         """Test that homework statistics page has noindex meta tag."""
-        url = f"/{self.course.slug}/homework/{self.homework.slug}/stats"
+        url = (
+            f"/courses/{self.course.course.slug}/{self.course.year}/"
+            f"homework/{self.homework.slug}/stats"
+        )
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<meta name="robots" content="noindex">')
 
     def test_course_page_does_not_have_noindex(self):
         """Test that main course page does NOT have noindex meta tag."""
-        url = f"/courses/{self.course.slug}"
+        url = f"/courses/{self.course.course.slug}/{self.course.year}"
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, '<meta name="robots" content="noindex">')

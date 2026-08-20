@@ -152,7 +152,8 @@ class HomeworkDetailViewTestBase(TestCase):
         return reverse(
             "homework",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
                 "homework_slug": self.homework.slug,
             },
         )

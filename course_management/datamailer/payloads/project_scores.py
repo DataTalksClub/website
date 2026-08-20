@@ -10,7 +10,7 @@ from .score_notifications import (
     score_notification_footer,
     score_notification_urls,
 )
-from .urls import public_route_url
+from .urls import cohort_route_kwargs, public_route_url
 
 
 def _project_score_notification_context(project):
@@ -44,7 +44,7 @@ def _project_score_notification_urls(course, project):
     )
     project_url = urls["assignment_url"]
     project_results_kwargs = {
-        "course_slug": course.slug,
+        **cohort_route_kwargs(course),
         "project_slug": project.slug,
     }
     project_results_url = public_route_url(

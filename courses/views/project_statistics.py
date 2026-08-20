@@ -2,8 +2,8 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from courses.assignment_statistics import calculate_project_statistics
-from courses.models.cohort import Cohort
 from courses.models.project import Project, ProjectState
+from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
 
 
 def incomplete_project_statistics_response(request, course, project):
@@ -14,14 +14,14 @@ def incomplete_project_statistics_response(request, course, project):
     )
     response = redirect(
         "project",
-        course_slug=course.slug,
+        **cohort_url_kwargs(course),
         project_slug=project.slug,
     )
     return response
 
 
-def project_statistics(request, course_slug, project_slug):
-    course = get_object_or_404(Cohort, slug=course_slug)
+def project_statistics(request, course_slug, project_slug, cohort_year=None):
+    course = get_cohort_or_404(course_slug, cohort_year)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

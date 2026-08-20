@@ -13,7 +13,7 @@ class DashboardHomeworkStatsTestCase(DashboardHomeworkStatsTestBase):
     def test_homework_statistics_calculation(self):
         self.create_homework_stat_submissions()
 
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
@@ -29,7 +29,7 @@ class DashboardHomeworkStatsTestCase(DashboardHomeworkStatsTestBase):
                 self.users[i], self.enrollments[i]
             )
 
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
 
         hw_stats = response.context["homework_stats"]
@@ -43,7 +43,7 @@ class DashboardHomeworkStatsTestCase(DashboardHomeworkStatsTestBase):
     def test_homework_statistics_with_null_values(self):
         self.create_null_time_submissions()
 
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
 
         self.assert_null_time_homework_stats(
@@ -53,7 +53,7 @@ class DashboardHomeworkStatsTestCase(DashboardHomeworkStatsTestBase):
     def test_homework_formatted_time_display(self):
         self.create_formatted_time_submissions()
 
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
 
         hw_stats = response.context["homework_stats"]
@@ -81,10 +81,19 @@ class DashboardHomeworkStatsTestCase(DashboardHomeworkStatsTestBase):
                 total_score=50,
             )
 
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
 
         hw_stats = response.context["homework_stats"]
         titles = [hw_stat["homework"].title for hw_stat in hw_stats]
         self.assertIn("Homework 1", titles)
         self.assertNotIn("Homework 2", titles)
+
+    def dashboard_url(self):
+        return reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )

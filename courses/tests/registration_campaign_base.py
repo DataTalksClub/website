@@ -44,6 +44,15 @@ class RegistrationCampaignBase(TestCase):
             kwargs={"campaign_slug": self.campaign.slug},
         )
 
+    def course_url(self):
+        return reverse(
+            "course",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
+
     def create_signed_user(self):
         return CustomUser.objects.create_user(
             username="signed",

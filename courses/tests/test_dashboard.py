@@ -4,18 +4,27 @@ from courses.tests.dashboard_view_base import DashboardViewTestBase
 
 
 class DashboardViewTestCase(DashboardViewTestBase):
+    def dashboard_url(self):
+        return reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
+
     def test_dashboard_url_exists(self):
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
 
     def test_dashboard_uses_correct_template(self):
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
         self.assertTemplateUsed(response, "courses/dashboard.html")
 
     def test_dashboard_context_basic(self):
-        url = reverse("dashboard", args=[self.course.slug])
+        url = self.dashboard_url()
         response = self.client.get(url)
 
         self.assertIn("course", response.context)

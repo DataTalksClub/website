@@ -23,7 +23,13 @@ class DashboardAuthenticationTestCase(TestCase):
         )
 
     def dashboard_url(self):
-        return reverse("dashboard", args=[self.course.slug])
+        return reverse(
+            "dashboard",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
+        )
 
     def test_dashboard_access_without_login(self):
         dashboard_url = self.dashboard_url()
@@ -47,7 +53,11 @@ class DashboardAuthenticationTestCase(TestCase):
         dashboard_url = self.dashboard_url()
         response = self.client.get(dashboard_url)
         course_url = reverse(
-            "course", kwargs={"course_slug": self.course.slug}
+            "course",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            },
         )
 
         self.assertRedirects(response, course_url)

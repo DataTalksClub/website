@@ -12,7 +12,8 @@ from django.urls import reverse
 
 from core.bootstrap import RuntimeEnvironment
 from core.home_content import course_catalog
-from courses.models import Cohort, Homework, Project
+from courses.course_family_catalog import cohort_family_identity
+from courses.models import Course, Cohort, Homework, Project
 from courses.services.local_course_seed import (
     CATALOG_SOURCE_SHA256,
     LocalCourseSeedError,
@@ -52,10 +53,14 @@ class LocalCourseSeedTests(TestCase):
 
         projected = {record["slug"]: record for record in load_projected_courses()}
         self.assertEqual(Cohort.objects.count(), len(projected))
+        self.assertEqual(Course.objects.count(), 6)
         self.assertEqual(result.courses_created, len(projected))
         for slug, record in projected.items():
             with self.subTest(course=slug):
                 course = Cohort.objects.get(slug=slug)
+                family_slug, year = cohort_family_identity(slug)
+                self.assertEqual(course.course.slug, family_slug)
+                self.assertEqual(course.year, year)
                 self.assertEqual(course.title, record["title"])
                 self.assertEqual(course.finished, record["finished"])
                 self.assertTrue(course.visible)
@@ -110,7 +115,8 @@ class LocalCourseSeedTests(TestCase):
 
         for entry in course_catalog():
             with self.subTest(course=entry.slug):
-                self.assertEqual(entry.public_path, f"/courses/{entry.slug}")
+                family_slug, year = cohort_family_identity(entry.slug)
+                self.assertEqual(entry.public_path, f"/courses/{family_slug}/{year}")
                 course = Cohort.objects.get(slug=entry.slug)
                 self.assertEqual(
                     Homework.objects.filter(course=course).count(),
