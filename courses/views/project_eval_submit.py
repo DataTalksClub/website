@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from course_management.observability import record_event
@@ -18,6 +19,7 @@ from courses.views.project_eval_submit_context import (
     project_eval_submit_context,
 )
 from courses.views.project_eval_submit_save import (
+    ProjectCriteriaValidationError,
     project_eval_post_submission,
 )
 from courses.views.url_utils import cohort_url_kwargs, get_cohort_or_404
@@ -74,12 +76,17 @@ def project_eval_submission_response(
     request,
     page: ProjectEvalSubmitPage,
 ):
-    project_eval_post_submission(
-        request,
-        page.project,
-        page.review,
-        page.review_criteria,
-    )
+    try:
+        project_eval_post_submission(
+            request,
+            page.project,
+            page.review,
+            page.review_criteria,
+        )
+    except ProjectCriteriaValidationError:
+        return HttpResponseBadRequest(
+            "The review criteria do not belong to this project."
+        )
     response = redirect(
         "projects_eval",
         **cohort_url_kwargs(page.course),
