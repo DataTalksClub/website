@@ -1,0 +1,26 @@
+[
+  {
+    "dot": "dot-bubble",
+    "label": "Apple Podcasts",
+    "provider": "apple",
+    "url": "https://podcasts.apple.com/us/podcast/id1541710331"
+  },
+  {
+    "dot": "dot-green",
+    "label": "Spotify",
+    "provider": "spotify",
+    "url": "https://open.spotify.com/show/0pck8zuiXdI0OrCg86DAPy"
+  },
+  {
+    "dot": "dot-clay",
+    "label": "YouTube",
+    "provider": "youtube",
+    "url": "https://www.youtube.com/c/DataTalksClub"
+  },
+  {
+    "dot": "dot-gold",
+    "label": "Spotify for Creators",
+    "provider": "spotify_for_creators",
+    "url": "https://creators.spotify.com/pod/profile/datatalksclub/"
+  }
+]

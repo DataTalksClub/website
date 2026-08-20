@@ -31,6 +31,13 @@ from .event_description_bridge import (
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
+PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
+EXPECTED_PODCAST_PLATFORM_PROVIDERS = (
+    "apple",
+    "spotify",
+    "youtube",
+    "spotify_for_creators",
+)
 EVENT_IDENTITY_MANIFEST = PROJECTION_ROOT.parents[1] / "events" / "event_identity_manifest.json"
 ACCEPTED_UUID_IDENTITY_BINDING = {
     "path": "events/event_identity_manifest.json",
@@ -557,6 +564,35 @@ def _checked_public_projection() -> dict[str, Any]:
         if not isinstance(records, list) or len(records) != EXPECTED_COUNTS[name]:
             raise ImproperlyConfigured(f"Public projection collection mismatch: {name}.")
         projection[name] = tuple(records)
+
+    platform_path = PROJECTION_ROOT / PODCAST_PLATFORM_FILENAME
+    if _sha256(platform_path) != artifacts.get(PODCAST_PLATFORM_FILENAME):
+        raise ImproperlyConfigured("Public podcast platform artifact digest mismatch.")
+    platforms = _read_json(platform_path)
+    if (
+        not isinstance(platforms, list)
+        or tuple(item.get("provider") for item in platforms if isinstance(item, dict))
+        != EXPECTED_PODCAST_PLATFORM_PROVIDERS
+    ):
+        raise ImproperlyConfigured("Public podcast platform inventory mismatch.")
+    if any(
+        not isinstance(item, dict)
+        or set(item) != {"provider", "label", "url", "dot"}
+        or not isinstance(item.get("label"), str)
+        or not item["label"].strip()
+        or not isinstance(item.get("url"), str)
+        or not item["url"].startswith("https://")
+        or not isinstance(item.get("dot"), str)
+        for item in platforms
+    ):
+        raise ImproperlyConfigured("Public podcast platform record mismatch.")
+    spotify_for_creators = platforms[-1]
+    if (
+        spotify_for_creators["label"] != "Spotify for Creators"
+        or spotify_for_creators["url"] != "https://creators.spotify.com/pod/profile/datatalksclub/"
+    ):
+        raise ImproperlyConfigured("Spotify for Creators platform metadata mismatch.")
+    projection["podcast_platforms"] = tuple(platforms)
 
     transcript_count = sum(bool(item.get("transcript")) for item in projection["podcasts"])
     if transcript_count != EXPECTED_COUNTS["transcripts"]:

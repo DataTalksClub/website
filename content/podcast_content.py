@@ -16,6 +16,7 @@ the records rather than hard-coded (:func:`listening_platform_phrase`).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -31,11 +32,11 @@ PLATFORM_LABELS: dict[str, tuple[str, str]] = {
     "apple": ("Apple Podcasts", "dot-bubble"),
     "spotify": ("Spotify", "dot-green"),
     "youtube": ("YouTube", "dot-clay"),
-    "anchor": ("Anchor", "dot-gold"),
+    "spotify_for_creators": ("Spotify for Creators", "dot-gold"),
 }
-PLATFORM_ORDER: tuple[str, ...] = ("apple", "spotify", "youtube", "anchor")
+PLATFORM_ORDER: tuple[str, ...] = ("apple", "spotify", "youtube", "spotify_for_creators")
 # What the play control opens, most watchable first.
-WATCH_PREFERENCE: tuple[str, ...] = ("youtube", "spotify", "apple", "anchor")
+WATCH_PREFERENCE: tuple[str, ...] = ("youtube", "spotify", "apple", "spotify_for_creators")
 
 
 @dataclass(frozen=True, slots=True)
@@ -50,6 +51,7 @@ class Guest:
 class PlatformLink:
     """One listening destination, with the design system's platform dot."""
 
+    provider: str
     label: str
     url: str
     dot: str
@@ -139,7 +141,39 @@ def _platform_links(record: dict[str, Any]) -> tuple[PlatformLink, ...]:
         if not url.startswith("https://"):
             raise ImproperlyConfigured("Public podcast listening link must be an https address.")
         label, dot = PLATFORM_LABELS.get(key, (key.replace("-", " ").title(), "dot-bubble"))
-        prepared.append(PlatformLink(label=label, url=url, dot=dot))
+        prepared.append(PlatformLink(provider=key, label=label, url=url, dot=dot))
+    return tuple(prepared)
+
+
+def podcast_platform_links(
+    records: tuple[dict[str, Any], ...] | list[dict[str, Any]],
+) -> tuple[PlatformLink, ...]:
+    """Return the checked show-level platform records without page-specific lookups."""
+
+    prepared: list[PlatformLink] = []
+    seen: set[str] = set()
+    expected_fields = {"provider", "label", "url", "dot"}
+    for record in records:
+        if not isinstance(record, dict) or set(record) != expected_fields:
+            raise ImproperlyConfigured("Public podcast platform record shape is invalid.")
+        provider = record["provider"]
+        label = record["label"]
+        url = record["url"]
+        dot = record["dot"]
+        if (
+            not isinstance(provider, str)
+            or provider not in PLATFORM_ORDER
+            or provider in seen
+            or not isinstance(label, str)
+            or not label.strip()
+            or not isinstance(url, str)
+            or not url.startswith("https://")
+            or not isinstance(dot, str)
+            or re.fullmatch(r"dot-[a-z0-9-]+", dot) is None
+        ):
+            raise ImproperlyConfigured("Public podcast platform record is invalid.")
+        seen.add(provider)
+        prepared.append(PlatformLink(provider=provider, label=label.strip(), url=url, dot=dot))
     return tuple(prepared)
 
 

@@ -21,8 +21,7 @@ import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
-
-from urllib.parse import parse_qs, quote, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -42,6 +41,10 @@ from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
+PODCAST_PLATFORM_SEED = REPOSITORY_ROOT / "scripts" / "podcast_platforms.json"
+PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
+SPOTIFY_FOR_CREATORS_URL = "https://creators.spotify.com/pod/profile/datatalksclub/"
+PODCAST_PLATFORM_KEY_ALIASES = {"anchor": "spotify_for_creators"}
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
@@ -384,6 +387,75 @@ def _safe_url(value: Any, *, field: str, optional: bool = True) -> str:
     ):
         raise ProjectionBuildError(f"unsafe public URL: {field}")
     return value
+
+
+def _canonical_podcast_platform_key(value: Any) -> str:
+    key = _string(value, field="podcast platform provider", maximum=100)
+    return PODCAST_PLATFORM_KEY_ALIASES.get(key, key)
+
+
+def _canonical_podcast_platform_url(provider: str, value: str) -> str:
+    """Keep episode destinations on Spotify for Creators after the Anchor move."""
+
+    if provider != "spotify_for_creators":
+        return value
+    parsed = urlsplit(value)
+    hostname = (parsed.hostname or "").casefold().removeprefix("www.")
+    if hostname not in {"anchor.fm", "podcasters.spotify.com", "creators.spotify.com"}:
+        return value
+    marker = "/episodes/"
+    if marker not in parsed.path:
+        return SPOTIFY_FOR_CREATORS_URL
+    suffix = parsed.path.split(marker, 1)[1]
+    # A malformed historical export duplicated the full URL after the episode path.
+    suffix = re.split(r"https?://", suffix, maxsplit=1)[0].rstrip("/")
+    if not suffix:
+        return SPOTIFY_FOR_CREATORS_URL
+    return urlunsplit(
+        (
+            "https",
+            "creators.spotify.com",
+            f"/pod/profile/datatalksclub/episodes/{suffix}",
+            parsed.query,
+            parsed.fragment,
+        )
+    )
+
+
+def _podcast_platforms(path: Path) -> list[dict[str, str]]:
+    try:
+        raw = json.loads(_read_text(path))
+    except json.JSONDecodeError as exc:
+        raise ProjectionBuildError("podcast platform seed is not valid JSON") from exc
+    if not isinstance(raw, list):
+        raise ProjectionBuildError("podcast platform seed must be a list")
+    expected_fields = {"provider", "label", "url", "dot"}
+    platforms: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in raw:
+        if not isinstance(item, dict) or set(item) != expected_fields:
+            raise ProjectionBuildError("podcast platform record shape mismatch")
+        provider = _canonical_podcast_platform_key(item["provider"])
+        if provider in seen:
+            raise ProjectionBuildError("podcast platform provider is duplicated")
+        seen.add(provider)
+        label = _string(item["label"], field="podcast platform label", maximum=100)
+        url = _safe_url(item["url"], field="podcast platform URL", optional=False)
+        dot = _string(item["dot"], field="podcast platform dot", maximum=50)
+        if not re.fullmatch(r"dot-[a-z0-9-]+", dot):
+            raise ProjectionBuildError("podcast platform dot is invalid")
+        url = _canonical_podcast_platform_url(provider, url)
+        if provider == "spotify_for_creators" and url != SPOTIFY_FOR_CREATORS_URL:
+            raise ProjectionBuildError("Spotify for Creators URL is not canonical")
+        platforms.append({"provider": provider, "label": label, "url": url, "dot": dot})
+    if tuple(item["provider"] for item in platforms) != (
+        "apple",
+        "spotify",
+        "youtube",
+        "spotify_for_creators",
+    ):
+        raise ProjectionBuildError("podcast platform inventory mismatch")
+    return platforms
 
 
 def _source_url(repository: str, revision: str, source_path: str) -> str:
@@ -1237,7 +1309,12 @@ def _main_records(
                     continue
                 safe = _safe_url(value, field=f"podcast link {label}")
                 if safe:
-                    podcast_links[str(label)] = safe
+                    provider = _canonical_podcast_platform_key(label)
+                    if provider in podcast_links:
+                        raise ProjectionBuildError(
+                            f"podcast link provider is duplicated: {path.name[:120]}"
+                        )
+                    podcast_links[provider] = _canonical_podcast_platform_url(provider, safe)
         podcasts.append(
             {
                 "slug": slug,
@@ -2644,6 +2721,10 @@ def build(args: argparse.Namespace) -> None:
         f"{name}.json": _write_json(output / f"{name}.json", records)
         for name, records in collections.items()
     }
+    artifact_digests[PODCAST_PLATFORM_FILENAME] = _write_json(
+        output / PODCAST_PLATFORM_FILENAME,
+        _podcast_platforms(PODCAST_PLATFORM_SEED),
+    )
     artifact_digests["media.json"] = _write_json(output / "media.json", media)
     artifact_digests["wiki_graph.json"] = _write_json(output / "wiki_graph.json", graph)
     artifact_digests["wiki_search.json"] = _write_json(output / "wiki_search.json", search)

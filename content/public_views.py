@@ -45,7 +45,12 @@ from .pagination import (
     public_page_url,
 )
 from .person_content import person_view
-from .podcast_content import episode_view, listening_platform_phrase, season_episodes
+from .podcast_content import (
+    episode_view,
+    listening_platform_phrase,
+    podcast_platform_links,
+    season_episodes,
+)
 from .public_data import (
     PROJECTION_ROOT,
     event_date_groups,
@@ -533,7 +538,8 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
     if not valid_query:
         return _no_store(HttpResponseBadRequest("Bad request."))
 
-    seasons = podcast_seasons()
+    projection = public_projection()
+    seasons = podcast_seasons(projection["podcasts"])
     latest_season = seasons[0].number
     selected_number = latest_season if requested_season is None else requested_season
     season_index = next(
@@ -565,6 +571,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
             "episodes": episodes,
             "episode_total": sum(len(available.episodes) for available in seasons),
             "listening_platforms": listening_platform_phrase(episodes),
+            "podcast_platform_links": podcast_platform_links(projection["podcast_platforms"]),
             "season_links": tuple(
                 {
                     "number": available.number,

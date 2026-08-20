@@ -67,6 +67,13 @@
         max-width: 36rem;
       }
 
+      .podcast-platforms {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
       /* The episode surface keeps the shared card's outer ink frame.  Its
          season/episode line is metadata, not a status control: it stays plain
          and blue inside the bordered card. */
@@ -137,6 +144,21 @@
               Subscribe to stay updated with the latest episodes. Every episode page links
               out to {{ listening_platforms }} — follow the show wherever you already listen.
             </p>
+          {% endif %}
+          {% if podcast_platform_links %}
+            <div class="podcast-platforms" aria-label="Podcast platforms">
+              {% for link in podcast_platform_links %}
+                <a
+                  class="pill-button"
+                  data-podcast-platform="{{ link.provider }}"
+                  href="{{ link.url }}"
+                  rel="noopener noreferrer"
+                >
+                  <span class="dot {{ link.dot }}" aria-hidden="true"></span>
+                  {{ link.label }}
+                </a>
+              {% endfor %}
+            </div>
           {% endif %}
         </div>
       </section>
