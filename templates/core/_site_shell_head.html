@@ -15,7 +15,6 @@
   script set.  Styling for every class below is in core/_design_system.html.
 {% endcomment %}
 {% url 'home' as site_home_url %}
-{% url 'course_list' as courses_url %}
 {% url 'studio:home' as studio_home_url %}
 {% url 'account_settings' as account_settings_url %}
 {% url 'socialaccount_connections' as account_connections_url %}
@@ -163,9 +162,6 @@
               {{ user.email|default:user.username }}
             </p>
             <div class="user-menu-actions">
-              {% if courses_url %}
-                <a class="nav-link user-menu-item" href="{{ courses_url }}">Courses</a>
-              {% endif %}
               {% if account_settings_url %}
                 <a class="nav-link user-menu-item" href="{{ account_settings_url }}">Account settings</a>
               {% endif %}

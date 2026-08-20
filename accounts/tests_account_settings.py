@@ -1,9 +1,35 @@
+from pathlib import Path
 from unittest.mock import patch
 
-from django.urls import reverse
+from django.conf import settings
+from django.test import SimpleTestCase
+from django.urls import resolve, reverse
 
 from accounts.studio_roles import synchronize_studio_roles
 from accounts.tests_account_settings_base import AccountSettingsViewTestBase
+
+
+class AccountSettingsRouteTests(SimpleTestCase):
+    def test_account_settings_uses_settings_and_not_the_allauth_connections_route(self):
+        self.assertEqual(reverse("account_settings"), "/accounts/settings/")
+        self.assertEqual(resolve("/accounts/settings/").url_name, "account_settings")
+
+        # allauth intentionally owns this separate URL for managing linked
+        # social accounts; it must not become a backwards alias for settings.
+        self.assertEqual(
+            resolve("/accounts/3rdparty/").url_name,
+            "socialaccount_connections",
+        )
+
+
+class AccountSettingsThemeAssetTests(SimpleTestCase):
+    def test_settings_toggle_applies_the_shared_theme_state_and_storage_key(self):
+        script = (
+            Path(settings.BASE_DIR) / "courses" / "static" / "settings_toggles.js"
+        ).read_text()
+
+        self.assertIn("window.applyDarkModePreference?.(data.value);", script)
+        self.assertIn("localStorage.setItem('darkMode', data.value.toString());", script)
 
 
 class AccountSettingsAuthViewTestCase(AccountSettingsViewTestBase):
@@ -32,6 +58,44 @@ class AccountSettingsOverviewViewTestCase(AccountSettingsViewTestBase):
         self.assertContains(response, "Data Course")
         self.assertContains(response, "Student One")
         self.assertNotContains(response, courses_studio_url)
+        self.assertNotContains(
+            response,
+            'class="nav-link user-menu-item" href="/courses">Courses</a>',
+        )
+
+    def test_account_settings_uses_lavender_content_without_an_eyebrow(self):
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse("account_settings"))
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertRegex(
+            body,
+            r'<section\s+class="band band-lavender"\s+id="account-settings-content"',
+        )
+        self.assertIn('<h1 id="account-settings-heading">Account settings</h1>', body)
+        self.assertNotIn('class="mono-label mono-label-indigo">Account</p>', body)
+
+    def test_account_theme_toggle_updates_shared_state_and_persists_on_reload(self):
+        self.client.force_login(self.user)
+        account_settings_url = reverse("account_settings")
+
+        light_response = self.client.get(account_settings_url)
+        self.assertContains(light_response, 'data-dark-mode="false"')
+        self.assertContains(light_response, "window.applyDarkModePreference = apply;")
+        self.assertContains(light_response, 'src="/static/settings_toggles.js"')
+
+        toggle_response = self.client.post(
+            reverse("update_account_toggle"),
+            {"field": "dark_mode", "value": "true"},
+        )
+
+        self.assertEqual(toggle_response.status_code, 200)
+        self.assertEqual(toggle_response.json()["dark_mode"], True)
+        dark_response = self.client.get(account_settings_url)
+        self.assertContains(dark_response, 'class="dark dark-mode"')
+        self.assertContains(dark_response, 'data-dark-mode="true"')
 
     def test_account_menu_uses_studio_for_authorized_course_operator(self):
         """Studio is the one management entry point the account menu offers.

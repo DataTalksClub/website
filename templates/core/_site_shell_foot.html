@@ -29,6 +29,7 @@
         label.textContent = isDark ? 'Light' : 'Dark';
       }
     }
+    window.applyDarkModePreference = apply;
 
     var authenticated = body.getAttribute('data-authenticated') === 'true';
     if (!authenticated) {
