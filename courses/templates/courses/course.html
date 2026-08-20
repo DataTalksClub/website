@@ -40,7 +40,7 @@
       /* ------------------------------------------------------------------ *
        * Course-page-specific rules.  Every shared primitive this page uses —
        * .shell-reading, .row-list/.list-row, .spec-strip, .status-pill,
-       * .progress, .ship-line, .panel, .cta, .mono-label — lives in the
+       * .progress, .panel, .cta, .mono-label — lives in the
        * partial above.
        * ------------------------------------------------------------------ */
 
@@ -62,7 +62,7 @@
 
       /* One left-aligned column, the shape this page carried before the design
          5a port and the shape the reference course page still has: the cohort
-         eyebrow, the title, the promise, the description, one row of actions,
+         eyebrow, the title, the description, one row of actions,
          the operator link, this learner's own line and then the fact strip.
          Everything the reader came for — the assignments — starts directly
          under it. */
@@ -104,10 +104,50 @@
         font-size: 0.92rem;
       }
 
-      /* The fact strip is a dl, so its dd needs its default margin removed. */
+      /* --- course facts ------------------------------------------------- */
+
+      /* The facts remain a semantic dl, but the detail page gives the shared
+         spec primitive a stronger sense of place: one quiet card in the hero,
+         with dates highlighted and the workload facts easy to scan. */
       .course-specs {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        gap: 0;
+        grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
         margin-top: 0.5rem;
+        overflow: hidden;
+        padding: 0;
+        text-align: left;
         width: 100%;
+      }
+
+      .course-specs .spec {
+        align-content: start;
+        border-left: 1.5px dashed var(--line-soft);
+        gap: 0.35rem;
+        min-width: 0;
+        padding: 0.95rem 1rem 1.05rem;
+      }
+
+      .course-specs .spec:first-child {
+        border-left: 0;
+      }
+
+      .course-specs .spec-date {
+        background: var(--lavender);
+      }
+
+      .course-specs .spec-date dt {
+        color: var(--indigo);
+      }
+
+      .course-specs .spec strong {
+        display: block;
+        font-size: 1rem;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
       }
 
       .course-specs dd {
@@ -270,6 +310,43 @@
           text-align: right;
         }
       }
+
+      /* On a phone, two columns keep the dates together while giving each
+         workload fact its own breathing room.  The narrowest screens switch
+         to one row per fact and put the value beside its label. */
+      @media (max-width: 47.99rem) {
+        .course-specs {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .course-specs .spec:nth-child(odd) {
+          border-left: 0;
+        }
+
+        .course-specs .spec:nth-child(n + 3) {
+          border-top: 1.5px dashed var(--line-soft);
+        }
+      }
+
+      @media (max-width: 30rem) {
+        .course-specs {
+          grid-template-columns: 1fr;
+        }
+
+        .course-specs .spec {
+          align-items: baseline;
+          border-left: 0;
+          grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 1.2fr);
+        }
+
+        .course-specs .spec:first-child {
+          border-top: 0;
+        }
+
+        .course-specs .spec:nth-child(n + 2) {
+          border-top: 1.5px dashed var(--line-soft);
+        }
+      }
     </style>
   </head>
   {% url 'account_settings' as account_settings_url %}
@@ -303,16 +380,10 @@
           </ol>
         </nav>
         <div class="shell shell-reading course-hero-inner">
-          {% if registration_campaign.edition_label %}
-            <p class="mono-label mono-label-indigo">{{ registration_campaign.edition_label }}</p>
-          {% else %}
-            <p class="mono-label mono-label-indigo">{{ course.home_year }}</p>
-          {% endif %}
           <h1 id="course-heading">{{ course.title }}</h1>
-          {% if course_ship_line %}
-            <p class="ship-line">you'll ship: {{ course_ship_line }}</p>
+          {% if course.home_outcome %}
+            <div class="course-lede">{{ course.home_outcome|urlize_target_blank }}</div>
           {% endif %}
-          <div class="course-lede">{{ course.home_outcome|urlize_target_blank }}</div>
           {% comment %}
             One row with every control the course offers, the way the page
             carried them before the port: register, the materials, the
@@ -411,7 +482,7 @@
           {% if course_specs %}
             <dl class="spec-strip course-specs">
               {% for spec in course_specs %}
-                <div class="spec">
+                <div class="spec{% if spec.label == 'starts' or spec.label == 'ends' %} spec-date{% endif %}">
                   <dt class="mono-label">{{ spec.label }}</dt>
                   <dd>
                     <strong>{{ spec.value }}</strong>

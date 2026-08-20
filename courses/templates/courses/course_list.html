@@ -57,11 +57,6 @@
         gap: 2rem;
       }
 
-      .courses-eyebrow {
-        display: block;
-        margin-bottom: 0.6rem;
-      }
-
       .courses-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
@@ -72,10 +67,6 @@
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
         margin-top: 1rem;
         max-width: 33rem;
-      }
-
-      .courses-hero .filter-pills {
-        margin-top: 1.5rem;
       }
 
       /* --- band heads --------------------------------------------------- */
@@ -262,7 +253,7 @@
         font-size: 0.82rem;
       }
 
-      .course-row-promise {
+      .course-row-description {
         font-size: 0.9rem;
       }
 
@@ -290,17 +281,7 @@
           max-width: none;
         }
 
-        /* Four pills wrap into two comfortable rows instead of becoming a
-           four-line stack of full-width buttons. */
-        .courses-hero .filter-pills {
-          gap: 0.45rem;
-        }
-
-        .filter-pill {
-          padding-inline: 0.85rem;
-        }
-
-        /* The finished-course table stacks: title, promise, state, then its
+        /* The finished-course table stacks: title, description, state, then its
            links, left-aligned like everything else in the stack. */
         .list-row .course-row-actions {
           justify-content: flex-start;
@@ -331,30 +312,19 @@
       <section class="band band-cream courses-hero" aria-labelledby="courses-hero-heading">
         <div class="shell shell-reading courses-hero-grid">
           <div>
-            <p class="mono-label mono-label-indigo courses-eyebrow">{{ catalog_eyebrow }}</p>
             <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
             <p class="courses-lede">
               Community-created courses with practical homework, real projects, public
               leaderboards and peer review. Join a cohort for the deadlines and the
               classmates.
             </p>
-            <div class="filter-pills" role="group" aria-label="Filter courses">
-              {% for course_filter in course_filters %}
-                {% if course_filter.is_current %}
-                  <a class="filter-pill" href="{{ course_filter.url }}" aria-current="page">{{ course_filter.label }}</a>
-                {% else %}
-                  <a class="filter-pill" href="{{ course_filter.url }}">{{ course_filter.label }}</a>
-                {% endif %}
-              {% endfor %}
-            </div>
           </div>
         </div>
       </section>
       {% if SHOW_WRAPPED and wrapped_year %}
         {% comment %}
           The site's only entry point into Wrapped.  It sits between the hero and the
-          catalogue rather than inside a course section because the filter pills hide
-          those sections one at a time, and this route must survive every filter.
+          catalogue rather than inside a course section.
         {% endcomment %}
         <section class="band band-lavender courses-wrapped" aria-labelledby="wrapped-heading">
           <div class="shell shell-reading">
@@ -376,8 +346,7 @@
         </section>
       {% endif %}
       <div id="courses">
-        {% if show_active_courses %}
-          <section class="band band-lavender" aria-labelledby="active-heading">
+        <section class="band band-lavender" aria-labelledby="active-heading">
             <div class="shell shell-reading">
               <div class="live-head">
                 <span class="status-dot status-dot-pulse" aria-hidden="true"></span>
@@ -388,7 +357,7 @@
                   {% for course in active_courses %}
                     {% comment %}
                       One column at reading width: run facts (dates, enrolment) in the
-                      head row, the title as the link, one selling line, the deadline
+                      head row, the title as the link, the description, the deadline
                       panel, and the actions last.  The band heading already announces
                       the active state, so the card repeats no "active" pill.
                     {% endcomment %}
@@ -406,9 +375,7 @@
                       <h3>
                         <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
                       </h3>
-                      {% if course.index_promise %}
-                        <p class="ship-line">you'll ship: {{ course.index_promise }}</p>
-                      {% else %}
+                      {% if course.home_outcome %}
                         <p>{{ course.home_outcome }}</p>
                       {% endif %}
                       {% if course.home_current_assignment %}
@@ -437,9 +404,8 @@
                 <p class="band-note">No active courses right now.</p>
               {% endif %}
             </div>
-          </section>
-        {% endif %}
-        {% if show_open_registration and open_registration_courses %}
+        </section>
+        {% if open_registration_courses %}
           <section class="band band-lavender" aria-labelledby="open-heading">
             <div class="shell shell-reading">
               <div class="band-head">
@@ -463,10 +429,9 @@
                     <h3>
                       <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
                     </h3>
-                    {% if course.index_promise %}
-                      <p class="ship-line">you'll ship: {{ course.index_promise }}</p>
+                    {% if course.home_outcome %}
+                      <p>{{ course.home_outcome }}</p>
                     {% endif %}
-                    <p>{{ course.home_outcome }}</p>
                     <div class="course-card-foot">
                       {% if course.index_registered %}
                         <span class="course-card-registered">{{ course.index_registered }} registered</span>
@@ -483,7 +448,7 @@
             </div>
           </section>
         {% endif %}
-        {% if show_finished and archive_groups %}
+        {% if archive_groups %}
           <section class="band band-lavender" aria-labelledby="finished-heading">
             <div class="shell shell-reading">
               <div class="band-head">
@@ -515,7 +480,7 @@
                             <p class="course-row-length">{{ course.index_length }}</p>
                           {% endif %}
                         </div>
-                        <p class="course-row-promise">{{ course.index_promise|default:course.home_outcome }}</p>
+                        <p class="course-row-description">{{ course.home_outcome }}</p>
                         <div>
                           {% if course.is_enrolled %}
                             <span class="status-pill">enrolled</span>

@@ -2,44 +2,13 @@
 
 The course page renders the "6b" mockup of the design 5a system (DataTalksClub/website#179).
 Every fact it shows — title, description, dates, deadlines, module titles, submission state,
-counts — is read from the course record and its homework and project rows.  The only editorial
-constant is the per-family "you'll ship" promise below, and it lives here so a copy change never
-needs a template edit.
-
-The homepage catalogue writes the same promise for the same course family
-(``core.home_content.COURSE_FAMILIES``).  The two surfaces are kept in step by
-``courses/tests/test_course_page_design.py``; they are deliberately not imported from one another
-because ``courses`` does not depend on the public content projection.
+and counts — is read from the cohort record and its homework and project rows.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-
-# Course family slug prefix and the artifact that family promises you will finish with.
-COURSE_SHIP_LINES: tuple[tuple[str, str], ...] = (
-    ("ai-dev-tools", "a deployed full-stack app built with AI assistance"),
-    ("de-zoomcamp", "a batch and streaming pipeline that runs on a schedule"),
-    ("llm-zoomcamp", "a RAG assistant over your own documents"),
-    ("ml-zoomcamp", "trained models your classmates review"),
-    ("mlops-zoomcamp", "a deployed model with monitoring around it"),
-    ("sma-zoomcamp", "a trading strategy you backtest yourself"),
-)
-
-
-def course_ship_line(course_slug: str) -> str:
-    """Return the family promise for ``course_slug``, or "" when the family is unknown.
-
-    A course outside the six zoomcamp families simply gets no ship line: the page never
-    invents an artifact a course has not promised.
-    """
-
-    for family, promise in COURSE_SHIP_LINES:
-        if course_slug.startswith(family):
-            return promise
-    return ""
-
 
 @dataclass(frozen=True, slots=True)
 class CourseSpec:

@@ -13,11 +13,8 @@ import re
 from django.urls import reverse
 from django.utils import timezone
 
-from core.home_content import COURSE_FAMILIES
 from courses.course_page_content import (
-    COURSE_SHIP_LINES,
     course_modules,
-    course_ship_line,
     course_specs,
     submission_progress,
 )
@@ -26,18 +23,6 @@ from courses.tests.course_view_base import CourseDetailViewTestBase, credentials
 
 
 class CoursePageEditorialContentTests(CourseDetailViewTestBase):
-    def test_ship_lines_repeat_the_homepage_promise_for_the_same_family(self):
-        homepage_promises = {family: promise for family, _t, _l, promise in COURSE_FAMILIES}
-
-        self.assertEqual(dict(COURSE_SHIP_LINES), homepage_promises)
-
-    def test_an_unknown_course_family_gets_no_invented_promise(self):
-        self.assertEqual(course_ship_line("test-course-2"), "")
-        self.assertEqual(
-            course_ship_line("ml-zoomcamp-2026"),
-            "trained models your classmates review",
-        )
-
     def test_specs_carry_only_the_facts_the_course_record_has(self):
         self.course.start_date = timezone.datetime(2026, 9, 14).date()
         self.course.end_date = None
@@ -97,6 +82,18 @@ class CoursePageEditorialContentTests(CourseDetailViewTestBase):
 
 
 class CoursePageRenderTests(CourseDetailViewTestBase):
+    def test_course_page_does_not_render_backend_promise_copy(self):
+        body = self.client.get(self.course_url()).content.decode()
+
+        self.assertNotIn("you'll ship:", body)
+
+    def test_course_page_does_not_render_a_cohort_year_eyebrow(self):
+        body = self.client.get(self.course_url()).content.decode()
+        hero_start = body.index('<section class="band band-cream course-hero"')
+        hero = body[hero_start : body.index("</section>", hero_start)]
+
+        self.assertNotIn("mono-label-indigo", hero)
+
     def test_course_page_carries_its_own_stylesheet_and_loads_no_legacy_css(self):
         """Design 5a (issue #179) replaced the adopted shell with one inline stylesheet."""
 

@@ -1,10 +1,4 @@
-"""Editorial composition for the redesigned public homepage.
-
-The homepage renders the "5a" mockup from DataTalksClub/website#179.  Every fact on the
-page (titles, paths, cohort dates, counts, relations) is read from the checked public
-projection; only the short section copy and the per-course promise lines are editorial
-constants, and they live here so a copy change never needs a template edit.
-"""
+"""Editorial composition for the redesigned public homepage."""
 
 from __future__ import annotations
 
@@ -20,43 +14,37 @@ from core.graph_layout import GraphLayout, GraphPoint, ring_layouts
 
 FEATURED_FAMILY = "ai-dev-tools"
 
-# Family slug prefix, catalogue title, short chip label, and the promise the course makes.
-COURSE_FAMILIES: tuple[tuple[str, str, str, str], ...] = (
+# Family slug prefix, catalogue title, and short chip label.
+COURSE_FAMILIES: tuple[tuple[str, str, str], ...] = (
     (
         "ai-dev-tools",
         "AI Dev Tools Zoomcamp",
         "AI Dev Tools",
-        "a deployed full-stack app built with AI assistance",
     ),
     (
         "de-zoomcamp",
         "Data Engineering Zoomcamp",
         "Data Engineering",
-        "a batch and streaming pipeline that runs on a schedule",
     ),
     (
         "llm-zoomcamp",
         "LLM Zoomcamp",
         "LLMs",
-        "a RAG assistant over your own documents",
     ),
     (
         "ml-zoomcamp",
         "Machine Learning Zoomcamp",
         "Machine Learning",
-        "trained models your classmates review",
     ),
     (
         "mlops-zoomcamp",
         "MLOps Zoomcamp",
         "MLOps",
-        "a deployed model with monitoring around it",
     ),
     (
         "sma-zoomcamp",
         "Stock Markets Analytics Zoomcamp",
         "Stock Markets",
-        "a trading strategy you backtest yourself",
     ),
 )
 
@@ -106,7 +94,6 @@ class CatalogCourse:
     slug: str
     title: str
     label: str
-    promise: str
     public_path: str
     cohort_label: str
     homework_count: int
@@ -203,7 +190,7 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
 
     latest = _latest_cohort_records(tuple(public_projection()["courses"]))
     catalog: list[CatalogCourse] = []
-    for family, title, label, promise in COURSE_FAMILIES:
+    for family, title, label in COURSE_FAMILIES:
         found = latest.get(family)
         if found is None:
             raise ImproperlyConfigured(f"Public course projection has no {family} cohort.")
@@ -214,7 +201,6 @@ def course_catalog() -> tuple[CatalogCourse, ...]:
                 slug=str(record["slug"]),
                 title=title,
                 label=label,
-                promise=promise,
                 public_path=str(record["public_path"]),
                 cohort_label=f"{year} cohort",
                 homework_count=int(record["homework_count"]),

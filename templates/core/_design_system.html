@@ -975,10 +975,13 @@ Rules for editing:
 
       .cta {
         align-items: center;
+        appearance: none;
         border: 2px solid var(--line);
         border-radius: 0.7rem;
         box-shadow: 0.3rem 0.3rem 0 var(--shadow);
+        cursor: pointer;
         display: inline-flex;
+        font: inherit;
         font-size: 1.05rem;
         font-weight: 700;
         justify-content: center;
@@ -1796,14 +1799,6 @@ Rules for editing:
         background: var(--green-bright);
         border-radius: inherit;
         height: 100%;
-      }
-
-      /* The "you'll ship:" promise line under a course title. */
-      .ship-line {
-        color: var(--green-ship);
-        font-size: 0.95rem;
-        font-style: italic;
-        font-weight: 700;
       }
 
       /* Mono metadata: uppercase mono labels (NEXT ASSIGNMENT, page kickers

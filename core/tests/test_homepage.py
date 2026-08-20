@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.html import escape
 
 from core import views as core_views
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
 from courses.views.course_list import course_list
@@ -183,7 +183,7 @@ class MainHomepageRoutingTests(TestCase):
     def test_course_discovery_without_database_courses_uses_copied_cmp_empty_state(self) -> None:
         self.assertEqual(reverse("course_list"), "/courses")
         self.assertIs(resolve("/courses").func, course_list)
-        self.assertFalse(Course.objects.exists())
+        self.assertFalse(Cohort.objects.exists())
 
         response = self.client.get(reverse("course_list"))
 
@@ -232,11 +232,11 @@ class MainHomepageRoutingTests(TestCase):
             with self.subTest(token=leak):
                 self.assertNotIn(leak, body)
 
-    def test_course_index_filter_pills_select_one_section_at_a_time(self) -> None:
-        """The segmented control is server-rendered links with an exposed state."""
+    def test_course_index_renders_all_sections_without_filters(self) -> None:
+        """The course index shows the complete catalogue without filter controls."""
 
         today = timezone.localdate()
-        Course.objects.create(
+        Cohort.objects.create(
             title="Synthetic active course",
             slug="synthetic-active-course",
             description="A deterministic active course.",
@@ -244,7 +244,7 @@ class MainHomepageRoutingTests(TestCase):
             end_date=today + timedelta(days=28),
             visible=True,
         )
-        Course.objects.create(
+        Cohort.objects.create(
             title="Synthetic registration course",
             slug="synthetic-registration-course",
             description="A deterministic registration course.",
@@ -255,30 +255,18 @@ class MainHomepageRoutingTests(TestCase):
         )
 
         everything = self.client.get(reverse("course_list"))
-        self.assertContains(
-            everything,
-            '<a class="filter-pill" href="/courses" aria-current="page">All courses</a>',
-            html=True,
-        )
+        self.assertNotContains(everything, "filter-pill")
+        self.assertContains(everything, "Active now — you can still join")
         self.assertContains(everything, "Open registration")
+        self.assertContains(everything, "Synthetic registration course")
 
-        active_only = self.client.get(reverse("course_list"), {"filter": "active"})
-        self.assertContains(
-            active_only,
-            '<a class="filter-pill" href="/courses?filter=active" aria-current="page">Active</a>',
-            html=True,
-        )
-        self.assertContains(active_only, "Active now — you can still join")
-        self.assertNotContains(active_only, "Synthetic registration course")
-
-        unknown = self.client.get(reverse("course_list"), {"filter": "not-a-filter"})
-        self.assertEqual(unknown.status_code, 200)
-        self.assertContains(unknown, "Active now — you can still join")
-        self.assertContains(unknown, "Open registration")
+        filtered_url = self.client.get(reverse("course_list"), {"filter": "active"})
+        self.assertEqual(filtered_url.status_code, 200)
+        self.assertContains(filtered_url, "Synthetic registration course")
 
     def test_course_discovery_with_database_courses_uses_copied_cmp_composition(self) -> None:
         today = timezone.localdate()
-        active = Course.objects.create(
+        active = Cohort.objects.create(
             title="Synthetic active course",
             slug="synthetic-active-course",
             description="A deterministic active course.",
@@ -286,7 +274,7 @@ class MainHomepageRoutingTests(TestCase):
             end_date=today + timedelta(days=28),
             visible=True,
         )
-        registration = Course.objects.create(
+        registration = Cohort.objects.create(
             title="Synthetic registration course",
             slug="synthetic-registration-course",
             description="A deterministic registration course.",
@@ -295,7 +283,7 @@ class MainHomepageRoutingTests(TestCase):
             registration_url="https://example.invalid/register",
             visible=True,
         )
-        archived = Course.objects.create(
+        archived = Cohort.objects.create(
             title="Synthetic archived course 2024",
             slug="synthetic-archived-course-2024",
             description="A deterministic archived course.",
@@ -315,8 +303,6 @@ class MainHomepageRoutingTests(TestCase):
                 if template.origin is not None
             },
         )
-        # The hero's filter pills repeat the section names, so order is read from the
-        # catalogue itself rather than from the whole document.
         content = response.content.decode()
         catalog = content[content.index('<div id="courses">') :]
         active_heading = "Active now — you can still join"
@@ -334,7 +320,7 @@ class MainHomepageRoutingTests(TestCase):
         )
 
     def test_database_backed_empty_visible_catalog_uses_cmp_empty_state(self) -> None:
-        Course.objects.create(
+        Cohort.objects.create(
             title="Synthetic hidden course",
             slug="synthetic-hidden-course",
             description="A deterministic hidden course.",
@@ -358,7 +344,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertNotContains(response, "AI Dev Tools Zoomcamp")
 
     def test_database_backed_cmp_course_path_remains_intact(self) -> None:
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             title="Compatibility course",
             slug="compatibility-course",
             description="Legacy inbound routing fixture",
