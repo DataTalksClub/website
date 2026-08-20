@@ -11,6 +11,7 @@ from courses.models.project import (
     Project,
     ProjectEvaluationScore,
     ProjectSubmission,
+    criteria_for_project,
 )
 from courses.views.url_utils import get_cohort_or_404
 
@@ -118,9 +119,20 @@ def _project_results_context(course, project, user):
 
 def _project_results_scores(submission):
     scores = ProjectEvaluationScore.objects.filter(submission=submission)
-    scores = scores.order_by("review_criteria__id")
     scores = scores.prefetch_related("review_criteria")
     scores_list = list(scores)
+    criteria_order = {
+        criteria.id: position
+        for position, criteria in enumerate(
+            criteria_for_project(submission.project)
+        )
+    }
+    scores_list.sort(
+        key=lambda score: (
+            criteria_order.get(score.review_criteria_id, len(criteria_order)),
+            score.review_criteria_id,
+        )
+    )
     annotate_scores_with_option_votes(submission, scores_list)
     return scores_list
 
