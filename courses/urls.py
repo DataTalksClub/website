@@ -18,6 +18,7 @@ from .views import project_results
 from .views import project_statistics
 from .views import project_submissions
 from .views import registration
+from .views import unit
 from .views import wrapped
 
 
@@ -36,6 +37,11 @@ urlpatterns = [
         "<slug:course_slug>/<slug:cohort_year>/calendar.ics",
         course_calendar.course_calendar_view,
         name="course_calendar",
+    ),
+    path(
+        "<slug:course_slug>/<slug:cohort_identifier>/modules/<slug:module_slug>/<slug:unit_slug>",
+        unit.unit_view,
+        name="unit",
     ),
     path(
         "<slug:course_slug>/<slug:cohort_year>",
