@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import ast
 import json
+from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 
@@ -17,6 +19,85 @@ from ci.ownership import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+SOURCE_EXCLUDED_PARTS = frozenset({"e2e", "migrations", "playwright_tests", "tests", "tests_ci"})
+
+
+def _is_excluded_source(relative_path: Path) -> bool:
+    return any(
+        part in SOURCE_EXCLUDED_PARTS or part.startswith(("test_", "tests_"))
+        for part in relative_path.parts
+    )
+
+
+def _source_files(package: str) -> tuple[Path, ...]:
+    package_root = ROOT / package
+    assert package_root.is_dir(), f"verification package is missing: {package}"
+    root = ROOT.resolve()
+    paths = []
+    for path in sorted(package_root.rglob("*.py")):
+        relative = path.relative_to(package_root)
+        if _is_excluded_source(relative):
+            continue
+        assert not path.is_symlink(), f"symlinked source is ambiguous: {path}"
+        assert path.resolve().is_relative_to(root), f"source escaped repository: {path}"
+        paths.append(path)
+    return tuple(paths)
+
+
+def _dynamic_import_root(call: ast.Call, *, path: Path) -> str | None:
+    function = call.func
+    function_name = (
+        function.id if isinstance(function, ast.Name) else getattr(function, "attr", None)
+    )
+    if function_name not in {"__import__", "import_module"}:
+        return None
+    if (
+        not call.args
+        or not isinstance(call.args[0], ast.Constant)
+        or not isinstance(call.args[0].value, str)
+    ):
+        raise AssertionError(f"ambiguous dynamic import at {path}:{call.lineno}")
+    return call.args[0].value.split(".", 1)[0]
+
+
+def _top_level_import_roots(path: Path, *, known_packages: set[str]) -> tuple[str, ...]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    imported = set()
+    for statement in tree.body:
+        if isinstance(statement, ast.Import):
+            imported.update(alias.name.split(".", 1)[0] for alias in statement.names)
+        elif isinstance(statement, ast.ImportFrom) and statement.level == 0 and statement.module:
+            imported.add(statement.module.split(".", 1)[0])
+
+    for call in (node for node in ast.walk(tree) if isinstance(node, ast.Call)):
+        dynamic_root = _dynamic_import_root(call, path=path)
+        if dynamic_root in known_packages:
+            imported.add(dynamic_root)
+    return tuple(sorted(imported & known_packages))
+
+
+def _reverse_imports(
+    graph: dict[str, object],
+) -> tuple[dict[str, tuple[str, ...]], dict[str, dict]]:
+    verification_nodes = {
+        node["id"].removeprefix("django."): node
+        for node in graph["nodes"]
+        if node["kind"] == "verification"
+    }
+    owner_roots = {
+        node["id"].removeprefix("app.") for node in graph["nodes"] if node["id"].startswith("app.")
+    }
+    known_packages = set(verification_nodes)
+    reverse: dict[str, set[str]] = defaultdict(set)
+    for importer in sorted(verification_nodes):
+        for path in _source_files(importer):
+            for imported in _top_level_import_roots(path, known_packages=known_packages):
+                if imported in owner_roots and imported != importer:
+                    reverse[imported].add(importer)
+    return (
+        {root: tuple(sorted(importers)) for root, importers in sorted(reverse.items())},
+        verification_nodes,
+    )
 
 
 def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
@@ -25,7 +106,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
     assert application_test_labels(graph) == {
         "api": ("api",),
         "studio_courses": ("studio_courses",),
-        "content": ("accounts", "content.tests", "core"),
+        "content": ("accounts", "content.tests", "content_sync", "core"),
         "courses": (
             "accounts",
             "api",
@@ -33,15 +114,45 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "core",
             "courses",
             "data",
+            "management_api",
+            "studio",
             "studio_courses",
         ),
         "data": ("api", "courses", "data", "studio_courses"),
-        "jobs": ("jobs",),
-        "management_api": ("api", "management_api"),
-        "management_auth": ("api", "core", "management_api", "management_auth"),
-        "review_import": ("accounts", "review_import"),
+        "jobs": ("events", "jobs"),
+        "management_api": ("api", "management_api", "studio"),
+        "management_auth": (
+            "accounts",
+            "api",
+            "core",
+            "management_api",
+            "management_auth",
+            "studio",
+        ),
+        "review_import": ("accounts", "courses", "review_import"),
         "studio": ("accounts", "core", "studio"),
     }
+
+
+def test_top_level_reverse_import_closures_are_complete_and_deterministic() -> None:
+    graph = load_graph()
+    first, verification_nodes = _reverse_imports(graph)
+    second, second_nodes = _reverse_imports(deepcopy(graph))
+
+    assert first == second
+    assert verification_nodes == second_nodes
+
+    closures = application_test_labels(graph)
+    missing = {
+        (changed, importer, label)
+        for changed, importers in first.items()
+        for importer in importers
+        for label in verification_nodes[importer]["test_labels"]
+        if label not in closures[changed]
+    }
+    assert not missing, "reverse imports are outside the changed app closure: " + repr(
+        sorted(missing)
+    )
 
 
 def test_graph_schema_policy_version_matches_the_active_graph() -> None:
@@ -82,6 +193,8 @@ def test_impact_resolves_transitive_test_nodes_and_hostile_filenames() -> None:
         "core",
         "courses",
         "data",
+        "management_api",
+        "studio",
         "studio_courses",
     )
     assert not impact.unknown_paths

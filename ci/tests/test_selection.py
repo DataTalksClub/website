@@ -44,6 +44,31 @@ def test_every_reviewed_application_closure_is_exact(root: str, labels: tuple[st
 
 
 @pytest.mark.parametrize(
+    ("changed_root", "importing_label"),
+    [
+        ("jobs", "events"),
+        ("management_api", "studio"),
+        ("management_auth", "accounts"),
+        ("review_import", "courses"),
+        ("content", "content_sync"),
+    ],
+)
+def test_documented_reverse_import_closures_select_importing_suites(
+    changed_root: str, importing_label: str
+) -> None:
+    result = classify_records(
+        (ChangeRecord("M", (f"{changed_root}/service.py",)),),
+        event="push",
+        base=BASE,
+        head=HEAD,
+    )
+
+    assert result["profile"] == "focused"
+    assert result["reason"] == "single_application"
+    assert importing_label in result["test_labels"]
+
+
+@pytest.mark.parametrize(
     ("paths", "reason"),
     [
         (("api/a.py", "studio/b.py"), "cross_application"),
@@ -202,6 +227,14 @@ def test_focused_runner_uses_one_process_and_only_validated_labels(tmp_path: Pat
         focused_tests.run(str(path))
 
     run.assert_called_once_with(
-        [focused_tests.sys.executable, "manage.py", "test", "accounts", "content.tests", "core"],
+        [
+            focused_tests.sys.executable,
+            "manage.py",
+            "test",
+            "accounts",
+            "content.tests",
+            "content_sync",
+            "core",
+        ],
         check=True,
     )
