@@ -337,6 +337,12 @@ Markup shapes below are the contract; the CSS lives in the partial.
 
 - **`.kicker`** — uppercase indigo eyebrow (`0.72rem`, `letter-spacing:
   0.14em`). The 6-series mono variant is `.mono-label.mono-label-indigo`.
+- **Eyebrow rule** — an eyebrow is optional context, not a second title. Do
+  not use one to repeat the page title, course/cohort name, year, or any other
+  context already supplied by the breadcrumb or heading. When the breadcrumb
+  and heading identify the page, omit the eyebrow. The home page and the
+  sign-in/sign-up entrances are the only current page-level exceptions; a
+  `.mono-label` inside a card or spec row remains metadata, not a page eyebrow.
 - **`.band-link`** — underlined indigo action link, `text-underline-offset:
   0.2em`.
 - **`.breadcrumbs`** — the breadcrumb trail on a detail page, restoring what
