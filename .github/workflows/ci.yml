@@ -491,6 +491,11 @@ jobs:
           set -euo pipefail
           mkdir -p .tmp/components-quality
           make test-ci 2>&1 | tee .tmp/components-quality/evidence-validation-output.log
+      - name: Build exact pinned compatibility source inputs
+        if: needs.classification.outputs.compatibility_mode == 'rerun'
+        run: |
+          set -euo pipefail
+          uv run --frozen python scripts/build_pinned_legacy_sources.py
       - name: Run the compatibility contract when selected
         if: needs.classification.outputs.compatibility_mode == 'rerun'
         run: |
