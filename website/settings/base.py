@@ -94,6 +94,9 @@ APP_VERSION = VERSION
 DEVELOPMENT_OWNER_LOGIN_ENABLED = RUNTIME_ENVIRONMENT is RuntimeEnvironment.DEVELOPMENT
 TEST_PROGRAMMATIC_STAFF_PASSWORD_AUTHENTICATION = False
 CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://datatalks.club").rstrip("/")
+# Source-managed homework answer keys are injected by the runtime secret boundary.  An empty
+# value deliberately fails closed when encrypted curriculum is used without configuration.
+COURSE_HOMEWORK_ANSWER_KEYRING = os.getenv("COURSE_HOMEWORK_ANSWER_KEYRING", "")
 
 INSTALLED_APPS = [
     "unfold",

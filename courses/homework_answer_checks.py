@@ -4,6 +4,7 @@ from courses.models.homework import (
     Question,
     QuestionTypes,
 )
+from courses.homework_answer_crypto import HomeworkAnswerCryptoError
 
 
 def is_float_equal(
@@ -136,4 +137,9 @@ def is_answer_correct(question: Question, answer: Answer) -> bool:
     if answer_check is None:
         return False
 
-    return answer_check(question, answer)
+    try:
+        return answer_check(question, answer)
+    except HomeworkAnswerCryptoError:
+        # A missing, malformed, or unavailable source answer must never partially score a
+        # submission or expose the underlying answer/key failure to a learner.
+        return False

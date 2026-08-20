@@ -144,6 +144,7 @@ class Question(SourceProvenanceModel):
         blank=True,
         validators=[source_stable_id_validator],
     )
+    source_option_ids = models.JSONField(null=True, blank=True)
     answer_envelope = models.JSONField(null=True, blank=True)
 
     SOURCE_IDENTITY_FIELDS = ("source_content_id", "source_question_id")
@@ -152,6 +153,19 @@ class Question(SourceProvenanceModel):
 
     def clean(self):
         super().clean()
+        if self.source_option_ids is not None:
+            if (
+                not isinstance(self.source_option_ids, list)
+                or not self.source_option_ids
+                or any(
+                    not isinstance(option_id, str) or not option_id
+                    for option_id in self.source_option_ids
+                )
+                or len(set(self.source_option_ids)) != len(self.source_option_ids)
+            ):
+                raise ValidationError(
+                    {"source_option_ids": "Source option IDs must be unique strings."}
+                )
         if self.answer_envelope is not None and not isinstance(self.answer_envelope, dict):
             raise ValidationError({"answer_envelope": "Answer envelope must be an object."})
 
@@ -173,10 +187,11 @@ class Question(SourceProvenanceModel):
         }
 
     def zero_based_correct_answer_indices(self):
-        if not self.correct_answer:
+        correct_answer = self.resolved_correct_answer()
+        if not correct_answer:
             return []
 
-        indices_raw = self.correct_answer.split(",")
+        indices_raw = correct_answer.split(",")
         indices = []
         for index_raw in indices_raw:
             index = int(index_raw) - 1
@@ -196,20 +211,24 @@ class Question(SourceProvenanceModel):
         if self.has_choice_answers():
             return self.get_choice_correct_answer()
 
-        if self.correct_answer:
-            return self.correct_answer
-        return ""
+        return self.resolved_correct_answer()
 
     def get_correct_answer_indices(self):
-        if not self.correct_answer:
+        correct_answer = self.resolved_correct_answer()
+        if not correct_answer:
             return set()
 
-        indices_raw = self.correct_answer.split(",")
+        indices_raw = correct_answer.split(",")
         indices = set()
         for index_raw in indices_raw:
             index = int(index_raw)
             indices.add(index)
         return indices
+
+    def resolved_correct_answer(self):
+        from courses.homework_answer_resolution import resolve_correct_answer
+
+        return resolve_correct_answer(self)
 
     def __str__(self):
         return f"{self.homework.course.title} / {self.homework.title} - {self.text}"
