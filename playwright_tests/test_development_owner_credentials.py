@@ -141,6 +141,15 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     assert anonymous_studio.status == 302
     assert anonymous_studio.headers["location"] == "/accounts/login/?next=%2Fstudio%2F"
 
+    admin_page_errors: list[str] = []
+    page.on("pageerror", lambda error: admin_page_errors.append(str(error)))
+    admin_login = page.goto(f"{live_server.url}/admin/login/?next=/admin/")
+    assert admin_login is not None and admin_login.status == 200
+    expect(page.locator("#login-form")).to_be_visible()
+    expect(page.get_by_text("Available shortcuts", exact=True)).to_be_hidden()
+    expect(page.get_by_text("Open command tool", exact=True)).to_be_hidden()
+    expect(page.get_by_text("Toggle sidebar", exact=True)).to_be_hidden()
+
     login = page.goto(f"{live_server.url}/accounts/login/?next=%2Fstudio%2F")
     assert login is not None and login.status == 200
     assert_private(login)
@@ -174,6 +183,17 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     expect(page.get_by_text("DataTalks.Club Django admin", exact=True)).to_have_count(1)
     assert "Django administration" in page.title()
     expect(page.get_by_text("Private staff workspace", exact=True)).to_have_count(0)
+    for broken_overlay_marker in (
+        "Available shortcuts",
+        "Open command tool",
+        "Toggle sidebar",
+    ):
+        expect(page.get_by_text(broken_overlay_marker, exact=True)).to_have_count(0)
+    page.keyboard.press("Shift+?")
+    page.keyboard.press("Control+k")
+    page.keyboard.press("Escape")
+    expect(page.get_by_text("DataTalks.Club Django admin", exact=True)).to_be_visible()
+    assert admin_page_errors == []
 
     credentials = page.goto(f"{live_server.url}/studio/access/api-credentials/")
     assert credentials is not None and credentials.status == 200
