@@ -3,7 +3,9 @@
 The release application's test settings deliberately own an ephemeral SQLite
 runtime per Python process.  CI needs migration, the local server, and the
 controller-side browser capture to share that runtime, so this module is the
-long-lived owner and supervises each child process.
+long-lived owner and supervises each child process.  The coordinator accepts
+only the authorized ``website.settings.test`` settings module, pins it into an
+explicit child environment, and never relies on ``manage.py``'s local default.
 """
 
 from __future__ import annotations
@@ -16,7 +18,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import NoReturn
 from urllib.parse import urlsplit
@@ -30,6 +32,7 @@ DEFAULT_HEALTH_PATH = "/health/live"
 DEFAULT_HEALTH_ATTEMPTS = 60
 DEFAULT_HEALTH_INTERVAL_SECONDS = 1.0
 DEFAULT_HTTP_TIMEOUT_SECONDS = 1.0
+AUTHORIZED_DJANGO_SETTINGS_MODULE = "website.settings.test"
 
 
 class ScreenshotRuntimeError(RuntimeError):
@@ -119,16 +122,37 @@ def _wait_for_server(
     raise ScreenshotRuntimeError(f"server did not become ready at {health_url}")
 
 
-def _run_migration(repository: Path) -> subprocess.Popen[str]:
+def _build_child_environment() -> dict[str, str]:
+    configured = os.environ.get("DJANGO_SETTINGS_MODULE")
+    if configured is not None and configured != AUTHORIZED_DJANGO_SETTINGS_MODULE:
+        raise ScreenshotRuntimeError(
+            "screenshot runtime requires "
+            f"DJANGO_SETTINGS_MODULE={AUTHORIZED_DJANGO_SETTINGS_MODULE}; "
+            "refusing to spawn children"
+        )
+    environment = os.environ.copy()
+    environment["DJANGO_SETTINGS_MODULE"] = AUTHORIZED_DJANGO_SETTINGS_MODULE
+    return environment
+
+
+def _run_migration(repository: Path, *, environment: Mapping[str, str]) -> subprocess.Popen[str]:
     return subprocess.Popen(
         ["uv", "run", "--frozen", "python", "manage.py", "migrate", "--noinput"],
         cwd=repository,
+        env=dict(environment),
         text=True,
         start_new_session=True,
     )
 
 
-def _run_server(repository: Path, *, host: str, port: int, log_path: Path) -> subprocess.Popen[str]:
+def _run_server(
+    repository: Path,
+    *,
+    host: str,
+    port: int,
+    log_path: Path,
+    environment: Mapping[str, str],
+) -> subprocess.Popen[str]:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_file = log_path.open("w", encoding="utf-8")
     try:
@@ -144,6 +168,7 @@ def _run_server(repository: Path, *, host: str, port: int, log_path: Path) -> su
                 "--noreload",
             ],
             cwd=repository,
+            env=dict(environment),
             stdout=log_file,
             stderr=subprocess.STDOUT,
             text=True,
@@ -162,6 +187,7 @@ def _run_capture(
     plan: Path,
     output: Path,
     base_url: str,
+    environment: Mapping[str, str],
 ) -> subprocess.Popen[str]:
     return subprocess.Popen(
         [
@@ -179,6 +205,7 @@ def _run_capture(
             os.fspath(output),
         ],
         cwd=controller_repository,
+        env=dict(environment),
         text=True,
         start_new_session=True,
     )
@@ -221,6 +248,8 @@ def run_capture(
         _validate_local_endpoint(base_url=base_url, host=host, port=port)
     except ValueError as error:
         raise ScreenshotRuntimeError("screenshot server URL is malformed") from error
+    environment = _build_child_environment()
+    print(f"screenshot runtime: using DJANGO_SETTINGS_MODULE={AUTHORIZED_DJANGO_SETTINGS_MODULE}")
     output.mkdir(parents=True, exist_ok=True)
 
     previous_sigterm = signal.getsignal(signal.SIGTERM)
@@ -252,7 +281,7 @@ def run_capture(
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
     try:
-        migration = _run_migration(repository)
+        migration = _run_migration(repository, environment=environment)
         migration_result = migration.wait()
         if migration_result != 0:
             return migration_result
@@ -262,6 +291,7 @@ def run_capture(
             host=host,
             port=port,
             log_path=server_log,
+            environment=environment,
         )
         try:
             _wait_for_server(process=server, base_url=base_url)
@@ -275,6 +305,7 @@ def run_capture(
             plan=plan,
             output=output,
             base_url=base_url,
+            environment=environment,
         )
         return capture.wait()
     finally:
