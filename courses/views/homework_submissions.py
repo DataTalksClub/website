@@ -10,7 +10,7 @@ def homework_submissions(
     request: HttpRequest,
     course_slug: str,
     homework_slug: str,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ):
     user = request.user
     course = get_cohort_or_404(course_slug, cohort_year)

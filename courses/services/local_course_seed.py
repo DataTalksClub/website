@@ -315,7 +315,7 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
         family_slug=family_slug,
         year=year,
         title=course.title,
-        public_path=f"/courses/{family_slug}/{year}",
+        public_path=course.canonical_url_path,
         created=created,
         homeworks_created=homeworks_created,
         projects_created=projects_created,

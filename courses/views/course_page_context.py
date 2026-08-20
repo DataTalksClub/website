@@ -170,7 +170,7 @@ def course_page_context(data: CoursePageData) -> dict:
         "course": data.course,
         "course_family": data.course.course,
         "course_slug": data.course.course.slug,
-        "cohort_year": data.course.year,
+        "cohort_year": data.course.identifier,
         "homeworks": data.homeworks,
         "projects": data.projects,
         "course_modules": modules,
@@ -206,7 +206,7 @@ def course_page_context(data: CoursePageData) -> dict:
 def course_page_data(
     course_slug: str,
     user,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ) -> CoursePageData:
     course = get_cohort_or_404(course_slug, cohort_year)
     now = timezone.now()

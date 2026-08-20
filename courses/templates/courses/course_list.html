@@ -375,8 +375,8 @@
                     <article class="card active-card"
                              role="link"
                              tabindex="0"
-                             onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.year %}'"
-                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.year %}'; }">
+                             onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.identifier %}'"
+                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.identifier %}'; }">
                       {% if course.index_when or course.index_enrolled_state %}
                         <div class="active-card-head">
                           {% if course.index_when %}
@@ -388,7 +388,7 @@
                         </div>
                       {% endif %}
                       <h3>
-                        <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+                        <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
                       </h3>
                       {% if course.home_outcome %}
                         <p>{{ course.home_outcome }}</p>
@@ -432,8 +432,8 @@
                   <article class="card course-card"
                            role="link"
                            tabindex="0"
-                           onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.year %}'"
-                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.year %}'; }">
+                           onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.identifier %}'"
+                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.identifier %}'; }">
                     <div class="course-card-head">
                       <span class="status-pill status-pill-open">registration open</span>
                       {% if course.index_dates %}
@@ -441,7 +441,7 @@
                       {% endif %}
                     </div>
                     <h3>
-                        <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+                        <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
                     </h3>
                     {% if course.home_outcome %}
                       <p>{{ course.home_outcome }}</p>
@@ -488,7 +488,7 @@
                       <div class="list-row" style="--row-cols: 1.6fr 1.4fr auto auto">
                         <div>
                           <h4 class="course-row-title">
-                            <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+                            <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
                           </h4>
                           {% if course.index_length %}
                             <p class="course-row-length">{{ course.index_length }}</p>

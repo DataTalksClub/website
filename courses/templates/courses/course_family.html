@@ -15,7 +15,7 @@
       <h2>Cohorts</h2>
       <ul>
         {% for cohort in cohorts %}
-          <li><a href="{% url 'course' course_family.slug cohort.year %}">{{ cohort.title }}</a></li>
+          <li><a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.title }}</a></li>
         {% empty %}
           <li>No cohorts are available yet.</li>
         {% endfor %}

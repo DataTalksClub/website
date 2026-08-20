@@ -144,7 +144,7 @@ def homework_detail_build_context_authenticated(data) -> dict:
 def homework_detail_objects(
     course_slug: str,
     homework_slug: str,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ):
     course = get_cohort_or_404(course_slug, cohort_year)
     homework = get_object_or_404(

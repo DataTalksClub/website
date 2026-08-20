@@ -18,7 +18,7 @@ def wrapped_course_stats(enrollments, courses):
             "title": course.title,
             "slug": course.slug,
             "course_slug": course.course.slug,
-            "cohort_year": course.year,
+            "cohort_year": course.identifier,
             "enrollment_count": enrollment_count,
         }
         course_stats_list.append(course_stats)
@@ -91,7 +91,7 @@ def wrapped_courses(enrollments):
             "score": enrollment.total_score,
             "slug": enrollment.course.slug,
             "course_slug": enrollment.course.course.slug,
-            "cohort_year": enrollment.course.year,
+            "cohort_year": enrollment.course.identifier,
             "enrollment_id": enrollment.id,
         }
         courses.append(course_record)

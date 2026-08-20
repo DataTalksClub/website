@@ -217,7 +217,7 @@
               <a href="{% url 'course_list' %}">Courses</a>
             </li>
             <li>
-              <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+              <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
             </li>
             <li aria-current="page">
               Enrollment
@@ -232,7 +232,7 @@
             Certificate name is managed in account settings.
           </p>
           <p class="enrollment-back">
-            <a class="cta cta-compact cta-secondary" href="{% url 'course' course.course.slug course.year %}">
+            <a class="cta cta-compact cta-secondary" href="{% url 'course' course.course.slug course.identifier %}">
               Back to course
             </a>
           </p>
@@ -286,7 +286,7 @@
             <div class="toggle-list">
               <label
                 class="toggle-row js-immediate-toggle-row"
-                data-toggle-url="{% url 'update_enrollment_toggle' course.course.slug course.year %}"
+                data-toggle-url="{% url 'update_enrollment_toggle' course.course.slug course.identifier %}"
               >
                 {{ form.display_on_leaderboard }}
                 <span class="toggle-copy">
@@ -300,7 +300,7 @@
               </label>
               <label
                 class="toggle-row js-immediate-toggle-row"
-                data-toggle-url="{% url 'update_enrollment_toggle' course.course.slug course.year %}"
+                data-toggle-url="{% url 'update_enrollment_toggle' course.course.slug course.identifier %}"
               >
                 {{ form.display_public_profile }}
                 <span class="toggle-copy">

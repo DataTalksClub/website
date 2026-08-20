@@ -77,7 +77,7 @@ def homework_view(
     request: HttpRequest,
     course_slug: str,
     homework_slug: str,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ):
     detail_objects = homework_detail_objects(
         course_slug,

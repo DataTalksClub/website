@@ -12,7 +12,7 @@ PROJECT_SUBMISSIONS_PAGE_SIZE = 25
 def list_all_project_submissions_view(
     request,
     course_slug: str,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ):
     course = get_cohort_or_404(course_slug, cohort_year)
     submissions_page = _all_project_submissions_page(course, request)

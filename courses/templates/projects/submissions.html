@@ -91,7 +91,7 @@
 
 {% block breadcrumbs %}
   <li>
-    <a href="{% url 'project' course.course.slug course.year project.slug %}">{{ project.title }}</a>
+    <a href="{% url 'project' course.course.slug course.identifier project.slug %}">{{ project.title }}</a>
   </li>
   <li aria-current="page">
     Submissions

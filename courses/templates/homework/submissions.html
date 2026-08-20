@@ -165,10 +165,10 @@
         <nav class="shell breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
-              <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+              <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
             </li>
             <li>
-              <a href="{% url 'homework' course.course.slug course.year homework.slug %}">{{ homework.title }}</a>
+              <a href="{% url 'homework' course.course.slug course.identifier homework.slug %}">{{ homework.title }}</a>
             </li>
             <li aria-current="page">
               Submissions

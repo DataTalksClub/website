@@ -8,7 +8,7 @@ def cohort_route_kwargs(cohort):
 
     return {
         "course_slug": cohort.course.slug,
-        "cohort_year": cohort.year,
+        "cohort_year": cohort.identifier,
     }
 
 

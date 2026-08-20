@@ -113,7 +113,7 @@
   <div class="project-toolbar">
     {% if project.state == 'CO' %}
       {% if course.course %}
-        {% url 'project_statistics' course.course.slug course.year project.slug as project_statistics_url %}
+        {% url 'project_statistics' course.course.slug course.identifier project.slug as project_statistics_url %}
       {% else %}
         {% url 'project_statistics' course.slug project.slug as project_statistics_url %}
       {% endif %}
@@ -142,7 +142,7 @@
       {% if submission %}
         {% if project.state == 'PR' %}
           {% if course.course %}
-            {% url 'projects_eval' course.course.slug course.year project.slug as project_eval_url %}
+            {% url 'projects_eval' course.course.slug course.identifier project.slug as project_eval_url %}
           {% else %}
             {% url 'projects_eval' course.slug project.slug as project_eval_url %}
           {% endif %}

@@ -223,10 +223,10 @@
         <nav class="shell breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
-              <a href="{% url 'course' enrollment.course.course.slug enrollment.course.year %}">{{ enrollment.course.title }}</a>
+              <a href="{% url 'course' enrollment.course.course.slug enrollment.course.identifier %}">{{ enrollment.course.title }}</a>
             </li>
             <li>
-              <a href="{% url 'leaderboard' enrollment.course.course.slug enrollment.course.year %}">Leaderboard</a>
+              <a href="{% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier %}">Leaderboard</a>
             </li>
             <li aria-current="page">
               {{ enrollment.display_name }}
@@ -267,15 +267,15 @@
               {% include "core/_button.html" with href=admin_enrollment_url label="Admin" variant="secondary" compact=True title="Admin: Edit Enrollment" %}
             {% endif %}
             {% if show_public_profile_settings_link %}
-              {% url 'enrollment' enrollment.course.course.slug enrollment.course.year as public_profile_url %}
+              {% url 'enrollment' enrollment.course.course.slug enrollment.course.identifier as public_profile_url %}
               {% include "core/_button.html" with href=public_profile_url label="Show public profile" variant="secondary" compact=True %}
             {% endif %}
-            {% url 'leaderboard' enrollment.course.course.slug enrollment.course.year as leaderboard_url %}
+            {% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
             {% include "core/_button.html" with href=leaderboard_url label="Back to Leaderboard" variant="secondary" compact=True %}
             <button
               class="leaderboard-flag-button cta cta-compact cta-secondary"
               type="button"
-              data-flag-url="{% url 'leaderboard_complaint' course_slug=enrollment.course.course.slug cohort_year=enrollment.course.year enrollment_id=enrollment.id %}"
+              data-flag-url="{% url 'leaderboard_complaint' course_slug=enrollment.course.course.slug cohort_year=enrollment.course.identifier enrollment_id=enrollment.id %}"
               data-flag-name="{{ enrollment.display_name }}"
             >Flag this record</button>
           </div>

@@ -278,7 +278,7 @@
                 <a href="{% url 'course_list' %}">Courses</a>
               </li>
               <li>
-                <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+                <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
               </li>
               {% block breadcrumbs %}
               {% endblock %}

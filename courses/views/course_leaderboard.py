@@ -19,7 +19,7 @@ from .forms import LeaderboardComplaintForm
 logger = logging.getLogger(__name__)
 
 
-def leaderboard_view(request, course_slug: str, cohort_year: int | None = None):
+def leaderboard_view(request, course_slug: str, cohort_year: str | int | None = None):
     course = get_cohort_or_404(course_slug, cohort_year)
     page_number = request.GET.get("page")
     context = leaderboard_context(course, request.user, page_number)
@@ -32,7 +32,7 @@ def leaderboard_score_breakdown_view(
     request,
     course_slug: str,
     enrollment_id: int,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ):
     enrollment = leaderboard_enrollment(
         course_slug,
@@ -87,7 +87,7 @@ def leaderboard_complaint_context(enrollment, form):
 def leaderboard_enrollment(
     course_slug: str,
     enrollment_id: int,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ):
     course = get_cohort_or_404(course_slug, cohort_year)
     enrollments = Enrollment.objects.select_related("course", "student")
@@ -104,7 +104,7 @@ def leaderboard_complaint_view(
     request,
     course_slug: str,
     enrollment_id: int,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
 ):
     enrollment = leaderboard_enrollment(
         course_slug,

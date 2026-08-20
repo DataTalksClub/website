@@ -235,7 +235,7 @@
               <a href="{% url 'course_list' %}">Courses</a>
             </li>
             <li>
-              <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+              <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
             </li>
             <li aria-current="page">
               Dashboard
@@ -250,7 +250,7 @@
           </p>
           {% if course.first_homework_scored %}
             <div class="dashboard-actions">
-              <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard' course.course.slug course.year %}">
+              <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard' course.course.slug course.identifier %}">
                 View Leaderboard
               </a>
             </div>
@@ -332,7 +332,7 @@
                 </div>
               </dl>
               <p class="dashboard-card-link">
-                <a class="band-link" href="{% url 'list_all_project_submissions' course.course.slug course.year %}">
+                <a class="band-link" href="{% url 'list_all_project_submissions' course.course.slug course.identifier %}">
                   View All Project Submissions →
                 </a>
               </p>

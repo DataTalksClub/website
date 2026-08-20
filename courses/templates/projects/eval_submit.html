@@ -84,14 +84,14 @@
 {% block breadcrumbs %}
   <li>
     {% if course.course %}
-      <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">{{ project.title }}</a>
+      <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}">{{ project.title }}</a>
     {% else %}
       <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
     {% endif %}
   </li>
   <li>
     {% if course.course %}
-      <a href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Evaluations</a>
+      <a href="{% url 'projects_eval' course.course.slug course.identifier project.slug %}">Evaluations</a>
     {% else %}
       <a href="{% url 'projects_eval' course.slug project.slug %}">Evaluations</a>
     {% endif %}
@@ -162,7 +162,7 @@
     {% endif %}
     {% if review.optional %}
       {% if course.course %}
-        {% url 'projects_eval_delete' course.course.slug course.year project.slug review.id as remove_review_url %}
+        {% url 'projects_eval_delete' course.course.slug course.identifier project.slug review.id as remove_review_url %}
       {% else %}
         {% url 'projects_eval_delete' course.slug project.slug review.id as remove_review_url %}
       {% endif %}
@@ -174,7 +174,7 @@
   {% endif %}
   <p>
     {% if course.course %}
-      <a class="band-link" href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Back to evaluations</a>
+      <a class="band-link" href="{% url 'projects_eval' course.course.slug course.identifier project.slug %}">Back to evaluations</a>
     {% else %}
       <a class="band-link" href="{% url 'projects_eval' course.slug project.slug %}">Back to evaluations</a>
     {% endif %}
@@ -255,7 +255,7 @@
             {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update" variant="primary" compact=True %}
           {% endif %}
           {% if course.course %}
-            {% url 'projects_eval' course.course.slug course.year project.slug as evaluations_url %}
+            {% url 'projects_eval' course.course.slug course.identifier project.slug as evaluations_url %}
           {% else %}
             {% url 'projects_eval' course.slug project.slug as evaluations_url %}
           {% endif %}

@@ -44,7 +44,7 @@
 {% block hero_actions %}
   <div class="submission-actions">
     {% if homework.is_scored %}
-      {% url 'homework_statistics' course.course.slug course.year homework.slug as homework_statistics_url %}
+      {% url 'homework_statistics' course.course.slug course.identifier homework.slug as homework_statistics_url %}
       {% include "core/_button.html" with href=homework_statistics_url label="View public statistics" variant="secondary" compact=True %}
     {% endif %}
     {% if can_access_course_studio %}
