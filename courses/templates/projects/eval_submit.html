@@ -1,16 +1,10 @@
-{% extends 'projects/_base.html' %}
-{% load static %}
-{% load custom_filters %}
-{% comment %}
-  The peer-review scoring form, on design 5a (issue #179).
+{% extends "courses/_submission_page.html" %}
+{% load static custom_filters %}
 
-  This is the surface a learner scores a peer on, so the port is presentation
-  only.  Every criterion keeps its `answer_<criteria id>` field name, its radio
-  or checkbox type, its option indexes, its checked and disabled state and its
-  order; the vote form keeps its `form_action`, `submission_id` and `action`
-  hidden inputs; the "remove review" control keeps its confirm prompt and its
-  destination; and the whole form still posts back to this page with its CSRF
-  token.
+{% comment %}
+  Peer-review feedback shares the submission shell with homework and project
+  submission.  Only the review-specific target facts, vote controls, field
+  names, and actions live here; POST/CSRF/disabled behavior is unchanged.
 {% endcomment %}
 
 {% block title %}
@@ -22,16 +16,10 @@
 {% endblock %}
 
 {% block extra_styles %}
-  /* The form is held to a usable measure, as every form in the system is. */
   .review-form {
-    display: grid;
     gap: 1.5rem;
-    max-width: 46rem;
   }
 
-  /* One criterion: the question, then its options.  A fieldset carries the
-     grouping a screen reader needs, and the browser's own frame is dropped in
-     favour of the system's dashed rule between criteria. */
   .criteria-question {
     border: 0;
     border-bottom: 1.5px dashed var(--line-soft);
@@ -57,8 +45,6 @@
     gap: 0.35rem;
   }
 
-  /* An option row: the control, then its label.  The row keeps the system's
-     2.75rem target height so it stays comfortable on a phone. */
   .form-check {
     align-items: center;
     display: flex;
@@ -70,8 +56,6 @@
     color: var(--body-text);
   }
 
-  /* The vote control reports its own state: once the vote is cast the button
-     fills green, the same way the project list draws it. */
   .cta.is-voted {
     background: var(--green);
     border-color: var(--line);
@@ -88,6 +72,13 @@
   .review-vote-form {
     margin: 0;
   }
+
+  @media (max-width: 47.99rem) {
+    .review-actions {
+      display: grid;
+      width: 100%;
+    }
+  }
 {% endblock %}
 
 {% block breadcrumbs %}
@@ -102,112 +93,103 @@
   </li>
 {% endblock %}
 
-{% block page_head %}
-  <div class="project-head">
-    <p class="mono-label mono-label-indigo">{{ course.title }}</p>
-    <h1>Evaluate {{ project.title }}</h1>
+{% block hero_eyebrow %}
+  <p class="mono-label mono-label-indigo">The submission you are reviewing</p>
+{% endblock %}
+
+{% block hero_heading %}
+  <h1 id="submission-heading">Evaluate {{ project.title }}</h1>
+{% endblock %}
+
+{% block hero_lede %}
+  <p class="submission-lede">Score the submission against each criterion.</p>
+{% endblock %}
+
+{% block hero_specs %}
+  <dl class="spec-strip submission-specs">
+    <div class="spec">
+      <dt class="mono-label">deadline</dt>
+      <dd>
+        <strong>{{ project.peer_review_due_date|user_datetime:request }}</strong>
+        <span class="time-left" data-deadline="{{ project.peer_review_due_date|date:"c" }}" data-prefix="false"></span>
+      </dd>
+    </div>
+    <div class="spec">
+      <dt class="mono-label">repository</dt>
+      <dd>
+        <a class="band-link submission-link" href="{{ submission.github_link }}" target="_blank" rel="noopener noreferrer">{{ submission.github_link }}</a>
+      </dd>
+    </div>
+    <div class="spec">
+      <dt class="mono-label">commit</dt>
+      <dd><code class="mono-code">{{ submission.commit_id }}</code></dd>
+    </div>
+  </dl>
+  <p class="project-note">
+    {% if is_authenticated %}
+      Deadlines are shown in your
+      <a class="band-link" href="{% url 'account_settings' %}#display-preferences-section">account timezone</a>.
+    {% else %}
+      Deadlines are shown in your timezone.
+    {% endif %}
+  </p>
+{% endblock %}
+
+{% block hero_actions %}
+  <div class="review-actions">
+    <form method="post" class="review-vote-form">
+      {% csrf_token %}
+      <input type="hidden" name="form_action" value="vote">
+      <input type="hidden" name="submission_id" value="{{ submission.id }}">
+      {% if submission.id in voted_submission_ids %}
+        <input type="hidden" name="action" value="remove">
+        {% include "core/_button.html" with tag="button" type="submit" label="Voted" variant="secondary" compact=True classes="is-voted" %}
+      {% else %}
+        {% include "core/_button.html" with tag="button" type="submit" label="Vote" variant="secondary" compact=True disabled=vote_limit_reached %}
+      {% endif %}
+    </form>
+    {% if vote_limit_reached and submission.id not in voted_submission_ids %}
+      <span class="status-pill status-pill-wait">Limit reached for this project</span>
+    {% endif %}
+    {% if review.optional %}
+      {% url 'projects_eval_delete' course.slug project.slug review.id as remove_review_url %}
+      {% include "core/_button.html" with tag="button" type="button" label="Remove review" variant="secondary" compact=True onclick_url=remove_review_url %}
+    {% endif %}
+  </div>
+  {% if review.optional %}
+    <p class="project-note">You selected this review. You can remove it if you do not have time.</p>
+  {% endif %}
+  <p>
+    <a class="band-link" href="{% url 'projects_eval' course.slug project.slug %}">Back to evaluations</a>
+  </p>
+{% endblock %}
+
+{% block hero_notices %}
+  <div class="submission-notices">
+    {% for message in messages %}
+      {% if 'error' in message.tags or 'warning' in message.tags or 'danger' in message.tags %}
+        {% include "core/_callout.html" with tone="attention" role="alert" message=message %}
+      {% else %}
+        {% include "core/_callout.html" with tone="info" role="status" message=message %}
+      {% endif %}
+    {% endfor %}
+    {% for error in errors %}
+      {% include "core/_callout.html" with tone="attention" role="alert" message=error %}
+    {% endfor %}
   </div>
 {% endblock %}
 
-{% block project_content %}
-  {% if messages or errors %}
-    <div class="notices">
-      {% for message in messages %}
-        <p class="notice {{ message.tags }}">{{ message }}</p>
-      {% endfor %}
-      {% for error in errors %}
-        <p class="notice error">{{ error }}</p>
-      {% endfor %}
-    </div>
-  {% endif %}
-  <section class="project-section" aria-labelledby="submission-under-review-heading">
-    <div class="project-section-head">
-      <h2 id="submission-under-review-heading">The submission you are reviewing</h2>
-    </div>
-    <dl class="project-facts review-facts">
+{% block submission_content %}
+  <div class="submission-target">
+    <div class="band-head">
       <div>
-        <dt>deadline</dt>
-        <dd>
-          {{ project.peer_review_due_date|user_datetime:request }}
-          <span
-            class="time-left"
-            data-deadline="{{ project.peer_review_due_date|date:"c" }}"
-            data-prefix="false"
-          ></span>
-        </dd>
+        <h2 id="review-criteria-heading" class="submission-section-heading">Review criteria</h2>
       </div>
-      <div>
-        <dt>repository</dt>
-        <dd>
-          <a
-            class="band-link submission-link"
-            href="{{ submission.github_link }}"
-            target="_blank"
-            rel="noopener noreferrer"
-          >{{ submission.github_link }}</a>
-        </dd>
-      </div>
-      <div>
-        <dt>commit</dt>
-        <dd>
-          <code class="mono-code">{{ submission.commit_id }}</code>
-        </dd>
-      </div>
-    </dl>
-    <p class="project-note">
-      {% if is_authenticated %}
-        Deadlines are shown in your
-        <a class="band-link" href="{% url 'account_settings' %}#display-preferences-section">account timezone</a>.
-      {% else %}
-        Deadlines are shown in your timezone.
-      {% endif %}
-    </p>
-    <div class="review-actions">
-      <form method="post" class="review-vote-form">
-        {% csrf_token %}
-        <input type="hidden" name="form_action" value="vote">
-        <input type="hidden" name="submission_id" value="{{ submission.id }}">
-        {% if submission.id in voted_submission_ids %}
-          <input type="hidden" name="action" value="remove">
-          <button type="submit" class="cta cta-compact cta-secondary is-voted">
-            Voted
-          </button>
-        {% else %}
-          <button
-            type="submit"
-            class="cta cta-compact cta-secondary"
-            {% if vote_limit_reached %}disabled{% endif %}
-          >Vote</button>
-        {% endif %}
-      </form>
-      {% if vote_limit_reached and submission.id not in voted_submission_ids %}
-        <span class="status-pill status-pill-wait">Limit reached for this project</span>
-      {% endif %}
-      {% if review.optional %}
-        <button
-          type="button"
-          onclick="confirmRemove('{% url 'projects_eval_delete' course.slug project.slug review.id %}')"
-          class="cta cta-compact cta-secondary"
-        >Remove review</button>
-      {% endif %}
     </div>
-    {% if review.optional %}
-      <p class="project-note">
-        You selected this review. You can remove it if you do not have time.
-      </p>
-    {% endif %}
-    <p>
-      <a class="band-link" href="{% url 'projects_eval' course.slug project.slug %}">Back to evaluations</a>
-    </p>
-  </section>
-  <section class="project-section" aria-labelledby="review-criteria-heading">
-    <div class="project-section-head">
-      <h2 id="review-criteria-heading">Review criteria</h2>
+    <div class="submission-notices">
+      {% include "core/_callout.html" with tone="info" message="Score the submission against each criterion." %}
     </div>
-    <p class="project-note">
-      Score the submission against each criterion.
-    </p>
-    <form method="post" class="needs-validation review-form" novalidate>
+    <form method="post" class="needs-validation submission-form review-form" novalidate>
       {% csrf_token %}
       <div>
         {% for criteria, response in criteria_response_pairs %}
@@ -236,62 +218,35 @@
         {% endfor %}
       </div>
       <div class="field">
-        <label class="field-label" for="note_to_peer">
-          Review comments
-        </label>
-        <p class="field-hint">
-          Notes or suggestions for your peer.
-        </p>
-        <textarea
-          class="form-control"
-          name="note_to_peer"
-          id="note_to_peer"
-          rows="5"
-          {% if disabled %}disabled{% endif %}
-        >{{ review.note_to_peer|default:'' }}</textarea>
+        <label class="field-label" for="note_to_peer">Review comments</label>
+        <p class="field-hint">Notes or suggestions for your peer.</p>
+        <textarea class="form-control" name="note_to_peer" id="note_to_peer" rows="5" {% if disabled %}disabled{% endif %}>{{ review.note_to_peer|default:'' }}</textarea>
       </div>
       {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=project.learning_in_public_cap_review learning_in_public_links=review.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
       {% if project.time_spent_evaluation_field %}
         <div class="field">
-          <label class="field-label" for="time_spent_reviewing">
-            Time spent reviewing (optional)
-          </label>
-          <input
-            type="number"
-            class="form-control"
-            name="time_spent_reviewing"
-            id="time_spent_reviewing"
-            min="0"
-            value="{{ review.time_spent_reviewing|default:'' }}"
-            {% if disabled %}disabled{% endif %}
-          >
+          <label class="field-label" for="time_spent_reviewing">Time spent reviewing (optional)</label>
+          <input type="number" class="form-control" name="time_spent_reviewing" id="time_spent_reviewing" min="0" value="{{ review.time_spent_reviewing|default:'' }}" {% if disabled %}disabled{% endif %}>
         </div>
       {% endif %}
       {% if project.state == 'PR' %}
-        <div class="review-actions">
-          <button id="submit-button" type="submit" class="cta cta-compact cta-primary">
-            {% if review.state == 'TR' %}
-              Submit
-            {% else %}
-              Update
-            {% endif %}
-          </button>
-          <a class="cta cta-compact cta-secondary" href="{% url 'projects_eval' course.slug project.slug %}">
-            Cancel
-          </a>
+        <div class="submission-form-actions review-actions">
+          {% if review.state == 'TR' %}
+            {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Submit" variant="primary" compact=True %}
+          {% else %}
+            {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update" variant="primary" compact=True %}
+          {% endif %}
+          {% url 'projects_eval' course.slug project.slug as evaluations_url %}
+          {% include "core/_button.html" with href=evaluations_url label="Cancel" variant="secondary" compact=True %}
         </div>
       {% else %}
-        <p class="notice warning">
-          Peer review form is closed.
-        </p>
+        {% include "core/_callout.html" with tone="attention" message="Peer review form is closed." %}
       {% endif %}
     </form>
     {% if review.state == 'SU' and review.submitted_at %}
-      <p class="project-note">
-        Last submission at: {{ review.submitted_at|user_datetime:request }}
-      </p>
+      <p class="project-note">Last submission at: {{ review.submitted_at|user_datetime:request }}</p>
     {% endif %}
-  </section>
+  </div>
 {% endblock %}
 
 {% block extra_js %}

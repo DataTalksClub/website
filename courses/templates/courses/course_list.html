@@ -388,10 +388,11 @@
                         </div>
                       {% endif %}
                       <div class="active-actions">
+                        {% url 'course' course.slug as course_url %}
                         {% if course.is_enrolled %}
-                          <a class="cta cta-ink" href="{% url 'course' course.slug %}">Continue course →</a>
+                          {% include "core/_button.html" with href=course_url label="Continue course →" variant="primary" compact=True %}
                         {% else %}
-                          <a class="cta cta-ink" href="{% url 'course' course.slug %}">Open course →</a>
+                          {% include "core/_button.html" with href=course_url label="Open course →" variant="secondary" compact=True %}
                         {% endif %}
                         {% if course.github_repo_url %}
                           <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>

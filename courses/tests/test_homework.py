@@ -4,6 +4,7 @@ from courses.tests.homework_view_base import (
     HomeworkDetailViewTestBase,
 )
 
+
 class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
 
     def test_homework_detail_unauthenticated(self):
@@ -17,7 +18,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         )
         self.assert_empty_question_answers(context["question_answers"])
 
-        self.assertContains(response, "Shown in your timezone.")
+        self.assertNotContains(response, "Shown in your timezone.")
         self.assertNotContains(response, "account timezone")
 
     def test_homework_detail_unauthenticated_hides_submission_fields(self):
@@ -77,13 +78,9 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         context = self.assert_homework_context(
             response, is_authenticated=True
         )
-        self.assertContains(response, "account timezone")
-        self.assertContains(
-            response,
-            f'{reverse("account_settings")}#display-preferences-section',
-        )
 
         self.assert_empty_question_answers(context["question_answers"])
+        self.assertEqual(context["homework"].due_date, self.homework.due_date)
         self.assertContains(response, "Status: Not saved yet")
         self.assertContains(response, "Save submission")
         self.assertContains(

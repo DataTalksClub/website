@@ -2,13 +2,18 @@
 {% comment %}
   The design 5a shell for the learner project pages (issue #179).
 
-  Eight pages hang off this document — the project itself, the submission
-  lists, the peer-evaluation surfaces, the results and the statistics — and
-  they are the same shape: a trail back to the course, a head, and a stack of
-  sections.  Writing that document eight times is how a family drifts (the
-  design 5a rebuild lost a navigation entry from five pages exactly that way),
-  so it is written once here, the way templates/studio/base.html does it for
-  the Studio pages, and each page fills in its own blocks.
+  The general project pages — submission lists, peer-evaluation index, results
+  and statistics — share this document: a trail back to the course, a head,
+  and a stack of sections.  The project detail and peer-review feedback forms
+  use courses/templates/courses/_submission_page.html instead, so those two
+  mutation surfaces share the homework form shell rather than growing a second
+  submission layout.
+
+  Writing each general project page as a standalone document is how a family
+  drifts (the design 5a rebuild lost a navigation entry from five pages exactly
+  that way), so this base keeps their common document in one place, the way
+  templates/studio/base.html does it for the Studio pages, and each page fills
+  in its own blocks.
 
   A page therefore inherits the whole design 5a document: one inline
   stylesheet whose first content is the shared design system partial, no

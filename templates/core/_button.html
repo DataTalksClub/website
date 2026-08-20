@@ -1,0 +1,31 @@
+{% comment %}
+  Shared action control.
+
+  Pass `variant` as `primary`, `secondary`, or `subtle`. The default element
+  is an anchor; pass `tag="button"` for a form/control button. Both elements
+  deliberately produce the same `.cta cta-<variant>` class contract.
+{% endcomment %}
+{% if tag == "button" %}
+  <button
+    class="cta cta-{{ variant|default:'secondary' }}{% if compact %} cta-compact{% endif %}{% if classes %} {{ classes }}{% endif %}"
+    {% if type %}type="{{ type }}"{% endif %}
+    {% if id %}id="{{ id }}"{% endif %}
+    {% if name %}name="{{ name }}"{% endif %}
+    {% if value %}value="{{ value }}"{% endif %}
+    {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}
+    {% if aria_describedby %}aria-describedby="{{ aria_describedby }}"{% endif %}
+    {% if title %}title="{{ title }}"{% endif %}
+    {% if onclick_url %}onclick="confirmRemove('{{ onclick_url }}')"{% elif onclick %}onclick="{{ onclick }}"{% endif %}
+    {% if disabled %}disabled{% endif %}
+  >{{ label }}</button>
+{% else %}
+  <a
+    class="cta cta-{{ variant|default:'secondary' }}{% if compact %} cta-compact{% endif %}{% if classes %} {{ classes }}{% endif %}"
+    href="{{ href }}"
+    {% if target %}target="{{ target }}"{% endif %}
+    {% if rel %}rel="{{ rel }}"{% endif %}
+    {% if aria_label %}aria-label="{{ aria_label }}"{% endif %}
+    {% if aria_describedby %}aria-describedby="{{ aria_describedby }}"{% endif %}
+    {% if title %}title="{{ title }}"{% endif %}
+  >{{ label }}</a>
+{% endif %}

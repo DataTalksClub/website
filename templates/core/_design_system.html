@@ -2374,6 +2374,61 @@ Rules for editing:
         background: var(--lavender);
       }
 
+      /* State and guidance callouts: a tinted surface with one token-driven
+         tone rail, kept visually separate from editable controls. */
+      .callout {
+        background: var(--lavender);
+        border-inline-start: 0.35rem solid var(--indigo);
+        border-radius: 0.7rem;
+        color: var(--body-text);
+        display: grid;
+        gap: 0.45rem;
+        padding: 1rem 1.15rem;
+      }
+
+      .callout-info {
+        background: var(--lavender);
+        border-inline-start-color: var(--indigo);
+      }
+
+      .callout-attention {
+        background: var(--sand);
+        border-inline-start-color: var(--olive);
+      }
+
+      .callout-quiet {
+        background: var(--card);
+        border-inline-start: 0;
+        padding-inline-start: 1.15rem;
+      }
+
+      .callout strong {
+        color: var(--ink);
+      }
+
+      .callout-attention strong {
+        color: var(--olive);
+      }
+
+      .callout p {
+        margin: 0;
+      }
+
+      .callout-score {
+        align-items: baseline;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .callout-score strong {
+        font-size: 1.6rem;
+      }
+
+      .callout .cta {
+        justify-self: start;
+      }
+
       /* Date rail: the events-index date block beside each event card. */
       .when {
         align-content: start;
@@ -2690,12 +2745,33 @@ Rules for editing:
         min-width: 0;
       }
 
-      /* CTA additions: the ink-and-bubble pair from the 6-series pages, and
-         a compact size for row actions (Register buttons in list rows). */
+      /* CTA additions: the ink-and-bubble pair from the 6-series pages, a
+         low-emphasis action with no resting fill, and a compact size for row
+         actions (Register buttons in list rows). */
       .cta-ink {
         background: var(--ink);
         box-shadow: 0.25rem 0.25rem 0 var(--bubble);
         color: var(--cream);
+      }
+
+      .cta-subtle,
+      #learning-in-public-links-container .cta-secondary,
+      .project-toolbar .cta-secondary {
+        background: transparent;
+        border-color: var(--line-soft);
+        box-shadow: none;
+        color: var(--indigo);
+      }
+
+      .cta-subtle:hover,
+      .cta-subtle:focus-visible,
+      #learning-in-public-links-container .cta-secondary:hover,
+      #learning-in-public-links-container .cta-secondary:focus-visible,
+      .project-toolbar .cta-secondary:hover,
+      .project-toolbar .cta-secondary:focus-visible {
+        background: var(--lavender);
+        border-color: var(--indigo);
+        color: var(--ink);
       }
 
       .cta-lift {

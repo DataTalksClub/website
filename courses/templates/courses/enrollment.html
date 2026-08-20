@@ -35,12 +35,6 @@
        * Enrollment rules.
        * ------------------------------------------------------------------ */
 
-      /* One form, read top to bottom: held to the same column the account
-         settings page uses so the two profile surfaces feel like one place. */
-      .enrollment-shell {
-        max-width: 46rem;
-      }
-
       .enrollment-hero .breadcrumbs {
         margin-bottom: 0.35rem;
         margin-top: -0.85rem;
@@ -217,7 +211,7 @@
           The trail the adopted shell used to draw, as the design 5a primitive:
           every ancestor is a link and the current page is plain text.
         {% endcomment %}
-        <nav class="shell enrollment-shell breadcrumbs" aria-label="Breadcrumb">
+        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -230,7 +224,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell enrollment-shell">
+        <div class="shell shell-reading">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="enrollment-heading">Edit Enrollment Details</h1>
           <p class="enrollment-lede">
@@ -245,8 +239,8 @@
         </div>
       </section>
 
-      <section class="band band-cream" aria-labelledby="public-identity-heading">
-        <div class="shell enrollment-shell">
+      <section class="band band-lavender" aria-labelledby="public-identity-heading">
+        <div class="shell shell-reading">
           <form method="post">
             {% csrf_token %}
             <div class="band-head">

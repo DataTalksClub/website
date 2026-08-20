@@ -1,792 +1,476 @@
-{% load seo static custom_filters %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ homework.title }} — {{ course.title }} — DataTalks.Club</title>
-    {% canonical_link canonical_url %}
-    <meta name="description" content="{{ homework.description|striptags|truncatechars:180 }}">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="DataTalks.Club">
-    <meta property="og:title" content="{{ homework.title }} — {{ course.title }} — DataTalks.Club">
-    <meta property="og:description" content="{{ homework.description|striptags|truncatechars:180 }}">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:site" content="@DataTalksClub">
-    <meta name="twitter:title" content="{{ homework.title }} — {{ course.title }} — DataTalks.Club">
-    <style>
-      /* ------------------------------------------------------------------ *
-       * Homework page, design 5a (issue #179).  Like every rebuilt page it
-       * carries its complete stylesheet inline — the shared design system
-       * partial first, then this page's own rules — and loads none of the
-       * older site CSS.
-       *
-       * This is a visual port of a mutation surface.  The form's method, its
-       * novalidate/needs-validation contract with homework.js, its CSRF
-       * token, every answer and submission field name, every id the scripts
-       * bind to and every disabled state are exactly as the copied page had
-       * them.
-       * ------------------------------------------------------------------ */
+{% extends "courses/_submission_page.html" %}
+{% load static custom_filters %}
 
-      {% include "core/_design_system.html" %}
+{% comment %}
+  Homework uses the shared submission document.  The title and course remain
+  in the breadcrumb/document metadata; the form below keeps the original
+  answer names, ids, disabled rules, CSRF handling, and JavaScript hooks.
+{% endcomment %}
 
-      /* ------------------------------------------------------------------ *
-       * Page-specific rules.
-       * ------------------------------------------------------------------ */
+{% block title %}{{ homework.title }} — {{ course.title }} — DataTalks.Club{% endblock %}
 
-      /* The breadcrumb links carry the system's 2.75rem target height, so the
-         row brings its own air; fold most of it into the band's top padding. */
-      .homework-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
-      }
+{% block seo_meta %}
+  <meta name="description" content="{{ homework.description|striptags|truncatechars:180 }}">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="DataTalks.Club">
+  <meta property="og:title" content="{{ homework.title }} — {{ course.title }} — DataTalks.Club">
+  <meta property="og:description" content="{{ homework.description|striptags|truncatechars:180 }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@DataTalksClub">
+  <meta name="twitter:title" content="{{ homework.title }} — {{ course.title }} — DataTalks.Club">
+{% endblock %}
 
-      .homework-hero-inner {
-        display: grid;
-        gap: 0.75rem;
-        justify-items: start;
-      }
+{% block hero_attributes %}aria-label="Homework submission"{% endblock %}
 
-      .homework-lede {
-        color: var(--body-text);
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        max-width: 46rem;
-      }
+{% block breadcrumbs %}
+  <li aria-current="page">
+    {{ homework.title }}
+  </li>
+{% endblock %}
 
-      /* The fact strip is a dl, so its dd needs its default margin removed. */
-      .homework-specs {
-        margin-top: 0.4rem;
-        width: 100%;
-      }
+{% block hero_heading %}
+  <h1 id="submission-heading">Homework submission</h1>
+{% endblock %}
 
-      .homework-specs dd {
-        margin: 0;
-      }
+{% block hero_lede %}
+  {% if homework.description %}
+    <div class="submission-lede">{{ homework.description|urlize_target_blank }}</div>
+  {% endif %}
+{% endblock %}
 
-      .homework-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-      }
-
-      /* The countdown text is written by time_left.js, so it sits beside the
-         deadline it counts down to and simply does not appear without
-         JavaScript.  Its three tones are token-driven here so they survive
-         both themes; the words always say the state, so colour only
-         reinforces. */
-      .time-left {
-        display: block;
-        font-family: var(--font-mono);
-        font-size: 0.78rem;
-      }
-
-      .time-left:empty {
-        display: none;
-      }
-
-      .time-left--normal {
-        color: var(--muted);
-      }
-
-      .time-left--warning {
-        color: var(--olive);
-        font-weight: 700;
-      }
-
-      .time-left--overdue {
-        color: var(--ink);
-        font-weight: 700;
-      }
-
-      /* --- notices -------------------------------------------------------- *
-       * Django messages, the page's own states and the validation errors the
-       * view returns.  The system has no danger colour, so an attention
-       * notice is carried by its words on the sand surface (--olive on
-       * --sand clears 4.5:1 in both themes). */
-      /* A grid with no margin of its own: most states show no notice at all,
-         and the hero's own gap is the only space an empty block should take. */
-      .homework-notices {
-        display: grid;
-        gap: 0.9rem;
-        width: 100%;
-      }
-
-      .homework-notice {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        color: var(--body-text);
-        display: grid;
-        gap: 0.3rem;
-        justify-items: start;
-        padding: 1rem 1.15rem;
-      }
-
-      .homework-notice strong {
-        color: var(--ink);
-      }
-
-      .homework-notice-info {
-        background: var(--lavender);
-      }
-
-      .homework-notice-attention {
-        background: var(--sand);
-        color: var(--olive);
-      }
-
-      .homework-notice-attention strong {
-        color: var(--olive);
-      }
-
-      /* --- the scored summary ---------------------------------------------- */
-
-      .homework-score {
-        align-items: baseline;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-      }
-
-      .homework-score strong {
-        font-size: 1.6rem;
-      }
-
-      /* --- questions and submission fields ---------------------------------- */
-
-      .homework-form {
-        display: grid;
-        gap: 2rem;
-      }
-
-      .homework-fields {
-        display: grid;
-        gap: 1.5rem;
-        max-width: 46rem;
-      }
-
-      .question {
-        display: grid;
-        gap: 0.5rem;
-      }
-
-      .question-text {
-        color: var(--ink);
-        font-weight: 700;
-      }
-
-      .question-note {
-        color: var(--body-text);
-        font-weight: 500;
-      }
-
-      .question-options {
-        display: grid;
-        gap: 0.35rem;
-      }
-
-      /* One answer option.  The whole row is the label's target, and it keeps
-         the system's 2.75rem minimum height. */
-      .form-check {
-        align-items: center;
-        display: flex;
-        gap: 0.6rem;
-        min-height: 2.75rem;
-      }
-
-      .form-check-input {
-        accent-color: var(--green);
-        flex: none;
-        height: 1.1rem;
-        width: 1.1rem;
-      }
-
-      .form-check-label {
-        color: var(--body-text);
-      }
-
-      /* The correctness marks a scored homework draws on the options it shows
-         back, on the system's tokens.  The mark is a glyph with its own
-         shape — a tick or a cross — so the state is never colour-only. */
-      .option-answer-correct .form-check-label::after,
-      .option-answer-incorrect .form-check-label::after {
-        font-size: 0.85rem;
-        font-weight: 700;
-        margin-inline-start: 0.4rem;
-      }
-
-      .option-answer-correct .form-check-label::after {
-        color: var(--green-ship);
-        content: "\2713";
-      }
-
-      .option-answer-incorrect .form-check-label::after {
-        color: var(--olive);
-        content: "\00d7";
-      }
-
-      .option-answer-correct .form-check-input,
-      .option-answer-incorrect .form-check-input {
-        accent-color: var(--green);
-      }
-
-      /* A question a scored homework has no answer for. */
-      .no-answer-indicator {
-        background: var(--sand);
-        border-radius: 0.45rem;
-        color: var(--olive);
-        font-size: 0.85rem;
-        font-weight: 700;
-        padding: 0.5rem 0.75rem;
-      }
-
-      /* The submission fields, the shared learning-in-public and FAQ partials
-         and learning_in_public.js all build controls carrying the copied
-         platform's class names.  A design 5a page loads no stylesheet that
-         defines them, so they take the system's own field treatment here, in
-         the page that renders them. */
-      .form-control {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.625rem;
-        color: var(--ink);
-        font: inherit;
-        min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
-        width: 100%;
-      }
-
-      .form-control[disabled] {
-        background: var(--sand);
-        color: var(--olive);
-      }
-
-      .form-control.is-invalid {
-        border-color: var(--olive);
-      }
-
-      /* A scored free-form answer; the pill beside the field carries the word. */
-      .form-control.option-answer-correct {
-        border-color: var(--green);
-      }
-
-      .form-control.option-answer-incorrect {
-        border-color: var(--olive);
-      }
-
-      /* homework.js writes this element next to the field it belongs to, so it
-         has to be styled whether or not the template drew it. */
-      .invalid-feedback {
-        color: var(--olive);
-        font-size: 0.85rem;
-        font-weight: 700;
-      }
-
-      .invalid-feedback:empty {
-        display: none;
-      }
-
-      /* A value a scored homework shows back rather than accepts: the same
-         sand surface a readonly .field-input takes, without a control the
-         reader could try to type into. */
-      .readonly-value {
-        background: var(--sand);
-        border: 2px solid var(--line-soft);
-        border-radius: 0.625rem;
-        color: var(--olive);
-        font-weight: 700;
-        overflow-wrap: anywhere;
-        padding: 0.65rem 0.8rem;
-      }
-
-      .homework-status {
-        color: var(--body-text);
-        display: grid;
-        font-size: 0.92rem;
-        gap: 0.3rem;
-      }
-
-      .homework-submit {
-        border-top: 2px dashed var(--line-soft);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 1.25rem;
-        padding-top: 1.25rem;
-      }
-
-      /* --- narrow layout ------------------------------------------------- */
-
-      /* Reshape rather than reflow: every action becomes a full-width row
-         instead of a wrapped grid of half-width buttons. */
-      @media (max-width: 47.99rem) {
-        .homework-actions {
-          display: grid;
-          width: 100%;
-        }
-
-        .homework-submit {
-          display: grid;
-        }
-      }
-    </style>
-  </head>
-  {% url 'account_settings' as account_settings_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{% url 'update_timezone_preference' %}"
+{% block hero_instructions %}
+  {% if homework.instructions_url %}
+    {% if "github.com" in homework.instructions_url %}
+      {% include "core/_button.html" with href=homework.instructions_url label="Instructions on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+    {% else %}
+      {% include "core/_button.html" with href=homework.instructions_url label="Instructions" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
     {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream homework-hero" aria-labelledby="homework-heading">
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
-            </li>
-            <li aria-current="page">
-              {{ homework.title }}
-            </li>
-          </ol>
-        </nav>
-        <div class="shell shell-reading homework-hero-inner">
-          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
-          <h1 id="homework-heading">{{ homework.title }}</h1>
-          {% if homework.description %}
-            <div class="homework-lede">{{ homework.description|urlize_target_blank }}</div>
+  {% endif %}
+{% endblock %}
+
+{% block hero_actions %}
+  <div class="submission-actions">
+    {% if homework.is_scored %}
+      {% url 'homework_statistics' course.slug homework.slug as homework_statistics_url %}
+      {% include "core/_button.html" with href=homework_statistics_url label="View public statistics" variant="secondary" compact=True %}
+    {% endif %}
+    {% if can_access_course_studio %}
+      {% url 'studio_courses_homework_submissions' course.slug homework.slug as studio_homework_url %}
+      {% include "core/_button.html" with href=studio_homework_url label="Manage homework in Studio" variant="secondary" compact=True %}
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block hero_notices %}
+  <div class="submission-notices">
+    {% for message in messages %}
+      {% if 'homework' in message.tags %}
+        {% include "core/_callout.html" with tone="info" role="status" message=message %}
+      {% endif %}
+    {% endfor %}
+    {% for error in errors %}
+      {% include "core/_callout.html" with tone="attention" role="alert" message=error %}
+    {% endfor %}
+    {% if not is_authenticated and accepting_submissions %}
+      {% url 'login' as login_url %}
+      {% include "core/_callout.html" with tone="info" title="Log in to submit this homework" message="You can preview the questions, but submissions are saved only for logged-in students." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
+    {% endif %}
+    {% if accepting_submissions and deadline_passed %}
+      {% include "core/_callout.html" with tone="info" title="The deadline has passed, but this homework is still open" message="You can still submit your answers below. Submissions are accepted until the homework is closed for scoring." %}
+    {% endif %}
+    {% if disabled and not homework.is_scored and not accepting_submissions %}
+      {% if is_authenticated %}
+        {% if submission.pk %}
+          {% include "core/_callout.html" with tone="attention" message="This homework is closed. Your saved submission is shown below and cannot be modified." %}
+        {% else %}
+          {% include "core/_callout.html" with tone="attention" message="This homework is not open for submissions yet." %}
+        {% endif %}
+      {% else %}
+        {% url 'login' as login_url %}
+        {% include "core/_callout.html" with tone="info" before_link="" link_url=login_url link_label="Log in" after_link=" to see the status of your submission." %}
+      {% endif %}
+    {% endif %}
+    {% if homework.is_scored %}
+      {% if is_authenticated %}
+        {% if submission.pk %}
+          {% include "core/_callout.html" with tone="info" eyebrow="Scored homework" title="Your submission has been graded." score_label="Score" score=submission.total_score %}
+        {% else %}
+          {% include "core/_callout.html" with tone="attention" message="This homework is already scored. You didn't submit your answers." %}
+        {% endif %}
+      {% else %}
+        {% url 'login' as login_url %}
+        {% include "core/_callout.html" with tone="info" title="Correct answers are available below" message="This homework has already been scored. Log in to view your own submission, score, and feedback." button_url=login_url button_label="Log in to view my results" button_variant="primary" %}
+      {% endif %}
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block extra_styles %}
+  .time-left {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+  }
+
+  .time-left:empty {
+    display: none;
+  }
+
+  .time-left--normal {
+    color: var(--muted);
+  }
+
+  .time-left--warning {
+    color: var(--olive);
+    font-weight: 700;
+  }
+
+  .time-left--overdue {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .question {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .question-text {
+    color: var(--ink);
+    font-weight: 700;
+  }
+
+  .question-note {
+    color: var(--body-text);
+    font-weight: 500;
+  }
+
+  .question-options {
+    display: grid;
+    gap: 0.35rem;
+  }
+
+  .form-check {
+    align-items: center;
+    display: flex;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+  }
+
+  .form-check-input {
+    accent-color: var(--green);
+    flex: none;
+    height: 1.1rem;
+    width: 1.1rem;
+  }
+
+  .form-check-label {
+    color: var(--body-text);
+  }
+
+  .option-answer-correct .form-check-label::after,
+  .option-answer-incorrect .form-check-label::after {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin-inline-start: 0.4rem;
+  }
+
+  .option-answer-correct .form-check-label::after {
+    color: var(--green-ship);
+    content: "\2713";
+  }
+
+  .option-answer-incorrect .form-check-label::after {
+    color: var(--olive);
+    content: "\00d7";
+  }
+
+  .option-answer-correct .form-check-input,
+  .option-answer-incorrect .form-check-input {
+    accent-color: var(--green);
+  }
+
+  .no-answer-indicator {
+    background: var(--sand);
+    border-radius: 0.45rem;
+    color: var(--olive);
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .form-control {
+    background: var(--card);
+    border: 2px solid var(--line);
+    border-radius: 0.625rem;
+    color: var(--ink);
+    font: inherit;
+    min-height: 2.75rem;
+    padding: 0.65rem 0.8rem;
+    width: 100%;
+  }
+
+  .form-control[disabled] {
+    background: var(--sand);
+    color: var(--olive);
+  }
+
+  .form-control.is-invalid {
+    border-color: var(--olive);
+  }
+
+  .form-control.option-answer-correct {
+    border-color: var(--green);
+  }
+
+  .form-control.option-answer-incorrect {
+    border-color: var(--olive);
+  }
+
+  .invalid-feedback {
+    color: var(--olive);
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .invalid-feedback:empty {
+    display: none;
+  }
+
+  .readonly-value {
+    background: var(--sand);
+    border: 2px solid var(--line-soft);
+    border-radius: 0.625rem;
+    color: var(--olive);
+    font-weight: 700;
+    overflow-wrap: anywhere;
+    padding: 0.65rem 0.8rem;
+  }
+
+  .homework-status {
+    color: var(--body-text);
+    display: grid;
+    font-size: 0.92rem;
+    gap: 0.3rem;
+  }
+
+  .homework-submit {
+    border-top: 2px dashed var(--line-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+{% endblock %}
+
+{% block submission_content %}
+  <form method="post" class="needs-validation submission-form homework-form" novalidate>
+    {% if is_authenticated %}
+      {% csrf_token %}
+    {% endif %}
+    <div>
+      <div class="band-head">
+        <div>
+          {% if homework.is_scored and not is_authenticated %}
+            <h2 id="questions-heading" class="submission-section-heading">Correct answers</h2>
+          {% else %}
+            <h2 id="questions-heading" class="submission-section-heading">Questions</h2>
           {% endif %}
-          {% if homework.instructions_url %}
-            <a
-              class="cta cta-compact cta-secondary"
-              href="{{ homework.instructions_url }}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {% if "github.com" in homework.instructions_url %}
-                Instructions on GitHub
+        </div>
+      </div>
+      <div class="submission-support">
+        {% if homework.is_scored and not is_authenticated %}
+          <p>Review the expected answers for this scored homework.</p>
+        {% elif homework.instructions_url %}
+          <p>
+            This form is only for submitting your answers. For the homework instructions, check the
+            <a class="band-link" href="{{ homework.instructions_url }}" target="_blank" rel="noopener noreferrer">instructions</a>.
+          </p>
+        {% else %}
+          <p>Answer the questions below to complete your homework.</p>
+        {% endif %}
+      </div>
+      <div class="submission-fields homework-fields">
+        {% for question, answer in question_answers %}
+          <div class="question">
+            <p class="question-text">
+              {{ forloop.counter }}. {{ question.text }}
+              {% if question.scores_for_correct_answer != 0 %}
+                <span class="question-note">({{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }})</span>
               {% else %}
-                Instructions
+                <span class="question-note">(not graded)</span>
               {% endif %}
-            </a>
-          {% endif %}
-          <dl class="spec-strip homework-specs">
-            <div class="spec">
-              <dt class="mono-label">deadline</dt>
-              <dd>
-                <strong>{{ homework.due_date|user_datetime:request }}</strong>
-                <span class="time-left" data-deadline="{{ homework.due_date|date:"c" }}" data-prefix="false"></span>
-              </dd>
-            </div>
-            <div class="spec">
-              <dt class="mono-label">timezone</dt>
-              <dd>
-                {% if is_authenticated %}
-                  <a class="band-link" href="{{ account_settings_url }}#display-preferences-section">Your account timezone</a>
-                {% else %}
-                  <strong>Shown in your timezone.</strong>
-                {% endif %}
-              </dd>
-            </div>
-            {% if is_authenticated %}
-              <div class="spec">
-                <dt class="mono-label">status</dt>
-                <dd>
-                  {% if submission.pk %}
-                    <span class="status-pill status-pill-live">Submitted</span>
-                  {% elif not accepting_submissions and not homework.is_scored %}
-                    <span class="status-pill status-pill-wait">Closed</span>
-                  {% else %}
-                    <span class="status-pill status-pill-open">Not submitted</span>
-                  {% endif %}
-                </dd>
+            </p>
+            {% if is_authenticated and answer.no_answer_submitted %}
+              <p class="no-answer-indicator">No answer was submitted for this question</p>
+            {% endif %}
+            {% if question.question_type == 'MC' %}
+              <div class="question-options">
+                {% for option in answer.options %}
+                  <div class="form-check {{ option.correctly_selected_class }}">
+                    <input
+                      class="form-check-input"
+                      id="radio-{{ question.id }}-{{ forloop.counter }}"
+                      type="radio"
+                      name="answer_{{ question.id }}"
+                      value="{{ option.index }}"
+                      {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                      {% if disabled %}disabled{% endif %}
+                    />
+                    <label class="form-check-label" for="radio-{{ question.id }}-{{ forloop.counter }}">
+                      {{ option.value }}
+                    </label>
+                  </div>
+                {% endfor %}
               </div>
+            {% elif question.question_type == 'CB' %}
+              <div class="question-options">
+                {% for option in answer.options %}
+                  <div class="form-check {{ option.correctly_selected_class }}">
+                    <input
+                      class="form-check-input"
+                      id="checkbox-{{ question.id }}-{{ forloop.counter }}"
+                      type="checkbox"
+                      name="answer_{{ question.id }}"
+                      value="{{ option.index }}"
+                      {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                      {% if disabled %}disabled{% endif %}
+                    />
+                    <label class="form-check-label" for="checkbox-{{ question.id }}-{{ forloop.counter }}">
+                      {{ option.value }}
+                    </label>
+                  </div>
+                {% endfor %}
+              </div>
+            {% elif question.question_type == 'FF' %}
+              <input
+                class="form-control {{ answer.correctly_selected_class }}"
+                type="text"
+                name="answer_{{ question.id }}"
+                value="{{ answer.text|default:'' }}"
+                {% if disabled %}disabled{% endif %}
+              />
+            {% elif question.question_type == 'FL' %}
+              <textarea
+                class="form-control {{ answer.correctly_selected_class }}"
+                name="answer_{{ question.id }}"
+                rows="5"
+                {% if disabled %}disabled{% endif %}
+              >{{ answer.text|default:'' }}</textarea>
             {% endif %}
-          </dl>
-          <div class="homework-actions">
-            {% if homework.is_scored %}
-              <a class="cta cta-compact cta-secondary" href="{% url 'homework_statistics' course.slug homework.slug %}">View public statistics</a>
-            {% endif %}
-            {% if can_access_course_studio %}
-              <a class="cta cta-compact cta-secondary" href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">Manage homework in Studio</a>
+            {% if answer.correctly_selected_class == 'option-answer-correct' %}
+              <p><span class="status-pill status-pill-mint">Correct</span></p>
+            {% elif answer.correctly_selected_class == 'option-answer-incorrect' %}
+              <p><span class="status-pill status-pill-wait">Incorrect</span></p>
             {% endif %}
           </div>
-          <div class="homework-notices">
-            {% for message in messages %}
-              {% if 'homework' in message.tags %}
-                <div class="homework-notice homework-notice-info" role="status">
-                  {{ message }}
-                </div>
-              {% endif %}
-            {% endfor %}
-            {% for error in errors %}
-              <div class="homework-notice homework-notice-attention" role="alert">
-                {{ error }}
-              </div>
-            {% endfor %}
-            {% if not is_authenticated and accepting_submissions %}
-              <div class="homework-notice homework-notice-info">
-                <strong>Log in to submit this homework</strong>
-                <p>You can preview the questions, but submissions are saved only for logged-in students.</p>
-                <a class="cta cta-compact cta-primary" href="{% url 'login' %}">Log in to submit</a>
-              </div>
-            {% endif %}
-            {% if accepting_submissions and deadline_passed %}
-              <div class="homework-notice homework-notice-info">
-                <strong>The deadline has passed, but this homework is still open</strong>
-                <p>
-                  You can still submit your answers below. Submissions are accepted until the homework is closed for scoring.
-                </p>
-              </div>
-            {% endif %}
-            {% if disabled and not homework.is_scored and not accepting_submissions %}
-              {% if is_authenticated %}
-                {% if submission.pk %}
-                  <div class="homework-notice homework-notice-attention">
-                    <p>This homework is closed. Your saved submission is shown below and cannot be modified.</p>
-                  </div>
-                {% else %}
-                  <div class="homework-notice homework-notice-attention">
-                    <p>This homework is not open for submissions yet.</p>
-                  </div>
-                {% endif %}
-              {% else %}
-                <div class="homework-notice homework-notice-info">
-                  <p>
-                    <a class="band-link" href="{% url 'login' %}">Log in</a> to see the status of your submission.
-                  </p>
-                </div>
-              {% endif %}
-            {% endif %}
-            {% if homework.is_scored %}
-              {% if is_authenticated %}
-                {% if submission.pk %}
-                  <div class="homework-notice homework-notice-info">
-                    <p class="mono-label">Scored homework</p>
-                    <strong>Your submission has been graded.</strong>
-                    <p class="homework-score">
-                      <span class="mono-label">Score</span>
-                      <strong>{{ submission.total_score }}</strong>
-                    </p>
-                  </div>
-                {% else %}
-                  <div class="homework-notice homework-notice-attention">
-                    <p>This homework is already scored. You didn't submit your answers.</p>
-                  </div>
-                {% endif %}
-              {% else %}
-                <div class="homework-notice homework-notice-info">
-                  <strong>Correct answers are available below</strong>
-                  <p>
-                    This homework has already been scored. Log in to view your own submission, score, and feedback.
-                  </p>
-                  <a class="cta cta-compact cta-primary" href="{% url 'login' %}">Log in to view my results</a>
-                </div>
-              {% endif %}
-            {% endif %}
+        {% empty %}
+          {% include "core/_callout.html" with tone="info" classes="callout-quiet" message="No public answers are available for this homework yet." %}
+        {% endfor %}
+      </div>
+    </div>
+    {% if is_authenticated %}
+      <div>
+        <div class="band-head band-head-secondary">
+          <div>
+            <h2 id="submission-details-heading">Submission details</h2>
           </div>
         </div>
-      </section>
-
-      {% if accepting_submissions or submission.pk or homework.is_scored %}
-        <section class="band band-lavender" aria-labelledby="questions-heading">
-          <div class="shell shell-reading">
-            <form method="post" class="needs-validation homework-form" novalidate>
-              {% if is_authenticated %}
-                {% csrf_token %}
-              {% endif %}
-              <div>
-                <div class="band-head">
-                  <div>
-                    {% if homework.is_scored and not is_authenticated %}
-                      <h2 id="questions-heading">Correct answers</h2>
-                    {% else %}
-                      <h2 id="questions-heading">Questions</h2>
-                    {% endif %}
-                    {% if homework.is_scored and not is_authenticated %}
-                      <p>Review the expected answers for this scored homework.</p>
-                    {% elif homework.instructions_url %}
-                      <p>
-                        This form is only for submitting your answers. For the homework instructions, check the
-                        <a class="band-link" href="{{ homework.instructions_url }}" target="_blank" rel="noopener noreferrer">instructions</a>.
-                      </p>
-                    {% else %}
-                      <p>Answer the questions below to complete your homework.</p>
-                    {% endif %}
-                  </div>
-                </div>
-                <div class="homework-fields">
-                  {% for question, answer in question_answers %}
-                    <div class="question">
-                      <p class="question-text">
-                        {{ forloop.counter }}. {{ question.text }}
-                        {% if question.scores_for_correct_answer != 0 %}
-                          <span class="question-note">({{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }})</span>
-                        {% else %}
-                          <span class="question-note">(not graded)</span>
-                        {% endif %}
-                      </p>
-                      {% if is_authenticated and answer.no_answer_submitted %}
-                        <p class="no-answer-indicator">No answer was submitted for this question</p>
-                      {% endif %}
-                      {% if question.question_type == 'MC' %}
-                        <div class="question-options">
-                          {% for option in answer.options %}
-                            <div class="form-check {{ option.correctly_selected_class }}">
-                              <input
-                                class="form-check-input"
-                                id="radio-{{ question.id }}-{{ forloop.counter }}"
-                                type="radio"
-                                name="answer_{{ question.id }}"
-                                value="{{ option.index }}"
-                                {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}
-                                  checked
-                                {% endif %}
-                                {% if disabled %}
-                                  disabled
-                                {% endif %}
-                              />
-                              <label class="form-check-label" for="radio-{{ question.id }}-{{ forloop.counter }}">
-                                {{ option.value }}
-                              </label>
-                            </div>
-                          {% endfor %}
-                        </div>
-                      {% elif question.question_type == 'CB' %}
-                        <div class="question-options">
-                          {% for option in answer.options %}
-                            <div class="form-check {{ option.correctly_selected_class }}">
-                              <input
-                                class="form-check-input"
-                                id="checkbox-{{ question.id }}-{{ forloop.counter }}"
-                                type="checkbox"
-                                name="answer_{{ question.id }}"
-                                value="{{ option.index }}"
-                                {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}
-                                  checked
-                                {% endif %}
-                                {% if disabled %}
-                                  disabled
-                                {% endif %}
-                              />
-                              <label class="form-check-label" for="checkbox-{{ question.id }}-{{ forloop.counter }}">
-                                {{ option.value }}
-                              </label>
-                            </div>
-                          {% endfor %}
-                        </div>
-                      {% elif question.question_type == 'FF' %}
-                        <input
-                          class="form-control {{ answer.correctly_selected_class }}"
-                          type="text"
-                          name="answer_{{ question.id }}"
-                          value="{{ answer.text|default:'' }}"
-                          {% if disabled %}
-                            disabled
-                          {% endif %}
-                        />
-                      {% elif question.question_type == 'FL' %}
-                        <textarea
-                          class="form-control {{ answer.correctly_selected_class }}"
-                          name="answer_{{ question.id }}"
-                          rows="5"
-                          {% if disabled %}
-                            disabled
-                          {% endif %}
-                        >{{ answer.text|default:'' }}</textarea>
-                      {% endif %}
-                      {% comment %}
-                        A scored free-form answer is marked correct or incorrect.
-                        The copied page carried that only as a border colour; the
-                        word carries it here and the colour reinforces it.
-                      {% endcomment %}
-                      {% if answer.correctly_selected_class == 'option-answer-correct' %}
-                        <p>
-                          <span class="status-pill status-pill-mint">Correct</span>
-                        </p>
-                      {% elif answer.correctly_selected_class == 'option-answer-incorrect' %}
-                        <p>
-                          <span class="status-pill status-pill-wait">Incorrect</span>
-                        </p>
-                      {% endif %}
-                    </div>
-                  {% empty %}
-                    <div class="homework-notice">
-                      <p>No public answers are available for this homework yet.</p>
-                    </div>
-                  {% endfor %}
-                </div>
+        <div class="submission-fields homework-fields">
+          {% if homework.homework_url_field %}
+            {% if homework.is_scored %}
+              <div class="field">
+                <p class="field-label">Homework URL</p>
+                <p class="readonly-value">{{ submission.homework_link|default:"Not submitted" }}</p>
               </div>
-              {% if is_authenticated %}
-                <div>
-                  <div class="band-head band-head-secondary">
-                    <div>
-                      <h2 id="submission-details-heading">Submission details</h2>
-                    </div>
-                  </div>
-                  <div class="homework-fields">
-                    {% if homework.homework_url_field %}
-                      {% if homework.is_scored %}
-                        <div class="field">
-                          <p class="field-label">Homework URL</p>
-                          <p class="readonly-value">{{ submission.homework_link|default:"Not submitted" }}</p>
-                        </div>
-                      {% else %}
-                        <div class="field">
-                          <label class="field-label" for="homework_url">Homework URL</label>
-                          <p class="field-hint">
-                            Link to GitHub or other public code-hosting website.
-                          </p>
-                          <input
-                            type="url"
-                            class="form-control {% if 'homework_url' in error_fields %}is-invalid{% endif %}"
-                            id="homework_url"
-                            name="homework_url"
-                            value="{{ submission.homework_link|default:'' }}"
-                            required
-                          />
-                          <div class="invalid-feedback">
-                            Check that the repository exists and is public.
-                          </div>
-                        </div>
-                      {% endif %}
-                    {% endif %}
-                    {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=homework.learning_in_public_cap learning_in_public_links=submission.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
-                    {% if homework.time_spent_lectures_field %}
-                      {% if homework.is_scored %}
-                        <div class="field">
-                          <p class="field-label">Time spent on lectures (hours) (optional)</p>
-                          <p class="readonly-value">{{ submission.time_spent_lectures|default:"Not submitted" }}</p>
-                        </div>
-                      {% else %}
-                        <div class="field">
-                          <label class="field-label" for="time_spent_lectures">
-                            Time spent on lectures (hours) (optional)
-                          </label>
-                          <p class="field-hint">
-                            How much time (in hours) did you spend on watching lectures and reading?
-                          </p>
-                          <input
-                            type="number"
-                            class="form-control"
-                            name="time_spent_lectures"
-                            id="time_spent_lectures"
-                            min="0"
-                            value="{{ submission.time_spent_lectures|default:'' }}"
-                          />
-                        </div>
-                      {% endif %}
-                    {% endif %}
-                    {% if homework.time_spent_homework_field %}
-                      {% if homework.is_scored %}
-                        <div class="field">
-                          <p class="field-label">Time spent on homework (hours) (optional)</p>
-                          <p class="readonly-value">{{ submission.time_spent_homework|default:"Not submitted" }}</p>
-                        </div>
-                      {% else %}
-                        <div class="field">
-                          <label class="field-label" for="time_spent_homework">
-                            Time spent on homework (hours) (optional)
-                          </label>
-                          <p class="field-hint">
-                            How much time (in hours) did you spend on homework?
-                          </p>
-                          <input
-                            type="number"
-                            class="form-control"
-                            name="time_spent_homework"
-                            id="time_spent_homework"
-                            min="0"
-                            value="{{ submission.time_spent_homework|default:'' }}"
-                          />
-                        </div>
-                      {% endif %}
-                    {% endif %}
-                    {% if course.homework_problems_comments_field %}
-                      <div class="field">
-                        <label class="field-label" for="problems_comments">
-                          Problems or comments (optional)
-                        </label>
-                        <textarea
-                          class="form-control"
-                          name="problems_comments"
-                          id="problems_comments"
-                          {% if disabled %}
-                            disabled
-                          {% endif %}
-                        >{{ submission.problems_comments|default:'' }}</textarea>
-                      </div>
-                    {% endif %}
-                    {% if homework.faq_contribution_field %}
-                      {% include 'include/faq_contribution_field.html' %}
-                    {% endif %}
-                  </div>
-                  <div class="homework-status">
-                    {% if submission.pk %}
-                      <p>
-                        Status: Last saved at
-                        <span>{{ submission.submitted_at|user_datetime:request }}</span>
-                      </p>
-                    {% else %}
-                      <p>Status: Not saved yet</p>
-                    {% endif %}
-                    {% if not homework.is_scored and is_authenticated %}
-                      {% if accepting_submissions and deadline_passed %}
-                        <p>
-                          You can still save and update your answers until this homework is closed. Your latest saved version will be scored.
-                        </p>
-                      {% else %}
-                        <p>
-                          You can save partial answers and update them until the deadline. Your latest saved version will be scored.
-                        </p>
-                      {% endif %}
-                    {% endif %}
-                  </div>
-                  {% if is_authenticated and not homework.is_scored %}
-                    <div class="homework-submit">
-                      {% if not submission.pk %}
-                        <button id="submit-button" type="submit" class="cta cta-primary">Save submission</button>
-                      {% else %}
-                        <button id="submit-button" type="submit" class="cta cta-primary">Update submission</button>
-                      {% endif %}
-                    </div>
-                  {% endif %}
-                </div>
-              {% endif %}
-            </form>
+            {% else %}
+              <div class="field">
+                <label class="field-label" for="homework_url">Homework URL</label>
+                <p class="field-hint">Link to GitHub or other public code-hosting website.</p>
+                <input
+                  type="url"
+                  class="form-control {% if 'homework_url' in error_fields %}is-invalid{% endif %}"
+                  id="homework_url"
+                  name="homework_url"
+                  value="{{ submission.homework_link|default:'' }}"
+                  required
+                />
+                <div class="invalid-feedback">Check that the repository exists and is public.</div>
+              </div>
+            {% endif %}
+          {% endif %}
+          {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=homework.learning_in_public_cap learning_in_public_links=submission.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
+          {% if homework.time_spent_lectures_field %}
+            {% if homework.is_scored %}
+              <div class="field">
+                <p class="field-label">Time spent on lectures (hours) (optional)</p>
+                <p class="readonly-value">{{ submission.time_spent_lectures|default:"Not submitted" }}</p>
+              </div>
+            {% else %}
+              <div class="field">
+                <label class="field-label" for="time_spent_lectures">Time spent on lectures (hours) (optional)</label>
+                <p class="field-hint">How much time (in hours) did you spend on watching lectures and reading?</p>
+                <input type="number" class="form-control" name="time_spent_lectures" id="time_spent_lectures" min="0" value="{{ submission.time_spent_lectures|default:'' }}" />
+              </div>
+            {% endif %}
+          {% endif %}
+          {% if homework.time_spent_homework_field %}
+            {% if homework.is_scored %}
+              <div class="field">
+                <p class="field-label">Time spent on homework (hours) (optional)</p>
+                <p class="readonly-value">{{ submission.time_spent_homework|default:"Not submitted" }}</p>
+              </div>
+            {% else %}
+              <div class="field">
+                <label class="field-label" for="time_spent_homework">Time spent on homework (hours) (optional)</label>
+                <p class="field-hint">How much time (in hours) did you spend on homework?</p>
+                <input type="number" class="form-control" name="time_spent_homework" id="time_spent_homework" min="0" value="{{ submission.time_spent_homework|default:'' }}" />
+              </div>
+            {% endif %}
+          {% endif %}
+          {% if course.homework_problems_comments_field %}
+            <div class="field">
+              <label class="field-label" for="problems_comments">Problems or comments (optional)</label>
+              <textarea class="form-control" name="problems_comments" id="problems_comments" {% if disabled %}disabled{% endif %}>{{ submission.problems_comments|default:'' }}</textarea>
+            </div>
+          {% endif %}
+          {% if homework.faq_contribution_field %}
+            {% include 'include/faq_contribution_field.html' %}
+          {% endif %}
+        </div>
+        <div class="submission-status homework-status">
+          {% if submission.pk %}
+            <p>Status: Last saved at <span>{{ submission.submitted_at|user_datetime:request }}</span></p>
+          {% else %}
+            <p>Status: Not saved yet</p>
+          {% endif %}
+          {% if not homework.is_scored and is_authenticated %}
+            {% if accepting_submissions and deadline_passed %}
+              <p>You can still save and update your answers until this homework is closed. Your latest saved version will be scored.</p>
+            {% else %}
+              <p>You can save partial answers and update them until the deadline. Your latest saved version will be scored.</p>
+            {% endif %}
+          {% endif %}
+        </div>
+        {% if is_authenticated and not homework.is_scored %}
+          <div class="submission-form-actions homework-submit">
+            {% if not submission.pk %}
+              {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
+            {% else %}
+              {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update submission" variant="primary" compact=True %}
+            {% endif %}
           </div>
-        </section>
-      {% endif %}
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-    {% comment %}
-      The deadline countdown copied with the course platform; it rewrites every
-      .time-left node from its data-deadline attribute and needs no other markup.
-    {% endcomment %}
-    <script src="{% static 'time_left.js' %}"></script>
-    {% comment %}
-      The submission scripts copied with the course platform: homework.js
-      validates the form marked .needs-validation on submit, and
-      learning_in_public.js adds another link input up to the homework's cap.
-      Both bind on DOMContentLoaded, so they load after the shared script set
-      rather than inside the form they act on.
-    {% endcomment %}
-    {% if is_authenticated %}
-      <script src="{% static 'learning_in_public.js' %}"></script>
+        {% endif %}
+      </div>
     {% endif %}
-    <script src="{% static 'homework.js' %}"></script>
-  </body>
-</html>
+  </form>
+{% endblock %}
+
+{% block extra_js %}
+  <script src="{% static 'time_left.js' %}"></script>
+  {% if is_authenticated %}
+    <script src="{% static 'learning_in_public.js' %}"></script>
+  {% endif %}
+  <script src="{% static 'homework.js' %}"></script>
+{% endblock %}

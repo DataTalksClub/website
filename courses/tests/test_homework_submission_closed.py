@@ -10,11 +10,9 @@ class HomeworkSubmissionClosedTests(HomeworkSubmissionValidationBase):
             response,
             "This homework is not open for submissions yet.",
         )
-        # The design 5a page states the submission state as a labelled fact in
-        # the homework's spec strip, where the system's labels are lowercase
-        # nouns without punctuation (issue #179).
-        self.assertContains(response, '<dt class="mono-label">status</dt>')
-        self.assertContains(response, "Closed")
+        # The redundant deadline/timezone/status facts are no longer rendered;
+        # the closed state remains in the callout above the form.
+        self.assertNotContains(response, '<dt class="mono-label">status</dt>')
         self.assertNotContains(response, "Not submitted")
         self.assertNotContains(response, 'name="answer_')
         self.assertNotContains(response, "Submission details")

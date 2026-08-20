@@ -1,11 +1,11 @@
 """The learner project surfaces carry the design 5a shell (issue #179).
 
 The project pages — the project itself, the two submission lists, the two
-peer-evaluation surfaces, the results and the statistics — are the same shape,
-so like Studio they keep one base template,
-``courses/templates/projects/_base.html``, rather than a standalone document
-apiece.  These tests pin what that base guarantees every page below it: one
-inline stylesheet and no external CSS, the shared masthead/footer/script
+peer-evaluation surfaces, the results and the statistics — are the same shape.
+The general project pages use ``courses/templates/projects/_base.html`` and the
+project submission/review forms reuse ``courses/templates/courses/_submission_page.html``.
+These tests pin what those shared documents guarantee every page below them:
+one inline stylesheet and no external CSS, the shared masthead/footer/script
 partials rather than a copy of them, the trail back to the course, and one h1
 per page.
 
@@ -42,6 +42,7 @@ from courses.models import (
 )
 
 PROJECT_TEMPLATES = Path(__file__).resolve().parents[1] / "templates/projects"
+SHARED_SUBMISSION_PAGES = {"project.html", "eval_submit.html"}
 
 SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 
@@ -217,7 +218,10 @@ class ProjectDesignFiveAShellTests(TestCase):
 
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
-                self.assertIn('<nav class="breadcrumbs" aria-label="Breadcrumb">', body)
+                self.assertRegex(
+                    body,
+                    r'<nav class="(?:shell shell-reading )?breadcrumbs" aria-label="Breadcrumb">',
+                )
                 self.assertIn(f'<a href="{reverse("course_list")}">Courses</a>', body)
                 self.assertIn(f'<a href="{course_url}">{self.course.title}</a>', body)
                 self.assertIn('<li aria-current="page">', body)
@@ -244,7 +248,12 @@ class ProjectDesignFiveAShellTests(TestCase):
                 page = template.read_text(encoding="utf-8")
                 self.assertNotIn('<header class="masthead">', page)
                 self.assertNotIn("analytics_preferences.js", page)
-                if template.name != "_base.html":
+                if template.name in SHARED_SUBMISSION_PAGES:
+                    self.assertIn(
+                        '{% extends "courses/_submission_page.html" %}',
+                        page,
+                    )
+                elif template.name != "_base.html":
                     self.assertIn("{% extends 'projects/_base.html' %}", page)
 
         for name, body in self.rendered_pages().items():

@@ -1,0 +1,33 @@
+{% comment %}
+  Shared state/guidance callout.
+
+  `tone` is `info` or `attention`. Plain copy uses `message`; an inline link
+  uses `before_link`, `link_url`, `link_label`, and `after_link`. Optional
+  title/eyebrow, score, and an action button cover learner states without
+  allowing callers to inject markup into the primitive.
+{% endcomment %}
+<div class="callout callout-{{ tone|default:'info' }}{% if classes %} {{ classes }}{% endif %}"{% if role %} role="{{ role }}"{% endif %}>
+  {% if eyebrow %}
+    <p class="mono-label">{{ eyebrow }}</p>
+  {% endif %}
+  {% if title %}
+    <strong>{{ title }}</strong>
+  {% endif %}
+  {% if message %}
+    <p>{{ message }}</p>
+  {% endif %}
+  {% if link_url %}
+    <p>
+      {{ before_link }}<a class="band-link" href="{{ link_url }}"{% if link_external %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ link_label }}</a>{{ after_link }}
+    </p>
+  {% endif %}
+  {% if score_label %}
+    <p class="callout-score">
+      <span class="mono-label">{{ score_label }}</span>
+      <strong>{{ score }}</strong>
+    </p>
+  {% endif %}
+  {% if button_url %}
+    {% include "core/_button.html" with href=button_url label=button_label variant=button_variant|default:"primary" compact=True target=button_target rel=button_rel %}
+  {% endif %}
+</div>
