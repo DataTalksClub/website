@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from courses.models import Course, Project, ProjectState
+from courses.models import Cohort, Project, ProjectState
 
 
 @dataclass(frozen=True)
 class ProjectReminderData:
-    course: Course
+    course: Cohort
     now: datetime
     slug: str
     title: str

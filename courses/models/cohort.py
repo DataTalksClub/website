@@ -9,11 +9,12 @@ from courses.random_names import generate_random_name
 User = CustomUser
 
 
-class Course(models.Model):
+class Cohort(models.Model):
     slug = models.SlugField(unique=True, blank=False)
     title = models.CharField(max_length=200)
 
     description = models.TextField()
+    outcome = models.TextField(blank=True)
     start_date = models.DateField(
         blank=True,
         null=True,
@@ -102,6 +103,9 @@ class Course(models.Model):
                     }
                 )
 
+    class Meta:
+        db_table = "courses_course"
+
 
 class RegistrationCampaign(models.Model):
     slug = models.SlugField(unique=True, blank=False)
@@ -112,7 +116,7 @@ class RegistrationCampaign(models.Model):
         help_text="Displayed cohort label, for example '2026 cohort'.",
     )
     current_course = models.ForeignKey(
-        Course,
+        Cohort,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -166,7 +170,7 @@ class CourseRegistration(models.Model):
         related_name="registrations",
     )
     course = models.ForeignKey(
-        Course,
+        Cohort,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -214,7 +218,7 @@ class Enrollment(models.Model):
         unique_together = ["student", "course"]
 
     student = models.ForeignKey(User, on_delete=models.CASCADE)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     enrollment_date = models.DateTimeField(auto_now_add=True)
 
     display_name = models.CharField(

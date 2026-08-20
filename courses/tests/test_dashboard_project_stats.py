@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from accounts.models import CustomUser
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectState,
@@ -39,7 +39,7 @@ class DashboardProjectStatsTestCase(TestCase):
 
     @classmethod
     def create_dashboard_course(cls):
-        cls.course = Course.objects.create(
+        cls.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             project_passing_score=70,

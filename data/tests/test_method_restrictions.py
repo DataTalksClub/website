@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import CustomUser, Token
-from courses.models import Course, Homework, Project, Enrollment
+from courses.models import Cohort, Homework, Project, Enrollment
 
 
 class DataEndpointMethodRestrictionTest(TestCase):
@@ -20,7 +20,7 @@ class DataEndpointMethodRestrictionTest(TestCase):
             HTTP_AUTHORIZATION=f"Token {self.token.key}"
         )
 
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course",
             slug="test-course",
         )

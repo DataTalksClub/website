@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import (
     Project,
     ProjectEvaluationScore,
@@ -19,7 +19,7 @@ from .helpers import first_form_error
 @dataclass(frozen=True)
 class ProjectSubmissionEditPageData:
     request: object
-    course: Course
+    course: Cohort
     project: Project
     submission: ProjectSubmission
     review_criteria: list
@@ -28,7 +28,7 @@ class ProjectSubmissionEditPageData:
 
 @dataclass(frozen=True)
 class ProjectSubmissionEditObjects:
-    course: Course
+    course: Cohort
     project: Project
     submission: ProjectSubmission
 
@@ -38,7 +38,7 @@ def project_submission_edit_objects(
     project_slug,
     submission_id,
 ):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

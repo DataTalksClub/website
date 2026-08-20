@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from django.shortcuts import get_object_or_404, render
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import (
     PeerReview,
     PeerReviewState,
@@ -70,7 +70,7 @@ def student_project_eval_context(course, project, user, eval_closed):
 
 
 def projects_eval_view(request, course_slug, project_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

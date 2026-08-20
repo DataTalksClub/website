@@ -12,7 +12,7 @@ from django.views.decorators.http import require_GET
 
 from accounts.auth import token_required
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import (
     Answer,
     Homework,
@@ -75,7 +75,7 @@ def homework_export_payload(course, homework, submissions):
 @token_required
 def homework_data_view(request, course_slug: str, homework_slug: str):
     """Get homework data including course info, homework details, and all submissions with answers."""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
 
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug

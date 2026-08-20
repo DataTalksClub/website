@@ -3,7 +3,7 @@ from django.utils.dateparse import parse_date
 
 from api.safety import error_response
 from api.utils import parse_json_body
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 
 COURSE_PATCH_FIELDS = {
@@ -154,7 +154,7 @@ def missing_course_create_fields_response(data):
 
 def duplicate_course_slug_response(data):
     slug = data.get("slug")
-    if not Course.objects.filter(slug=slug).exists():
+    if not Cohort.objects.filter(slug=slug).exists():
         return None
 
     return error_response(
@@ -178,7 +178,7 @@ def course_create_values(data):
 
 def course_from_create_data(data):
     values = course_create_values(data)
-    course = Course(**values)
+    course = Cohort(**values)
     return course
 
 

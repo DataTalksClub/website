@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     Project,
@@ -34,7 +34,7 @@ class HomeworkSubmissionIntegrationBase(TestCase):
         )
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="course",
             title="Course",
             description="Course description",

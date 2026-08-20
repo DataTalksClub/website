@@ -27,7 +27,7 @@ from django.urls import reverse
 
 from accounts.navigation import login_url_for_path
 from content.public_data import public_projection
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 # Every public page in the design system, and the navigation entry each one is.
 # A new page in the system belongs in this list.
@@ -167,7 +167,7 @@ def navigation_entries(body: str) -> list[tuple[str, str, bool]]:
 class DesignFiveAShellTests(TestCase):
     """Render every page in the system and compare their shells to each other."""
 
-    course: Course
+    course: Cohort
     episode: dict[str, Any]
     wiki_page: dict[str, Any]
     person: dict[str, Any]
@@ -176,7 +176,7 @@ class DesignFiveAShellTests(TestCase):
 
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.course = Course.objects.create(
+        cls.course = Cohort.objects.create(
             title="Shell parity course",
             slug="shell-parity-course",
             description="Fixture for the design 5a shell comparison.",

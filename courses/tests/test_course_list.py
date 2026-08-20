@@ -1,17 +1,17 @@
 from django.urls import reverse
 
-from courses.models import Course
+from courses.models import Cohort
 from courses.tests.course_list_base import CourseListViewTestBase
 
 
 class CourseListVisibilityTest(CourseListViewTestBase):
     def test_course_visibility_in_list(self):
-        Course.objects.create(
+        Cohort.objects.create(
             title="Visible Course",
             slug="visible-course",
             visible=True,
         )
-        Course.objects.create(
+        Cohort.objects.create(
             title="Hidden Course",
             slug="hidden-course",
             visible=False,
@@ -25,7 +25,7 @@ class CourseListVisibilityTest(CourseListViewTestBase):
         self.assertNotIn("hidden-course", course_slugs)
 
     def test_hidden_course_accessible_via_direct_link(self):
-        hidden_course = Course.objects.create(
+        hidden_course = Cohort.objects.create(
             title="Hidden Course",
             slug="hidden-course",
             visible=False,

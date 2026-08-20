@@ -13,7 +13,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.models import CustomUser
 from accounts.studio_roles import synchronize_studio_roles
-from courses.models import Course, Enrollment, RegistrationCampaign
+from courses.models import Cohort, Enrollment, RegistrationCampaign
 from courses.models.homework import Homework, HomeworkState
 from courses.models.project import Project, ProjectState
 
@@ -247,7 +247,7 @@ def test_staff_navigation_is_capability_filtered(
     page.set_viewport_size(viewport)
     suffix = str(viewport["width"])
     now = timezone.now()
-    course = Course.objects.create(
+    course = Cohort.objects.create(
         slug=f"studio-course-{suffix}",
         title=f"Data Engineering Studio {suffix}",
         description="Populated course used for Studio browser regression coverage.",

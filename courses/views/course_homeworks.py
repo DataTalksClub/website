@@ -2,11 +2,11 @@ from django.db.models import Prefetch
 from django.utils import timezone
 
 from courses import coursework_badges
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework, HomeworkState, Submission
 
 
-def get_homeworks_for_course(course: Course, user) -> list[Homework]:
+def get_homeworks_for_course(course: Cohort, user) -> list[Homework]:
     if user.is_authenticated:
         queryset = Submission.objects.filter(student=user)
     else:

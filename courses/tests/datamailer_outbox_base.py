@@ -18,7 +18,7 @@ from data.models import (
 from course_management.datamailer.sync.memberships import (
     sync_enrollment_to_datamailer,
 )
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 
 DATAMAILER_SETTINGS = {
@@ -47,7 +47,7 @@ class DatamailerOutboxTestBase(TestCase):
         process_due_datamailer_outbox()
 
     def create_ml_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="ml-zoomcamp-2026",
             title="ML Zoomcamp 2026",
             description="Machine learning",

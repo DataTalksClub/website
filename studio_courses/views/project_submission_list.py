@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.core.paginator import Page
 from django.http import HttpRequest
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project, ProjectState
 
 from .helpers import paginate_queryset, pagination_querystring
@@ -15,7 +15,7 @@ STUDIO_COURSES_PROJECT_SUBMISSIONS_PAGE_SIZE = 50
 @dataclass(frozen=True)
 class ProjectSubmissionsContextData:
     request: HttpRequest
-    course: Course
+    course: Cohort
     project: Project
     submissions_page: Page
     project_filter_counts: dict

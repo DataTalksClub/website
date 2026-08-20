@@ -5,7 +5,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from courses.models import (
-    Course,
+    Cohort,
     Homework,
     Project,
     ProjectState,
@@ -21,7 +21,7 @@ class NoIndexMetaTagTestCase(TestCase):
     """Test that noindex meta tag is present on thin pages."""
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test course description",

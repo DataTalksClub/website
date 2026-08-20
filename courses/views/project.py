@@ -7,7 +7,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.core.exceptions import ValidationError
 
 from course_management.observability import record_event
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project
 from courses.views.project_page_context import (
     project_accepting_submissions,
@@ -29,7 +29,7 @@ PROJECT_SUBMISSION_SAVED_MESSAGE = (
 
 
 def project_login_required_response(
-    request: HttpRequest, course: Course, project: Project
+    request: HttpRequest, course: Cohort, project: Project
 ):
     messages.error(
         request,
@@ -45,7 +45,7 @@ def project_login_required_response(
 
 
 def closed_project_submission_response(
-    request: HttpRequest, course: Course, project: Project
+    request: HttpRequest, course: Cohort, project: Project
 ):
     messages.error(
         request,
@@ -59,7 +59,7 @@ def closed_project_submission_response(
 
 def project_validation_error_response(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     project: Project,
     error: ValidationError,
 ):
@@ -78,7 +78,7 @@ def project_validation_error_response(
 
 def delete_project_submission_response(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     project: Project,
 ):
     project_delete_submission(request, project)
@@ -97,7 +97,7 @@ def delete_project_submission_response(
 
 def save_project_submission_response(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     project: Project,
 ):
     try:
@@ -133,7 +133,7 @@ def save_project_submission_response(
     return response
 
 
-def handle_project_post(request: HttpRequest, course: Course, project: Project):
+def handle_project_post(request: HttpRequest, course: Cohort, project: Project):
     if not request.user.is_authenticated:
         return project_login_required_response(request, course, project)
 
@@ -160,7 +160,7 @@ def handle_project_post(request: HttpRequest, course: Course, project: Project):
 
 
 def project_view(request, course_slug, project_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

@@ -5,7 +5,7 @@ from django.test import Client, TestCase
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -27,7 +27,7 @@ credentials = dict(
 
 class DashboardHomeworkStatsTestBase(TestCase):
     def create_dashboard_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             first_homework_scored=True,

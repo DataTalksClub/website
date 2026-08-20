@@ -14,7 +14,7 @@ from core.middleware import apply_private_no_store
 from core.preview import SENSITIVE_PREVIEW_QUERY_KEYS, staff_preview_required
 from core.seo import validated_canonical_url
 from core.views import DEVELOPMENT_ROBOTS_BODY, PRODUCTION_ROBOTS_BODY
-from courses.models import Course
+from courses.models import Cohort
 
 FIXTURE_URLCONF = "core.tests.seo_fixture_urls"
 ROBOTS_VALUE = "noindex, nofollow"
@@ -420,7 +420,7 @@ class RealUrlAndCourseCanonicalTests(TestCase):
     def test_course_discovery_and_detail_have_canonicals_but_learner_routes_do_not(
         self,
     ) -> None:
-        hidden = Course.objects.create(
+        hidden = Cohort.objects.create(
             title="Hidden course",
             slug="hidden-course",
             description="Fixture",
@@ -447,7 +447,7 @@ class RealUrlAndCourseCanonicalTests(TestCase):
         self.assertNotIn(b'rel="canonical"', enrollment.content)
 
     def test_current_private_surfaces_and_learner_denial_are_private(self) -> None:
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             title="Private policy course",
             slug="private-policy-course",
             description="Fixture",

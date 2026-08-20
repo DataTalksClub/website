@@ -9,7 +9,7 @@ from courses.homework_question_stats import homework_question_stats
 from courses.models import (
     Answer,
     AnswerTypes,
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -24,7 +24,7 @@ User = get_user_model()
 class HomeworkQuestionStatsTestCase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             first_homework_scored=True,

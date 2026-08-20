@@ -7,7 +7,7 @@ from django.utils import timezone
 from courses.models import (
     Answer,
     AnswerTypes,
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -80,7 +80,7 @@ class HomeworkScoringBase(TestCase):
         )
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

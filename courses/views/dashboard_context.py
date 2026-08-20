@@ -1,6 +1,6 @@
 import statistics
 
-from courses.models.course import Enrollment
+from courses.models.cohort import Enrollment
 from courses.views.dashboard_homeworks import (
     dashboard_homework_stats,
     dashboard_homework_submissions,

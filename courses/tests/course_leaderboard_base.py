@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.html import strip_tags
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -46,7 +46,7 @@ class ProjectFixtureData:
 
 class CourseLeaderboardViewTestBase(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title="Test Course", slug="test-course-2"
         )
 

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project, ProjectSubmission
 from courses.views.project_confirmation_fields import project_submission_fields
 from courses.views.submission_formatting import format_submission_lines
@@ -8,7 +8,7 @@ from courses.views.submission_formatting import format_submission_lines
 
 @dataclass(frozen=True)
 class ProjectConfirmationData:
-    course: Course
+    course: Cohort
     project: Project
     submission: ProjectSubmission
     update_url: str

@@ -4,7 +4,7 @@ from django.test import Client, TestCase
 from django.utils import timezone
 
 from accounts.models import CustomUser, Token
-from courses.models import Course, Homework, Project
+from courses.models import Cohort, Homework, Project
 from courses.models.homework import HomeworkState
 from courses.models.project import ProjectState
 
@@ -23,7 +23,7 @@ class CourseAPITestBase(TestCase):
 
         start_date = timezone.datetime(2026, 1, 15).date()
         end_date = timezone.datetime(2026, 4, 15).date()
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="ML Zoomcamp",
             slug="ml-zoomcamp",
             description="Machine Learning course",
@@ -176,7 +176,7 @@ class CourseAPITestBase(TestCase):
         self.assertEqual(response.json()["code"], "staff_token_required")
 
     def assert_course_unchanged_after_forbidden_mutations(self):
-        course_exists = Course.objects.filter(
+        course_exists = Cohort.objects.filter(
             slug="nonstaff-course"
         ).exists()
         self.assertFalse(course_exists)

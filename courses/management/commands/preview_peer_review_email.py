@@ -13,7 +13,7 @@ import json
 
 from django.core.management.base import BaseCommand, CommandError
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project
 from course_management.datamailer.payloads.peer_review_members import (
     assigned_review_links,
@@ -50,11 +50,11 @@ class Command(BaseCommand):
 
     def get_project(self, options):
         try:
-            course = Course.objects.get(slug=options["course_slug"])
+            course = Cohort.objects.get(slug=options["course_slug"])
             project = Project.objects.get(
                 course=course, slug=options["project_slug"]
             )
-        except Course.DoesNotExist:
+        except Cohort.DoesNotExist:
             raise CommandError(f"No course with slug '{options['course_slug']}'.")
         except Project.DoesNotExist:
             raise CommandError(

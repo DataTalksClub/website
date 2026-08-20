@@ -1,6 +1,6 @@
 import json
 
-from courses.models import Course
+from courses.models import Cohort
 from api.tests.course_api_base import CourseAPITestBase
 
 
@@ -18,7 +18,7 @@ class CourseCreationAPITestCase(CourseAPITestBase):
         self.assertEqual(response.status_code, 201)
         data = response.json()
         self.assert_created_course_payload(data)
-        course_exists = Course.objects.filter(slug="new-course").exists()
+        course_exists = Cohort.objects.filter(slug="new-course").exists()
         self.assertTrue(course_exists)
 
     def test_create_course_duplicate_slug(self):

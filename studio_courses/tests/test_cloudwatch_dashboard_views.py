@@ -8,7 +8,7 @@ from accounts.studio_test_support import grant_studio_role
 from course_management.observability.cloudwatch_dashboard import (
     cloudwatch_dashboard_context,
 )
-from courses.models import Course, User
+from courses.models import Cohort, User
 
 
 USER_CREDENTIALS = {
@@ -84,7 +84,7 @@ class CloudWatchDashboardViewTests(TestCase):
         self.assertEqual(response.status_code, 302)
 
     def test_course_list_links_to_cloudwatch_dashboard(self):
-        Course.objects.create(
+        Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

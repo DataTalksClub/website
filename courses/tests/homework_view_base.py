@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from courses.models import (
     User,
-    Course,
+    Cohort,
     Homework,
     HomeworkState,
     Question,
@@ -44,7 +44,7 @@ class AnswerPostData:
 
 class HomeworkDetailViewTestBase(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title="Test Course", slug="test-course"
         )
 

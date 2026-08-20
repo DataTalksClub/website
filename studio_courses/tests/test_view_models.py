@@ -8,7 +8,7 @@ from studio_courses.views.view_models import (
     project_submission_list_data,
 )
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -24,7 +24,7 @@ from courses.models import (
 
 class StudioCoursesViewModelBase(TestCase):
     def setUp(self):
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

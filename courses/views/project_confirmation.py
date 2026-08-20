@@ -7,7 +7,7 @@ from course_management import email_templates
 from course_management.datamailer.sync.transactional import (
     send_transactional_email,
 )
-from courses.models.course import Course, User
+from courses.models.cohort import Cohort, User
 from courses.models.project import Project, ProjectSubmission
 from courses.views.project_confirmation_context import (
     ProjectConfirmationData,
@@ -23,7 +23,7 @@ from courses.views.url_utils import absolute_url_with_fallback
 @dataclass(frozen=True)
 class ProjectConfirmationEmailData:
     user: User
-    course: Course
+    course: Cohort
     project: Project
     submission: ProjectSubmission
     update_url: str
@@ -31,7 +31,7 @@ class ProjectConfirmationEmailData:
 
 def build_project_update_url(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     project: Project,
 ) -> str:
     path = reverse(

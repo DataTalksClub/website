@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework, Submission
 from courses.views.homework_answer_formatting import format_hours
 from courses.views.homework_submission_answers import homework_submitted_answers
@@ -83,7 +83,7 @@ def homework_time_submission_field(
 
 
 def problems_comments_submission_field(
-    course: Course,
+    course: Cohort,
     submission: Submission,
 ) -> dict[str, Any] | None:
     if not course.homework_problems_comments_field:
@@ -140,7 +140,7 @@ def add_homework_detail_submission_fields(
 
 def add_course_owned_submission_fields(
     fields: list[dict[str, Any]],
-    course: Course,
+    course: Cohort,
     submission: Submission,
 ) -> None:
     problems_comments_field = problems_comments_submission_field(
@@ -151,7 +151,7 @@ def add_course_owned_submission_fields(
 
 
 def homework_submission_fields(
-    course: Course,
+    course: Cohort,
     homework: Homework,
     submission: Submission,
 ) -> list[dict[str, Any]]:
@@ -167,7 +167,7 @@ def homework_submission_fields(
 
 
 def homework_submitted_content(
-    course: Course,
+    course: Cohort,
     homework: Homework,
     submission: Submission,
 ) -> HomeworkSubmittedContent:

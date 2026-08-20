@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from courses.models import Course
+from courses.models import Cohort
 
 User = get_user_model()
 
@@ -16,7 +16,7 @@ credentials = dict(
 class DashboardAuthenticationTestCase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             first_homework_scored=True,

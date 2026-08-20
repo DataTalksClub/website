@@ -2,7 +2,7 @@ from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.views.course_calendar_events import (
     course_calendar_event_lines,
     course_calendar_lines,
@@ -13,7 +13,7 @@ def course_calendar_view(
     request: HttpRequest,
     course_slug: str,
 ) -> HttpResponse:
-    course = get_object_or_404(Course, slug=course_slug, visible=True)
+    course = get_object_or_404(Cohort, slug=course_slug, visible=True)
     dtstamp = timezone.now()
     event_lines = course_calendar_event_lines(request, course, dtstamp)
     calendar_lines = course_calendar_lines(course, event_lines)

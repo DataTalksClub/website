@@ -12,7 +12,7 @@ from course_management.datamailer.keys import (
     project_submitters_list_key,
 )
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     Project,
@@ -47,7 +47,7 @@ class DatamailerMembershipBase(TestCase):
         process_due_datamailer_outbox()
 
     def create_ml_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="ml-zoomcamp-2026",
             title="ML Zoomcamp 2026",
             description="Machine learning",

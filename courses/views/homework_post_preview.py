@@ -5,7 +5,7 @@ from django.http import HttpRequest
 from django.shortcuts import redirect
 
 from course_management.observability import record_event
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import (
     Homework,
     HomeworkState,
@@ -19,7 +19,7 @@ from courses.views.homework_submission import (
 
 def closed_homework_submission_response(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     homework: Homework,
 ):
     messages.error(

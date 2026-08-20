@@ -21,7 +21,7 @@ django.setup()
 from django.contrib.auth import get_user_model  # noqa: E402
 
 from courses.models import (  # noqa: E402
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -67,7 +67,7 @@ class UpcomingProjectFixture:
 
 User = get_user_model()
 
-course = Course.objects.get(slug="fake-course")
+course = Cohort.objects.get(slug="fake-course")
 today = timezone.localdate()
 course.start_date = today + timedelta(days=7)
 course.end_date = today + timedelta(days=77)

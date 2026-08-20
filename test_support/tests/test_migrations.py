@@ -151,7 +151,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         courses_target = ("courses", "0026_enrollment_disable_learning_in_public_and_more")
         executor, apps = self._migrate([seed.start, courses_target])
         User = apps.get_model("accounts", "CustomUser")
-        Course = apps.get_model("courses", "Course")
+        Cohort = apps.get_model("courses", "Course")
         Enrollment = apps.get_model("courses", "Enrollment")
         user_values = seed.payload["users"][0]
         user = User.objects.create(
@@ -160,7 +160,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
             email="synthetic-profile@example.invalid",
             password="synthetic-hash",
         )
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="synthetic-profile-course",
             title="Synthetic profile course",
             description="Synthetic",
@@ -299,7 +299,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         self.assertFalse(seed.reversible)
         executor, apps = self._migrate([seed.start])
         User = apps.get_model("accounts", "CustomUser")
-        Course = apps.get_model("courses", "Course")
+        Cohort = apps.get_model("courses", "Course")
         Enrollment = apps.get_model("courses", "Enrollment")
         Homework = apps.get_model("courses", "Homework")
         Question = apps.get_model("courses", "Question")
@@ -311,7 +311,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
             email="synthetic-course@example.invalid",
             password="synthetic-hash",
         )
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             id=seed.payload["course"]["id"],
             slug=seed.payload["course"]["slug"],
             title="Synthetic course",

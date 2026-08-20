@@ -15,7 +15,7 @@ from django.test import TestCase, override_settings
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from core.idempotency import hash_idempotency_key
 from core.models import AuditEvent
-from courses.models import Course, CourseRegistrationCountSourceRun, RegistrationCampaign
+from courses.models import Cohort, CourseRegistrationCountSourceRun, RegistrationCampaign
 from courses.registration_count_importer import ADAPTER_VERSION, schema_contract_checksum
 from management_api.concurrency import revision_etag
 from management_auth.models import APIPrincipal
@@ -30,7 +30,7 @@ class CourseRegistrationCountManagementTests(TestCase):
         scratch.mkdir(exist_ok=True)
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "synthetic-management.sqlite3"
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="synthetic-managed-cohort",
             title="Synthetic managed cohort",
             description="Deterministic management fixture.",

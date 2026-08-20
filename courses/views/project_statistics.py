@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from courses.assignment_statistics import calculate_project_statistics
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project, ProjectState
 
 
@@ -21,7 +21,7 @@ def incomplete_project_statistics_response(request, course, project):
 
 
 def project_statistics(request, course_slug, project_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

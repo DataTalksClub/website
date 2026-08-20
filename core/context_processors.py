@@ -8,7 +8,7 @@ from django.http import HttpRequest
 from core.configuration import InvalidOperationalSetting
 from core.navigation import public_primary_navigation
 from core.site_settings import public_announcement
-from courses.models import Course
+from courses.models import Cohort
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,7 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         and resolver_match.url_name == "course"
     ):
         course_slug = resolver_match.kwargs.get("course_slug")
-        if course_slug and Course.objects.filter(slug=course_slug).exists():
+        if course_slug and Cohort.objects.filter(slug=course_slug).exists():
             canonical_url = f"https://datatalks.club/courses/{course_slug}"
     if (
         canonical_url is None

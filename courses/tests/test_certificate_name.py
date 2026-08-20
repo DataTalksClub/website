@@ -1,7 +1,7 @@
 from django.test import TestCase
 
 from accounts.models import CustomUser
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 from courses.views.forms import EnrollmentForm
 
 
@@ -12,11 +12,11 @@ class CertificateNameTests(TestCase):
             email="test@test.com",
             password="12345"
         )
-        self.course1 = Course.objects.create(
+        self.course1 = Cohort.objects.create(
             title="Test Course 1",
             slug="test-course-1"
         )
-        self.course2 = Course.objects.create(
+        self.course2 = Cohort.objects.create(
             title="Test Course 2",
             slug="test-course-2"
         )

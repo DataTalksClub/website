@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectState,
@@ -29,7 +29,7 @@ class ProjectFixtureData:
 
 class CourseProjectSubmissionsViewBase(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title="Test Course", slug="test-course-2"
         )
 

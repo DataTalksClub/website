@@ -14,7 +14,7 @@ from django.test import TestCase, override_settings
 
 from core.bootstrap import RuntimeEnvironment
 from core.models import IdempotencyRecord
-from courses.models import Course
+from courses.models import Cohort
 from courses.services.development_content_import import (
     APPROVED_SCHEMA_CHECKSUM,
     ArtifactContract,
@@ -122,8 +122,8 @@ class DevelopmentContentImportTests(TestCase):
         self.assertFalse(second.imported)
         self.assertTrue(second.replayed)
         self.assertTrue(first.sensitive_tables_preserved)
-        self.assertEqual(Course.objects.get(pk=101).slug, "imported-course")
-        next_course = Course.objects.create(
+        self.assertEqual(Cohort.objects.get(pk=101).slug, "imported-course")
+        next_course = Cohort.objects.create(
             slug="post-import-course",
             title="Post-import course",
             description="Sequence portability check.",
@@ -135,7 +135,7 @@ class DevelopmentContentImportTests(TestCase):
     def test_partial_or_different_target_is_refused_without_receipt(self) -> None:
         dataset = _single_course_dataset()
         contract = _contract(dataset)
-        Course.objects.create(
+        Cohort.objects.create(
             slug="different-course",
             title="Different course",
             description="Existing target content.",
@@ -158,7 +158,7 @@ class DevelopmentContentImportTests(TestCase):
             )
 
         self.assertFalse(IdempotencyRecord.objects.exists())
-        self.assertEqual(Course.objects.get().slug, "different-course")
+        self.assertEqual(Cohort.objects.get().slug, "different-course")
 
     def test_replay_still_refuses_target_drift(self) -> None:
         dataset = _single_course_dataset()
@@ -172,7 +172,7 @@ class DevelopmentContentImportTests(TestCase):
                 contract=contract,
                 allow_test_environment=True,
             )
-            Course.objects.filter(pk=101).update(title="Drifted title")
+            Cohort.objects.filter(pk=101).update(title="Drifted title")
             with self.assertRaisesRegex(
                 DevelopmentContentImportError,
                 "target-content-drift",

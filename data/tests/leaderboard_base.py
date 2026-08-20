@@ -6,7 +6,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from accounts.models import CustomUser
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ class LeaderboardDataViewBase(TestCase):
         )
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title="Test Course",
             slug="test-course",
             description="Test",

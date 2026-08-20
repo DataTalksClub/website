@@ -4,7 +4,7 @@ from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 
 from courses import coursework_badges
-from courses.models.course import Course, User
+from courses.models.cohort import Cohort, User
 from courses.models.project import (
     PeerReviewState,
     Project,
@@ -29,7 +29,7 @@ class ProjectBadgeData:
 
 
 def get_projects_for_course(
-    course: Course, user: User
+    course: Cohort, user: User
 ) -> list[Project]:
     if user.is_authenticated:
         queryset = ProjectSubmission.objects.filter(

@@ -11,7 +11,7 @@ from content.sitemap_contract import (
     SITEMAP_NAMESPACE,
     validate_sitemap_index,
 )
-from courses.models import Course
+from courses.models import Cohort
 
 URLSET_NS = {"s": SITEMAP_NAMESPACE}
 COURSES_HUB = f"{PRODUCTION_ORIGIN}/courses"
@@ -27,7 +27,7 @@ PRIVATE_MARKERS = (
 
 class CoursesSitemapContractTests(TestCase):
     def test_empty_course_table_emits_hub_and_cohort_only(self) -> None:
-        self.assertEqual(Course.objects.count(), 0)
+        self.assertEqual(Cohort.objects.count(), 0)
 
         locations = self._courses_sitemap_locations()
 
@@ -35,19 +35,19 @@ class CoursesSitemapContractTests(TestCase):
         self._assert_index_and_sibling_remain_valid()
 
     def test_populated_visible_and_hidden_courses_follow_the_public_contract(self) -> None:
-        Course.objects.create(
+        Cohort.objects.create(
             slug=VISIBLE_SLUGS[1],
             title="Zeta Visible Sitemap Course",
             description="Public visible course used only for sitemap ordering.",
             visible=True,
         )
-        Course.objects.create(
+        Cohort.objects.create(
             slug=VISIBLE_SLUGS[0],
             title="AA Visible Sitemap Course",
             description="Public visible course created after the later slug.",
             visible=True,
         )
-        Course.objects.create(
+        Cohort.objects.create(
             slug=HIDDEN_SLUG,
             title="Hidden Sitemap Course",
             description=(

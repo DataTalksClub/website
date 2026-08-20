@@ -9,8 +9,8 @@ from unfold.widgets import (
     UnfoldAdminTextareaWidget,
 )
 
-from courses.models.course import (
-    Course,
+from courses.models.cohort import (
+    Cohort,
     CourseRegistration,
     LeaderboardComplaint,
     RegistrationCampaign,
@@ -104,7 +104,7 @@ duplicate_course.short_description = "Duplicate selected courses"
 
 def _duplicate_course(course, current_year):
     duplicate_fields = _course_duplicate_fields(course, current_year)
-    new_course = Course.objects.create(**duplicate_fields)
+    new_course = Cohort.objects.create(**duplicate_fields)
     _copy_review_criteria(course, new_course)
     return new_course
 
@@ -148,7 +148,7 @@ def _copy_review_criteria(source_course, target_course):
         )
 
 
-@admin.register(Course)
+@admin.register(Cohort)
 class CourseAdmin(ModelAdmin):
     actions = [update_leaderboard_admin, duplicate_course]
     inlines = [CriteriaInline]

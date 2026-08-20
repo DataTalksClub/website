@@ -36,7 +36,7 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
         self.assertNotContains(response, "already registered")
 
     def test_registration_page_does_not_infer_total_from_other_rows(self):
-        from courses.models import Course, RegistrationCampaign
+        from courses.models import Cohort, RegistrationCampaign
 
         CourseRegistration.objects.create(
             campaign=self.campaign,
@@ -44,7 +44,7 @@ class RegistrationCampaignPublicTests(RegistrationCampaignBase):
             email="a@example.com",
         )
 
-        other_course = Course.objects.create(
+        other_course = Cohort.objects.create(
             slug="llm-zoomcamp-2027",
             title="LLM Zoomcamp 2027",
             description="Next edition",

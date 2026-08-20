@@ -1,6 +1,6 @@
 from django import forms
 
-from courses.models.course import CourseRegistration
+from courses.models.cohort import CourseRegistration
 from courses.registration import region_for_country
 from courses.views.registration_profile import (
     update_user_profile_from_registration,

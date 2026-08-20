@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from courses.models import (
     User,
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectState,
@@ -32,7 +32,7 @@ class PeerReviewBadgeTests(TestCase):
             email="test@test.com",
             password="12345",
         )
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course",
             slug="test-course",
         )
@@ -178,7 +178,7 @@ class PeerReviewBadgeEndToEndTests(TestCase):
         )
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title="Test Course",
             slug="test-course",
             project_passing_score=10,

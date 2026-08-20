@@ -4,18 +4,13 @@ from dataclasses import dataclass
 from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import render
-from django.urls import reverse
 from django.utils import timezone
 
 from core.course_index_content import (
-    catalog_eyebrow,
     cohort_dates_display,
-    course_filters,
-    course_promise,
     enrolled_state_label,
-    selected_course_filter,
 )
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.wrapped import WrappedStatistics
 from courses.services.registration_counts import (
     public_course_registration_count,
@@ -38,7 +33,7 @@ class CourseListCourses:
 
 
 def visible_course_list_queryset():
-    courses = Course.objects.filter(visible=True)
+    courses = Cohort.objects.filter(visible=True)
     homework_count = Count("homework", distinct=True)
     project_count = Count("project", distinct=True)
     learner_count = Count("enrollment", distinct=True)
@@ -173,7 +168,6 @@ def registered_learner_count(course):
 def add_course_index_info(course, today) -> None:
     """Attach the facts the design 5a courses index shows for one course."""
 
-    course.index_promise = course_promise(course.slug)
     course.index_dates = cohort_dates_display(
         course.start_date,
         course.end_date,
@@ -233,14 +227,6 @@ def wrapped_entry_year():
     return published_year
 
 
-def visible_course_sections(selected_filter):
-    return {
-        "show_active_courses": selected_filter in {"all", "active"},
-        "show_open_registration": selected_filter in {"all", "open"},
-        "show_finished": selected_filter in {"all", "finished"},
-    }
-
-
 def course_list_context(request):
     course_groups = prepare_course_list_courses(request.user)
     today = timezone.localdate()
@@ -262,7 +248,6 @@ def course_list_context(request):
         course_groups.active_courses,
         course_groups.finished_courses,
     )
-    selected_filter = selected_course_filter(request.GET.get("filter"))
 
     context = {
         "active_courses": course_groups.active_courses,
@@ -272,15 +257,11 @@ def course_list_context(request):
         "finished_courses": course_groups.finished_courses,
         "other_active_courses": secondary_active_courses,
         "home_stats": home_stats,
-        "catalog_eyebrow": catalog_eyebrow(len(course_groups.courses)),
-        "course_filters": course_filters(
-            selected_filter,
-            reverse("course_list"),
-        ),
-        "selected_course_filter": selected_filter,
+        "show_active_courses": True,
+        "show_open_registration": True,
+        "show_finished": True,
         "wrapped_year": wrapped_entry_year(),
     }
-    context.update(visible_course_sections(selected_filter))
     return context
 
 

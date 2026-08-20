@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from django.http import HttpRequest
 
-from courses.models.course import Course, User
+from courses.models.cohort import Cohort, User
 from courses.models.homework import Homework, Submission
 from courses.validators.custom_url_validators import (
     clean_faq_contribution_url,
@@ -19,7 +19,7 @@ from courses.views.submission_formatting import parse_time_spent_hours
 class HomeworkSubmissionFieldData:
     submission: Submission
     request: HttpRequest
-    course: Course
+    course: Cohort
     homework: Homework
     user: User
 

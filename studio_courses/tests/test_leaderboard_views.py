@@ -4,7 +4,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from accounts.studio_test_support import grant_studio_role
-from courses.models import Course, Enrollment, LeaderboardComplaint, User
+from courses.models import Cohort, Enrollment, LeaderboardComplaint, User
 
 
 credentials = dict(
@@ -46,7 +46,7 @@ class LeaderboardStudioCoursesViewTests(TestCase):
             is_staff=True,
         )
         grant_studio_role(self.admin_user, "course_operator")
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

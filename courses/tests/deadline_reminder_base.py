@@ -4,7 +4,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from accounts.models import CustomUser
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 
 DATAMAILER_SETTINGS = {
@@ -39,7 +39,7 @@ class DeadlineReminderTestBase(TestCase):
         return Enrollment.objects.create(student=user, course=course)
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="ml-zoomcamp-2026",
             title="ML Zoomcamp 2026",
             description="Machine learning",

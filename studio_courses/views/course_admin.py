@@ -1,8 +1,8 @@
 from django.db.models import Count
 from django.shortcuts import get_object_or_404, render
 
-from courses.models.course import (
-    Course,
+from courses.models.cohort import (
+    Cohort,
     Enrollment,
     LeaderboardComplaint,
     RegistrationCampaign,
@@ -26,7 +26,7 @@ from .helpers import staff_required
 @staff_required
 def course_list(request):
     """List all courses with admin actions"""
-    courses = Course.objects.all().order_by("finished", "-id")
+    courses = Cohort.objects.all().order_by("finished", "-id")
 
     context = {
         "courses": courses,
@@ -142,7 +142,7 @@ def course_admin_context(course):
 @staff_required
 def course_admin(request, course_slug):
     """Admin panel for a specific course"""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     context = course_admin_context(course)
     response = render(
         request,

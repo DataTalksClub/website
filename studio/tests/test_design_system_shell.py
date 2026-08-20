@@ -35,7 +35,7 @@ from courses.models import (
     Submission,
     User,
 )
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from events.identity import create_event_identity
 from events.models import Event
 
@@ -55,7 +55,7 @@ SCRIPT_SOURCE = re.compile(r'<script src="([^"]+)"')
 
 
 class StudioDesignFiveAShellTests(TestCase):
-    course: Course
+    course: Cohort
     audit_event: AuditEvent
     event: Event
     student: CustomUser
@@ -67,7 +67,7 @@ class StudioDesignFiveAShellTests(TestCase):
 
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.course = Course.objects.create(
+        cls.course = Cohort.objects.create(
             slug="shell-contract-course",
             title="Shell Contract Course",
             description="Fixture for the Studio design 5a shell contract.",

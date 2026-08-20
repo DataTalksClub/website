@@ -20,7 +20,7 @@ from course_management.datamailer.sync.peer_review_notifications import (
     send_peer_review_assignment_notification,
 )
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     PeerReview,
     Project,
@@ -38,7 +38,7 @@ DATAMAILER_SETTINGS = {
 
 
 def create_ml_course():
-    return Course.objects.create(
+    return Cohort.objects.create(
         slug="ml-zoomcamp-2026",
         title="ML Zoomcamp 2026",
         description="Machine learning",

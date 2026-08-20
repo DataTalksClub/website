@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     Project,
@@ -48,7 +48,7 @@ class HomeworkSubmissionFixtureData:
 
 class WrappedStatisticsTestBase(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="wrapped-course", title="Wrapped Course"
         )
 

@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     ReviewCriteria,
     ReviewCriteriaTypes,
     User,
@@ -12,7 +12,7 @@ from courses.models import (
 
 class CourseDuplicationTests(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title="Test Course",
             slug="test-course",
             description="Test course description",
@@ -80,7 +80,7 @@ class CourseDuplicationTests(TestCase):
         return admin_client.post(url, data, follow=True)
 
     def duplicated_course(self, year):
-        return Course.objects.get(slug=f"test-course-{year}")
+        return Cohort.objects.get(slug=f"test-course-{year}")
 
     def assert_duplicated_course_fields(self, new_course, year):
         self.assertEqual(new_course.title, f"Test Course {year}")

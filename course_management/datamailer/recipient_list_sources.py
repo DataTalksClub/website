@@ -16,7 +16,7 @@ from course_management.datamailer.payloads.submissions import (
     homework_submission_recipient_list_payload,
     project_submission_recipient_list_payload,
 )
-from courses.models.course import (
+from courses.models.cohort import (
     CourseRegistration,
     Enrollment,
 )

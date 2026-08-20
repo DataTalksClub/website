@@ -6,7 +6,7 @@ from django.utils import timezone
 from accounts.models import CustomUser
 from courses.models import (
     Answer,
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     Question,
@@ -18,7 +18,7 @@ from courses.homework_score_calculation import update_score
 
 class SubmissionTimestampTest(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="course",
             title="Course",
             description="Course description",

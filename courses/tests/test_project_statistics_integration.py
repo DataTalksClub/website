@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from courses.assignment_statistics import calculate_project_statistics
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectState,
@@ -48,7 +48,7 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
 
     @classmethod
     def create_course(cls):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             project_passing_score=10,

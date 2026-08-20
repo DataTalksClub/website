@@ -31,7 +31,7 @@ from core.models import AuditEvent
 from course_management.datamailer_templates.accessibility import (
     render_current_transactional_email,
 )
-from courses.models import Course, HomeworkState, ProjectState, RegistrationCampaign
+from courses.models import Cohort, HomeworkState, ProjectState, RegistrationCampaign
 from events.identity import canonical_detail_path
 from events.models import (
     Event,
@@ -214,7 +214,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
     project.state = ProjectState.PEER_REVIEWING.value
     project.save(update_fields=("state",))
 
-    empty_course = Course.objects.create(
+    empty_course = Cohort.objects.create(
         slug=f"synthetic-empty-{namespace}",
         title="Synthetic empty course",
         description="A deterministic empty learner state.",
@@ -283,7 +283,7 @@ def accessibility_environment() -> AccessibilityEnvironment:
     podcast = next(record for record in public["podcasts"] if record.get("transcript"))
     book = public["books"][0]
     public_course = public["courses"][0]
-    Course.objects.get_or_create(
+    Cohort.objects.get_or_create(
         slug=public_course["slug"],
         defaults={
             "title": public_course["title"],

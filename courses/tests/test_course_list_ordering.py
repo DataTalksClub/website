@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from courses.models import Course
+from courses.models import Cohort
 from courses.tests.course_list_base import CourseListViewTestBase
 
 
@@ -10,7 +10,7 @@ class CourseListOrderingTest(CourseListViewTestBase):
     """Homepage courses split into active / open registration / archive."""
 
     def create_course(self, slug, **kwargs):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title=kwargs.pop("title", slug),
             slug=slug,
             visible=True,

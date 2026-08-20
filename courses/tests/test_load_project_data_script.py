@@ -5,7 +5,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 from scripts.load_project_data import (
     ImportMaps,
     create_enrollments,
@@ -53,7 +53,7 @@ class LoadProjectDataScriptTest(TestCase):
         self.assertTrue(created.dark_mode)
 
     def create_enrollment_import_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
         )

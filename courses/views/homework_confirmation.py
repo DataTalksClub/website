@@ -8,7 +8,7 @@ from course_management import email_templates
 from course_management.datamailer.sync.transactional import (
     send_transactional_email,
 )
-from courses.models.course import Course, User
+from courses.models.cohort import Cohort, User
 from courses.models.homework import Homework, Submission
 from courses.views.homework_submission_summary import (
     homework_submitted_content,
@@ -23,7 +23,7 @@ from courses.views.url_utils import absolute_url_with_fallback
 @dataclass(frozen=True)
 class HomeworkConfirmationEmailData:
     user: User
-    course: Course
+    course: Cohort
     homework: Homework
     submission: Submission
     update_url: str
@@ -31,7 +31,7 @@ class HomeworkConfirmationEmailData:
 
 @dataclass(frozen=True)
 class HomeworkConfirmationData:
-    course: Course
+    course: Cohort
     homework: Homework
     submission: Submission
     update_url: str
@@ -128,7 +128,7 @@ def homework_confirmation_context(
 
 def build_homework_update_url(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     homework: Homework,
 ) -> str:
     path = reverse(

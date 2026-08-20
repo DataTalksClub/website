@@ -19,7 +19,7 @@ from course_management.datamailer.sync.membership_removals import (
 from course_management.datamailer.sync.memberships import (
     sync_enrollment_to_datamailer as sync_enrollment_recipient_list,
 )
-from courses.models.course import CourseRegistration, Enrollment
+from courses.models.cohort import CourseRegistration, Enrollment
 from courses.models.homework import Submission
 from courses.models.project import ProjectSubmission
 

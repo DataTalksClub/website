@@ -8,7 +8,7 @@ from course_management.datamailer.sync.memberships import (
     sync_project_submission_to_datamailer,
 )
 from course_management.observability import record_event
-from courses.models.course import Enrollment, User
+from courses.models.cohort import Enrollment, User
 from courses.models.project import Project, ProjectSubmission
 from courses.validators.custom_url_validators import (
     clean_faq_contribution_url,

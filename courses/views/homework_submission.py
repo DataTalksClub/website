@@ -11,7 +11,7 @@ from course_management.datamailer.sync.memberships import (
     sync_homework_submission_to_datamailer,
 )
 from course_management.observability import record_event
-from courses.models.course import Course, Enrollment
+from courses.models.cohort import Cohort, Enrollment
 from courses.models.homework import (
     Answer,
     Homework,
@@ -32,7 +32,7 @@ from courses.views.homework_submission_fields import (
 @dataclass(frozen=True)
 class HomeworkPostData:
     request: HttpRequest
-    course: Course
+    course: Cohort
     homework: Homework
     questions: list[Question]
     submission: Submission | None

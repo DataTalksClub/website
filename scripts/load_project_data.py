@@ -31,7 +31,7 @@ django.setup()
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectSubmission,
@@ -166,7 +166,7 @@ def course_defaults(course_data):
 
 def get_or_create_course(course_data):
     defaults = course_defaults(course_data)
-    course, created = Course.objects.get_or_create(
+    course, created = Cohort.objects.get_or_create(
         slug=course_data["slug"],
         defaults=defaults,
     )

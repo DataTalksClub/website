@@ -17,11 +17,11 @@ from api.views.course_serializers import (
     course_summary_to_dict,
     course_to_dict,
 )
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 
 def courses_list_response():
-    courses = Course.objects.all().order_by("id")
+    courses = Cohort.objects.all().order_by("id")
     course_records = []
     for course in courses:
         course_record = course_summary_to_dict(course)
@@ -87,7 +87,7 @@ def patch_course_response(request, course):
 @csrf_exempt
 @require_methods("GET", "PATCH")
 def course_detail_view(request, course_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
 
     if request.method == "PATCH":
         return patch_course_response(request, course)

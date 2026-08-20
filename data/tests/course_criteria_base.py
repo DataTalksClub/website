@@ -4,7 +4,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from courses.models import (
-    Course,
+    Cohort,
     ReviewCriteria,
     ReviewCriteriaTypes,
 )
@@ -13,7 +13,7 @@ from courses.models import (
 class CourseCriteriaYAMLTestBase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course", slug="test-course"
         )
 

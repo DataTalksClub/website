@@ -7,7 +7,7 @@ from django.urls import resolve, reverse
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from studio_courses.urls import ROUTE_DEFINITIONS
-from courses.models import Course, RegistrationCampaign
+from courses.models import Cohort, RegistrationCampaign
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CANONICAL_ROOT = "/studio/courses"
@@ -65,7 +65,7 @@ class StudioCourseRouteTests(TestCase):
                 self.assertIn("next=/studio/courses", response.headers["Location"])
 
     def test_literal_canonical_root_renders_the_populated_operator_surface(self) -> None:
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="literal-root-course",
             title="Literal Root Course",
             description="Course proving the live canonical root contract",
@@ -181,7 +181,7 @@ class StudioCourseRouteTests(TestCase):
                 )
 
     def test_legacy_post_replays_its_body_only_for_an_authorized_role(self) -> None:
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="replay-course",
             title="Replay Course",
             description="Course for compatibility replay characterization",
@@ -278,7 +278,7 @@ class StudioCourseRouteTests(TestCase):
         legacy_list = reverse("legacy_studio_courses_course_list")
         canonical_mutation = reverse("studio_courses_campaign_create")
         legacy_mutation = reverse("legacy_studio_courses_campaign_create")
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="role-matrix-course",
             title="Role Matrix Course",
             description="Course for authorization characterization",
@@ -451,7 +451,7 @@ class StudioCourseRouteTests(TestCase):
         self.assertIn("no-store", courses_response.headers["Cache-Control"])
 
     def test_course_pages_have_no_user_facing_legacy_name(self) -> None:
-        Course.objects.create(
+        Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test course description",

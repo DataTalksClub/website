@@ -2,7 +2,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect
 
 from course_management.observability import record_event
-from courses.models.course import Course, Enrollment
+from courses.models.cohort import Cohort, Enrollment
 from courses.models.project import PeerReview, Project, ProjectSubmission
 
 
@@ -74,7 +74,7 @@ def _create_optional_peer_review_if_allowed(
 def projects_eval_add(
     request, course_slug, project_slug, submission_id
 ):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

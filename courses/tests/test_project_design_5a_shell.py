@@ -32,7 +32,7 @@ from django.utils import timezone
 
 from accounts.studio_test_support import make_studio_user
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     PeerReview,
     Project,
@@ -64,7 +64,7 @@ INDEXED_PAGES = ("project",)
 
 class ProjectDesignFiveAShellTests(TestCase):
     def setUp(self) -> None:
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="shell-project-course",
             title="Shell Project Course",
             description="Fixture for the project design 5a shell contract.",

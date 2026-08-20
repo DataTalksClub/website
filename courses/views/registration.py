@@ -14,7 +14,7 @@ from course_management.datamailer.sync.notifications import (
     send_registration_confirmation_email,
 )
 from course_management.observability import record_event
-from courses.models.course import CourseRegistration, RegistrationCampaign
+from courses.models.cohort import CourseRegistration, RegistrationCampaign
 from courses.models.homework import Homework
 from courses.models.project import Project
 from courses.registration import (

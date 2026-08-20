@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.db.models import QuerySet
 from django.shortcuts import get_object_or_404, render
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import (
     CriteriaResponse,
     PeerReview,
@@ -80,7 +80,7 @@ def annotate_scores_with_option_votes(
 
 
 def project_results(request, course_slug, project_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

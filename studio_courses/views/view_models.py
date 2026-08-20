@@ -2,7 +2,7 @@ from operator import attrgetter
 
 from django.db.models import Count, Q
 
-from courses.models.course import Enrollment
+from courses.models.cohort import Enrollment
 from courses.models.project import (
     PeerReview,
     PeerReviewState,

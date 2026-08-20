@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
-from courses.models.course import (
-    Course,
+from courses.models.cohort import (
+    Cohort,
     Enrollment,
 )
 from courses.views.course_leaderboard_breakdown import (
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 def leaderboard_view(request, course_slug: str):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     page_number = request.GET.get("page")
     context = leaderboard_context(course, request.user, page_number)
 

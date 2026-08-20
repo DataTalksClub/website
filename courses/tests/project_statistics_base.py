@@ -5,7 +5,7 @@ from django.test import TestCase
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectState,
@@ -33,7 +33,7 @@ class RawStatExpectation:
 
 class ProjectStatisticsTestBase(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             project_passing_score=10,

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from course_management.datamailer.sync.score_notifications import (
     send_homework_score_notification,
 )
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework, HomeworkState, Question
 from courses.homework_correct_answers import (
     clear_correct_answers,
@@ -33,7 +33,7 @@ def homework_score(request, course_slug, homework_slug):
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )
@@ -55,7 +55,7 @@ def homework_extend_deadline(request, course_slug, homework_slug):
     """Push the homework due date forward by a fixed amount."""
     if request.method != "POST":
         return redirect("studio_courses_course", course_slug=course_slug)
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )
@@ -86,7 +86,7 @@ def homework_rescore(request, course_slug, homework_slug):
     """
     if request.method != "POST":
         return redirect("studio_courses_course", course_slug=course_slug)
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )
@@ -122,7 +122,7 @@ def homework_notify_scores(request, course_slug, homework_slug):
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )
@@ -154,7 +154,7 @@ def homework_set_correct_answers(request, course_slug, homework_slug):
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )
@@ -177,7 +177,7 @@ def homework_clear_correct_answers(request, course_slug, homework_slug):
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )
@@ -197,7 +197,7 @@ def homework_clear_correct_answers(request, course_slug, homework_slug):
 @staff_required
 def homework_submissions(request, course_slug, homework_slug):
     """View all submissions for a homework"""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )
@@ -226,7 +226,7 @@ def homework_save_answers(request, course_slug, homework_slug):
     """Save correct answers from the submissions page"""
     if request.method != "POST":
         return redirect("studio_courses_course", course_slug=course_slug)
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )

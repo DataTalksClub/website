@@ -2,7 +2,7 @@ from functools import partial
 
 from django.db import transaction
 
-from courses.models.course import Enrollment
+from courses.models.cohort import Enrollment
 
 
 def persist_certificate_updates(enrollments_to_update):

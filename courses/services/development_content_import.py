@@ -22,7 +22,7 @@ from django.urls import resolve
 from core.bootstrap import RuntimeEnvironment
 from core.idempotency import execute_idempotent
 from courses.models import (
-    Course,
+    Cohort,
     Homework,
     HomeworkStatistics,
     Project,
@@ -114,7 +114,7 @@ BOOLEAN_COLUMNS = frozenset(
 )
 JSON_COLUMNS = frozenset({"options", "course_stats", "leaderboard"})
 IMPORTED_MODELS = (
-    Course,
+    Cohort,
     RegistrationCampaign,
     Homework,
     Question,
@@ -627,7 +627,7 @@ def development_course_content_evidence(
     _assert_target_wrapped_leaderboard_empty()
     list_match = resolve("/courses")
     detail_match = resolve(f"/courses/{representative_slug}")
-    if not Course.objects.filter(slug=representative_slug).exists():
+    if not Cohort.objects.filter(slug=representative_slug).exists():
         raise DevelopmentContentImportError("representative-course-missing")
     list_origin, list_hash = _repo_relative_template_origin("courses/course_list.html")
     detail_origin, detail_hash = _repo_relative_template_origin("courses/course.html")
@@ -643,7 +643,7 @@ def development_course_content_evidence(
         raise DevelopmentContentImportError("course-detail-template-drift")
     representative = {
         "slug": representative_slug,
-        "courses": Course.objects.filter(slug=representative_slug).count(),
+        "courses": Cohort.objects.filter(slug=representative_slug).count(),
         "homeworks": Homework.objects.filter(course__slug=representative_slug).count(),
         "projects": Project.objects.filter(course__slug=representative_slug).count(),
         "questions": Question.objects.filter(homework__course__slug=representative_slug).count(),

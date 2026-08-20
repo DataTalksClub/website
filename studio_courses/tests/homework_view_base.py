@@ -8,7 +8,7 @@ from django.utils import timezone
 from accounts.studio_test_support import grant_studio_role
 from courses.models import (
     User,
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -73,7 +73,7 @@ class HomeworkStudioCoursesViewTestBase(TestCase):
         self.client.login(username="admin@test.com", password="admin123")
 
     def create_course_work_items(self):
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

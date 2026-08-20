@@ -14,7 +14,7 @@ from data.models import (
     DatamailerSendAuditType,
 )
 from course_management.datamailer.keys import homework_submitters_list_key
-from courses.models import Course, Enrollment, Homework, Submission
+from courses.models import Cohort, Enrollment, Homework, Submission
 
 
 DATAMAILER_SETTINGS = {
@@ -44,7 +44,7 @@ class HomeworkScoreListSendExpectation:
 
 class DatamailerHomeworkScoreTestBase(TestCase):
     def create_ml_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="ml-zoomcamp-2026",
             title="ML Zoomcamp 2026",
             description="Machine learning",

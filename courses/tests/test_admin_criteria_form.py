@@ -1,6 +1,6 @@
 from django.test import TestCase
 
-from courses.models import Course, ReviewCriteriaTypes
+from courses.models import Cohort, ReviewCriteriaTypes
 from courses.admin.course import CriteriaForm
 
 
@@ -9,7 +9,7 @@ class CriteriaFormValidationTestCase(TestCase):
 
     def setUp(self):
         """Set up test course for form validation."""
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course",
             slug="test-course"
         )

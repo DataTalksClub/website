@@ -1,5 +1,5 @@
-from courses.models.course import (
-    Course,
+from courses.models.cohort import (
+    Cohort,
     CourseRegistration,
     RegistrationCampaign,
 )
@@ -27,7 +27,7 @@ COURSE_REGISTRATION_REF = ref("CourseRegistration")
 COURSE_REGISTRATION_ARRAY = array_of(COURSE_REGISTRATION_REF)
 
 COURSE_SUMMARY_SCHEMA = model_object_schema(
-    Course,
+    Cohort,
     [
         "slug",
         "title",
@@ -42,7 +42,7 @@ COURSE_SUMMARY_SCHEMA = model_object_schema(
     required_fields=["slug", "title", "description", "finished"],
 )
 COURSE_CREATE_SCHEMA = model_object_schema(
-    Course,
+    Cohort,
     [
         "slug",
         "title",
@@ -62,7 +62,7 @@ COURSE_CREATE_SCHEMA = model_object_schema(
     required_fields=["slug", "title"],
 )
 COURSE_PATCH_PROPERTIES = model_properties(
-    Course,
+    Cohort,
     [
         "title",
         "description",
@@ -84,7 +84,7 @@ COURSE_DETAIL_EXTRA_PROPERTIES = {
     "projects": PROJECT_SUMMARY_ARRAY,
 }
 COURSE_DETAIL_SCHEMA = model_object_schema(
-    Course,
+    Cohort,
     [
         "slug",
         "title",

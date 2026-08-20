@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404, redirect, render
 
 from accounts.navigation import can_access_course_studio
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import (
     Project,
 )
@@ -17,7 +17,7 @@ from courses.views.project_submission_votes import (
 
 
 def projects_list_view(request, course_slug, project_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(Project, course=course, slug=project_slug)
 
     if request.method == "POST":

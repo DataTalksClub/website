@@ -1,9 +1,9 @@
-from . import course, project, homework, wrapped  # noqa: F401
+from . import cohort, project, homework, wrapped  # noqa: F401
 
 from django.contrib.auth import get_user_model
 
-from .course import (
-    Course,
+from .cohort import (
+    Cohort,
     CourseRegistration,
     Enrollment,
     LeaderboardComplaint,
@@ -45,7 +45,7 @@ User = get_user_model()
 __all__ = (
     "Answer",
     "AnswerTypes",
-    "Course",
+    "Cohort",
     "CourseRegistration",
     "CourseRegistrationCountRevision",
     "CourseRegistrationCountSlot",

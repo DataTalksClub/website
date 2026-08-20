@@ -1,7 +1,6 @@
 from django.utils import timezone
 
-from courses.models.course import Course
-
+from courses.models.cohort import Cohort
 
 ASSIGNMENT_TYPE_ORDER = {
     "homework": 1,
@@ -9,29 +8,7 @@ ASSIGNMENT_TYPE_ORDER = {
     "peer_review": 3,
 }
 
-COURSE_OUTCOMES = {
-    "de": {
-        "outcome": "Build reliable data pipelines, warehouses, and batch or streaming workflows.",
-    },
-    "ml": {
-        "outcome": "Train, evaluate, deploy, and operate practical machine learning systems.",
-    },
-    "llm": {
-        "outcome": "Build search, retrieval, evaluation, and application workflows with language models.",
-    },
-    "mlops": {
-        "outcome": "Ship models with experiment tracking, orchestration, deployment, and monitoring.",
-    },
-    "sma": {
-        "outcome": "Work with market data, analytics workflows, and practical financial modeling.",
-    },
-    "ai-dev-tools": {
-        "outcome": "Use modern AI tooling to build, inspect, and ship software projects.",
-    },
-}
-
-
-def add_course_homepage_info(course: Course, now) -> None:
+def add_course_homepage_info(course: Cohort, now) -> None:
     today = timezone.localdate(now)
 
     course.home_outcome = get_course_outcome(course)
@@ -48,18 +25,11 @@ def add_course_homepage_info(course: Course, now) -> None:
     ) = current_assignment_info(course, now)
 
 
-def get_course_outcome(course: Course) -> str:
-    if course.description:
-        return course.description
-
-    for slug_prefix, presentation in COURSE_OUTCOMES.items():
-        if course.slug.startswith(slug_prefix):
-            return presentation["outcome"]
-
-    return "Practical lessons, homework, projects, and peer review."
+def get_course_outcome(course: Cohort) -> str:
+    return course.outcome or course.description or ""
 
 
-def course_year(course: Course) -> str:
+def course_year(course: Cohort) -> str:
     title_parts = course.title.split()
     reversed_title_parts = reversed(title_parts)
     for part in reversed_title_parts:
@@ -68,7 +38,7 @@ def course_year(course: Course) -> str:
     return "Archive"
 
 
-def course_duration_label(course: Course) -> str:
+def course_duration_label(course: Cohort) -> str:
     if not course.start_date or not course.end_date:
         return "TBA"
 
@@ -85,7 +55,7 @@ def course_duration_label(course: Course) -> str:
     return f"{duration_days} days"
 
 
-def current_assignment_info(course: Course, now) -> tuple[str, dict | None]:
+def current_assignment_info(course: Cohort, now) -> tuple[str, dict | None]:
     assignments = get_course_assignments(course)
 
     if not assignments:
@@ -102,7 +72,7 @@ def current_assignment_info(course: Course, now) -> tuple[str, dict | None]:
     return "Last assignment", assignments[-1]
 
 
-def get_course_assignments(course: Course) -> list[dict]:
+def get_course_assignments(course: Cohort) -> list[dict]:
     assignments = []
 
     homeworks = course.homework_set.all()

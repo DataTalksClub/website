@@ -8,7 +8,7 @@ from accounts.studio_test_support import grant_studio_role
 from courses.models import (
     Answer,
     AnswerTypes,
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -44,7 +44,7 @@ class HomeworkSubmissionsViewTestBase(TestCase):
         return grant_studio_role(user, "course_operator")
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             title="Test Course", slug="test-course"
         )
 

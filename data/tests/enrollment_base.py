@@ -12,7 +12,7 @@ from django.utils import timezone
 
 from accounts.models import CustomUser, Token
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectSubmission,
@@ -255,7 +255,7 @@ class EnrollmentDataAPIBase(TestCase):
         )
         self.token = Token.objects.create(user=self.user)
 
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course", slug="test-course"
         )
 

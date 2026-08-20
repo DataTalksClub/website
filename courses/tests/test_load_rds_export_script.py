@@ -5,7 +5,7 @@ from pathlib import Path
 
 from django.test import SimpleTestCase
 
-from courses.models import Course
+from courses.models import Cohort
 from scripts.load_rds_export import (
     ColumnDefault,
     ColumnCopyData,
@@ -61,7 +61,7 @@ class LoadRdsExportScriptTest(SimpleTestCase):
 
     def course_column_copy_data(self, plan, defaults_used):
         return ColumnCopyData(
-            model=Course,
+            model=Cohort,
             table="courses_course",
             source_columns={"slug", "title"},
             plan=plan,
@@ -95,14 +95,14 @@ class LoadRdsExportScriptTest(SimpleTestCase):
         )
 
     def test_django_field_default_uses_model_defaults_and_nullable_fields(self):
-        visible_default = django_field_default(Course, "visible")
+        visible_default = django_field_default(Cohort, "visible")
         self.assertEqual(visible_default, (True, True))
-        start_date_default = django_field_default(Course, "start_date")
+        start_date_default = django_field_default(Cohort, "start_date")
         self.assertEqual(
             start_date_default,
             (True, None),
         )
-        missing_default = django_field_default(Course, "missing")
+        missing_default = django_field_default(Cohort, "missing")
         self.assertEqual(missing_default, (False, None))
         missing_model_default = django_field_default(None, "visible")
         self.assertEqual(missing_model_default, (False, None))

@@ -22,7 +22,7 @@ from django.core.cache import cache  # noqa: E402
 
 # This will retrieve your 'CustomUser' model
 from courses.models import (  # noqa: E402
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -91,7 +91,7 @@ if created:
 
 today = datetime.now().date()
 
-course = Course(
+course = Cohort(
     title="Fake Course",
     description="This is a fake course.",
     slug="fake-course",
@@ -463,7 +463,7 @@ for criterion in criteria_data:
     )
 
 
-course2 = Course(
+course2 = Cohort(
     title="Fake Course 2",
     description="This is a fake course.",
     slug="fake-course-2",

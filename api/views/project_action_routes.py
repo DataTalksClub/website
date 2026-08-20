@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 
 from api.crud import get_course_child_or_404
 from api.safety import require_staff_token
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project
 
 
@@ -17,7 +17,7 @@ class ProjectActionRouteData:
 
 
 def project_for_action(data):
-    course = get_object_or_404(Course, slug=data.course_slug)
+    course = get_object_or_404(Cohort, slug=data.course_slug)
     project = get_course_child_or_404(
         Project,
         course,

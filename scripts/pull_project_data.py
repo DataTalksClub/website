@@ -30,7 +30,7 @@ django.setup()
 
 from django.contrib.auth import get_user_model
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Project,
     ProjectSubmission,
@@ -45,7 +45,7 @@ User = get_user_model()
 
 @dataclass
 class ProjectExportData:
-    course: Course
+    course: Cohort
     project: Project
     submissions: object
     peer_reviews: object
@@ -241,10 +241,10 @@ def print_pull_header(course_slug, project_slug, output_file):
 
 def get_course(course_slug):
     try:
-        course = Course.objects.get(slug=course_slug)
+        course = Cohort.objects.get(slug=course_slug)
         print(f"✓ Found course: {course.title}")
         return course
-    except Course.DoesNotExist:
+    except Cohort.DoesNotExist:
         print(f"✗ Course not found: {course_slug}")
         return None
 

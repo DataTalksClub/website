@@ -4,13 +4,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from courses.assignment_statistics import calculate_homework_statistics
 from courses.homework_question_stats import homework_question_stats
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework
 
 
 def unscored_homework_statistics_response(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     homework: Homework,
 ):
     messages.error(
@@ -28,7 +28,7 @@ def unscored_homework_statistics_response(
 
 def scored_homework_statistics_response(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     homework: Homework,
 ):
     stats = calculate_homework_statistics(homework, force=False)
@@ -49,7 +49,7 @@ def homework_statistics(
     course_slug: str,
     homework_slug: str,
 ):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework,
         course=course,

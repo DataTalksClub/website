@@ -13,7 +13,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import Resolver404, resolve
 
 from content.public_data import EXPECTED_COUNTS, event_groups, public_projection
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from scripts import build_public_projection as projection_builder
 
 from .pagination_support import catalogue_body
@@ -391,7 +391,7 @@ class PublicProjectionTests(TestCase):
 
     def test_existing_cmp_course_row_preserves_its_detail_view(self) -> None:
         record = self.projection["courses"][0]
-        Course.objects.create(
+        Cohort.objects.create(
             title=record["title"],
             slug=record["slug"],
             description="Database-backed course marker",
@@ -402,7 +402,7 @@ class PublicProjectionTests(TestCase):
         self.assertContains(response, "Database-backed course marker")
 
     def test_existing_cmp_course_rows_preserve_their_list_view(self) -> None:
-        Course.objects.create(
+        Cohort.objects.create(
             title="Database-backed catalog marker",
             slug="database-backed-catalog-marker",
             visible=True,

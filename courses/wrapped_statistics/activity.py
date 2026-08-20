@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from django.db.models import Count
 from django.utils import timezone
 
-from courses.models.course import Enrollment
+from courses.models.cohort import Enrollment
 from courses.models.homework import Submission
 from courses.models.project import (
     PeerReview,

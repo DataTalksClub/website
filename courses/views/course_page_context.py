@@ -3,15 +3,14 @@ from dataclasses import dataclass
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from courses.models.course import (
-    Course,
+from courses.models.cohort import (
+    Cohort,
     CourseRegistration,
     Enrollment,
     RegistrationCampaign,
 )
 from courses.course_page_content import (
     course_modules,
-    course_ship_line,
     course_specs,
     submission_progress,
 )
@@ -24,7 +23,7 @@ from courses.views.course_projects import get_projects_for_course
 
 @dataclass(frozen=True)
 class CoursePageData:
-    course: Course
+    course: Cohort
     user: object
     homeworks: list
     projects: list
@@ -32,7 +31,7 @@ class CoursePageData:
 
 
 def active_registration_campaign_for_course(
-    course: Course,
+    course: Cohort,
 ) -> RegistrationCampaign | None:
     return (
         RegistrationCampaign.objects.filter(
@@ -68,7 +67,7 @@ def has_completed_projects(projects) -> bool:
 
 def _authenticated_course_progress(
     user,
-    course: Course,
+    course: Cohort,
     registration_campaign: RegistrationCampaign | None,
 ) -> dict:
     context = _course_enrollment_progress(user, course)
@@ -79,7 +78,7 @@ def _authenticated_course_progress(
     return context
 
 
-def _course_enrollment_progress(user, course: Course) -> dict:
+def _course_enrollment_progress(user, course: Cohort) -> dict:
     try:
         enrollment = Enrollment.objects.get(
             student=user,
@@ -116,7 +115,7 @@ def _has_course_registration(
 
 def course_user_context(
     user,
-    course: Course,
+    course: Cohort,
     registration_campaign: RegistrationCampaign | None,
 ) -> dict:
     if not user.is_authenticated:
@@ -160,7 +159,6 @@ def course_page_context(data: CoursePageData) -> dict:
         "homeworks": data.homeworks,
         "projects": data.projects,
         "course_modules": modules,
-        "course_ship_line": course_ship_line(data.course.slug),
         "course_specs": course_specs(
             data.course,
             homework_count=len(data.homeworks),
@@ -189,7 +187,7 @@ def course_page_context(data: CoursePageData) -> dict:
 
 
 def course_page_data(course_slug: str, user) -> CoursePageData:
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     now = timezone.now()
     add_course_homepage_info(course, now)
     homeworks = get_homeworks_for_course(course, user)

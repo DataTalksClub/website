@@ -4,7 +4,7 @@ from django.core.paginator import Page
 from django.db.models import Q
 from django.http import HttpRequest
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework, Submission
 from studio_courses.views.helpers import pagination_querystring
 
@@ -12,7 +12,7 @@ from studio_courses.views.helpers import pagination_querystring
 @dataclass(frozen=True)
 class HomeworkSubmissionsContextData:
     request: HttpRequest
-    course: Course
+    course: Cohort
     homework: Homework
     submissions_page: Page
     search_query: str

@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from django.urls import reverse
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework
 from courses.models.project import Project
 from courses.views.calendar_ics import (
@@ -21,7 +21,7 @@ class ProjectDeadlineEventSpec:
 
 @dataclass(frozen=True)
 class ProjectDeadlineCalendarEventData:
-    course: Course
+    course: Cohort
     project: Project
     deadline: ProjectDeadlineEventSpec
     url: str

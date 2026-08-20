@@ -139,7 +139,7 @@ class CourseRegistrationCountRevision(RevisionedModel):
         related_name="count_revisions",
     )
     cohort = models.ForeignKey(
-        "courses.Course",
+        "courses.Cohort",
         on_delete=models.PROTECT,
         related_name="registration_count_revisions",
     )
@@ -263,7 +263,7 @@ class CourseRegistrationCountSlot(RevisionedModel):
         related_name="registration_count_slots",
     )
     cohort = models.ForeignKey(
-        "courses.Course",
+        "courses.Cohort",
         on_delete=models.PROTECT,
         related_name="registration_count_slots",
     )

@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     Project,
@@ -20,7 +20,7 @@ class LeaderboardTestBase(TestCase):
     def setUp(self):
         cache.clear()
 
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

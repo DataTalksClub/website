@@ -23,7 +23,7 @@ from course_management.datamailer.sync.memberships import (
 from course_management.datamailer.sync.notifications import (
     send_registration_confirmation_email,
 )
-from courses.models import Course, CourseRegistration, RegistrationCampaign
+from courses.models import Cohort, CourseRegistration, RegistrationCampaign
 
 DATAMAILER_SETTINGS = {
     "DATAMAILER_URL": "https://datamailer.example.com",
@@ -35,7 +35,7 @@ DATAMAILER_SETTINGS = {
 
 
 def create_ml_course():
-    return Course.objects.create(
+    return Cohort.objects.create(
         slug="ml-zoomcamp-2026",
         title="ML Zoomcamp 2026",
         description="Machine learning",
@@ -65,7 +65,7 @@ def create_registration(course=None, **overrides):
 
 
 def create_llm_registration_for_confirmation():
-    course = Course.objects.create(
+    course = Cohort.objects.create(
         slug="llm-zoomcamp-2026",
         title="LLM Zoomcamp 2026",
         description="LLM course",

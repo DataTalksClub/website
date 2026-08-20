@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from accounts.studio_test_support import grant_studio_role
 from courses.models import (
-    Course,
+    Cohort,
     Homework,
     HomeworkState,
     Project,
@@ -37,14 +37,14 @@ class CourseStudioCoursesViewTests(TestCase):
             is_staff=True,
         )
         grant_studio_role(admin_user, "course_operator")
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",
         )
 
     def create_course(self, slug, title, *, finished=False):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug=slug,
             title=title,
             description=f"{title} Description",

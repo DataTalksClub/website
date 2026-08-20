@@ -593,7 +593,7 @@ def _content(context: FactoryContext, state: str) -> dict[str, object]:
 
 def _courses(context: FactoryContext, state: str) -> dict[str, object]:
     User = _model("accounts.CustomUser")
-    Course = _model("courses.Course")
+    Cohort = _model("courses.Cohort")
     Campaign = _model("courses.RegistrationCampaign")
     Registration = _model("courses.CourseRegistration")
     Enrollment = _model("courses.Enrollment")
@@ -627,7 +627,7 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
         password="!synthetic-unusable",
     )
     course_factory = f"{prefix}.course"
-    course = Course.objects.create(
+    course = Cohort.objects.create(
         id=_integer(context, course_factory, state),
         slug=f"synthetic-{_key(context, course_factory, state)}",
         title=f"Synthetic course {state}",
@@ -799,7 +799,7 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
     )
     course_value: object = course
     if state == "invalid_rejected":
-        invalid = Course(
+        invalid = Cohort(
             slug=f"invalid-{_key(context, course_factory, state)}",
             title="Invalid course",
             description="Synthetic",

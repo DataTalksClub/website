@@ -9,7 +9,7 @@ repository, and both are correct:
   homepage reads (``core.home_content.course_catalog``).  Specification 03 keeps public
   requests on that projection, and specification 09 records that the public
   database-read cutover is separately groomed work.
-* ``courses.models.Course`` is the database-owned record ``/courses`` and
+* ``courses.models.Cohort`` is the database-owned record ``/courses`` and
   ``/courses/<slug>`` read (specification 01 "Data ownership" and
   ``_docs/architecture/app-boundaries.md``).
 
@@ -51,7 +51,7 @@ from django.utils.text import slugify
 
 from core.bootstrap import RuntimeEnvironment
 from courses.models import (
-    Course,
+    Cohort,
     Homework,
     HomeworkState,
     Project,
@@ -277,7 +277,7 @@ def _project_state(due_date: datetime, now: datetime) -> str:
 def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
     start_date, end_date = course_bounds(spec)
     slug = str(spec["slug"])
-    course, created = Course.objects.update_or_create(
+    course, created = Cohort.objects.update_or_create(
         slug=slug,
         defaults={
             "title": str(spec["title"]),
@@ -300,7 +300,7 @@ def _seed_course(spec: dict[str, Any], now: datetime) -> SeededCourse:
     )
 
 
-def _seed_homeworks(course: Course, homeworks: Iterable[Sequence[Any]], now: datetime) -> int:
+def _seed_homeworks(course: Cohort, homeworks: Iterable[Sequence[Any]], now: datetime) -> int:
     created_count = 0
     for index, assignment in enumerate(homeworks, start=1):
         title = str(assignment[0])
@@ -320,7 +320,7 @@ def _seed_homeworks(course: Course, homeworks: Iterable[Sequence[Any]], now: dat
     return created_count
 
 
-def _seed_projects(course: Course, projects: Iterable[Sequence[Any]], now: datetime) -> int:
+def _seed_projects(course: Cohort, projects: Iterable[Sequence[Any]], now: datetime) -> int:
     created_count = 0
     for index, assignment in enumerate(projects, start=1):
         title = str(assignment[0])

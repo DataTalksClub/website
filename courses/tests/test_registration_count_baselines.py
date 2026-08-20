@@ -15,7 +15,7 @@ from django.test import TestCase, override_settings
 from core.models import AuditEvent
 from core.services import ServiceContext
 from courses.models import (
-    Course,
+    Cohort,
     CourseRegistration,
     CourseRegistrationCountRevision,
     CourseRegistrationCountSlot,
@@ -53,7 +53,7 @@ class CourseRegistrationCountBaselineTests(TestCase):
         scratch.mkdir(exist_ok=True)
         self.temporary = tempfile.TemporaryDirectory(dir=scratch)
         self.source = Path(self.temporary.name) / "synthetic-course-count.sqlite3"
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="synthetic-cohort-2026",
             title="Synthetic cohort",
             description="Deterministic aggregate fixture.",
@@ -323,7 +323,7 @@ class CourseRegistrationCountBaselineTests(TestCase):
                 email="native-one",
             )
             self.assertEqual(public_course_registration_count(self.campaign).count, 3)  # type: ignore[union-attr]
-            other_course = Course.objects.create(
+            other_course = Cohort.objects.create(
                 slug="synthetic-other-cohort",
                 title="Other cohort",
                 description="Other deterministic cohort.",
@@ -373,7 +373,7 @@ class CourseRegistrationCountBaselineTests(TestCase):
         }
         with override_settings(COURSE_REGISTRATION_COUNT_SOURCES=boundary_drifted):
             self.assertIsNone(public_course_registration_count(self.campaign))
-        changed = Course.objects.create(
+        changed = Cohort.objects.create(
             slug="synthetic-changed-cohort",
             title="Changed cohort",
             description="Changed deterministic cohort.",
@@ -653,7 +653,7 @@ class CourseRegistrationCountBaselineTests(TestCase):
                 actor=None,
                 context=self.context,
             )
-            changed = Course.objects.create(
+            changed = Cohort.objects.create(
                 slug="synthetic-validation-change",
                 title="Validation change",
                 description="Deterministic changed target.",

@@ -15,7 +15,7 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_safe
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 from .docs_projection import (
     DOCS_ROOT_PATH,
@@ -342,7 +342,7 @@ def slack(request: HttpRequest) -> HttpResponse:
 def course_cohort(request: HttpRequest) -> HttpResponse:
     course = review_projection()["course"]
     cohort = course["cohort"]
-    legacy_course = Course.objects.filter(slug=cohort["legacy_platform_slug"]).first()
+    legacy_course = Cohort.objects.filter(slug=cohort["legacy_platform_slug"]).first()
     path = f"{course['public_path']}/cohorts/{cohort['slug']}"
     return _render(
         request,

@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
 from accounts.auth import token_required
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework, Question
 
 from api.safety import (
@@ -21,7 +21,7 @@ from .question_serializers import question_to_dict
 
 
 def _get_course_and_homework(course_slug, homework_id):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(Homework, course=course, id=homework_id)
     return course, homework
 

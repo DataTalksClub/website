@@ -6,7 +6,7 @@ from django.utils import timezone
 from accounts.models import CustomUser, Token
 from courses.models import (
     Answer,
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     Question,
@@ -27,7 +27,7 @@ class QuestionAPITestBase(TestCase):
         self.client = Client()
         self.client.defaults["HTTP_AUTHORIZATION"] = f"Token {self.token.key}"
 
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course",
             slug="test-course",
             description="Test",

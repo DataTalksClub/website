@@ -7,7 +7,7 @@ from course_management.datamailer.sync.peer_review_notifications import (
 from course_management.datamailer.sync.score_notifications import (
     send_project_score_notification,
 )
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project
 from courses.project_assignment import (
     ProjectActionStatus,
@@ -45,7 +45,7 @@ def project_extend_deadline(request, course_slug, project_slug):
     """
     if request.method != "POST":
         return redirect("studio_courses_course", course_slug=course_slug)
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )
@@ -76,7 +76,7 @@ def project_assign_reviews(request, course_slug, project_slug):
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )
@@ -100,7 +100,7 @@ def project_score(request, course_slug, project_slug):
     if request.method != "POST":
         response = redirect("studio_courses_course", course_slug=course_slug)
         return response
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )
@@ -121,7 +121,7 @@ def project_score(request, course_slug, project_slug):
 @staff_required
 def project_submissions(request, course_slug, project_slug):
     """View all submissions for a project"""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, course=course, slug=project_slug
     )

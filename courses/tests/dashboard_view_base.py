@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 
 User = get_user_model()
@@ -21,7 +21,7 @@ class DashboardViewTestBase(TestCase):
 
     @classmethod
     def create_dashboard_course(cls):
-        cls.course = Course.objects.create(
+        cls.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Description",

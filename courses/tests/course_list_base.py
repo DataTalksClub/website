@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Homework,
     HomeworkState,
     Project,
@@ -33,7 +33,7 @@ class ProjectFixtureData:
 class CourseListViewTestBase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course",
             slug="test-course-2",
             description="Test Course Description",
@@ -106,7 +106,7 @@ class CourseListViewTestBase(TestCase):
         self.create_project(completed_project_data)
 
     def create_archived_course_fixture(self):
-        archive_course = Course.objects.create(
+        archive_course = Cohort.objects.create(
             title="Archived Course 2024",
             slug="archived-course-2024",
             description="Past course summary.",

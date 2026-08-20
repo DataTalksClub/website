@@ -3,7 +3,7 @@ import json
 from django.test import Client, TestCase
 
 from accounts.models import CustomUser, Token
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 
 class EnrollmentExportsAPITestBase(TestCase):
@@ -18,7 +18,7 @@ class EnrollmentExportsAPITestBase(TestCase):
         self.client.defaults["HTTP_AUTHORIZATION"] = (
             f"Token {self.token.key}"
         )
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course",
             slug="test-course",
             description="Test",

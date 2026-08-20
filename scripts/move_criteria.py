@@ -37,13 +37,13 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "course_management.settings")
 import django
 django.setup()
 
-from courses.models import Course, ReviewCriteria
+from courses.models import Cohort, ReviewCriteria
 
 
 @dataclass(frozen=True)
 class CriteriaCopyData:
     criteria: ReviewCriteria
-    dest_course: Course
+    dest_course: Cohort
     existing_keys: set[tuple[str, str]]
     dry_run: bool
     delete_from_source: bool
@@ -53,7 +53,7 @@ class CriteriaCopyData:
 @dataclass(frozen=True)
 class CriteriaCopyBatchData:
     source_criteria: list[ReviewCriteria]
-    dest_course: Course
+    dest_course: Cohort
     existing_keys: set[tuple[str, str]]
     dry_run: bool
     delete_from_source: bool
@@ -64,12 +64,12 @@ class CriteriaCopyBatchData:
 class MigrationSummaryData:
     created: list[ReviewCriteria]
     deleted: list[ReviewCriteria]
-    dest_course: Course
+    dest_course: Cohort
     dry_run: bool
     delete_in_source: bool
 
 
-def list_criteria(course: Course) -> list[ReviewCriteria]:
+def list_criteria(course: Cohort) -> list[ReviewCriteria]:
     """List all criteria for a course."""
     ordered_criteria = course.reviewcriteria_set.all().order_by("id")
     return list(ordered_criteria)
@@ -102,7 +102,7 @@ def copied_criteria_for_dry_run(
 
 def create_copied_criteria(
     criteria: ReviewCriteria,
-    dest_course: Course,
+    dest_course: Cohort,
     delete_from_source: bool,
     to_delete: list[ReviewCriteria],
 ) -> ReviewCriteria:
@@ -169,8 +169,8 @@ def copy_source_criteria(data: CriteriaCopyBatchData) -> list[ReviewCriteria]:
 
 
 def build_criteria_copy_batch(
-    source_course: Course,
-    dest_course: Course,
+    source_course: Cohort,
+    dest_course: Cohort,
     dry_run: bool,
     delete_from_source: bool,
 ) -> CriteriaCopyBatchData:
@@ -189,8 +189,8 @@ def build_criteria_copy_batch(
 
 
 def copy_criteria(
-    source_course: Course,
-    dest_course: Course,
+    source_course: Cohort,
+    dest_course: Cohort,
     dry_run: bool = False,
     delete_from_source: bool = False
 ) -> tuple[list[ReviewCriteria], list[ReviewCriteria]]:
@@ -242,17 +242,17 @@ def parse_args():
     return parser.parse_args()
 
 
-def get_course(slug: str, label: str) -> Course:
+def get_course(slug: str, label: str) -> Cohort:
     try:
-        return Course.objects.get(slug=slug)
-    except Course.DoesNotExist:
+        return Cohort.objects.get(slug=slug)
+    except Cohort.DoesNotExist:
         print(f"Error: {label} course '{slug}' not found")
         sys.exit(1)
 
 
 def print_migration_header(
-    source_course: Course,
-    dest_course: Course,
+    source_course: Cohort,
+    dest_course: Cohort,
     dry_run: bool,
 ) -> None:
     print("=" * 60)

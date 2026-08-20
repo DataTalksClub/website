@@ -1,4 +1,4 @@
-from courses.models.course import (
+from courses.models.cohort import (
     CourseRegistration,
     Enrollment,
     RegistrationCampaign,

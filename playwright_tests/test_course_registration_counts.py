@@ -8,7 +8,7 @@ from django.urls import reverse
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
 from courses.models import (
-    Course,
+    Cohort,
     CourseRegistrationCountRevision,
     CourseRegistrationCountSlot,
     CourseRegistrationCountSourceRun,
@@ -31,7 +31,7 @@ VIEWPORTS = (
 
 
 def _campaign_with_count(settings, count: int) -> RegistrationCampaign:
-    course = Course.objects.create(
+    course = Cohort.objects.create(
         slug=f"synthetic-count-cohort-{count}",
         title="Synthetic registration cohort",
         description="Deterministic browser fixture.",

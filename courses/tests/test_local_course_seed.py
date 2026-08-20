@@ -12,7 +12,7 @@ from django.urls import reverse
 
 from core.bootstrap import RuntimeEnvironment
 from core.home_content import course_catalog
-from courses.models import Course, Homework, Project
+from courses.models import Cohort, Homework, Project
 from courses.services.local_course_seed import (
     CATALOG_SOURCE_SHA256,
     LocalCourseSeedError,
@@ -51,11 +51,11 @@ class LocalCourseSeedTests(TestCase):
         result = seed_local_courses()
 
         projected = {record["slug"]: record for record in load_projected_courses()}
-        self.assertEqual(Course.objects.count(), len(projected))
+        self.assertEqual(Cohort.objects.count(), len(projected))
         self.assertEqual(result.courses_created, len(projected))
         for slug, record in projected.items():
             with self.subTest(course=slug):
-                course = Course.objects.get(slug=slug)
+                course = Cohort.objects.get(slug=slug)
                 self.assertEqual(course.title, record["title"])
                 self.assertEqual(course.finished, record["finished"])
                 self.assertTrue(course.visible)
@@ -70,12 +70,12 @@ class LocalCourseSeedTests(TestCase):
 
     def test_seed_is_idempotent(self) -> None:
         first = seed_local_courses()
-        counts = (Course.objects.count(), Homework.objects.count(), Project.objects.count())
+        counts = (Cohort.objects.count(), Homework.objects.count(), Project.objects.count())
 
         second = seed_local_courses()
 
         self.assertEqual(
-            (Course.objects.count(), Homework.objects.count(), Project.objects.count()),
+            (Cohort.objects.count(), Homework.objects.count(), Project.objects.count()),
             counts,
         )
         self.assertEqual(second.course_count, first.course_count)
@@ -85,7 +85,7 @@ class LocalCourseSeedTests(TestCase):
 
     def test_seed_preserves_locally_owned_operational_state(self) -> None:
         seed_local_courses()
-        course = Course.objects.get(slug="de-zoomcamp-2026")
+        course = Cohort.objects.get(slug="de-zoomcamp-2026")
         course.registration_url = "https://courses.datatalks.club/de-zoomcamp-2026/register"
         course.first_homework_scored = True
         course.save()
@@ -111,7 +111,7 @@ class LocalCourseSeedTests(TestCase):
         for entry in course_catalog():
             with self.subTest(course=entry.slug):
                 self.assertEqual(entry.public_path, f"/courses/{entry.slug}")
-                course = Course.objects.get(slug=entry.slug)
+                course = Cohort.objects.get(slug=entry.slug)
                 self.assertEqual(
                     Homework.objects.filter(course=course).count(),
                     entry.homework_count,
@@ -142,14 +142,14 @@ class LocalCourseSeedRefusalTests(TestCase):
             seed_local_courses()
 
         self.assertEqual(str(refusal.exception), "environment-not-local")
-        self.assertEqual(Course.objects.count(), 0)
+        self.assertEqual(Cohort.objects.count(), 0)
 
     @override_settings(RUNTIME_ENVIRONMENT=RuntimeEnvironment.PRODUCTION)
     def test_production_environment_is_refused(self) -> None:
         with self.assertRaises(LocalCourseSeedError):
             seed_local_courses()
 
-        self.assertEqual(Course.objects.count(), 0)
+        self.assertEqual(Cohort.objects.count(), 0)
 
     def test_non_sqlite_database_is_refused(self) -> None:
         databases = {
@@ -163,7 +163,7 @@ class LocalCourseSeedRefusalTests(TestCase):
                 seed_local_courses()
 
         self.assertEqual(str(refusal.exception), "database-not-local-sqlite")
-        self.assertEqual(Course.objects.count(), 0)
+        self.assertEqual(Cohort.objects.count(), 0)
 
 
 class SeedLocalCoursesCommandTests(TestCase):
@@ -174,8 +174,8 @@ class SeedLocalCoursesCommandTests(TestCase):
 
         summary = json.loads(stdout.getvalue())
         self.assertTrue(summary["written"])
-        self.assertEqual(summary["courses"], Course.objects.count())
-        self.assertEqual(summary["courses_created"], Course.objects.count())
+        self.assertEqual(summary["courses"], Cohort.objects.count())
+        self.assertEqual(summary["courses_created"], Cohort.objects.count())
         self.assertEqual(summary["source_sha256"], CATALOG_SOURCE_SHA256)
 
     def test_check_validates_without_writing(self) -> None:
@@ -186,7 +186,7 @@ class SeedLocalCoursesCommandTests(TestCase):
         summary = json.loads(stdout.getvalue())
         self.assertFalse(summary["written"])
         self.assertEqual(summary["checked"], len(load_catalog_specs()))
-        self.assertEqual(Course.objects.count(), 0)
+        self.assertEqual(Cohort.objects.count(), 0)
 
     @override_settings(RUNTIME_ENVIRONMENT=RuntimeEnvironment.PRODUCTION)
     def test_command_fails_closed_outside_local_development(self) -> None:
@@ -194,4 +194,4 @@ class SeedLocalCoursesCommandTests(TestCase):
             call_command("seed_local_courses", stdout=StringIO())
 
         self.assertEqual(str(refusal.exception), "environment-not-local")
-        self.assertEqual(Course.objects.count(), 0)
+        self.assertEqual(Cohort.objects.count(), 0)

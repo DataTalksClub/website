@@ -6,7 +6,7 @@ from data.models import (
     DatamailerSendAuditStatus,
     DatamailerSendAuditType,
 )
-from courses.models import Course
+from courses.models import Cohort
 
 
 DATAMAILER_SETTINGS = {
@@ -23,7 +23,7 @@ class DatamailerContactBase(TestCase):
             email="Student@Example.com",
             username="student",
         )
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="ml-zoomcamp-2026",
             title="ML Zoomcamp 2026",
             description="Machine learning",

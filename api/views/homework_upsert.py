@@ -13,7 +13,7 @@ from api.views.homework_upsert_save import (
     save_homework_upsert,
 )
 from api.views.homework_upsert_validation import validate_homework_upsert
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework
 
 
@@ -79,7 +79,7 @@ def saved_homework_upsert(course, homework_slug, data):
 
 
 def upsert_homework_by_slug(request, course_slug, homework_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     data, err = parse_json_body(request)
     if err:
         return err

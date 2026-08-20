@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 from api.utils import parse_json_body
 from api.views.project_upsert_persistence import (
@@ -14,7 +14,7 @@ from api.views.project_upsert_validation import (
 
 
 def upsert_project_by_slug(request, course_slug, project_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     data, err = parse_json_body(request)
     if err:
         return err

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from django.contrib import messages
 from django.shortcuts import redirect
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from studio_courses.forms import RegistrationCampaignForm
 
 from .campaign_datamailer import (
@@ -46,7 +46,7 @@ def campaign_initial_course(request):
     if not course_slug:
         return None
 
-    courses = Course.objects.filter(slug=course_slug)
+    courses = Cohort.objects.filter(slug=course_slug)
     course = courses.first()
     return course
 
@@ -87,7 +87,7 @@ def campaign_form_course(form):
     if not course_id:
         return None
 
-    courses = Course.objects.filter(pk=course_id)
+    courses = Cohort.objects.filter(pk=course_id)
     course = courses.first()
     return course
 

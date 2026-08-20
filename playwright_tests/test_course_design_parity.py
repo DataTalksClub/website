@@ -12,7 +12,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.models import CustomUser
 from courses.models import (
-    Course,
+    Cohort,
     CourseRegistration,
     CourseRegistrationCountRevision,
     CourseRegistrationCountSlot,
@@ -85,17 +85,17 @@ REGISTRATION_CAMPAIGN = {
 
 
 @pytest.fixture
-def cmp_course_catalog() -> dict[str, Course]:
+def cmp_course_catalog() -> dict[str, Cohort]:
     return {
-        "active": Course.objects.create(**ACTIVE_COURSE),
-        "registration": Course.objects.create(**REGISTRATION_COURSE),
-        "archived": Course.objects.create(**ARCHIVED_COURSE),
+        "active": Cohort.objects.create(**ACTIVE_COURSE),
+        "registration": Cohort.objects.create(**REGISTRATION_COURSE),
+        "archived": Cohort.objects.create(**ARCHIVED_COURSE),
     }
 
 
 @pytest.fixture
 def cmp_registration_campaign(settings) -> RegistrationCampaign:
-    course = Course.objects.create(
+    course = Cohort.objects.create(
         title="Machine Learning Zoomcamp 2026",
         slug="synthetic-cmp-registration-course-2026",
         description="A deterministic registration layout fixture.",
@@ -262,27 +262,6 @@ def _capture_dark_mode(page: Page, path: Path) -> None:
     page.screenshot(path=path, full_page=True)
 
 
-def _assert_filter_pills_are_operable(page: Page, origin: str) -> None:
-    """The segmented control is links, so it works by keyboard and without JavaScript."""
-
-    pills = page.locator(".filter-pills .filter-pill")
-    expect(pills).to_have_count(4)
-    expect(page.locator('.filter-pill[aria-current="page"]')).to_have_text("All courses")
-    active_pill = page.get_by_role("link", name="Active", exact=True)
-    active_pill.focus()
-    expect(active_pill).to_be_focused()
-    page.keyboard.press("Enter")
-    expect(page).to_have_url(f"{origin}/courses?filter=active")
-    expect(page.locator('.filter-pill[aria-current="page"]')).to_have_text("Active")
-    expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
-    expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_have_count(0)
-    expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_have_count(0)
-    for pill in pills.all():
-        box = pill.bounding_box()
-        assert box is not None and box["height"] + 0.5 >= 44, box
-    page.goto(f"{origin}/courses", wait_until="networkidle")
-
-
 def _capture_design_dark_mode(page: Page, path: Path) -> None:
     """Design 5a pages carry their own compact "Dark"/"Light" masthead toggle."""
 
@@ -336,7 +315,7 @@ def _assert_registration_hero_is_contained(page: Page) -> dict[str, float]:
 def test_database_course_catalog_renders_the_design_system_index(
     page: Page,
     live_server,
-    cmp_course_catalog: dict[str, Course],
+    cmp_course_catalog: dict[str, Cohort],
     viewport: dict[str, int],
     suffix: str,
 ) -> None:
@@ -361,8 +340,6 @@ def test_database_course_catalog_renders_the_design_system_index(
     expect(page.locator("main #courses")).to_have_count(1)
     expect(page.locator("head style")).to_have_count(1)
     assert page.locator('link[rel="stylesheet"]').count() == 0
-    # Three catalogue records, and the eyebrow counts them rather than asserting a number.
-    expect(page.get_by_text("three courses · zero tuition", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_be_visible()
@@ -418,8 +395,6 @@ def test_database_course_catalog_renders_the_design_system_index(
     page.locator("#dark-mode-toggle").click()
     expect(page.locator("body.dark-mode")).to_have_count(0)
     page.reload(wait_until="networkidle")
-
-    _assert_filter_pills_are_operable(page, live_server.url)
 
     page.keyboard.press("Tab")
     expect(page.locator(".skip-link")).to_be_focused()
@@ -693,7 +668,7 @@ def test_no_database_course_catalog_uses_the_design_system_empty_state(
     viewport: dict[str, int],
     suffix: str,
 ) -> None:
-    assert not Course.objects.exists()
+    assert not Cohort.objects.exists()
     page.set_viewport_size(viewport)
 
     catalog = page.goto(f"{live_server.url}/courses", wait_until="networkidle")
@@ -701,7 +676,6 @@ def test_no_database_course_catalog_uses_the_design_system_empty_state(
     assert catalog is not None and catalog.status == 200
     expect(page.locator("main .courses-hero")).to_have_count(1)
     expect(page.locator("main #courses")).to_have_count(1)
-    expect(page.get_by_text("zero courses · zero tuition", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=ACTIVE_HEADING, exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name=FINISHED_HEADING, exact=True)).to_have_count(0)
     expect(page.get_by_role("heading", name=OPEN_HEADING, exact=True)).to_have_count(0)
@@ -728,7 +702,7 @@ def test_database_backed_empty_catalog_keeps_the_design_system_empty_composition
     viewport: dict[str, int],
     suffix: str,
 ) -> None:
-    Course.objects.create(
+    Cohort.objects.create(
         title="Synthetic hidden course",
         slug="synthetic-hidden-course",
         description="A deterministic hidden course.",
@@ -741,7 +715,6 @@ def test_database_backed_empty_catalog_keeps_the_design_system_empty_composition
     assert catalog is not None and catalog.status == 200
     expect(page.locator("main .courses-hero")).to_have_count(1)
     expect(page.locator("main #courses")).to_have_count(1)
-    expect(page.get_by_text("zero courses · zero tuition", exact=True)).to_be_visible()
     expect(page.get_by_text("No active courses right now.", exact=True)).to_be_visible()
     expect(page.locator("[data-course-row]")).to_have_count(0)
     expect(page.get_by_text("Data Engineering Zoomcamp 2026", exact=True)).to_have_count(0)

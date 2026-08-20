@@ -17,7 +17,7 @@ from django.views.decorators.http import require_GET
 from api.views.leaderboard_export_data import (
     build_leaderboard_data,
 )
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,7 @@ def _cached_leaderboard_yaml(course, page, cache_version):
 @require_GET
 def leaderboard_data_view(request, course_slug: str):
     """Public endpoint returning the full leaderboard with score breakdowns."""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     page_value = request.GET.get("page")
     page = _get_positive_int(page_value, 1)
     cache_version = _get_cache_version(course)

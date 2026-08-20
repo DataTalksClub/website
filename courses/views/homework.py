@@ -4,7 +4,7 @@ from django.http import HttpRequest
 
 from django.shortcuts import render
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import (
     Homework,
     Question,
@@ -26,7 +26,7 @@ from courses.views.homework_submission import (
 @dataclass(frozen=True)
 class HomeworkRequestData:
     request: HttpRequest
-    course: Course
+    course: Cohort
     homework: Homework
     questions: list[Question]
 

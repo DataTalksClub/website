@@ -9,7 +9,7 @@ from course_management.datamailer.payloads.base import (
     contact_payload_for_user,
 )
 from course_management.datamailer.sync.contacts import sync_contact
-from courses.models import Course
+from courses.models import Cohort
 from courses.tests.datamailer_contact_base import (
     DATAMAILER_SETTINGS,
     DatamailerContactBase,
@@ -26,7 +26,7 @@ class DatamailerContactTest(DatamailerContactBase):
         self.assert_course_subscription_contact_payload(payload)
 
     def test_contact_tags_for_course_without_trailing_year(self):
-        course = Course(
+        course = Cohort(
             slug="ml-zoomcamp",
             title="ML Zoomcamp",
             description="Machine learning",

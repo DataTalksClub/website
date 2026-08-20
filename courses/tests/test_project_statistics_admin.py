@@ -10,7 +10,7 @@ from courses.admin.projects import (
     calculate_statistics_selected_projects,
 )
 from courses.models import (
-    Course,
+    Cohort,
     Project,
     ProjectState,
     User,
@@ -28,7 +28,7 @@ class ProjectStatisticsAdminTestCase(TestCase):
         )
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             project_passing_score=10,

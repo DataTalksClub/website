@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
 from accounts.auth import token_required
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import Project
 from courses.models.project import ProjectState
 
@@ -44,7 +44,7 @@ def projects_view(request, course_slug):
     GET /api/courses/<slug>/projects/ - List projects.
     POST /api/courses/<slug>/projects/ - Create project(s), bulk supported.
     """
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
 
     if request.method == "GET":
         return projects_list_response(course)
@@ -78,7 +78,7 @@ def _project_detail_response(
     project_id=None,
     project_slug=None,
 ):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_course_child_or_404(
         Project,
         course,

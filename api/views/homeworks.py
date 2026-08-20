@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
 from accounts.auth import token_required
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework
 from courses.models.homework import HomeworkState
 from courses.scoring import (
@@ -68,7 +68,7 @@ def homeworks_view(request, course_slug):
     GET /api/courses/<slug>/homeworks/ - List homeworks.
     POST /api/courses/<slug>/homeworks/ - Create homework(s), bulk supported.
     """
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
 
     if request.method == "GET":
         return homeworks_list_response(course)
@@ -98,7 +98,7 @@ def _homework_detail_response(
     homework_id=None,
     homework_slug=None,
 ):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_course_child_or_404(
         Homework,
         course,
@@ -158,7 +158,7 @@ def homework_score_view(request, course_slug, homework_id):
     if staff_error:
         return staff_error
 
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_course_child_or_404(
         Homework,
         course,
@@ -178,7 +178,7 @@ def homework_score_by_slug_view(request, course_slug, homework_slug):
     if staff_error:
         return staff_error
 
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_course_child_or_404(
         Homework,
         course,

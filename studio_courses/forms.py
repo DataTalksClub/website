@@ -1,6 +1,6 @@
 from django import forms
 
-from courses.models.course import RegistrationCampaign
+from courses.models.cohort import RegistrationCampaign
 
 
 REGISTRATION_CAMPAIGN_TITLE_WIDGET = forms.TextInput(

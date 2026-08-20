@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from courses.models import Course
+from courses.models import Cohort
 from courses.tests.dashboard_view_base import DashboardViewTestBase
 
 
@@ -11,7 +11,7 @@ class DashboardEmptyStateTestCase(DashboardViewTestBase):
         self.assertEqual(response.status_code, 404)
 
     def test_dashboard_with_no_enrollments(self):
-        empty_course = Course.objects.create(
+        empty_course = Cohort.objects.create(
             slug="empty-course",
             title="Empty Course",
             first_homework_scored=True,

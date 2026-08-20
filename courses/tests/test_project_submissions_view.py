@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from accounts.studio_test_support import grant_studio_role
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     PeerReview,
     PeerReviewState,
@@ -34,7 +34,7 @@ class ProjectSubmissionsViewTestBase(TestCase):
         return grant_studio_role(user, "course_operator")
 
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

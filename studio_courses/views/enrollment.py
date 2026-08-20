@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404, redirect, render
 
-from courses.models.course import (
-    Course,
+from courses.models.cohort import (
+    Cohort,
     Enrollment,
 )
 from .enrollment_complaints import (
@@ -21,7 +21,7 @@ from .helpers import (
 @staff_required
 def enrollments_list(request, course_slug):
     """List all enrollments for a course"""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     context = enrollments_list_context(request, course)
     response = render(request, "studio_courses/enrollments.html", context)
     return response
@@ -29,7 +29,7 @@ def enrollments_list(request, course_slug):
 
 @staff_required
 def leaderboard_complaints(request, course_slug):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     context = leaderboard_complaints_context(course)
     response = render(
         request,
@@ -47,7 +47,7 @@ def leaderboard_complaint_resolve(request, course_slug, complaint_id):
         )
         return response
 
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     response = resolve_leaderboard_complaint_response(
         request,
         course,
@@ -59,7 +59,7 @@ def leaderboard_complaint_resolve(request, course_slug, complaint_id):
 @staff_required
 def enrollment_edit(request, course_slug, enrollment_id):
     """Edit an enrollment - mainly to disable learning in public"""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     enrollment = get_object_or_404(
         Enrollment, id=enrollment_id, course=course
     )

@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Answer, Homework, Question, Submission
 from studio_courses.forms import HomeworkSubmissionEditForm
 from studio_courses.services import update_homework_submission_from_admin
@@ -14,7 +14,7 @@ from studio_courses.views.helpers import first_form_error
 @dataclass(frozen=True)
 class HomeworkSubmissionEditPageData:
     request: HttpRequest
-    course: Course
+    course: Cohort
     homework: Homework
     submission: Submission
     questions: list
@@ -23,7 +23,7 @@ class HomeworkSubmissionEditPageData:
 
 @dataclass(frozen=True)
 class HomeworkSubmissionEditObjects:
-    course: Course
+    course: Cohort
     homework: Homework
     submission: Submission
 
@@ -63,7 +63,7 @@ def homework_submission_edit_response(
 def homework_submission_edit_objects(
     course_slug, homework_slug, submission_id
 ):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework, course=course, slug=homework_slug
     )

@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from django.http import HttpRequest
 
-from courses.models.course import Course, Enrollment
+from courses.models.cohort import Cohort, Enrollment
 from courses.models.project import (
     PeerReview,
     Project,
@@ -19,7 +19,7 @@ from courses.votes import (
 
 @dataclass(frozen=True)
 class ProjectEvalSubmitPage:
-    course: Course
+    course: Cohort
     project: Project
     review: PeerReview
     review_criteria: Iterable[ReviewCriteria]

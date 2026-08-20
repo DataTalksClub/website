@@ -1,6 +1,6 @@
 from django import forms
 
-from courses.models.course import (
+from courses.models.cohort import (
     Enrollment,
     LeaderboardComplaint,
 )

@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from courses.models.course import Course, Enrollment, User
+from courses.models.cohort import Cohort, Enrollment, User
 from courses.models.project import (
     Project,
     ProjectSubmission,
@@ -15,7 +15,7 @@ class ProjectContextUserDetails:
     certificate_name: str | None
 
 
-def project_build_context(request, course: Course, project: Project) -> dict:
+def project_build_context(request, course: Cohort, project: Project) -> dict:
     user = request.user
     is_authenticated = user.is_authenticated
     accepting_submissions = project_accepting_submissions(project)
@@ -45,7 +45,7 @@ def project_accepting_submissions(project: Project) -> bool:
 
 def project_context_user_details(
     user: User,
-    course: Course,
+    course: Cohort,
     project: Project,
 ) -> ProjectContextUserDetails:
     project_submission = project_context_submission(user, project)

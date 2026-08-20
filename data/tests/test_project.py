@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import CustomUser, Token
-from courses.models import Course, Enrollment, Project, ProjectSubmission
+from courses.models import Cohort, Enrollment, Project, ProjectSubmission
 
 
 class ProjectDataAPITestCase(TestCase):
@@ -22,7 +22,7 @@ class ProjectDataAPITestCase(TestCase):
             password="password",
         )
         self.token = Token.objects.create(user=self.user)
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             title="Test Course", slug="test-course"
         )
         self.enrollment = Enrollment.objects.create(

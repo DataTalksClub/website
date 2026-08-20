@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from courses.models.course import Enrollment, User
+from courses.models.cohort import Enrollment, User
 
 from api.views.enrollment_certificate_delivery import (
     persist_certificate_updates,

@@ -1,12 +1,12 @@
 from django.utils.html import strip_tags
 
-from courses.models import Course
+from courses.models import Cohort
 from courses.tests.course_list_base import CourseListViewTestBase
 
 
 class CourseListAssignmentPanelTest(CourseListViewTestBase):
     def test_course_list_hides_assignment_panel_without_assignments(self):
-        empty_course = Course.objects.create(
+        empty_course = Cohort.objects.create(
             title="No Assignment Course",
             slug="no-assignment-course",
             description="Course without assignments.",

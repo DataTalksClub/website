@@ -1,6 +1,6 @@
 from django.http import HttpRequest
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework, Submission
 
 
@@ -51,7 +51,7 @@ def apply_post_preview_time_spent(
 
 def apply_post_preview_comments(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     submission: Submission,
 ) -> None:
     if course.homework_problems_comments_field:
@@ -71,7 +71,7 @@ def apply_post_preview_faq_contribution(
 
 def apply_homework_post_preview_fields(
     request: HttpRequest,
-    course: Course,
+    course: Cohort,
     homework: Homework,
     submission: Submission,
 ) -> None:

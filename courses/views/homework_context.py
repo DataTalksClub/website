@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from courses.models.course import Course, Enrollment, User
+from courses.models.cohort import Cohort, Enrollment, User
 from courses.models.homework import (
     Answer,
     Homework,
@@ -16,7 +16,7 @@ from courses.views.homework_answers import process_question_options
 
 @dataclass(frozen=True)
 class HomeworkDetailContextData:
-    course: Course
+    course: Cohort
     homework: Homework
     questions: list[Question]
     submission: Submission | None
@@ -25,7 +25,7 @@ class HomeworkDetailContextData:
 
 @dataclass(frozen=True)
 class HomeworkDetailObjects:
-    course: Course
+    course: Cohort
     homework: Homework
     questions: list[Question]
 
@@ -51,7 +51,7 @@ def homework_state_context(homework: Homework) -> dict[str, bool]:
 
 
 def homework_detail_build_context_not_authenticated(
-    course: Course,
+    course: Cohort,
     homework: Homework,
     questions: list[Question],
 ) -> dict:
@@ -141,7 +141,7 @@ def homework_detail_build_context_authenticated(data) -> dict:
 
 
 def homework_detail_objects(course_slug: str, homework_slug: str):
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     homework = get_object_or_404(
         Homework,
         course=course,
@@ -159,7 +159,7 @@ def homework_detail_objects(course_slug: str, homework_slug: str):
 
 def authenticated_homework_context(
     user: User,
-    course: Course,
+    course: Cohort,
     homework: Homework,
     questions: list[Question],
 ):

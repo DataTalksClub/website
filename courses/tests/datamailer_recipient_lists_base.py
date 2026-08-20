@@ -9,7 +9,7 @@ from course_management.datamailer.keys import (
     course_enrolled_list_key,
 )
 from courses.models import (
-    Course,
+    Cohort,
     CourseRegistration,
     Enrollment,
     Project,
@@ -38,14 +38,14 @@ class BulkUpsertMemberExpectation:
 @dataclass(frozen=True)
 class ImportWaitExpectation:
     recipient_list_import: object
-    course: Course
+    course: Cohort
     job_id: int
     out: StringIO
 
 
 class DatamailerRecipientListCommandTestBase(TestCase):
     def create_ml_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="ml-zoomcamp-2026",
             title="ML Zoomcamp 2026",
             description="Machine learning",

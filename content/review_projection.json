@@ -218,7 +218,7 @@
     "summary": "AI Dev Tools Zoomcamp is a free, hands-on course on AI-native software engineering.",
     "platform_provenance": {
       "source": "courses",
-      "source_path": "courses/models/course.py"
+      "source_path": "courses/models/cohort.py"
     },
     "cohort": {
       "slug": "ai-dev-tools-2026",

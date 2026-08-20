@@ -10,7 +10,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
 
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import ReviewCriteria
 
 
@@ -45,7 +45,7 @@ def _course_criteria_export_data(course):
 @require_GET
 def course_criteria_yaml_view(request, course_slug: str):
     """Return project criteria for a course in YAML format."""
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     export_data = _course_criteria_export_data(course)
     criteria_yaml = yaml.safe_dump(
         export_data,

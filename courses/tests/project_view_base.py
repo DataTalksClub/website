@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from courses.models import (
     User,
-    Course,
+    Cohort,
     Project,
     ProjectSubmission,
     ProjectState,
@@ -28,7 +28,7 @@ credentials = dict(
 
 class ProjectViewTestBase(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

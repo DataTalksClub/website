@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 
 from api.safety import error_response
 from api.utils import parse_json_body
-from courses.models.course import Course, RegistrationCampaign
+from courses.models.cohort import Cohort, RegistrationCampaign
 
 
 CAMPAIGN_FIELDS = {
@@ -63,8 +63,8 @@ def normalize_campaign_data(data):
             result["current_course"] = None
         else:
             try:
-                result["current_course"] = Course.objects.get(slug=slug)
-            except Course.DoesNotExist:
+                result["current_course"] = Cohort.objects.get(slug=slug)
+            except Cohort.DoesNotExist:
                 error = error_response(
                     f"Course with slug '{slug}' does not exist",
                     "course_not_found",

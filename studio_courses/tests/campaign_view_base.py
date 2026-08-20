@@ -1,7 +1,7 @@
 from django.test import Client, TestCase
 
 from accounts.studio_test_support import grant_studio_role
-from courses.models import Course, RegistrationCampaign, User
+from courses.models import Cohort, RegistrationCampaign, User
 
 
 DATAMAILER_SETTINGS = {
@@ -35,7 +35,7 @@ class CampaignStudioCoursesViewBase(TestCase):
             is_staff=True,
         )
         grant_studio_role(self.admin_user, "course_operator")
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

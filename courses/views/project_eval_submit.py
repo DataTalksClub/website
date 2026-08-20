@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 
 from course_management.observability import record_event
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.project import (
     PeerReview,
     Project,
@@ -111,7 +111,7 @@ def project_eval_submit_page(
     project_slug,
     review,
 ) -> ProjectEvalSubmitPage:
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     project = get_object_or_404(
         Project, slug=project_slug, course=course
     )

@@ -13,7 +13,7 @@ from course_management.datamailer.payloads.course_graduates import (
 from course_management.datamailer.sync.certificates import (
     send_certificate_availability_notification,
 )
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 
 DATAMAILER_SETTINGS = {
@@ -25,7 +25,7 @@ DATAMAILER_SETTINGS = {
 
 
 def create_ml_course():
-    return Course.objects.create(
+    return Cohort.objects.create(
         slug="ml-zoomcamp-2026",
         title="ML Zoomcamp 2026",
         description="Machine learning",

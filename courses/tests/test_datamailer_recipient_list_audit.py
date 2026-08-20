@@ -12,7 +12,7 @@ from course_management.datamailer.payloads.base import (
     RecipientListMemberPayload,
     enrollment_recipient_list_payload,
 )
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 
 DATAMAILER_SETTINGS = {
@@ -38,7 +38,7 @@ class RecipientListAuditTarget:
 
 
 def create_ml_course():
-    return Course.objects.create(
+    return Cohort.objects.create(
         slug="ml-zoomcamp-2026",
         title="ML Zoomcamp 2026",
         description="Machine learning",

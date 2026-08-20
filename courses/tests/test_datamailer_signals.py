@@ -4,7 +4,7 @@ from django.test import TestCase, override_settings
 
 from accounts.models import CustomUser
 from courses.models import (
-    Course,
+    Cohort,
     CourseRegistration,
     Enrollment,
     Homework,
@@ -36,7 +36,7 @@ class DatamailerSignalTest(TestCase):
     @patch("courses.signals.sync_enrollment_recipient_list")
     def test_new_enrollment_syncs_after_commit(self, sync):
         user = CustomUser.objects.create(email="student@example.com")
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="ml-zoomcamp",
             title="ML Zoomcamp",
             description="Machine learning",
@@ -71,7 +71,7 @@ class DatamailerSignalTest(TestCase):
     @override_settings(**DATAMAILER_SETTINGS)
     @patch("courses.signals.remove_registration_recipient_list")
     def test_deleted_registration_removes_member_after_commit(self, remove):
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="ml-zoomcamp",
             title="ML Zoomcamp",
             description="Machine learning",
@@ -98,7 +98,7 @@ class DatamailerSignalTest(TestCase):
     @patch("courses.signals.remove_enrollment_recipient_list")
     def test_deleted_enrollment_removes_member_after_commit(self, remove):
         user = CustomUser.objects.create(email="student@example.com")
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="ml-zoomcamp",
             title="ML Zoomcamp",
             description="Machine learning",
@@ -119,7 +119,7 @@ class DatamailerSignalTest(TestCase):
         remove,
     ):
         user = CustomUser.objects.create(email="student@example.com")
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="ml-zoomcamp",
             title="ML Zoomcamp",
             description="Machine learning",
@@ -150,7 +150,7 @@ class DatamailerSignalTest(TestCase):
         remove,
     ):
         user = CustomUser.objects.create(email="student@example.com")
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="ml-zoomcamp",
             title="ML Zoomcamp",
             description="Machine learning",

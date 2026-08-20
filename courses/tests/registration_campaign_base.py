@@ -4,7 +4,7 @@ from django.utils import timezone
 
 from accounts.models import CustomUser
 from courses.models import (
-    Course,
+    Cohort,
     CourseRegistration,
     Homework,
     HomeworkState,
@@ -15,7 +15,7 @@ from courses.models import (
 class RegistrationCampaignBase(TestCase):
     def setUp(self):
         self.client = Client()
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="llm-zoomcamp-2026",
             title="LLM Zoomcamp 2026",
             description="LLM course",

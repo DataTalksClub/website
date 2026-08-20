@@ -6,7 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     PeerReview,
     PeerReviewState,
@@ -205,7 +205,7 @@ class ProjectActionsTestBase(TestCase):
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(**credentials)
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

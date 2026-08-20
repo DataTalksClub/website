@@ -9,7 +9,7 @@ from accounts.auth import token_required
 from course_management.datamailer.sync.certificates import (
     send_certificate_availability_notification,
 )
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 from .enrollment_certificate_updates import process_certificate_updates
 
@@ -22,7 +22,7 @@ def bulk_update_enrollment_certificates_view(request, course_slug: str):
     if error_response:
         return error_response
 
-    course = get_object_or_404(Course, slug=course_slug)
+    course = get_object_or_404(Cohort, slug=course_slug)
     updated, errors = process_certificate_updates(
         course,
         course_slug,

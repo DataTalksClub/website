@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from course_management.datamailer.client import DatamailerConfig
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,7 @@ class ReminderWindow:
 
 @dataclass(frozen=True)
 class ReminderItemData:
-    course: Course
+    course: Cohort
     item_slug: str
     item_id: int
     item_title: str

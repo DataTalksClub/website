@@ -3,7 +3,7 @@ from django.db.models import Prefetch, Value
 from django.db.models.functions import Coalesce
 from django.urls import reverse
 
-from courses.models.course import Enrollment
+from courses.models.cohort import Enrollment
 from courses.models.homework import Submission
 from courses.models.project import ProjectSubmission
 from courses.models.homework import HomeworkState

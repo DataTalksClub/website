@@ -2,7 +2,7 @@ from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 
 from core.security import UnsafeInputError, validate_url
-from courses.models.course import Course, User
+from courses.models.cohort import Cohort, User
 from courses.models.homework import Submission
 from courses.models.project import ProjectSubmission
 
@@ -46,7 +46,7 @@ def clean_learning_in_public_links(links: list[str], cap: int) -> list[str]:
 
 def find_duplicate_learning_in_public_links(
     user: User,
-    course: Course,
+    course: Cohort,
     links: list[str],
     current_submission: Submission | None,
 ) -> list[str]:

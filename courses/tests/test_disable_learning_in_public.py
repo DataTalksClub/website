@@ -4,7 +4,7 @@ from django.utils import timezone
 from datetime import timedelta
 
 from courses.models import (
-    Course,
+    Cohort,
     Homework,
     HomeworkState,
     Submission,
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class DisableLearningInPublicTestCase(TestCase):
     def create_course(self):
-        return Course.objects.create(
+        return Cohort.objects.create(
             slug="test-course",
             title="Test Course",
             description="Test Course Description",

@@ -2,14 +2,14 @@ from dataclasses import dataclass
 
 from api.safety import error_response
 from api.utils import instructions_url_error
-from courses.models.course import Course
+from courses.models.cohort import Cohort
 from courses.models.homework import Homework
 from courses.models.homework import HomeworkState
 
 
 @dataclass(frozen=True)
 class HomeworkUpsertData:
-    course: Course
+    course: Cohort
     homework_slug: str
     data: dict
     homework: Homework | None

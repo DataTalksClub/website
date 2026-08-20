@@ -13,7 +13,7 @@ from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from courses.models import Course, Project
+from courses.models import Cohort, Project
 from scripts.verify_course_platform_vendor_assets import (
     MANIFEST_PATH,
     VendorAssetProvenanceError,
@@ -83,7 +83,7 @@ class CoursePlatformVendorProvenanceTests(SimpleTestCase):
 
 class CoursePlatformRenderedVendorAssetTests(TestCase):
     def setUp(self) -> None:
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="vendor-assets-course",
             title="Vendor assets course",
             description="Synthetic course for local vendor rendering.",

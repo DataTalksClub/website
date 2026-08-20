@@ -34,7 +34,7 @@ from django.core.cache import cache
 from django.utils.text import slugify
 
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     HomeworkState,
@@ -67,14 +67,14 @@ DEFAULT_SELECTED_COURSES = {
 
 @dataclass(frozen=True)
 class CourseMaterials:
-    course: Course
+    course: Cohort
     homeworks: list[Homework]
     projects: list[Project]
 
 
 @dataclass(frozen=True)
 class GeneratedSubmissionData:
-    course: Course
+    course: Cohort
     enrollment: Enrollment
     student_index: int
     item_index: int
@@ -84,7 +84,7 @@ class GeneratedSubmissionData:
 
 @dataclass(frozen=True)
 class GeneratedSubmissionsData:
-    course: Course
+    course: Cohort
     enrollments: list[Enrollment]
     homeworks: list[Homework]
     projects: list[Project]
@@ -93,7 +93,7 @@ class GeneratedSubmissionsData:
 
 @dataclass(frozen=True)
 class GeneratedEnrollmentData:
-    course: Course
+    course: Cohort
     spec: dict
     count: int
     username_prefix: str
@@ -121,7 +121,7 @@ class GeneratedSubmissionResult:
 
 @dataclass(frozen=True)
 class SeedSummaryData:
-    course: Course
+    course: Cohort
     created_users: int
     created_enrollments: int
     homework_submissions: list[Submission]
@@ -332,7 +332,7 @@ def hide_legacy_demo_duplicates():
     for spec in COURSE_SPECS:
         title = spec["title"]
         production_titles.add(title)
-    updated = Course.objects.filter(
+    updated = Cohort.objects.filter(
         slug__startswith="demo-",
         title__in=production_titles,
         visible=True,
@@ -363,7 +363,7 @@ def ensure_course(spec):
     description = course_description(spec)
     registration_url = f"https://courses.datatalks.club/{spec['slug']}/register"
     github_repo_url = f"https://github.com/DataTalksClub/{spec['slug']}"
-    course, _ = Course.objects.update_or_create(
+    course, _ = Cohort.objects.update_or_create(
         slug=spec["slug"],
         defaults={
             "title": spec["title"],

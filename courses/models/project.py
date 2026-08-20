@@ -12,7 +12,7 @@ from courses.validators.criteria_validators import (
 )
 from courses.validators.custom_url_validators import validate_url_200
 
-from .course import Course, Enrollment
+from .cohort import Cohort, Enrollment
 from .stat_display import build_stat_fields, project_stat_sections
 
 User = get_user_model()
@@ -46,7 +46,7 @@ PROJECT_STATE_LABELS = {
 
 
 class Project(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     slug = models.SlugField(blank=False)
 
     title = models.CharField(max_length=200)
@@ -162,7 +162,7 @@ class ReviewCriteriaTypes(Enum):
 
 
 class ReviewCriteria(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE)
+    course = models.ForeignKey(Cohort, on_delete=models.CASCADE)
     description = models.CharField(max_length=255)
 
     options = models.JSONField(validators=[validate_review_criteria_options])
