@@ -60,7 +60,14 @@ erDiagram
     COHORT ||--o{ HOMEWORK : contains
     HOMEWORK ||--o{ QUESTION : asks
     COHORT ||--o{ PROJECT : contains
-    COHORT ||--o{ REVIEW_CRITERION : defines
+    COHORT ||--o{ CURRICULUM_MODULE : contains
+    CURRICULUM_MODULE ||--o{ CURRICULUM_UNIT : contains
+    CURRICULUM_MODULE ||--|| HOMEWORK : terminates
+    COHORT ||--o{ CURRICULUM_FLOW_ITEM : orders
+    CURRICULUM_FLOW_ITEM }o--|| CURRICULUM_MODULE : places
+    CURRICULUM_FLOW_ITEM }o--|| PROJECT : places
+    PROJECT ||--o{ PROJECT_CRITERION : uses
+    REVIEW_CRITERION ||--o{ PROJECT_CRITERION : assigned
     COHORT ||--o{ ENROLLMENT : enrolls
     ENROLLMENT ||--o{ HOMEWORK_SUBMISSION : submits
     ENROLLMENT ||--o{ PROJECT_SUBMISSION : submits
@@ -93,14 +100,30 @@ Lifecycle: `draft -> registration_open -> active -> grading -> completed -> arch
 
 ### Curriculum ownership
 
-For the first consolidation release, curriculum stays cohort-owned exactly as in the current platform:
+Homework, questions, projects, and the curriculum presentation remain Cohort-owned. A Cohort
+explicitly selects one of two presentations through `curriculum_format`:
 
-- `Homework`, `Question`, `Project`, and `ReviewCriteria` foreign keys change from legacy `Course` to `Cohort`;
-- due dates, states, optional fields, scoring settings, and statistics retain current meaning;
-- a new “duplicate cohort” service copies all relevant homework, questions, projects, criteria, and settings, improving on the existing partial course duplication;
-- historical cohorts remain isolated because their curriculum rows are separate.
+- `legacy` preserves the established Homework table followed by the separate Projects table;
+- `modules` adds ordered Cohort-owned Modules and title/slug/link Units. Each Module ends in one
+  terminal Homework, while Projects are top-level ordered flow entries placed between Modules.
 
-Reusable/versioned curriculum may be introduced later after consolidation, based on actual duplication pain. It is not required to satisfy `Course -> Cohort` and is intentionally excluded from the migration-critical path.
+The migration and application default is `legacy`; existing Cohorts are not inferred or converted
+from their content. A reviewed explicit allow-list may opt selected existing Cohorts into `modules`,
+and new Cohorts choose their format at creation. Both formats may coexist under one reusable Course.
+Legacy Cohorts do not publish module rows, and module pages render one deterministic flow with no
+second Projects section. Existing Homework, Project, submission, review, scoring, and result
+destinations remain unchanged.
+
+Review criterion definitions are independent records. Ordered Project-to-criterion assignments are
+the source of truth for a Project's rubric; one definition may be assigned to multiple Projects in
+the same Cohort, while each Project may have a different ordered set. The migration backfills each
+Project from the legacy Cohort criteria in deterministic order and retains unlinked legacy criteria
+for audit. No consumer may reconstruct a rubric by taking every criterion in a Cohort.
+
+A “duplicate cohort” service copies the selected format, Module/Unit/flow structure, Projects,
+criterion definitions, and Project-to-criterion assignments while preserving sharing inside the
+duplicate. Learners and lifecycle history are not copied, and copied curriculum has no links back
+to the source Cohort. Reusable/versioned curriculum shared across Cohorts remains out of scope.
 
 ### Enrollment and certificates
 
