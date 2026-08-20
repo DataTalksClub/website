@@ -350,7 +350,7 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream homework-hero" aria-labelledby="homework-heading">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -363,7 +363,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell homework-hero-inner">
+        <div class="shell shell-reading homework-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="homework-heading">{{ homework.title }}</h1>
           {% if homework.description %}
@@ -503,7 +503,7 @@
 
       {% if accepting_submissions or submission.pk or homework.is_scored %}
         <section class="band band-lavender" aria-labelledby="questions-heading">
-          <div class="shell">
+          <div class="shell shell-reading">
             <form method="post" class="needs-validation homework-form" novalidate>
               {% if is_authenticated %}
                 {% csrf_token %}
