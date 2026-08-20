@@ -18,16 +18,6 @@ from django.db import IntegrityError, transaction
 from django.db.models import F, Max
 from django.utils import timezone
 
-from content_sync.course_repository import (
-    CohortSource,
-    CourseRepositorySource,
-    HomeworkQuestionSource,
-    HomeworkSource,
-    ModuleFlowSource,
-    ModuleSource,
-    ProjectFlowSource,
-    UnitSource,
-)
 from courses.models import (
     AnswerTypes,
     Cohort,
@@ -54,6 +44,16 @@ from courses.models.curriculum_import import (
     validate_source_path,
 )
 from courses.registration import render_markdown
+from courses.services.curriculum_source import (
+    CohortSource,
+    CourseRepositorySource,
+    HomeworkQuestionSource,
+    HomeworkSource,
+    ModuleFlowSource,
+    ModuleSource,
+    ProjectFlowSource,
+    UnitSource,
+)
 
 _QUESTION_TYPES = {
     "multiple_choice": QuestionTypes.MULTIPLE_CHOICE.value,
