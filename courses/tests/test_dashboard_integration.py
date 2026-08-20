@@ -157,6 +157,7 @@ class DashboardIntegrationTestCase(TestCase):
         self.assertContains(response, "Homework 2")
         self.assertContains(response, "View Leaderboard")
         self.assertContains(response, "View All Project Submissions")
+        self.assertContains(response, 'class="card dashboard-card stretched-card-link"')
 
     def test_dashboard_with_complete_course_data(self):
         self.create_complete_dashboard_fixture()

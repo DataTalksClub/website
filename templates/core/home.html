@@ -37,6 +37,7 @@
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
+      {% include "public/_card_link_styles.html" %}
 
       /* ------------------------------------------------------------------ *
        * Homepage-specific rules.  Shared primitives live in the partial
@@ -809,7 +810,7 @@
             tabindex="0"
           >
             {% for course in catalog_courses %}
-              <article class="card course-card">
+              <article class="card course-card stretched-card-link">
                 <div class="featured-badges">
                   <span class="chip">{{ course.label }}</span>
                 </div>
@@ -919,7 +920,7 @@
               <div class="band-head">
                 <h3>Latest podcast episode</h3>
               </div>
-              <div class="card">
+              <div class="card latest-card stretched-card-link podcast-card">
                 <div class="latest-item">
                   <span class="latest-icon latest-icon-play" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false">
@@ -930,7 +931,7 @@
                     <h3>
                       <a class="band-link" href="{{ podcast.public_path }}">{{ podcast.title }}</a>
                     </h3>
-                    <p class="latest-meta">
+                    <p class="mono-label mono-label-indigo podcast-meta">
                       Season {{ podcast.season }} · Episode {{ podcast.episode }}
                     </p>
                     {% if podcast.guest_profiles %}
@@ -951,7 +952,7 @@
               <div class="band-head">
                 <h3>Latest article</h3>
               </div>
-              <div class="card">
+              <div class="card latest-card stretched-card-link">
                 <div class="latest-item">
                   <span class="latest-icon latest-icon-green" aria-hidden="true">{{ article_minutes }}m</span>
                   <div>

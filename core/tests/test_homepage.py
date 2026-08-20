@@ -75,6 +75,19 @@ class MainHomepageRoutingTests(TestCase):
                 self.assertNotIn(retired, body)
         self.assertEqual(re.findall(r'<link[^>]+rel="stylesheet"', body), [])
 
+    def test_single_destination_cards_stretch_their_existing_semantic_links(self) -> None:
+        body = self.client.get(reverse("home")).content.decode()
+
+        self.assertIn('class="card course-card stretched-card-link"', body)
+        self.assertIn('class="card latest-card stretched-card-link podcast-card"', body)
+        self.assertIn(
+            '<p class="mono-label mono-label-indigo podcast-meta">',
+            body,
+        )
+        self.assertIn('class="card latest-card stretched-card-link">', body)
+        self.assertIn(".stretched-card-link .latest-item h3 a::after", body)
+        self.assertIn(".stretched-card-link .course-link::after", body)
+
     def test_homepage_leaks_no_unrendered_template_syntax(self) -> None:
         """A multi-line {# #} comment is not a comment, and reaches the reader as copy."""
 

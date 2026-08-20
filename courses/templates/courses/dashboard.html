@@ -23,6 +23,11 @@
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
+      {% include "public/_card_link_styles.html" %}
+
+      :root {
+        --page: var(--lavender);
+      }
 
       /* ------------------------------------------------------------------ *
        * Dashboard rules.
@@ -300,7 +305,7 @@
                 {% endif %}
               </dl>
             </div>
-            <div class="card dashboard-card">
+            <div class="card dashboard-card stretched-card-link">
               <h3>Project outcomes</h3>
               <dl class="row-list fact-rows">
                 <div class="list-row">
@@ -337,7 +342,7 @@
       </section>
 
       {% if homework_stats %}
-        <section class="band band-cream" aria-labelledby="homework-statistics-heading">
+        <section class="band band-lavender" aria-labelledby="homework-statistics-heading">
           <div class="shell">
             <div class="band-head">
               <div>
@@ -462,7 +467,7 @@
       {% endif %}
 
       {% if question_difficulty %}
-        <section class="band band-cream" aria-labelledby="question-difficulty-heading">
+        <section class="band band-lavender" aria-labelledby="question-difficulty-heading">
           <div class="shell">
             <div class="band-head">
               <div>
@@ -553,7 +558,7 @@
       {% endif %}
 
       {% if engagement_trend %}
-        <section class="band band-cream" aria-labelledby="engagement-heading">
+        <section class="band band-lavender" aria-labelledby="engagement-heading">
           <div class="shell">
             <div class="band-head">
               <div>
