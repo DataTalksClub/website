@@ -14,7 +14,7 @@ public views   studio   api   jobs
                   |
                  core
 
-content_sync -> content + core
+content_sync -> content + courses + core
 domains -> email_app intent service -> jobs -> Relay (leased call after commit only)
 email_app/jobs may receive identifiers from domains, but domains do not import worker tasks
 ```
@@ -26,7 +26,9 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
 - `accounts`: the email-based user model, private one-to-one member profile, Slack-access
   eligibility, staff authentication, groups, permissions, and future API credentials.
 - `content`: versioned GitHub-owned read models and public content presentation.
-- `content_sync`: GitHub adapters and candidate-release orchestration; depends on `content`, never the reverse.
+- `content_sync`: GitHub adapters and candidate-release orchestration; it may call validated
+  application services in `content` and `courses`, but those domain apps never import sync
+  adapters.
 - `courses`: database-owned courses, cohorts, and learner workflows.
 - `events`: database-owned events, registrations, attendance, and exports.
 - `email_app`: logical `EmailDelivery` intents, Relay idempotency/correlation metadata, redacted
@@ -39,6 +41,11 @@ email_app/jobs may receive identifiers from domains, but domains do not import w
   transaction commits.
 
 Apps may depend on `accounts` for actor or ownership references and on `core` for generic primitives. Cross-domain behavior is coordinated by an application service at the owning boundary, using scalar identifiers for queued work. Circular imports are not an acceptable coordination mechanism.
+
+Repository curriculum adapters parse an immutable source graph and pass it to the `courses`
+curriculum import service. The graph types belong to the receiving domain boundary, so the course
+service remains usable without importing a GitHub adapter; fetching, parsing, webhook handling,
+and durable job orchestration stay outside `courses`.
 
 `accounts.MemberProfile` is the database-owned community-membership and learner-onboarding record.
 It is not `content.Person`, which remains the GitHub-owned public editorial identity for authors,
