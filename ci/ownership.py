@@ -238,6 +238,9 @@ def validate_graph(payload: object) -> dict[str, Any]:
     }:
         raise OwnershipGraphError("render rules have an invalid shape")
     if not isinstance(risk_rules, dict) or set(risk_rules) != {
+        "configuration_hidden_prefixes",
+        "configuration_prefixes",
+        "configuration_suffixes",
         "global_fixture_segments",
         "migration_segments",
         "policy_doc_exact",

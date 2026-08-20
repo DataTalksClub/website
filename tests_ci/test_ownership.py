@@ -163,6 +163,19 @@ def test_graph_schema_policy_version_matches_the_active_graph() -> None:
     assert schema["properties"]["policy_version"] == {"const": graph["policy_version"]}
 
 
+def test_graph_owns_root_configuration_classification_rules() -> None:
+    graph = load_graph()
+    rules = graph["risk_rules"]
+    assert "." in rules["configuration_hidden_prefixes"]
+    assert "requirements" in rules["configuration_prefixes"]
+    assert ".toml" in rules["configuration_suffixes"]
+
+    incomplete = deepcopy(graph)
+    del incomplete["risk_rules"]["configuration_suffixes"]
+    with pytest.raises(OwnershipGraphError):
+        validate_graph(incomplete)
+
+
 @pytest.mark.parametrize(
     "mutation", ["duplicate", "ambiguous", "dangling", "cycle", "unknown_field"]
 )
@@ -217,6 +230,18 @@ def test_shared_render_documentation_and_unknown_impacts_are_explicit() -> None:
 
     unknown = impact_for_paths(("new_package/module.py", "../escape"))
     assert unknown.unknown_paths == ("../escape", "new_package/module.py")
+
+
+def test_legacy_cadmin_and_shared_test_support_roots_are_explicitly_owned() -> None:
+    cadmin = impact_for_paths(("cadmin/legacy_urls.py",))
+    assert cadmin.owners == ("surface.cadmin",)
+    assert cadmin.risk_flags == ("compatibility_contract",)
+    assert not cadmin.unknown_paths
+
+    test_support = impact_for_paths(("test_support/factories/context.py",))
+    assert test_support.owners == ("surface.test_support",)
+    assert test_support.risk_flags == ("test_infrastructure",)
+    assert not test_support.unknown_paths
 
 
 def test_recursive_component_patterns_match_nested_fixtures_and_templates() -> None:

@@ -30,6 +30,16 @@ closures are:
 | `review_import` | `accounts courses review_import` |
 | `studio` | `accounts core studio` |
 
+The selector derives non-application full-run guards from the same owner metadata. `shared.*`
+owners and owners carrying authentication/security/privacy risk use `shared_application`; surface
+owners and test-infrastructure, dependency, or deployment risks use
+`configuration_or_dependency`; documentation and compatibility-contract owners use
+`documentation_or_contract`. The retained two-file `cadmin/` redirect adapter is explicitly owned
+by `surface.cadmin`, and central `test_support/` is owned by `surface.test_support`. The former
+`testless_application` reason is not used: `content_sync`, `events`, and `email_app` remain
+explicitly classified from their graph metadata. A path with no owner or invalid path syntax still
+uses `unknown_path` and the `full` profile.
+
 A focused profile is allowed only for one ordinary application owner. Unknown or multi-application
 impact, shared runtime, authentication/security/privacy code, migrations, global fixtures,
 dependency/toolchain files, test infrastructure, compatibility contracts, deployment/runtime
