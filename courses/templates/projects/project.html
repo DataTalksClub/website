@@ -112,7 +112,11 @@
 {% block hero_actions %}
   <div class="project-toolbar">
     {% if project.state == 'CO' %}
-      {% url 'project_statistics' course.course.slug course.year project.slug as project_statistics_url %}
+      {% if course.course %}
+        {% url 'project_statistics' course.course.slug course.year project.slug as project_statistics_url %}
+      {% else %}
+        {% url 'project_statistics' course.slug project.slug as project_statistics_url %}
+      {% endif %}
       {% include "core/_button.html" with href=project_statistics_url label="Project statistics" variant="subtle" compact=True %}
     {% endif %}
     {% if can_access_course_studio %}
@@ -137,7 +141,11 @@
     {% if disabled %}
       {% if submission %}
         {% if project.state == 'PR' %}
-          {% url 'projects_eval' course.course.slug course.year project.slug as project_eval_url %}
+          {% if course.course %}
+            {% url 'projects_eval' course.course.slug course.year project.slug as project_eval_url %}
+          {% else %}
+            {% url 'projects_eval' course.slug project.slug as project_eval_url %}
+          {% endif %}
           {% include "core/_callout.html" with tone="attention" title="The project is currently in the peer-reviewing phase." message="This form is no longer accepting modifications." link_url=project_eval_url link_label="Evaluate your peers here." %}
         {% endif %}
       {% else %}
@@ -165,16 +173,17 @@
           <p class="project-note">Submit the public repository link and the exact commit you want evaluated.</p>
         </div>
       </div>
-      <form method="post" id="project-form" class="needs-validation submission-form project-form" novalidate>
+      <form method="post" id="project-form" class="needs-validation cmp-form project-form submission-form" novalidate>
         {% if is_authenticated %}
           {% csrf_token %}
         {% endif %}
+        <div class="cmp-form-fields">
         <div class="field">
           <label class="field-label" for="github_link">GitHub link to the project</label>
           <p class="field-hint">Your project should be hosted on GitHub. Make sure your project is public.</p>
           <input
             type="url"
-            class="form-control"
+            class="field-input form-control"
             id="github_link"
             name="github_link"
             value="{{ submission.github_link|default:'' }}"
@@ -192,7 +201,7 @@
           <input
             type="text"
             id="commit_id"
-            class="form-control"
+            class="field-input form-control"
             name="commit_id"
             value="{{ submission.commit_id|default:'' }}"
             required
@@ -206,7 +215,7 @@
             <p class="field-hint">How much time (in hours) did you spend to work on the project?</p>
             <input
               type="number"
-              class="form-control"
+              class="field-input form-control"
               name="time_spent"
               id="time_spent"
               min="0"
@@ -224,7 +233,7 @@
             <p class="field-hint">Enter the name you would like to be shown on the certificate. This is required and will be used for your certificate.</p>
             <input
               type="text"
-              class="form-control"
+              class="field-input form-control"
               id="certificate_name"
               name="certificate_name"
               value="{{ certificate_name|default:'' }}"
@@ -233,6 +242,7 @@
             />
           </div>
         {% endif %}
+        </div>
         <p class="submission-status project-note">
           {% if submission %}
             Last saved at: {{ submission.submitted_at|user_datetime:request }}
@@ -244,13 +254,13 @@
           <p class="project-note">You can save your project now and keep working on it. Update the commit ID before the deadline when you have a newer version.</p>
         {% endif %}
         {% if accepting_submissions %}
-          <div class="submission-form-actions project-form-actions">
+          <div class="submission-form-actions cmp-form-actions project-form-actions">
             {% if is_authenticated %}
               {% if not submission %}
                 {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
               {% else %}
                 {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update submission" variant="primary" compact=True %}
-                {% include "core/_button.html" with tag="button" type="button" id="delete-button" label="Remove" variant="secondary" compact=True %}
+                {% include "core/_button.html" with tag="button" type="button" id="delete-button" label="Remove" variant="subtle" compact=True %}
               {% endif %}
             {% else %}
               {% url 'login' as login_url %}

@@ -66,11 +66,7 @@
     {% endfor %}
     {% if not is_authenticated and accepting_submissions %}
       {% url 'login' as login_url %}
-      <div class="callout callout-info">
-        <strong>Log in to submit this homework</strong>
-        <p>You can preview the questions, but submissions are saved only for logged-in students.</p>
-        {% include "core/_button.html" with href=login_url label="Log in to submit" variant="primary" compact=True %}
-      </div>
+      {% include "core/_callout.html" with tone="info" title="Log in to submit this homework" message="You can preview the questions, but submissions are saved only for logged-in students." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
     {% endif %}
     {% if accepting_submissions and deadline_passed %}
       {% include "core/_callout.html" with tone="info" title="The deadline has passed, but this homework is still open" message="You can still submit your answers below. Submissions are accepted until the homework is closed for scoring." %}
@@ -170,7 +166,6 @@
   .form-check-label {
     color: var(--body-text);
   }
-
   .option-answer-correct .form-check-label::after,
   .option-answer-incorrect .form-check-label::after {
     font-size: 0.85rem;
@@ -221,7 +216,6 @@
   .form-control.is-invalid {
     border-color: var(--olive);
   }
-
   .form-control.option-answer-correct {
     border-color: var(--green);
   }
@@ -249,7 +243,6 @@
     overflow-wrap: anywhere;
     padding: 0.65rem 0.8rem;
   }
-
   .homework-status {
     color: var(--body-text);
     display: grid;
@@ -268,7 +261,7 @@
 {% endblock %}
 
 {% block submission_content %}
-  <form method="post" class="needs-validation submission-form homework-form" novalidate>
+  <form method="post" class="needs-validation cmp-form homework-form submission-form" novalidate>
     {% if is_authenticated %}
       {% csrf_token %}
     {% endif %}
@@ -290,7 +283,7 @@
           <a class="band-link" href="{{ homework.instructions_url }}" target="_blank" rel="noopener noreferrer">instructions</a>.
         </p>
       {% endif %}
-      <div class="submission-fields homework-fields">
+      <div class="submission-fields homework-fields cmp-form-fields">
         {% for question, answer in question_answers %}
           <fieldset class="question">
             <legend class="question-text" id="question-label-{{ question.id }}">
@@ -400,7 +393,7 @@
             <h2 id="submission-details-heading">Submission details</h2>
           </div>
         </div>
-        <div class="submission-fields homework-fields">
+        <div class="submission-fields homework-fields cmp-form-fields">
           {% if homework.homework_url_field %}
             {% if homework.is_scored %}
               <div class="field">
@@ -477,7 +470,7 @@
           {% endif %}
         </div>
         {% if is_authenticated and not homework.is_scored %}
-          <div class="submission-form-actions homework-submit">
+          <div class="submission-form-actions homework-submit cmp-form-actions">
             {% if not submission.pk %}
               {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
             {% else %}

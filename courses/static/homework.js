@@ -20,7 +20,10 @@ document.addEventListener('DOMContentLoaded', function() {
     field.classList.toggle('is-invalid', Boolean(message));
     field.setCustomValidity(message || '');
 
-    var feedback = field.parentElement.querySelector('.invalid-feedback');
+    var feedback = field.nextElementSibling;
+    if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+      feedback = null;
+    }
     if (!feedback) {
       feedback = document.createElement('div');
       feedback.className = 'invalid-feedback';

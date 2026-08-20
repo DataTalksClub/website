@@ -447,10 +447,11 @@ Markup shapes below are the contract; the CSS lives in the partial.
 
 - **`.cta`** — the block action: 2px ink border, `0.7rem` radius, hard shadow,
   `min-height: 3.25rem`. Variants: `.cta-primary` (green, white text),
-  `.cta-secondary` (card surface, ink text), `.cta-ink` (ink fill, cream text,
-  bubble shadow — "Continue course"), `.cta-lift` (bubble shadow on any CTA —
-  "Start course now"), `.cta-compact` (row-sized: `min-height: 2.75rem`,
-  `0.6rem` radius — Register buttons in list rows).
+  `.cta-secondary` (card surface, ink text), `.cta-subtle` (transparent quiet
+  action), `.cta-ink` (ink fill, cream text, bubble shadow — "Continue course"),
+  `.cta-lift` (bubble shadow on any CTA — "Start course now"), `.cta-compact`
+  (row-sized: `min-height: 2.75rem`, `0.6rem` radius — Register buttons in list
+  rows).
 - **`.pill-button`** — round bordered control (theme toggle, subscribe links)
   with an optional `.dot` swatch. Platform dot colours: `.dot-green`,
   `.dot-bubble`, `.dot-clay`, `.dot-gold`.
@@ -793,6 +794,21 @@ disclose; no page uses it today.
 
 `.field-input` styles `input`, `select` and `textarea` alike; readonly and
 disabled fields sit on `--sand`.
+
+Mutation forms use the shared CMP primitives so homework, project submission and
+peer-review forms keep one visual system even when their fields differ:
+
+- **`.cmp-form`** — a lavender content surface with the shared 46rem measure,
+  border, padding and vertical rhythm.
+- **`.cmp-form-fields`** — the field group rhythm inside the surface;
+  `.field`, `.field-label`, `.field-hint`, `.field-input` and `.form-control`
+  share the same labels, controls and disabled/readonly treatment.
+- **`.cmp-form-actions`** — the dashed action rule, spacing and responsive
+  full-width button layout. Use `.cta-primary`, `.cta-secondary` or
+  `.cta-subtle` for the action's intent.
+- **`include/learning_in_public_links.html`** — the one learning-in-public
+  field primitive. Its cap is carried in `data-learning-in-public-cap`, so the
+  same include and script work on homework, project and peer-review forms.
 
 A form that can be wrong also draws the shared accessible form marks, which
 `core/templates/accessibility/` renders and which live in the partial because

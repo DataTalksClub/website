@@ -9,7 +9,6 @@ from courses.tests.homework_view_base import (
 
 
 class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
-
     def test_homework_page_uses_homework_title_as_heading_and_keeps_course_context(self):
         response = self.get_homework_response()
         body = response.content.decode()
@@ -68,9 +67,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "homework/homework.html")
 
-        context = self.assert_homework_context(
-            response, is_authenticated=False
-        )
+        context = self.assert_homework_context(response, is_authenticated=False)
         self.assert_empty_question_answers(context["question_answers"])
 
         self.assertNotContains(response, "Shown in your timezone.")
@@ -87,8 +84,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
 
     def test_homework_detail_displays_optional_instructions_url(self):
         self.homework.instructions_url = (
-            "https://github.com/DataTalksClub/course-management-platform/"
-            "blob/main/README.md"
+            "https://github.com/DataTalksClub/course-management-platform/blob/main/README.md"
         )
         self.homework.save()
 
@@ -154,9 +150,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "homework/homework.html")
 
-        context = self.assert_homework_context(
-            response, is_authenticated=True
-        )
+        context = self.assert_homework_context(response, is_authenticated=True)
         self.assertEqual(context["submission"], self.submission)
 
         self.assert_saved_question_answers(context["question_answers"])

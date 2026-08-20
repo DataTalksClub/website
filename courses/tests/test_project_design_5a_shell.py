@@ -61,6 +61,13 @@ SCRIPT_SOURCE = re.compile(r'<script src="([^"]+)"')
 # Every project page except the project itself is a thin working surface that
 # the copied platform has always kept out of the index.
 INDEXED_PAGES = ("project",)
+SHARED_SUBMISSION_PAGES = {"project.html", "eval_submit.html"}
+
+
+def cohort_model():
+    """Resolve the project relation without importing the legacy Course name."""
+
+    return Project._meta.get_field("course").remote_field.model
 
 
 class ProjectDesignFiveAShellTests(TestCase):
@@ -126,38 +133,46 @@ class ProjectDesignFiveAShellTests(TestCase):
         )
 
     def project_paths(self) -> dict[str, str]:
-        course_slug = self.course.slug
+        route_kwargs = self.course_route_kwargs()
         project_slug = self.project.slug
         return {
             "project": reverse(
                 "project",
-                kwargs={"course_slug": course_slug, "project_slug": project_slug},
+                kwargs={**route_kwargs, "project_slug": project_slug},
             ),
             "project submissions list": reverse(
                 "project_list",
-                kwargs={"course_slug": course_slug, "project_slug": project_slug},
+                kwargs={**route_kwargs, "project_slug": project_slug},
             ),
             "all project submissions": reverse(
                 "list_all_project_submissions",
-                kwargs={"course_slug": course_slug},
+                kwargs=route_kwargs,
             ),
             "peer evaluations": reverse(
                 "projects_eval",
-                kwargs={"course_slug": course_slug, "project_slug": project_slug},
+                kwargs={**route_kwargs, "project_slug": project_slug},
             ),
             "peer review form": reverse(
                 "projects_eval_submit",
                 kwargs={
-                    "course_slug": course_slug,
+                    **route_kwargs,
                     "project_slug": project_slug,
                     "review_id": self.review.id,
                 },
             ),
             "project results": reverse(
                 "project_results",
-                kwargs={"course_slug": course_slug, "project_slug": project_slug},
+                kwargs={**route_kwargs, "project_slug": project_slug},
             ),
         }
+
+    def course_route_kwargs(self) -> dict[str, object]:
+        if self.course._meta.model_name == "cohort":
+            return {
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.year,
+            }
+        return {"course_slug": self.course.slug}
 
     def statistics_path(self) -> str:
         """The statistics page redirects until the project is scored."""
@@ -166,7 +181,7 @@ class ProjectDesignFiveAShellTests(TestCase):
         return reverse(
             "project_statistics",
             kwargs={
-                "course_slug": self.course.slug,
+                **self.course_route_kwargs(),
                 "project_slug": self.project.slug,
             },
         )
@@ -214,7 +229,7 @@ class ProjectDesignFiveAShellTests(TestCase):
                 self.assertEqual(body.count("<h1"), 1)
 
     def test_every_project_page_carries_the_trail_back_to_the_course(self) -> None:
-        course_url = reverse("course", kwargs={"course_slug": self.course.slug})
+        course_url = reverse("course", kwargs=self.course_route_kwargs())
 
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
@@ -259,3 +274,25 @@ class ProjectDesignFiveAShellTests(TestCase):
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
                 self.assertEqual(body.count('id="site-navigation-links"'), 1)
+
+    def test_project_and_peer_review_forms_inherit_and_render_cmp_primitives(self) -> None:
+        project_template = (PROJECT_TEMPLATES / "project.html").read_text(encoding="utf-8")
+        review_template = (PROJECT_TEMPLATES / "eval_submit.html").read_text(encoding="utf-8")
+        shared_template = (PROJECT_TEMPLATES.parent / "courses/_submission_page.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('{% extends "courses/_submission_page.html" %}', project_template)
+        self.assertIn('{% extends "courses/_submission_page.html" %}', review_template)
+        self.assertIn('class="band band-lavender submission-band"', shared_template)
+
+        bodies = self.rendered_pages()
+        self.assertIn('class="needs-validation cmp-form project-form', bodies["project"])
+        self.assertIn('class="needs-validation cmp-form review-form', bodies["peer review form"])
+        for name in ("project", "peer review form"):
+            with self.subTest(page=name):
+                self.assertIn('class="field learning-in-public-field"', bodies[name])
+                self.assertIn(".cmp-form {", bodies[name])
+                self.assertIn("background: var(--lavender);", bodies[name])
+                self.assertIn("--form-measure: 46rem;", bodies[name])
+                self.assertIn(".cmp-form-actions {", bodies[name])

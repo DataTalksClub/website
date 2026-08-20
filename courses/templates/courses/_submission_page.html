@@ -145,7 +145,11 @@
               <a href="{% url 'course_list' %}">Courses</a>
             </li>
             <li>
-              <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+              {% if course.course %}
+                <a href="{% url 'course' course.course.slug course.year %}">{{ course.title }}</a>
+              {% else %}
+                <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+              {% endif %}
             </li>
             {% block breadcrumbs %}
             {% endblock %}

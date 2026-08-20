@@ -16,6 +16,7 @@
 {% endblock %}
 
 {% block extra_styles %}
+  {{ block.super }}
   .review-form {
     gap: 1.5rem;
   }
@@ -55,14 +56,13 @@
   .form-check-label {
     color: var(--body-text);
   }
-
   .cta.is-voted {
     background: var(--green);
     border-color: var(--line);
     color: var(--on-green);
   }
 
-  .review-actions {
+  .review-toolbar {
     align-items: center;
     display: flex;
     flex-wrap: wrap;
@@ -83,10 +83,19 @@
 
 {% block breadcrumbs %}
   <li>
-    <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">{{ project.title }}</a>
+    {% if course.course %}
+      <a href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}">{{ project.title }}</a>
+    {% else %}
+      <a href="{% url 'project' course_slug=course.slug project_slug=project.slug %}">{{ project.title }}</a>
+    {% endif %}
   </li>
   <li>
-    <a href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Evaluations</a>
+    {% if course.course %}
+      <a href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Evaluations</a>
+    {% else %}
+      <a href="{% url 'projects_eval' course.slug project.slug %}">Evaluations</a>
+    {% endif %}
+  </li>
   </li>
   <li aria-current="page">
     Evaluate submission
@@ -136,7 +145,7 @@
 {% endblock %}
 
 {% block hero_actions %}
-  <div class="review-actions">
+  <div class="review-toolbar">
     <form method="post" class="review-vote-form">
       {% csrf_token %}
       <input type="hidden" name="form_action" value="vote">
@@ -152,15 +161,23 @@
       <span class="status-pill status-pill-wait">Limit reached for this project</span>
     {% endif %}
     {% if review.optional %}
-      {% url 'projects_eval_delete' course.course.slug course.year project.slug review.id as remove_review_url %}
-      {% include "core/_button.html" with tag="button" type="button" label="Remove review" variant="secondary" compact=True onclick_url=remove_review_url %}
+      {% if course.course %}
+        {% url 'projects_eval_delete' course.course.slug course.year project.slug review.id as remove_review_url %}
+      {% else %}
+        {% url 'projects_eval_delete' course.slug project.slug review.id as remove_review_url %}
+      {% endif %}
+      {% include "core/_button.html" with tag="button" type="button" label="Remove review" variant="subtle" compact=True onclick_url=remove_review_url %}
     {% endif %}
   </div>
   {% if review.optional %}
     <p class="project-note">You selected this review. You can remove it if you do not have time.</p>
   {% endif %}
   <p>
-    <a class="band-link" href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Back to evaluations</a>
+    {% if course.course %}
+      <a class="band-link" href="{% url 'projects_eval' course.course.slug course.year project.slug %}">Back to evaluations</a>
+    {% else %}
+      <a class="band-link" href="{% url 'projects_eval' course.slug project.slug %}">Back to evaluations</a>
+    {% endif %}
   </p>
 {% endblock %}
 
@@ -189,9 +206,9 @@
     <div class="submission-notices">
       {% include "core/_callout.html" with tone="info" message="Score the submission against each criterion." %}
     </div>
-    <form method="post" class="needs-validation submission-form review-form" novalidate>
+    <form method="post" class="needs-validation cmp-form review-form submission-form" novalidate>
       {% csrf_token %}
-      <div>
+      <div class="cmp-form-fields">
         {% for criteria, response in criteria_response_pairs %}
           <fieldset class="criteria-question">
             <legend>{{ forloop.counter }}. {{ criteria.description }}</legend>
@@ -220,24 +237,29 @@
       <div class="field">
         <label class="field-label" for="note_to_peer">Review comments</label>
         <p class="field-hint">Notes or suggestions for your peer.</p>
-        <textarea class="form-control" name="note_to_peer" id="note_to_peer" rows="5" {% if disabled %}disabled{% endif %}>{{ review.note_to_peer|default:'' }}</textarea>
+        <textarea class="field-input form-control" name="note_to_peer" id="note_to_peer" rows="5" {% if disabled %}disabled{% endif %}>{{ review.note_to_peer|default:'' }}</textarea>
       </div>
       {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=project.learning_in_public_cap_review learning_in_public_links=review.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
       {% if project.time_spent_evaluation_field %}
         <div class="field">
           <label class="field-label" for="time_spent_reviewing">Time spent reviewing (optional)</label>
-          <input type="number" class="form-control" name="time_spent_reviewing" id="time_spent_reviewing" min="0" value="{{ review.time_spent_reviewing|default:'' }}" {% if disabled %}disabled{% endif %}>
+          <input type="number" class="field-input form-control" name="time_spent_reviewing" id="time_spent_reviewing" min="0" value="{{ review.time_spent_reviewing|default:'' }}" {% if disabled %}disabled{% endif %}>
         </div>
       {% endif %}
+      </div>
       {% if project.state == 'PR' %}
-        <div class="submission-form-actions review-actions">
+        <div class="submission-form-actions cmp-form-actions review-toolbar">
           {% if review.state == 'TR' %}
             {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Submit" variant="primary" compact=True %}
           {% else %}
             {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update" variant="primary" compact=True %}
           {% endif %}
-          {% url 'projects_eval' course.course.slug course.year project.slug as evaluations_url %}
-          {% include "core/_button.html" with href=evaluations_url label="Cancel" variant="secondary" compact=True %}
+          {% if course.course %}
+            {% url 'projects_eval' course.course.slug course.year project.slug as evaluations_url %}
+          {% else %}
+            {% url 'projects_eval' course.slug project.slug as evaluations_url %}
+          {% endif %}
+          {% include "core/_button.html" with href=evaluations_url label="Cancel" variant="subtle" compact=True %}
         </div>
       {% else %}
         {% include "core/_callout.html" with tone="attention" message="Peer review form is closed." %}

@@ -219,54 +219,6 @@
         margin-bottom: 1.5rem;
       }
 
-      /* --- form controls ------------------------------------------------ *
-       * The copied platform's forms — and the "add another link" script that
-       * appends to one of them — carry `form-control` and `form-check-input`
-       * class names, and a design 5a page loads no stylesheet that defines
-       * them.  They take the system's own .field-input treatment here, so a
-       * field the script creates looks exactly like the ones the template
-       * rendered. */
-      .form-control {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.625rem;
-        color: var(--ink);
-        font: inherit;
-        min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
-        width: 100%;
-      }
-
-      .form-control[readonly],
-      .form-control[disabled] {
-        background: var(--sand);
-        color: var(--muted);
-      }
-
-      /* A field the server rejected: the attention surface the notices use,
-         so the marker is never colour alone — the message beside it names the
-         problem. */
-      .form-control.is-invalid {
-        background: var(--sand);
-        color: var(--olive);
-      }
-
-      .form-check-input {
-        accent-color: var(--green);
-        flex: none;
-        height: 1.1rem;
-        width: 1.1rem;
-      }
-
-      /* The message the copied `homework.js` inserts after a field it rejected
-         before the form is posted.  It reads on the attention colour the
-         notices use; the sentence itself carries the problem. */
-      .invalid-feedback {
-        color: var(--olive);
-        font-size: 0.85rem;
-        font-weight: 700;
-      }
-
       /* The live countdown `time_left.js` writes into a deadline line.  It is
          the same page-local treatment the course page gives it: token-driven
          tones that survive both themes, and no box at all before the script

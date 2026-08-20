@@ -28,6 +28,6 @@
     </p>
   {% endif %}
   {% if button_url %}
-    {% include "core/_button.html" with href=button_url label=button_label variant=button_variant|default:"primary" compact=True target=button_target rel=button_rel %}
+    {% include "core/_button.html" with href=button_url label=button_label variant=button_variant|default:"primary" compact=True target=button_target rel=button_rel title=button_title %}
   {% endif %}
 </div>

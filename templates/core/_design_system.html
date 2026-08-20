@@ -71,6 +71,9 @@ Rules for editing:
         /* The long-form reading measure: about 70 characters of `.prose` body
            text, the width a page of prose is set to. */
         --measure: 38rem;
+        /* Mutation surfaces use a slightly wider measure than long-form prose,
+           while still keeping controls comfortable on a large screen. */
+        --form-measure: 46rem;
         /* The drawn circle.  Every round mark the pages draw by hand — step
            discs, promise marks, the play disc, module numbers — carries this
            lopsided radius instead of a true 999px circle, so a mark sitting
@@ -1003,6 +1006,16 @@ Rules for editing:
       .cta-secondary {
         background: var(--card);
         color: var(--ink);
+      }
+
+      /* A quiet action belongs beside a primary or secondary action when it
+         changes the form's state but is not the path the page is asking for.
+         It keeps the same target size and focus treatment without adding a
+         second filled surface. */
+      .cta-subtle {
+        background: transparent;
+        box-shadow: none;
+        color: var(--body-text);
       }
 
       /* --- cards -------------------------------------------------------- */
@@ -2264,7 +2277,50 @@ Rules for editing:
         margin: 0;
       }
 
-      /* Form fields: the register form on the course page. */
+      /* --- shared form primitives -------------------------------------- */
+
+      /* CMP mutation surfaces share one lavender ground, measure and rhythm.
+         Homework, project submission and peer-review pages use this class on
+         their actual form so a different field set cannot create a different
+         page shape. */
+      .cmp-form {
+        background: var(--lavender);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.9rem;
+        display: grid;
+        gap: 1.25rem;
+        max-width: var(--form-measure);
+        padding: clamp(1rem, 2.5vw, 1.5rem);
+        width: 100%;
+      }
+
+      .cmp-form-fields {
+        display: grid;
+        gap: 1.25rem;
+        width: 100%;
+      }
+
+      .learning-in-public-controls {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .cmp-form-meta {
+        color: var(--body-text);
+        display: grid;
+        gap: 0.35rem;
+      }
+
+      .cmp-form-actions {
+        border-top: 2px dashed var(--line-soft);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+        padding-top: 1.25rem;
+      }
+
+      /* Form fields: the register form and learner mutation surfaces. */
       .field {
         display: grid;
         gap: 0.35rem;
@@ -2276,7 +2332,8 @@ Rules for editing:
         font-weight: 700;
       }
 
-      .field-input {
+      .field-input,
+      .form-control {
         background: var(--card);
         border: 2px solid var(--line);
         border-radius: 0.625rem;
@@ -2288,7 +2345,9 @@ Rules for editing:
       }
 
       .field-input[readonly],
-      .field-input[disabled] {
+      .field-input[disabled],
+      .form-control[readonly],
+      .form-control[disabled] {
         background: var(--sand);
         color: var(--muted);
       }
@@ -2296,6 +2355,64 @@ Rules for editing:
       .field-hint {
         color: var(--muted);
         font-size: 0.8rem;
+      }
+
+      .field-input.is-invalid,
+      .form-control.is-invalid {
+        background: var(--sand);
+        border-color: var(--olive);
+        color: var(--olive);
+      }
+
+      .invalid-feedback {
+        color: var(--olive);
+        font-size: 0.85rem;
+        font-weight: 700;
+      }
+
+      .invalid-feedback:empty {
+        display: none;
+      }
+
+      .readonly-value {
+        background: var(--sand);
+        border: 2px solid var(--line-soft);
+        border-radius: 0.625rem;
+        color: var(--olive);
+        font-weight: 700;
+        overflow-wrap: anywhere;
+        padding: 0.65rem 0.8rem;
+      }
+
+      /* One option row.  The copied form field names remain intact, while the
+         target size and label treatment come from the same primitive as text
+         controls. */
+      .form-check {
+        align-items: center;
+        display: flex;
+        gap: 0.6rem;
+        min-height: 2.75rem;
+      }
+
+      .form-check-input {
+        accent-color: var(--green);
+        flex: none;
+        height: 1.1rem;
+        width: 1.1rem;
+      }
+
+      .form-check-label {
+        color: var(--body-text);
+      }
+
+      @media (max-width: 47.99rem) {
+        .cmp-form-actions {
+          display: grid;
+        }
+
+        .cmp-form-actions .cta {
+          width: 100%;
+        }
       }
 
       /* The shared accessible form primitives.  `core/templates/accessibility/`
