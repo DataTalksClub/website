@@ -128,14 +128,13 @@
   }
 
   .question {
-    background: var(--card);
-    border: 2px dashed var(--line-soft);
-    border-radius: 0.75rem;
+    background: transparent;
+    border: 0;
     display: grid;
     gap: 0.75rem;
     margin: 0;
     min-inline-size: 0;
-    padding: 1rem;
+    padding: 0;
   }
 
   .question-text {
@@ -283,18 +282,14 @@
           {% endif %}
         </div>
       </div>
-      <div class="submission-support">
-        {% if homework.is_scored and not is_authenticated %}
-          <p>Review the expected answers for this scored homework.</p>
-        {% elif homework.instructions_url %}
-          <p>
-            This form is only for submitting your answers. For the homework instructions, check the
-            <a class="band-link" href="{{ homework.instructions_url }}" target="_blank" rel="noopener noreferrer">instructions</a>.
-          </p>
-        {% else %}
-          <p>Answer the questions below to complete your homework.</p>
-        {% endif %}
-      </div>
+      {% if homework.is_scored and not is_authenticated %}
+        <p class="submission-support">Review the expected answers for this scored homework.</p>
+      {% elif homework.instructions_url %}
+        <p class="submission-support">
+          This form is only for submitting your answers. For the homework instructions, check the
+          <a class="band-link" href="{{ homework.instructions_url }}" target="_blank" rel="noopener noreferrer">instructions</a>.
+        </p>
+      {% endif %}
       <div class="submission-fields homework-fields">
         {% for question, answer in question_answers %}
           <fieldset class="question">

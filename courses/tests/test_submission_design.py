@@ -95,12 +95,10 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         self.assertIn('{% extends "courses/_submission_page.html" %}', source)
         self.assertNotIn("homework-notice", source)
         self.assertNotIn("homework-specs", source)
-        self.assertNotIn("{{ homework.title }}</h1>", source)
-        self.assertIn("<p>Answer the questions below to complete your homework.</p>", source)
-        self.assertNotIn(
-            'message="Answer the questions below to complete your homework."',
-            source,
-        )
+        self.assertIn('<h1 id="submission-heading">{{ homework.title }}</h1>', source)
+        self.assertNotIn("Answer the questions below to complete your homework.", source)
+        self.assertIn('class="submission-support"', source)
+        self.assertIn("border: 0", source)
         self.assertIn(
             (
                 'classes="callout-quiet" message="No public answers are '

@@ -31,8 +31,9 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertNotIn("Homework submission", body)
         self.assertIn('aria-labelledby="submission-heading"', body)
 
-    def test_homework_questions_use_distinct_callouts_and_shared_field_primitives(self):
+    def test_homework_questions_use_borderless_fieldsets_and_shared_field_primitives(self):
         response = self.get_homework_response()
+        body = response.content.decode()
         template_path = (
             Path(__file__).resolve().parents[1] / "templates/homework/homework.html"
         )
@@ -44,9 +45,15 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
 
         self.assertIsNotNone(question_rule)
         assert question_rule is not None
-        self.assertIn("border: 2px dashed var(--line-soft)", question_rule.group(1))
-        self.assertNotIn("border: 2px solid", question_rule.group(1))
+        self.assertIn("background: transparent", question_rule.group(1))
+        self.assertIn("border: 0", question_rule.group(1))
+        self.assertIn("gap: 0.75rem", question_rule.group(1))
+        self.assertIn("padding: 0", question_rule.group(1))
+        self.assertNotIn("border: 2px", question_rule.group(1))
+        self.assertNotIn("border-radius", question_rule.group(1))
         self.assertIn("border: 2px solid var(--line)", extra_styles)
+        self.assertNotIn("Answer the questions below to complete your homework.", body)
+        self.assertNotIn('<div class="submission-support">', body)
         self.assertContains(
             response,
             '<form method="post" class="needs-validation submission-form homework-form"',
