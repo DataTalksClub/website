@@ -1,0 +1,17 @@
+schema_version: 1
+content_id: 41111111-1111-4111-8111-111111111111
+course: llm-zoomcamp
+identifier: "2026"
+legacy_slug: llm-zoomcamp-2026
+year: 2026
+title: LLM Zoomcamp 2026
+description: The 2026 live delivery of LLM Zoomcamp.
+format: modules
+published: true
+start_date: 2026-06-08
+end_date: 2026-08-17
+flow:
+  - module:
+      source: 01-agentic-rag/module.yaml
+      homework: cohorts/2026/01-agentic-rag/homework.yaml
+  - project: project-01
