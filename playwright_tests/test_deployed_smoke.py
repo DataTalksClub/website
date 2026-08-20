@@ -245,7 +245,9 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     assert page.url == f"{origin}/accounts/login/?next=%2Fstudio%2F"
     assert login.headers["x-robots-tag"] == ROBOTS_VALUE
     assert_private_no_store(login.headers)
-    expect(page.get_by_role("heading", name="Sign In")).to_be_visible()
+    # Exact match: the design 5a sign-in page also renders a second h2 heading
+    # beginning with "Sign in", which makes the default substring lookup strict-mode ambiguous.
+    expect(page.get_by_role("heading", name="Sign In", exact=True)).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_count(0)
     page.screenshot(path=screenshot_directory / f"studio-sign-in-{dimensions}.png", full_page=True)
 
