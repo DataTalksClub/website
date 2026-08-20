@@ -185,6 +185,8 @@ class CoursePageCurriculumRenderingTests(TestCase):
 
         self.assertContains(response, 'id="curriculum-flow-heading"')
         self.assertContains(response, ">Course modules</h2>")
+        self.assertContains(response, ">Homework</p>")
+        self.assertNotContains(response, "Terminal homework")
         self.assertNotContains(response, 'id="projects-heading"')
         self.assertNotIn(">Projects</h2>", main)
 
