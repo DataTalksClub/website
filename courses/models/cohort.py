@@ -2,6 +2,7 @@ import re
 import uuid
 
 from django.db import models
+from django.db.models import Q
 
 from django.core.validators import URLValidator
 from django.core.exceptions import ValidationError
@@ -10,6 +11,11 @@ from accounts.models import CustomUser
 from courses.random_names import generate_random_name
 
 User = CustomUser
+
+
+class CurriculumFormat(models.TextChoices):
+    LEGACY = "legacy", "Legacy"
+    MODULES = "modules", "Modules"
 
 
 class Course(models.Model):
@@ -52,6 +58,8 @@ class Course(models.Model):
 class Cohort(models.Model):
     """One dated delivery of a reusable :class:`Course` family."""
 
+    CurriculumFormat = CurriculumFormat
+
     slug = models.SlugField(unique=True, blank=False)
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     course = models.ForeignKey(
@@ -61,6 +69,13 @@ class Cohort(models.Model):
     )
     year = models.PositiveIntegerField(default=2026)
     title = models.CharField(max_length=200)
+    curriculum_format = models.CharField(
+        max_length=7,
+        choices=CurriculumFormat.choices,
+        default=CurriculumFormat.LEGACY,
+        db_default=CurriculumFormat.LEGACY,
+        help_text="The curriculum presentation used by this cohort.",
+    )
 
     description = models.TextField()
     outcome = models.TextField(blank=True, default="", db_default="")
@@ -180,6 +195,10 @@ class Cohort(models.Model):
             models.UniqueConstraint(
                 fields=("course", "year"),
                 name="courses_cohort_course_year_unique",
+            ),
+            models.CheckConstraint(
+                condition=Q(curriculum_format__in=CurriculumFormat.values),
+                name="courses_cohort_curriculum_format_valid",
             ),
         ]
 

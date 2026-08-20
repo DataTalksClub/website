@@ -1,10 +1,11 @@
-from . import cohort, project, homework, wrapped  # noqa: F401
+from . import cohort, project, homework, curriculum, wrapped  # noqa: F401
 
 from django.contrib.auth import get_user_model
 
 from .cohort import (
     Course,
     Cohort,
+    CurriculumFormat,
     CourseRegistration,
     Enrollment,
     LeaderboardComplaint,
@@ -26,6 +27,7 @@ from .project import (
     PeerReview,
     PeerReviewState,
     Project,
+    ProjectCriteriaAssignment,
     ProjectEvaluationScore,
     ProjectState,
     ProjectStatistics,
@@ -33,6 +35,14 @@ from .project import (
     ProjectVote,
     ReviewCriteria,
     ReviewCriteriaTypes,
+    criteria_for_project,
+)
+from .curriculum import (
+    CurriculumFlowItem,
+    FlowItem,
+    LearningFlowItem,
+    Module,
+    Unit,
 )
 from .registration_counts import (
     CourseRegistrationCountRevision,
@@ -47,6 +57,8 @@ __all__ = (
     "Answer",
     "AnswerTypes",
     "Cohort",
+    "CurriculumFlowItem",
+    "CurriculumFormat",
     "CourseRegistration",
     "CourseRegistrationCountRevision",
     "CourseRegistrationCountSlot",
@@ -54,6 +66,7 @@ __all__ = (
     "Course",
     "CriteriaResponse",
     "Enrollment",
+    "FlowItem",
     "Homework",
     "HomeworkState",
     "HomeworkStatistics",
@@ -61,6 +74,7 @@ __all__ = (
     "PeerReview",
     "PeerReviewState",
     "Project",
+    "ProjectCriteriaAssignment",
     "ProjectEvaluationScore",
     "ProjectState",
     "ProjectStatistics",
@@ -72,6 +86,10 @@ __all__ = (
     "RegistrationCampaign",
     "ReviewCriteria",
     "ReviewCriteriaTypes",
+    "LearningFlowItem",
+    "Module",
+    "Unit",
+    "criteria_for_project",
     "Submission",
     "User",
     "UserWrappedStatistics",

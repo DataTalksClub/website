@@ -3,6 +3,7 @@ import statistics
 from enum import Enum
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.core.validators import URLValidator
 from django.db import models
 from django.utils import timezone
@@ -91,6 +92,16 @@ class Project(models.Model):
         """Get the passing score from the course"""
         return self.course.project_passing_score
 
+    def criteria_for_project(self):
+        """Return this project's explicitly ordered review criteria."""
+
+        return criteria_for_project(self)
+
+    def get_review_criteria(self):
+        """Compatibility-friendly alias for :meth:`criteria_for_project`."""
+
+        return self.criteria_for_project()
+
     class Meta:
         unique_together = ("course", "slug")
 
@@ -162,7 +173,23 @@ class ReviewCriteriaTypes(Enum):
 
 
 class ReviewCriteria(models.Model):
-    course = models.ForeignKey(Cohort, on_delete=models.CASCADE)
+    """An independent criterion definition used through project assignments.
+
+    ``course`` is retained as nullable, deprecated provenance for rows created
+    by the legacy cohort-wide rubric.  New integrations must use
+    :class:`ProjectCriteriaAssignment`; this field is not the operational
+    ownership boundary and may be empty for newly defined criteria.
+    """
+
+    course = models.ForeignKey(
+        Cohort,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text=(
+            "Deprecated legacy cohort provenance; use project criteria assignments."
+        ),
+    )
     description = models.CharField(max_length=255)
 
     options = models.JSONField(validators=[validate_review_criteria_options])
@@ -198,8 +225,106 @@ class ReviewCriteria(models.Model):
 
         return math.ceil(result)
 
+    @classmethod
+    def for_project(cls, project):
+        """Return only criteria explicitly assigned to ``project`` in order."""
+
+        return criteria_for_project(project)
+
     def __str__(self):
         return self.description
+
+
+class ProjectCriteriaAssignment(models.Model):
+    """An ordered assignment of one criterion definition to one project."""
+
+    project = models.ForeignKey(
+        Project,
+        on_delete=models.CASCADE,
+        related_name="criteria_assignments",
+    )
+    criteria = models.ForeignKey(
+        ReviewCriteria,
+        on_delete=models.CASCADE,
+        related_name="project_assignments",
+    )
+    position = models.PositiveIntegerField()
+
+    def clean(self):
+        super().clean()
+        if not self.project_id or not self.criteria_id:
+            return
+
+        project = self.project
+        criteria = self.criteria
+        errors = {}
+
+        if (
+            criteria.course_id is not None
+            and criteria.course_id != project.course_id
+        ):
+            errors["criteria"] = (
+                "A criterion's deprecated cohort provenance must match the project cohort."
+            )
+
+        other_assignments = type(self).objects.filter(criteria_id=self.criteria_id)
+        if self.pk:
+            other_assignments = other_assignments.exclude(pk=self.pk)
+        if other_assignments.exclude(
+            project__course_id=project.course_id
+        ).exists():
+            errors["criteria"] = (
+                "A criterion can only be assigned to projects in one cohort."
+            )
+
+        if errors:
+            raise ValidationError(errors)
+
+    @classmethod
+    def for_project(cls, project):
+        return cls.objects.filter(project=project).order_by("position", "id")
+
+    @property
+    def criterion(self):
+        """Singular compatibility alias for the assigned criterion."""
+
+        return self.criteria
+
+    @property
+    def review_criteria(self):
+        """Lifecycle terminology alias for the assigned criterion."""
+
+        return self.criteria
+
+    def __str__(self):
+        return f"{self.project}: {self.criteria}"
+
+    class Meta:
+        ordering = ("position", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("project", "position"),
+                name="courses_project_criteria_position_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("project", "criteria"),
+                name="courses_project_criteria_definition_unique",
+            ),
+        ]
+
+
+def criteria_for_project(project):
+    """Return a project's explicit rubric without cohort-wide fallback."""
+
+    if not getattr(project, "pk", None):
+        return ReviewCriteria.objects.none()
+
+    return ReviewCriteria.objects.filter(
+        project_assignments__project_id=project.pk,
+    ).order_by(
+        "project_assignments__position",
+        "project_assignments__id",
+    )
 
 
 class PeerReviewState(Enum):
