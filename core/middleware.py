@@ -49,7 +49,8 @@ SECURITY_HEADERS = {
         "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; "
         "form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; "
-        "media-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com"
+        "media-src 'self'; frame-src https://www.youtube.com https://www.youtube-nocookie.com "
+        "https://creators.spotify.com https://open.spotify.com"
     ),
     "Permissions-Policy": (
         "accelerometer=(), camera=(), geolocation=(), gyroscope=(), microphone=(), "

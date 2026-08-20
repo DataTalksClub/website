@@ -308,7 +308,7 @@ class PodcastSeasonNavigationTests(TestCase):
             types = {item.get("@type") for item in json.loads(payload_match.group(1))["@graph"]}
             self.assertIn("PodcastEpisode", types)
 
-    def test_detail_routes_keep_html_finals_and_reject_competing_season_paths(self) -> None:
+    def test_detail_routes_keep_canonical_finals_and_reject_competing_season_paths(self) -> None:
         projection = public_projection()
         podcasts = projection["podcasts"]
         migration = projection["editorial_route_migration"]
@@ -322,9 +322,13 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertEqual(len(podcasts), 205)
         self.assertEqual({episode["public_path"] for episode in podcasts}, podcast_finals)
         self.assertEqual(len(podcast_finals), 205)
-        self.assertTrue(
-            all(path.startswith("/podcast/") and path.endswith(".html") for path in podcast_finals)
+        self.assertEqual(
+            {
+                path for path in podcast_finals if not path.endswith(".html")
+            },
+            {"/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"},
         )
+        self.assertTrue(all(path.startswith("/podcast/") for path in podcast_finals))
         self.assertEqual(len(podcast_aliases), 410)
         self.assertEqual({item["final_path"] for item in podcast_aliases}, podcast_finals)
 

@@ -28,6 +28,7 @@ from .event_description_bridge import (
     load_event_description_bridge,
     validate_projected_event,
 )
+from .podcast_routes import podcast_canonical_path
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
@@ -154,7 +155,7 @@ def podcast_public_path(record: dict[str, Any]) -> str:
         not isinstance(slug, str)
         or not slug
         or not isinstance(public_path, str)
-        or public_path != f"/podcast/{slug}.html"
+        or public_path != podcast_canonical_path(slug)
     ):
         raise ImproperlyConfigured("Public podcast canonical path is invalid.")
     return public_path
@@ -378,7 +379,12 @@ def _expected_editorial_routes(
         for record in projection[collection]:
             final_path = record["public_path"]
             clean_path = f"{prefix}/{record['slug']}"
-            if final_path != f"{clean_path}.html":
+            expected_path = (
+                podcast_canonical_path(record["slug"])
+                if collection == "podcasts"
+                else f"{clean_path}.html"
+            )
+            if final_path != expected_path:
                 raise ImproperlyConfigured("Public projection editorial final mismatch.")
             finals.append(
                 {

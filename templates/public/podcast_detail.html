@@ -93,6 +93,66 @@
         text-decoration: none;
       }
 
+      .episode-video {
+        aspect-ratio: 16 / 9;
+        background: var(--band-ink-bg);
+      }
+
+      .episode-video iframe {
+        border: 0;
+        height: 100%;
+        inset: 0;
+        position: absolute;
+        width: 100%;
+      }
+
+      .episode-video iframe:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: -3px;
+      }
+
+      .episode-video[data-video-provider="spotify"] {
+        aspect-ratio: auto;
+        min-height: 152px;
+      }
+
+      .episode-video[data-video-provider="spotify"] iframe {
+        height: 152px;
+      }
+
+      .episode-video-fallback {
+        align-items: center;
+        display: none;
+        inset: 0;
+        justify-content: center;
+        min-height: 15rem;
+        padding: 2rem;
+        position: absolute;
+        text-align: center;
+      }
+
+      .episode-video-fallback-copy {
+        display: grid;
+        gap: 0.65rem;
+        max-width: 32rem;
+      }
+
+      .episode-video-fallback-copy p {
+        margin: 0;
+      }
+
+      .episode-video:not([data-video-state="available"]) .episode-video-fallback,
+      .no-js .episode-video .episode-video-fallback,
+      .episode-video[data-video-state="unavailable"] .episode-video-fallback {
+        display: flex;
+      }
+
+      .episode-video:not([data-video-state="available"]) iframe,
+      .no-js .episode-video iframe,
+      .episode-video[data-video-state="unavailable"] iframe {
+        display: none;
+      }
+
       .player-art {
         height: 100%;
         inset: 0;
@@ -218,20 +278,39 @@
             The link names itself with its own label, so the artwork keeps the episode's
             identity in its alt instead of being folded into the link's name.
           {% endcomment %}
-          {% if episode.watch_url %}
-            <a
-              class="player-frame episode-player"
-              href="{{ episode.watch_url }}"
-              rel="noopener noreferrer"
-              aria-label="Play {{ episode.title }} on {{ episode.watch_label }}"
+          {% if episode.player %}
+            <div
+              class="player-frame episode-player episode-video"
+              data-video-provider="{{ episode.player.provider }}"
+              data-video-id="{{ episode.player.media_id }}"
+              data-video-state="loading"
             >
-              {% include "public/_episode_artwork.html" %}
-              <span class="play-disc play-disc-large" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M9 6.5l9 5.5-9 5.5z"/>
-                </svg>
-              </span>
-            </a>
+              <iframe
+                id="podcast-video-player"
+                src="{{ episode.player.embed_url }}"
+                title="{{ episode.player.action_label }} {{ episode.title }} on {{ episode.player.provider_label }}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+              <div class="episode-video-fallback" data-video-fallback role="status">
+                <div class="episode-video-fallback-copy">
+                  <p><strong>{{ episode.player.media_label }} unavailable.</strong></p>
+                  <p>Use one of the listening links below to hear this episode.</p>
+                  {% if episode.watch_url %}
+                    <a
+                      class="band-link"
+                      href="{{ episode.watch_url }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open {{ episode.watch_label }}
+                      <span class="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
           {% else %}
             <div class="player-frame episode-player">
               {% include "public/_episode_artwork.html" %}
@@ -298,5 +377,21 @@
       {% endif %}
     </main>
     {% include "core/_site_shell_foot.html" %}
+    <script>
+      (function () {
+        var player = document.getElementById('podcast-video-player');
+        var frame = document.querySelector('[data-video-provider][data-video-id]');
+        if (!player || !frame) {
+          return;
+        }
+        player.addEventListener('load', function () {
+          frame.setAttribute('data-video-state', 'available');
+        });
+        player.addEventListener('error', function () {
+          frame.setAttribute('data-video-state', 'unavailable');
+          player.remove();
+        });
+      })();
+    </script>
   </body>
 </html>

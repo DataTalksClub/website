@@ -37,6 +37,7 @@ from content.event_description_bridge import (  # noqa: E402
     apply_bridge_to_events,
     bridge_manifest_binding,
 )
+from content.podcast_routes import podcast_canonical_path  # noqa: E402
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
@@ -1208,7 +1209,7 @@ def _main_records(
         legacy_path = _string(raw.get("legacy_path"), field="podcast path", maximum=500)
         if legacy_path != f"/podcast/{slug}.html":
             raise ProjectionBuildError(f"podcast route mismatch: {path.name[:120]}")
-        public_path = f"/podcast/{slug}.html"
+        public_path = podcast_canonical_path(slug)
         transcript_path = raw.get("transcript")
         transcript: list[dict[str, Any]] = []
         transcript_provenance: dict[str, str] | None = None
@@ -2170,7 +2171,12 @@ def _expected_editorial_routes(
         for record in collections[collection]:
             final_path = record["public_path"]
             clean_path = f"{prefix}/{record['slug']}"
-            if final_path != f"{clean_path}.html":
+            expected_path = (
+                podcast_canonical_path(record["slug"])
+                if collection == "podcasts"
+                else f"{clean_path}.html"
+            )
+            if final_path != expected_path:
                 raise ProjectionBuildError("editorial route final does not match its stable key")
             final = {
                 "collection": collection,

@@ -20,6 +20,7 @@ import re
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
+from urllib.parse import parse_qsl, urlsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
@@ -37,6 +38,9 @@ PLATFORM_LABELS: dict[str, tuple[str, str]] = {
 PLATFORM_ORDER: tuple[str, ...] = ("apple", "spotify", "youtube", "spotify_for_creators")
 # What the play control opens, most watchable first.
 WATCH_PREFERENCE: tuple[str, ...] = ("youtube", "spotify", "apple", "spotify_for_creators")
+YOUTUBE_VIDEO_ID = re.compile(r"^[A-Za-z0-9_-]{6,20}$")
+SPOTIFY_CREATOR_SEGMENT = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,255}$")
+SPOTIFY_EPISODE_ID = re.compile(r"^[A-Za-z0-9]{22}$")
 
 
 @dataclass(frozen=True, slots=True)
@@ -56,6 +60,57 @@ class PlatformLink:
     url: str
     dot: str
 
+@dataclass(frozen=True, slots=True)
+class VideoEmbed:
+    """A validated YouTube player derived from the episode's source URL."""
+
+    provider: str
+    video_id: str
+
+    @property
+    def embed_url(self) -> str:
+        if self.provider != "youtube" or not YOUTUBE_VIDEO_ID.fullmatch(self.video_id):
+            raise ImproperlyConfigured("Public podcast video identity is invalid.")
+        return f"https://www.youtube-nocookie.com/embed/{self.video_id}?enablejsapi=1&rel=0"
+
+    @property
+    def media_id(self) -> str:
+        return self.video_id
+
+    @property
+    def action_label(self) -> str:
+        return "Watch"
+
+    @property
+    def media_label(self) -> str:
+        return "Video"
+
+    @property
+    def provider_label(self) -> str:
+        return "YouTube"
+
+
+@dataclass(frozen=True, slots=True)
+class SpotifyEmbed:
+    """A Spotify player derived from an allowlisted source URL."""
+
+    provider: str
+    media_id: str
+    embed_url: str
+
+    @property
+    def action_label(self) -> str:
+        return "Listen to"
+
+    @property
+    def media_label(self) -> str:
+        return "Audio"
+
+    @property
+    def provider_label(self) -> str:
+        return "Spotify"
+
+
 
 @dataclass(frozen=True, slots=True)
 class Episode:
@@ -74,6 +129,8 @@ class Episode:
     platform_links: tuple[PlatformLink, ...]
     watch_url: str
     watch_label: str
+    video: VideoEmbed | None = None
+    spotify: SpotifyEmbed | None = None
 
     @property
     def season_episode(self) -> str:
@@ -84,6 +141,12 @@ class Episode:
     @property
     def guest_names(self) -> str:
         return " and ".join(guest.name for guest in self.guests)
+
+    @property
+    def player(self) -> VideoEmbed | SpotifyEmbed | None:
+        """Return the preferred validated player, with Spotify as the fallback."""
+
+        return self.video or self.spotify
 
 
 def _required_text(record: dict[str, Any], field: str) -> str:
@@ -97,6 +160,23 @@ def _required_number(record: dict[str, Any], field: str) -> int:
     value = record.get(field)
     if not isinstance(value, int) or isinstance(value, bool) or value < 1:
         raise ImproperlyConfigured(f"Public podcast {field} must be a positive integer.")
+    return value
+
+
+def _safe_external_url(value: Any, *, field: str, https_only: bool = False) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ImproperlyConfigured(f"Public podcast {field} must be a URL.")
+    value = value.strip()
+    parsed = urlsplit(value)
+    if (
+        parsed.scheme not in ({"https"} if https_only else {"http", "https"})
+        or not parsed.hostname
+        or parsed.username is not None
+        or parsed.password is not None
+        or any(character in value for character in "\x00\r\n")
+    ):
+        suffix = "https address" if https_only else "web address"
+        raise ImproperlyConfigured(f"Public podcast {field} must be an {suffix}.")
     return value
 
 
@@ -188,6 +268,112 @@ def _watch_destination(record: dict[str, Any]) -> tuple[str, str]:
     return "", ""
 
 
+def _youtube_video_id(url: str) -> str:
+    parsed = urlsplit(url)
+    hostname = (parsed.hostname or "").casefold().removeprefix("www.")
+    candidate = ""
+    if hostname == "youtu.be":
+        candidate = parsed.path.strip("/").split("/", 1)[0]
+    elif hostname in {"youtube.com", "m.youtube.com"}:
+        if parsed.path == "/watch":
+            values = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            candidate = values.get("v", "")
+        else:
+            prefix, separator, suffix = parsed.path.strip("/").partition("/")
+            if separator and prefix in {"embed", "live", "shorts"}:
+                candidate = suffix.split("/", 1)[0]
+    return candidate if YOUTUBE_VIDEO_ID.fullmatch(candidate) else ""
+
+
+def _video_embed(record: dict[str, Any]) -> VideoEmbed | None:
+    links = record.get("links") or {}
+    youtube_url = links.get("youtube") if isinstance(links, dict) else None
+    if not isinstance(youtube_url, str) or not youtube_url.strip():
+        return None
+    safe_youtube_url = _safe_external_url(youtube_url, field="YouTube player link", https_only=True)
+    source_video_id = _youtube_video_id(safe_youtube_url)
+    raw_video = record.get("video")
+    if raw_video is None:
+        return VideoEmbed(provider="youtube", video_id=source_video_id) if source_video_id else None
+    if not isinstance(raw_video, dict):
+        raise ImproperlyConfigured("Public podcast video must be a mapping.")
+    provider = raw_video.get("provider")
+    video_id = raw_video.get("id")
+    if (
+        provider != "youtube"
+        or not isinstance(video_id, str)
+        or not YOUTUBE_VIDEO_ID.fullmatch(video_id)
+    ):
+        raise ImproperlyConfigured("Public podcast video identity is invalid.")
+    if source_video_id != video_id:
+        return None
+    return VideoEmbed(provider=provider, video_id=video_id)
+
+
+def _spotify_creator_embed(url: str) -> SpotifyEmbed | None:
+    parsed = urlsplit(url)
+    hostname = (parsed.hostname or "").casefold().removeprefix("www.")
+    if parsed.scheme != "https" or hostname != "creators.spotify.com":
+        return None
+    parts = parsed.path.strip("/").split("/")
+    if len(parts) not in {5, 6} or parts[0] != "pod":
+        return None
+    if parts[1] not in {"profile", "show"} or parts[3] != "episodes":
+        return None
+    if any(SPOTIFY_CREATOR_SEGMENT.fullmatch(part) is None for part in parts[1:]):
+        return None
+    episode_key = parts[4]
+    return SpotifyEmbed(
+        provider="spotify",
+        media_id=episode_key,
+        embed_url=(
+            f"https://creators.spotify.com/pod/{parts[1]}/{parts[2]}/embed/episodes/{episode_key}"
+        ),
+    )
+
+
+def _spotify_open_embed(url: str) -> SpotifyEmbed | None:
+    parsed = urlsplit(url)
+    hostname = (parsed.hostname or "").casefold().removeprefix("www.")
+    parts = parsed.path.strip("/").split("/")
+    if (
+        parsed.scheme != "https"
+        or hostname != "open.spotify.com"
+        or len(parts) != 2
+        or parts[0] != "episode"
+        or not SPOTIFY_EPISODE_ID.fullmatch(parts[1])
+    ):
+        return None
+    episode_id = parts[1]
+    return SpotifyEmbed(
+        provider="spotify",
+        media_id=episode_id,
+        embed_url=f"https://open.spotify.com/embed/episode/{episode_id}",
+    )
+
+
+def _spotify_embed(record: dict[str, Any]) -> SpotifyEmbed | None:
+    links = record.get("links") or {}
+    if not isinstance(links, dict):
+        return None
+    for key, parser in (
+        ("spotify_for_creators", _spotify_creator_embed),
+        ("anchor", _spotify_creator_embed),
+        ("spotify", _spotify_open_embed),
+    ):
+        value = links.get(key)
+        if not isinstance(value, str) or not value.strip():
+            continue
+        try:
+            safe_url = _safe_external_url(value, field="Spotify player link", https_only=True)
+        except ImproperlyConfigured:
+            continue
+        embed = parser(safe_url)
+        if embed is not None:
+            return embed
+    return None
+
+
 def episode_view(record: dict[str, Any]) -> Episode:
     """Return one catalogue record as the value both podcast templates render."""
 
@@ -209,6 +395,8 @@ def episode_view(record: dict[str, Any]) -> Episode:
         platform_links=_platform_links(record),
         watch_url=watch_url,
         watch_label=watch_label,
+        video=_video_embed(record),
+        spotify=_spotify_embed(record),
     )
 
 

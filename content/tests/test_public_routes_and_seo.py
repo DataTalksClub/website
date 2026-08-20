@@ -150,7 +150,7 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertNotIn("Location", response.headers)
                 self.assertNotContains(response, 'rel="canonical"', status_code=404)
 
-    def test_editorial_detail_aliases_redirect_directly_to_html_canonicals(self) -> None:
+    def test_editorial_detail_aliases_redirect_directly_to_canonicals(self) -> None:
         projection = public_projection()
         migration = projection["editorial_route_migration"]
         self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_592})
@@ -161,15 +161,23 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertEqual(len(alias_map), 1_592)
         self.assertEqual(set(alias_map.values()), canonical_paths)
         self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
-        self.assertTrue(all(path.endswith(".html") for path in canonical_paths))
         self.assertEqual(
-            set(alias_map),
-            {
-                alias
-                for path in canonical_paths
-                for alias in (path.removesuffix(".html"), f"{path.removesuffix('.html')}/")
-            },
+            {path for path in canonical_paths if not path.endswith(".html")},
+            {"/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"},
         )
+        expected_aliases = {
+            alias
+            for path in canonical_paths
+            if path.endswith(".html")
+            for alias in (path.removesuffix(".html"), f"{path.removesuffix('.html')}/")
+        }
+        expected_aliases.update(
+            {
+                "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code",
+                "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code/",
+            }
+        )
+        self.assertEqual(set(alias_map), expected_aliases)
 
         query = "x=%2F&x=&q=A+B&q=A%20B"
         for source, target in alias_map.items():

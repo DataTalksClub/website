@@ -12530,7 +12530,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
+      "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
       "query_policy": "preserve_raw",
       "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
       "source_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code",
@@ -12538,7 +12538,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
+      "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
       "query_policy": "preserve_raw",
       "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
       "source_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code/",
@@ -12737,7 +12737,7 @@
       "status_code": 301
     }
   ],
-  "content_sha256": "a713242d67533d54e5071e6ccdf1b162096ae8a24d251e37cda6ca8da75868f7",
+  "content_sha256": "10be48bcfb0d09a3c7c3b93f9ad4a4977cb2a0cfab4070f0d2f54c7af30e6620",
   "counts": {
     "aliases": 1592,
     "finals": 796
@@ -22924,7 +22924,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
+      "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
       "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
       "source": {
         "checksum": "f968ef115b11b368633bef5d835a37841ee6aad8acfa365531fa0eb02cdf6bcf",
@@ -23099,8 +23099,8 @@
     "source_artifacts": {
       "articles.json": "119972c04b7b6df972f35950bea20e00ff7f90f7820c07105126fa0b616211db",
       "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
-      "people.json": "f1bc223aee48ff614bcc24351f3253897459b1b7e75ea70ecd5dec98ff1b0a44",
-      "podcasts.json": "e61557e527d51740d19388fe8da12c03a39d3e9e57d7e22823158dae5f61b7f3"
+      "people.json": "2eead505ef53d723f5387b9a10bee1952a29a16fd536af945e9a4ed58c929eb2",
+      "podcasts.json": "4c131680fd8fcdc036d0c488eb0f8609d00cf1f29a10e31ba9b3369cfa653e63"
     },
     "source_revisions": [
       {

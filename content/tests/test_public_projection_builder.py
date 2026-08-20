@@ -262,7 +262,14 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertEqual(manifest["counts"], {"finals": 796, "aliases": 1_592})
         self.assertEqual(len(manifest["finals"]), 796)
         self.assertEqual(len(manifest["aliases"]), 1_592)
-        self.assertTrue(all(item["final_path"].endswith(".html") for item in manifest["finals"]))
+        self.assertEqual(
+            {
+                item["final_path"]
+                for item in manifest["finals"]
+                if not item["final_path"].endswith(".html")
+            },
+            {"/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"},
+        )
         self.assertTrue(
             all(not item["source_path"].endswith(".html") for item in manifest["aliases"])
         )
