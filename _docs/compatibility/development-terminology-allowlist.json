@@ -44,7 +44,7 @@
     },
     {
       "path": "_docs/compatibility/legacy-manifest.jsonl",
-      "sha256": "94a6469530a290147e94f825eb981836e1358b9d0a72c7f50f0eda6d638e1d7f",
+      "sha256": "9c6bb79eb8484aa2a0befaf6b2531e5ad05f2f5fe6bfe6ef711c66cdb6cdca32",
       "class": "captured_compatibility",
       "reason": "Captured public-route inventory retains source bytes.",
       "follow_up": "none; immutable capture",

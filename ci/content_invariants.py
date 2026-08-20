@@ -221,7 +221,16 @@ def _validate_file_invariants(value: object) -> None:
         raise ContentInvariantError("content invariant identities are invalid")
 
 
-_RECORD_COLLECTION_KEYS = ("records", "items", "pages", "courses", "aliases", "finals")
+_RECORD_COLLECTION_KEYS = (
+    "records",
+    "items",
+    "pages",
+    "courses",
+    "aliases",
+    "finals",
+    "articles",
+)
+_COMPATIBILITY_MANIFEST_PATH = PurePosixPath("_docs/compatibility/legacy-manifest.jsonl")
 
 
 def _records(path: Path, body: bytes) -> list[dict[str, Any]]:
@@ -234,7 +243,10 @@ def _records(path: Path, body: bytes) -> list[dict[str, Any]]:
         if suffix == ".csv":
             return [dict(item) for item in csv.DictReader(text.splitlines())]
         if suffix == ".jsonl":
-            return [json.loads(line) for line in text.splitlines() if line.strip()]
+            records = [json.loads(line) for line in text.splitlines() if line.strip()]
+            if path == _COMPATIBILITY_MANIFEST_PATH:
+                return _compatibility_manifest_records(path, records)
+            return records
         parsed = json.loads(text) if suffix == ".json" else yaml.safe_load(text)
     except (csv.Error, json.JSONDecodeError, yaml.YAMLError) as exc:
         raise ContentInvariantError("structured content cannot be parsed") from exc
@@ -259,6 +271,49 @@ def _records(path: Path, body: bytes) -> list[dict[str, Any]]:
             }
         ]
     raise ContentInvariantError("structured content must contain records")
+
+
+def _compatibility_manifest_records(path: Path, records: Sequence[object]) -> list[dict[str, Any]]:
+    """Expose nested compatibility rows through the common invariant shape.
+
+    ``legacy-manifest.jsonl`` is deliberately lossless evidence: its public URL and title live
+    under ``production_capture`` rather than at the row's top level. The invariant gate should
+    still check those real values, so normalize only the fields needed by the generic checker and
+    leave the source bytes (and their digest) untouched.
+    """
+
+    normalized: list[dict[str, Any]] = []
+    for record in records:
+        if not isinstance(record, dict):
+            raise ContentInvariantError("compatibility manifest records must be objects")
+        record_kind = record.get("record_kind")
+        if record_kind == "provenance":
+            normalized.append(
+                {
+                    "record_key": "provenance",
+                    "title": "legacy manifest provenance",
+                    "url": f"/{path.as_posix()}",
+                }
+            )
+            continue
+        if record_kind != "compatibility_row":
+            raise ContentInvariantError("compatibility manifest record kind is unsupported")
+        capture = record.get("production_capture")
+        if not isinstance(capture, dict):
+            raise ContentInvariantError("compatibility manifest capture is missing")
+        requested_url = capture.get("requested_url")
+        if not isinstance(requested_url, str) or not requested_url.strip():
+            raise ContentInvariantError("compatibility manifest requested URL is missing")
+        metadata = capture.get("metadata")
+        title = metadata.get("title") if isinstance(metadata, dict) else None
+        normalized.append(
+            {
+                "record_key": requested_url,
+                "title": title if isinstance(title, str) and title.strip() else requested_url,
+                "url": requested_url,
+            }
+        )
+    return normalized
 
 
 def _identity(record: Mapping[str, Any], fields: Sequence[str]) -> tuple[str, str]:
