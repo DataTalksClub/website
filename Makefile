@@ -187,15 +187,33 @@ verification-plan:
 			--include-worktree \
 			--output "$(VERIFY_PLAN)"
 
+# GNU make executes (not merely echoes) any recipe line containing $(MAKE) even under
+# --dry-run, because recursive invocations are supposed to keep traversing the graph.
+# The status-preserving block in verification-run contains $(MAKE), so a plain
+# `make -n verification-run` would really start the runner against the plan instead of
+# just printing the invocation. Detect the dry-run flag at parse time (the first word of
+# MAKEFLAGS is the short-flag cluster, so only a genuine `n` matches) and prefix the
+# block with a shell guard that exits successfully before any evidence is touched: the
+# block is still fully echoed under -n, while a real run sees no guard at all.
+ifeq (,$(findstring n,$(firstword -$(MAKEFLAGS))))
+VERIFY_DRY_RUN_GUARD =
+else
+VERIFY_DRY_RUN_GUARD = exit 0;
+endif
+
 verification-run:
 	@test -n "$(VERIFY_ISSUE)" || (echo "VERIFY_ISSUE is required: refusing to attribute verification evidence to a default issue number (e.g. make verification-run VERIFY_ISSUE=<number> VERIFY_WORKTREE=<branch>)" >&2; exit 2)
 	uv run --frozen python -m ci.verification validate-plan --plan "$(VERIFY_PLAN)"
+	@$(VERIFY_DRY_RUN_GUARD)runner_status=0; \
 	uv run --frozen python -m ci.runner \
 			--plan "$(VERIFY_PLAN)" --repository . \
 			--output-directory "$(VERIFY_EVIDENCE_DIR)" \
 			--issue "$(VERIFY_ISSUE)" --worktree "$(VERIFY_WORKTREE)" \
-			--producer-role "$(VERIFY_PRODUCER_ROLE)"
-	$(MAKE) verification-report-check
+			--producer-role "$(VERIFY_PRODUCER_ROLE)" || runner_status=$$?; \
+	report_status=0; \
+	$(MAKE) verification-report-check || report_status=$$?; \
+	if test "$$report_status" -ne 0; then exit "$$report_status"; fi; \
+	exit "$$runner_status"
 
 verification-quality: terminology-check database-portability-check security-check lint format-check typecheck \
 	migrations-check django-check deployment-check test-ci

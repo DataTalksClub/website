@@ -32,6 +32,16 @@ def test_documented_make_variables_drive_tester_final_validation() -> None:
     assert 'if test "tester" = engineer' in result.stdout
 
 
+def test_verification_run_reaches_report_after_runner_failure() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+
+    assert "runner_status=0" in makefile
+    assert "report_status=0" in makefile
+    assert "$(MAKE) verification-report-check || report_status=$$?" in makefile
+    assert 'if test "$$report_status" -ne 0' in makefile
+    assert 'exit "$$runner_status"' in makefile
+
+
 def test_full_verification_uses_the_owned_sqlite_test_runtime() -> None:
     result = subprocess.run(
         ["make", "-n", "verification-full"],
