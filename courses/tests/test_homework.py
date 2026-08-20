@@ -55,7 +55,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         self.assertNotIn('<div class="submission-support">', body)
         self.assertContains(
             response,
-            '<form method="post" class="needs-validation submission-form homework-form"',
+            '<form method="post" class="needs-validation cmp-form homework-form submission-form"',
         )
         self.assertContains(response, '<fieldset class="question">', count=6)
         self.assertContains(response, 'aria-labelledby="question-label-')
