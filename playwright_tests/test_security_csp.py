@@ -25,7 +25,7 @@ def test_public_homepage_enforces_strict_csp_without_bypass(
     assert page_errors == []
 
 
-def test_admin_login_does_not_load_csp_incompatible_unfold_overlays(
+def test_admin_login_uses_non_alpine_unfold_surface_under_strict_csp(
     strict_csp_page,
     live_server,
 ) -> None:
@@ -39,9 +39,25 @@ def test_admin_login_does_not_load_csp_incompatible_unfold_overlays(
 
     assert response is not None
     assert response.status == 200
-    assert "'unsafe-eval'" not in response.headers.get("content-security-policy", "")
+    policy = response.headers.get("content-security-policy", "")
+    assert "'unsafe-eval'" not in policy
+
+    scripts = strict_csp_page.locator("script[src]").evaluate_all(
+        "(nodes) => nodes.map((node) => node.src)"
+    )
+    assert any("/unfold/js/htmx/htmx.js" in script for script in scripts)
+    assert any("/unfold/js/chart/chart.js" in script for script in scripts)
+    assert not any("/unfold/js/alpine/" in script for script in scripts)
+    assert not any(script.endswith("/unfold/js/app.js") for script in scripts)
+
     assert strict_csp_page.locator("#login-form").is_visible()
-    assert strict_csp_page.get_by_text("Available shortcuts", exact=True).count() == 0
-    assert strict_csp_page.get_by_text("Open command tool", exact=True).count() == 0
-    assert strict_csp_page.get_by_text("Toggle sidebar", exact=True).count() == 0
+    assert strict_csp_page.locator("#modal-overlay").count() == 0
+    assert strict_csp_page.locator("#command-results").count() == 0
+    for marker in (
+        "Unfold 0.103",
+        "Available shortcuts",
+        "Open command tool",
+        "Toggle sidebar",
+    ):
+        assert strict_csp_page.get_by_text(marker, exact=True).count() == 0
     assert page_errors == []

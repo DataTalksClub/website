@@ -32,13 +32,13 @@
 
         <link href="{% static 'unfold/css/styles.css' %}" rel="stylesheet">
 
-        {#
+        {% comment %}
           Unfold 0.103's regular Alpine bundle evaluates x-* expressions with
           Function/eval.  The site CSP intentionally excludes unsafe-eval, so
           loading it leaves the admin with broken focus traps and overlays.
           The admin remains server-rendered and its non-Alpine assets continue
           to load; CSP-safe replacements can be introduced independently.
-        #}
+        {% endcomment %}
         <script src="{% static 'unfold/js/htmx/htmx.js' %}"></script>
         <script src="{% static 'unfold/js/chart/chart.js' %}"></script>
 
@@ -77,5 +77,11 @@
         {% endif %}
 
         {% block base %}{% endblock %}
+
+        {% include "unfold/helpers/modal.html" %}
+
+        {% include "unfold/helpers/command.html" %}
+
+        {% include "unfold/helpers/shortcuts.html" %}
     </body>
 </html>
