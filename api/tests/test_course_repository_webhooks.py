@@ -8,6 +8,8 @@ from unittest.mock import patch
 from uuid import UUID
 
 from django.test import TestCase, override_settings
+from django.utils import timezone
+from datetime import timedelta
 
 from content.models import ContentSource
 from content_sync.course_repository_sync import (
@@ -18,7 +20,7 @@ from content_sync.course_repository_webhook import (
     COURSE_REPOSITORY_JOB_HANDLER,
     parse_github_course_push,
 )
-from courses.services.curriculum_import import CurriculumImportResult
+from courses.models import Cohort, Course, Module, Project
 from jobs.models import DurableJob
 
 
@@ -184,3 +186,46 @@ class CourseRepositoryWebhookTests(TestCase):
         self.assertEqual(command.source_uuid, self.source.id)
         self.assertEqual(command.commit_sha, "a" * 40)
 
+    @patch("content_sync.course_repository_sync.fetch_course_repository_snapshot")
+    def test_worker_projects_a_valid_candidate_without_manual_course_creation(
+        self,
+        fetch_snapshot,
+    ) -> None:
+        snapshot = {
+            path.relative_to(FIXTURE_ROOT).as_posix(): path.read_bytes()
+            for path in FIXTURE_ROOT.rglob("*")
+            if path.is_file()
+        }
+        fetch_snapshot.return_value = snapshot
+        course = Course.objects.create(slug="llm-zoomcamp", title="LLM Zoomcamp")
+        cohort = Cohort.objects.create(
+            course=course,
+            slug="llm-zoomcamp-2026",
+            identifier="2026",
+            year=2026,
+            title="LLM Zoomcamp 2026",
+            description="Existing shell for the project reference.",
+        )
+        now = timezone.now()
+        Project.objects.create(
+            course=cohort,
+            slug="project-01",
+            title="Project 1",
+            submission_due_date=now + timedelta(days=7),
+            peer_review_due_date=now + timedelta(days=14),
+        )
+
+        import_course_repository_commit(
+            None,
+            {
+                "source_uuid": str(self.source.id),
+                "commit_sha": "a" * 40,
+                "delivery_record_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+            },
+        )
+
+        course.refresh_from_db()
+        cohort.refresh_from_db()
+        self.assertTrue(course.source_content_id)
+        self.assertEqual(cohort.curriculum_format, "modules")
+        self.assertEqual(Module.objects.filter(cohort=cohort).count(), 1)
