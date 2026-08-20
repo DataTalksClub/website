@@ -79,6 +79,91 @@ def test_homepage_latest_episode_and_global_podcast_journey(page: Page, live_ser
 
 
 @pytest.mark.core
+def test_podcast_card_is_a_whole_keyboard_destination_without_nested_interactives(
+    page: Page,
+    live_server,
+) -> None:
+    episode = ordered_podcasts()[0]
+    expected_meta = f"Season {episode['season']} · Episode {episode['episode']}"
+    origin = live_server.url
+
+    page.set_viewport_size({"width": 390, "height": 844})
+    response = page.goto(f"{origin}/podcast", wait_until="networkidle")
+    assert response is not None and response.status == 200
+    _settle_analytics_preferences(page)
+
+    card = page.locator("[data-podcast-episode]").first.locator(".podcast-card")
+    expect(card).to_have_count(1)
+    meta = card.locator(".podcast-meta")
+    expect(meta).to_have_count(1)
+    assert meta.evaluate("node => node.textContent.trim()") == expected_meta
+    expect(card.locator(".status-pill")).to_have_count(0)
+    expect(card.locator(".archive-title a")).to_have_attribute(
+        "href",
+        episode["public_path"],
+    )
+
+    card_style = card.evaluate(
+        """(node) => {
+          const style = getComputedStyle(node);
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopWidth,
+            shadow: style.boxShadow,
+          };
+        }"""
+    )
+    assert card_style == {
+        "background": "rgba(0, 0, 0, 0)",
+        "border": "0px",
+        "shadow": "none",
+    }, card_style
+    meta_style = meta.evaluate(
+        """(node) => {
+          const style = getComputedStyle(node);
+          return {
+            background: style.backgroundColor,
+            border: style.borderTopWidth,
+            radius: style.borderTopLeftRadius,
+          };
+        }"""
+    )
+    assert meta_style == {
+        "background": "rgba(0, 0, 0, 0)",
+        "border": "0px",
+        "radius": "0px",
+    }, meta_style
+
+    assert card.evaluate("node => node.querySelectorAll('a a, a button, button a').length") == 0
+
+    # The guest profile remains a separate destination above the stretched link.
+    guest_link = card.locator(".person-chip a").first
+    expect(guest_link).to_have_count(1)
+    guest_path = guest_link.get_attribute("href")
+    assert guest_path
+    guest_link.click()
+    expect(page).to_have_url(f"{origin}{guest_path}")
+    page.go_back(wait_until="networkidle")
+    _settle_analytics_preferences(page)
+    card = page.locator("[data-podcast-episode]").first.locator(".podcast-card")
+
+    # A physical point on the card still activates the title anchor's stretched
+    # hit area.  The pseudo-element is intentionally the topmost pointer target.
+    box = card.bounding_box()
+    assert box is not None
+    page.mouse.click(box["x"] + box["width"] - 8, box["y"] + box["height"] / 2)
+    expect(page).to_have_url(f"{origin}{episode['public_path']}")
+
+    page.go_back(wait_until="networkidle")
+    _settle_analytics_preferences(page)
+    title_link = page.locator("[data-podcast-episode]").first.locator(".archive-title a")
+    title_link.focus()
+    expect(title_link).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page).to_have_url(f"{origin}{episode['public_path']}")
+
+
+@pytest.mark.core
 @pytest.mark.parametrize(
     ("viewport", "suffix"),
     [

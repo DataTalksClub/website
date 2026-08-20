@@ -26,7 +26,8 @@
   * `row_eyebrow` — one mono line above the title: what this row is to the
     reader of this page ("guest", "speaker", "author").
   * `row_pill`, `row_pill_variant`, `row_pill_extra` — the status pill and, when
-    a list mixes past and future work, the second bare pill that says which.
+    a list mixes past and future work, the second bare pill that says which.  A
+    podcast row uses `row_pill` as its blue season/episode eyebrow instead.
   * `row_summary` — clamped, because the record's own page carries the rest.
   * `row_credits` — the people who made it, resolved through `person_chip`, at
     the foot of the card and with no "By": a face beside a name under a title is
@@ -56,7 +57,11 @@
         </time>
       </p>
     {% endif %}
-    <div class="card archive-card">
+    {% if row_mark == "play" %}
+      <div class="card archive-card stretched-card-link podcast-card">
+    {% else %}
+      <div class="card archive-card stretched-card-link">
+    {% endif %}
       {% if row_mark == "play" %}
         <span class="play-disc" aria-hidden="true">
           <svg viewBox="0 0 24 24" focusable="false">
@@ -69,16 +74,20 @@
           <p class="mono-label">{{ row_eyebrow }}</p>
         {% endif %}
         {% if row_pill %}
-          <p class="archive-marks">
-            {% if row_pill_variant %}
-              <span class="status-pill {{ row_pill_variant }}">{{ row_pill }}</span>
-            {% else %}
-              <span class="status-pill">{{ row_pill }}</span>
-            {% endif %}
-            {% if row_pill_extra %}
-              <span class="status-pill">{{ row_pill_extra }}</span>
-            {% endif %}
-          </p>
+          {% if row_mark == "play" %}
+            <p class="mono-label mono-label-indigo podcast-meta">{{ row_pill }}</p>
+          {% else %}
+            <p class="archive-marks">
+              {% if row_pill_variant %}
+                <span class="status-pill {{ row_pill_variant }}">{{ row_pill }}</span>
+              {% else %}
+                <span class="status-pill">{{ row_pill }}</span>
+              {% endif %}
+              {% if row_pill_extra %}
+                <span class="status-pill">{{ row_pill_extra }}</span>
+              {% endif %}
+            </p>
+          {% endif %}
         {% endif %}
         <h3 class="archive-title">
           <a href="{{ row_url }}">{{ row_title }}</a>

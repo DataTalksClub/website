@@ -368,12 +368,20 @@ class PersonPageTests(TestCase):
             len(record["relationships"]),
         )
         self.assertEqual(body.count('class="play-disc"'), 5)
+        self.assertEqual(
+            body.count('<p class="mono-label mono-label-indigo podcast-meta">'),
+            5,
+        )
+        self.assertEqual(
+            body.count('class="card archive-card stretched-card-link'),
+            len(record["relationships"]),
+        )
         # Each dated row leads with the shared two-line date rail, and an undated
         # one gives that column back to the card.
         dated = [item for group in person.groups for item in group.items if item.date]
         self.assertEqual(body.count('class="mono-note archive-date date-rail"'), len(dated))
         self.assertNotIn('class="when"', body)
-        self.assertIn('class="status-pill status-pill-mint"', body)
+        self.assertNotIn('class="status-pill status-pill-mint"', body)
         self.assertIn('class="stat-tiles person-stats"', body)
         # Design 5a bands, one per kind of work, and no invented catalogue link.
         # Every band after the hero takes the content ground, so a profile with

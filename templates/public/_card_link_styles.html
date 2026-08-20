@@ -1,0 +1,55 @@
+{% comment %}
+  Shared whole-card link rules for public and course-facing cards.
+
+  The destination remains the card's existing semantic title/action anchor.  Its
+  pseudo-element covers the card without adding a second link or putting any
+  internal credit link inside it.  Internal person links sit above that overlay.
+
+  This public partial is intentionally separate from the Sagan-owned design
+  system include.  Parent integration can move these rules into the shared
+  primitive when that ownership boundary is available.
+{% endcomment %}
+      /* A card keeps its real title/action anchor and stretches that anchor's
+         hit area over the card.  The browser therefore supplies the keyboard
+         behaviour and the accessibility tree still exposes one destination. */
+      .stretched-card-link {
+        position: relative;
+      }
+
+      .stretched-card-link .archive-title a::after,
+      .stretched-card-link .latest-item h3 a::after,
+      .stretched-card-link .course-link::after,
+      .stretched-card-link .dashboard-card-link a::after {
+        content: "";
+        inset: 0;
+        position: absolute;
+      }
+
+      /* Credits are separate destinations, not part of the card's primary
+         link.  Keep their name anchors above the stretched title overlay. */
+      .stretched-card-link .person-chip a {
+        position: relative;
+        z-index: 1;
+      }
+
+      .stretched-card-link:not(.podcast-card):hover {
+        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
+      }
+
+      /* Podcast records are archive rows, not filled status boxes: the blue
+         mono eyebrow carries the season/episode metadata, while the row's own
+         dashed rule keeps the list rhythm. */
+      .podcast-card {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .podcast-meta {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }

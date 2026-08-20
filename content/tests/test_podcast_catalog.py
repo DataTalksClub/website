@@ -653,6 +653,15 @@ class PodcastSeasonNavigationTests(TestCase):
 
         self.assertEqual(body.count('class="row-list"'), 1)
         self.assertEqual(body.count('class="play-disc"'), len(season.episodes))
+        self.assertEqual(
+            body.count('class="card archive-card stretched-card-link podcast-card"'),
+            len(season.episodes),
+        )
+        self.assertEqual(
+            body.count('<p class="mono-label mono-label-indigo podcast-meta">'),
+            len(season.episodes),
+        )
+        self.assertEqual(body.count('<span class="status-pill status-pill-mint">'), 0)
         # An episode row is the site's shared archive row with the play disc as
         # its leading mark, and an episode with no publication date gives its
         # rail back to the card rather than leaving an empty column.
@@ -670,7 +679,11 @@ class PodcastSeasonNavigationTests(TestCase):
         response = self.client.get(episode["public_path"])
         body = response.content.decode()
 
-        self.assertContains(response, 'class="status-pill status-pill-mint"')
+        self.assertContains(
+            response,
+            '<span class="mono-label mono-label-indigo podcast-meta">',
+        )
+        self.assertNotContains(response, '<span class="status-pill status-pill-mint">')
         self.assertContains(response, f"Season {episode['season']} · Episode {episode['episode']}")
         self.assertContains(response, 'class="player-frame episode-player"')
         self.assertContains(response, f'href="{episode["links"]["youtube"]}"')
