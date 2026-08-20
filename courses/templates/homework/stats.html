@@ -24,6 +24,10 @@
 
       {% include "core/_design_system.html" %}
 
+      :root {
+        --page: var(--lavender);
+      }
+
       /* ------------------------------------------------------------------ *
        * Page-specific rules.
        * ------------------------------------------------------------------ */
@@ -340,7 +344,7 @@
         </div>
       </section>
 
-      <section class="band band-cream" aria-labelledby="time-distribution-heading">
+      <section class="band band-lavender" aria-labelledby="time-distribution-heading">
         <div class="shell">
           <div class="band-head">
             <div>
@@ -479,7 +483,7 @@
         </section>
       {% endif %}
 
-      <section class="band band-cream" aria-labelledby="stats-calculated-heading">
+      <section class="band band-lavender" aria-labelledby="stats-calculated-heading">
         <div class="shell">
           <h2 id="stats-calculated-heading" class="sr-only">When these statistics were calculated</h2>
           <p class="stats-calculated">

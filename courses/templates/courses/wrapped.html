@@ -29,6 +29,10 @@
 
       {% include "core/_design_system.html" %}
 
+      :root {
+        --page: var(--lavender);
+      }
+
       /* ------------------------------------------------------------------ *
        * Wrapped rules.
        * ------------------------------------------------------------------ */
@@ -257,7 +261,7 @@
           </section>
 
           {% if user_stats.courses_enrolled %}
-            <section class="band band-cream" aria-labelledby="your-courses-heading">
+            <section class="band band-lavender" aria-labelledby="your-courses-heading">
               <div class="shell">
                 <div class="band-head">
                   <div>
@@ -311,7 +315,7 @@
         </section>
 
         {% if platform_stats.course_stats %}
-          <section class="band band-cream" aria-labelledby="popular-courses-heading">
+          <section class="band band-lavender" aria-labelledby="popular-courses-heading">
             <div class="shell">
               <div class="band-head">
                 <div>
