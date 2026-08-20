@@ -102,6 +102,35 @@ class CourseCohortModelTests(TestCase):
             '<link rel="canonical" href="https://datatalks.club/courses/ml-zoomcamp/spring-2026">',
         )
 
+        reserved = Cohort.objects.create(
+            course=family,
+            slug="ml-zoomcamp-project",
+            identifier="project",
+            year=2027,
+            title="Machine Learning Project Cohort",
+            description="An identifier that is also a legacy route segment.",
+        )
+        Project.objects.create(
+            course=reserved,
+            slug="project-01",
+            title="Project 1",
+            submission_due_date=timezone.now() + timezone.timedelta(days=7),
+            peer_review_due_date=timezone.now() + timezone.timedelta(days=8),
+        )
+        reserved_project_url = reverse(
+            "project",
+            kwargs={
+                "course_slug": family.slug,
+                "cohort_year": reserved.identifier,
+                "project_slug": "project-01",
+            },
+        )
+        self.assertEqual(
+            reserved_project_url,
+            "/courses/ml-zoomcamp/project/project/project-01",
+        )
+        self.assertEqual(self.client.get(reserved_project_url).status_code, 200)
+
 
 class CanonicalCourseRouteTests(TestCase):
     @classmethod
