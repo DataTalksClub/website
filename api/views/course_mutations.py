@@ -5,8 +5,8 @@ from api.safety import error_response
 from api.utils import parse_json_body
 from courses.models.cohort import Cohort
 
-
 COURSE_PATCH_FIELDS = {
+    "identifier",
     "title",
     "description",
     "start_date",
@@ -88,7 +88,11 @@ def apply_course_patch_data(course, data):
 
 def course_validation_error(course):
     try:
-        course.full_clean()
+        # Cohort.save() resolves the reusable course family from the legacy
+        # slug for API-created records.  Validate all supplied fields now,
+        # but let that save-time relationship inference run first.
+        exclude = ["course"] if course.course_id is None else None
+        course.full_clean(exclude=exclude)
     except ValidationError as exc:
         return validation_error_response(exc)
 
@@ -171,6 +175,11 @@ def course_create_values(data):
         "slug": slug,
         "title": title,
     }
+    if "identifier" in data:
+        values["identifier"] = data["identifier"]
+    else:
+        year_field = Cohort._meta.get_field("year")
+        values["identifier"] = str(year_field.get_default())
     for field, default in COURSE_CREATE_DEFAULTS:
         values[field] = data.get(field, default)
     return values

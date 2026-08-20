@@ -41,6 +41,11 @@ COURSE_SUMMARY_SCHEMA = model_object_schema(
     ],
     required_fields=["slug", "title", "description", "finished"],
 )
+COURSE_IDENTIFIER_PROPERTY = {
+    "type": "string",
+    "description": "Stable public identifier used in cohort routes.",
+}
+COURSE_SUMMARY_SCHEMA["properties"]["identifier"] = COURSE_IDENTIFIER_PROPERTY
 COURSE_CREATE_SCHEMA = model_object_schema(
     Cohort,
     [
@@ -61,6 +66,7 @@ COURSE_CREATE_SCHEMA = model_object_schema(
     ],
     required_fields=["slug", "title"],
 )
+COURSE_CREATE_SCHEMA["properties"]["identifier"] = COURSE_IDENTIFIER_PROPERTY
 COURSE_PATCH_PROPERTIES = model_properties(
     Cohort,
     [
@@ -79,6 +85,7 @@ COURSE_PATCH_PROPERTIES = model_properties(
         "visible",
     ],
 )
+COURSE_PATCH_PROPERTIES["identifier"] = COURSE_IDENTIFIER_PROPERTY
 COURSE_DETAIL_EXTRA_PROPERTIES = {
     "homeworks": HOMEWORK_SUMMARY_ARRAY,
     "projects": PROJECT_SUMMARY_ARRAY,
@@ -103,6 +110,7 @@ COURSE_DETAIL_SCHEMA = model_object_schema(
     ],
     extra_properties=COURSE_DETAIL_EXTRA_PROPERTIES,
 )
+COURSE_DETAIL_SCHEMA["properties"]["identifier"] = COURSE_IDENTIFIER_PROPERTY
 REGISTRATION_CAMPAIGN_BASE_PROPERTIES = model_properties(
     RegistrationCampaign,
     [

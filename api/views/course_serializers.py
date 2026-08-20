@@ -7,8 +7,13 @@ def date_to_iso(value):
 def course_to_dict(course):
     start_date = date_to_iso(course.start_date)
     end_date = date_to_iso(course.end_date)
+    # ``identifier`` is the stable public cohort route key.  Keep the
+    # fallback while older rows/models still only have the historical year
+    # field; this lets the API contract roll out independently of the schema.
+    identifier = getattr(course, "identifier", None) or str(course.year)
     return {
         "slug": course.slug,
+        "identifier": identifier,
         "title": course.title,
         "description": course.description,
         "start_date": start_date,
