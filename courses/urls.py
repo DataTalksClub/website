@@ -30,15 +30,15 @@ urlpatterns = [
     ),
     path("wrapped/<int:year>/", wrapped.wrapped_view, name="wrapped"),
     path("wrapped/<int:year>/<int:student_id>/", wrapped.user_wrapped_view, name="user_wrapped"),
-    # Canonical cohort routes: the family slug and explicit edition year are
-    # always present in generated public URLs.
+    # Canonical cohort routes: the family slug and explicit cohort identifier
+    # are always present in generated public URLs.
     path(
-        "<slug:course_slug>/<int:cohort_year>/calendar.ics",
+        "<slug:course_slug>/<slug:cohort_year>/calendar.ics",
         course_calendar.course_calendar_view,
         name="course_calendar",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>",
+        "<slug:course_slug>/<slug:cohort_year>",
         course.course_view,
         name="course",
     ),
@@ -48,97 +48,97 @@ urlpatterns = [
         name="course_family",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/projects",
+        "<slug:course_slug>/<slug:cohort_year>/projects",
         course_project_submissions.list_all_project_submissions_view,
         name="list_all_project_submissions",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/leaderboard",
+        "<slug:course_slug>/<slug:cohort_year>/leaderboard",
         course_leaderboard.leaderboard_view,
         name="leaderboard",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/leaderboard/<int:enrollment_id>/",
+        "<slug:course_slug>/<slug:cohort_year>/leaderboard/<int:enrollment_id>/",
         course_leaderboard.leaderboard_score_breakdown_view,
         name="leaderboard_score_breakdown",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/leaderboard/<int:enrollment_id>/report",
+        "<slug:course_slug>/<slug:cohort_year>/leaderboard/<int:enrollment_id>/report",
         course_leaderboard.leaderboard_complaint_view,
         name="leaderboard_complaint",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/enrollment/toggle",
+        "<slug:course_slug>/<slug:cohort_year>/enrollment/toggle",
         course_enrollment.update_enrollment_toggle,
         name="update_enrollment_toggle",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/enrollment",
+        "<slug:course_slug>/<slug:cohort_year>/enrollment",
         course_enrollment.enrollment_view,
         name="enrollment",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/dashboard",
+        "<slug:course_slug>/<slug:cohort_year>/dashboard",
         dashboard.dashboard_view,
         name="dashboard",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>",
         project.project_view,
         name="project",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/list",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/list",
         project_submissions.projects_list_view,
         name="project_list",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/eval",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval",
         project_eval.projects_eval_view,
         name="projects_eval",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/results",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/results",
         project_results.project_results,
         name="project_results",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/stats",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/stats",
         project_statistics.project_statistics,
         name="project_statistics",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/submissions",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/submissions",
         project_submissions.project_submissions,
         name="project_submissions",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/eval/<int:review_id>",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval/<int:review_id>",
         project_eval_submit.projects_eval_submit,
         name="projects_eval_submit",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/eval/add/<int:submission_id>",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval/add/<int:submission_id>",
         project_eval_actions.projects_eval_add,
         name="projects_eval_add",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/project/<slug:project_slug>/eval/delete/<int:review_id>",
+        "<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval/delete/<int:review_id>",
         project_eval_actions.projects_eval_delete,
         name="projects_eval_delete",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/homework/<slug:homework_slug>",
+        "<slug:course_slug>/<slug:cohort_year>/homework/<slug:homework_slug>",
         homework.homework_view,
         name="homework",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/homework/<slug:homework_slug>/stats",
+        "<slug:course_slug>/<slug:cohort_year>/homework/<slug:homework_slug>/stats",
         homework_statistics.homework_statistics,
         name="homework_statistics",
     ),
     path(
-        "<slug:course_slug>/<int:cohort_year>/homework/<slug:homework_slug>/submissions",
+        "<slug:course_slug>/<slug:cohort_year>/homework/<slug:homework_slug>/submissions",
         homework_submissions.homework_submissions,
         name="homework_submissions",
     ),

@@ -67,6 +67,15 @@ class Cohort(models.Model):
         on_delete=models.CASCADE,
         related_name="cohorts",
     )
+    identifier = models.SlugField(
+        max_length=80,
+        blank=True,
+        default="",
+        help_text=(
+            "Stable public identifier for this cohort, such as '2026' "
+            "or 'spring-2026'."
+        ),
+    )
     year = models.PositiveIntegerField(default=2026)
     title = models.CharField(max_length=200)
     curriculum_format = models.CharField(
@@ -156,7 +165,7 @@ class Cohort(models.Model):
 
     @property
     def canonical_url_path(self) -> str:
-        return f"/courses/{self.course.slug}/{self.year}"
+        return f"/courses/{self.course.slug}/{self.identifier}"
 
     def save(self, *args, **kwargs):
         # Existing copied fixtures create Cohort rows directly.  Keep that
@@ -174,6 +183,8 @@ class Cohort(models.Model):
             match = re.search(r"(?:-|\s)(\d{4})$", self.slug or self.title)
             if match and self.year == 2026:
                 self.year = int(match.group(1))
+        if not self.identifier:
+            self.identifier = str(self.year)
         super().save(*args, **kwargs)
 
     def clean(self):
@@ -195,6 +206,10 @@ class Cohort(models.Model):
             models.UniqueConstraint(
                 fields=("course", "year"),
                 name="courses_cohort_course_year_unique",
+            ),
+            models.UniqueConstraint(
+                fields=("course", "identifier"),
+                name="courses_cohort_course_identifier_unique",
             ),
             models.CheckConstraint(
                 condition=Q(curriculum_format__in=CurriculumFormat.values),

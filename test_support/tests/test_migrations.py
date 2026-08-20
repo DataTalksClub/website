@@ -61,6 +61,8 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts/migrations/0005_backfill_certificate_name_from_enrollment.py",
                 "accounts/migrations/0012_backfill_normalized_identity.py",
                 "content/migrations/0002_active_content_path_claims.py",
+                "courses/migrations/0002_curriculum_and_project_criteria.py",
+                "courses/migrations/0005_cohort_identifier_and_more.py",
                 "events/migrations/0005_seed_event_identity_manifest.py",
                 "events/migrations/0006_event_public_id.py",
                 "events/migrations/0007_reconcile_public_event_identity.py",

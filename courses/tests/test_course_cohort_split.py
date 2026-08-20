@@ -50,6 +50,58 @@ class CourseCohortModelTests(TestCase):
         self.assertEqual(project.course, second)
         self.assertFalse(hasattr(family, "students"))
 
+    def test_cohort_identifier_can_be_non_numeric(self):
+        family = Course.objects.create(
+            slug="ml-zoomcamp",
+            title="Machine Learning Zoomcamp",
+        )
+        cohort = Cohort.objects.create(
+            course=family,
+            slug="ml-zoomcamp-spring",
+            identifier="spring-2026",
+            year=2026,
+            title="Machine Learning Zoomcamp Spring",
+            description="A cohort identified by a season rather than a year.",
+        )
+
+        self.assertEqual(cohort.identifier, "spring-2026")
+        self.assertEqual(
+            cohort.canonical_url_path,
+            "/courses/ml-zoomcamp/spring-2026",
+        )
+        self.assertEqual(
+            reverse(
+                "course",
+                kwargs={
+                    "course_slug": family.slug,
+                    "cohort_year": cohort.identifier,
+                },
+            ),
+            "/courses/ml-zoomcamp/spring-2026",
+        )
+        Homework.objects.create(
+            course=cohort,
+            slug="homework-01",
+            title="Homework 1",
+            description="Practice",
+            due_date=timezone.now() + timezone.timedelta(days=7),
+        )
+        Project.objects.create(
+            course=cohort,
+            slug="project-01",
+            title="Project 1",
+            submission_due_date=timezone.now() + timezone.timedelta(days=7),
+            peer_review_due_date=timezone.now() + timezone.timedelta(days=8),
+        )
+        response = self.client.get("/courses/ml-zoomcamp/spring-2026")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "/courses/ml-zoomcamp/spring-2026/homework/homework-01")
+        self.assertContains(response, "/courses/ml-zoomcamp/spring-2026/project/project-01")
+        self.assertContains(
+            response,
+            '<link rel="canonical" href="https://datatalks.club/courses/ml-zoomcamp/spring-2026">',
+        )
+
 
 class CanonicalCourseRouteTests(TestCase):
     @classmethod

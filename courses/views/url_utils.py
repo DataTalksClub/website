@@ -17,7 +17,7 @@ def cohort_url_kwargs(cohort: Cohort) -> dict[str, object]:
 
     return {
         "course_slug": cohort.course.slug,
-        "cohort_year": cohort.year,
+        "cohort_year": cohort.identifier,
     }
 
 
@@ -32,17 +32,22 @@ def cohort_url(cohort: Cohort, route_name: str = "course", **kwargs) -> str:
 
 def get_cohort_or_404(
     course_slug: str,
-    cohort_year: int | None = None,
+    cohort_year: str | int | None = None,
     **filters,
 ) -> Cohort:
-    """Resolve a canonical family/year route, with a legacy test shim."""
+    """Resolve a canonical family/cohort-identifier route.
+
+    ``cohort_year`` is retained as the route argument name for the existing
+    view contract, but its value is a slug-like cohort identifier rather than
+    necessarily a calendar year.
+    """
 
     if cohort_year is None:
         return get_object_or_404(Cohort, slug=course_slug, **filters)
     return get_object_or_404(
         Cohort,
         course__slug=course_slug,
-        year=cohort_year,
+        identifier=str(cohort_year),
         **filters,
     )
 

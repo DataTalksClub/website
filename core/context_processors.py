@@ -82,15 +82,15 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         and resolver_match.url_name in PUBLIC_COURSE_COHORT_ROUTE_NAMES
     ):
         course_slug = resolver_match.kwargs.get("course_slug")
-        cohort_year = resolver_match.kwargs.get("cohort_year")
+        cohort_identifier = resolver_match.kwargs.get("cohort_year")
         if course_slug:
-            if cohort_year is None:
+            if cohort_identifier is None:
                 cohort = Cohort.objects.filter(slug=course_slug).first()
             else:
                 cohort = (
                     Cohort.objects.filter(
                         course__slug=course_slug,
-                        year=cohort_year,
+                        identifier=cohort_identifier,
                     )
                     .select_related("course")
                     .first()
