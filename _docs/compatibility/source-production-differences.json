@@ -4,7 +4,7 @@
     "both_capture_rows": 2937,
     "generated_at": "2026-08-08T05:55:00Z",
     "manifest_rows": 2965,
-    "manifest_sha256": "94a6469530a290147e94f825eb981836e1358b9d0a72c7f50f0eda6d638e1d7f",
+    "manifest_sha256": "9c6bb79eb8484aa2a0befaf6b2531e5ad05f2f5fe6bfe6ef711c66cdb6cdca32",
     "production_capture_rows": 2965,
     "production_input_sha256": "4c38d0fbd2a405e661b9aac55843201dc367e0b4e49a31b02d806d764788f9f3",
     "production_only_rows": 28,
@@ -81,7 +81,7 @@
         "route_removed": 4
       },
       "review_state": "unresolved",
-      "sha256": "72b2a68694b17c091ba09e29f1e44e2c052cd6d244b7c750abde3f66ad0cd4ff"
+      "sha256": "10fdac5be5662686da0fbae4b8ee0b1fe20007d8e6e03349fd95f31ea7ac1fe6"
     }
   ],
   "schema_version": 1,

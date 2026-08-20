@@ -1,0 +1,64 @@
+{% extends "studio/base.html" %}
+
+{% block title %}{{ event.title }} Q&amp;A · Studio · {{ brand_name }}{% endblock %}
+
+{% block breadcrumbs_nav %}
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li><a href="{% url 'studio:home' %}">Studio</a></li>
+      <li aria-current="page">Event Q&amp;A</li>
+    </ol>
+  </nav>
+{% endblock %}
+{% block page_head %}
+  <div class="admin-head">
+    <p class="mono-label mono-label-indigo">Studio · Event Q&amp;A</p>
+    <h1>{{ event.title }}</h1>
+    <p class="admin-lede">Configure the event session, share its website link, and moderate questions.</p>
+  </div>
+{% endblock %}
+
+{% block content %}
+  <section class="admin-section" aria-labelledby="qna-summary-heading">
+    <div class="admin-section-head"><h2 id="qna-summary-heading">Session</h2></div>
+    <dl class="admin-facts">
+      <div><dt>State</dt><dd>{{ qna.state }}</dd></div>
+      <div><dt>Share URL</dt><dd><code class="mono-code">{{ qna.share_url }}</code></dd></div>
+      <div><dt>QR</dt><dd><img src="{{ qna.qr_url }}" alt="QR code for the public event Q&amp;A" width="160" height="160"></dd></div>
+      <div><dt>Questions</dt><dd>{{ qna.counts.questions }} total · {{ qna.counts.answered }} answered</dd></div>
+    </dl>
+  </section>
+
+  <section class="admin-section" aria-labelledby="qna-settings-heading">
+    <div class="admin-section-head"><h2 id="qna-settings-heading">Settings and lifecycle</h2></div>
+    <form method="post" action="{% url 'studio:event-qna-update' event.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <label>State <select name="state">
+        {% for value, label in states %}<option value="{{ value }}"{% if qna.state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select></label>
+      <label><input type="checkbox" name="allow_names"{% if qna.settings.allow_names %} checked{% endif %}> Allow names</label>
+      <label><input type="checkbox" name="require_names"{% if qna.settings.require_names %} checked{% endif %}> Require names</label>
+      <label>Default sort <select name="default_sort"><option value="popular"{% if qna.settings.default_sort == 'popular' %} selected{% endif %}>Popular</option><option value="recent"{% if qna.settings.default_sort == 'recent' %} selected{% endif %}>Recent</option></select></label>
+      <button type="submit">Save session</button>
+    </form>
+  </section>
+
+  <section class="admin-section" aria-labelledby="qna-questions-heading">
+    <div class="admin-section-head"><h2 id="qna-questions-heading">Moderation</h2></div>
+    <ol class="admin-list">
+      {% for question in qna.items %}
+        <li>
+          <strong>{{ question.text }}</strong>
+          <span>{{ question.score }} votes · {{ question.status }}{% if question.pinned %} · pinned{% endif %}</span>
+          <form method="post" action="{% url 'studio:event-qna-moderate' event.id question.question_id %}">
+            {% csrf_token %}<input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+            <button name="action" value="answer" type="submit">Answer</button>
+            <button name="action" value="delete" type="submit">Delete</button>
+            <button name="action" value="pin" type="submit">Pin</button>
+          </form>
+        </li>
+      {% empty %}<li>No questions yet.</li>{% endfor %}
+    </ol>
+  </section>
+{% endblock %}

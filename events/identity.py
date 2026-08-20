@@ -322,7 +322,7 @@ def _create_event_identity_atomic(
     event_id: uuid.UUID | None = None,
 ) -> Event:
     with transaction.atomic():
-        return _insert_event_with_public_id(
+        event = _insert_event_with_public_id(
             id=event_id or uuid.uuid4(),
             public_id=_allocate_public_id(),
             title=title,
@@ -332,6 +332,13 @@ def _create_event_identity_atomic(
             source_path=source_path,
             source_checksum=source_checksum,
         )
+        # Event creation owns Q&A provisioning.  Keep the import local so the
+        # identity parser/model layer does not import the Q&A implementation at
+        # module load time.
+        from .qna.services import ensure_event_qna
+
+        ensure_event_qna(event.id)
+        return event
 
 
 def create_event_identity(
@@ -641,6 +648,11 @@ def import_identity_manifest(
                 ):
                     raise EventIdentityError("alias_target_conflict")
                 aliases_created += int(alias_created)
+            # Replayed imports also repair Events created before Q&A existed;
+            # the same idempotent service is used by the bounded backfill.
+            from .qna.services import ensure_event_qna
+
+            ensure_event_qna(event.id)
     if dry_run:
         return IdentityImportReport(
             len(manifest.events),

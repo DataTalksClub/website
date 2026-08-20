@@ -101,6 +101,7 @@ def test_run_capture_keeps_one_owner_across_migration_server_and_capture(
     capture = FakeProcess()
     calls: list[str] = []
 
+    monkeypatch.delenv("DJANGO_SETTINGS_MODULE", raising=False)
     monkeypatch.setattr(
         screenshot_runtime.TestRuntime,
         "acquire",
@@ -139,6 +140,109 @@ def test_run_capture_keeps_one_owner_across_migration_server_and_capture(
     assert runtime.cleanup_calls == 1
 
 
+def test_run_capture_pins_test_settings_for_every_child_when_unset(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    inputs = _inputs(tmp_path)
+    runtime = FakeRuntime()
+    migration = FakeProcess()
+    server = FakeProcess()
+    capture = FakeProcess()
+    environments: list[dict[str, str]] = []
+
+    monkeypatch.delenv("DJANGO_SETTINGS_MODULE", raising=False)
+    monkeypatch.setattr(
+        screenshot_runtime.TestRuntime,
+        "acquire",
+        lambda _repository: runtime,
+    )
+
+    def run_migration(_repository: Path, *, environment: dict[str, str]) -> FakeProcess:
+        environments.append(dict(environment))
+        return migration
+
+    def run_server(
+        _repository: Path,
+        *,
+        host: str,
+        port: int,
+        log_path: Path,
+        environment: dict[str, str],
+    ) -> FakeProcess:
+        del host, port, log_path
+        environments.append(dict(environment))
+        return server
+
+    def run_capture(
+        _repository: Path,
+        *,
+        plan: Path,
+        output: Path,
+        base_url: str,
+        environment: dict[str, str],
+    ) -> FakeProcess:
+        del plan, output, base_url
+        environments.append(dict(environment))
+        return capture
+
+    monkeypatch.setattr(screenshot_runtime, "_run_migration", run_migration)
+    monkeypatch.setattr(screenshot_runtime, "_run_server", run_server)
+    monkeypatch.setattr(screenshot_runtime, "_run_capture", run_capture)
+    monkeypatch.setattr(screenshot_runtime, "_wait_for_server", lambda **_kwargs: None)
+    monkeypatch.setattr(screenshot_runtime, "_terminate_processes", lambda *_processes: None)
+
+    assert screenshot_runtime.run_capture(**inputs) == 0
+
+    assert len(environments) == 3
+    assert all(
+        environment["DJANGO_SETTINGS_MODULE"]
+        == screenshot_runtime.AUTHORIZED_DJANGO_SETTINGS_MODULE
+        for environment in environments
+    )
+    assert "DJANGO_SETTINGS_MODULE=website.settings.test" in capsys.readouterr().out
+
+
+def test_run_capture_rejects_wrong_settings_before_any_child_or_capture(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inputs = _inputs(tmp_path)
+    child_calls: list[str] = []
+
+    monkeypatch.setenv("DJANGO_SETTINGS_MODULE", "website.settings.local")
+    monkeypatch.setattr(
+        screenshot_runtime.TestRuntime,
+        "acquire",
+        lambda _repository: pytest.fail("runtime must not be acquired"),
+    )
+    monkeypatch.setattr(
+        screenshot_runtime,
+        "_run_migration",
+        lambda *_args, **_kwargs: child_calls.append("migration"),
+    )
+    monkeypatch.setattr(
+        screenshot_runtime,
+        "_run_server",
+        lambda *_args, **_kwargs: child_calls.append("server"),
+    )
+    monkeypatch.setattr(
+        screenshot_runtime,
+        "_run_capture",
+        lambda *_args, **_kwargs: child_calls.append("capture"),
+    )
+
+    with pytest.raises(
+        screenshot_runtime.ScreenshotRuntimeError,
+        match=r"DJANGO_SETTINGS_MODULE=website\.settings\.test",
+    ):
+        screenshot_runtime.run_capture(**inputs)
+
+    assert child_calls == []
+    assert not inputs["output"].exists()
+
+
 def test_run_capture_returns_migration_failure_and_never_starts_server(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -148,6 +252,7 @@ def test_run_capture_returns_migration_failure_and_never_starts_server(
     migration = FakeProcess(returncode=17)
     calls: list[str] = []
 
+    monkeypatch.delenv("DJANGO_SETTINGS_MODULE", raising=False)
     monkeypatch.setattr(
         screenshot_runtime.TestRuntime,
         "acquire",
@@ -182,6 +287,7 @@ def test_run_capture_rejects_inherited_child_runtime(
 ) -> None:
     inputs = _inputs(tmp_path)
     runtime = SimpleNamespace(is_owner=False, cleanup=lambda: pytest.fail("child cleaned owner"))
+    monkeypatch.delenv("DJANGO_SETTINGS_MODULE", raising=False)
     monkeypatch.setattr(
         screenshot_runtime.TestRuntime,
         "acquire",

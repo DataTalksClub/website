@@ -149,6 +149,23 @@ sponsor_item.management_capability_views = {  # type: ignore[attr-defined]
 }
 
 
+@csrf_exempt
+def event_qna_collection(request, *args, **kwargs):
+    if request.method in {"GET", "HEAD"}:
+        return views.event_qna_read(request, *args, **kwargs)
+    return views.event_qna_manage(request, *args, **kwargs)
+
+
+event_qna_collection.management_capability_keys = (  # type: ignore[attr-defined]
+    "events.qna.read",
+    "events.qna.manage",
+)
+event_qna_collection.management_capability_views = {  # type: ignore[attr-defined]
+    "GET": views.event_qna_read,
+    "PATCH": views.event_qna_manage,
+}
+
+
 urlpatterns = [
     path("health", views.admin_health, name="admin-health"),
     path("settings", site_settings_collection, name="admin-site-settings"),
@@ -230,6 +247,31 @@ urlpatterns = [
         "events/identities/<uuid:event_id>",
         views.event_identity_detail,
         name="event-identity-detail",
+    ),
+    path(
+        "events/<uuid:event_id>/qna",
+        event_qna_collection,
+        name="admin-event-qna-read",
+    ),
+    path(
+        "events/<uuid:event_id>/qna/questions/<str:question_id>",
+        views.event_qna_moderate,
+        name="admin-event-qna-moderate",
+    ),
+    path(
+        "events/<uuid:event_id>/qna/retry",
+        views.event_qna_retry,
+        name="admin-event-qna-retry",
+    ),
+    path(
+        "events/<uuid:event_id>/qna/cohosts",
+        views.event_qna_cohost_create,
+        name="admin-event-qna-cohost-create",
+    ),
+    path(
+        "events/<uuid:event_id>/qna/cohosts/<str:invite_id>",
+        views.event_qna_cohost_revoke,
+        name="admin-event-qna-cohost-revoke",
     ),
     path(
         "course-registration-count-imports",

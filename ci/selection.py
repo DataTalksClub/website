@@ -6,12 +6,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ci.ownership import application_test_labels
+from ci.ownership import application_test_labels, impact_for_paths, load_graph
 
 SCHEMA_VERSION = 1
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 
-APPLICATION_TEST_LABELS = application_test_labels()
+OWNERSHIP_GRAPH = load_graph()
+OWNERSHIP_NODES = {node["id"]: node for node in OWNERSHIP_GRAPH["nodes"]}
+APPLICATION_TEST_LABELS = application_test_labels(OWNERSHIP_GRAPH)
 TEST_LABEL_ALLOWLIST = frozenset(
     label for labels in APPLICATION_TEST_LABELS.values() for label in labels
 )
@@ -37,7 +39,6 @@ FULL_REASONS = frozenset(
         "static_changed",
         "shared_application",
         "template_changed",
-        "testless_application",
         "unknown_path",
         "unsupported_file_mode",
         "unsupported_status",
@@ -303,41 +304,36 @@ def _valid_repository_path(path: str) -> bool:
 
 
 def _force_full_reason(paths: tuple[str, ...]) -> str | None:
-    components = [path.split("/") for path in paths]
-    if any("migrations" in parts for parts in components):
+    impact = impact_for_paths(paths, OWNERSHIP_GRAPH)
+    if "schema_migration" in impact.risk_flags:
         return "migration_changed"
-    if any("templates" in parts for parts in components):
+    if "segment:templates" in impact.render_reasons:
         return "template_changed"
-    if any("static" in parts for parts in components):
+    if "segment:static" in impact.render_reasons:
         return "static_changed"
     template_suffixes = {".htm", ".html", ".jinja", ".jinja2", ".tmpl", ".tpl"}
     if any(Path(path).suffix.lower() in template_suffixes for path in paths):
         return "html_changed"
 
-    roots = {parts[0] for parts in components if parts and parts[0]}
-    if roots & {"accounts", "core"}:
-        return "shared_application"
-    if roots & {"content_sync", "email_app", "events"}:
-        return "testless_application"
-    if roots & {
-        ".claude",
-        ".github",
-        "course_management",
-        "course_platform_templates",
-        "deploy",
-        "e2e",
-        "playwright_tests",
-        "scripts",
-        "templates",
-        "test_support",
-        "website",
-    }:
+    if any(_is_root_configuration(path) for path in paths):
         return "configuration_or_dependency"
-    if roots & {"_docs", "compatibility"} or any(
-        path in {"AGENTS.md", "README.md"} for path in paths
+
+    owners = [OWNERSHIP_NODES[node_id] for node_id in impact.owners]
+    if any(node_id.startswith("shared.") for node_id in impact.owners) or any(
+        "auth_security_privacy" in node["risk_flags"] for node in owners
+    ):
+        return "shared_application"
+    if any(node["id"] == "surface.documentation" for node in owners) or any(
+        "compatibility_contract" in node["risk_flags"] for node in owners
     ):
         return "documentation_or_contract"
-    if roots & {"ci"} or any(_is_root_configuration(path) for path in paths):
+    if any(
+        node["id"].startswith("surface.")
+        or "test_infrastructure" in node["risk_flags"]
+        or "dependency_toolchain" in node["risk_flags"]
+        or "deployment_runtime" in node["risk_flags"]
+        for node in owners
+    ):
         return "configuration_or_dependency"
     return None
 
@@ -345,28 +341,9 @@ def _force_full_reason(paths: tuple[str, ...]) -> str | None:
 def _is_root_configuration(path: str) -> bool:
     if "/" in path:
         return False
+    rules = OWNERSHIP_GRAPH["risk_rules"]
     return (
-        path
-        in {
-            ".python-version",
-            "Dockerfile",
-            "Makefile",
-            "conftest.py",
-            "manage.py",
-            "pyproject.toml",
-            "sitecustomize.py",
-            "uv.lock",
-        }
-        or path.endswith((".lock", ".toml", ".yaml", ".yml"))
-        or path
-        in {
-            "package.json",
-            "package-lock.json",
-            "Pipfile",
-            "tox.ini",
-            "pytest.ini",
-            "mypy.ini",
-        }
-        or path.startswith("requirements")
-        or path.startswith(".")
+        path.endswith(tuple(rules["configuration_suffixes"]))
+        or any(path.startswith(prefix) for prefix in rules["configuration_prefixes"])
+        or any(path.startswith(prefix) for prefix in rules["configuration_hidden_prefixes"])
     )

@@ -12737,7 +12737,7 @@
       "status_code": 301
     }
   ],
-  "content_sha256": "fcf3c24b21457982bed952d2254e33a5fd269ab17cfe60688fb2d95be8549170",
+  "content_sha256": "10be48bcfb0d09a3c7c3b93f9ad4a4977cb2a0cfab4070f0d2f54c7af30e6620",
   "counts": {
     "aliases": 1592,
     "finals": 796
@@ -23097,7 +23097,7 @@
     "projection_schema_version": 1,
     "projection_selection_mode": "preferred",
     "source_artifacts": {
-      "articles.json": "119972c04b7b6df972f35950bea20e00ff7f90f7820c07105126fa0b616211db",
+      "articles.json": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9",
       "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
       "people.json": "2eead505ef53d723f5387b9a10bee1952a29a16fd536af945e9a4ed58c929eb2",
       "podcasts.json": "4c131680fd8fcdc036d0c488eb0f8609d00cf1f29a10e31ba9b3369cfa653e63"

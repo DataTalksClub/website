@@ -310,18 +310,21 @@ test-playwright-core:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
 		uv run --frozen pytest playwright_tests \
+		-o faulthandler_timeout=120 \
 		-m 'core and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-playwright:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
 		uv run --frozen pytest playwright_tests \
+		-o faulthandler_timeout=120 \
 		-m '(core or full) and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-accessibility:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
 		uv run --frozen pytest playwright_tests/test_accessibility.py \
+		-o faulthandler_timeout=120 \
 		-m 'accessibility and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-browser: test-playwright

@@ -32,6 +32,7 @@ from events.identity import (
     resolve_public_id,
     resolve_uuid,
 )
+from events.models import EventQnaSession
 from events.services import public_registration_total
 
 from . import wiki_content
@@ -397,6 +398,13 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
     if event["ends_at"]:
         entity["endDate"] = event["ends_at"]
     registration_total = public_registration_total(event)
+    qna_url = ""
+    qna_session = EventQnaSession.objects.filter(event_id=identity.id).first()
+    if qna_session is not None and qna_session.state in {
+        EventQnaSession.State.OPEN,
+        EventQnaSession.State.CLOSED,
+    }:
+        qna_url = f"{event['public_path']}/qna/"
     response = _render(
         request,
         "public/event_detail.html",
@@ -407,6 +415,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "event": event,
             "event_state": event_state,
             "registration_total": registration_total,
+            "qna_url": qna_url,
             "og_type": "event",
             "structured_data": _json_ld(
                 entity,

@@ -116,6 +116,7 @@ def _navigation(request: HttpRequest) -> tuple[dict[str, str], ...]:
                 "events.historical_registration_import.detail",
                 "events.historical_registration_total.read",
                 "events.identity.detail",
+                "events.qna.read",
                 "courses.registration_count_baseline.detail",
                 "courses.registration_count_baseline.total",
                 "site.sponsors.detail",

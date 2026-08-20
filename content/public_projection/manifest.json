@@ -1,9 +1,9 @@
 {
   "artifacts": {
-    "articles.json": "119972c04b7b6df972f35950bea20e00ff7f90f7820c07105126fa0b616211db",
+    "articles.json": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9",
     "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
     "courses.json": "8e4cc4864822ac885c360fb154e0a1f4bb402047bb66b80c5673c3233a1ecdb8",
-    "editorial_route_migration.json": "e39a41bc5639e0ae9b802559205a2f8b94e4f24be1b8e81f6eaa3c9f61cf1c24",
+    "editorial_route_migration.json": "b3aa4b7cd57dff14d7e2c33e9d659a77667f5dd1bf15f7f09020c47263f7505d",
     "events.json": "260eeeb2974a436b80621d87df30bfea743273b3d38a6dfe9532dfb7d99f00ec",
     "media.json": "6b6670d01407c72649f89a7671e240d7c75d9653b9bb25b30f362e14b0325aea",
     "people.json": "2eead505ef53d723f5387b9a10bee1952a29a16fd536af945e9a4ed58c929eb2",
@@ -130,7 +130,7 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "0e722083398b7e1460c0c4979b261db1c792fe67b14273ec244f87a797f5cb65",
+  "tree_sha256": "b961fa7b78c9c54426f242a5acf8bcf7ba24b0d6c9866c3d01f2f94031133518",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

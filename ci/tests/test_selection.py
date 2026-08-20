@@ -9,11 +9,13 @@ import pytest
 from ci import focused_tests
 from ci.selection import (
     APPLICATION_TEST_LABELS,
+    FULL_REASONS,
     ChangeRecord,
     DiffParseError,
     UnsupportedStatus,
     classify_records,
     dump_selection,
+    full_selection,
     parse_name_status,
     selection_summary,
     validate_selection,
@@ -75,7 +77,10 @@ def test_documented_reverse_import_closures_select_importing_suites(
         (("api/a.py", "unknown/b.py"), "unknown_path"),
         (("accounts/a.py",), "shared_application"),
         (("core/a.py",), "shared_application"),
-        (("events/a.py",), "testless_application"),
+        (("content_sync/a.py",), "shared_application"),
+        (("events/a.py",), "shared_application"),
+        (("email_app/a.py",), "shared_application"),
+        (("cadmin/legacy_urls.py",), "documentation_or_contract"),
         (("content/migrations/0001.py",), "migration_changed"),
         (("content/templates/content/a.txt",), "template_changed"),
         (("content/static/content/a.css",), "static_changed"),
@@ -190,6 +195,12 @@ def test_schema_rejects_non_allowlisted_or_reordered_labels() -> None:
             validate_selection(invalid)
 
 
+def test_stale_testless_reason_is_removed_from_the_selection_contract() -> None:
+    assert "testless_application" not in FULL_REASONS
+    with pytest.raises(ValueError):
+        full_selection(event="push", base=BASE, head=HEAD, reason="testless_application")
+
+
 def test_schema_rejects_focused_manual_or_focused_reason_on_full() -> None:
     focused = classify_records(
         (ChangeRecord("M", ("api/a.py",)),), event="push", base=BASE, head=HEAD
@@ -216,7 +227,9 @@ def test_json_and_summary_are_deterministic_and_do_not_include_filenames(tmp_pat
     assert json.loads(first.read_text(encoding="utf-8")) == selection
 
 
-def test_focused_runner_uses_one_process_and_only_validated_labels(tmp_path: Path) -> None:
+def test_focused_runner_uses_parallel_noninteractive_command_and_only_validated_labels(
+    tmp_path: Path,
+) -> None:
     selection = classify_records(
         (ChangeRecord("M", ("content/a.py",)),), event="push", base=BASE, head=HEAD
     )
@@ -231,6 +244,8 @@ def test_focused_runner_uses_one_process_and_only_validated_labels(tmp_path: Pat
             focused_tests.sys.executable,
             "manage.py",
             "test",
+            "--parallel",
+            "--noinput",
             "accounts",
             "content.tests",
             "content_sync",

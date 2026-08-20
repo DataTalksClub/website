@@ -729,6 +729,7 @@ class ReviewImportWorkflowTests(TestCase):
                     "id": event_id,
                     "title": "Synthetic dependency event",
                     "slug": "synthetic-dependency-event",
+                    "lifecycle": "published",
                     "source_repository": "synthetic-repository",
                     "source_revision": "synthetic-revision",
                     "source_key": "synthetic-event",

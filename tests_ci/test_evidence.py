@@ -187,7 +187,12 @@ def test_machine_output_claim_records_actual_pass_skip_counts_and_rejects_forger
     root = tmp_path / "evidence"
     root.mkdir()
     output_path = root / "playwright-output.log"
-    output_path.write_text("193 passed, 7 skipped in 1.25s\n", encoding="utf-8")
+    output_path.write_text(
+        "193 passed, 7 skipped in 1.25s\n"
+        "Destroying test database for alias 'default'...\n"
+        "make[1]: Leaving directory '/workspace'\n",
+        encoding="utf-8",
+    )
     records = artifact_records((output_path,), root=root)
     output = machine_output_claim(
         output_path,
@@ -378,6 +383,105 @@ def test_unparseable_failed_output_falls_back_to_zero_counts_without_blocking_th
     rerun = {entry["component"]: entry for entry in report["buckets"]["rerun"]}
     assert rerun["playwright"]["result"] == "failure"
     assert rerun["playwright"]["evidence"]["counts"]["tests"] == 0
+
+
+def test_partial_pytest_output_cannot_validate_as_success(tmp_path: Path) -> None:
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    output_path = root / "playwright-output.log"
+    output_path.write_text(
+        "11 passed in 19.00s\nplaywright_tests/test_hanging.py::test_synthetic_wedged_browser\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(EvidenceError, match="terminal test summary"):
+        machine_output_claim(
+            output_path,
+            root=root,
+            component="playwright",
+            plan=plan,
+            result="success",
+        )
+
+    timed_out = machine_output_claim(
+        output_path,
+        root=root,
+        component="playwright",
+        plan=plan,
+        result="timed_out",
+    )
+    assert timed_out["counts"] == {
+        "assertions": 11,
+        "failed": 0,
+        "passed": 11,
+        "skipped": 0,
+        "tests": 11,
+    }
+
+    interrupted_path = root / "playwright-interrupted.log"
+    interrupted_path.write_text(
+        "+++++++++++++++++++++++++++++++++++ Timeout ++++++++++++++++++++++++++++++++++++\n"
+        "11 passed in 120.00s\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(EvidenceError, match="interrupted pytest run"):
+        machine_output_claim(
+            interrupted_path,
+            root=root,
+            component="playwright",
+            plan=plan,
+            result="success",
+        )
+
+
+def test_timed_out_partial_playwright_output_is_a_terminal_failure_report(
+    tmp_path: Path,
+) -> None:
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    output_path = root / "playwright-output.log"
+    output_path.write_text(
+        "============================= test session starts =============================\n"
+        "collected 220 items\n"
+        "...........\n"
+        "playwright_tests/test_hanging.py::test_synthetic_wedged_browser\n",
+        encoding="utf-8",
+    )
+    records = artifact_records((output_path,), root=root)
+    output = machine_output_claim(
+        output_path,
+        root=root,
+        component="playwright",
+        plan=plan,
+        result="timed_out",
+    )
+    envelope = build_envelope(
+        plan=plan,
+        component="playwright",
+        result="timed_out",
+        origin=local_origin(),
+        command=plan["components"]["playwright"]["command"],
+        execution_environment=plan["components"]["playwright"]["environment"],
+        artifacts=records,
+        machine_output=output,
+        exit_code=124,
+        completed_at=datetime(2026, 8, 9, 12, tzinfo=UTC),
+    )
+    envelope_path = root / "playwright-evidence.json"
+    dump_json(envelope, envelope_path)
+    validate_machine_output_files(
+        envelope, evidence_root=root, envelope_path=envelope_path, plan=plan
+    )
+
+    report = create_report(plan=plan, result_directory=root, phase="engineer")
+    assert report["verdict"] == "failure"
+    rerun = next(
+        entry for entry in report["buckets"]["rerun"] if entry["component"] == "playwright"
+    )
+    assert rerun["result"] == "timed_out"
+    assert rerun["evidence"]["counts"]["tests"] == 0
 
 
 def test_success_envelope_is_digest_bound_and_strictly_validated(tmp_path: Path) -> None:

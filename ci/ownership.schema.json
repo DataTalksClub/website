@@ -27,9 +27,24 @@
         }
       }
     },
-    "policy_version": {"const": 4},
+    "policy_version": {"const": 5},
     "render_rules": {"type": "object"},
-    "risk_rules": {"type": "object"},
+    "risk_rules": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_hidden_prefixes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "configuration_prefixes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "configuration_suffixes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "global_fixture_segments": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "migration_segments": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "policy_doc_exact": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "policy_doc_prefixes": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "test_basenames": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "test_segments": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      },
+      "required": ["configuration_hidden_prefixes", "configuration_prefixes", "configuration_suffixes", "global_fixture_segments", "migration_segments", "policy_doc_exact", "policy_doc_prefixes", "test_basenames", "test_segments"],
+      "type": "object"
+    },
     "schema_version": {"const": 2},
     "screenshot_contract": {
       "additionalProperties": false,

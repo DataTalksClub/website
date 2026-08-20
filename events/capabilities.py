@@ -13,6 +13,7 @@ from core.capabilities import (
 )
 
 from .identity import get_event_identity, list_event_identities
+from .qna.capabilities import QNA_CAPABILITIES
 from .services import (
     IMPORT_PERMISSION,
     MAPPING_PERMISSION,
@@ -348,4 +349,5 @@ EVENT_CAPABILITIES = (
     TOTAL_PREVIEW,
     IDENTITY_LIST,
     IDENTITY_DETAIL,
+    *QNA_CAPABILITIES,
 )
