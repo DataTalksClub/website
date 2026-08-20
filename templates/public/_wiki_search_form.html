@@ -17,5 +17,5 @@
     value="{{ query|default:'' }}"
     required
   >
-  <button class="cta cta-compact cta-primary" type="submit">Search</button>
+  {% include "core/_button.html" with tag="button" type="submit" label="Search" variant="primary" compact=True %}
 </form>

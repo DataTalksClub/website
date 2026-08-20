@@ -188,7 +188,8 @@
         <section class="band band-ink" aria-labelledby="explore-courses-heading">
           <div class="shell wrapped-closing">
             <h2 id="explore-courses-heading" class="sr-only">Keep learning</h2>
-            <a class="cta cta-primary" href="{% url 'course_list' %}">Explore courses</a>
+            {% url 'course_list' as course_list_url %}
+            {% include "core/_button.html" with href=course_list_url label="Explore courses" variant="primary" %}
           </div>
         </section>
       {% else %}
@@ -291,22 +292,14 @@
               </div>
             </div>
             <div class="wrapped-actions">
-              <a
-                class="cta cta-compact cta-secondary"
-                href="https://twitter.com/intent/tweet?text={{ twitter_text|urlencode }}&url={{ request.build_absolute_uri|urlencode }}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Share on Twitter
-              </a>
-              <a
-                class="cta cta-compact cta-secondary"
-                href="https://www.linkedin.com/sharing/share-offsite/?url={{ request.build_absolute_uri|urlencode }}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Share on LinkedIn
-              </a>
+              {% with share_text=twitter_text|urlencode share_url=request.build_absolute_uri|urlencode %}
+                {% with twitter_share_url="https://twitter.com/intent/tweet?text="|add:share_text|add:"&url="|add:share_url %}
+                  {% include "core/_button.html" with href=twitter_share_url label="Share on Twitter" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+                {% endwith %}
+                {% with linkedin_share_url="https://www.linkedin.com/sharing/share-offsite/?url="|add:share_url %}
+                  {% include "core/_button.html" with href=linkedin_share_url label="Share on LinkedIn" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
+                {% endwith %}
+              {% endwith %}
             </div>
           </div>
         </section>
@@ -317,7 +310,8 @@
               <h2 id="user-wrapped-next-year-heading">Keep learning in {{ year|add:1 }}</h2>
               <p>Join us for more courses.</p>
             </div>
-            <a class="cta cta-primary" href="{% url 'course_list' %}">Explore courses</a>
+            {% url 'course_list' as course_list_url %}
+            {% include "core/_button.html" with href=course_list_url label="Explore courses" variant="primary" %}
           </div>
         </section>
       {% endif %}

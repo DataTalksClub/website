@@ -315,13 +315,7 @@
             {% if record.links %}
               <div class="book-links">
                 {% for link in record.links %}
-                  <a
-                    class="cta cta-compact cta-secondary"
-                    href="{{ link.url }}"
-                    rel="noopener noreferrer"
-                  >
-                    {{ link.label }}
-                  </a>
+                  {% include "core/_button.html" with href=link.url label=link.label variant="secondary" compact=True rel="noopener noreferrer" %}
                 {% endfor %}
               </div>
             {% endif %}

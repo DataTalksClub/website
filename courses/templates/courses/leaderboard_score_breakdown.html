@@ -263,16 +263,15 @@
           </div>
           <div class="record-actions">
             {% if can_access_course_studio %}
-              <a
-                class="cta cta-compact cta-secondary"
-                href="{% url 'studio_courses_enrollment_edit' course_slug=enrollment.course.slug enrollment_id=enrollment.id %}"
-                title="Admin: Edit Enrollment"
-              >Admin</a>
+              {% url 'studio_courses_enrollment_edit' course_slug=enrollment.course.slug enrollment_id=enrollment.id as admin_enrollment_url %}
+              {% include "core/_button.html" with href=admin_enrollment_url label="Admin" variant="secondary" compact=True title="Admin: Edit Enrollment" %}
             {% endif %}
             {% if show_public_profile_settings_link %}
-              <a class="cta cta-compact cta-secondary" href="{% url 'enrollment' enrollment.course.slug %}">Show public profile</a>
+              {% url 'enrollment' enrollment.course.slug as public_profile_url %}
+              {% include "core/_button.html" with href=public_profile_url label="Show public profile" variant="secondary" compact=True %}
             {% endif %}
-            <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard' enrollment.course.slug %}">Back to Leaderboard</a>
+            {% url 'leaderboard' enrollment.course.slug as leaderboard_url %}
+            {% include "core/_button.html" with href=leaderboard_url label="Back to Leaderboard" variant="secondary" compact=True %}
             <button
               class="leaderboard-flag-button cta cta-compact cta-secondary"
               type="button"
@@ -436,7 +435,7 @@
           </div>
         </div>
         <div class="flag-dialog-actions">
-          <button type="submit" class="cta cta-compact cta-primary">Submit flag</button>
+          {% include "core/_button.html" with tag="button" type="submit" label="Submit flag" variant="primary" compact=True %}
           <button type="button" class="cta cta-compact cta-secondary" data-flag-close>Cancel</button>
         </div>
       </form>

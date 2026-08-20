@@ -212,7 +212,8 @@
               <h2 id="wrapped-keep-learning-heading">Keep learning</h2>
               <p>Join us for more courses and challenges.</p>
             </div>
-            <a class="cta cta-primary" href="{% url 'course_list' %}">Explore courses</a>
+            {% url 'course_list' as course_list_url %}
+            {% include "core/_button.html" with href=course_list_url label="Explore courses" variant="primary" %}
           </div>
         </section>
       {% else %}
@@ -226,12 +227,8 @@
                 </div>
               </div>
               <div class="wrapped-actions">
-                <a
-                  class="cta cta-compact cta-secondary"
-                  href="{% url 'user_wrapped' year request.user.id %}"
-                >
-                  View your shareable Wrapped page
-                </a>
+                {% url 'user_wrapped' year request.user.id as user_wrapped_url %}
+                {% include "core/_button.html" with href=user_wrapped_url label="View your shareable Wrapped page" variant="secondary" compact=True %}
               </div>
               <div class="stat-tiles wrapped-tiles">
                 <div class="stat-tile">
@@ -393,7 +390,8 @@
               <h2 id="wrapped-next-year-heading">Keep learning in {{ year|add:1 }}</h2>
               <p>Join us for more courses and challenges.</p>
             </div>
-            <a class="cta cta-primary" href="{% url 'course_list' %}">Explore courses</a>
+            {% url 'course_list' as course_list_url %}
+            {% include "core/_button.html" with href=course_list_url label="Explore courses" variant="primary" %}
           </div>
         </section>
       {% endif %}

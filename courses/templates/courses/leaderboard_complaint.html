@@ -123,7 +123,8 @@
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="complaint-heading">Flag leaderboard record</h1>
           <p class="mono-note">{{ enrollment.display_name }} · {{ enrollment.total_score }} points</p>
-          <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}">Back to record</a>
+          {% url 'leaderboard_score_breakdown' course.slug enrollment.id as score_breakdown_url %}
+          {% include "core/_button.html" with href=score_breakdown_url label="Back to record" variant="secondary" compact=True %}
         </div>
       </section>
 
@@ -154,8 +155,8 @@
               {% endif %}
             </div>
             <div class="complaint-actions">
-              <button class="cta cta-primary" type="submit">Submit flag</button>
-              <a class="cta cta-secondary" href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}">Cancel</a>
+              {% include "core/_button.html" with tag="button" type="submit" label="Submit flag" variant="primary" %}
+              {% include "core/_button.html" with href=score_breakdown_url label="Cancel" variant="secondary" %}
             </div>
           </form>
         </div>

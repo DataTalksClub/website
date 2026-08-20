@@ -43,10 +43,10 @@
 {% block actions %}
   {% url 'home' as site_home_url %}
   {% if site_home_url %}
-    <a class="cta cta-primary" href="{{ site_home_url }}">Return home</a>
+    {% include "core/_button.html" with href=site_home_url label="Return home" variant="primary" %}
   {% endif %}
   {% url 'wiki-home' as wiki_url %}
   {% if wiki_url %}
-    <a class="cta cta-secondary" href="{{ wiki_url }}">Browse the Wiki</a>
+    {% include "core/_button.html" with href=wiki_url label="Browse the Wiki" variant="secondary" %}
   {% endif %}
 {% endblock %}

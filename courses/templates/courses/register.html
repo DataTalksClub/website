@@ -423,7 +423,7 @@
               <p class="registration-note">
                 You can start now, and register if you want to receive course updates.
               </p>
-              <a class="cta cta-primary" href="{{ start_course_url }}">Start course</a>
+              {% include "core/_button.html" with href=start_course_url label="Start course" variant="primary" %}
             </div>
           {% elif course and start_course_url %}
             <div class="panel panel-lavender panel-outlined registration-state">

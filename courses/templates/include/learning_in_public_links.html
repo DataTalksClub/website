@@ -78,11 +78,7 @@
         full width of the field column.
       {% endcomment %}
       <div>
-        <button
-          type="button"
-          id="add-learning-public-link"
-          class="cta cta-compact cta-secondary"
-        >Add link</button>
+        {% include "core/_button.html" with tag="button" type="button" id="add-learning-public-link" label="Add link" variant="secondary" compact=True %}
       </div>
     {% endif %}
   </div>

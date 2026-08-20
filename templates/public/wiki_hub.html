@@ -193,9 +193,7 @@
                   </h3>
                   <p class="topic-summary">{{ record.summary }}</p>
                 </div>
-                <a class="cta cta-compact cta-secondary topic-action" href="{{ record.public_path }}">
-                  Read topic
-                </a>
+                {% include "core/_button.html" with href=record.public_path label="Read topic" variant="secondary" compact=True classes="topic-action" %}
               </article>
             {% empty %}
               <p class="topic-empty">No Wiki pages are available yet.</p>

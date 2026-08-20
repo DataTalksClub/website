@@ -71,14 +71,10 @@ class MissingPageTests(TestCase):
         self.assertRegex(self.body, HEADING)
         self.assertEqual(self.body.count("<h1"), 1)
         self.assertIn("We couldn't find that page.", self.body)
-        self.assertIn(
-            f'<a class="cta cta-primary" href="{reverse("home")}">Return home</a>',
-            self.body,
-        )
-        self.assertIn(
-            f'<a class="cta cta-secondary" href="{reverse("wiki-home")}">Browse the Wiki</a>',
-            self.body,
-        )
+        self.assertIn(f'href="{reverse("home")}"', self.body)
+        self.assertIn(">Return home</a>", self.body)
+        self.assertIn(f'href="{reverse("wiki-home")}"', self.body)
+        self.assertIn(">Browse the Wiki</a>", self.body)
 
     def test_a_miss_is_not_a_destination_and_claims_no_canonical(self) -> None:
         self.assertNotIn('rel="canonical"', self.body)

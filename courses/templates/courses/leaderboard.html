@@ -279,9 +279,17 @@
               {% if current_student_enrollment.display_on_leaderboard %}
                 <div class="leaderboard-you-actions">
                   {% if current_student_page_number %}
-                    <a class="cta cta-compact cta-secondary" href="?page={{ current_student_page_number }}#record-{{ current_student_enrollment.id }}">Jump to my record</a>
+                    {% with page_number=current_student_page_number|stringformat:"s" record_id=current_student_enrollment.id|stringformat:"s" %}
+                      {% with record_url="?page="|add:page_number|add:"#record-"|add:record_id %}
+                        {% include "core/_button.html" with href=record_url label="Jump to my record" variant="secondary" compact=True %}
+                      {% endwith %}
+                    {% endwith %}
                   {% else %}
-                    <a class="cta cta-compact cta-secondary" href="#record-{{ current_student_enrollment.id }}">Jump to my record</a>
+                    {% with record_id=current_student_enrollment.id|stringformat:"s" %}
+                      {% with record_url="#record-"|add:record_id %}
+                        {% include "core/_button.html" with href=record_url label="Jump to my record" variant="secondary" compact=True %}
+                      {% endwith %}
+                    {% endwith %}
                   {% endif %}
                 </div>
               {% endif %}
@@ -354,11 +362,11 @@
               {% endcomment %}
               <nav class="leaderboard-pagination" aria-label="Leaderboard pagination">
                 {% if page_obj.has_previous %}
-                  <a
-                    class="cta cta-compact cta-secondary"
-                    href="?page={{ page_obj.previous_page_number }}"
-                    aria-label="Previous page"
-                  >← Previous</a>
+                  {% with page_number=page_obj.previous_page_number|stringformat:"s" %}
+                    {% with previous_page_url="?page="|add:page_number %}
+                      {% include "core/_button.html" with href=previous_page_url label="← Previous" variant="secondary" compact=True aria_label="Previous page" %}
+                    {% endwith %}
+                  {% endwith %}
                 {% endif %}
                 <div class="leaderboard-pages">
                   {% for page_number in page_range %}
@@ -372,11 +380,11 @@
                   {% endfor %}
                 </div>
                 {% if page_obj.has_next %}
-                  <a
-                    class="cta cta-compact cta-secondary"
-                    href="?page={{ page_obj.next_page_number }}"
-                    aria-label="Next page"
-                  >Next →</a>
+                  {% with page_number=page_obj.next_page_number|stringformat:"s" %}
+                    {% with next_page_url="?page="|add:page_number %}
+                      {% include "core/_button.html" with href=next_page_url label="Next →" variant="secondary" compact=True aria_label="Next page" %}
+                    {% endwith %}
+                  {% endwith %}
                 {% endif %}
               </nav>
             {% endif %}

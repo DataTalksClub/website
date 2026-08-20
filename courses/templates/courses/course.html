@@ -392,49 +392,28 @@
           {% endcomment %}
           <div class="course-actions">
             {% if registration_campaign and not has_enrollment and not has_registration %}
-              <a
-                class="cta cta-compact cta-primary"
-                href="{% url 'registration_campaign' registration_campaign.slug %}"
-              >
-                Register for the cohort
-              </a>
+              {% url 'registration_campaign' registration_campaign.slug as registration_campaign_url %}
+              {% include "core/_button.html" with href=registration_campaign_url label="Register for the cohort" variant="primary" compact=True %}
             {% elif course.registration_url and not has_enrollment %}
-              <a class="cta cta-compact cta-primary" href="{{ course.registration_url }}">Register</a>
+              {% include "core/_button.html" with href=course.registration_url label="Register" variant="primary" compact=True %}
             {% endif %}
             {% if course.github_repo_url %}
-              <a
-                class="cta cta-compact cta-secondary"
-                href="{{ course.github_repo_url }}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Course materials on GitHub
-              </a>
+              {% include "core/_button.html" with href=course.github_repo_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
             {% endif %}
             {% if course.first_homework_scored %}
-              <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard' course.slug %}">
-                Course leaderboard
-              </a>
+              {% url 'leaderboard' course.slug as course_leaderboard_url %}
+              {% include "core/_button.html" with href=course_leaderboard_url label="Course leaderboard" variant="secondary" compact=True %}
             {% endif %}
             {% if course.first_homework_scored %}
-              <a class="cta cta-compact cta-secondary" href="{% url 'dashboard' course.slug %}">
-                Course dashboard
-              </a>
+              {% url 'dashboard' course.slug as course_dashboard_url %}
+              {% include "core/_button.html" with href=course_dashboard_url label="Course dashboard" variant="secondary" compact=True %}
             {% endif %}
             {% if is_authenticated and has_enrollment %}
-              <a class="cta cta-compact cta-secondary" href="{% url 'enrollment' course.slug %}">
-                Edit course profile
-              </a>
+              {% url 'enrollment' course.slug as enrollment_url %}
+              {% include "core/_button.html" with href=enrollment_url label="Edit course profile" variant="secondary" compact=True %}
             {% endif %}
             {% if is_authenticated and certificate_url %}
-              <a
-                class="cta cta-compact cta-secondary"
-                href="{{ certificate_url }}"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Download Certificate
-              </a>
+              {% include "core/_button.html" with href=certificate_url label="Download Certificate" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
             {% endif %}
           </div>
           {% if can_access_course_studio %}
@@ -635,15 +614,14 @@
                 <div class="panel panel-lavender panel-outlined course-register-panel">
                   <h3>Register for {{ course.title }}</h3>
                   <p>Free, no card. Registration takes a minute and opens the cohort Slack channel.</p>
-                  <a class="cta cta-compact cta-primary" href="{% url 'registration_campaign' registration_campaign.slug %}">
-                    Register for the cohort
-                  </a>
+                  {% url 'registration_campaign' registration_campaign.slug as registration_campaign_url %}
+                  {% include "core/_button.html" with href=registration_campaign_url label="Register for the cohort" variant="primary" compact=True %}
                 </div>
               {% elif course.registration_url and not has_enrollment %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">
                   <h3>Register for {{ course.title }}</h3>
                   <p>Registration for this course is handled on its own page.</p>
-                  <a class="cta cta-compact cta-primary" href="{{ course.registration_url }}">Register</a>
+                  {% include "core/_button.html" with href=course.registration_url label="Register" variant="primary" compact=True %}
                 </div>
               {% elif has_registration and not has_enrollment %}
                 <div class="panel panel-lavender panel-outlined course-register-panel">
