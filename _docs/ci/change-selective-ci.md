@@ -30,7 +30,8 @@ closures are:
 | `review_import` | `accounts courses review_import` |
 | `studio` | `accounts core studio` |
 
-The selector derives non-application full-run guards from the same owner metadata. `shared.*`
+After migration, render, and root-configuration guards run, the selector derives non-application
+full-run guards from the same owner metadata. `shared.*`
 owners and owners carrying authentication/security/privacy risk use `shared_application`; surface
 owners and test-infrastructure, dependency, or deployment risks use
 `configuration_or_dependency`; documentation and compatibility-contract owners use
@@ -69,6 +70,126 @@ graph nodes; an unmapped render impact fails closed to every critical route/stat
 changes use the core browser profile. A large value-only content change is verified with exhaustive
 deterministic artifacts binding record counts, stable identities and order, canonical URL order,
 uniqueness, metadata completeness, and file digests; it does not get a probabilistic sample.
+
+## Classifier reason glossary
+
+The linked [`ci.classifier`](../../ci/classifier.py) and
+[`ci.selection`](../../ci/selection.py) code emits the following `reason` values for push and
+manual selection.
+
+A full-run reason fails closed. Correct or complete the input or policy, then rerun without
+overriding the profile. The scheduled coverage path is separate, and its
+[four-hour full-regression backstop](../../.github/workflows/scheduled-full-regression.yml) is the
+safety net.
+
+| Reason | Cause | Remedy |
+| --- | --- | --- |
+| `single_application` | Every changed path maps to exactly one root in the graph-derived `APPLICATION_TEST_LABELS`, and no full-run guard applies. | Keep that application's reviewed closure complete. Focused Django tests are selected with the profile-appropriate browser checks. |
+| `manual_dispatch` | A `workflow_dispatch` run has no trusted push base and is deliberately full. | Use a push for ordinary change selection; keep manual runs full. |
+| `head_invalid` | The event is neither `push` nor `workflow_dispatch`, or the release SHA is malformed or zero. | Supply the exact 40-character release commit and a supported event; do not guess a head. |
+| `head_mismatch` | The release SHA, push `after`, and `github.sha` do not agree. | Reconcile the immutable release identity and rerun against that exact SHA. |
+| `base_zero` | The push has no parent, such as the first commit on a branch. | No narrowing is safe; use the full run. |
+| `base_invalid` | The supplied base is not a lowercase full SHA. | Use the event's exact base SHA or let the classifier fail closed. |
+| `head_unavailable` | The release commit is not an exact commit in the checkout. | Fetch or otherwise make the release commit available before classifying. |
+| `base_unavailable` | The base commit is unavailable, or Git cannot evaluate the ancestry query. | Fetch the complete base and history; do not classify a partial checkout. |
+| `non_ancestor_base` | The base is not an ancestor of the release commit. | Use the correct push base; a guessed or unrelated base requires full verification. |
+| `diff_failed` | The canonical Git diff command failed. | Repair the repository/object state and rerun the canonical diff; do not substitute a filename list. |
+| `diff_empty` | The canonical range contains no records. | Treat it as full and investigate the event/range if a change was expected. |
+| `unsupported_status` | The name-status stream contains a change kind outside the supported ordinary/add/modify/delete/rename/copy parser rule. | Review the change and extend the parser rule before narrowing it. |
+| `diff_unparseable` | The NUL-delimited name-status stream is malformed. | Recreate the canonical full-history diff and fix the producer or checkout; keep the full fallback. |
+| `unsupported_file_mode` | A changed path has a non-ordinary mode, or tree-mode inspection failed. | Resolve the special-file/symlink/mode issue and review it as full coverage. |
+| `unknown_path` | After the other guards pass, a path has invalid repository-path syntax or no unique graph owner/application mapping. | Add reviewed ownership metadata and closure for a real new app; otherwise correct the path or retain the full fallback. Never add an unreviewed test label to make the change focused. |
+| `cross_application` | After higher-priority guards pass, the change spans more than one mapped application root. | Run the full suite; split the change only when that is a truthful product boundary. |
+| `migration_changed` | Any changed path contains a `migrations` segment; this is the highest-priority path guard. | Run fresh migration and full Django verification; migration changes are never focused. |
+| `template_changed` | No migration guard applies and a changed path contains a `templates` segment. This takes precedence over static, HTML-suffix, and owner/risk guards, including for `_docs/templates/...` and `templates/...`. | Run the full browser profile and independent desktop/mobile screenshots. |
+| `static_changed` | No migration or `templates` guard applies and a changed path contains a `static` segment. This takes precedence over HTML-suffix and owner/risk guards. | Run the full browser profile and inspect render-impact evidence. |
+| `html_changed` | No migration, `templates`, or `static` guard applies and a path has a `.htm`, `.html`, `.jinja`, `.jinja2`, `.tmpl`, or `.tpl` suffix. This includes `_docs/*.html`, which selects `html_changed` before documentation ownership. | Run the full browser profile and inspect the affected render surface. |
+| `shared_application` | No earlier path guard applies and an impacted graph owner is `shared.*` or carries the `auth_security_privacy` risk flag. | Keep shared-runtime and authentication/security/privacy owners on the full guard; update the graph, selector, and tests together if the boundary changes. |
+| `configuration_or_dependency` | No earlier path guard applies and a root-level path matches the graph's configuration rules, or the impacted graph includes a surface owner or a `test_infrastructure`, `dependency_toolchain`, or `deployment_runtime` risk flag after the shared and documentation branches. | Run the full control-plane and regression contracts; update the graph, selector precedence, and contract tests when the boundary changes. |
+| `documentation_or_contract` | No earlier migration, render, root-configuration, or shared guard applies and the impacted graph includes `surface.documentation` or a `compatibility_contract` risk flag. Thus cadmin and compatibility paths use this reason, but `_docs/*.html` and `_docs/templates/...` use their earlier render reasons. | Run the documentation/compatibility checks and retain the full classifier fallback; do not narrow a policy change. |
+
+The reason string is recorded in the selection artifact and Actions summary. If an artifact and the
+current graph disagree, evidence/reuse validation rejects it and requires fresh verification. The
+[plan and evidence envelope](#plan-and-evidence-envelope) explains the rule. The
+[`ci/evidence.py` implementation](../../ci/evidence.py) enforces it.
+
+## Adding a new application
+
+Add an application in a single reviewed graph change. Use the graph as the canonical map for app
+ownership and verification closure. An unmapped or ambiguous path must remain `unknown_path`/`full`
+until all checks below pass.
+
+1. Declare ownership metadata. In [`ci/ownership.json`](../../ci/ownership.json), add an
+   `app.<name>` owner node for the application prefix and a `django.<name>` verification leaf for
+   its test label. The owner node must provide the exact `prefixes`, `exact`, `downstream`,
+   `components`, `environment_dimensions`, `validity_class`, `risk_flags`, and `render_flags`
+   fields. The verification leaf must provide `test_labels` and remain a virtual leaf with empty
+   `prefixes`, `exact`, and `downstream`. Use an existing allowed component, environment, validity,
+   risk, and render value. Change [`ci/ownership.schema.json`](../../ci/ownership.schema.json) and
+   [`ci/ownership.py`](../../ci/ownership.py) only when the metadata schema changes, with a
+   reviewed schema/policy-version update.
+
+2. Prove and record the closure. Set `downstream` to include the new app's own
+   `django.<name>` node and every verification node whose application imports it. Check the
+   AST-based reverse-import check in
+   [`tests_ci/test_ownership.py`](../../tests_ci/test_ownership.py), resolve ambiguous dynamic
+   imports with an explicit edge, and update the exact closure vectors in
+   [`ci/tests/test_selection.py`](../../ci/tests/test_selection.py). A closure inferred only from
+   filenames or from the nearest app is incomplete.
+
+3. Review selection labels and precedence. `APPLICATION_TEST_LABELS` in
+   [`ci/selection.py`](../../ci/selection.py) is generated from the ownership graph and must
+   classify an ordinary mapped app as `single_application`. `_force_full_reason()` combines
+   graph impact from [`ci/ownership.py`](../../ci/ownership.py) with the fixed precedence for
+   migrations, render paths, root configuration, shared owners, documentation/compatibility, and
+   other surface/risk owners. Review those files and the selection tests when the new app needs a
+   new guard. Update `FULL_REASONS`, the classifier/selection tests, and this glossary
+   together. An unowned path must still produce `unknown_path` and `full`.
+
+4. Review the profile contract. In [`ci/verification.py`](../../ci/verification.py), verify
+   that the graph metadata yields the intended `single_application`/focused Django profile,
+   `core` browser profile for backend-only changes, or `full` browser plus screenshot profile for
+   render impact. The focused labels are executed by
+   [`ci/focused_tests.py`](../../ci/focused_tests.py). Put risk in `ci/ownership.json`
+   (`risk_flags`/`render_flags`) rather than weakening `_profile`, `_risk_reason`, or
+   `_component_requirement`. Add impacted route/state nodes to that file's `screenshot_contract`
+   when a new public surface needs critical coverage.
+
+5. Bind the CI contract. Check the component commands, relevant input patterns, environment
+   dimensions, and validity class in [`ci/ownership.json`](../../ci/ownership.json). Then verify
+   the always-run policy in [`ci/quality_contract.py`](../../ci/quality_contract.py), the aggregate
+   gate in [`ci/gate.py`](../../ci/gate.py), the maintained targets in [`Makefile`](../../Makefile),
+   and the job configuration in
+   [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). A normal app addition doesn't
+   need a workflow or Makefile edit. If a command or contract changes, update its owning tests
+   (for example `ci/tests/test_workflows.py` and `ci/tests/test_gate.py`) in the same issue.
+
+6. Run the focused graph and CI checks. From the candidate worktree, run these commands:
+
+   ```bash
+   uv run --frozen pytest ci/tests/test_selection.py tests_ci/test_ownership.py -q
+   make test-ci
+   make verification-plan
+   ```
+
+   Then run the profile-appropriate fresh commands: `make test-ci-focused` for the selected
+   closure, `make test` for full Django, `make test-playwright-core` for backend-only browser
+   impact, or `make test-playwright` for render impact. Use `make verification-quality` and
+   `make verification-full` when the graph, policy, shared infrastructure, or new app boundary
+   warrants the broader contract.
+
+7. Record evidence and keep the backstop. Validate the plan with
+   the following commands:
+
+   ```text
+   make verification-evidence-check VERIFY_PLAN=.tmp/verification/verification-plan.json
+   make verification-report-check VERIFY_PLAN=.tmp/verification/verification-plan.json
+   ```
+
+   The evidence/reuse contract permits reuse only when its evidence is exact and validated.
+   Missing, stale, mismatched, or untrusted evidence causes a rerun. Confirm that the scheduled
+   [`scheduled-full-regression.yml`](../../.github/workflows/scheduled-full-regression.yml)
+   remains the four-hour full-regression backstop, not a reason to omit required fresh evidence.
 
 ## Plan and evidence envelope
 
