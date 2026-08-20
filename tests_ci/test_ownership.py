@@ -130,8 +130,17 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "studio",
         ),
         "review_import": ("accounts", "courses", "review_import"),
-        "studio": ("accounts", "core", "studio"),
+        "studio": ("accounts", "core", "events", "studio"),
     }
+
+
+def test_event_qna_studio_reverse_closure_is_explicit() -> None:
+    graph = load_graph()
+    studio = next(node for node in graph["nodes"] if node["id"] == "app.studio")
+    assert "django.events" in studio["downstream"]
+
+    reverse, _ = _reverse_imports(graph)
+    assert "events" in reverse["studio"]
 
 
 def test_top_level_reverse_import_closures_are_complete_and_deterministic() -> None:

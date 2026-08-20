@@ -288,6 +288,7 @@ AUTHORED_TEMPLATE_ROOTS = {
     "templates/404.html": "public",
     "templates/core": "public",
     "templates/public": "public",
+    "templates/events": "public",
     "templates/review": "public-review",
     "templates/studio": "studio",
     "templates/registration": "account",

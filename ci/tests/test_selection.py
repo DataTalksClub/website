@@ -227,7 +227,9 @@ def test_json_and_summary_are_deterministic_and_do_not_include_filenames(tmp_pat
     assert json.loads(first.read_text(encoding="utf-8")) == selection
 
 
-def test_focused_runner_uses_one_process_and_only_validated_labels(tmp_path: Path) -> None:
+def test_focused_runner_uses_parallel_noninteractive_command_and_only_validated_labels(
+    tmp_path: Path,
+) -> None:
     selection = classify_records(
         (ChangeRecord("M", ("content/a.py",)),), event="push", base=BASE, head=HEAD
     )
@@ -242,6 +244,8 @@ def test_focused_runner_uses_one_process_and_only_validated_labels(tmp_path: Pat
             focused_tests.sys.executable,
             "manage.py",
             "test",
+            "--parallel",
+            "--noinput",
             "accounts",
             "content.tests",
             "content_sync",

@@ -1,0 +1,48 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>Q&amp;A · {{ event.title }}</title>
+    <link rel="stylesheet" href="{% static 'events/qna/qna.css' %}">
+  </head>
+  <body class="qna-page">
+    <main id="main-content" class="qna-shell" data-qna-mode="participant">
+      <p class="qna-kicker"><a href="/events/{{ event.public_id }}/{{ event.slug }}">{{ event.title }}</a></p>
+      <h1>Event Q&amp;A</h1>
+      <p id="qna-banner" class="qna-banner" role="status">{{ session.state|capfirst }}{% if session.state != 'open' %}: questions are closed{% endif %}</p>
+      <section class="qna-card" aria-labelledby="ask-heading">
+        <h2 id="ask-heading">Ask a question</h2>
+        <form id="qna-question-form">
+          <label for="qna-text">Question</label>
+          <textarea id="qna-text" name="text" maxlength="315" required rows="4"></textarea>
+          {% if session.allow_names %}
+            <label for="qna-name">Name{% if session.require_names %} (required){% else %} (optional){% endif %}</label>
+            <input id="qna-name" name="author_name" maxlength="60"{% if session.require_names %} required{% endif %}>
+          {% endif %}
+          <button type="submit" class="qna-button">Submit question</button>
+          <p id="qna-form-error" class="qna-error" role="alert"></p>
+        </form>
+      </section>
+      <section class="qna-card" aria-labelledby="questions-heading">
+        <div class="qna-section-head">
+          <h2 id="questions-heading">Questions</h2>
+          <label>Sort
+            <select id="qna-sort" name="sort">
+              <option value="popular">Popular</option>
+              <option value="recent">Recent</option>
+            </select>
+          </label>
+        </div>
+        <p id="qna-counts" class="qna-muted" aria-live="polite"></p>
+        <ol id="qna-list" class="qna-list"></ol>
+        <p id="qna-empty" class="qna-muted">No questions yet.</p>
+      </section>
+    </main>
+    {{ qna_config|json_script:"qna-config" }}
+    <script src="{% static 'events/qna/qna.js' %}"></script>
+    <script src="{% static 'events/qna/room.js' %}"></script>
+  </body>
+</html>

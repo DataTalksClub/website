@@ -119,7 +119,7 @@ def admin_capability(
                         else:
                             key_hash = hash_management_idempotency_key(
                                 identity.principal.id,
-                                credential_idempotency_operation(capability.key),
+                                capability.key,
                                 raw_key,
                             )
                     except (AttributeError, TypeError, ValueError):

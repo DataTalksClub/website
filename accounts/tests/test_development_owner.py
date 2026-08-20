@@ -68,6 +68,8 @@ class DevelopmentOwnerBootstrapTests(TestCase):
                 ("management_auth", "manage_api_credentials"),
                 ("events", "historical_registration_import_manage"),
                 ("events", "historical_registration_mapping_manage"),
+                ("events", "view_event_qna"),
+                ("events", "manage_event_qna"),
                 ("courses", "registration_count_baseline_manage"),
                 ("core", "read_operational_settings"),
                 ("core", "change_operational_settings"),

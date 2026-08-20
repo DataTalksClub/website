@@ -25,6 +25,17 @@ from courses.services.registration_counts import (
 from events.identity import EventIdentityNotFound
 from events.importers import ProtectedSourceError
 from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
+from events.qna.errors import QnaError
+from events.qna.services import (
+    admin_event_qna,
+    create_cohost,
+    retry_event_qna_provision,
+    revoke_cohost,
+    serialize_question,
+    serialize_session,
+    update_question,
+    update_session,
+)
 from events.services import (
     HistoricalRegistrationConflict,
     HistoricalRegistrationInvalid,
@@ -33,7 +44,10 @@ from events.services import (
 )
 from management_auth.idempotency import (
     ManagementIdempotencyConflict,
+    OneTimeCommandResult,
     SecretUnavailableOnReplay,
+    execute_one_time_idempotent,
+    hash_management_idempotency_key,
 )
 from management_auth.models import APICredential, APIPrincipal
 from management_auth.policies import require_high_risk_policy
@@ -156,6 +170,47 @@ def _identity_error(error: Exception) -> APIError:
     if isinstance(error, (TypeError, ValueError)):
         return APIError(400, "invalid_request", "The Event identity request is invalid.")
     return APIError(500, "internal_error", "The Event identity request failed safely.")
+
+
+def _qna_error(error: Exception) -> APIError:
+    if isinstance(error, APIError):
+        return error
+    if isinstance(error, SecretUnavailableOnReplay):
+        return APIError(
+            409,
+            "secret_unavailable_on_replay",
+            "The one-time co-host passcode is unavailable; create a new grant.",
+            safe_result=error.safe_result,
+        )
+    if isinstance(
+        error,
+        (IdempotencyConflict, IdempotencyInProgress, ManagementIdempotencyConflict),
+    ):
+        return APIError(409, "idempotency_conflict", "The idempotency request conflicts.")
+    if isinstance(error, RevisionConflict):
+        return APIError(409, "revision_conflict", "The Q&A session revision changed.")
+    if isinstance(error, QnaError):
+        return APIError(error.status, error.code, error.message)
+    if isinstance(error, (TypeError, ValueError)):
+        return APIError(400, "invalid_request", "The Q&A request is invalid.")
+    return APIError(500, "internal_error", "The Q&A request failed safely.")
+
+
+def _qna_audit_context(request: HttpRequest) -> AuditWriteContext:
+    identity = request.api_identity  # type: ignore[attr-defined]
+    key = request.headers.get("Idempotency-Key", "")
+    return AuditWriteContext(
+        actor_id=identity.principal.user_id,
+        api_principal_id=identity.principal.id,
+        actor_ref=f"api_principal:{identity.principal.id}",
+        idempotency_key_hash=hash_management_idempotency_key(
+            identity.principal.id,
+            request.management_capability.key,  # type: ignore[attr-defined]
+            key,
+        )
+        if key
+        else "",
+    )
 
 
 def _audit_identity_access(request: HttpRequest, *, event_id: uuid.UUID | None = None) -> None:
@@ -915,6 +970,207 @@ def event_identity_detail(request: HttpRequest, event_id: str) -> JsonResponse:
         return JsonResponse(result)
     except Exception as error:
         raise _identity_error(error) from error
+
+
+@admin_capability("events.qna.read")
+def event_qna_read(request: HttpRequest, event_id: str) -> JsonResponse:
+    try:
+        result = admin_event_qna(uuid.UUID(str(event_id)))
+        response = JsonResponse(result)
+        response["ETag"] = f'"rev-{result["revision"]}"'
+        response["Cache-Control"] = "private, no-store"
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except Exception as error:
+        raise _qna_error(error) from error
+
+
+@admin_capability("events.qna.manage")
+def event_qna_manage(request: HttpRequest, event_id: str) -> JsonResponse:
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset(),
+        optional=frozenset({"settings", "expires_at", "retention_days", "state"}),
+    )
+    capability = request.management_capability  # type: ignore[attr-defined]
+    key = _idempotency_key(request)
+    expected_revision = require_if_match(request)
+    try:
+        result = execute_idempotent(
+            scope=capability.key,
+            key=key,
+            request={"event_id": str(event_id), "expected_revision": expected_revision, **payload},
+            command=lambda: _qna_update_result(request, event_id, payload, expected_revision),
+        )
+        response = JsonResponse({**result.value, "replayed": result.replayed})
+        response["ETag"] = f'"rev-{result.value["revision"]}"'
+        response["Cache-Control"] = "private, no-store"
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except Exception as error:
+        raise _qna_error(error) from error
+
+
+def _qna_update_result(
+    request: HttpRequest, event_id: str, payload: dict, expected_revision: int
+) -> dict:
+    session = update_session(
+        uuid.UUID(str(event_id)),
+        payload,
+        expected_revision=expected_revision,
+        audit_context=_qna_audit_context(request),
+    )
+    return serialize_session(session, moderator=True)
+
+
+@admin_capability("events.qna.moderate")
+def event_qna_moderate(request: HttpRequest, event_id: str, question_id: str) -> JsonResponse:
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset(),
+        optional=frozenset({"text", "status", "pinned"}),
+    )
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        key = _idempotency_key(request)
+        result = execute_idempotent(
+            scope=capability.key,
+            key=key,
+            request={"event_id": str(event_id), "question_id": question_id, **payload},
+            command=lambda: _qna_moderate_result(request, event_id, question_id, payload),
+        )
+        response = JsonResponse({**result.value, "replayed": result.replayed})
+        response["Cache-Control"] = "private, no-store"
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except Exception as error:
+        raise _qna_error(error) from error
+
+
+def _qna_moderate_result(
+    request: HttpRequest, event_id: str, question_id: str, payload: dict
+) -> dict:
+    question = update_question(
+        uuid.UUID(str(event_id)),
+        question_id,
+        payload,
+        moderator=True,
+        audit_context=_qna_audit_context(request),
+    )
+    return serialize_question(question)
+
+
+@admin_capability("events.qna.provision.retry")
+def event_qna_retry(request: HttpRequest, event_id: str) -> JsonResponse:
+    payload = parse_json_object(request)
+    _enforce_fields(request, payload, required=frozenset({"confirmed"}))
+    if payload.get("confirmed") is not True:
+        raise APIError(400, "confirmation_required", "Explicit confirmation is required.")
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        key = _idempotency_key(request)
+        result = execute_idempotent(
+            scope=capability.key,
+            key=key,
+            request={"event_id": str(event_id), "confirmed": True},
+            command=lambda: _qna_retry_result(request, event_id),
+        )
+        response = JsonResponse({**result.value, "replayed": result.replayed})
+        response["Cache-Control"] = "private, no-store"
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except Exception as error:
+        raise _qna_error(error) from error
+
+
+def _qna_retry_result(request: HttpRequest, event_id: str) -> dict:
+    result = retry_event_qna_provision(
+        uuid.UUID(str(event_id)),
+        audit_context=_qna_audit_context(request),
+    )
+    return {
+        "event_id": event_id,
+        "session_id": str(result.session.id),
+        "job_id": str(result.job.id),
+        "status": result.job.status,
+        "created": result.session_created or result.job_created,
+    }
+
+
+@admin_capability("events.qna.cohost.create")
+def event_qna_cohost_create(request: HttpRequest, event_id: str) -> JsonResponse:
+    payload = parse_json_object(request)
+    _enforce_fields(
+        request,
+        payload,
+        required=frozenset(),
+        optional=frozenset({"name", "passcode"}),
+    )
+    identity = request.api_identity  # type: ignore[attr-defined]
+    key = _idempotency_key(request)
+    request_data = {"event_id": str(event_id), **payload}
+
+    def command() -> OneTimeCommandResult:
+        result = create_cohost(
+            uuid.UUID(str(event_id)),
+            name=payload.get("name"),
+            passcode=payload.get("passcode"),
+            actor_ref=f"api_principal:{identity.principal.id}",
+            audit_context=_qna_audit_context(request),
+        )
+        safe_result = {field: value for field, value in result.items() if field != "passcode"}
+        return OneTimeCommandResult(response=result, safe_result=safe_result)
+
+    try:
+        result = execute_one_time_idempotent(
+            principal=identity.principal,
+            operation="events.qna.cohost.create",
+            key=key,
+            request=request_data,
+            command=command,
+        )
+        response = JsonResponse(result.response, status=201)
+        response["Cache-Control"] = "private, no-store"
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except Exception as error:
+        raise _qna_error(error) from error
+
+
+@admin_capability("events.qna.cohost.revoke")
+def event_qna_cohost_revoke(request: HttpRequest, event_id: str, invite_id: str) -> JsonResponse:
+    payload = parse_json_object(request)
+    _enforce_fields(request, payload, required=frozenset({"confirmed"}))
+    if payload.get("confirmed") is not True:
+        raise APIError(400, "confirmation_required", "Explicit confirmation is required.")
+    capability = request.management_capability  # type: ignore[attr-defined]
+    try:
+        key = _idempotency_key(request)
+        result = execute_idempotent(
+            scope=capability.key,
+            key=key,
+            request={"event_id": str(event_id), "invite_id": invite_id, "confirmed": True},
+            command=lambda: _qna_revoke_result(request, event_id, invite_id),
+        )
+        response = JsonResponse({**result.value, "replayed": result.replayed})
+        response["Cache-Control"] = "private, no-store"
+        response["X-Robots-Tag"] = "noindex, nofollow"
+        return response
+    except Exception as error:
+        raise _qna_error(error) from error
+
+
+def _qna_revoke_result(request: HttpRequest, event_id: str, invite_id: str) -> dict:
+    revoke_cohost(
+        uuid.UUID(str(event_id)),
+        invite_id,
+        audit_context=_qna_audit_context(request),
+    )
+    return {"revoked": True}
 
 
 @admin_capability("courses.registration_count_baseline.manage")

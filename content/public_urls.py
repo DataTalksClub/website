@@ -1,5 +1,7 @@
 from django.urls import path, re_path
 
+from events.qna import views as qna_views
+
 from . import legal_views, public_views
 
 urlpatterns = [
@@ -101,6 +103,49 @@ urlpatterns = [
         r"^events/(?P<legacy_path>[^/]+)/$",
         public_views.event_legacy_redirect,
         name="public-event-legacy-trailing-slash",
+    ),
+    # Event-linked Q&A routes must precede the generic event detail route.  The
+    # public numeric ID and current title slug remain the only Event lookup
+    # inputs; the slug is cosmetic and stale spellings redirect on HTML only.
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/$",
+        qna_views.public_qna,
+        name="public-event-qna",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/api/questions/$",
+        qna_views.qna_questions,
+        name="public-event-qna-questions",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/api/questions/(?P<question_id>[-A-Za-z0-9_]+)/$",
+        qna_views.qna_question,
+        name="public-event-qna-question",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/api/questions/(?P<question_id>[-A-Za-z0-9_]+)/vote/$",
+        qna_views.qna_vote,
+        name="public-event-qna-vote",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/cohost/(?P<name>[a-zA-Z0-9-]+)/$",
+        qna_views.qna_cohost_gate,
+        name="public-event-qna-cohost",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/host/$",
+        qna_views.qna_host,
+        name="public-event-qna-host",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/present/$",
+        qna_views.qna_present,
+        name="public-event-qna-present",
+    ),
+    re_path(
+        r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)/qna/qr\.(?P<kind>svg|png)$",
+        qna_views.qna_qr,
+        name="public-event-qna-qr",
     ),
     re_path(
         r"^events/(?P<event_id>[1-9][0-9]*)/(?P<slug>[-a-zA-Z0-9_]+)$",

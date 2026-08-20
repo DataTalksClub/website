@@ -12,7 +12,14 @@ def run(selection_path: str) -> None:
     if selection["profile"] != "focused":
         raise ValueError("the focused runner requires profile=focused")
     subprocess.run(
-        [sys.executable, "manage.py", "test", *selection["test_labels"]],
+        [
+            sys.executable,
+            "manage.py",
+            "test",
+            "--parallel",
+            "--noinput",
+            *selection["test_labels"],
+        ],
         check=True,
     )
 

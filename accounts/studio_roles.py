@@ -23,6 +23,8 @@ SITE_NAVIGATION_WRITE = "core.change_site_navigation"
 SPONSORS_READ = "core.read_sponsors"
 SPONSORS_WRITE = "core.change_sponsors"
 SPONSORS_EXPORT = "core.export_sponsors"
+EVENT_QNA_VIEW = "events.view_event_qna"
+EVENT_QNA_MANAGE = "events.manage_event_qna"
 
 _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
     {
@@ -33,6 +35,8 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 MANAGE_API_CREDENTIALS,
                 HISTORICAL_REGISTRATION_IMPORT_MANAGE,
                 HISTORICAL_REGISTRATION_MAPPING_MANAGE,
+                EVENT_QNA_VIEW,
+                EVENT_QNA_MANAGE,
                 COURSE_REGISTRATION_COUNT_BASELINE_MANAGE,
                 SITE_SETTINGS_READ,
                 SITE_SETTINGS_WRITE,
@@ -55,14 +59,14 @@ _ROLE_PERMISSIONS: Mapping[str, frozenset[str]] = MappingProxyType(
                 SPONSORS_EXPORT,
             }
         ),
-        "course_operator": frozenset(
-            {STUDIO_ACCESS, COURSE_REGISTRATION_COUNT_BASELINE_MANAGE}
-        ),
+        "course_operator": frozenset({STUDIO_ACCESS, COURSE_REGISTRATION_COUNT_BASELINE_MANAGE}),
         "event_operator": frozenset(
             {
                 STUDIO_ACCESS,
                 HISTORICAL_REGISTRATION_IMPORT_MANAGE,
                 HISTORICAL_REGISTRATION_MAPPING_MANAGE,
+                EVENT_QNA_VIEW,
+                EVENT_QNA_MANAGE,
             }
         ),
         "email_operator": frozenset({STUDIO_ACCESS}),

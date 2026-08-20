@@ -230,6 +230,13 @@
                       <span class="sr-only"> (opens in a new tab)</span>
                     </a>
                   {% endfor %}
+                  {% if qna_url %}
+                    <a class="cta cta-compact cta-secondary" href="{{ qna_url }}">Event Q&amp;A</a>
+                  {% endif %}
+                </div>
+              {% elif qna_url %}
+                <div class="event-links" role="group" aria-label="Event links">
+                  <a class="cta cta-compact cta-secondary" href="{{ qna_url }}">Event Q&amp;A</a>
                 </div>
               {% endif %}
             </header>

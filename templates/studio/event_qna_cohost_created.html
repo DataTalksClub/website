@@ -1,0 +1,13 @@
+{% extends "studio/base.html" %}
+{% block title %}Co-host grant created · Studio · {{ brand_name }}{% endblock %}
+{% block page_head %}<div class="admin-head"><p class="mono-label mono-label-indigo">Studio · Event Q&amp;A</p><h1>Co-host grant created</h1></div>{% endblock %}
+{% block content %}
+  <section class="admin-section" aria-labelledby="cohost-created-heading">
+    <h2 id="cohost-created-heading">Deliver these separately</h2>
+    <p>Share the link and passcode through separate channels. The passcode will not be shown again.</p>
+    <dl class="admin-facts">
+      <div><dt>Link</dt><dd><code class="mono-code">{{ invite.join_url }}</code></dd></div>
+      <div><dt>Passcode</dt><dd><code class="mono-code">{{ invite.passcode }}</code></dd></div>
+    </dl>
+  </section>
+{% endblock %}
