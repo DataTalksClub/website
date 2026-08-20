@@ -3,11 +3,18 @@ from enum import Enum
 from django.db import models
 from django.core.validators import URLValidator
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from .cohort import Cohort, Enrollment
 from .stat_display import build_stat_fields, homework_stat_sections
 from courses.validators.custom_url_validators import validate_url_200
+from .curriculum_import import (
+    SOURCE_STABLE_ID_PATTERN,
+    SourceProvenanceModel,
+    source_provenance_constraint,
+    source_stable_id_validator,
+)
 
 User = get_user_model()
 
@@ -29,7 +36,7 @@ def _build_homework_state_choices():
 HOMEWORK_STATE_CHOICES = _build_homework_state_choices()
 
 
-class Homework(models.Model):
+class Homework(SourceProvenanceModel):
     slug = models.SlugField(blank=False)
 
     course = models.ForeignKey(Cohort, on_delete=models.CASCADE)
@@ -73,6 +80,14 @@ class Homework(models.Model):
 
     class Meta:
         unique_together = ("course", "slug")
+        constraints = [
+            source_provenance_constraint(name="courses_homework_source_complete"),
+            models.UniqueConstraint(
+                fields=("course", "source_content_id"),
+                condition=models.Q(source_content_id__isnull=False),
+                name="courses_homework_source_content_uq",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.course.title} - {self.title}"
@@ -96,7 +111,7 @@ class AnswerTypes(Enum):
 QUESTION_ANSWER_DELIMITER = "\n"
 
 
-class Question(models.Model):
+class Question(SourceProvenanceModel):
     homework = models.ForeignKey(Homework, on_delete=models.CASCADE)
     text = models.TextField()
 
@@ -123,8 +138,22 @@ class Question(models.Model):
 
     possible_answers = models.TextField(blank=True, null=True)
     correct_answer = models.TextField(blank=True, null=True)
+    source_question_id = models.SlugField(  # noqa: DJ001 -- null identifies DB-managed rows.
+        max_length=128,
+        null=True,
+        blank=True,
+        validators=[source_stable_id_validator],
+    )
+    answer_envelope = models.JSONField(null=True, blank=True)
+
+    SOURCE_IDENTITY_FIELDS = ("source_content_id", "source_question_id")
 
     scores_for_correct_answer = models.IntegerField(default=1)
+
+    def clean(self):
+        super().clean()
+        if self.answer_envelope is not None and not isinstance(self.answer_envelope, dict):
+            raise ValidationError({"answer_envelope": "Answer envelope must be an object."})
 
     def get_possible_answers(self):
         if not self.possible_answers:
@@ -184,6 +213,31 @@ class Question(models.Model):
 
     def __str__(self):
         return f"{self.homework.course.title} / {self.homework.title} - {self.text}"
+
+    class Meta:
+        constraints = [
+            source_provenance_constraint(
+                name="courses_question_source_complete",
+                identity_fields=("source_content_id", "source_question_id"),
+            ),
+            models.UniqueConstraint(
+                fields=("homework", "source_content_id"),
+                condition=models.Q(source_content_id__isnull=False),
+                name="courses_question_source_content_uq",
+            ),
+            models.UniqueConstraint(
+                fields=("homework", "source_question_id"),
+                condition=models.Q(source_question_id__isnull=False),
+                name="courses_question_source_stable_uq",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(source_question_id__isnull=True)
+                    | models.Q(source_question_id__regex=SOURCE_STABLE_ID_PATTERN)
+                ),
+                name="courses_question_source_stable_ck",
+            ),
+        ]
 
 
 class Submission(models.Model):

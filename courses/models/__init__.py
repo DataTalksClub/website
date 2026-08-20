@@ -1,4 +1,4 @@
-from . import cohort, project, homework, curriculum, wrapped  # noqa: F401
+from . import cohort, curriculum, curriculum_import, homework, project, wrapped  # noqa: F401
 
 from django.contrib.auth import get_user_model
 
@@ -44,6 +44,7 @@ from .curriculum import (
     Module,
     Unit,
 )
+from .curriculum_import import CourseCurriculumImportRun
 from .registration_counts import (
     CourseRegistrationCountRevision,
     CourseRegistrationCountSlot,
@@ -60,6 +61,7 @@ __all__ = (
     "CurriculumFlowItem",
     "CurriculumFormat",
     "CourseRegistration",
+    "CourseCurriculumImportRun",
     "CourseRegistrationCountRevision",
     "CourseRegistrationCountSlot",
     "CourseRegistrationCountSourceRun",

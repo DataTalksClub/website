@@ -2,8 +2,10 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
 
+from .curriculum_import import SourceProvenanceModel, source_provenance_constraint
 
-class Module(models.Model):
+
+class Module(SourceProvenanceModel):
     """An ordered module in a module-format cohort."""
 
     cohort = models.ForeignKey(
@@ -54,13 +56,19 @@ class Module(models.Model):
                 fields=("cohort", "slug"),
                 name="courses_module_cohort_slug_unique",
             ),
+            source_provenance_constraint(name="courses_module_source_complete"),
+            models.UniqueConstraint(
+                fields=("cohort", "source_content_id"),
+                condition=Q(source_content_id__isnull=False),
+                name="courses_module_source_content_uq",
+            ),
         ]
 
     def __str__(self):
         return self.title
 
 
-class Unit(models.Model):
+class Unit(SourceProvenanceModel):
     """Display-only unit metadata for a module flow."""
 
     module = models.ForeignKey(
@@ -91,6 +99,12 @@ class Unit(models.Model):
             models.UniqueConstraint(
                 fields=("module", "slug"),
                 name="courses_unit_module_slug_unique",
+            ),
+            source_provenance_constraint(name="courses_unit_source_complete"),
+            models.UniqueConstraint(
+                fields=("module", "source_content_id"),
+                condition=Q(source_content_id__isnull=False),
+                name="courses_unit_source_content_uq",
             ),
         ]
 

@@ -10,6 +10,13 @@ from accounts.models import CustomUser
 
 from courses.random_names import generate_random_name
 
+from .curriculum_import import (
+    SOURCE_STABLE_ID_PATTERN,
+    SourceProvenanceModel,
+    source_provenance_constraint,
+    source_stable_id_validator,
+)
+
 User = CustomUser
 
 
@@ -18,7 +25,7 @@ class CurriculumFormat(models.TextChoices):
     MODULES = "modules", "Modules"
 
 
-class Course(models.Model):
+class Course(SourceProvenanceModel):
     """Reusable course family shared by one or more dated cohorts."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -47,15 +54,46 @@ class Course(models.Model):
         help_text="The hashtag associated with the course family.",
     )
     visible = models.BooleanField(default=True)
+    source_stable_id = models.CharField(  # noqa: DJ001 -- null identifies DB-managed rows.
+        max_length=128,
+        null=True,
+        blank=True,
+        validators=[source_stable_id_validator],
+    )
+
+    SOURCE_IDENTITY_FIELDS = ("source_content_id", "source_stable_id")
 
     def __str__(self):
         return self.title
 
     class Meta:
         db_table = "courses_course_family"
+        constraints = [
+            source_provenance_constraint(
+                name="courses_course_source_complete",
+                identity_fields=("source_content_id", "source_stable_id"),
+            ),
+            models.UniqueConstraint(
+                fields=("source_content_id",),
+                condition=Q(source_content_id__isnull=False),
+                name="courses_course_source_content_uq",
+            ),
+            models.UniqueConstraint(
+                fields=("source_stable_id",),
+                condition=Q(source_stable_id__isnull=False),
+                name="courses_course_source_stable_uq",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(source_stable_id__isnull=True)
+                    | Q(source_stable_id__regex=SOURCE_STABLE_ID_PATTERN)
+                ),
+                name="courses_course_source_stable_ck",
+            ),
+        ]
 
 
-class Cohort(models.Model):
+class Cohort(SourceProvenanceModel):
     """One dated delivery of a reusable :class:`Course` family."""
 
     CurriculumFormat = CurriculumFormat
@@ -214,6 +252,12 @@ class Cohort(models.Model):
             models.CheckConstraint(
                 condition=Q(curriculum_format__in=CurriculumFormat.values),
                 name="courses_cohort_curriculum_format_valid",
+            ),
+            source_provenance_constraint(name="courses_cohort_source_complete"),
+            models.UniqueConstraint(
+                fields=("course", "source_content_id"),
+                condition=Q(source_content_id__isnull=False),
+                name="courses_cohort_source_content_uq",
             ),
         ]
 
