@@ -52,7 +52,7 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream entrance-hero" aria-labelledby="signup-heading">
-        <div class="shell shell-reading">
+        <div class="shell entrance-shell">
           <p class="mono-label mono-label-indigo">Account</p>
           <h1 id="signup-heading">Create your account</h1>
           <p class="entrance-lede">
@@ -66,11 +66,10 @@
         </div>
       </section>
       <section class="band band-lavender" aria-labelledby="signup-ways-heading">
-        <div class="shell shell-reading">
+        <div class="shell entrance-shell">
           <div class="band-head">
             <div>
               <h2 id="signup-ways-heading">Choose how you sign up</h2>
-              <p>Every route below creates the same account.</p>
             </div>
           </div>
           {% get_providers as socialaccount_providers %}
@@ -86,7 +85,7 @@
             </div>
             {% if not SOCIALACCOUNT_ONLY %}
               <p class="entrance-or">
-                <span>or</span>
+                <span>or sign up with email</span>
               </p>
             {% endif %}
           {% endif %}
@@ -136,6 +135,12 @@
                 <div class="entrance-actions">
                   <button class="cta cta-primary" type="submit">Sign up</button>
                 </div>
+                <p class="entrance-legal">
+                  By creating an account, you agree to the
+                  <a href="{% url 'terms' %}">Terms of Service</a>
+                  and acknowledge the
+                  <a href="{% url 'privacy' %}">Privacy Policy</a>.
+                </p>
               </form>
             </div>
           {% endif %}

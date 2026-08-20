@@ -85,9 +85,12 @@ class SignupPageTests(TestCase):
 
     def test_signup_renders_the_rebuilt_template(self) -> None:
         response = self.client.get("/accounts/signup/")
+        body = response.content.decode()
 
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "account/signup.html")
+        self.assertIn("Choose how you sign up", body)
+        self.assertNotIn("Every route below creates the same account.", body)
 
     def test_every_field_has_a_real_label_and_a_stated_required_mark(self) -> None:
         body = self.client.get("/accounts/signup/").content.decode()
@@ -126,6 +129,14 @@ class SignupPageTests(TestCase):
 
         self.assertIn('<input type="hidden" name="next" value="/courses/">', body)
         self.assertIn("/accounts/login/?next=%2Fcourses%2F", body)
+
+    def test_the_signup_form_keeps_the_legal_reassurance_links(self) -> None:
+        body = self.client.get("/accounts/signup/").content.decode()
+
+        self.assertIn('href="/terms"', body)
+        self.assertIn('href="/privacy"', body)
+        self.assertIn("Terms of Service", body)
+        self.assertIn("Privacy Policy", body)
 
     def test_an_invalid_submission_announces_what_to_fix_next_to_each_field(self) -> None:
         response = self.client.post(

@@ -19,6 +19,10 @@
 {% endcomment %}
 /* The hero holds one heading and one sentence, so its title sits a step under
    the index-page h1 rather than at hero size. */
+.entrance-shell {
+  max-width: 30rem;
+}
+
 .entrance-hero h1 {
   font-size: clamp(1.7rem, 3.4vw, 2.5rem);
   letter-spacing: -0.025em;
@@ -37,21 +41,21 @@
   margin-top: 0.75rem;
 }
 
-/* The card a decision sits in.  `.card` sets the body of a card at 0.9rem,
-   which is a size for a summary and not for a form a reader types into. */
+/* The decision panel follows the sign-in card's shared `.card` type scale and
+   spacing, so the two account forms read as one entrance flow. */
 .entrance-panel {
-  font-size: 1rem;
+  font-size: 0.9rem;
   gap: 1rem;
-  padding: 1.35rem 1.5rem;
+  padding: 1.35rem;
 }
 
 .entrance-panel h2 {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
 }
 
 .entrance-form {
   display: grid;
-  gap: 1.1rem;
+  gap: 1rem;
 }
 
 /* The allauth signup, reset-request and set-password forms render plain
@@ -85,6 +89,13 @@
 .entrance-fineprint {
   color: var(--body-text);
   font-size: 0.85rem;
+}
+
+.entrance-legal {
+  color: var(--body-text);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  margin-top: 1rem;
 }
 
 .entrance-actions {

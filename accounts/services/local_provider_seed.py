@@ -127,7 +127,7 @@ def _current_site() -> Site:
 
 
 def _seed_provider(provider: str, name: str, site: Site) -> SeededProvider:
-    app, created = SocialApp.objects.update_or_create(
+    app, created = SocialApp.objects.get_or_create(
         provider=provider,
         defaults={
             "name": name,
