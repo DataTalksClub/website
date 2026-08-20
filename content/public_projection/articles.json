@@ -971,7 +971,7 @@
       },
       {
         "kind": "paragraph",
-        "markdown": "Tools change every month, but the way we work changes much more slowly. In this module, you take a vague product idea through specification and context, implement it, and then run independent QA on the result. You can read this module as an article: [AI-Native Development: Specifications, Loop Engineering, and Graph Engineering](https://alexeyondata.substack.com/p/ai-native-development-specifications).",
+        "markdown": "Tools change every month, but the way we work changes much more slowly. In this module, you take a vague product idea through specification and context, implement it, and then run independent QA on the result. You can read this module as an article: [AI-Native Development: Specifications, Loop Engineering, and Graph Engineering](https://aishippingblog.com/p/ai-native-development-specifications).",
         "text": "Tools change every month, but the way we work changes much more slowly. In this module, you take a vague product idea through specification and context, implement it, and then run independent QA on the result. You can read this module as an article: AI-Native Development: Specifications, Loop Engineering, and Graph Engineering."
       },
       {
@@ -1127,12 +1127,12 @@
       },
       {
         "kind": "paragraph",
-        "markdown": "This year we're running an experiment. Alexey publishes one standalone article per module on [his Substack](https://alexeyondata.substack.com/), next to the videos and the repository. You can read the course notes as an article series and follow along even before the cohort starts.",
+        "markdown": "This year we're running an experiment. Alexey publishes one standalone article per module on [his Substack](https://aishippingblog.com/), next to the videos and the repository. You can read the course notes as an article series and follow along even before the cohort starts.",
         "text": "This year we're running an experiment. Alexey publishes one standalone article per module on his Substack, next to the videos and the repository. You can read the course notes as an article series and follow along even before the cohort starts."
       },
       {
         "kind": "paragraph",
-        "markdown": "The first one is already out: [AI-Native Development: Specifications, Loop Engineering, and Graph Engineering](https://alexeyondata.substack.com/p/ai-native-development-specifications). It covers the Module 1 workflow end to end, from a vague idea to a specification, a groomed backlog, and code you can verify.",
+        "markdown": "The first one is already out: [AI-Native Development: Specifications, Loop Engineering, and Graph Engineering](https://aishippingblog.com/p/ai-native-development-specifications). It covers the Module 1 workflow end to end, from a vague idea to a specification, a groomed backlog, and code you can verify.",
         "text": "The first one is already out: AI-Native Development: Specifications, Loop Engineering, and Graph Engineering. It covers the Module 1 workflow end to end, from a vague idea to a specification, a groomed backlog, and code you can verify."
       },
       {
@@ -1141,7 +1141,7 @@
       },
       {
         "kind": "paragraph",
-        "markdown": "<div style=\"text-align: center; margin: 2em 0;\">\n    <div style=\"display: inline-block; background: #FF6719; padding: 0.5em 2em; border-radius: 8px; box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08); transition: all 0.15s ease;\">\n        <a href=\"https://alexeyondata.substack.com/\" target=\"_blank\" style=\"text-decoration: none; color: white; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5em;\">\n            <span>Subscribe to the Substack</span>\n            <span style=\"margin-left: 0.25em;\">→</span>\n        </a>\n    </div>\n</div>",
+        "markdown": "<div style=\"text-align: center; margin: 2em 0;\">\n    <div style=\"display: inline-block; background: #FF6719; padding: 0.5em 2em; border-radius: 8px; box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08); transition: all 0.15s ease;\">\n        <a href=\"https://aishippingblog.com/\" target=\"_blank\" style=\"text-decoration: none; color: white; font-size: 1.25rem; font-weight: 600; display: flex; align-items: center; gap: 0.5em;\">\n            <span>Subscribe to the Substack</span>\n            <span style=\"margin-left: 0.25em;\">→</span>\n        </a>\n    </div>\n</div>",
         "text": "Subscribe to the Substack →"
       },
       {
@@ -1168,7 +1168,7 @@
             "Workshop 1: AI-Native Developer Workflow",
             "July 22, 2026",
             "Using AI coding tools for planning, implementation, review, testing, and debugging without losing control of the code",
-            "<a href=\"https://www.youtube.com/watch?v=VUJxJGpaDEs\" target=\"_blank\">Recording</a> &middot; <a href=\"https://alexeyondata.substack.com/p/ai-native-development-specifications\" target=\"_blank\">Article</a> &middot; <a href=\"https://luma.com/lmkti8zj\" target=\"_blank\">Event</a>"
+            "<a href=\"https://www.youtube.com/watch?v=VUJxJGpaDEs\" target=\"_blank\">Recording</a> &middot; <a href=\"https://aishippingblog.com/p/ai-native-development-specifications\" target=\"_blank\">Article</a> &middot; <a href=\"https://luma.com/lmkti8zj\" target=\"_blank\">Event</a>"
           ],
           [
             "Workshop 2: Build and Ship an AI-Assisted Full-Stack App",
