@@ -104,7 +104,7 @@
   ],
   "large_content": {
     "identity_fields": ["id", "key", "path", "slug", "source_path", "record_key"],
-    "metadata_fields": ["description", "name", "title", "record_key"],
+    "metadata_fields": ["description", "heading_id", "name", "title", "record_key"],
     "patterns": ["content/**", "courses/**", "data/**", "_docs/compatibility/**"],
     "structured_extensions": [".csv", ".json", ".jsonl", ".yaml", ".yml"],
     "url_fields": ["href", "path", "url", "public_path", "final_path"]

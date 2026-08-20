@@ -90,7 +90,7 @@ This absence is not permission to add arbitrary unobserved paths or synthesize c
 URLs with the exact 2,965 anonymous production seeds: 2,937 URLs were observed in both captures,
 28 are production-only, and none are source-only. It was generated at
 `2026-08-08T05:55:00Z` with `dtc-legacy-manifest-crawler/3`; its SHA-256 digest is
-`94a6469530a290147e94f825eb981836e1358b9d0a72c7f50f0eda6d638e1d7f`.
+`9c6bb79eb8484aa2a0befaf6b2531e5ad05f2f5fe6bfe6ef711c66cdb6cdca32`.
 
 The production capture completed without capture errors. It recorded 2,976 HTTP responses and
 258,215,736 transferred bytes across the committed seed set. Final status counts are 2,951 `200`,
@@ -102,7 +102,7 @@ input digests are recorded in `source-production-differences.json`.
 affecting all 2,965 URLs: 17 added assets, 19 removed assets, three canonical changes, 4,805 field
 changes, 21 added fragments, 21 removed fragments, 28 added routes, and four removed routes. Its
 SHA-256 digest is
-`72b2a68694b17c091ba09e29f1e44e2c052cd6d244b7c750abde3f66ad0cd4ff`.
+`10fdac5be5662686da0fbae4b8ee0b1fe20007d8e6e03349fd95f31ea7ac1fe6`.
 Every manifest row is still `preserve` with `review_state=proposed_preserve`; the comparison did
 not automatically approve parity, a redirect, or a retirement.
 
