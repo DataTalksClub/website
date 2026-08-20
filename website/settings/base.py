@@ -97,6 +97,9 @@ CANONICAL_ORIGIN = os.getenv("CANONICAL_ORIGIN", "https://datatalks.club").rstri
 # Source-managed homework answer keys are injected by the runtime secret boundary.  An empty
 # value deliberately fails closed when encrypted curriculum is used without configuration.
 COURSE_HOMEWORK_ANSWER_KEYRING = os.getenv("COURSE_HOMEWORK_ANSWER_KEYRING", "")
+# GitHub sends this secret in the webhook signature.  It is injected at runtime and is never
+# persisted in ContentSource or a durable job payload.
+COURSE_REPOSITORY_WEBHOOK_SECRET = os.getenv("COURSE_REPOSITORY_WEBHOOK_SECRET", "")
 
 INSTALLED_APPS = [
     "unfold",
