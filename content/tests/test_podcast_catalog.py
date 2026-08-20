@@ -229,11 +229,12 @@ class PodcastPageCompositionTests(SimpleTestCase):
         self.assertIn("Artwork unavailable.", missing)
         self.assertNotIn("<img", missing)
 
-        # Both frames — the linked one and the plain one — draw the same artwork.
+        # Episodes with a validated player use the embedded media frame; the
+        # artwork partial remains the fallback for records without one.
         source = (REPOSITORY_ROOT / "templates/public/podcast_detail.html").read_text(
             encoding="utf-8"
         )
-        self.assertEqual(source.count('{% include "public/_episode_artwork.html" %}'), 2)
+        self.assertEqual(source.count('{% include "public/_episode_artwork.html" %}'), 1)
 
     def test_publication_dates_are_read_and_never_guessed(self) -> None:
         self.assertEqual(published_display("2021-02-23"), "Feb 23, 2021")
@@ -662,7 +663,10 @@ class PodcastSeasonNavigationTests(TestCase):
             len(season.episodes),
         )
         self.assertEqual(
-            body.count('<p class="mono-label mono-label-indigo podcast-meta">'),
+            sum(
+                body.count(f"Season {episode['season']} · Episode {episode['episode']}")
+                for episode in season.episodes
+            ),
             len(season.episodes),
         )
         self.assertEqual(body.count('<span class="status-pill status-pill-mint">'), 0)
@@ -689,14 +693,17 @@ class PodcastSeasonNavigationTests(TestCase):
         )
         self.assertNotContains(response, '<span class="status-pill status-pill-mint">')
         self.assertContains(response, f"Season {episode['season']} · Episode {episode['episode']}")
-        self.assertContains(response, 'class="player-frame episode-player"')
+        self.assertContains(response, 'class="player-frame episode-player episode-video"')
         self.assertContains(response, f'href="{episode["links"]["youtube"]}"')
-        self.assertContains(response, f'src="{episode["image_path"]}"')
+        self.assertContains(
+            response,
+            f'content="https://datatalks.club{episode["image_path"]}"',
+        )
         for platform, label in (
             ("apple", "Apple Podcasts"),
             ("spotify", "Spotify"),
             ("youtube", "YouTube"),
-            ("anchor", "Anchor"),
+            ("spotify_for_creators", "Spotify for Creators"),
         ):
             self.assertContains(response, f'href="{episode["links"][platform]}"')
             self.assertContains(response, label)

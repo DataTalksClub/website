@@ -9,6 +9,7 @@ from django.conf import settings
 from django.test import SimpleTestCase
 
 from content.public_data import public_projection
+from content.podcast_routes import PODCAST_ROUTE_MIGRATION_PATH, PODCAST_ROUTE_MIGRATION_SLUG
 
 
 class EditorialRouteMigrationContractTests(SimpleTestCase):
@@ -65,9 +66,14 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertTrue(all(item["status_code"] == 301 for item in aliases.values()))
         self.assertTrue(all(item["query_policy"] == "preserve_raw" for item in aliases.values()))
         self.assertTrue(all(item["final_path"] not in aliases for item in aliases.values()))
+        non_html_final = PODCAST_ROUTE_MIGRATION_PATH
+        clean_alias = f"/podcast/{PODCAST_ROUTE_MIGRATION_SLUG}"
         for final_path, final in finals.items():
-            self.assertTrue(final_path.endswith(".html"))
-            clean_path = final_path.removesuffix(".html")
+            if final_path == non_html_final:
+                clean_path = clean_alias
+            else:
+                self.assertTrue(final_path.endswith(".html"))
+                clean_path = final_path.removesuffix(".html")
             self.assertEqual(
                 {
                     aliases[clean_path]["final_path"],
