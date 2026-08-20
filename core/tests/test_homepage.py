@@ -268,7 +268,10 @@ class MainHomepageRoutingTests(TestCase):
         )
 
         everything = self.client.get(reverse("course_list"))
-        self.assertNotContains(everything, "filter-pill")
+        # The shared design-system stylesheet still defines the primitive for
+        # other catalogues. Assert that the course index does not render any
+        # filter control, rather than rejecting the shared CSS definition.
+        self.assertNotContains(everything, 'class="filter-pill')
         self.assertContains(everything, "Active now — you can still join")
         self.assertContains(everything, "Open registration")
         self.assertContains(everything, "Synthetic registration course")
