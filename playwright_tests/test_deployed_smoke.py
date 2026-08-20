@@ -8,6 +8,16 @@ import pytest
 from playwright.sync_api import Page, expect
 
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitemap_index
+from courses.course_page_contract import (
+    COURSE_HOMEWORK_HEADING,
+    COURSE_HOMEWORK_HEADING_ID,
+    COURSE_PROJECTS_HEADING,
+    COURSE_PROJECTS_HEADING_ID,
+    REPRESENTATIVE_COURSE_PATH,
+    REPRESENTATIVE_COURSE_TITLE,
+    RETIRED_MODULE_ACCORDION_SELECTOR,
+    RETIRED_MODULES_HEADING,
+)
 from deploy.contracts import validate_image_digest, validate_source_sha, validate_version
 from deploy.smoke import DEVELOPMENT_ORIGIN, ROBOTS_VALUE
 from deploy.smoke import HOME_IDENTITY_MARKER as HOME_HEADING
@@ -15,8 +25,6 @@ from playwright_tests.course_catalog_contract import assert_copied_course_catalo
 
 pytestmark = [pytest.mark.core, pytest.mark.remote_readonly]
 
-REPRESENTATIVE_COURSE_PATH = "/courses/de-zoomcamp-2026"
-REPRESENTATIVE_COURSE_TITLE = "Data Engineering Zoomcamp 2026"
 REPRESENTATIVE_COURSE_ARCHIVE_YEAR = "2026"
 # Design 5a (issue #179) renamed the courses index's own section heads.
 COURSE_INDEX_ACTIVE_HEADING = "Active now — you can still join"
@@ -189,11 +197,22 @@ def test_deployed_public_and_studio_html_are_exact_and_read_only(
     expect(
         page.get_by_role("heading", name=REPRESENTATIVE_COURSE_TITLE, exact=True)
     ).to_be_visible()
-    # Design 5a (issue #179) replaced the separate Homework and Projects tables with one
-    # numbered module accordion, so the deployed contract is the modules band and a
-    # module that still names its homework.
-    expect(page.get_by_role("heading", name="The modules", exact=True)).to_be_visible()
-    expect(page.locator("details.module").first).to_be_visible()
+    # 846f367 ("Restore the course page's layout and give it the new styling") is
+    # the decision of record: one lavender assignments band with a Homework table
+    # and a Projects table whose deadlines and states are all visible at once,
+    # because the module accordion it retired "hid the assignment list behind a
+    # click on a page whose whole job is to show it"
+    # (courses/templates/courses/course.html).  The retired accordion surface is
+    # asserted absent, so reverting that decision fails this smoke instead of
+    # orphaning the expectation until some later deploy (issue #204).  The
+    # markers come from courses/course_page_contract.py, which
+    # courses/tests/test_course_release_contract.py holds the rendered page to.
+    expect(page.get_by_role("heading", name=COURSE_HOMEWORK_HEADING, exact=True)).to_be_visible()
+    expect(page.locator(f"#{COURSE_HOMEWORK_HEADING_ID}")).to_be_visible()
+    expect(page.get_by_role("heading", name=COURSE_PROJECTS_HEADING, exact=True)).to_be_visible()
+    expect(page.locator(f"#{COURSE_PROJECTS_HEADING_ID}")).to_be_visible()
+    expect(page.get_by_role("heading", name=RETIRED_MODULES_HEADING, exact=True)).to_have_count(0)
+    expect(page.locator(RETIRED_MODULE_ACCORDION_SELECTOR)).to_have_count(0)
     expect(page.locator('link[rel="canonical"]')).to_have_count(1)
     expect(page.locator('link[rel="canonical"]')).to_have_attribute(
         "href", f"https://datatalks.club{REPRESENTATIVE_COURSE_PATH}"
