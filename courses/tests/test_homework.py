@@ -1,3 +1,6 @@
+import re
+from pathlib import Path
+
 from django.urls import reverse
 
 from courses.tests.homework_view_base import (
@@ -6,6 +9,51 @@ from courses.tests.homework_view_base import (
 
 
 class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
+
+    def test_homework_page_uses_homework_title_as_heading_and_keeps_course_context(self):
+        response = self.get_homework_response()
+        body = response.content.decode()
+        breadcrumb = re.search(
+            r'<nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">'
+            r"(.*?)</nav>",
+            body,
+            re.DOTALL,
+        )
+
+        self.assertIsNotNone(breadcrumb)
+        assert breadcrumb is not None
+        self.assertContains(
+            response,
+            f'<h1 id="submission-heading">{self.homework.title}</h1>',
+        )
+        self.assertIn(self.course.title, breadcrumb.group(1))
+        self.assertNotIn(self.homework.title, breadcrumb.group(1))
+        self.assertNotIn("Homework submission", body)
+        self.assertIn('aria-labelledby="submission-heading"', body)
+
+    def test_homework_questions_use_distinct_callouts_and_shared_field_primitives(self):
+        response = self.get_homework_response()
+        template_path = (
+            Path(__file__).resolve().parents[1] / "templates/homework/homework.html"
+        )
+        template = template_path.read_text(encoding="utf-8")
+        extra_styles = template.split("{% block extra_styles %}", 1)[1].split(
+            "{% endblock %}", 1
+        )[0]
+        question_rule = re.search(r"\.question\s*\{(.*?)\}", extra_styles, re.DOTALL)
+
+        self.assertIsNotNone(question_rule)
+        assert question_rule is not None
+        self.assertIn("border: 2px dashed var(--line-soft)", question_rule.group(1))
+        self.assertNotIn("border: 2px solid", question_rule.group(1))
+        self.assertIn("border: 2px solid var(--line)", extra_styles)
+        self.assertContains(
+            response,
+            '<form method="post" class="needs-validation submission-form homework-form"',
+        )
+        self.assertContains(response, '<fieldset class="question">', count=6)
+        self.assertContains(response, 'aria-labelledby="question-label-')
+        self.assertContains(response, 'class="field-input form-control')
 
     def test_homework_detail_unauthenticated(self):
         response = self.get_homework_response()

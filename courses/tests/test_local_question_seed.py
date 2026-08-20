@@ -11,12 +11,30 @@ from django.urls import reverse
 from django.utils import timezone
 
 from core.bootstrap import RuntimeEnvironment
-from courses.models import AnswerTypes, Cohort, Homework, Question, QuestionTypes
+from courses.homework_answer_checks import is_answer_correct
+from courses.models import (
+    Answer,
+    AnswerTypes,
+    Cohort,
+    Homework,
+    Question,
+    QuestionTypes,
+    User,
+)
 from courses.services.local_question_seed import (
     DEFAULT_COHORT_SLUG,
     DEFAULT_HOMEWORK_SLUG,
+    HOMEWORK_SLUGS,
     LocalQuestionSeedError,
+    seed_all_local_questions,
     seed_local_questions,
+)
+
+HOMEWORK_TITLES = (
+    "Homework 1: Docker, SQL and Terraform",
+    "Homework 2: Workflow Orchestration",
+    "Homework 3: Data Warehousing",
+    "Homework 4: Analytics Engineering",
 )
 
 
@@ -27,19 +45,37 @@ class LocalQuestionSeedTests(TestCase):
             title="Data Engineering Zoomcamp 2026",
             description="Local course fixture",
         )
-        self.homework = Homework.objects.create(
-            course=self.cohort,
-            slug=DEFAULT_HOMEWORK_SLUG,
-            title="Homework 1: Docker, SQL and Terraform",
-            description="Local homework fixture",
-            due_date=timezone.now() + timezone.timedelta(days=7),
-        )
+        self.homeworks = {}
+        for homework_slug, title in zip(HOMEWORK_SLUGS, HOMEWORK_TITLES, strict=True):
+            self.homeworks[homework_slug] = Homework.objects.create(
+                course=self.cohort,
+                slug=homework_slug,
+                title=title,
+                description="Local homework fixture",
+                due_date=timezone.now() + timezone.timedelta(days=7),
+            )
+        self.homework = self.homeworks[DEFAULT_HOMEWORK_SLUG]
+
+    def assert_questions_are_scoreable(self, questions: list[Question]) -> None:
+        for question in questions:
+            with self.subTest(question=question.text):
+                self.assertGreater(question.scores_for_correct_answer, 0)
+                self.assertTrue(question.correct_answer)
+                self.assertTrue(
+                    is_answer_correct(
+                        question,
+                        Answer(
+                            question=question,
+                            answer_text=question.correct_answer,
+                        ),
+                    )
+                )
 
     def test_seed_creates_form_ready_question_types_and_answers(self) -> None:
         result = seed_local_questions()
 
-        self.assertEqual(result.question_count, 3)
-        self.assertEqual(result.questions_created, 3)
+        self.assertEqual(result.question_count, 5)
+        self.assertEqual(result.questions_created, 5)
         questions = list(Question.objects.filter(homework=self.homework).order_by("id"))
         self.assertEqual(
             [question.question_type for question in questions],
@@ -47,10 +83,13 @@ class LocalQuestionSeedTests(TestCase):
                 QuestionTypes.MULTIPLE_CHOICE.value,
                 QuestionTypes.CHECKBOXES.value,
                 QuestionTypes.FREE_FORM.value,
+                QuestionTypes.FREE_FORM.value,
+                QuestionTypes.FREE_FORM_LONG.value,
             ],
         )
+        self.assert_questions_are_scoreable(questions)
 
-        multiple_choice, checkboxes, free_form = questions
+        multiple_choice, checkboxes, free_form, integer, long_form = questions
         self.assertEqual(
             multiple_choice.get_possible_answers(),
             ["psql", "Terraform", "Docker Compose"],
@@ -69,6 +108,47 @@ class LocalQuestionSeedTests(TestCase):
         self.assertEqual(free_form.answer_type, AnswerTypes.EXACT_STRING.value)
         self.assertIsNone(free_form.possible_answers)
         self.assertEqual(free_form.correct_answer, "psql")
+        self.assertEqual(integer.answer_type, AnswerTypes.INTEGER.value)
+        self.assertEqual(long_form.answer_type, AnswerTypes.CONTAINS_STRING.value)
+
+    def test_seed_enriches_homeworks_one_to_four_with_scoreable_answers(self) -> None:
+        results = seed_all_local_questions()
+
+        self.assertEqual(
+            [result.homework_slug for result in results],
+            list(HOMEWORK_SLUGS),
+        )
+        self.assertEqual(sum(result.question_count for result in results), 17)
+        self.assertEqual(sum(result.questions_created for result in results), 17)
+        for homework_slug, expected_count in zip(HOMEWORK_SLUGS, (5, 4, 4, 4), strict=True):
+            questions = list(
+                Question.objects.filter(
+                    homework=self.homeworks[homework_slug],
+                ).order_by("id")
+            )
+            self.assertEqual(len(questions), expected_count)
+            self.assert_questions_are_scoreable(questions)
+
+        questions = list(Question.objects.all())
+        self.assertEqual(
+            {question.question_type for question in questions},
+            {
+                QuestionTypes.MULTIPLE_CHOICE.value,
+                QuestionTypes.CHECKBOXES.value,
+                QuestionTypes.FREE_FORM.value,
+                QuestionTypes.FREE_FORM_LONG.value,
+            },
+        )
+        self.assertTrue(
+            {question.answer_type for question in questions if question.answer_type}
+            >= {
+                AnswerTypes.EXACT_STRING.value,
+                AnswerTypes.INTEGER.value,
+                AnswerTypes.FLOAT.value,
+                AnswerTypes.CONTAINS_STRING.value,
+            }
+        )
+        self.assertIn(2, {question.scores_for_correct_answer for question in questions})
 
     def test_seed_is_idempotent(self) -> None:
         first = seed_local_questions()
@@ -76,12 +156,12 @@ class LocalQuestionSeedTests(TestCase):
 
         second = seed_local_questions()
 
-        self.assertEqual(Question.objects.filter(homework=self.homework).count(), 3)
+        self.assertEqual(Question.objects.filter(homework=self.homework).count(), 5)
         self.assertEqual(
             list(Question.objects.values_list("id", flat=True).order_by("id")),
             first_ids,
         )
-        self.assertEqual(first.questions_created, 3)
+        self.assertEqual(first.questions_created, 5)
         self.assertEqual(second.questions_created, 0)
 
     def test_seed_can_target_another_existing_homework(self) -> None:
@@ -105,7 +185,7 @@ class LocalQuestionSeedTests(TestCase):
         self.assertEqual(Question.objects.filter(homework=self.homework).count(), 0)
         self.assertEqual(Question.objects.filter(homework=other_homework).count(), 3)
 
-    def test_seeded_questions_render_in_the_existing_homework_form(self) -> None:
+    def test_seeded_questions_render_all_local_form_control_shapes(self) -> None:
         seed_local_questions()
 
         response = self.client.get(
@@ -122,7 +202,27 @@ class LocalQuestionSeedTests(TestCase):
         self.assertContains(response, 'type="radio"')
         self.assertContains(response, 'type="checkbox"')
         self.assertContains(response, 'type="text"')
-        self.assertContains(response, "Which tool runs SQL commands against a PostgreSQL database?")
+        self.assertContains(response, 'type="number"')
+        self.assertContains(response, "<textarea")
+        self.assertContains(
+            response,
+            "Which tool runs SQL commands against a PostgreSQL database?",
+        )
+
+        User.objects.create_user(
+            email="homework-seed@example.com",
+            username="homework-seed",
+            password="test-password",
+        )
+        self.assertTrue(
+            self.client.login(
+                username="homework-seed",
+                password="test-password",
+            )
+        )
+        authenticated_response = self.client.get(response.request["PATH_INFO"])
+        self.assertContains(authenticated_response, 'type="url"')
+        self.assertContains(authenticated_response, 'id="homework_url"')
 
 
 class LocalQuestionSeedRefusalTests(TestCase):
@@ -175,26 +275,44 @@ class SeedLocalQuestionsCommandTests(TestCase):
             title="Data Engineering Zoomcamp 2026",
             description="Local course fixture",
         )
-        Homework.objects.create(
-            course=cohort,
-            slug=DEFAULT_HOMEWORK_SLUG,
-            title="Homework 1: Docker, SQL and Terraform",
-            due_date=timezone.now() + timezone.timedelta(days=7),
-        )
+        for homework_slug, title in zip(HOMEWORK_SLUGS, HOMEWORK_TITLES, strict=True):
+            Homework.objects.create(
+                course=cohort,
+                slug=homework_slug,
+                title=title,
+                due_date=timezone.now() + timezone.timedelta(days=7),
+            )
 
-    def test_command_reports_what_it_wrote(self) -> None:
+    def test_command_reports_what_it_wrote_for_homeworks_one_to_four(self) -> None:
         stdout = StringIO()
 
         call_command("seed_local_questions", stdout=stdout)
 
         summary = json.loads(stdout.getvalue())
         self.assertTrue(summary["written"])
-        self.assertEqual(summary["questions"], 3)
-        self.assertEqual(summary["questions_created"], 3)
+        self.assertEqual(summary["questions"], 17)
+        self.assertEqual(summary["questions_created"], 17)
         self.assertEqual(summary["cohort_slug"], DEFAULT_COHORT_SLUG)
-        self.assertEqual(summary["homework_slug"], DEFAULT_HOMEWORK_SLUG)
+        self.assertEqual(summary["homeworks"], 4)
+        self.assertEqual(summary["homework_slugs"], list(HOMEWORK_SLUGS))
 
-    def test_check_validates_without_writing(self) -> None:
+    def test_explicit_homework_slug_keeps_single_homework_mode(self) -> None:
+        stdout = StringIO()
+
+        call_command(
+            "seed_local_questions",
+            "--homework-slug",
+            DEFAULT_HOMEWORK_SLUG,
+            stdout=stdout,
+        )
+
+        summary = json.loads(stdout.getvalue())
+        self.assertTrue(summary["written"])
+        self.assertEqual(summary["questions"], 5)
+        self.assertEqual(summary["homework_slug"], DEFAULT_HOMEWORK_SLUG)
+        self.assertEqual(Question.objects.count(), 5)
+
+    def test_check_validates_all_targets_without_writing(self) -> None:
         stdout = StringIO()
 
         call_command("seed_local_questions", "--check", stdout=stdout)
@@ -202,6 +320,8 @@ class SeedLocalQuestionsCommandTests(TestCase):
         summary = json.loads(stdout.getvalue())
         self.assertFalse(summary["written"])
         self.assertTrue(summary["checked"])
+        self.assertEqual(summary["questions"], 17)
+        self.assertEqual(summary["homeworks"], 4)
         self.assertEqual(Question.objects.count(), 0)
 
     @override_settings(RUNTIME_ENVIRONMENT=RuntimeEnvironment.PRODUCTION)

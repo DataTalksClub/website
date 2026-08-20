@@ -2,9 +2,10 @@
 {% load static custom_filters %}
 
 {% comment %}
-  Homework uses the shared submission document.  The title and course remain
-  in the breadcrumb/document metadata; the form below keeps the original
-  answer names, ids, disabled rules, CSRF handling, and JavaScript hooks.
+  Homework uses the shared submission document.  The course remains in the
+  breadcrumb/context while the homework title names the document; the form
+  below keeps the original answer names, ids, disabled rules, CSRF handling,
+  and JavaScript hooks.
 {% endcomment %}
 
 {% block title %}{{ homework.title }} — {{ course.title }} — DataTalks.Club{% endblock %}
@@ -20,16 +21,8 @@
   <meta name="twitter:title" content="{{ homework.title }} — {{ course.title }} — DataTalks.Club">
 {% endblock %}
 
-{% block hero_attributes %}aria-label="Homework submission"{% endblock %}
-
-{% block breadcrumbs %}
-  <li aria-current="page">
-    {{ homework.title }}
-  </li>
-{% endblock %}
-
 {% block hero_heading %}
-  <h1 id="submission-heading">Homework submission</h1>
+  <h1 id="submission-heading">{{ homework.title }}</h1>
 {% endblock %}
 
 {% block hero_lede %}
@@ -73,7 +66,11 @@
     {% endfor %}
     {% if not is_authenticated and accepting_submissions %}
       {% url 'login' as login_url %}
-      {% include "core/_callout.html" with tone="info" title="Log in to submit this homework" message="You can preview the questions, but submissions are saved only for logged-in students." button_url=login_url button_label="Log in to submit" button_variant="primary" %}
+      <div class="callout callout-info">
+        <strong>Log in to submit this homework</strong>
+        <p>You can preview the questions, but submissions are saved only for logged-in students.</p>
+        {% include "core/_button.html" with href=login_url label="Log in to submit" variant="primary" compact=True %}
+      </div>
     {% endif %}
     {% if accepting_submissions and deadline_passed %}
       {% include "core/_callout.html" with tone="info" title="The deadline has passed, but this homework is still open" message="You can still submit your answers below. Submissions are accepted until the homework is closed for scoring." %}
@@ -131,13 +128,20 @@
   }
 
   .question {
+    background: var(--card);
+    border: 2px dashed var(--line-soft);
+    border-radius: 0.75rem;
     display: grid;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    margin: 0;
+    min-inline-size: 0;
+    padding: 1rem;
   }
 
   .question-text {
     color: var(--ink);
     font-weight: 700;
+    padding: 0;
   }
 
   .question-note {
@@ -293,15 +297,15 @@
       </div>
       <div class="submission-fields homework-fields">
         {% for question, answer in question_answers %}
-          <div class="question">
-            <p class="question-text">
+          <fieldset class="question">
+            <legend class="question-text" id="question-label-{{ question.id }}">
               {{ forloop.counter }}. {{ question.text }}
               {% if question.scores_for_correct_answer != 0 %}
                 <span class="question-note">({{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }})</span>
               {% else %}
                 <span class="question-note">(not graded)</span>
               {% endif %}
-            </p>
+            </legend>
             {% if is_authenticated and answer.no_answer_submitted %}
               <p class="no-answer-indicator">No answer was submitted for this question</p>
             {% endif %}
@@ -315,10 +319,15 @@
                       type="radio"
                       name="answer_{{ question.id }}"
                       value="{{ option.index }}"
+                      aria-labelledby="question-label-{{ question.id }} radio-label-{{ question.id }}-{{ forloop.counter }}"
                       {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
                       {% if disabled %}disabled{% endif %}
                     />
-                    <label class="form-check-label" for="radio-{{ question.id }}-{{ forloop.counter }}">
+                    <label
+                      class="form-check-label"
+                      id="radio-label-{{ question.id }}-{{ forloop.counter }}"
+                      for="radio-{{ question.id }}-{{ forloop.counter }}"
+                    >
                       {{ option.value }}
                     </label>
                   </div>
@@ -334,10 +343,15 @@
                       type="checkbox"
                       name="answer_{{ question.id }}"
                       value="{{ option.index }}"
+                      aria-labelledby="question-label-{{ question.id }} checkbox-label-{{ question.id }}-{{ forloop.counter }}"
                       {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
                       {% if disabled %}disabled{% endif %}
                     />
-                    <label class="form-check-label" for="checkbox-{{ question.id }}-{{ forloop.counter }}">
+                    <label
+                      class="form-check-label"
+                      id="checkbox-label-{{ question.id }}-{{ forloop.counter }}"
+                      for="checkbox-{{ question.id }}-{{ forloop.counter }}"
+                    >
                       {{ option.value }}
                     </label>
                   </div>
@@ -345,17 +359,31 @@
               </div>
             {% elif question.question_type == 'FF' %}
               <input
-                class="form-control {{ answer.correctly_selected_class }}"
-                type="text"
+                class="field-input form-control {{ answer.correctly_selected_class }}"
+                {% if question.answer_type == 'INT' %}
+                  type="number"
+                  step="1"
+                  inputmode="numeric"
+                {% elif question.answer_type == 'FLT' %}
+                  type="number"
+                  step="any"
+                  inputmode="decimal"
+                {% else %}
+                  type="text"
+                {% endif %}
                 name="answer_{{ question.id }}"
+                id="answer_{{ question.id }}"
                 value="{{ answer.text|default:'' }}"
+                aria-labelledby="question-label-{{ question.id }}"
                 {% if disabled %}disabled{% endif %}
               />
             {% elif question.question_type == 'FL' %}
               <textarea
-                class="form-control {{ answer.correctly_selected_class }}"
+                class="field-input form-control {{ answer.correctly_selected_class }}"
                 name="answer_{{ question.id }}"
+                id="answer_{{ question.id }}"
                 rows="5"
+                aria-labelledby="question-label-{{ question.id }}"
                 {% if disabled %}disabled{% endif %}
               >{{ answer.text|default:'' }}</textarea>
             {% endif %}
@@ -364,7 +392,7 @@
             {% elif answer.correctly_selected_class == 'option-answer-incorrect' %}
               <p><span class="status-pill status-pill-wait">Incorrect</span></p>
             {% endif %}
-          </div>
+          </fieldset>
         {% empty %}
           {% include "core/_callout.html" with tone="info" classes="callout-quiet" message="No public answers are available for this homework yet." %}
         {% endfor %}
@@ -390,7 +418,7 @@
                 <p class="field-hint">Link to GitHub or other public code-hosting website.</p>
                 <input
                   type="url"
-                  class="form-control {% if 'homework_url' in error_fields %}is-invalid{% endif %}"
+                  class="field-input form-control {% if 'homework_url' in error_fields %}is-invalid{% endif %}"
                   id="homework_url"
                   name="homework_url"
                   value="{{ submission.homework_link|default:'' }}"
@@ -411,7 +439,7 @@
               <div class="field">
                 <label class="field-label" for="time_spent_lectures">Time spent on lectures (hours) (optional)</label>
                 <p class="field-hint">How much time (in hours) did you spend on watching lectures and reading?</p>
-                <input type="number" class="form-control" name="time_spent_lectures" id="time_spent_lectures" min="0" value="{{ submission.time_spent_lectures|default:'' }}" />
+                <input type="number" class="field-input form-control" name="time_spent_lectures" id="time_spent_lectures" min="0" value="{{ submission.time_spent_lectures|default:'' }}" />
               </div>
             {% endif %}
           {% endif %}
@@ -425,14 +453,14 @@
               <div class="field">
                 <label class="field-label" for="time_spent_homework">Time spent on homework (hours) (optional)</label>
                 <p class="field-hint">How much time (in hours) did you spend on homework?</p>
-                <input type="number" class="form-control" name="time_spent_homework" id="time_spent_homework" min="0" value="{{ submission.time_spent_homework|default:'' }}" />
+                <input type="number" class="field-input form-control" name="time_spent_homework" id="time_spent_homework" min="0" value="{{ submission.time_spent_homework|default:'' }}" />
               </div>
             {% endif %}
           {% endif %}
           {% if course.homework_problems_comments_field %}
             <div class="field">
               <label class="field-label" for="problems_comments">Problems or comments (optional)</label>
-              <textarea class="form-control" name="problems_comments" id="problems_comments" {% if disabled %}disabled{% endif %}>{{ submission.problems_comments|default:'' }}</textarea>
+              <textarea class="field-input form-control" name="problems_comments" id="problems_comments" {% if disabled %}disabled{% endif %}>{{ submission.problems_comments|default:'' }}</textarea>
             </div>
           {% endif %}
           {% if homework.faq_contribution_field %}
