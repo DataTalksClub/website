@@ -14,7 +14,7 @@ class Cohort(models.Model):
     title = models.CharField(max_length=200)
 
     description = models.TextField()
-    outcome = models.TextField(blank=True)
+    outcome = models.TextField(blank=True, default="", db_default="")
     start_date = models.DateField(
         blank=True,
         null=True,

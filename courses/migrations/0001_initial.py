@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('slug', models.SlugField(unique=True)),
                 ('title', models.CharField(max_length=200)),
                 ('description', models.TextField()),
-                ('outcome', models.TextField(blank=True)),
+                ('outcome', models.TextField(blank=True, db_default='', default='')),
                 ('start_date', models.DateField(blank=True, help_text='The public start date for the course.', null=True)),
                 ('end_date', models.DateField(blank=True, help_text='The public end date for the course.', null=True)),
                 ('registration_url', models.URLField(blank=True, help_text='Optional external registration page for the course.', validators=[django.core.validators.URLValidator()])),
