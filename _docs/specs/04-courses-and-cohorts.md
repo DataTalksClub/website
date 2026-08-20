@@ -90,7 +90,10 @@ New reusable family record:
 The evolved current `Course` edition:
 
 - UUID plus retained legacy numeric ID mapping;
-- course foreign key and globally unique cohort slug/label;
+- course foreign key and globally unique legacy cohort slug/label;
+- stable public `identifier` scoped to the parent Course; it is slug-like and may be
+  numeric (`2026`) or descriptive (`spring-2026`). The `year` field remains schedule/display
+  metadata and is not the route identity;
 - start/end, timezone, registration window, visibility, and lifecycle;
 - current scoring thresholds, completion settings, feature flags, links, and calendar namespace;
 - cohort teaching team and communication settings;
