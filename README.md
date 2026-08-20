@@ -41,6 +41,18 @@ registration URLs, scoring flags). It is a development tool: it refuses to run o
 local or test SQLite database. Generating production-like participants, submissions, and
 leaderboards remains `uv run python scripts/generate_production_like_leaderboard_data.py`.
 
+To exercise the DE Zoomcamp Project 1 submission and peer-review routes locally,
+run the separate synthetic scenario seed:
+
+```bash
+uv run python manage.py seed_local_project_review
+```
+
+It creates six realistic-but-synthetic submissions under the `example` namespace,
+assigns peer reviews with the existing assignment service, and moves Project 1 into
+peer review. It is repeatable, reports counts and state only, and refuses to overwrite
+non-synthetic submissions or run outside local/test SQLite.
+
 Local development and ordinary CI require no PostgreSQL installation or service. Tests always use isolated SQLite and ignore an ambient `DATABASE_URL`. Deployed development and production continue to use PostgreSQL/RDS through their fail-closed settings and deployment migration/readiness/smoke path.
 
 ## Common commands
