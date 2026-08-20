@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
+from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 from django.utils import timezone
 
@@ -239,3 +240,14 @@ class CurriculumModelTests(TestCase):
 
         self.assertEqual(list(module.units.all()), [second, first])
         self.assertEqual(module.homework, homework)
+
+    def test_assigned_criterion_cannot_be_deleted_silently(self):
+        cohort = self.make_cohort("criterion-history", curriculum_format=CurriculumFormat.LEGACY)
+        project = self.make_project(cohort, "project-a")
+        criterion = self.make_criteria(course=cohort)
+        self.save_assignment(project, criterion, 0)
+
+        with self.assertRaises(ProtectedError):
+            criterion.delete()
+
+        self.assertTrue(ReviewCriteria.objects.filter(pk=criterion.pk).exists())

@@ -245,7 +245,7 @@ class ProjectCriteriaAssignment(models.Model):
     )
     criteria = models.ForeignKey(
         ReviewCriteria,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name="project_assignments",
     )
     position = models.PositiveIntegerField()
@@ -397,7 +397,7 @@ class CriteriaResponse(models.Model):
         on_delete=models.CASCADE,
     )
     criteria = models.ForeignKey(
-        ReviewCriteria, on_delete=models.CASCADE
+        ReviewCriteria, on_delete=models.PROTECT
     )
     answer = models.CharField(max_length=255, blank=True, null=True)
 
@@ -438,7 +438,7 @@ class ProjectEvaluationScore(models.Model):
     )
 
     review_criteria = models.ForeignKey(
-        ReviewCriteria, on_delete=models.CASCADE
+        ReviewCriteria, on_delete=models.PROTECT
     )
 
     score = models.IntegerField()
