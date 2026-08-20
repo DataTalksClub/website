@@ -212,6 +212,39 @@
         column-gap: 1rem;
       }
 
+      /* --- module flow -------------------------------------------------- */
+
+      /* Module cohorts use the same row vocabulary as the legacy assignment
+         lists, with nested unit rows and the terminal homework kept visible. */
+      .course-flow {
+        --row-cols: minmax(0, 1fr);
+      }
+
+      .course-flow-module {
+        display: block;
+      }
+
+      .course-flow-module > div {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .course-flow-module h3 {
+        font-size: 1.2rem;
+      }
+
+      .course-flow-units .list-row {
+        padding-block: 0.65rem;
+      }
+
+      .course-flow-terminal {
+        margin-top: 0.15rem;
+      }
+
+      .course-flow-terminal .mono-label {
+        margin-bottom: 0.35rem;
+      }
+
       /* Column captions belong to the wide layout only: below 48rem the row
          list stacks and each cell reads on its own line. */
       .course-rows-head {
@@ -482,6 +515,144 @@
       {% endcomment %}
       <section class="band band-lavender">
         <div class="shell shell-reading">
+          {% if is_module_curriculum %}
+            <section aria-labelledby="curriculum-flow-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="curriculum-flow-heading">Course modules</h2>
+                </div>
+              </div>
+              {% if curriculum_flow %}
+                <ol class="row-list course-flow" role="list">
+                  {% for flow_item in curriculum_flow %}
+                    {% if flow_item.kind == "module" %}
+                      <li class="list-row course-flow-module">
+                        <div>
+                          {% if flow_item.module.link %}
+                            <h3>
+                              <a class="band-link" href="{{ flow_item.module.link }}">{{ flow_item.module.title }}</a>
+                            </h3>
+                          {% else %}
+                            <h3>{{ flow_item.module.title }}</h3>
+                          {% endif %}
+                          {% if flow_item.units %}
+                            <ol
+                              class="row-list course-flow-units"
+                              role="list"
+                              aria-label="{{ flow_item.module.title }} units"
+                            >
+                              {% for unit in flow_item.units %}
+                                <li class="list-row">
+                                  {% if unit.link %}
+                                    <a class="band-link" href="{{ unit.link }}">{{ unit.title }}</a>
+                                  {% else %}
+                                    <span>{{ unit.title }}</span>
+                                  {% endif %}
+                                </li>
+                              {% endfor %}
+                            </ol>
+                          {% endif %}
+                          <div class="course-flow-terminal">
+                            <p class="mono-label">Terminal homework</p>
+                            <div class="row-list course-rows">
+                              {% with hw=flow_item.homework %}
+                                <div class="list-row">
+                                  <div>
+                                    {% if hw.state == 'CL' %}
+                                      <span class="course-row-title">{{ hw.title }}</span>
+                                    {% else %}
+                                      <a
+                                        class="course-row-title band-link"
+                                        href="{% url 'homework' course.course.slug course.year hw.slug %}"
+                                      >{{ hw.title }}</a>
+                                    {% endif %}
+                                  </div>
+                                  <div class="course-row-when">
+                                    {{ hw.due_date|user_datetime:request }}
+                                    {% if hw.is_scored %}
+                                      <span class="course-row-note">Already scored</span>
+                                    {% else %}
+                                      <span
+                                        class="time-left"
+                                        data-deadline="{{ hw.due_date|date:"c" }}"
+                                        data-past-tone="muted"
+                                      ></span>
+                                    {% endif %}
+                                  </div>
+                                  <div class="course-row-state">
+                                    <span class="status-pill {{ hw.badge_pill }}">{{ hw.badge_state_name }}</span>
+                                  </div>
+                                </div>
+                              {% endwith %}
+                            </div>
+                          </div>
+                        </div>
+                      </li>
+                    {% elif flow_item.kind == "project" %}
+                      {% with project=flow_item.project %}
+                        <li class="list-row course-rows course-flow-project">
+                          <div>
+                            {% if project.state == 'CS' %}
+                              <a
+                                class="course-row-title band-link"
+                                href="{% url 'project' course_slug=course.course.slug cohort_year=course.year project_slug=project.slug %}"
+                              >{{ project.title }}</a>
+                            {% elif project.state == 'PR' %}
+                              <a
+                                class="course-row-title band-link"
+                                href="{% url 'projects_eval' course.course.slug course.year project.slug %}"
+                              >{{ project.title }}</a>
+                            {% elif project.state == 'CO' %}
+                              <a
+                                class="course-row-title band-link"
+                                href="{% url 'project_results' course.course.slug course.year project.slug %}"
+                              >{{ project.title }}</a>
+                            {% else %}
+                              <span class="course-row-title">{{ project.title }}</span>
+                            {% endif %}
+                          </div>
+                          <div class="course-row-when">
+                            {% if project.state == 'PR' and project.submitted %}
+                              {{ project.peer_review_due_date|user_datetime:request }}
+                              <span
+                                class="time-left"
+                                data-deadline="{{ project.peer_review_due_date|date:"c" }}"
+                                data-past-tone="muted"
+                              ></span>
+                            {% elif project.state == 'CO' %}
+                              {{ project.peer_review_due_date|user_datetime:request }}
+                              <span class="course-row-note">Completed</span>
+                            {% else %}
+                              {{ project.submission_due_date|user_datetime:request }}
+                              <span
+                                class="time-left"
+                                data-deadline="{{ project.submission_due_date|date:"c" }}"
+                                data-past-tone="muted"
+                              ></span>
+                            {% endif %}
+                          </div>
+                          <div class="course-row-state">
+                            <span class="status-pill {{ project.badge_pill }}">{{ project.badge_state_name }}</span>
+                          </div>
+                        </li>
+                      {% endwith %}
+                    {% endif %}
+                  {% endfor %}
+                </ol>
+                {% if has_completed_projects %}
+                  <p class="course-more">
+                    <a class="band-link" href="{% url 'list_all_project_submissions' course.course.slug course.year %}">
+                      See all submitted projects →
+                    </a>
+                  </p>
+                {% endif %}
+              {% else %}
+                <div class="panel panel-lavender course-empty" role="alert">
+                  <p>There is no module curriculum available for this course yet. Come back later.</p>
+                </div>
+              {% endif %}
+            </section>
+          {% else %}
           {% if homeworks %}
             <section aria-labelledby="homework-heading">
               <div class="band-head">
@@ -606,6 +777,7 @@
             <div class="panel panel-lavender panel-outlined course-empty" role="alert">
               <p>There are no homeworks or projects available for this course yet. Come back later.</p>
             </div>
+          {% endif %}
           {% endif %}
           <section aria-labelledby="next-heading">
             <h2 id="next-heading" class="sr-only">Registration and deadlines</h2>

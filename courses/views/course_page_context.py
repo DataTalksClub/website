@@ -6,6 +6,7 @@ from django.utils import timezone
 from courses.models.cohort import (
     Course,
     Cohort,
+    CurriculumFormat,
     CourseRegistration,
     Enrollment,
     RegistrationCampaign,
@@ -16,6 +17,7 @@ from courses.course_page_content import (
     submission_progress,
 )
 from courses.models.project import ProjectState
+from courses.services.curriculum_flow import build_curriculum_flow
 from courses.services.registration_counts import public_course_registration_count
 from courses.views.course_homepage import add_course_homepage_info
 from courses.views.course_homeworks import get_homeworks_for_course
@@ -155,6 +157,14 @@ def registered_learner_count(
 def course_page_context(data: CoursePageData) -> dict:
     has_completed_course_projects = has_completed_projects(data.projects)
     modules = course_modules(data.homeworks, data.projects)
+    is_module_curriculum = (
+        data.course.curriculum_format == CurriculumFormat.MODULES
+    )
+    curriculum_flow = build_curriculum_flow(
+        data.course,
+        data.homeworks,
+        data.projects,
+    )
     signup_count = registered_learner_count(data.registration_campaign)
     context = {
         "course": data.course,
@@ -164,6 +174,8 @@ def course_page_context(data: CoursePageData) -> dict:
         "homeworks": data.homeworks,
         "projects": data.projects,
         "course_modules": modules,
+        "curriculum_flow": curriculum_flow,
+        "is_module_curriculum": is_module_curriculum,
         "course_specs": course_specs(
             data.course,
             homework_count=len(data.homeworks),
