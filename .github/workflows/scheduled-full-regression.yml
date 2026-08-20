@@ -16,6 +16,8 @@ concurrency:
 jobs:
   selector:
     runs-on: ubuntu-latest
+    # The scheduled selector performs the same bounded planning work as push CI.
+    timeout-minutes: 10
     outputs:
       decision: ${{ steps.history.outputs.decision }}
       reason: ${{ steps.history.outputs.reason }}
@@ -83,6 +85,7 @@ jobs:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
@@ -178,6 +181,7 @@ jobs:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
     steps:
@@ -237,6 +241,9 @@ jobs:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector
     runs-on: ubuntu-latest
+    # Keep the scheduled full browser backstop subject to the same outer bound
+    # as the deployment workflow's Playwright job.
+    timeout-minutes: 45
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test

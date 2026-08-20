@@ -324,6 +324,9 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: resolve-release
     runs-on: ubuntu-latest
+    # Selection, history restoration, planning, and artifact upload normally finish
+    # in under a minute; keep the serialized release queue bounded if they wedge.
+    timeout-minutes: 10
     outputs:
       profile: ${{ steps.selection.outputs.profile }}
       reason: ${{ steps.selection.outputs.reason }}
@@ -454,6 +457,9 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
+    # The versioned quality contract normally completes in under two minutes;
+    # retain setup and evidence-recording headroom without an unbounded queue.
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: .tmp/release-source
@@ -565,6 +571,9 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
+    # Recent complete and focused runs fit well inside this budget, including
+    # database setup and terminal evidence recording.
+    timeout-minutes: 30
     env:
       DJANGO_SETTINGS_MODULE: website.settings.test
     defaults:

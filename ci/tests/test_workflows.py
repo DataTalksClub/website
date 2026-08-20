@@ -80,6 +80,31 @@ def test_normal_workflow_keeps_release_concurrency_and_exact_base_contract() -> 
     assert "--repository ../release-source" in script
 
 
+def test_issue_205_bounds_the_push_and_scheduled_long_running_jobs() -> None:
+    normal_jobs = workflow("ci.yml")["jobs"]
+    assert {
+        name: normal_jobs[name]["timeout-minutes"]
+        for name in ("classification", "quality", "django", "playwright", "screenshots")
+    } == {
+        "classification": "10",
+        "quality": "15",
+        "django": "30",
+        "playwright": "60",
+        "screenshots": "30",
+    }
+
+    scheduled_jobs = workflow("scheduled-full-regression.yml")["jobs"]
+    assert {
+        name: scheduled_jobs[name]["timeout-minutes"]
+        for name in ("selector", "quality", "django", "playwright")
+    } == {
+        "selector": "10",
+        "quality": "15",
+        "django": "30",
+        "playwright": "45",
+    }
+
+
 def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() -> None:
     jobs = workflow("ci.yml")["jobs"]
     assert not any("services" in job for job in jobs.values())

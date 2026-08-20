@@ -78,6 +78,19 @@ PYTEST_OUTCOME_RE = re.compile(
     r"(?P<count>[0-9]+) (?P<outcome>passed|failed|skipped|errors?|xfailed|xpassed)\b"
 )
 PYTEST_DURATION_RE = re.compile(r"\bin [0-9]+(?:\.[0-9]+)?s\b")
+PYTEST_TERMINAL_SUMMARY_RE = re.compile(
+    r"^\s*=*\s*(?:[0-9]+\s+(?:passed|failed|skipped|errors?|xfailed|xpassed|"
+    r"deselected|warnings?)(?:,\s*)?)+\s+in [0-9]+(?:\.[0-9]+)?s"
+    r"(?:\s+\([^)]*\))?\s*=*\s*$",
+    re.IGNORECASE,
+)
+PYTEST_INTERRUPTION_RE = re.compile(
+    r"(?im)^(?:[+!]{3,}.*\b(?:Timeout|KeyboardInterrupt)\b.*|"
+    r"\s*(?:Timeout|KeyboardInterrupt|Terminated|SIG(?:TERM|KILL))\b.*)$"
+)
+UNITTEST_STATUS_RE = re.compile(r"^(?:OK(?:\s+\(.*\))?|FAILED(?:\s+\(.*\))?)$", re.IGNORECASE)
+MAKE_DIRECTORY_RE = re.compile(r"^make(?:\[[0-9]+\])?: (?:Entering|Leaving) directory .+$")
+DJANGO_DATABASE_TEARDOWN_RE = re.compile(r"^Destroying test database for alias .+$")
 UNITTEST_RAN_RE = re.compile(r"^Ran (?P<count>[0-9]+) tests? in ", re.MULTILINE)
 UNITTEST_SKIPPED_RE = re.compile(r"skipped=(?P<count>[0-9]+)")
 UNITTEST_FAILURE_RE = re.compile(r"(?:failures|errors)=(?P<count>[0-9]+)")
@@ -695,7 +708,7 @@ def machine_output_claim(
     if component in TEST_OUTPUT_COMPONENTS:
         output_format = "test-log-v1"
         try:
-            counts = _test_output_counts(body)
+            counts = _test_output_counts(body, result=result)
         except EvidenceError:
             if result == "success":
                 raise
@@ -831,13 +844,29 @@ def _validate_machine_output_claim(
     return {"artifact": dict(value["artifact"]), "counts": dict(counts), "format": value["format"]}
 
 
-def _test_output_counts(body: bytes) -> dict[str, int]:
+def _test_output_counts(body: bytes, *, result: str) -> dict[str, int]:
     try:
         text = body.decode("utf-8")
     except UnicodeError as exc:
         raise EvidenceError("test output must be UTF-8") from exc
+    lines = text.splitlines()
+    meaningful_lines = [
+        line.strip()
+        for line in lines
+        if line.strip()
+        and not MAKE_DIRECTORY_RE.fullmatch(line.strip())
+        and not DJANGO_DATABASE_TEARDOWN_RE.fullmatch(line.strip())
+    ]
+    last_nonempty = meaningful_lines[-1] if meaningful_lines else ""
+    if result == "success":
+        terminal_summary = bool(PYTEST_TERMINAL_SUMMARY_RE.fullmatch(last_nonempty))
+        terminal_unittest_status = bool(UNITTEST_STATUS_RE.fullmatch(last_nonempty))
+        if not terminal_summary and not terminal_unittest_status:
+            raise EvidenceError("test output does not end with a terminal test summary")
+        if PYTEST_INTERRUPTION_RE.search(text):
+            raise EvidenceError("test output contains an interrupted pytest run")
     passed = failed = skipped = 0
-    for line in text.splitlines():
+    for line in lines:
         if not PYTEST_DURATION_RE.search(line):
             continue
         outcomes = list(PYTEST_OUTCOME_RE.finditer(line))

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import shutil
 import subprocess
+import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -85,3 +88,63 @@ def test_verification_run_passes_the_explicit_issue_to_the_runner() -> None:
     )
     assert '--issue "197"' in result.stdout
     assert '--worktree "issue-197-fail-closed-issue"' in result.stdout
+
+
+def test_playwright_targets_keep_profiles_and_use_the_bounded_faulthandler_timeout() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+
+    excluded_markers = (
+        " and not remote_readonly and not remote_mutation and not live_email and not live_provider"
+    )
+    expected = {
+        "test-playwright-core": f"-m 'core{excluded_markers}'",
+        "test-playwright": f"-m '(core or full){excluded_markers}'",
+        "test-accessibility": f"-m 'accessibility{excluded_markers}'",
+    }
+    for target, marker_expression in expected.items():
+        target_body = makefile.split(f"{target}:\n", 1)[1].split("\n\n", 1)[0]
+        assert "-o faulthandler_timeout=120" in target_body
+        assert marker_expression in target_body
+        assert "--reruns" not in target_body
+
+
+def test_synthetic_hanging_test_fails_with_a_named_timeout() -> None:
+    probe_root = ROOT / ".tmp"
+    probe_root.mkdir(parents=True, exist_ok=True)
+    probe_directory = Path(tempfile.mkdtemp(prefix="pytest-faulthandler-contract-", dir=probe_root))
+    probe = probe_directory / "test_hanging.py"
+    probe.write_text(
+        "import time\n\n\ndef test_synthetic_wedged_browser() -> None:\n    time.sleep(30)\n",
+        encoding="utf-8",
+    )
+    started = time.monotonic()
+    try:
+        result = subprocess.run(
+            [
+                "timeout",
+                "--signal=TERM",
+                "--kill-after=2s",
+                "8s",
+                "uv",
+                "run",
+                "--frozen",
+                "pytest",
+                str(probe),
+                "-o",
+                "faulthandler_timeout=1",
+                "-v",
+            ],
+            cwd=ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    finally:
+        shutil.rmtree(probe_directory, ignore_errors=True)
+
+    output = result.stdout + result.stderr
+    assert result.returncode != 0
+    assert time.monotonic() - started < 15
+    assert "test_synthetic_wedged_browser" in output
+    assert "Timeout" in output
