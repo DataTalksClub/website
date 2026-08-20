@@ -38,7 +38,13 @@ from deploy.release import (
     restore_after_finalization_failure,
     rollback,
 )
-from deploy.smoke import ROBOTS_VALUE, Response, run_http_smoke, validate_origin
+from deploy.smoke import (
+    HOME_CONTENT_PINS,
+    ROBOTS_VALUE,
+    Response,
+    run_http_smoke,
+    validate_origin,
+)
 from deploy.task_definitions import (
     FIXED_NONSECRET_ENVIRONMENT,
     SAFETY_ENVIRONMENT,
@@ -2687,7 +2693,8 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 noindex,
                 b"<title>DataTalks.Club \xe2\x80\x94 free courses for data and AI engineers</title>"
                 b"Start with the foundations. Finish with a project you can present."
-                b"Free, project-based courses where you learn to build and build to learn"
+                b"Free, hands-on courses in data and AI, with a clear path, "
+                b"practical work, and a community to help you get unstuck."
                 + f"Version {VERSION_A}".encode()
                 + b'<link rel="canonical" href="https://datatalks.club/">'
                 + b'<link rel="stylesheet" href="/static/core.fixture.css">',
@@ -2785,12 +2792,15 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
 
         invalid_surface_responses = (
             (
-                "home identity",
+                "home subtitle",
                 2,
                 Response(
                     200,
                     noindex,
-                    b"Learn data skills. For free. Together."
+                    b"<title>DataTalks.Club \xe2\x80\x94 free courses for data "
+                    b"and AI engineers</title>"
+                    b"Start with the foundations. Finish with a project you can present."
+                    b"Free, project-based courses where you learn to build and build to learn"
                     + f"Version {VERSION_A}".encode()
                     + b'<link rel="stylesheet" href="/static/core.fixture.css">',
                 ),
@@ -2887,3 +2897,158 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     self.assertRaisesMessage(ReleaseContractError, error_message),
                 ):
                     run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
+
+
+class SmokeFailureTokenScreeningTests(SimpleTestCase):
+    """Both failure-token scans read screened markup, not the raw response (#200).
+
+    The inline design-system stylesheet says "traceback" inside a benign CSS
+    comment and ships on both the homepage and the 404 page, so each leg gets a
+    passing case carrying exactly that markup commentary and failing cases with
+    visible failure output and a token in an attribute.  The passing bodies use
+    the imported ``HOME_CONTENT_PINS`` so this fixture cannot drift from the
+    release contract.
+    """
+
+    # The wording of the CSS comment that blocked run 32255952816.
+    DESIGN_SYSTEM_COMMENT = (
+        b"<style>/* A code sample wraps rather than scrolling.  A command or a "
+        b"traceback stays readable when it wraps.  */ .prose pre {}</style>"
+    )
+
+    @staticmethod
+    def _home_body(extra: bytes = b"") -> bytes:
+        title, identity, lede = (pin.encode() for pin in HOME_CONTENT_PINS)
+        return (
+            b"<title>"
+            + title
+            + b"</title><h1>"
+            + identity
+            + b"</h1><p>"
+            + lede
+            + b"</p>"
+            + f"Version {VERSION_A}".encode()
+            + b'<link rel="canonical" href="https://datatalks.club/">'
+            + b'<link rel="stylesheet" href="/static/core.fixture.css">'
+            + extra
+        )
+
+    def _responses(self, home_body: bytes, missing_body: bytes) -> list[Response]:
+        from content.public_views import production_sitemap
+
+        noindex = {"x-robots-tag": ROBOTS_VALUE}
+        private = noindex | {"cache-control": "private, no-store"}
+        identity = json.dumps(
+            {
+                "status": "ok",
+                "version": VERSION_A,
+                "source_sha": SHA_A,
+                "image_digest": DIGEST_A,
+            }
+        ).encode()
+        return [
+            Response(200, noindex, identity),
+            Response(
+                200,
+                noindex,
+                json.dumps(
+                    {
+                        "status": "ready",
+                        "version": VERSION_A,
+                        "source_sha": SHA_A,
+                        "image_digest": DIGEST_A,
+                        "checks": {
+                            "configuration": {"status": "ok"},
+                            "database": {"status": "ok"},
+                            "migrations": {"status": "ok"},
+                        },
+                    }
+                ).encode(),
+            ),
+            Response(200, noindex, home_body),
+            Response(
+                200,
+                noindex,
+                b"Start with the foundations. Finish with a project you can present."
+                b'<link rel="canonical" href="https://datatalks.club/">',
+            ),
+            Response(
+                200,
+                noindex,
+                b"Learn data skills. For free. Together."
+                + f"Version {VERSION_A}".encode()
+                + b'<link rel="canonical" href="https://datatalks.club/courses">'
+                + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
+            ),
+            Response(302, private | {"location": "/accounts/login/?next=%2Fstudio%2F"}, b""),
+            Response(200, private, b"Sign In"),
+            Response(200, noindex, identity),
+            Response(
+                401,
+                private | {"www-authenticate": "Bearer", "x-request-id": "request-smoke"},
+                b'{"error":{"code":"authentication_required",'
+                b'"message":"Valid Bearer authentication is required.",'
+                b'"request_id":"request-smoke"}}',
+            ),
+            Response(404, noindex, missing_body),
+            Response(
+                200,
+                noindex | {"content-type": "text/plain; charset=utf-8"},
+                b"User-agent: *\nDisallow: /\n",
+            ),
+            Response(
+                200,
+                noindex | {"content-type": "application/xml; charset=utf-8"},
+                production_sitemap().encode(),
+            ),
+            Response(200, noindex | {"content-type": "text/css"}, b"body{}"),
+        ]
+
+    def _run_smoke(self, home_body: bytes, missing_body: bytes) -> None:
+        with patch("deploy.smoke._request", side_effect=self._responses(home_body, missing_body)):
+            run_http_smoke("https://web.dtcdev.click", VERSION_A, SHA_A, DIGEST_A)
+
+    def test_home_leg_passes_with_tokens_only_in_style_script_and_comments(self) -> None:
+        home_body = self._home_body(
+            self.DESIGN_SYSTEM_COMMENT
+            + b"<script>var note = {title: 'page not found', flag: 'debug=true'};</script>"
+            + b"<!-- traceback: the words appear only in markup commentary -->"
+        )
+
+        self._run_smoke(home_body, b"Page not found")
+
+    def test_missing_page_leg_passes_with_tokens_only_in_style_script_and_comments(self) -> None:
+        missing_body = (
+            b"<title>Page not found</title><h1>Page not found</h1>"
+            + self.DESIGN_SYSTEM_COMMENT
+            + b"<script>var note = 'technical 404';</script>"
+            + b"<!-- debug=true -->"
+        )
+
+        self._run_smoke(self._home_body(), missing_body)
+
+    def test_home_leg_still_fails_on_visible_failure_output(self) -> None:
+        for case, visible in (
+            ("traceback text", b'<pre>Traceback (most recent call last):\n  File "app.py"</pre>'),
+            ("missing-page copy", b"<h1>Page not found</h1>"),
+            ("debug parameter", b'<a href="https://example.com/?debug=true">settings</a>'),
+        ):
+            with (
+                self.subTest(case=case),
+                self.assertRaisesMessage(
+                    ReleaseContractError, "home page contains debug or 404 output"
+                ),
+            ):
+                self._run_smoke(self._home_body(visible), b"Page not found")
+
+    def test_missing_page_leg_still_fails_on_visible_failure_output(self) -> None:
+        for case, visible in (
+            ("traceback text", b"<pre>Traceback (most recent call last):</pre>"),
+            ("technical 404 copy", b"<h1>Technical 404</h1>"),
+            ("debug parameter", b'<a href="https://example.com/?debug=true">settings</a>'),
+        ):
+            with (
+                self.subTest(case=case),
+                self.assertRaisesMessage(ReleaseContractError, "missing page exposes debug output"),
+            ):
+                self._run_smoke(self._home_body(), b"Page not found" + visible)

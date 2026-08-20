@@ -19,9 +19,10 @@ from ci.evidence import (
     environment_matches_plan,
     machine_output_claim,
     validate_envelope,
+    validate_machine_output_files,
 )
 from ci.ownership import sha256_json
-from ci.verification import PLAN_SCHEMA_VERSION, build_plan, dump_json
+from ci.verification import PLAN_SCHEMA_VERSION, build_plan, create_report, dump_json
 from tests_ci.helpers import component_output, git, repository_with_change, selection_for
 
 GOLDEN_MANIFEST = [
@@ -240,6 +241,143 @@ def test_machine_output_claim_records_actual_pass_skip_counts_and_rejects_forger
     )
     assert chosen is None
     assert reason == "machine_output_mismatch"
+
+
+def test_failed_test_component_envelope_carries_the_counts_its_log_holds(
+    tmp_path: Path,
+) -> None:
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    output_path = root / "playwright-output.log"
+    output_path.write_text(
+        "=================================== FAILURES ===================================\n"
+        "=========================== short test summary info ============================\n"
+        "FAILED playwright_tests/core/journey.spec.ts:34 - journey continues after failure\n"
+        "=========== 4 failed, 204 passed, 3 deselected in 1405.63s (0:23:25) ===========\n",
+        encoding="utf-8",
+    )
+    records = artifact_records((output_path,), root=root)
+    output = machine_output_claim(
+        output_path,
+        root=root,
+        component="playwright",
+        plan=plan,
+        result="failure",
+    )
+    assert output["counts"] == {
+        "assertions": 208,
+        "failed": 4,
+        "passed": 204,
+        "skipped": 0,
+        "tests": 208,
+    }
+    envelope = build_envelope(
+        plan=plan,
+        component="playwright",
+        result="failure",
+        origin=local_origin(),
+        command=plan["components"]["playwright"]["command"],
+        execution_environment=plan["components"]["playwright"]["environment"],
+        artifacts=records,
+        machine_output=output,
+        exit_code=2,
+        completed_at=datetime(2026, 8, 9, 12, tzinfo=UTC),
+    )
+    assert validate_envelope(envelope) == envelope
+    assert {key: envelope["counts"][key] for key in ("tests", "passed", "failed", "skipped")} == {
+        "tests": 208,
+        "passed": 204,
+        "failed": 4,
+        "skipped": 0,
+    }
+    envelope_path = root / "playwright-evidence.json"
+    dump_json(envelope, envelope_path)
+    validate_machine_output_files(
+        envelope, evidence_root=root, envelope_path=envelope_path, plan=plan
+    )
+    chosen, reason = choose_reusable_evidence(
+        plan=plan,
+        component="playwright",
+        candidates=((envelope_path, envelope),),
+        evidence_root=root,
+        consumer="tester",
+        now=datetime(2026, 8, 9, 13, tzinfo=UTC),
+    )
+    assert chosen is None
+    assert reason == "latest_result_failure"
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        (
+            b"============================= test session starts =============================\n"
+            b"platform linux -- Python 3.13.5, pytest-8.4.2, pluggy-1.6.0\n"
+            b"Killed\n"
+        ),
+        b"\xff\xfe\x00killed mid-write",
+    ],
+    ids=["truncated-without-summary", "invalid-utf8"],
+)
+def test_unparseable_failed_output_falls_back_to_zero_counts_without_blocking_the_report(
+    tmp_path: Path,
+    body: bytes,
+) -> None:
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    output_path = root / "playwright-output.log"
+    output_path.write_bytes(body)
+    output = machine_output_claim(
+        output_path,
+        root=root,
+        component="playwright",
+        plan=plan,
+        result="failure",
+    )
+    assert output["counts"] == {
+        "assertions": 0,
+        "failed": 0,
+        "passed": 0,
+        "skipped": 0,
+        "tests": 0,
+    }
+    with pytest.raises(EvidenceError, match="test output"):
+        machine_output_claim(
+            output_path, root=root, component="playwright", plan=plan, result="success"
+        )
+
+    for component, item in plan["components"].items():
+        if item["disposition"] != "rerun":
+            continue
+        if component == "playwright":
+            result = "failure"
+            records = artifact_records((output_path,), root=root)
+            machine_output = output
+        else:
+            result = "success"
+            records, machine_output = component_output(root, plan, component)
+        envelope = build_envelope(
+            plan=plan,
+            component=component,
+            result=result,
+            origin=local_origin("engineer"),
+            command=item["command"],
+            execution_environment=item["environment"],
+            artifacts=records,
+            machine_output=machine_output,
+            exit_code=0 if result == "success" else 1,
+            completed_at=datetime(2026, 8, 9, 12, tzinfo=UTC),
+        )
+        dump_json(envelope, root / f"{component}-evidence.json")
+
+    report = create_report(plan=plan, result_directory=root, phase="engineer")
+    assert report["verdict"] == "failure"
+    assert report["buckets"]["skipped"] == []
+    rerun = {entry["component"]: entry for entry in report["buckets"]["rerun"]}
+    assert rerun["playwright"]["result"] == "failure"
+    assert rerun["playwright"]["evidence"]["counts"]["tests"] == 0
 
 
 def test_success_envelope_is_digest_bound_and_strictly_validated(tmp_path: Path) -> None:

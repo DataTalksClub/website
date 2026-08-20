@@ -2,7 +2,10 @@
 {% comment %}
   Bad request (issue #178).  The page a visitor lands on when a public catalogue
   is asked for a page selector it does not accept — a duplicated `page`, a zero, a
-  percent-encoded digit, an extra parameter.
+  leading zero, a percent-encoded digit, a signed or overlong number.  A parameter
+  the catalogue does not select on is not one of these: a campaign tag is dropped
+  before the grammar reads anything, and the tagged link is an ordinary `200` to
+  the clean page it canonicalizes to.
 
   It is the 404's sibling and is written the same way: the shared text page with a
   heading, one sentence and two ways back.  It repeats nothing about the request,

@@ -14,20 +14,20 @@ fail closed.
 ## Ownership and impact closure
 
 The graph owns each known path exactly once and validates duplicate ownership, dangling edges,
-cycles, unknown node kinds, and invalid patterns before making a decision. Its initial application
-closures exactly preserve #104:
+cycles, unknown node kinds, and invalid patterns before making a decision. Its reviewed application
+closures are:
 
 | Changed owner | Django labels |
 | --- | --- |
 | `api` | `api` |
 | `studio_courses` | `studio_courses` |
-| `content` | `accounts content.tests core` |
-| `courses` | `accounts api content.tests core courses data studio_courses` |
+| `content` | `accounts content.tests content_sync core` |
+| `courses` | `accounts api content.tests core courses data management_api studio studio_courses` |
 | `data` | `api courses data studio_courses` |
-| `jobs` | `jobs` |
-| `management_api` | `api management_api` |
-| `management_auth` | `api core management_api management_auth` |
-| `review_import` | `accounts review_import` |
+| `jobs` | `events jobs` |
+| `management_api` | `api management_api studio` |
+| `management_auth` | `accounts api core management_api management_auth studio` |
+| `review_import` | `accounts courses review_import` |
 | `studio` | `accounts core studio` |
 
 A focused profile is allowed only for one ordinary application owner. Unknown or multi-application
@@ -41,6 +41,16 @@ Central `test_support/` factories and runtime code, root `conftest.py`/`sitecust
 settings/runner code, migration files, marker registration, and Playwright fixtures/tests always
 select full coverage. An app-owned factory below an already mapped application root may use that
 root's reviewed closure; a missing or unmapped label never narrows the suite.
+
+The ownership contract also has a deterministic reverse-import check in
+`tests_ci/test_ownership.py`. It reads only repository-local Python source for verification-labeled
+app packages, excludes migration and test-prefixed paths, and inspects direct absolute `import` and
+`from` statements in each module body with `ast`; it never imports or executes application code.
+Relative and local imports are deliberately excluded from the app-level edge set. A literal dynamic
+import of a mapped app is included, while an ambiguous dynamic import fails the contract and must
+be resolved with an explicit reviewed ownership edge. The check compares every importing package's
+test label with the changed `app.*` closure, so a new static reverse import cannot silently narrow
+focused verification.
 
 Templates, CSS, JavaScript, navigation, view/URL/context/serializer data shape, browser fixtures,
 and screenshot-harness changes are render impact. They select the full browser suite and fresh
@@ -180,18 +190,33 @@ candidate changes:
 
 ```text
 make verification-plan
-make verification-run VERIFY_WORKTREE=issue-113-risk-evidence
+make verification-run VERIFY_ISSUE=113 VERIFY_WORKTREE=issue-113-risk-evidence
 make verification-evidence-check VERIFY_PLAN=.tmp/verification/verification-plan.json
 make verification-report-check VERIFY_PLAN=.tmp/verification/verification-plan.json \
   VERIFY_REPORT=.tmp/verification/verification-report.json
 make verification-plan VERIFY_CONSUMER=tester
 make verification-run VERIFY_CONSUMER=tester VERIFY_PRODUCER_ROLE=tester \
-  VERIFY_PHASE=tester VERIFY_WORKTREE=issue-113-risk-evidence
+  VERIFY_PHASE=tester VERIFY_ISSUE=113 VERIFY_WORKTREE=issue-113-risk-evidence
 ```
 
+`VERIFY_ISSUE` is required: `verification-run` has no default issue number and fails closed without
+one, because local evidence must never be silently attributed to an issue the caller did not name.
 Override `VERIFY_BASE_SHA`, `VERIFY_HEAD_SHA`, `VERIFY_OUTPUT_DIR`, or `VERIFY_EVIDENCE_DIR` only
 with explicit reviewed paths/revisions. `verification-run` executes only allowlisted argument
 vectors and records each rerun result below `.tmp/verification/evidence/`.
+
+Every component execution is bounded by an explicit per-component wall-clock timeout. The default
+is 3600 seconds (one hour), which exceeds the longest legitimate local suite: the full Django run,
+the core browser run, and the exact production-container build each finish well inside it. When the
+bound expires the runner terminates and then kills the component's whole process group, retains the
+partial output below the component's output artifact, records the result envelope as `timed_out`
+with exit code 124 and the exact command, and continues with the remaining components, so
+`verification-report-check` still emits `verification-report.json` with a `failure` verdict; a
+timed-out component is an executed rerun with a failing result, never a skip. Override the bound
+only for deliberate bounded-hang diagnostics by invoking the runner directly with
+`--component-timeout-seconds <positive-seconds>`; the Makefile target always uses the documented
+default. `verification-run` preserves the runner's nonzero status while allowing the report-check
+step to run, so the aggregate report remains the final failure evidence.
 
 The proportional fresh gates remain available:
 

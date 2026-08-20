@@ -717,6 +717,11 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
+    # The verified full-profile suite currently takes 48m51s on the hosted
+    # runner (issue #206). Keep a bounded reserve above that measurement so a
+    # healthy release reaches ci-gate, while a wedged test still cannot hold
+    # the serialized release group for GitHub's 360-minute default (issue #193).
+    timeout-minutes: 60
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test
@@ -805,6 +810,9 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
+    # Same wedge guard as the playwright job: the capture runtime drives the same
+    # browser stack and shares the serialized release concurrency group (issue #193).
+    timeout-minutes: 30
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test

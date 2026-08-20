@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from unittest import mock
+from xml.etree import ElementTree
 
 from django.test import SimpleTestCase, TestCase
 from django.utils.html import escape
@@ -18,6 +19,8 @@ from content.public_data import public_projection
 from core.templatetags.accessibility import human_day, iso_day
 
 from .pagination_support import catalogue_page_bodies
+
+SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
 RETIRED_ASSETS = (
     "/static/courses.css",
@@ -199,6 +202,103 @@ class CollectionHubRecordTests(TestCase):
             # all, and the page beyond it is a real miss rather than a nearest page.
             self.assertNotContains(empty_books, 'aria-label="Book archive pages"')
             self.assertEqual(self.client.get("/books?page=2").status_code, 404)
+
+
+class BooksArchiveContractTests(TestCase):
+    """The Book of the Week archive as its own contract (issue #174).
+
+    Both hubs page through the one shared paginator, so the slicing, the query
+    grammar and the controls are tested once for the pair above.  What is left
+    here is everything the issue names for the books archive alone: the method
+    and cache boundary of a public catalogue page, the archive's sitemap
+    membership, and the introduction that stays above every page of records.
+    """
+
+    def test_the_archive_rejects_unsafe_methods_and_supports_head(self) -> None:
+        self.assertEqual(self.client.post("/books").status_code, 405)
+
+        get_response = self.client.get("/books?page=2")
+        head_response = self.client.head("/books?page=2")
+        self.assertEqual(head_response.status_code, get_response.status_code)
+        self.assertEqual(
+            head_response.headers["Cache-Control"], get_response.headers["Cache-Control"]
+        )
+        self.assertEqual(head_response.content, b"")
+        # A successful archive page is a public hub in the spec 02 cache classes:
+        # the browser revalidates, the edge TTL stays with the route class.
+        self.assertEqual(get_response.headers["Cache-Control"], "max-age=0, must-revalidate")
+        self.assertEqual(
+            self.client.get("/books").headers["Cache-Control"], "max-age=0, must-revalidate"
+        )
+
+        # A credentialed request never shares an anonymous catalogue object.
+        credentialed = self.client.get(
+            "/books?page=2", HTTP_AUTHORIZATION="Bearer synthetic-not-a-secret"
+        )
+        self.assertEqual(credentialed.status_code, 200)
+        self.assertIn("private", credentialed.headers["Cache-Control"])
+        self.assertIn("no-store", credentialed.headers["Cache-Control"])
+
+    def test_the_sitemap_keeps_the_clean_hub_and_the_html_details_only(self) -> None:
+        response = self.client.get("/sitemaps/books.xml")
+
+        self.assertEqual(response.status_code, 200)
+        document = ElementTree.fromstring(response.content)
+        locations = [node.text or "" for node in document.findall("s:url/s:loc", SITEMAP_NAMESPACE)]
+        expected = ["https://datatalks.club/books"] + [
+            f"https://datatalks.club{book['public_path']}" for book in public_projection()["books"]
+        ]
+        # Query pages are discoverable through the controls, never through the
+        # sitemap: page one is the only archive location in it.
+        self.assertEqual(locations, expected)
+        self.assertEqual(len(set(locations)), len(locations))
+        self.assertFalse(any("?" in location for location in locations))
+        self.assertTrue(all(location.endswith(".html") for location in locations[1:]))
+        # The details keep their source publication day as lastmod.
+        lastmods = [
+            node.text or "" for node in document.findall("s:url/s:lastmod", SITEMAP_NAMESPACE)
+        ]
+        self.assertEqual(
+            lastmods, [book["published"][:10] for book in public_projection()["books"]]
+        )
+
+    def test_every_archive_page_keeps_the_introduction_above_the_records(self) -> None:
+        books = public_projection()["books"]
+        pages = catalogue_page_bodies(self.client, "/books")
+        page_count = -(-len(books) // PUBLIC_PAGE_SIZE)
+        self.assertEqual(len(pages), page_count)
+
+        for page_number, body in enumerate(pages, start=1):
+            with self.subTest(page=page_number):
+                self.assertIn('<h1 id="collection-heading">Book of the Week</h1>', body)
+                self.assertIn(
+                    "Each week we have a book author coming to DataTalks.Club to answer "
+                    "your questions",
+                    body,
+                )
+                self.assertIn('<h2 id="how-it-works-heading">How it works</h2>', body)
+                self.assertIn(
+                    '<a class="band-link" href="/slack">Register on DataTalks.Club</a>', body
+                )
+                self.assertIn('<code class="mono-code">#book-of-the-week</code>', body)
+                self.assertIn('<h2 id="collection-list-heading">Archive</h2>', body)
+                self.assertIn(f"books · {len(books)} in the archive", body)
+                # The introduction is not merely present: every piece of it is
+                # above the records, on every page of the archive.  The Slack
+                # search starts at the explainer, because the site navigation
+                # above carries its own link to `/slack`.
+                intro = body.index("Each week we have a book author")
+                how_it_works = body.index('id="how-it-works-heading"')
+                slack = body.index('href="/slack"', how_it_works)
+                archive = body.index('id="collection-list-heading"')
+                first_record = body.index('class="list-row archive-row record-row"')
+                self.assertLess(intro, how_it_works)
+                self.assertLess(how_it_works, slack)
+                self.assertLess(slack, archive)
+                self.assertLess(archive, first_record)
+                first = (page_number - 1) * PUBLIC_PAGE_SIZE + 1
+                last = first - 1 + PUBLIC_PAGE_SIZE if page_number < page_count else len(books)
+                self.assertIn(f"Showing {first}&ndash;{last} of {len(books)}.", body)
 
 
 class CollectionHubPaginationTests(TestCase):

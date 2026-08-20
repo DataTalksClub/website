@@ -3,6 +3,7 @@ _docs/adoption/course-platform/README.md	adoption provenance	courses	Retain whil
 _docs/adoption/course-platform/upstream-sync.md	adoption provenance	courses	Retain while the controlled CMP upstream procedure and namespace mapping remain authoritative.
 _docs/adoption/course-platform/cadmin-reference-allowlist.tsv	adoption provenance	courses	Remove only after every listed compatibility and provenance reference reaches its recorded gate.
 _docs/audits/2026-08-14-course-platform-schema-data-inventory.md	adoption provenance	courses	Retain while #152's static course-platform schema/data baseline is authoritative; remove when superseded by an approved inventory.
+_docs/audits/2026-08-20-ci-smart-test-selection-audit.md	CI selection audit	testing	Retain while the selective-CI recommendations and their issue traceability remain current.
 _docs/adoption/course-platform/copied-files.tsv	adoption provenance	courses	Retain while pinned source-to-destination checksum evidence is required.
 _docs/adoption/course-platform/integration-patches.md	adoption provenance	courses	Retain while the mechanical rename and legacy adapter remain part of adoption history.
 _docs/adoption/course-platform/target-owned-compatibility-shims.tsv	adoption provenance	courses	Remove adapter rows only after the legacy URL traffic gate is approved.

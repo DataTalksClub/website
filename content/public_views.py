@@ -500,7 +500,7 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
     )
     if isinstance(pagination, HttpResponse):
         return pagination
-    return _render(
+    response = _render(
         request,
         "public/collection_hub.html",
         path=pagination.canonical_path,
@@ -514,6 +514,12 @@ def collection_hub(request: HttpRequest, *, collection: str) -> HttpResponse:
             **_pagination_context(pagination),
         },
     )
+    # Anonymous catalogue hubs are public but query-bounded (issue #174 keeps the
+    # books archive on the same class as `/events/past`).  Keep browser
+    # revalidation explicit; ResponsePolicyMiddleware still overrides this for
+    # authenticated requests.
+    response["Cache-Control"] = "max-age=0, must-revalidate"
+    return response
 
 
 # CSRF middleware runs before method decorators. This read-only callback is exempt so

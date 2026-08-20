@@ -78,7 +78,8 @@ slug ascending as deterministic tie-breakers; genuine gaps and duplicates are pr
 `/podcast` path is a moving latest-season representation selected from the maximum validated numeric
 season, never a hard-coded season.
 
-The only accepted query is one exact ASCII `season=[1-9][0-9]{0,8}` value. An existing older season
+The only selector the catalogue reads is one exact ASCII `season=[1-9][0-9]{0,8}` value; every
+other parameter in the raw query rides along under the split recorded below. An existing older season
 uses `/podcast?season=N`, an exact self-canonical, the title
 `DataTalks.Club Podcast — Season N — DataTalks.Club`, and sequence relations in descending catalogue
 order: `prev` targets the adjacent newer actual season and `next` targets the adjacent older actual
@@ -92,12 +93,20 @@ in numeric descending order, visibly name each `Season N`, mark the current cont
 `Newer season — Season 13` and `Older season — Season 11`. A response never combines seasons or
 invents a missing one.
 
-Duplicate, empty, signed, zero, leading-zero, encoded, non-ASCII, overlong, alternate-case, mixed,
-unknown, former `page`, or otherwise non-exact query forms return bounded non-reflective `400`
-responses with `no-store`. An exact normalized positive season absent from the actual inventory
-returns a bounded non-reflective `404` with `no-store`, without a latest/nearest fallback. `GET` and
-`HEAD` have identical status and metadata behavior, with an empty HEAD body. Anonymous `POST` is
-rejected before catalogue/query work with `405`, exact `Allow: GET, HEAD`, and `no-store`.
+Commit `643ea32` (2026-08-17, recorded in #196) split the raw query before the season grammar
+reads it, which deliberately amends the earlier whole-query refusal: the `season` selector is kept
+and handed to the grammar unchanged, and every other parameter — an unknown key, a campaign tag
+such as `utm_source`, the former `page` parameter, an alternate-case spelling, or a mixed query —
+is dropped, never reflected or forwarded, so a tagged URL such as `/podcast?page=2` serves the
+byte-identical clean page declaring the clean canonical and never becomes an unbounded variant.
+The grammar stays exactly as strict about what it does read: duplicate, empty, signed, zero,
+leading-zero, encoded, non-ASCII, overlong, or otherwise non-exact `season` forms return bounded
+non-reflective `400` responses with `no-store`. The whole raw string stays length-bounded, so an
+enormous query is refused rather than parsed. An exact normalized positive season absent from the
+actual inventory returns a bounded non-reflective `404` with `no-store`, without a latest/nearest
+fallback. `GET` and `HEAD` have identical status and metadata behavior, with an empty HEAD body.
+Anonymous `POST` is rejected before catalogue/query work with `405`, exact `Allow: GET, HEAD`, and
+`no-store`.
 
 The `.html` and slash hub aliases preserve the raw query byte-for-byte in their one-hop redirects.
 Season-query hub URLs stay out of the sitemap, whose podcast portion remains exactly clean
@@ -200,12 +209,18 @@ sitemap. Neither robots nor cache status is an authorization control.
 ## Query and poisoning rules
 
 - Static, detail, feed, and sitemap cache keys contain no query parameter. A named hub may allow
-  one exact registered positive-integer selector; Podcast allows only normalized `season`.
-  Duplicate, empty, overlong, out-of-range, malformed, former `page`, or unknown parameters become
-  no-store or a safe 400, never an unbounded variant.
+  one exact registered positive-integer selector; Podcast allows only normalized `season`. Since
+  `643ea32` (#196), a raw query is split before any grammar reads it: the parameters a hub actually
+  selects on are kept — a duplicate, empty, overlong, out-of-range, or malformed selector still
+  becomes no-store or a safe 400 — and every other parameter, including former `page` and unknown
+  or tracking keys, is dropped, never reflected or forwarded, so a tagged URL collapses onto the
+  clean canonical, never an unbounded variant. The whole raw string stays length-bounded.
 - Known tracking keys may be removed by one safe canonical `GET`/`HEAD` redirect. They are not
-  reflected or forwarded while absent from the key. Search text and arbitrary filters are not
-  cached in the MVP.
+  reflected or forwarded while absent from the key. `643ea32` (#196) records why no allowlist of
+  tracking parameters exists: every tool invents its own, so a list of the ones we happen to know
+  would just move the breakage to the next vendor. Dropping every non-selector parameter is the
+  allowlist-free form of the same not-reflected, never-a-variant intent. Search text and arbitrary
+  filters are not cached in the MVP.
 - Host, User-Agent, Referer, Accept-Language, CloudFront country, `X-Forwarded-*`, viewer-supplied
   internal headers, and arbitrary cookies are not public cache-key inputs. Accept-Encoding uses
   CloudFront's gzip/Brotli normalization rather than raw viewer values.
