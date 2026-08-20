@@ -223,10 +223,10 @@ def render_inventory() -> str:
     lines.extend(
         [
             "",
-            "The original numbered graph remains an unchanged prefix. Additive target migrations",
-            "extend the adopted identity only through reviewed product issues. Migration squashing",
-            "remains deferred until the production-like parity gate in `migration-squash-gate.md`",
-            "can be exercised.",
+            "The original numbered graph is retained here as historical provenance. The active phase-1",
+            "`courses` graph is the single `0001_initial` migration documented in",
+            "`migration-squash-gate.md`; later product migrations extend that graph only through reviewed",
+            "product issues.",
             "",
         ]
     )

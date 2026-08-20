@@ -113,7 +113,7 @@ ACCOUNT_MANY_TO_MANY_RELATIONS = (
         "handling": "source_authority_only",
     },
     {
-        "owner_model": "courses.Course",
+        "owner_model": "courses.Cohort",
         "field_name": "students",
         "through_table": "courses_enrollment",
         "user_field": "student",

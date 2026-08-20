@@ -172,8 +172,10 @@ The command fails closed before writing for:
 - a stale copied-file or overlay checksum; and
 - a dirty source checkout.
 
-New migration files may be copied when their destination is absent. Existing
-migrations are never replaced, squashed, or removed.
+New migration files may be copied when their destination is absent. The sync process never
+replaces, squashes, or removes existing migrations. The phase-1 local `courses` squash is an
+explicit post-sync operation recorded in `migration-squash-gate.md`, not a supported source-sync
+or production-upgrade operation.
 
 ## 4. Apply a conflict-free sync
 

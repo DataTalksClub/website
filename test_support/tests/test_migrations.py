@@ -7,7 +7,6 @@ from pathlib import Path
 
 from django.conf import settings
 from django.db import connections
-from django.db.migrations.exceptions import IrreversibleError
 from django.db.migrations.executor import MigrationExecutor
 from django.test import SimpleTestCase
 
@@ -34,7 +33,6 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts-identity-v1",
                 "accounts-profile-v1",
                 "content-active-paths-v1",
-                "courses-answer-upgrade-v1",
             },
         )
         for seed in seeds:
@@ -48,7 +46,6 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts-identity-v1": True,
                 "accounts-profile-v1": True,
                 "content-active-paths-v1": True,
-                "courses-answer-upgrade-v1": False,
             },
         )
 
@@ -64,10 +61,6 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts/migrations/0005_backfill_certificate_name_from_enrollment.py",
                 "accounts/migrations/0012_backfill_normalized_identity.py",
                 "content/migrations/0002_active_content_path_claims.py",
-                "courses/migrations/0003_replace_commas_with_linebreaks_in_possible_answers.py",
-                "courses/migrations/0004_update_correct_answer_indexes.py",
-                "courses/migrations/0005_update_answers_with_indexes.py",
-                "courses/migrations/0006_course_first_homework_scored.py",
                 "events/migrations/0005_seed_event_identity_manifest.py",
                 "events/migrations/0006_event_public_id.py",
                 "events/migrations/0007_reconcile_public_event_identity.py",
@@ -145,13 +138,35 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         applied = MigrationExecutor(self.connection).loader.applied_migrations
         self.assertTrue(all(leaf in applied for leaf in leaves))
 
+    def test_course_phase_one_schema_is_cohort_backed_and_uses_legacy_table(self) -> None:
+        courses_target = ("courses", "0001_initial")
+        _executor, apps = self._migrate([courses_target])
+        Cohort = apps.get_model("courses", "Cohort")
+
+        self.assertEqual(Cohort._meta.db_table, "courses_course")
+        self.assertTrue(Cohort._meta.get_field("outcome").blank)
+        self.assertEqual(
+            apps.get_model("courses", "Enrollment")
+            ._meta.get_field("course")
+            .remote_field.model._meta.model_name,
+            "cohort",
+        )
+        self.assertEqual(
+            apps.get_model("courses", "Homework")
+            ._meta.get_field("course")
+            .remote_field.model._meta.model_name,
+            "cohort",
+        )
+        with self.assertRaises(LookupError):
+            apps.get_model("courses", "Course")
+
     def test_accounts_profile_seed_upgrades_with_historical_models_and_noop_reverse(self) -> None:
         seed = load_migration_seed(SEED_ROOT / "accounts-profile-v1.json")
         self.assertTrue(seed.reversible)
-        courses_target = ("courses", "0026_enrollment_disable_learning_in_public_and_more")
+        courses_target = ("courses", "0001_initial")
         executor, apps = self._migrate([seed.start, courses_target])
         User = apps.get_model("accounts", "CustomUser")
-        Cohort = apps.get_model("courses", "Course")
+        Cohort = apps.get_model("courses", "Cohort")
         Enrollment = apps.get_model("courses", "Enrollment")
         user_values = seed.payload["users"][0]
         user = User.objects.create(
@@ -172,24 +187,22 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
             course_id=course.pk,
             display_name="Synthetic learner",
             certificate_name=enrollment_values["certificate_name"],
-            github_url=enrollment_values["github_url"],
-            linkedin_url=enrollment_values["linkedin_url"],
-            personal_website_url=enrollment_values["personal_website_url"],
-            about_me=enrollment_values["about_me"],
         )
 
         executor, apps = self._migrate([seed.target])
         MigratedUser = apps.get_model("accounts", "CustomUser")
         migrated = MigratedUser.objects.get(pk=user.pk)
         self.assertEqual(migrated.certificate_name, "Synthetic Learner")
-        self.assertEqual(migrated.about_me, "Synthetic profile")
 
         executor, apps = self._migrate([seed.start, courses_target])
         ReversedUser = apps.get_model("accounts", "CustomUser")
         self.assertEqual(ReversedUser.objects.get(pk=user.pk).username, "synthetic-profile")
         executor, apps = self._migrate([seed.target, courses_target])
         ResumedUser = apps.get_model("accounts", "CustomUser")
-        self.assertEqual(ResumedUser.objects.get(pk=user.pk).about_me, "Synthetic profile")
+        self.assertEqual(
+            ResumedUser.objects.get(pk=user.pk).certificate_name,
+            "Synthetic Learner",
+        )
 
     def test_accounts_identity_seed_is_idempotent_and_reversible(self) -> None:
         seed = load_migration_seed(SEED_ROOT / "accounts-identity-v1.json")
@@ -293,92 +306,6 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         self.assertEqual(apps.get_model("content", "ActiveContentPath").objects.count(), 2)
         executor, apps = self._migrate([seed.target])
         self.assertEqual(apps.get_model("content", "ActiveContentPath").objects.count(), 2)
-
-    def test_course_answer_seed_upgrades_all_four_historical_data_migrations(self) -> None:
-        seed = load_migration_seed(SEED_ROOT / "courses-answer-upgrade-v1.json")
-        self.assertFalse(seed.reversible)
-        executor, apps = self._migrate([seed.start])
-        User = apps.get_model("accounts", "CustomUser")
-        Cohort = apps.get_model("courses", "Course")
-        Enrollment = apps.get_model("courses", "Enrollment")
-        Homework = apps.get_model("courses", "Homework")
-        Question = apps.get_model("courses", "Question")
-        Submission = apps.get_model("courses", "Submission")
-        Answer = apps.get_model("courses", "Answer")
-        user = User.objects.create(
-            id=101,
-            username="synthetic-course-user",
-            email="synthetic-course@example.invalid",
-            password="synthetic-hash",
-        )
-        course = Cohort.objects.create(
-            id=seed.payload["course"]["id"],
-            slug=seed.payload["course"]["slug"],
-            title="Synthetic course",
-            description="Synthetic",
-        )
-        enrollment = Enrollment.objects.create(
-            id=201,
-            student_id=user.pk,
-            course_id=course.pk,
-            display_name="Synthetic learner",
-        )
-        homework = Homework.objects.create(
-            id=301,
-            course_id=course.pk,
-            slug="synthetic-homework",
-            title="Synthetic homework",
-            description="Synthetic",
-            due_date=FROZEN_AT,
-        )
-        question = Question.objects.create(
-            id=seed.payload["question"]["id"],
-            homework_id=homework.pk,
-            text="Synthetic question",
-            question_type=seed.payload["question"]["question_type"],
-            possible_answers=seed.payload["question"]["possible_answers"],
-            correct_answer=seed.payload["question"]["correct_answer"],
-        )
-        submission = Submission.objects.create(
-            id=401,
-            homework_id=homework.pk,
-            student_id=user.pk,
-            enrollment_id=enrollment.pk,
-        )
-        Answer.objects.create(
-            id=seed.payload["answer"]["id"],
-            submission_id=submission.pk,
-            question_id=question.pk,
-            student_id=user.pk,
-            answer_text=seed.payload["answer"]["answer_text"],
-        )
-
-        executor, apps = self._migrate([seed.target])
-        MigratedCourse = apps.get_model("courses", "Course")
-        MigratedQuestion = apps.get_model("courses", "Question")
-        MigratedAnswer = apps.get_model("courses", "Answer")
-        self.assertTrue(MigratedCourse.objects.get(pk=course.pk).first_homework_scored)
-        self.assertEqual(
-            MigratedQuestion.objects.get(pk=question.pk).possible_answers,
-            seed.expected["possible_answers"],
-        )
-        self.assertEqual(
-            MigratedQuestion.objects.get(pk=question.pk).correct_answer,
-            seed.expected["correct_answer"],
-        )
-        self.assertEqual(
-            MigratedAnswer.objects.get(pk=seed.payload["answer"]["id"]).answer_text,
-            seed.expected["answer_text"],
-        )
-        executor, apps = self._migrate([seed.target])
-        self.assertEqual(
-            apps.get_model("courses", "Answer")
-            .objects.get(pk=seed.payload["answer"]["id"])
-            .answer_text,
-            seed.expected["answer_text"],
-        )
-        with self.assertRaises(IrreversibleError):
-            self._migrate([seed.start])
 
     def _migrate(self, targets: list[tuple[str, str]]):
         executor = MigrationExecutor(self.connection)

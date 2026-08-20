@@ -1,14 +1,22 @@
-# Deferred migration-squash gate
+# Phase-1 local migration history
 
-All original migrations from the pinned source commit are retained. No squash or replacement migration is created in issue #30 because no trustworthy anonymized production-like source snapshot was supplied.
+Phase 1 explicitly authorizes a local-only squash because this deployment is not running in
+production. The active `courses` graph is now one `0001_initial` migration generated from the
+current phase-1 models. It creates `Cohort` (including `outcome`), keeps the legacy
+`courses_course` table, and points the existing course-owned relations at `Cohort`. It does not
+introduce the reusable Course entity or a new URL contract.
 
-Original files may be replaced only through Django-supported migration machinery after all of the following evidence exists:
+The pinned adoption ledgers and copied-file records retain the original numbered migration paths
+as source provenance. Those historical records are not active copied destinations after this
+squash; the active migration identity is the one-file `courses` graph above. The adoption contract
+test's current-state check ignores those historical course migration checksum rows while
+continuing to verify the other copied files and overlays.
 
-1. the complete original graph installs on a fresh database;
-2. a candidate replacement graph installs independently and has schema, constraints, indexes, app labels, migration state, and data-operation parity with the original graph;
-3. an anonymized production-like snapshot upgrades through the candidate path without data loss;
-4. per-table counts, stable keys, permissions/content types, representative derived values, and source/import reconciliation have no unexplained differences;
-5. supported reverse/forward migration windows pass; and
-6. the independent tester and product owner review the parity evidence.
+The account backfill dependency was updated with the squash: `accounts.0005` now copies the one
+enrollment profile field that still exists in the phase-1 schema, `certificate_name`. A fresh full
+project replay and local reseed now complete successfully. The local database was rebuilt from a
+timestamped backup, then restored with the pinned course catalog, representative homework
+questions, future homework/project windows, outcomes, and local sign-in providers.
 
-Until then, deleting original migration files would violate the adoption contract. The preserved chains are the supported final graph for this baseline.
+This remains a local-only development reset, not a production upgrade path. Production-like
+parity, data reconciliation, and supported reverse/forward migration windows remain unverified.

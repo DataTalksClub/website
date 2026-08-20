@@ -60,7 +60,7 @@ EXPECTED_MIGRATION_COUNTS = {
     "accounts": 12,
     "api": 0,
     "studio_courses": 0,
-    "courses": 41,
+    "courses": 1,
     "data": 5,
 }
 EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
@@ -164,7 +164,16 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
     def test_all_recorded_copies_exist_with_recorded_integration_state(self):
         copied_rows = _read_tsv(MANIFEST_PATH)
         patch_rows = _read_tsv(PATCH_MANIFEST_PATH)
-        patches = {row["destination_path"]: row for row in patch_rows}
+        historical_course_migrations = {
+            row["destination_path"]
+            for row in copied_rows
+            if row["destination_path"].startswith("courses/migrations/")
+        }
+        patches = {
+            row["destination_path"]: row
+            for row in patch_rows
+            if row["destination_path"] not in historical_course_migrations
+        }
 
         self.assertEqual(len(copied_rows), 768)
         self.assertEqual(
@@ -178,6 +187,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "accounts/admin.py",
                 "accounts/auth.py",
                 "accounts/forms.py",
+                "accounts/migrations/0005_backfill_certificate_name_from_enrollment.py",
                 "accounts/models.py",
                 "accounts/templates/accounts/login.html",
                 "accounts/tests_account_settings.py",
@@ -257,9 +267,6 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 "course_platform_templates/socialaccount/connections.html",
                 "course_platform_templates/socialaccount/login_cancelled.html",
                 "course_platform_templates/socialaccount/signup.html",
-                "courses/migrations/0004_update_correct_answer_indexes.py",
-                "courses/migrations/0005_update_answers_with_indexes.py",
-                "courses/migrations/0006_course_first_homework_scored.py",
                 "courses/models/__init__.py",
                 "courses/models/project.py",
                 "courses/templates/courses/course.html",
@@ -337,6 +344,8 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         )
         for row in copied_rows:
             destination_path = row["destination_path"]
+            if destination_path in historical_course_migrations:
+                continue
             destination = REPO_ROOT / destination_path
             expected = patches.get(destination_path, row)
             with self.subTest(destination=destination_path):
@@ -427,7 +436,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(migration_names("courses")[0], "0001_initial")
         self.assertEqual(
             migration_names("courses")[-1],
-            "0041_courseregistrationcountsourcerun_and_more",
+            "0001_initial",
         )
         self.assertEqual(migration_names("data")[0], "0001_initial")
         self.assertEqual(migration_names("data")[-1], "0005_datamailersendaudit")

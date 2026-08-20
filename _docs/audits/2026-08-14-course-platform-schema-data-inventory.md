@@ -2,6 +2,12 @@
 
 This is a static, point-in-time evidence slice for parent issue [#72](https://github.com/DataTalksClub/website/issues/72), prepared for [#152](https://github.com/DataTalksClub/website/issues/152). It inventories the current adopted target declarations without deciding the future Course-to-Cohort model, mapping, redirect, privacy, or email contracts.
 
+Phase-1 supersession: this snapshot predates the explicitly local Course-to-Cohort migration
+squash. Its migration counts, `courses.Course` identity, and numbered course migration paths are
+historical evidence for the 2026-08-14 snapshot, not the active phase-1 graph. See the current
+[migration history](../adoption/course-platform/migration-squash-gate.md) and
+[verification](../adoption/course-platform/verification.md).
+
 ## Binding and method
 
 - Snapshot repository: `DataTalksClub/website`

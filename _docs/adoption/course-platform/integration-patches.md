@@ -1,5 +1,10 @@
 # Course platform integration patches
 
+The migration entries below describe historical overlays applied while adopting the pinned source
+graph. Phase 1 intentionally retired the copied `courses` migration destinations in favor of the
+single active `courses/migrations/0001_initial.py`; the ledger entries remain for provenance and
+are not a claim that those files still exist in the current working tree.
+
 `copied-files.tsv` records the byte-identical pinned CMP source. Copied destinations remain exact
 unless an intentional target overlay is recorded with its current checksum and rationale in
 `integration-patched-files.tsv`. Integration is confined to target-owned files and those explicit

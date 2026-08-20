@@ -6,13 +6,11 @@ def backfill_certificate_name_from_latest_enrollment(apps, schema_editor):
     Enrollment = apps.get_model("courses", "Enrollment")
     db_alias = schema_editor.connection.alias
 
-    fields = [
-        "certificate_name",
-        "github_url",
-        "linkedin_url",
-        "personal_website_url",
-        "about_me",
-    ]
+    # The course migration history is intentionally squashed at 0001.  The
+    # profile fields that used to live on Enrollment were removed before the
+    # final schema, so this migration can only backfill the field that still
+    # exists on both historical models.
+    fields = ["certificate_name"]
 
     enrollments = (
         Enrollment.objects.using(db_alias)
@@ -39,7 +37,7 @@ def backfill_certificate_name_from_latest_enrollment(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ("accounts", "0004_customuser_dark_mode"),
-        ("courses", "0026_enrollment_disable_learning_in_public_and_more"),
+        ("courses", "0001_initial"),
     ]
 
     operations = [

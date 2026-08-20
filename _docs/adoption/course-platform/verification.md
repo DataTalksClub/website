@@ -6,6 +6,10 @@ checksums, then checks each intentional copied-destination overlay against its s
 target checksum. Copied characterization and E2E files remain unchanged except for the explicit
 overlays in `integration-patched-files.tsv`.
 
+The characterization, E2E, and adoption totals below are the pre-phase-1 baseline from that source
+commit. The migration evidence section records the current local Course-to-Cohort migration state
+and its completed local replay.
+
 ## Characterization results
 
 | Surface | Result | Disposition |
@@ -30,16 +34,16 @@ leaderboard, Studio Courses, helper, and fallback-cleanup checks passed.
 
 ## Migration evidence
 
-- Original numbered migrations remain intact: 10 `accounts`, 40 `courses`, and 5 `data` migrations;
-  `api` and the mechanically renamed `studio_courses` app retain their original
-  no-numbered-migration state.
-- Two independent fresh SQLite databases applied the complete original graph successfully.
-- `makemigrations --check --dry-run` reports no model drift.
-- The final graph is the verified original graph, so a fresh final install does not introduce a
-  replacement-graph parity question.
-- No anonymized production-like source snapshot was provided. Upgrade/import reconciliation,
-  production count/key comparison, and supported reverse/forward windows therefore remain
-  unverified. No squash was attempted and no original migration was removed.
+- Phase 1 intentionally replaces the active `courses` history with one `0001_initial` migration.
+  It defines `Cohort`, `Cohort.outcome`, the legacy `courses_course` table, and Cohort-backed
+  course relations. The pinned numbered migration records remain historical provenance only.
+- `makemigrations --check --dry-run` reports no model drift for the new graph.
+- `make test-migrations` passes all 16 migration-aware tests, including the Cohort schema contract
+  and the historical account profile backfill; `make migrations-check` reports no drift.
+- A fresh `.tmp/local.sqlite3` replayed every migration to every leaf, then the local course,
+  question, and social-provider fixtures were reseeded. No production database was touched.
+- This local squash is not a production upgrade path. Production-like parity, data reconciliation,
+  and reverse/forward migration windows remain unverified.
 
 ## Inventory and repository checks
 
