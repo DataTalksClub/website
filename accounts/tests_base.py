@@ -1,7 +1,7 @@
 from django.test import Client, TestCase
 
 from accounts.models import CustomUser
-from courses.models import Course, Enrollment
+from courses.models import Cohort, Enrollment
 
 DATAMAILER_DISABLED_SETTINGS = {
     "DATAMAILER_URL": "",
@@ -19,7 +19,7 @@ class AccountCourseTestCase(TestCase):
             email="student@example.com",
             password="testpass123",
         )
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="data-course",
             title="Data Course",
             description="Learn data",

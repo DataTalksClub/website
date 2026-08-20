@@ -51,7 +51,7 @@ from accounts.studio_roles import synchronize_studio_roles
 from content.review_projection import review_projection
 from core.models import AuditEvent, StaffSession
 from courses.models import (
-    Course,
+    Cohort,
     Enrollment,
     Homework,
     PeerReview,
@@ -253,7 +253,7 @@ class ReconciliationDryRunTests(TestCase):
             verified_email="learner@example.invalid",
             is_staff=True,
         )
-        course = Course.objects.create(
+        course = Cohort.objects.create(
             slug="identity-course",
             title="Identity course",
             description="Synthetic course",
@@ -343,7 +343,7 @@ class ReviewedReconciliationTests(TestCase):
             email="learner@example.invalid",
             verified_email="learner@example.invalid",
         )
-        self.course = Course.objects.create(
+        self.course = Cohort.objects.create(
             slug="durable-identity",
             title="Durable identity",
             description="Synthetic reconciliation fixture",
