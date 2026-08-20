@@ -504,14 +504,17 @@ def _validate_phase1_schema_source() -> None:
     if not re.search(r"^class Cohort\(models\.Model\):", cohort_source, re.MULTILINE):
         raise ValidationError("phase-1 Cohort model declaration is missing")
     if not re.search(
-        r"^\s+outcome\s*=\s*models\.TextField\(blank=True\)",
+        r"^\s+outcome\s*=\s*models\.TextField\([^\n]*blank=True[^\n]*\)",
         cohort_source,
         re.MULTILINE,
     ):
         raise ValidationError("phase-1 Cohort.outcome declaration is missing")
     if not re.search(r"name=['\"]Cohort['\"]", migration_source):
         raise ValidationError("phase-1 Cohort migration operation is missing")
-    if not re.search(r"\(['\"]outcome['\"],\s*models\.TextField\(blank=True\)", migration_source):
+    if not re.search(
+        r"\(['\"]outcome['\"],\s*models\.TextField\([^\n]*blank=True[^\n]*\)",
+        migration_source,
+    ):
         raise ValidationError("phase-1 Cohort.outcome migration field is missing")
 
 
