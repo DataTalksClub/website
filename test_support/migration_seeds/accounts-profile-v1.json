@@ -7,13 +7,9 @@
   "payload": {
     "enrollments": [
       {
-        "about_me": "Synthetic profile",
-        "certificate_name": "Synthetic Learner",
-        "github_url": "https://github.example.invalid/synthetic",
-        "id": 201,
-        "linkedin_url": null,
-        "personal_website_url": "https://profile.example.invalid",
-        "student_id": 101
+      "certificate_name": "Synthetic Learner",
+      "id": 201,
+      "student_id": 101
       }
     ],
     "users": [
@@ -23,7 +19,7 @@
       }
     ]
   },
-  "payload_sha256": "e92e63ffb8b08c6c725a90106bf5d61f44b1aa906ffb1d59c226563c775c6627",
+  "payload_sha256": "3131552447792e08aa1ba16b6782a0ce6f007f3d2fe38a8f8099c4adc52d8ea0",
   "reversible": true,
   "schema_version": 1,
   "seed_version": "accounts-profile-v1",
