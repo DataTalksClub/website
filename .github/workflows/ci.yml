@@ -717,11 +717,11 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
-    # A healthy full-profile browser suite runs about 20 minutes; one wedged test
-    # must fail the job instead of holding the serialized release group for
-    # GitHub's 360-minute default (issue #193: a 4.5-hour zombie queued every
-    # later push behind it).
-    timeout-minutes: 45
+    # The verified full-profile suite currently takes 48m51s on the hosted
+    # runner (issue #206). Keep a bounded reserve above that measurement so a
+    # healthy release reaches ci-gate, while a wedged test still cannot hold
+    # the serialized release group for GitHub's 360-minute default (issue #193).
+    timeout-minutes: 60
     env:
       DJANGO_ALLOW_ASYNC_UNSAFE: "true"
       DJANGO_SETTINGS_MODULE: website.settings.test

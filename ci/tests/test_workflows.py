@@ -168,6 +168,7 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
         assert "needs.ci-gate.result == 'success'" in jobs[name]["if"]
     playwright = jobs["playwright"]
     assert set(playwright["needs"]) == {"resolve-release", "classification"}
+    assert playwright["timeout-minutes"] == "60"
     assert "make test-playwright-core" in runs(playwright)
     assert "make test-playwright" in runs(playwright)
     assert "playwright_mode == 'rerun'" in str(playwright)
