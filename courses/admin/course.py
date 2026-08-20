@@ -1,14 +1,10 @@
 from django import forms
-from django.contrib import admin
-from django.contrib import messages
+from django.contrib import admin, messages
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 from unfold.admin import ModelAdmin, TabularInline
-from unfold.widgets import (
-    UnfoldAdminTextInputWidget,
-    UnfoldAdminTextareaWidget,
-)
+from unfold.widgets import UnfoldAdminTextareaWidget, UnfoldAdminTextInputWidget
 
 from courses.models.cohort import (
     Cohort,
@@ -16,10 +12,15 @@ from courses.models.cohort import (
     LeaderboardComplaint,
     RegistrationCampaign,
 )
+from courses.leaderboard import update_leaderboard
 from courses.models.curriculum import CurriculumFlowItem, Module, Unit
 from courses.models.homework import Homework, Question
-from courses.models.project import Project, ProjectCriteriaAssignment, ReviewCriteria, criteria_for_project
-from courses.leaderboard import update_leaderboard
+from courses.models.project import (
+    Project,
+    ProjectCriteriaAssignment,
+    ReviewCriteria,
+    criteria_for_project,
+)
 from courses.validators.criteria_validators import (
     validate_review_criteria_options,
 )
@@ -105,7 +106,12 @@ duplicate_course.short_description = "Duplicate selected courses"
 
 def _duplicate_course(course, current_year):
     target_year = _next_duplicate_year(course, current_year)
-    duplicate_fields = _course_duplicate_fields(course, target_year)
+    target_identifier = _next_duplicate_identifier(course, str(target_year))
+    duplicate_fields = _course_duplicate_fields(
+        course,
+        target_year,
+        target_identifier,
+    )
     with transaction.atomic():
         new_course = Cohort.objects.create(**duplicate_fields)
         _copy_curriculum(course, new_course)
@@ -124,11 +130,29 @@ def _next_duplicate_year(course, requested_year):
     return year
 
 
-def _course_duplicate_fields(course, current_year):
+def _next_duplicate_identifier(course, requested_identifier):
+    """Choose a unique route identifier within the reusable Course family."""
+
+    used_identifiers = set(
+        Cohort.objects.filter(course=course.course).values_list(
+            "identifier",
+            flat=True,
+        )
+    )
+    identifier = requested_identifier
+    suffix = 2
+    while identifier in used_identifiers:
+        identifier = f"{requested_identifier}-{suffix}"
+        suffix += 1
+    return identifier
+
+
+def _course_duplicate_fields(course, current_year, identifier):
     title = _year_rollover_value(course.title, current_year, " ")
     slug = _year_rollover_value(course.slug, current_year, "-")
     return {
         "course": course.course,
+        "identifier": identifier,
         "year": current_year,
         "title": title,
         "slug": slug,
@@ -274,6 +298,7 @@ class CourseAdmin(ModelAdmin):
     inlines = [CriteriaInline]
     list_display = [
         "title",
+        "identifier",
         "curriculum_format",
         "start_date",
         "end_date",
