@@ -61,6 +61,7 @@ class CourseDuplicationTests(TestCase):
     def prepare_course_for_duplication(self, year):
         self.course.title = f"Test Course {year - 1}"
         self.course.slug = f"test-course-{year - 1}"
+        self.course.year = year - 1
         self.course.social_media_hashtag = "#testcourse2023"
         self.course.faq_document_url = "https://example.com/faq"
         self.course.project_passing_score = 75

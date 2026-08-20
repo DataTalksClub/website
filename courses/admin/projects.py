@@ -3,7 +3,12 @@ from unfold.admin import ModelAdmin
 
 from django.contrib import messages
 
-from courses.models.project import Project, ProjectState, ReviewCriteria
+from courses.models.project import (
+    Project,
+    ProjectCriteriaAssignment,
+    ProjectState,
+    ReviewCriteria,
+)
 
 from courses.project_assignment import (
     assign_peer_reviews_for_project,
@@ -89,3 +94,4 @@ class ProjectAdmin(ModelAdmin):
 
 
 admin.site.register(ReviewCriteria, ModelAdmin)
+admin.site.register(ProjectCriteriaAssignment, ModelAdmin)

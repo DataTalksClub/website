@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import admin
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db import transaction
 from django.utils import timezone
 from unfold.admin import ModelAdmin, TabularInline
 from unfold.widgets import (
@@ -15,9 +16,9 @@ from courses.models.cohort import (
     LeaderboardComplaint,
     RegistrationCampaign,
 )
-from courses.models.project import (
-    ReviewCriteria,
-)
+from courses.models.curriculum import CurriculumFlowItem, Module, Unit
+from courses.models.homework import Homework, Question
+from courses.models.project import Project, ProjectCriteriaAssignment, ReviewCriteria, criteria_for_project
 from courses.leaderboard import update_leaderboard
 from courses.validators.criteria_validators import (
     validate_review_criteria_options,
@@ -103,16 +104,32 @@ duplicate_course.short_description = "Duplicate selected courses"
 
 
 def _duplicate_course(course, current_year):
-    duplicate_fields = _course_duplicate_fields(course, current_year)
-    new_course = Cohort.objects.create(**duplicate_fields)
-    _copy_review_criteria(course, new_course)
+    target_year = _next_duplicate_year(course, current_year)
+    duplicate_fields = _course_duplicate_fields(course, target_year)
+    with transaction.atomic():
+        new_course = Cohort.objects.create(**duplicate_fields)
+        _copy_curriculum(course, new_course)
     return new_course
+
+
+def _next_duplicate_year(course, requested_year):
+    """Choose the requested year unless this Course already has that edition."""
+
+    used_years = set(
+        Cohort.objects.filter(course=course.course).values_list("year", flat=True)
+    )
+    year = requested_year
+    while year in used_years:
+        year += 1
+    return year
 
 
 def _course_duplicate_fields(course, current_year):
     title = _year_rollover_value(course.title, current_year, " ")
     slug = _year_rollover_value(course.slug, current_year, "-")
     return {
+        "course": course.course,
+        "year": current_year,
         "title": title,
         "slug": slug,
         "description": course.description,
@@ -126,6 +143,7 @@ def _course_duplicate_fields(course, current_year):
         "finished": False,
         "faq_document_url": course.faq_document_url,
         "project_passing_score": course.project_passing_score,
+        "curriculum_format": course.curriculum_format,
         "visible": course.visible,
     }
 
@@ -138,15 +156,116 @@ def _year_rollover_value(value, current_year, separator):
     return f"{value}{separator}{current_year}"
 
 
-def _copy_review_criteria(source_course, target_course):
-    review_criteria = source_course.reviewcriteria_set.all()
-    for criteria in review_criteria:
-        ReviewCriteria.objects.create(
+def _copy_curriculum(source_course, target_course):
+    """Copy curriculum definitions without learner or lifecycle history."""
+
+    homework_map = {}
+    for homework in Homework.objects.filter(course=source_course).order_by("id"):
+        fields = _copyable_fields(homework, excluded={"id", "course"})
+        copied_homework = Homework.objects.create(course=target_course, **fields)
+        homework_map[homework.pk] = copied_homework
+        for question in Question.objects.filter(homework=homework).order_by("id"):
+            question_fields = _copyable_fields(question, excluded={"id", "homework"})
+            Question.objects.create(homework=copied_homework, **question_fields)
+
+    project_map = {}
+    source_projects = list(
+        Project.objects.filter(course=source_course).order_by("id")
+    )
+    for project in source_projects:
+        fields = _copyable_fields(project, excluded={"id", "course"})
+        project_map[project.pk] = Project.objects.create(
+            course=target_course,
+            **fields,
+        )
+
+    source_criteria = list(
+        ReviewCriteria.objects.filter(course=source_course).order_by("id")
+    )
+    assignments = list(
+        ProjectCriteriaAssignment.objects.filter(project__course=source_course)
+        .select_related("criteria")
+        .order_by("project_id", "position", "id")
+    )
+    seen_criteria = {criteria.pk for criteria in source_criteria}
+    for assignment in assignments:
+        if assignment.criteria_id not in seen_criteria:
+            source_criteria.append(assignment.criteria)
+            seen_criteria.add(assignment.criteria_id)
+
+    criteria_map = {}
+    for criteria in source_criteria:
+        criteria_map[criteria.pk] = ReviewCriteria.objects.create(
             course=target_course,
             description=criteria.description,
             options=criteria.options,
             review_criteria_type=criteria.review_criteria_type,
         )
+
+    for project in source_projects:
+        project_assignments = list(
+            ProjectCriteriaAssignment.objects.filter(project=project)
+            .select_related("criteria")
+            .order_by("position", "id")
+        )
+        if not project_assignments:
+            project_assignments = [
+                (criteria, position)
+                for position, criteria in enumerate(criteria_for_project(project))
+            ]
+        else:
+            project_assignments = [
+                (assignment.criteria, assignment.position)
+                for assignment in project_assignments
+            ]
+        for criteria, position in project_assignments:
+            copied_criteria = criteria_map.get(criteria.pk)
+            if copied_criteria is None:
+                continue
+            ProjectCriteriaAssignment.objects.create(
+                project=project_map[project.pk],
+                criteria=copied_criteria,
+                position=position,
+            )
+
+    module_map = {}
+    for module in Module.objects.filter(cohort=source_course).order_by("position", "id"):
+        copied_module = Module.objects.create(
+            cohort=target_course,
+            position=module.position,
+            slug=module.slug,
+            title=module.title,
+            link=module.link,
+            terminal_homework=homework_map[module.terminal_homework_id],
+        )
+        module_map[module.pk] = copied_module
+        for unit in Unit.objects.filter(module=module).order_by("position", "id"):
+            Unit.objects.create(
+                module=copied_module,
+                position=unit.position,
+                slug=unit.slug,
+                title=unit.title,
+                link=unit.link,
+            )
+
+    for flow_item in CurriculumFlowItem.objects.filter(
+        cohort=source_course
+    ).order_by("position", "id"):
+        CurriculumFlowItem.objects.create(
+            cohort=target_course,
+            position=flow_item.position,
+            module=module_map.get(flow_item.module_id),
+            project=project_map.get(flow_item.project_id),
+        )
+
+
+def _copyable_fields(instance, *, excluded):
+    fields = {}
+    for field in instance._meta.concrete_fields:
+        if field.name in excluded:
+            continue
+        fields[field.name] = getattr(instance, field.name)
+    return fields
 
 
 @admin.register(Cohort)
@@ -155,11 +274,17 @@ class CourseAdmin(ModelAdmin):
     inlines = [CriteriaInline]
     list_display = [
         "title",
+        "curriculum_format",
         "start_date",
         "end_date",
         "visible",
         "finished",
     ]
+
+
+admin.site.register(Module, ModelAdmin)
+admin.site.register(Unit, ModelAdmin)
+admin.site.register(CurriculumFlowItem, ModelAdmin)
 
 
 @admin.register(RegistrationCampaign)
