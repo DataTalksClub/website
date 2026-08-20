@@ -668,7 +668,7 @@ class PodcastSeasonNavigationTests(TestCase):
         undated = [episode for episode in season.episodes if not episode["published"]]
         self.assertEqual(body.count('class="list-row archive-row'), len(season.episodes))
         self.assertEqual(body.count("archive-row archive-row-undated"), len(undated))
-        self.assertIn(f"podcast · season {season.number}", body)
+        self.assertNotIn(f"podcast · season {season.number}", body)
         # The catalogue has no duration and no global episode number; the design's
         # "58 min" and "#214" therefore have no stand-in on the page.
         self.assertNotIn(" min<", body)

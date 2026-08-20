@@ -67,6 +67,17 @@
         max-width: 36rem;
       }
 
+      /* The episode surface keeps the shared card's outer ink frame.  Its
+         season/episode line is metadata, not a status control: it stays plain
+         and blue inside the bordered card. */
+      .episode-row > .archive-card {
+        border: 2px solid var(--line);
+      }
+
+      .episode-row .archive-body > .mono-label {
+        color: var(--indigo);
+      }
+
       /* An episode row is the archive row the blog and the books archive draw,
          with the play disc as its leading mark: `.archive-row` in the design
          system partial above, through `public/_archive_row.html`.  This page
@@ -112,7 +123,6 @@
     <main id="main-content" tabindex="-1">
       <section class="band band-cream podcast-hero" aria-labelledby="podcast-heading">
         <div class="shell shell-reading">
-          <p class="mono-label mono-label-indigo">podcast · season {{ season.number }}</p>
           <h1 id="podcast-heading">Conversations with people who ship data</h1>
           <p class="podcast-lede">
             Every week a practitioner talks through what actually worked, and what broke.
@@ -149,7 +159,7 @@
                 leaving a column of empty space down the newest season.  The
                 guests are the card's credit, drawn as the shared person chip.
               {% endcomment %}
-              {% include "public/_archive_row.html" with row_title=episode.title row_url=episode.public_path row_date=episode.published row_mark="play" row_pill=episode.season_episode row_summary=episode.description row_credits=episode.guests row_class="episode-row" row_hook="data-podcast-episode" only %}
+              {% include "public/_archive_row.html" with row_title=episode.title row_url=episode.public_path row_date=episode.published row_mark="play" row_eyebrow=episode.season_episode row_summary=episode.description row_credits=episode.guests row_class="episode-row" row_hook="data-podcast-episode" only %}
             {% endfor %}
           </div>
         </div>
