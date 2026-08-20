@@ -922,7 +922,7 @@ def _account_scenario(recorder: ScenarioRecorder) -> set[str]:
     menu.click()
     expect(
         recorder.page.locator(".user-menu-panel").get_by_role("link", name="Courses", exact=True)
-    ).to_be_visible()
+    ).to_have_count(0)
     recorder.scan_current("account.authenticated-navigation")
 
     recorder.scan(
