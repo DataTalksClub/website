@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from courses.models.project import ReviewCriteria
+from courses.models.project import criteria_for_project
 from courses.project_score_groups import group_peer_reviews
 from courses.project_submission_scoring import (
     ProjectScoringData,
@@ -19,9 +19,7 @@ class ProjectScoringCalculation:
 def calculate_project_scoring(project, peer_reviews):
     group_data = group_peer_reviews(peer_reviews)
 
-    criteria = ReviewCriteria.objects.filter(
-        course=project.course
-    ).all()
+    criteria = criteria_for_project(project)
 
     scoring_data = ProjectScoringData(
         project=project,

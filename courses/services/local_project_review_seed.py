@@ -20,11 +20,13 @@ from courses.models import (
     Enrollment,
     PeerReview,
     Project,
+    ProjectCriteriaAssignment,
     ProjectState,
     ProjectSubmission,
     ReviewCriteria,
     ReviewCriteriaTypes,
     User,
+    criteria_for_project,
 )
 from courses.project_assignment import (
     ProjectActionStatus,
@@ -185,6 +187,23 @@ def _ensure_review_criteria(course) -> list[ReviewCriteria]:
     return criteria
 
 
+def _ensure_project_criteria(
+    project: Project,
+    criteria: list[ReviewCriteria],
+) -> None:
+    """Materialize the legacy rubric as explicit project assignments."""
+
+    for position, criterion in enumerate(criteria):
+        assignment, _ = ProjectCriteriaAssignment.objects.get_or_create(
+            project=project,
+            criteria=criterion,
+            defaults={"position": position},
+        )
+        if assignment.position != position:
+            assignment.position = position
+            assignment.save(update_fields=["position"])
+
+
 def _assert_project_owns_only_synthetic_submissions(project: Project) -> None:
     has_unowned_submissions = (
         ProjectSubmission.objects.filter(
@@ -268,7 +287,8 @@ def seed_local_project_review(
             project.submission_due_date = timezone.now() - timedelta(hours=1)
         project.save(update_fields=["state", "submission_due_date"])
 
-        _ensure_review_criteria(course)
+        criteria = _ensure_review_criteria(course)
+        _ensure_project_criteria(project, criteria)
         _create_synthetic_submissions(course, project)
 
         status, _ = assign_peer_reviews_for_project(project)
@@ -280,7 +300,7 @@ def seed_local_project_review(
         peer_review_count = PeerReview.objects.filter(
             submission_under_evaluation__project=project,
         ).count()
-        criteria_count = ReviewCriteria.objects.filter(course=course).count()
+        criteria_count = criteria_for_project(project).count()
 
     return LocalProjectReviewSeedResult(
         course_slug=course.slug,

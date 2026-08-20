@@ -314,17 +314,32 @@ class ProjectCriteriaAssignment(models.Model):
 
 
 def criteria_for_project(project):
-    """Return a project's explicit rubric without cohort-wide fallback."""
+    """Return the ordered rubric for one project.
+
+    Module cohorts are strict: only explicit ProjectCriteriaAssignment rows
+    are accepted. Legacy cohorts retain a narrow compatibility adapter for
+    fixtures and rows created before the backfill; the migration creates
+    explicit assignments for all persisted projects.
+    """
 
     if not getattr(project, "pk", None):
         return ReviewCriteria.objects.none()
 
-    return ReviewCriteria.objects.filter(
+    assigned = ReviewCriteria.objects.filter(
         project_assignments__project_id=project.pk,
     ).order_by(
         "project_assignments__position",
         "project_assignments__id",
     )
+    if assigned.exists():
+        return assigned
+
+    if getattr(project.course, "curriculum_format", "legacy") != "legacy":
+        return assigned
+
+    return ReviewCriteria.objects.filter(
+        course_id=project.course_id,
+    ).order_by("id")
 
 
 class PeerReviewState(Enum):

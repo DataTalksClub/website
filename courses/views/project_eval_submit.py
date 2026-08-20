@@ -8,7 +8,7 @@ from courses.models.project import (
     PeerReview,
     Project,
     ProjectState,
-    ReviewCriteria,
+    criteria_for_project,
 )
 from courses.votes import (
     update_project_vote,
@@ -125,9 +125,7 @@ def project_eval_submit_page(
     project = get_object_or_404(
         Project, slug=project_slug, course=course
     )
-    review_criteria = ReviewCriteria.objects.filter(
-        course=course
-    ).order_by("id")
+    review_criteria = criteria_for_project(project)
     return ProjectEvalSubmitPage(
         course=course,
         project=project,
