@@ -43,6 +43,7 @@ class Homework(SourceProvenanceModel):
 
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
+    instructions_markdown = models.TextField(blank=True)
     instructions_url = models.URLField(
         blank=True,
         null=True,

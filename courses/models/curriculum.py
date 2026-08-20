@@ -79,6 +79,8 @@ class Unit(SourceProvenanceModel):
     position = models.PositiveIntegerField()
     slug = models.SlugField()
     title = models.CharField(max_length=200)
+    content_markdown = models.TextField(blank=True)
+    rendered_html = models.TextField(blank=True)
     link = models.URLField(
         blank=True,
         help_text="Optional destination for the unit.",
