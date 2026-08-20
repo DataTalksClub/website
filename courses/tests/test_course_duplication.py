@@ -72,7 +72,7 @@ class CourseDuplicationTests(TestCase):
         self.course.save(update_fields=["visible"])
 
     def duplicate_course(self, admin_client):
-        url = reverse("admin:courses_course_changelist")
+        url = reverse("admin:courses_cohort_changelist")
         data = {
             "action": "duplicate_course",
             "_selected_action": [str(self.course.pk)],
@@ -85,6 +85,7 @@ class CourseDuplicationTests(TestCase):
     def assert_duplicated_course_fields(self, new_course, year):
         self.assertEqual(new_course.title, f"Test Course {year}")
         self.assertEqual(new_course.description, self.course.description)
+        self.assertEqual(new_course.outcome, self.course.outcome)
         self.assertEqual(
             new_course.social_media_hashtag,
             self.course.social_media_hashtag,

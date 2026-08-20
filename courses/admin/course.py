@@ -116,6 +116,7 @@ def _course_duplicate_fields(course, current_year):
         "title": title,
         "slug": slug,
         "description": course.description,
+        "outcome": course.outcome,
         "start_date": course.start_date,
         "end_date": course.end_date,
         "registration_url": course.registration_url,
