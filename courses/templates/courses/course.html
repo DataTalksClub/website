@@ -546,7 +546,8 @@
                                   {% if unit.link %}
                                     <a class="band-link" href="{{ unit.link }}">{{ unit.title }}</a>
                                   {% else %}
-                                    <span>{{ unit.title }}</span>
+                                    {% url 'unit' course.course.slug course.identifier flow_item.module.slug unit.slug as unit_url %}
+                                    <a class="band-link" href="{{ unit_url }}">{{ unit.title }}</a>
                                   {% endif %}
                                 </li>
                               {% endfor %}

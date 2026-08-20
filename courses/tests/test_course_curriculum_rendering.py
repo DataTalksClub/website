@@ -219,6 +219,18 @@ class CoursePageCurriculumRenderingTests(TestCase):
         self.assertContains(
             response,
             reverse(
+                "unit",
+                kwargs={
+                    "course_slug": cohort.course.slug,
+                    "cohort_identifier": cohort.identifier,
+                    "module_slug": module_b.slug,
+                    "unit_slug": "module-b-unit-1",
+                },
+            ),
+        )
+        self.assertContains(
+            response,
+            reverse(
                 "project",
                 kwargs={
                     "course_slug": cohort.course.slug,
