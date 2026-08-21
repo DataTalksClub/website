@@ -17,6 +17,7 @@ from ci.evidence import (
     SHA256_RE,
     SHA_RE,
     VALIDITY_SECONDS,
+    EvidenceError,
     artifact_records,
     build_envelope,
     choose_reusable_evidence,
@@ -1734,6 +1735,74 @@ def _record_machine_output(
         ) from None
 
 
+def _artifact_diagnostic_path(value: str | Path, *, root: str | Path) -> str:
+    path = Path(value)
+    try:
+        return path.resolve().relative_to(Path(root).resolve()).as_posix()
+    except (OSError, ValueError):
+        return path.as_posix()
+
+
+def _add_artifact_collection_error(
+    errors: list[dict[str, str]],
+    value: str | Path,
+    error: BaseException,
+    *,
+    root: str | Path,
+) -> None:
+    record = {
+        "path": _artifact_diagnostic_path(value, root=root),
+        "reason": str(error),
+    }
+    if not any(item["path"] == record["path"] for item in errors):
+        errors.append(record)
+
+
+def _collect_artifact_records(
+    paths: Sequence[str | Path],
+    *,
+    root: str | Path,
+    tolerate_errors: bool,
+) -> tuple[list[dict[str, Any]], list[dict[str, str]]]:
+    records: list[dict[str, Any]] = []
+    errors: list[dict[str, str]] = []
+    for value in paths:
+        try:
+            records.extend(artifact_records((value,), root=root))
+        except (EvidenceError, OSError) as exc:
+            if not tolerate_errors:
+                raise
+            _add_artifact_collection_error(errors, value, exc, root=root)
+    unique_records = {record["path"]: record for record in records}
+    return sorted(unique_records.values(), key=lambda item: item["path"]), errors
+
+
+def _write_artifact_collection_marker(
+    *,
+    root: str | Path,
+    component: str,
+    result: str,
+    errors: Sequence[dict[str, str]],
+) -> Path:
+    marker = Path(root) / f"{component}-artifact-collection.json"
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    ordered_errors = list(errors)
+    ordered_errors.sort(key=lambda item: (item["path"], item["reason"]))
+    dump_json(
+        {
+            "artifact_collection": {
+                "errors": ordered_errors,
+                "status": "partial",
+            },
+            "component": component,
+            "result": result,
+            "schema_version": 1,
+        },
+        marker,
+    )
+    return marker
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     commands = parser.add_subparsers(dest="command_name", required=True)
@@ -1912,14 +1981,66 @@ def main() -> None:
         screenshot = None
         if args.screenshot:
             screenshot = _read_screenshot_metadata(args.screenshot)
-        machine_output = _record_machine_output(
-            args.machine_output,
+        collection_errors: list[dict[str, str]] = []
+        machine_output_path = Path(args.machine_output)
+        try:
+            machine_output = _record_machine_output(
+                machine_output_path,
+                root=args.artifact_root,
+                component=args.component,
+                plan=plan,
+                result=args.result,
+                screenshot=screenshot,
+            )
+        except (EvidenceError, OSError, VerificationError) as exc:
+            if args.result == "success":
+                raise
+            _add_artifact_collection_error(
+                collection_errors,
+                machine_output_path,
+                exc,
+                root=args.artifact_root,
+            )
+            machine_output = None
+
+        expected_artifact_paths = [
+            *(Path(item) for item in args.artifact),
+            machine_output_path,
+            Path(args.execution_environment),
+        ]
+        collected_artifacts, artifact_errors = _collect_artifact_records(
+            expected_artifact_paths,
             root=args.artifact_root,
-            component=args.component,
-            plan=plan,
-            result=args.result,
-            screenshot=screenshot,
+            tolerate_errors=args.result != "success",
         )
+        for error in artifact_errors:
+            _add_artifact_collection_error(
+                collection_errors,
+                error["path"],
+                ValueError(error["reason"]),
+                root=args.artifact_root,
+            )
+
+        marker_path: Path | None = None
+        if collection_errors:
+            marker_path = _write_artifact_collection_marker(
+                root=args.artifact_root,
+                component=args.component,
+                result=args.result,
+                errors=collection_errors,
+            )
+            if machine_output is None:
+                machine_output_path = marker_path
+                machine_output = _record_machine_output(
+                    machine_output_path,
+                    root=args.artifact_root,
+                    component=args.component,
+                    plan=plan,
+                    result=args.result,
+                    screenshot=screenshot,
+                )
+        if machine_output is None:
+            raise VerificationError("component machine output could not be recorded")
         result_payload = {
             "command": args.command,
             "component": args.component,
@@ -1928,15 +2049,23 @@ def main() -> None:
             "recorded_at": isoformat(utc_now()),
             "result": args.result,
         }
+        if collection_errors and marker_path is not None:
+            result_payload["artifact_collection"] = {
+                "errors": sorted(
+                    collection_errors, key=lambda item: (item["path"], item["reason"])
+                ),
+                "marker": _artifact_diagnostic_path(marker_path, root=args.artifact_root),
+                "status": "partial",
+            }
         dump_json(result_payload, result_path)
-        artifact_paths = [
-            result_path,
-            *(Path(item) for item in args.artifact),
-            Path(args.machine_output),
-            Path(args.execution_environment),
-        ]
-        artifact_paths = list(dict.fromkeys(artifact_paths))
-        artifacts = artifact_records(artifact_paths, root=args.artifact_root)
+        result_records = artifact_records((result_path,), root=args.artifact_root)
+        artifacts = collected_artifacts + result_records
+        if marker_path is not None:
+            artifacts.extend(artifact_records((marker_path,), root=args.artifact_root))
+        artifacts = sorted(
+            {record["path"]: record for record in artifacts}.values(),
+            key=lambda item: item["path"],
+        )
         envelope = build_envelope(
             plan=plan,
             component=args.component,
