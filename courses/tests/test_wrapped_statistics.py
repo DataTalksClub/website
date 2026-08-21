@@ -19,6 +19,8 @@ class WrappedPlatformStatisticsTest(WrappedStatisticsTestBase):
             {
                 "title": "Wrapped Course",
                 "slug": "wrapped-course",
+                "course_slug": "wrapped-course",
+                "cohort_year": "2026",
                 "enrollment_count": 2,
             }
         ]
