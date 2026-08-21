@@ -1,13 +1,9 @@
-from django.urls import reverse
-
 from courses.tests.course_view_base import CourseDetailViewTestBase
 
 
 class CourseDetailUnauthenticatedTest(CourseDetailViewTestBase):
     def test_course_detail_unauthenticated_user(self):
-        url = reverse(
-            "course", kwargs={"course_slug": self.course.slug}
-        )
+        url = self.course_url()
 
         response = self.client.get(url)
 
