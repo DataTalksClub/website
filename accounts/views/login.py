@@ -144,6 +144,7 @@ def get_available_providers(safe_next="/"):
             continue
 
         provider_record = {
+            "id": provider,
             "name": name,
             "login_url": reverse(f"{provider}_login"),
         }

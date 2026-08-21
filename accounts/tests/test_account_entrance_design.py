@@ -21,6 +21,7 @@ from allauth.socialaccount.models import SocialApp
 from django.conf import settings
 from django.contrib.sites.models import Site
 from django.core.cache import cache
+from django.template import Context, Template
 from django.test import TestCase
 from django.urls import reverse
 
@@ -82,6 +83,13 @@ class AccountEntranceDocumentTests(TestCase):
 
 class SignupPageTests(TestCase):
     """The sign-up page keeps every control it had, and gains real labels."""
+
+    def test_login_and_signup_extend_the_same_auth_document(self) -> None:
+        signup = self.client.get("/accounts/signup/")
+        login = self.client.get("/accounts/login/")
+
+        self.assertTemplateUsed(signup, "account/auth_page.html")
+        self.assertTemplateUsed(login, "account/auth_page.html")
 
     def test_signup_renders_the_rebuilt_template(self) -> None:
         response = self.client.get("/accounts/signup/")
@@ -232,3 +240,28 @@ class SignupProviderChoiceTests(TestCase):
         self.assertLess(providers_at, divider_at)
         self.assertLess(divider_at, form_at)
         self.assertIn("Sign up with an email address", body)
+
+    def test_the_provider_partial_accepts_links_from_another_template(self) -> None:
+        body = Template(
+            '{% include "account/_social_provider_choices.html" '
+            'with provider_list=providers provider_url_mode="provided" %}'
+        ).render(
+            Context(
+                {
+                    "providers": [
+                        {
+                            "id": "github",
+                            "name": "GitHub",
+                            "login_url": "/accounts/github/login/?next=%2Fcommunity%2F",
+                        }
+                    ]
+                }
+            )
+        )
+
+        self.assertIn("Continue with GitHub", body)
+        self.assertIn(
+            'href="/accounts/github/login/?next=%2Fcommunity%2F"',
+            body,
+        )
+        self.assertIn('<svg class="provider-mark"', body)

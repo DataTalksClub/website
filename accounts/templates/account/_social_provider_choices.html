@@ -1,0 +1,23 @@
+{% load socialaccount %}
+{% comment %}
+  Shared social-provider chooser.
+
+  Pass `provider_list` and set `provider_url_mode` to `allauth` when the list
+  comes from `{% get_providers %}` (the tag resolves the URL), or to
+  `provided` when each record already carries `login_url` (the public login
+  view adds the safe `next` value). The provider mark partial is the only
+  source of the Google, GitHub and Slack drawings.
+{% endcomment %}
+{% if provider_list %}
+  <div class="{{ provider_container_class|default:'provider-choices' }}">
+    {% for provider in provider_list %}
+      {% if provider_url_mode == "allauth" %}
+        {% provider_login_url provider process="login" as provider_url %}
+      {% endif %}
+      <a class="cta cta-secondary {{ provider_item_class|default:'provider-choice' }}" href="{% if provider_url_mode == 'allauth' %}{{ provider_url }}{% else %}{{ provider.login_url }}{% endif %}">
+        {% include "account/_provider_mark.html" with provider_id=provider.id only %}
+        Continue with {{ provider.name }}
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}

@@ -1,259 +1,97 @@
+{% extends "account/auth_page.html" %}
 {% load accessibility %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>Sign in — DataTalks.Club</title>
-    <style>
-      /* ------------------------------------------------------------------ *
-       * Sign in, design 5a (issue #179).  One narrow column on the cream
-       * band: who you are signing in as, the ways in, and nothing else.  The
-       * page carries its complete stylesheet and loads no external CSS.
-       *
-       * Nothing about the sign-in behaviour moved with the design: the form
-       * method, the CSRF token, the field names, the accessible widget
-       * relationships, the generic error copy and the provider destinations
-       * are exactly what accounts/views/login.py already rendered.
-       * ------------------------------------------------------------------ */
 
-      {% include "core/_design_system.html" %}
+{% block title %}
+  <title>Sign in — DataTalks.Club</title>
+{% endblock %}
 
-      /* ------------------------------------------------------------------ *
-       * Sign-in rules.
-       * ------------------------------------------------------------------ */
+{% block auth_header_class %}auth-hero{% endblock %}
+{% block auth_shell_class %}auth-shell{% endblock %}
+{% block auth_content_shell_class %}auth-shell{% endblock %}
+{% block auth_heading_id %}sign-in-heading{% endblock %}
+{% block auth_content_heading_id %}sign-in-content-heading{% endblock %}
 
-      /* A sign-in page is a single decision, so it is held well inside the
-         reading measure instead of the full shell. */
-      .auth-shell {
-        max-width: 30rem;
-      }
+{% block auth_header %}
+  <p class="mono-label mono-label-indigo">Account</p>
+  <h1 id="sign-in-heading">Sign In</h1>
+  {% if development_owner_login_enabled or providers %}
+    <p class="auth-lede">Choose your preferred login method</p>
+  {% endif %}
+{% endblock %}
 
-      .auth-hero h1 {
-        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
-        letter-spacing: -0.025em;
-        margin-top: 0.6rem;
-      }
-
-      .auth-lede {
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        margin-top: 0.75rem;
-      }
-
-      .auth-panel {
-        gap: 1rem;
-        margin-top: 1.5rem;
-        padding: 1.35rem;
-      }
-
-      .auth-panel h2 {
-        font-size: 1.05rem;
-      }
-
-      .auth-form {
-        display: grid;
-        gap: 1rem;
-      }
-
-      /* The bound fields arrive from accounts/forms.py with its own widget
-         class, so the system's control treatment is attached to that class
-         here rather than by editing the form: the field then reads exactly
-         like every other design 5a input, in both themes. */
-      .auth-form .form-control {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.625rem;
-        color: var(--ink);
-        font: inherit;
-        min-height: 2.75rem;
-        padding: 0.65rem 0.8rem;
-        width: 100%;
-      }
-
-      /* State is never colour-only in this system: the notice carries the
-         words, and the sand/ink pairing gives it a surface that reads at well
-         over 4.5:1 on both themes without inventing a red the system has no
-         token for. */
-      .auth-notice {
-        background: var(--sand);
-        border: 1.5px dashed var(--line-soft);
-        border-radius: 0.7rem;
-        color: var(--ink);
-        display: grid;
-        font-size: 0.92rem;
-        gap: 0.35rem;
-        padding: 0.85rem 1rem;
-      }
-
-      .auth-choices {
-        display: grid;
-        gap: 0.75rem;
-      }
-
-      /* With no method configured there is no panel or action to draw: the
-         state note stands on the band on its own. */
-      .auth-fallback {
-        display: grid;
-        gap: 1rem;
-        margin-top: 1.5rem;
-      }
-
-      .auth-or {
-        align-items: center;
-        color: var(--muted);
-        display: grid;
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        gap: 0.85rem;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-        letter-spacing: 0.1em;
-        margin-block: 1.5rem;
-        text-align: center;
-        text-transform: uppercase;
-      }
-
-      .auth-or::before,
-      .auth-or::after {
-        border-top: 2px dashed var(--line-soft);
-        content: "";
-      }
-
-      .auth-account-links {
-        color: var(--body-text);
-        font-size: 0.9rem;
-        margin-top: 1rem;
-        text-align: center;
-      }
-
-      .auth-reassurance {
-        color: var(--body-text);
-        font-size: 0.85rem;
-        margin-top: 1rem;
-      }
-
-      @media (max-width: 47.99rem) {
-        /* On a phone the panel gives up its inset and the actions become full
-           width rows, so the whole decision fits above the fold. */
-        .auth-panel {
-          padding: 1.1rem;
-        }
-
-        .auth-choices .cta {
-          width: 100%;
-        }
-
-      }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  {% url 'account_signup' as account_signup_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream auth-hero" aria-labelledby="sign-in-heading">
-        <div class="shell auth-shell">
-          <p class="mono-label mono-label-indigo">Account</p>
-          <h1 id="sign-in-heading">Sign In</h1>
-          {% if development_owner_login_enabled or providers %}
-            <p class="auth-lede">Choose your preferred login method</p>
-          {% endif %}
-          {% if providers %}
-            <div class="card auth-panel">
-              <h2>Continue with a social account</h2>
-              <div class="auth-choices">
-                {% for provider in providers %}
-                  <a class="cta cta-secondary" href="{{ provider.login_url }}">
-                    Continue with {{ provider.name }}
-                  </a>
-                {% endfor %}
-              </div>
-              <p class="auth-reassurance">
-                Secure login — we never store your social media passwords
-              </p>
-            </div>
-          {% endif %}
-          {% if providers and not development_owner_login_enabled %}
-            <p class="auth-account-links">
-              New here?
-              <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
-                Create an account
-              </a>
-            </p>
-          {% endif %}
-          {% if providers and development_owner_login_enabled %}
-            <p class="auth-or"><span>or sign in with email</span></p>
-          {% endif %}
-          {% if development_owner_login_enabled %}
-            <section class="card auth-panel" aria-labelledby="sign-in-password-heading">
-              <h2 id="sign-in-password-heading">Sign in with email</h2>
-              {% if login_error %}
-                <div
-                  class="auth-notice"
-                  id="login-error"
-                  role="alert"
-                  tabindex="-1"
-                  data-focus-error-summary
-                >
-                  <p>{{ login_error }}</p>
-                </div>
-              {% endif %}
-              <form class="auth-form" method="post">
-                {% csrf_token %}
-                <div class="field">
-                  <label class="field-label" for="{{ development_owner_form.email.id_for_label }}">
-                    Email
-                  </label>
-                  {% accessible_widget development_owner_form.email %}
-                </div>
-                <div class="field">
-                  <label class="field-label" for="{{ development_owner_form.password.id_for_label }}">
-                    Password
-                  </label>
-                  {% accessible_widget development_owner_form.password %}
-                </div>
-                <div>
-                  <button
-                    class="cta cta-primary"
-                    type="submit"
-                    data-busy-label="Signing in…"
-                  >Sign in</button>
-                </div>
-              </form>
-              <p class="auth-account-links">
-                <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
-                  Create an account
-                </a>
-              </p>
-            </section>
-          {% elif not providers %}
-            <div class="auth-fallback">
-              <div class="auth-notice" role="status">
-                <p>
-                  <strong>Sign-in is temporarily unavailable</strong>
-                </p>
-                <p>
-                  Please try again later or contact the community team.
-                </p>
-              </div>
-            </div>
-          {% endif %}
+{% block auth_content %}
+  {% if providers %}
+    <div class="card auth-panel">
+      <h2 id="sign-in-content-heading">Continue with a social account</h2>
+      {% include "account/_social_provider_choices.html" with provider_list=providers provider_url_mode="provided" provider_container_class="auth-choices" %}
+      <p class="auth-reassurance">
+        Secure login — we never store your social media passwords
+      </p>
+    </div>
+  {% endif %}
+  {% if providers and not development_owner_login_enabled %}
+    <p class="auth-account-links">
+      New here?
+      <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
+        Create an account
+      </a>
+    </p>
+  {% endif %}
+  {% if providers and development_owner_login_enabled %}
+    <p class="auth-or"><span>or sign in with email</span></p>
+  {% endif %}
+  {% if development_owner_login_enabled %}
+    <section class="card auth-panel" aria-labelledby="sign-in-password-heading">
+      <h2 id="sign-in-password-heading">Sign in with email</h2>
+      {% if login_error %}
+        <div
+          class="auth-notice"
+          id="login-error"
+          role="alert"
+          tabindex="-1"
+          data-focus-error-summary
+        >
+          <p>{{ login_error }}</p>
         </div>
-      </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+      {% endif %}
+      <form class="auth-form" method="post">
+        {% csrf_token %}
+        <div class="field">
+          <label class="field-label" for="{{ development_owner_form.email.id_for_label }}">
+            Email
+          </label>
+          {% accessible_widget development_owner_form.email %}
+        </div>
+        <div class="field">
+          <label class="field-label" for="{{ development_owner_form.password.id_for_label }}">
+            Password
+          </label>
+          {% accessible_widget development_owner_form.password %}
+        </div>
+        <div>
+          <button
+            class="cta cta-primary"
+            type="submit"
+            data-busy-label="Signing in…"
+          >Sign in</button>
+        </div>
+      </form>
+      <p class="auth-account-links">
+        <a href="{{ account_signup_url }}?next={{ safe_next|urlencode }}">
+          Create an account
+        </a>
+      </p>
+    </section>
+  {% elif not providers %}
+    <div class="auth-fallback">
+      <div class="auth-notice" role="status">
+        <p>
+          <strong>Sign-in is temporarily unavailable</strong>
+        </p>
+        <p>
+          Please try again later or contact the community team.
+        </p>
+      </div>
+    </div>
+  {% endif %}
+{% endblock %}
