@@ -67,7 +67,13 @@ def green_component_commands(repository: Path, output: Path, *, hang_evidence_va
             )
             destination = shlex.quote(str(output / "container-check.json"))
             return ("sh", "-c", f"echo {shlex.quote(payload)} > {destination}")
-        return ("printf", "2 passed in 0.01s\n")
+        log_output = "2 passed in 0.01s\n"
+        if component == "playwright":
+            log_output += (
+                "DTC_FLAKE_POLICY_V1 attempted=2 passed=2 failed=0 skipped=0 "
+                "rerun=0 quarantined=0 complete=1\n"
+            )
+        return ("printf", log_output)
 
     return command_for
 

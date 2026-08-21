@@ -431,6 +431,7 @@ def test_scheduled_workflow_has_no_mutation_or_aws_jobs_and_checks_exact_sha() -
         "migrations",
         "django",
         "playwright",
+        "playwright-quarantine",
         "container",
         "full-regression",
         "scheduled-gate",
@@ -508,6 +509,23 @@ def test_scheduled_playwright_executes_and_records_the_planner_core_command() ->
     assert command_pattern.findall(execution["run"]) == [planner_command]
     assert command_pattern.findall(recording["run"]) == [planner_command]
     assert f'--command "{planner_command}"' in recording["run"]
+
+
+def test_scheduled_quarantine_monitor_is_bounded_visible_and_non_blocking() -> None:
+    data = workflow("scheduled-full-regression.yml")
+    quarantine = data["jobs"]["playwright-quarantine"]
+    assert quarantine["if"] == "always() && needs.selector.result == 'success'"
+    assert quarantine["needs"] == "selector"
+    assert quarantine["continue-on-error"] == "true"
+    assert quarantine["timeout-minutes"] == "45"
+    script = runs(quarantine)
+    assert "make test-playwright-quarantined" in script
+    assert "ci.flake_policy report" in script
+    assert "playwright-quarantine-report.json" in script
+    assert "playwright-quarantine-${{ github.run_id }}-attempt-${{ github.run_attempt }}" in str(
+        quarantine
+    )
+    assert "playwright-quarantine" not in str(data["jobs"]["full-regression"]["needs"])
 
 
 def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() -> None:

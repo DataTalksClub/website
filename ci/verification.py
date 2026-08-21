@@ -774,6 +774,16 @@ def validate_report(
                 raise VerificationError("rerun report entry has an unsupported result")
             if bucket in {"rerun", "reused"}:
                 _validate_evidence_reference(entry["evidence"])
+                if (
+                    component == "playwright"
+                    and (bucket == "reused" or entry["result"] == "success")
+                    and not {"attempted", "quarantined", "rerun"}.issubset(
+                        entry["evidence"]["counts"]
+                    )
+                ):
+                    raise VerificationError(
+                        "successful Playwright evidence omits the flake-policy counts"
+                    )
             _validate_component_report_proof(entry["proof"])
     if seen != set(PLAN_COMPONENTS):
         raise VerificationError("verification report does not classify every component")
@@ -957,6 +967,19 @@ def report_summary(report: Mapping[str, Any]) -> str:
                 f"{item['path']}@sha256:{item['sha256']}" for item in evidence["artifacts"]
             )
             lines.append(f"  - Result/counts: `{entry.get('result', 'success')}` / `{counts}`")
+            if entry["component"] == "playwright" and {
+                "attempted",
+                "quarantined",
+                "rerun",
+            }.issubset(evidence["counts"]):
+                lines.append(
+                    "  - Flake-policy counts: "
+                    f"attempted={evidence['counts']['attempted']}, "
+                    f"passed={evidence['counts']['passed']}, "
+                    f"failed={evidence['counts']['failed']}, "
+                    f"rerun={evidence['counts']['rerun']}, "
+                    f"quarantined={evidence['counts']['quarantined']}"
+                )
             lines.append(
                 f"  - Evidence: `{evidence['evidence_id']}`; output "
                 f"`{evidence['output']['format']}@sha256:{evidence['output']['artifact']['sha256']}`"
