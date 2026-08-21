@@ -6,12 +6,12 @@ from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    User,
     Cohort,
-    Project,
-    ProjectSubmission,
-    ProjectState,
     Enrollment,
+    Project,
+    ProjectState,
+    ProjectSubmission,
+    User,
 )
 
 
@@ -214,7 +214,7 @@ class ProjectViewTestBase(TestCase):
         self.assertEqual(context["project_slug"], "test-project")
         self.assertEqual(
             context["update_url"],
-            "http://localhost/test-course/project/test-project",
+            f"http://localhost{self.project_url()}",
         )
         self.assertEqual(
             context["profile_url"],
