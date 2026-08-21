@@ -498,7 +498,7 @@ def _validated_course_routes(path: Path) -> dict[str, object]:
         type(value["route_count"]) is not int
         or not isinstance(routes, list)
         or value["route_count"] != len(routes)
-        or len(routes) != 89
+        or len(routes) != 115
     ):
         raise CliError("course route contract count is invalid")
     expected_route_keys = {
@@ -571,9 +571,9 @@ def _validated_course_routes(path: Path) -> dict[str, object]:
         identities.add(identity)
     if Counter(route["surface"] for route in routes) != {
         "Accounts": 9,
-        "Compatibility API": 29,
+        "Compatibility API": 30,
         "Studio Courses": 26,
-        "Public courses": 25,
+        "Public courses": 50,
     }:
         raise CliError("course route surface counts are invalid")
     studio_routes = [route for route in routes if route["surface"] == "Studio Courses"]

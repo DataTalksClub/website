@@ -52,7 +52,7 @@
     },
     {
       "path": "_docs/compatibility/public-contracts.jsonl",
-      "sha256": "50f875806217865ef35b74f58ed885c4b5c832284391dbea7f84344d3416f66d",
+      "sha256": "31f505350566bfcde0a30109dadcfb3565042fd395b4c1bd151966f94d361332",
       "class": "captured_compatibility",
       "reason": "Captured public-contract inventory retains source bytes.",
       "follow_up": "none; immutable capture",

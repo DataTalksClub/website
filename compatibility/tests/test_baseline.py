@@ -283,12 +283,12 @@ def test_course_route_inventory_matches_all_adopted_urlconfs() -> None:
     rows = document["routes"]
     current_routes = route_entries()
 
-    assert document["route_count"] == len(rows) == len(current_routes) == 89
+    assert document["route_count"] == len(rows) == len(current_routes) == 115
     assert Counter(row["surface"] for row in rows) == {
         "Accounts": 9,
-        "Compatibility API": 29,
+        "Compatibility API": 30,
         "Studio Courses": 26,
-        "Public courses": 25,
+        "Public courses": 50,
     }
 
     def target_identity(row: Any) -> tuple[object, ...]:
@@ -426,7 +426,7 @@ def test_difference_ledger_records_completed_capture_without_approving_changes()
         "machine_contract_samples": 50,
         "faq_fragment_contracts": 1_401,
         "podwiki_graph_fragment_contracts": 1_072,
-        "course_route_contracts": 89,
+        "course_route_contracts": 115,
     }
     assert {row["difference_id"] for row in differences["known_source_build_differences"]} == {
         "dtc-docs-build-tool-version",

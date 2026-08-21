@@ -26,26 +26,26 @@ from compatibility.schema import RecordSchemaError, load_schema, validate_jsonl_
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_ARTIFACT = REPOSITORY_ROOT / "_docs/compatibility/public-contracts.jsonl"
 CONTRACT_SCHEMA = REPOSITORY_ROOT / "_docs/compatibility/public-contracts.schema.json"
-CONTRACT_DIGEST = "50f875806217865ef35b74f58ed885c4b5c832284391dbea7f84344d3416f66d"
+CONTRACT_DIGEST = "31f505350566bfcde0a30109dadcfb3565042fd395b4c1bd151966f94d361332"
 
 
 def test_inventory_reconciles_every_source_artifact_exactly() -> None:
     contracts = load_public_contract_inventory()
 
-    assert len(contracts) == 5_507
+    assert len(contracts) == 5_533
     assert Counter(contract.source_id for contract in contracts) == {
         "dtc-main-site": 2_301,
         "dtc-docs": 175,
         "dtc-faq": 1_553,
         "dtc-podwiki": 1_388,
-        "dtc-course-platform": 90,
+        "dtc-course-platform": 116,
     }
     assert Counter(contract.contract_kind for contract in contracts) == {
-        "api": 29,
+        "api": 30,
         "asset": 1_510,
-        "calendar": 1,
+        "calendar": 2,
         "fragment": 2_474,
-        "html": 1_277,
+        "html": 1_301,
         "json": 14,
         "path": 3,
         "query": 4,
@@ -53,8 +53,8 @@ def test_inventory_reconciles_every_source_artifact_exactly() -> None:
         "xml": 7,
     }
     assert sum(contract.machine_contract for contract in contracts) == 50
-    assert sum(contract.route_pattern is not None for contract in contracts) == 89
-    assert sum(contract.expected_status is None for contract in contracts) == 97
+    assert sum(contract.route_pattern is not None for contract in contracts) == 115
+    assert sum(contract.expected_status is None for contract in contracts) == 123
     assert {contract.classification for contract in contracts} == {ContractClassification.PRESERVE}
     assert {contract.review_state for contract in contracts} == {ReviewState.PROPOSED_PRESERVE}
     assert len({contract.contract_id for contract in contracts}) == len(contracts)
@@ -176,7 +176,7 @@ def test_inventory_serialization_is_canonical_and_repeatable() -> None:
 
     assert first == second
     assert first.endswith("\n")
-    assert len(first.splitlines()) == 5_507
+    assert len(first.splitlines()) == 5_533
     assert public_contract_inventory_sha256(first_inventory) == CONTRACT_DIGEST
     records = [json.loads(line) for line in first.splitlines()]
     assert [record["public_url"] for record in records] == sorted(
@@ -302,7 +302,7 @@ def test_checked_in_public_contract_artifact_is_canonical_and_matches_its_schema
     assert schema["properties"]["classification"]["const"] == "preserve"
     assert schema["properties"]["review_state"]["const"] == "proposed_preserve"
     assert schema["properties"]["percent_encoded_public_reference"]["type"] == "string"
-    assert validate_jsonl_records(artifact, load_schema(CONTRACT_SCHEMA)) == 5_507
+    assert validate_jsonl_records(artifact, load_schema(CONTRACT_SCHEMA)) == 5_533
 
 
 def test_public_contract_schema_rejects_unsafe_or_contradictory_artifact_rows() -> None:
@@ -354,7 +354,7 @@ def test_public_contract_cli_regenerates_and_detects_stale_repo_scoped_output() 
             text=True,
         )
         assert checked.returncode == 0, checked.stderr
-        assert f"5507 rows sha256={CONTRACT_DIGEST}" in checked.stdout
+        assert f"5533 rows sha256={CONTRACT_DIGEST}" in checked.stdout
 
         output.write_text("{}\n", encoding="utf-8")
         stale = subprocess.run(

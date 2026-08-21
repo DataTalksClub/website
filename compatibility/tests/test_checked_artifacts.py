@@ -34,7 +34,7 @@ EXPECTATIONS_PATH = CONTRACT_ROOT / "approved-expectations.json"
 DIFFERENCE_SCHEMA_PATH = CONTRACT_ROOT / "legacy-manifest-differences.schema.json"
 MANIFEST_SHA256 = "9c6bb79eb8484aa2a0befaf6b2531e5ad05f2f5fe6bfe6ef711c66cdb6cdca32"
 DIFFERENCE_SHA256 = "10fdac5be5662686da0fbae4b8ee0b1fe20007d8e6e03349fd95f31ea7ac1fe6"
-EXPECTATIONS_SHA256 = "410dbce285ba19d18e947b5ed039fac1ce553731267ef5631bcf94993d8b2220"
+EXPECTATIONS_SHA256 = "53bbafbb2438b6d9458e4057940e3da134d841fe06a36b04edece070368ffd59"
 DOCS_REPOSITORY = "https://github.com/DataTalksClub/docs.git"
 
 
@@ -148,7 +148,7 @@ def test_parameterized_course_routes_remain_unprobed_and_outside_the_seed_set() 
     parameterized = [route for route in document["routes"] if "<" in route["route_pattern"]]
     production_urls = set(_seed_urls(DEFAULT_BASELINE, DEFAULT_COURSE_ROUTES))
 
-    assert len(parameterized) == 68
+    assert len(parameterized) == 93
     assert {route["authenticated_production_probe"] for route in parameterized} == {"not_performed"}
     assert (
         not {f"https://courses.datatalks.club{route['example_path']}" for route in parameterized}

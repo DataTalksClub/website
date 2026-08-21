@@ -169,13 +169,13 @@ make compatibility-artifacts-check
   graph-hash, and course samples. Its 22 course samples cover every literal route plus
   `courses.datatalks.club/robots.txt`; five action endpoints are anonymous GET-denial probes, not
   mutation authorization. It explicitly marks configured contracts absent from a generated tree.
-- `course-route-contracts.json` contains all 89 adopted Django route patterns: 9 accounts, 29 API,
-  26 canonical Studio Courses, and 25 public-course routes. The Studio rows retain the pinned CMP
+- `course-route-contracts.json` contains all 115 adopted Django route patterns: 9 accounts, 30 API,
+  26 canonical Studio Courses, and 50 public-course routes. The Studio rows retain the pinned CMP
   source revision and callbacks while recording the target-owned `/studio/courses` mount and
   `studio_courses_*` names. The configured `/cadmin` machine samples remain the separately checked
   one-hop compatibility surface. Parameterized routes use illustrative paths only; they are not
   evidence that production objects or authenticated responses exist.
-- `public-contracts.jsonl` is the canonical reconciliation of those inputs: 5,507 exact URL
+- `public-contracts.jsonl` is the canonical reconciliation of those inputs: 5,533 exact URL
   contracts with stable IDs, source provenance, expected status where known, and separate
   classification and parity-review state. Its per-row schema is
   `public-contracts.schema.json`. Generated/machine overlaps remain one row carrying the
@@ -193,7 +193,7 @@ directory. The production command is anonymous and GET-only. It verifies each or
 `robots.txt` through the same DNS-checked, IP-pinned transport before crawling, uses a static user
 agent, waits at least 100 ms between requests to one origin, applies bounded retry backoff, and
 crawls only the committed fragmentless seed set. It covers 22 anonymous literal course contracts
-but does not recursively discover course URLs or probe any of the 68 parameterized authenticated
+but does not recursively discover course URLs or probe any of the 93 parameterized authenticated
 course examples.
 
 ```console
@@ -270,6 +270,6 @@ response status is successful (`200` through `299`).
 - authenticated course HTML/API probes as not performed because no production credentials or
   learner/operator data were used.
 
-The 68 parameterized course-route examples remain explicitly unprobed and were not added to the
+The 93 parameterized course-route examples remain explicitly unprobed and were not added to the
 production seed set. Production differences stay unresolved until an owner reviews them. Nothing
 in this directory authorizes an authenticated production probe, redirect, retirement, or cutover.

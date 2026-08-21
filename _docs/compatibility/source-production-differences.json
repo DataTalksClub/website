@@ -1,5 +1,5 @@
 {
-  "course_route_contracts": 89,
+  "course_route_contracts": 115,
   "checked_manifest": {
     "both_capture_rows": 2937,
     "generated_at": "2026-08-08T05:55:00Z",
@@ -86,7 +86,7 @@
   ],
   "schema_version": 1,
   "source_contract_inventories": {
-    "course_route_contracts": 89,
+    "course_route_contracts": 115,
     "faq_fragment_contracts": 1401,
     "generated_path_rows": 2937,
     "machine_contract_samples": 50,
