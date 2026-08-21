@@ -19,7 +19,7 @@
       "validity_class": "volatile"
     },
     "django": {
-      "command": "make test",
+      "command": "make test-django-full",
       "environment_dimensions": ["allowlisted_config", "architecture", "database", "django", "operating_system", "python", "runner_image", "uv"],
       "relevant_patterns": ["accounts/**", "api/**", "cadmin/**", "content/**", "content_sync/**", "core/**", "course_management/**", "course_platform_templates/**", "courses/**", "data/**", "email_app/**", "events/**", "jobs/**", "management_api/**", "management_auth/**", "review_import/**", "studio/**", "studio_courses/**", "website/**", "templates/**", "ci/**", "tests_ci/**", ".github/workflows/**", "**/fixtures/**", "pyproject.toml", "uv.lock", "manage.py", "Makefile"],
       "validity_class": "standard"

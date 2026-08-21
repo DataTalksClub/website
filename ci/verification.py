@@ -67,6 +67,8 @@ COMPONENT_REQUIRED_CONFIG = {
         "DJANGO_SETTINGS_MODULE": "website.settings.test",
     },
 }
+DEFAULT_FULL_DJANGO_COMMAND = "make test-django-full"
+FULL_DJANGO_COMMANDS = ("make test", DEFAULT_FULL_DJANGO_COMMAND)
 FULL_RISK_FLAGS = frozenset(
     {
         "auth_security_privacy",
@@ -218,7 +220,10 @@ def build_plan(
     history: Sequence[Mapping[str, Any]] = (),
     release_requires_image: bool = False,
     include_worktree: bool = False,
+    full_django_command: str = DEFAULT_FULL_DJANGO_COMMAND,
 ) -> dict[str, Any]:
+    if full_django_command not in FULL_DJANGO_COMMANDS:
+        raise VerificationError("full Django command is not allowlisted")
     graph = dict(graph) if graph is not None else load_graph()
     digest = graph_digest(graph)
     now = now or utc_now()
@@ -319,6 +324,7 @@ def build_plan(
                 profile=plan["profile"],
                 release_requires_image=release_requires_image,
                 source_mode=plan["source_mode"],
+                full_django_command=full_django_command,
             ),
             "disposition": "not_applicable",
             "environment": component_environment_fingerprint(component),
@@ -1572,11 +1578,12 @@ def _component_command(
     profile: str,
     release_requires_image: bool,
     source_mode: str,
+    full_django_command: str,
 ) -> str:
     if component == "selector" and source_mode == "commit":
         return "ci.classifier select and ci.verification plan"
     if component == "django":
-        return "make test" if profile == "full" else "make test-ci-focused"
+        return full_django_command if profile == "full" else "make test-ci-focused"
     if component == "playwright":
         return "make test-playwright" if browser_profile == "full" else "make test-playwright-core"
     if component == "container" and release_requires_image:
@@ -1843,6 +1850,12 @@ def main() -> None:
     plan_parser.add_argument("--github-output")
     plan_parser.add_argument("--release-requires-image", action="store_true")
     plan_parser.add_argument("--include-worktree", action="store_true")
+    plan_parser.add_argument(
+        "--full-django-command",
+        choices=FULL_DJANGO_COMMANDS,
+        default=DEFAULT_FULL_DJANGO_COMMAND,
+        help="allow the scheduled full-regression contract to retain its local aggregate target",
+    )
 
     validate_plan_parser = commands.add_parser("validate-plan")
     validate_plan_parser.add_argument("--plan", required=True)
@@ -1939,6 +1952,7 @@ def main() -> None:
             history=_read_history(args.history),
             release_requires_image=args.release_requires_image,
             include_worktree=args.include_worktree,
+            full_django_command=args.full_django_command,
         )
         dump_json(payload, args.output)
         if args.summary:

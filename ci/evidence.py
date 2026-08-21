@@ -57,7 +57,9 @@ ALLOWED_COMPONENT_COMMANDS = {
     ),
     "container": frozenset({"make verification-container", "exact release image verification"}),
     "content_invariants": frozenset({"make verification-content-invariants"}),
-    "django": frozenset({"make test", "make test-ci-focused"}),
+    # `make test` remains the explicit local/scheduled aggregate; push full
+    # profile CI records the compatibility-free Django target separately.
+    "django": frozenset({"make test", "make test-django-full", "make test-ci-focused"}),
     "evidence_validation": frozenset({"make test-ci"}),
     "playwright": frozenset({"make test-playwright-core", "make test-playwright"}),
     "quality": frozenset({"quality-contract-v1"}),

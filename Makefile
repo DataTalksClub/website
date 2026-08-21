@@ -1,5 +1,5 @@
 .PHONY: setup lock-check lint format format-check typecheck migrations-check django-check deployment-check \
-	test-core test test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
+	test-core test test-django-full test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility test-playwright-quarantined \
@@ -165,7 +165,11 @@ course-platform-sync:
 		$(if $(CMP_SOURCE_CHECKOUT),--source-checkout "$(CMP_SOURCE_CHECKOUT)",) \
 		--apply
 
-test: test-compatibility
+test: test-compatibility test-django-full
+
+# Push CI records compatibility as its own plan-controlled component. Keep the
+# ordinary local and scheduled `test` aggregate compatibility-inclusive.
+test-django-full:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel --noinput
 

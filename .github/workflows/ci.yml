@@ -684,7 +684,7 @@ jobs:
             full)
               make test-factories
               make test-migrations
-              make test
+              make test-django-full
               ;;
             *)
               echo "Classifier emitted an unsupported profile" >&2

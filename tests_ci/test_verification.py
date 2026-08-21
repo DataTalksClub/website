@@ -185,6 +185,31 @@ def test_force_full_matrix_is_fresh_and_fail_closed(
         assert plan["components"]["screenshots"]["disposition"] == "rerun"
 
 
+def test_full_profile_distinguishes_push_and_scheduled_django_commands(
+    tmp_path: Path,
+) -> None:
+    repository, base, head = repository_with_change(
+        tmp_path,
+        {"api/templates/api/page.html": "changed\n"},
+    )
+    selection, records = selection_for(("api/templates/api/page.html",), base=base, head=head)
+    common = {
+        "repository": repository,
+        "repository_id": "DataTalksClub/website",
+        "base": base,
+        "head": head,
+        "selection": selection,
+        "records": records,
+        "now": NOW,
+    }
+
+    push_plan = build_plan(**common)
+    scheduled_plan = build_plan(**common, full_django_command="make test")
+
+    assert push_plan["components"]["django"]["command"] == "make test-django-full"
+    assert scheduled_plan["components"]["django"]["command"] == "make test"
+
+
 def test_cross_app_and_test_rename_or_delete_force_full(tmp_path: Path) -> None:
     repository, base, head = repository_with_change(
         tmp_path,

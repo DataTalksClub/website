@@ -134,7 +134,9 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     )
     assert "make test-factories" in script
     assert "make test-migrations" in script
-    assert "make test" in script
+    full_commands = logical_shell_commands({"steps": [selected_step]})
+    assert "make test-django-full" in full_commands
+    assert "make test" not in full_commands
     assert "postgres" not in script.lower()
     validation = next(
         step
@@ -546,7 +548,16 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "DTC_SQLITE_PATH" not in jobs["django"]["env"]
     assert "make test-factories" in runs(jobs["factories"])
     assert "make test-migrations" in runs(jobs["migrations"])
-    assert "make test" in runs(jobs["django"])
+    django_step = next(
+        step
+        for step in jobs["django"]["steps"]
+        if step.get("name") == "Run and retain the complete Django output"
+    )
+    django_commands = logical_shell_commands({"steps": [django_step]})
+    assert "make test" in django_commands
+    assert "make test-django-full" not in django_commands
+    assert '--command "make test"' in runs(jobs["django"])
+    assert '--full-django-command "make test"' in runs(jobs["selector"])
     assert "make test-playwright-core" in runs(jobs["playwright"])
     assert "ci.quality_contract" in runs(jobs["quality"])
     assert "make verification-quality" not in runs(jobs["quality"])
