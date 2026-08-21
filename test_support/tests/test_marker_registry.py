@@ -661,11 +661,12 @@ def test_other_safety_selectors_do_not_alias_copied_scenarios(marker: str) -> No
 
 
 def test_make_targets_keep_local_and_safety_marker_families_separate() -> None:
-    safety_exclusions = (
-        "not remote_readonly and not remote_mutation and not live_email and not live_provider"
+    playwright_exclusions = (
+        "not quarantine and not remote_readonly and not remote_mutation "
+        "and not live_email and not live_provider"
     )
-    assert f"core and {safety_exclusions}" in _make_recipe("test-playwright-core")
-    assert f"(core or full) and {safety_exclusions}" in _make_recipe("test-playwright")
+    assert f"core and {playwright_exclusions}" in _make_recipe("test-playwright-core")
+    assert f"(core or full) and {playwright_exclusions}" in _make_recipe("test-playwright")
 
     for marker in sorted(SAFETY_MARKERS):
         recipe = _make_recipe(f"test-{marker.replace('_', '-')}")
