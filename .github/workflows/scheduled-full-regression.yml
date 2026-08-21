@@ -300,6 +300,54 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  playwright-quarantine:
+    if: always() && needs.selector.result == 'success'
+    needs: selector
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DJANGO_ALLOW_ASYNC_UNSAFE: "true"
+      DJANGO_SETTINGS_MODULE: website.settings.test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.10.11"
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: uv run playwright install --with-deps chromium
+      - name: Run quarantined Playwright tests without blocking full regression
+        id: quarantine
+        continue-on-error: true
+        run: |
+          set +e
+          mkdir -p .tmp/evidence
+          make test-playwright-quarantined 2>&1 | tee .tmp/evidence/playwright-quarantine-output.log
+          status=${PIPESTATUS[0]}
+          printf '%s\n' "${status}" > .tmp/evidence/playwright-quarantine-exit-code
+          exit "${status}"
+      - name: Build the quarantined-test report
+        if: always()
+        run: |
+          set -euo pipefail
+          uv run --frozen python -m ci.flake_policy report \
+            --output-log .tmp/evidence/playwright-quarantine-output.log \
+            --exit-code "$(cat .tmp/evidence/playwright-quarantine-exit-code)" \
+            --output .tmp/evidence/playwright-quarantine-report.json \
+            --summary "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-quarantine-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/evidence
+          if-no-files-found: error
+          retention-days: 30
+
   container:
     if: needs.selector.outputs.decision == 'run_full'
     needs: selector

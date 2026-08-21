@@ -81,7 +81,13 @@ def component_output(
         if not output.exists():
             output.write_bytes(b"screenshot")
     else:
-        output.write_text("2 passed, 1 skipped in 0.01s\n", encoding="utf-8")
+        body = "2 passed, 1 skipped in 0.01s\n"
+        if component == "playwright":
+            body += (
+                "DTC_FLAKE_POLICY_V1 attempted=3 passed=2 failed=0 skipped=1 "
+                "rerun=0 quarantined=0 complete=1\n"
+            )
+        output.write_text(body, encoding="utf-8")
     records = artifact_records((output,), root=root)
     claim = machine_output_claim(
         output,

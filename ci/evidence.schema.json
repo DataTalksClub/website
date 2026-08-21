@@ -129,10 +129,13 @@
           "additionalProperties": false,
           "properties": {
             "assertions": {"minimum": 0, "type": "integer"},
+            "attempted": {"minimum": 0, "type": "integer"},
             "captures": {"minimum": 0, "type": "integer"},
             "failed": {"minimum": 0, "type": "integer"},
             "passed": {"minimum": 0, "type": "integer"},
+            "quarantined": {"minimum": 0, "type": "integer"},
             "records": {"minimum": 0, "type": "integer"},
+            "rerun": {"minimum": 0, "type": "integer"},
             "skipped": {"minimum": 0, "type": "integer"},
             "structured_files": {"minimum": 0, "type": "integer"},
             "tests": {"minimum": 0, "type": "integer"}
