@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
+
 def cohort_weeks(start: date | None, end: date | None) -> int | None:
     """Return a run's length in whole weeks, or None when it has no bounded dates."""
 

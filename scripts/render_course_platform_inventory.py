@@ -223,9 +223,11 @@ def render_inventory() -> str:
     lines.extend(
         [
             "",
-            "The original numbered graph is retained here as historical provenance. The active phase-1",
+            "The original numbered graph is retained here as historical provenance. The active",
+            "phase-1",
             "`courses` graph is the single `0001_initial` migration documented in",
-            "`migration-squash-gate.md`; later product migrations extend that graph only through reviewed",
+            "`migration-squash-gate.md`; later product migrations extend that graph only through",
+            "reviewed",
             "product issues.",
             "",
         ]

@@ -8,7 +8,7 @@ from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
 from core import views as core_views
 from courses import urls as course_urls
-from courses.views import course, course_aliases, course_list
+from courses.views import course_aliases, course_list
 from studio_courses import urls as studio_course_urls
 
 legacy_course_patterns = [
@@ -142,13 +142,7 @@ urlpatterns = [
     ),
     path(
         "courses/",
-        include(
-            [
-                pattern
-                for pattern in course_urls.urlpatterns
-                if pattern.name != "course_list"
-            ]
-        ),
+        include([pattern for pattern in course_urls.urlpatterns if pattern.name != "course_list"]),
     ),
     path(
         "courses/",

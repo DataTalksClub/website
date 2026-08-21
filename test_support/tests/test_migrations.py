@@ -140,7 +140,9 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         applied = MigrationExecutor(self.connection).loader.applied_migrations
         self.assertTrue(all(leaf in applied for leaf in leaves))
 
-    def test_course_phase_two_schema_has_reusable_families_and_cohort_backed_relations(self) -> None:
+    def test_course_phase_two_schema_has_reusable_families_and_cohort_backed_relations(
+        self,
+    ) -> None:
         courses_target = ("courses", "0001_initial")
         _executor, apps = self._migrate([courses_target])
         Course = apps.get_model("courses", "Course")
