@@ -1,3 +1,6 @@
+import re
+from urllib.parse import quote, urlsplit, urlunsplit
+
 from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
@@ -5,7 +8,9 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 
 from courses.models import CurriculumFormat, Unit
-from courses.registration import render_markdown
+from courses.registration import render_markdown, youtube_embed_url
+from courses.services.unit_links import rewrite_unit_markdown_links
+from courses.views.module import module_rail_context
 from courses.views.url_utils import get_cohort_or_404
 
 
@@ -22,6 +27,39 @@ def _unit_url(unit: Unit) -> str:
     )
 
 
+def unit_edit_on_github_url(unit: Unit) -> str:
+    """Return the source edit URL for a unit when its provenance is public."""
+
+    cohort = unit.module.cohort
+    course_family = cohort.course
+    repository_url = (
+        getattr(cohort, "github_repo_url", "")
+        or getattr(course_family, "github_repo_url", "")
+    )
+    source_path = (unit.source_path or "").strip("/")
+    if not repository_url or not source_path:
+        return ""
+
+    parsed = urlsplit(repository_url.strip())
+    repository_path = parsed.path.rstrip("/").removesuffix(".git")
+    if not parsed.scheme or not parsed.netloc or not repository_path:
+        return ""
+
+    repository_base = urlunsplit(
+        (parsed.scheme, parsed.netloc, repository_path, "", "")
+    )
+    branch = (
+        getattr(cohort, "repository_branch", "")
+        or getattr(course_family, "repository_branch", "")
+        or "main"
+    )
+    return (
+        f"{repository_base}/edit/"
+        f"{quote(str(branch), safe='/')}/"
+        f"{quote(source_path, safe='/')}"
+    )
+
+
 def _adjacent_units(unit: Unit) -> tuple[Unit | None, Unit | None]:
     siblings = Unit.objects.filter(module=unit.module)
     previous_unit = (
@@ -35,6 +73,39 @@ def _adjacent_units(unit: Unit) -> tuple[Unit | None, Unit | None]:
         .first()
     )
     return previous_unit, next_unit
+
+
+_VIDEO_LINE_RE = re.compile(
+    r"(?mi)^[ \t]*video:[ \t]*\[[^\]]+\]\((https?://[^)\s]+)\)[ \t]*(?:\n|$)"
+)
+_LEADING_H1_RE = re.compile(r"\A(?:\s*\n)*#[ \t]+([^\n]+?)[ \t]*#*[ \t]*(?:\n|$)")
+
+
+def _same_title(left: str, right: str) -> bool:
+    def normalize(value: str) -> str:
+        return re.sub(r"\s+", " ", value).strip().casefold()
+
+    return normalize(left) == normalize(right)
+
+
+def _unit_content(markdown: str, title: str) -> tuple[str, str]:
+    """Return body Markdown and a safe YouTube embed URL for a unit."""
+
+    body = markdown or ""
+    video_match = _VIDEO_LINE_RE.search(body)
+    video_embed_url = ""
+    if video_match:
+        candidate_url = video_match.group(1)
+        candidate_embed_url = youtube_embed_url(candidate_url)
+        if candidate_embed_url.startswith("https://www.youtube.com/embed/"):
+            video_embed_url = candidate_embed_url
+            body = body[: video_match.start()] + body[video_match.end() :]
+
+    heading_match = _LEADING_H1_RE.match(body)
+    if heading_match and _same_title(heading_match.group(1), title):
+        body = body[heading_match.end() :]
+
+    return body.lstrip("\n"), video_embed_url
 
 
 def unit_view(
@@ -62,7 +133,17 @@ def unit_view(
     )
     previous_unit, next_unit = _adjacent_units(unit)
     canonical_path = _unit_url(unit)
-    rendered_content = mark_safe(render_markdown(unit.content_markdown))
+    unit_body_markdown, video_embed_url = _unit_content(
+        unit.content_markdown,
+        unit.title,
+    )
+    unit_body_markdown = rewrite_unit_markdown_links(unit_body_markdown, unit)
+    rendered_content = mark_safe(render_markdown(unit_body_markdown))
+    rail_context = module_rail_context(
+        request,
+        unit.module,
+        current_unit=unit,
+    )
 
     return render(
         request,
@@ -75,6 +156,9 @@ def unit_view(
             "unit_content_html": rendered_content,
             "previous_unit": previous_unit,
             "next_unit": next_unit,
+            "video_embed_url": video_embed_url,
+            "edit_on_github_url": unit_edit_on_github_url(unit),
             "canonical_url": f"https://datatalks.club{canonical_path}",
+            **rail_context,
         },
     )

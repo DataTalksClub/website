@@ -1,23 +1,31 @@
-from . import cohort, curriculum, curriculum_import, homework, project, wrapped  # noqa: F401
-
 from django.contrib.auth import get_user_model
 
+from . import cohort, curriculum, curriculum_import, homework, project, wrapped  # noqa: F401
 from .cohort import (
-    Course,
     Cohort,
-    CurriculumFormat,
+    Course,
     CourseRegistration,
+    CurriculumFormat,
     Enrollment,
     LeaderboardComplaint,
     RegistrationCampaign,
 )
+from .curriculum import (
+    CurriculumFlowItem,
+    FlowItem,
+    LearningFlowItem,
+    Module,
+    Unit,
+    UnitReadState,
+)
+from .curriculum_import import CourseCurriculumImportRun
 from .homework import (
+    QUESTION_ANSWER_DELIMITER,
     Answer,
     AnswerTypes,
     Homework,
     HomeworkState,
     HomeworkStatistics,
-    QUESTION_ANSWER_DELIMITER,
     Question,
     QuestionTypes,
     Submission,
@@ -37,14 +45,6 @@ from .project import (
     ReviewCriteriaTypes,
     criteria_for_project,
 )
-from .curriculum import (
-    CurriculumFlowItem,
-    FlowItem,
-    LearningFlowItem,
-    Module,
-    Unit,
-)
-from .curriculum_import import CourseCurriculumImportRun
 from .registration_counts import (
     CourseRegistrationCountRevision,
     CourseRegistrationCountSlot,
@@ -91,6 +91,7 @@ __all__ = (
     "LearningFlowItem",
     "Module",
     "Unit",
+    "UnitReadState",
     "criteria_for_project",
     "Submission",
     "User",

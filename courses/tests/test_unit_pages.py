@@ -1,3 +1,4 @@
+import uuid
 from datetime import timedelta
 
 from django.test import TestCase, override_settings
@@ -21,6 +22,7 @@ class PublicUnitPageTests(TestCase):
             title="LLM Zoomcamp Spring 2026",
             description="A module-format cohort.",
             curriculum_format=CurriculumFormat.MODULES,
+            github_repo_url="https://github.com/DataTalksClub/llm-zoomcamp.git",
         )
         self.homework = Homework.objects.create(
             course=self.cohort,
@@ -31,28 +33,35 @@ class PublicUnitPageTests(TestCase):
         self.module = Module.objects.create(
             cohort=self.cohort,
             position=10,
-            slug="agentic-rag",
+            slug="01-agentic-rag",
             title="Agentic RAG",
             terminal_homework=self.homework,
         )
         self.first_unit = Unit.objects.create(
             module=self.module,
             position=10,
-            slug="introduction",
+            slug="01-intro",
             title="Introduction",
-            content_markdown="## Welcome\n\nBuild an **agent** with `Python`.",
+            source_content_id=uuid.uuid4(),
+            source_path="cohorts/2026/01-agentic-rag/lessons/01-intro.md",
+            source_commit_sha="a" * 40,
+            source_checksum="b" * 64,
+            content_markdown=(
+                "## Welcome\n\nBuild an **agent** with `Python`.\n\n"
+                "```python\nprint(\"hello, agent\")\n```"
+            ),
         )
         self.middle_unit = Unit.objects.create(
             module=self.module,
             position=20,
-            slug="environment",
+            slug="02-environment",
             title="Environment",
             content_markdown="Configure the environment.",
         )
         self.final_unit = Unit.objects.create(
             module=self.module,
             position=30,
-            slug="evaluation",
+            slug="03-evaluation",
             title="Evaluation",
             content_markdown="Evaluate the system.",
         )
@@ -78,27 +87,101 @@ class PublicUnitPageTests(TestCase):
         self.assertContains(response, "<h2>Welcome</h2>", html=True)
         self.assertContains(response, "<strong>agent</strong>", html=True)
         self.assertContains(response, "<code>Python</code>", html=True)
+        self.assertContains(
+            response,
+            '<pre><code>print("hello, agent")\n</code></pre>',
+            html=True,
+        )
+        self.assertContains(response, 'src="/static/core/code_blocks.js"')
         self.assertContains(response, self.course_family.title)
         self.assertContains(response, self.cohort.title)
         self.assertContains(response, self.module.title)
+        self.assertContains(response, 'class="module-sidebar module-rail"')
+        self.assertContains(response, self.middle_unit.title)
+        self.assertContains(response, 'aria-current="page"')
         self.assertContains(
             response,
             f'<link rel="canonical" href="https://datatalks.club{url}">',
             html=True,
         )
         self.assertContains(response, 'class="band band-lavender"')
-        self.assertContains(response, 'class="shell shell-reading"')
+        self.assertContains(response, 'class="shell module-layout"')
 
-    def test_middle_unit_links_to_previous_and_next_units(self):
+    def test_middle_unit_links_to_previous_and_next_units_with_buttons(self):
         response = self.client.get(self.unit_url(self.middle_unit))
 
         self.assertContains(response, self.unit_url(self.first_unit))
         self.assertContains(response, self.unit_url(self.final_unit))
-        self.assertContains(response, "Previous: Introduction")
-        self.assertContains(response, "Next: Evaluation")
+        self.assertContains(response, "← Introduction")
+        self.assertContains(response, "Evaluation →")
         self.assertNotContains(response, "Continue to homework")
 
-    def test_final_unit_next_action_links_to_module_homework(self):
+    def test_video_link_is_embedded_and_redundant_markdown_title_is_removed(self):
+        self.first_unit.content_markdown = (
+            "# Introduction\n\n"
+            "Video: [Watch this lesson](https://www.youtube.com/watch?v=abc123)\n\n"
+            "The lesson body."
+        )
+        self.first_unit.save(update_fields=["content_markdown"])
+
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        self.assertContains(response, 'src="https://www.youtube.com/embed/abc123"')
+        self.assertContains(response, 'title="Introduction video lesson"')
+        self.assertContains(response, 'referrerpolicy="strict-origin-when-cross-origin"')
+        self.assertContains(response, "The lesson body.")
+        self.assertNotContains(response, "Watch this lesson")
+        self.assertNotContains(response, "<h1>Introduction</h1>", html=True)
+
+    def test_renders_edit_on_github_link_from_cohort_repository_and_source_path(self):
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        edit_url = (
+            "https://github.com/DataTalksClub/llm-zoomcamp/edit/main/"
+            "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
+        )
+        self.assertContains(response, "Edit on GitHub")
+        self.assertContains(
+            response,
+            edit_url,
+        )
+        self.assertContains(response, 'target="_blank"')
+
+    def test_edit_link_falls_back_to_course_family_repository(self):
+        self.cohort.github_repo_url = ""
+        self.cohort.save(update_fields=["github_repo_url"])
+        self.course_family.github_repo_url = "https://github.com/example/llm-zoomcamp/"
+        self.course_family.save(update_fields=["github_repo_url"])
+
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        self.assertContains(
+            response,
+            "https://github.com/example/llm-zoomcamp/edit/main/"
+            "cohorts/2026/01-agentic-rag/lessons/01-intro.md",
+        )
+
+    def test_does_not_render_edit_link_without_repository_or_source_path(self):
+        self.cohort.github_repo_url = ""
+        self.cohort.save(update_fields=["github_repo_url"])
+        self.first_unit.source_content_id = None
+        self.first_unit.source_path = None
+        self.first_unit.source_commit_sha = None
+        self.first_unit.source_checksum = None
+        self.first_unit.save(
+            update_fields=[
+                "source_content_id",
+                "source_path",
+                "source_commit_sha",
+                "source_checksum",
+            ]
+        )
+
+        response = self.client.get(self.unit_url(self.first_unit))
+
+        self.assertNotContains(response, "Edit on GitHub")
+
+    def test_final_unit_links_to_homework_with_a_button(self):
         response = self.client.get(self.unit_url(self.final_unit))
         homework_url = reverse(
             "homework",
@@ -110,15 +193,14 @@ class PublicUnitPageTests(TestCase):
         )
 
         self.assertContains(response, homework_url)
-        self.assertContains(response, "Continue to homework: Agentic RAG Homework")
-        self.assertNotContains(response, "Next: ")
+        self.assertContains(response, "Continue to homework →")
 
     def test_arbitrary_cohort_identifier_is_the_route_identity(self):
         url = self.unit_url(self.first_unit)
 
         self.assertEqual(
             url,
-            "/courses/llm-zoomcamp/spring-2026/modules/agentic-rag/introduction",
+            "/courses/llm-zoomcamp/spring-2026/modules/01-agentic-rag/01-intro",
         )
         self.assertEqual(self.client.get(url).status_code, 200)
 

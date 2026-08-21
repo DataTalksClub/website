@@ -13,6 +13,7 @@
     <meta name="description" content="{{ unit.title }} in {{ module.title }}, {{ cohort.title }}.">
     <style>
       {% include "core/_design_system.html" %}
+      {% include "courses/_module_rail_styles.html" %}
 
       :root {
         --page: var(--lavender);
@@ -40,6 +41,28 @@
 
       .unit-content {
         min-height: 12rem;
+      }
+
+      .unit-edit-link {
+        display: inline-block;
+        margin-bottom: 1.25rem;
+      }
+
+      .unit-video {
+        aspect-ratio: 16 / 9;
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        margin-bottom: 2rem;
+        overflow: hidden;
+      }
+
+      .unit-video iframe {
+        border: 0;
+        display: block;
+        height: 100%;
+        width: 100%;
       }
 
       .unit-navigation {
@@ -95,7 +118,9 @@
             <li>
               <a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.title }}</a>
             </li>
-            <li>{{ module.title }}</li>
+            <li>
+              <a href="{% url 'module' course_family.slug cohort.identifier module.slug %}">{{ module.title }}</a>
+            </li>
             <li aria-current="page">{{ unit.title }}</li>
           </ol>
         </nav>
@@ -106,31 +131,56 @@
       </section>
 
       <section class="band band-lavender" aria-label="Unit content">
-        <div class="shell shell-reading">
-          <article class="prose prose-reading unit-content">
-            {% if unit_content_html %}
-              {{ unit_content_html }}
-            {% else %}
-              <p>This unit does not have any content yet.</p>
+        <div class="shell module-layout">
+          {% include "courses/_module_rail.html" %}
+          <div class="module-main unit-main">
+            {% if video_embed_url %}
+              <div class="unit-video" aria-label="Video lesson">
+                <iframe
+                  src="{{ video_embed_url }}"
+                  title="{{ unit.title }} video lesson"
+                  loading="lazy"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowfullscreen
+                ></iframe>
+              </div>
             {% endif %}
-          </article>
-
-          <nav class="unit-navigation" aria-label="Unit navigation">
-            {% if previous_unit %}
-              {% url 'unit' course_family.slug cohort.identifier module.slug previous_unit.slug as previous_unit_url %}
-              {% include "core/_button.html" with href=previous_unit_url label="← Previous: "|add:previous_unit.title variant="subtle" compact=True aria_label="Previous unit: "|add:previous_unit.title %}
+            {% if edit_on_github_url %}
+              <p class="unit-edit-link">
+                <a
+                  class="band-link"
+                  href="{{ edit_on_github_url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >Edit on GitHub →</a>
+              </p>
             {% endif %}
-
-            <div class="unit-navigation-next">
-              {% if next_unit %}
-                {% url 'unit' course_family.slug cohort.identifier module.slug next_unit.slug as next_unit_url %}
-                {% include "core/_button.html" with href=next_unit_url label="Next: "|add:next_unit.title|add:" →" variant="secondary" compact=True aria_label="Next unit: "|add:next_unit.title %}
+            <article class="prose prose-reading unit-content">
+              {% if unit_content_html %}
+                {{ unit_content_html }}
               {% else %}
-                {% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug as homework_url %}
-                {% include "core/_button.html" with href=homework_url label="Continue to homework: "|add:module.terminal_homework.title|add:" →" variant="primary" compact=True aria_label="Continue to homework: "|add:module.terminal_homework.title %}
+                <p>This unit does not have any content yet.</p>
               {% endif %}
-            </div>
-          </nav>
+            </article>
+
+            <nav class="unit-navigation" aria-label="Unit navigation">
+              {% if previous_unit %}
+                {% url 'unit' course_family.slug cohort.identifier module.slug previous_unit.slug as previous_unit_url %}
+                {% include "core/_button.html" with href=previous_unit_url label="← "|add:previous_unit.title variant="subtle" compact=True aria_label="Previous unit: "|add:previous_unit.title %}
+              {% endif %}
+
+              <div class="unit-navigation-next">
+                {% if next_unit %}
+                  {% url 'unit' course_family.slug cohort.identifier module.slug next_unit.slug as next_unit_url %}
+                  {% include "core/_button.html" with href=next_unit_url label=next_unit.title|add:" →" variant="secondary" compact=True aria_label="Next unit: "|add:next_unit.title %}
+                {% else %}
+                  {% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug as homework_url %}
+                  {% include "core/_button.html" with href=homework_url label="Continue to homework →" variant="primary" compact=True aria_label="Continue to homework: "|add:module.terminal_homework.title %}
+                {% endif %}
+              </div>
+            </nav>
+          </div>
         </div>
       </section>
     </main>

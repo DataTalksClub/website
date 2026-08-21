@@ -1,6 +1,8 @@
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q
+from django.utils import timezone
 
 from .curriculum_import import SourceProvenanceModel, source_provenance_constraint
 
@@ -114,6 +116,33 @@ class Unit(SourceProvenanceModel):
         return self.title
 
 
+class UnitReadState(models.Model):
+    """A learner's persistent read marker for one curriculum unit."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="unit_read_states",
+    )
+    unit = models.ForeignKey(
+        Unit,
+        on_delete=models.CASCADE,
+        related_name="read_states",
+    )
+    read_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("user", "unit"),
+                name="courses_unit_read_state_user_unit_uq",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user} read {self.unit}"
+
+
 class CurriculumFlowItem(models.Model):
     """A top-level module or project entry in a cohort's learning flow."""
 
@@ -137,26 +166,6 @@ class CurriculumFlowItem(models.Model):
         blank=True,
         related_name="flow_items",
     )
-
-    def clean(self):
-        super().clean()
-        has_module = self.module_id is not None
-        has_project = self.project_id is not None
-        if has_module == has_project:
-            raise ValidationError(
-                "A curriculum flow item must target exactly one module or project."
-            )
-        if not self.cohort_id:
-            return
-        if self.cohort.curriculum_format != "modules":
-            raise ValidationError("Only module-format cohorts can publish a flow.")
-        target_cohort_id = (
-            self.module.cohort_id if has_module else self.project.course_id
-        )
-        if target_cohort_id != self.cohort_id:
-            raise ValidationError(
-                "Curriculum flow targets must belong to the same cohort."
-            )
 
     class Meta:
         ordering = ("position", "id")
@@ -188,6 +197,25 @@ class CurriculumFlowItem(models.Model):
         target = self.module or self.project
         return f"{self.position}: {target}"
 
+    def clean(self):
+        super().clean()
+        has_module = self.module_id is not None
+        has_project = self.project_id is not None
+        if has_module == has_project:
+            raise ValidationError(
+                "A curriculum flow item must target exactly one module or project."
+            )
+        if not self.cohort_id:
+            return
+        if self.cohort.curriculum_format != "modules":
+            raise ValidationError("Only module-format cohorts can publish a flow.")
+        target_cohort_id = (
+            self.module.cohort_id if has_module else self.project.course_id
+        )
+        if target_cohort_id != self.cohort_id:
+            raise ValidationError(
+                "Curriculum flow targets must belong to the same cohort."
+            )
 
 # These aliases make the domain vocabulary explicit at call sites while the
 # database model remains the stable CurriculumFlowItem contract.

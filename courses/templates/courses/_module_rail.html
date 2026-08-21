@@ -1,0 +1,63 @@
+{#
+  Shared module navigation contract.
+
+  Required context:
+    course_family       Course family for canonical URLs
+    cohort              Cohort owning the module
+    module              Current module
+    module_url          Canonical module overview URL
+    module_rail_units   Ordered units, each with an ``is_read`` annotation
+    module_rail_read_count
+    module_rail_current_unit  Unit object or None on the module overview
+#}
+<aside class="module-sidebar module-rail" aria-labelledby="module-navigation-heading">
+  <div class="card module-rail-card">
+    <h2 id="module-navigation-heading">In this module</h2>
+    {% if user.is_authenticated %}
+      <p class="sidebar-progress">{{ module_rail_read_count }} of {{ module_rail_units|length }} lessons read</p>
+    {% else %}
+      <p class="sidebar-progress">Sign in to keep track of what you have read.</p>
+    {% endif %}
+
+    {% if module_rail_units %}
+      <ol class="sidebar-unit-list">
+        {% for rail_unit in module_rail_units %}
+          <li class="sidebar-unit{% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %} is-current{% endif %}">
+            <div class="sidebar-unit-heading">
+              <span
+                class="read-indicator{% if rail_unit.is_read %} is-read{% endif %}{% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %} is-current{% endif %}"
+                aria-hidden="true"
+              >{% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %}→{% elif rail_unit.is_read %}✓{% else %}{{ forloop.counter }}{% endif %}</span>
+              <a
+                href="{% url 'unit' course_family.slug cohort.identifier module.slug rail_unit.slug %}"
+                {% if module_rail_current_unit and module_rail_current_unit.pk == rail_unit.pk %}aria-current="page"{% endif %}
+              >{{ rail_unit.title }}</a>
+            </div>
+            {% if user.is_authenticated %}
+              <form class="read-state-form" method="post" action="{% url 'unit_read_state' course_family.slug cohort.identifier module.slug rail_unit.slug %}">
+                {% csrf_token %}
+                {% if rail_unit.is_read %}
+                  <input type="hidden" name="is_read" value="0">
+                  {% include "core/_button.html" with tag="button" type="submit" label="Mark as unread" variant="subtle" compact=True aria_label="Mark lesson as unread" %}
+                {% else %}
+                  <input type="hidden" name="is_read" value="1">
+                  {% include "core/_button.html" with tag="button" type="submit" label="Mark as read" variant="subtle" compact=True aria_label="Mark lesson as read" %}
+                {% endif %}
+              </form>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% endif %}
+
+    {% if not user.is_authenticated %}
+      {% url 'login' as login_url %}
+      {% include "core/_button.html" with href=login_url|add:"?next="|add:module_url label="Sign in to track progress" variant="secondary" compact=True %}
+    {% endif %}
+
+    <div class="sidebar-homework">
+      <span>Homework</span>
+      <a href="{% url 'homework' course_family.slug cohort.identifier module.terminal_homework.slug %}">{{ module.terminal_homework.title }}</a>
+    </div>
+  </div>
+</aside>

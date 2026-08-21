@@ -10,6 +10,7 @@ from .views import dashboard
 from .views import homework
 from .views import homework_statistics
 from .views import homework_submissions
+from .views import module
 from .views import project
 from .views import project_eval
 from .views import project_eval_actions
@@ -37,6 +38,16 @@ urlpatterns = [
         "<slug:course_slug>/<slug:cohort_year>/calendar.ics",
         course_calendar.course_calendar_view,
         name="course_calendar",
+    ),
+    path(
+        "<slug:course_slug>/<slug:cohort_identifier>/modules/<slug:module_slug>",
+        module.module_view,
+        name="module",
+    ),
+    path(
+        "<slug:course_slug>/<slug:cohort_identifier>/modules/<slug:module_slug>/<slug:unit_slug>/read",
+        module.update_unit_read_state,
+        name="unit_read_state",
     ),
     path(
         "<slug:course_slug>/<slug:cohort_identifier>/modules/<slug:module_slug>/<slug:unit_slug>",
