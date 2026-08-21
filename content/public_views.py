@@ -7,6 +7,7 @@ from pathlib import Path
 from xml.sax.saxutils import escape as xml_escape
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from django.http import (
     FileResponse,
     Http404,
@@ -726,6 +727,13 @@ def _render_podcast_detail(
         projection["podcasts"],
         people_by_slug=projection["people_by_slug"],
     )
+    try:
+        episode_graph = wiki_content.episode_graph(episode, projection=projection)
+    except ImproperlyConfigured:
+        # A checked projection failure must not make an otherwise useful episode
+        # page fail or expose graph-contract details.  The next projection build
+        # can repair the data while the page keeps its explicit unavailable state.
+        episode_graph = wiki_content.unavailable_episode_graph(episode)
     episode_entity = {
         "@type": "PodcastEpisode",
         "url": _canonical(episode["public_path"]),
@@ -756,6 +764,7 @@ def _render_podcast_detail(
             "previous_episode": previous_episode,
             "next_episode": next_episode,
             "related_episodes": related_episodes,
+            "episode_graph": episode_graph,
             "og_type": "article",
             "og_image_url": _canonical(image_path) if image_path else "",
             "published_time": episode["published"] or "",
