@@ -124,6 +124,7 @@ EXPECTED_NAVIGATION = (
 # The scripts every page in the system runs, in the order the shell loads them.
 EXPECTED_SCRIPTS = (
     "timezone_preference.js",
+    "core/code_blocks.js",
     "user_menu.js",
     "core/site_navigation.js",
     "core/accessibility.js",

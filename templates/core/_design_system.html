@@ -107,6 +107,25 @@ Rules for editing:
            read on the lavender band of a light page and on the navy of a dark
            one, and this pale periwinkle is what the homepage has always drawn. */
         --graph-edge: #b9bfd8;
+        /* Syntax roles are semantic rather than language-specific.  The
+           highlighter uses these names for Python, shell, SQL, YAML, JSON,
+           JavaScript, markup and the other source languages the content
+           repositories publish. */
+        --code-comment: #68708b;
+        --code-keyword: #5a4a9f;
+        --code-string: #24723c;
+        --code-number: #9a4d22;
+        --code-function: #146d78;
+        --code-property: #9b3f70;
+        --code-type: #2c5b9f;
+        --code-constant: #8a6500;
+        --code-variable: #a34536;
+        --code-operator: #4c5066;
+        --code-punctuation: #5c6076;
+        --code-tag: #6a4e9d;
+        --code-heading: #5a62c4;
+        --code-success: #1f6b2c;
+        --code-error: #a33f3a;
       }
 
       /* The dark palette is the designer's own: the decoded mockup source
@@ -157,6 +176,21 @@ Rules for editing:
         --green-ship: #93c7a5;
         --bubble: #3c4372;
         --on-bubble: #e8e5dd;
+        --code-comment: #a4a9bd;
+        --code-keyword: #c4b5fd;
+        --code-string: #9bd3ac;
+        --code-number: #f2b38b;
+        --code-function: #8eddea;
+        --code-property: #f0a6c8;
+        --code-type: #a9c5ff;
+        --code-constant: #f2d28f;
+        --code-variable: #ffaaa0;
+        --code-operator: #d0d3e6;
+        --code-punctuation: #c6cad9;
+        --code-tag: #c4b5fd;
+        --code-heading: #a9b0f2;
+        --code-success: #93c7a5;
+        --code-error: #ff9a94;
       }
 
       *,
@@ -2999,9 +3033,10 @@ Rules for editing:
       }
 
       .prose code {
-        background: var(--lavender);
+        background: var(--lavender-deep);
         border: 1.5px solid var(--line-soft);
         border-radius: 0.45rem;
+        color: var(--ink);
         font-family: var(--font-mono);
         font-size: 0.85em;
         padding: 0.1rem 0.3rem;
@@ -3013,21 +3048,164 @@ Rules for editing:
          command or a traceback stays readable when it wraps.  The sample keeps
          its own line breaks and indentation either way. */
       .prose pre {
-        background: var(--lavender);
-        border: 2px solid var(--line);
+        background: var(--card);
+        border: 1.5px solid var(--line-soft);
         border-radius: 0.9rem;
+        box-shadow: 0.2rem 0.2rem 0 var(--shadow-soft);
+        color: var(--ink);
+        font-family: var(--font-mono);
+        font-size: 0.92rem;
+        line-height: 1.65;
         margin: 0;
         overflow-wrap: anywhere;
         padding: 1rem 1.1rem;
+        tab-size: 2;
         white-space: pre-wrap;
         word-break: break-word;
       }
 
       .prose pre code {
-        background: none;
+        background: transparent;
         border: 0;
         border-radius: 0;
+        color: inherit;
+        font-size: inherit;
+        line-height: inherit;
         padding: 0;
+      }
+
+      /* The code runtime only adds semantic spans.  Keeping the colours here
+         means a source sample is legible before enhancement, in both themes,
+         and remains legible when a language is not recognised. */
+      .prose pre code .code-token-comment {
+        color: var(--code-comment);
+        font-style: italic;
+      }
+
+      .prose pre code .code-token-keyword {
+        color: var(--code-keyword);
+        font-weight: 800;
+      }
+
+      .prose pre code .code-token-string {
+        color: var(--code-string);
+      }
+
+      .prose pre code .code-token-number {
+        color: var(--code-number);
+      }
+
+      .prose pre code .code-token-function {
+        color: var(--code-function);
+        font-weight: 700;
+      }
+
+      .prose pre code .code-token-property {
+        color: var(--code-property);
+      }
+
+      .prose pre code .code-token-type {
+        color: var(--code-type);
+      }
+
+      .prose pre code .code-token-constant {
+        color: var(--code-constant);
+      }
+
+      .prose pre code .code-token-variable {
+        color: var(--code-variable);
+      }
+
+      .prose pre code .code-token-operator {
+        color: var(--code-operator);
+      }
+
+      .prose pre code .code-token-punctuation {
+        color: var(--code-punctuation);
+      }
+
+      .prose pre code .code-token-tag {
+        color: var(--code-tag);
+        font-weight: 700;
+      }
+
+      .prose pre code .code-token-heading {
+        color: var(--code-heading);
+        font-weight: 800;
+      }
+
+      /* JavaScript progressively wraps a code sample in this frame.  The extra
+         top padding reserves a quiet toolbar corner without covering the first
+         line; with JavaScript disabled the original `pre` keeps its compact
+         padding and remains the complete experience. */
+      .prose .code-block {
+        margin: 0;
+        position: relative;
+      }
+
+      .prose .code-block pre {
+        padding-top: 3.35rem;
+      }
+
+      .code-block-copy {
+        align-items: center;
+        background: var(--card);
+        border: 1.5px solid var(--line-soft);
+        border-radius: 0.55rem;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        font-family: var(--font-sans);
+        font-size: 0.78rem;
+        font-weight: 800;
+        justify-content: center;
+        min-height: 2.15rem;
+        padding: 0.35rem 0.7rem;
+        position: absolute;
+        right: 0.65rem;
+        top: 0.65rem;
+        transition: background-color 0.15s ease, border-color 0.15s ease,
+          color 0.15s ease, opacity 0.15s ease;
+        white-space: nowrap;
+        z-index: 1;
+      }
+
+      .code-block-copy:not(:focus-visible) {
+        opacity: 0;
+      }
+
+      .code-block:hover .code-block-copy,
+      .code-block:focus-within .code-block-copy,
+      .code-block-copy.is-copied,
+      .code-block-copy.is-error {
+        opacity: 1;
+      }
+
+      .code-block-copy:hover,
+      .code-block-copy:focus-visible {
+        background: var(--lavender-deep);
+        border-color: var(--indigo);
+      }
+
+      .code-block-copy.is-copied {
+        border-color: var(--code-success);
+        color: var(--code-success);
+      }
+
+      .code-block-copy.is-error {
+        border-color: var(--code-error);
+        color: var(--code-error);
+      }
+
+      .code-block-copy[aria-busy="true"] {
+        color: var(--muted);
+        cursor: wait;
+      }
+
+      @media (hover: none) {
+        .code-block-copy {
+          opacity: 1;
+        }
       }
 
       /* An illustration never outgrows the reading column.  The element carries

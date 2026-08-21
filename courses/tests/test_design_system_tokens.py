@@ -21,6 +21,7 @@ from django.test import SimpleTestCase
 COURSES_DIR = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = COURSES_DIR.parent
 DESIGN_SYSTEM = REPOSITORY_ROOT / "templates/core/_design_system.html"
+CODE_BLOCK_SCRIPT = REPOSITORY_ROOT / "core/static/core/code_blocks.js"
 # The pages that render the countdown `time_left.js` writes its status class into.
 DEADLINE_PAGES = (
     REPOSITORY_ROOT / "courses/templates/courses/course.html",
@@ -125,6 +126,110 @@ class DesignSystemTokenTests(SimpleTestCase):
         self.assertIn("border: 2px solid var(--line)", return_button)
         self.assertIn("color: var(--ink)", return_button)
         self.assertNotRegex(return_button, LITERAL_COLOR)
+
+    def test_code_blocks_use_shared_theme_tokens(self):
+        stylesheet = DESIGN_SYSTEM.read_text(encoding="utf-8")
+
+        inline_code = _rule_body(stylesheet, ".prose code")
+        self.assertIn("background: var(--lavender-deep)", inline_code)
+        self.assertIn("color: var(--ink)", inline_code)
+        self.assertNotRegex(inline_code, LITERAL_COLOR)
+
+        code_block = _rule_body(stylesheet, ".prose pre")
+        for declaration in (
+            "background: var(--card)",
+            "border: 1.5px solid var(--line-soft)",
+            "box-shadow: 0.2rem 0.2rem 0 var(--shadow-soft)",
+            "color: var(--ink)",
+        ):
+            with self.subTest(declaration=declaration):
+                self.assertIn(declaration, code_block)
+        self.assertNotRegex(code_block, LITERAL_COLOR)
+
+        copy_button = _rule_body(stylesheet, ".code-block-copy")
+        for token in ("--card", "--line-soft", "--ink"):
+            with self.subTest(token=token):
+                self.assertIn(f"var({token})", copy_button)
+        self.assertNotRegex(copy_button, LITERAL_COLOR)
+
+        light = _palette(stylesheet, ":root")
+        dark = _palette(stylesheet, "body.dark-mode")
+        for token in (
+            "--code-comment",
+            "--code-keyword",
+            "--code-string",
+            "--code-number",
+            "--code-function",
+            "--code-property",
+            "--code-type",
+            "--code-constant",
+            "--code-variable",
+            "--code-operator",
+            "--code-punctuation",
+            "--code-tag",
+            "--code-heading",
+            "--code-success",
+            "--code-error",
+        ):
+            with self.subTest(token=token):
+                self.assertIn(token, light)
+                self.assertIn(token, dark)
+
+    def test_code_highlighting_contract_covers_published_languages(self):
+        stylesheet = DESIGN_SYSTEM.read_text(encoding="utf-8")
+        script = CODE_BLOCK_SCRIPT.read_text(encoding="utf-8")
+
+        # These are the language classes currently emitted by the checked
+        # article projection, plus the common aliases used by course markdown.
+        for language in (
+            "bash",
+            "docker",
+            "python",
+            "sql",
+            "yaml",
+            "json",
+            "javascript",
+            "markup",
+        ):
+            with self.subTest(language=language):
+                self.assertIn(f"{language}:", script)
+
+        for role in (
+            "comment",
+            "keyword",
+            "string",
+            "number",
+            "function",
+            "property",
+            "type",
+            "constant",
+            "variable",
+            "operator",
+            "punctuation",
+            "tag",
+            "heading",
+        ):
+            with self.subTest(role=role):
+                self.assertIn(f".prose pre code .code-token-{role} {{", stylesheet)
+
+        self.assertIn('setAttribute("data-code-language", language)', script)
+        self.assertIn('document.createTextNode(token.text)', script)
+        self.assertNotIn("innerHTML", script)
+        self.assertNotRegex(script, r"\beval\s*\(")
+        self.assertNotIn("new Function", script)
+
+    def test_code_copy_enhancement_is_accessible_and_csp_safe(self):
+        script = CODE_BLOCK_SCRIPT.read_text(encoding="utf-8")
+
+        self.assertIn('querySelectorAll(".prose pre")', script)
+        self.assertIn('setAttribute("aria-label", "Copy code")', script)
+        self.assertIn('setAttribute("aria-live", "polite")', script)
+        self.assertIn("navigator.clipboard.writeText", script)
+        self.assertIn("Code copied to clipboard.", script)
+        self.assertIn("Select and copy it manually.", script)
+        self.assertNotRegex(script, r"\beval\s*\(")
+        self.assertNotIn("new Function", script)
+        self.assertNotRegex(script, r"set(?:Timeout|Interval)\s*\(\s*['\"]")
 
     def test_every_deadline_state_is_a_token_on_every_page_that_shows_one(self):
         for path in DEADLINE_PAGES:

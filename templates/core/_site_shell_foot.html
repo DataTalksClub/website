@@ -79,6 +79,12 @@
 {% endcomment %}
 <script src="{% static 'timezone_preference.js' %}"></script>
 {% comment %}
+  Long-form prose stays readable without JavaScript.  When JavaScript is
+  available, this small enhancement adds one accessible Copy action to each
+  code sample and reports its result through a polite live region.
+{% endcomment %}
+<script src="{% static 'core/code_blocks.js' %}"></script>
+{% comment %}
   The account menu is a native <details> disclosure, so it opens without JavaScript
   but only closes by re-activating its summary.  This script gives it the two closes
   a disclosure menu is expected to have — Escape, and a click outside it — and
