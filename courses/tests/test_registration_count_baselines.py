@@ -4,13 +4,14 @@ import hashlib
 import sqlite3
 import tempfile
 import uuid
-from datetime import datetime, timezone as datetime_timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest import mock
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from core.models import AuditEvent
 from core.services import ServiceContext
@@ -39,7 +40,6 @@ from courses.services.registration_counts import (
     validate_source,
 )
 
-UTC = datetime_timezone.utc
 SOURCE_MINIMUM = datetime(2026, 1, 2, 10, 0, tzinfo=UTC)
 SOURCE_MAXIMUM = datetime(2026, 1, 3, 11, 0, tzinfo=UTC)
 CUTOFF = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
@@ -700,6 +700,10 @@ class CourseRegistrationCountBaselineTests(TestCase):
                 2,
             ),
         )
+        registration_url = reverse(
+            "registration_campaign",
+            kwargs={"campaign_slug": self.campaign.slug},
+        )
         for registrations, expected in scenarios:
             with self.subTest(expected=expected):
                 CourseRegistrationCountSlot.objects.all().delete()
@@ -708,7 +712,7 @@ class CourseRegistrationCountBaselineTests(TestCase):
                 self._replace_source(registrations)
                 self._stage_validate_activate()
                 with override_settings(COURSE_REGISTRATION_COUNT_SOURCES=self.registry):
-                    response = self.client.get(f"/register/{self.campaign.slug}/")
+                    response = self.client.get(registration_url)
                 self.assertEqual(response.status_code, 200)
                 if expected is None:
                     self.assertNotContains(response, "already registered")
@@ -732,13 +736,17 @@ class CourseRegistrationCountBaselineTests(TestCase):
             "role": CourseRegistration.Role.DATA_ENGINEER,
             "accepted_newsletter": "on",
         }
+        registration_url = reverse(
+            "registration_campaign",
+            kwargs={"campaign_slug": self.campaign.slug},
+        )
         with override_settings(COURSE_REGISTRATION_COUNT_SOURCES=self.registry):
             with self.captureOnCommitCallbacks(execute=True):
-                response = self.client.post(f"/register/{self.campaign.slug}/", payload)
+                response = self.client.post(registration_url, payload)
             self.assertEqual(response.status_code, 200)
             self.assertContains(response, "2 already registered")
             self.assertContains(response, "for 2026 cohort")
-            duplicate = self.client.post(f"/register/{self.campaign.slug}/", payload)
+            duplicate = self.client.post(registration_url, payload)
             self.assertEqual(duplicate.status_code, 200)
             self.assertContains(duplicate, "2 already registered")
             self.assertContains(duplicate, "for 2026 cohort")
