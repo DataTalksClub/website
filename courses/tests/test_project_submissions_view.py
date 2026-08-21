@@ -15,6 +15,7 @@ from courses.models import (
     ProjectSubmission,
     User,
 )
+from courses.views.url_utils import cohort_url_kwargs
 
 credentials = dict(
     username="test@test.com",
@@ -78,7 +79,7 @@ class ProjectSubmissionsViewTestBase(TestCase):
         return reverse(
             "project_submissions",
             kwargs={
-                "course_slug": self.course.slug,
+                **cohort_url_kwargs(self.course),
                 "project_slug": (project or self.project).slug,
             },
         )
@@ -87,7 +88,7 @@ class ProjectSubmissionsViewTestBase(TestCase):
         return reverse(
             "project",
             kwargs={
-                "course_slug": self.course.slug,
+                **cohort_url_kwargs(self.course),
                 "project_slug": self.project.slug,
             },
         )
@@ -96,7 +97,7 @@ class ProjectSubmissionsViewTestBase(TestCase):
         return reverse(
             "studio_courses_project_submissions",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
                 "project_slug": self.project.slug,
             },
         )
