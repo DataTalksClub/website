@@ -1,27 +1,28 @@
 from django.urls import path
 
-from .views import course
-from .views import course_calendar
-from .views import course_enrollment
-from .views import course_leaderboard
-from .views import course_list
-from .views import course_project_submissions
-from .views import dashboard
-from .views import homework
-from .views import homework_statistics
-from .views import homework_submissions
-from .views import module
-from .views import project
-from .views import project_eval
-from .views import project_eval_actions
-from .views import project_eval_submit
-from .views import project_results
-from .views import project_statistics
-from .views import project_submissions
-from .views import registration
-from .views import unit
-from .views import wrapped
-
+from .views import (
+    course,
+    course_calendar,
+    course_enrollment,
+    course_leaderboard,
+    course_list,
+    course_project_submissions,
+    dashboard,
+    homework,
+    homework_statistics,
+    homework_submissions,
+    module,
+    project,
+    project_eval,
+    project_eval_actions,
+    project_eval_submit,
+    project_results,
+    project_statistics,
+    project_submissions,
+    registration,
+    unit,
+    wrapped,
+)
 
 urlpatterns = [
     path("", course_list.course_list, name="course_list"),
@@ -207,7 +208,6 @@ urlpatterns = [
         dashboard.dashboard_view,
         name="dashboard",
     ),
-
     # project
     path(
         "<slug:course_slug>/project/<slug:project_slug>",
@@ -254,7 +254,6 @@ urlpatterns = [
         project_eval_actions.projects_eval_delete,
         name="projects_eval_delete",
     ),
-
     # homework
     path(
         "<slug:course_slug>/homework/<slug:homework_slug>",
@@ -272,3 +271,18 @@ urlpatterns = [
         name="homework_submissions",
     ),
 ]
+
+# A legacy edition URL such as ``/courses/de-zoomcamp-2026/projects`` would
+# otherwise be consumed by the canonical ``<course>/<cohort>`` route as a
+# course page with cohort ``projects``. Keep the copied legacy surface
+# reachable while canonical two-segment URLs remain unchanged.
+urlpatterns.sort(
+    key=lambda pattern: (
+        0
+        if (
+            str(pattern.pattern).startswith("<slug:course_slug>/")
+            and "<slug:cohort_" not in str(pattern.pattern)
+        )
+        else 1
+    )
+)

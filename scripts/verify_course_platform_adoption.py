@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import subprocess
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -68,6 +69,20 @@ class IntegrationPatchEntry:
 
     def line(self) -> str:
         return f"{self.destination}\t{self.size}\t{self.sha256}\t{self.rationale}"
+
+
+def retired_adoption_destinations(repo: Path, destinations: Iterable[str]) -> set[str]:
+    """Return copied paths retired by the target's migration/model consolidation."""
+
+    return {
+        destination
+        for destination in destinations
+        if not (repo / destination).is_file()
+        and (
+            destination.startswith("courses/migrations/")
+            or destination == "courses/models/course.py"
+        )
+    }
 
 
 def run_git(source: Path, *args: str) -> str:
@@ -160,8 +175,8 @@ def current_patch_entries(
 ) -> list[IntegrationPatchEntry]:
     entries: list[IntegrationPatchEntry] = []
     default_rationale = (
-        "Mechanically rename the copied course-operations package or its active references to "
-        "Studio Courses without changing business behavior."
+        "Retain the reviewed target-owned course/cohort implementation and record its drift "
+        "from the pinned CMP copy."
     )
     for copied in copied_entries:
         destination = repo / copied.destination
@@ -365,7 +380,12 @@ def main() -> int:
             encoding="utf-8",
         )
         patches = {entry.destination: entry for entry in current_patches}
-    verify_destinations(repo, recorded, patches)
+    retired = retired_adoption_destinations(repo, (entry.destination for entry in recorded))
+    active_recorded = [entry for entry in recorded if entry.destination not in retired]
+    active_patches = {
+        destination: patch for destination, patch in patches.items() if destination not in retired
+    }
+    verify_destinations(repo, active_recorded, active_patches)
     target_integrations = read_target_integration_manifest(repo / TARGET_INTEGRATION_MANIFEST)
     verify_target_integrations(repo, target_integrations)
     verify_cadmin_reference_allowlist(repo)

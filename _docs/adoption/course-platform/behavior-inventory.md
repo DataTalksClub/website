@@ -11,10 +11,10 @@ identities, and verifies all copied destination checksums.
 | Surface | Mounted URLconf | Routes |
 | --- | --- | ---: |
 | Accounts | `accounts.urls` | 9 |
-| Compatibility API | `api.urls` | 29 |
+| Compatibility API | `api.urls` | 30 |
 | Studio Courses | `studio_courses.urls` | 26 |
-| Public courses | `courses.urls` | 25 |
-| **Total** |  | **89** |
+| Public courses | `courses.urls` | 50 |
+| **Total** |  | **115** |
 
 The compatibility API and Studio Courses rows below retain the complete adopted
 behavior. Issues #115 and #116 change the management mount, names, and package
@@ -53,6 +53,7 @@ Mounted from `api.urls`.
 | `/api/courses/<slug:course_slug>/graduates` | `api_course_graduates` | `api.views.enrollment_graduates.graduates_data_view` |
 | `/api/courses/<slug:course_slug>/certificates` | `api_course_certificates` | `api.views.enrollment_certificates.bulk_update_enrollment_certificates_view` |
 | `/api/datamailer/events` | `api_datamailer_events` | `api.views.webhooks.datamailer_event_webhook` |
+| `/api/webhooks/github` | `api_github_course_repository_webhook` | `api.views.course_repository_webhooks.github_course_repository_webhook` |
 | `/api/datamailer/send-audits` | `api_datamailer_send_audits` | `api.views.datamailer_send_audits.datamailer_send_audits_view` |
 | `/api/courses/` | `api_courses_list` | `api.views.courses.courses_list_view` |
 | `/api/courses/<slug:course_slug>/` | `api_course_detail` | `api.views.courses.course_detail_view` |
@@ -113,10 +114,6 @@ Mounted from `courses.urls`.
 
 | Route | Name | Callback |
 | --- | --- | --- |
-| `/` | `course_list` | `courses.views.course_list.course_list` |
-| `/register/<slug:campaign_slug>/` | `registration_campaign` | `courses.views.registration.registration_campaign_view` |
-| `/wrapped/<int:year>/` | `wrapped` | `courses.views.wrapped.wrapped_view` |
-| `/wrapped/<int:year>/<int:student_id>/` | `user_wrapped` | `courses.views.wrapped.user_wrapped_view` |
 | `/<slug:course_slug>/calendar.ics` | `course_calendar` | `courses.views.course_calendar.course_calendar_view` |
 | `/<slug:course_slug>/` | `course` | `courses.views.course.course_view` |
 | `/<slug:course_slug>/projects` | `list_all_project_submissions` | `courses.views.course_project_submissions.list_all_project_submissions_view` |
@@ -138,6 +135,35 @@ Mounted from `courses.urls`.
 | `/<slug:course_slug>/homework/<slug:homework_slug>` | `homework` | `courses.views.homework.homework_view` |
 | `/<slug:course_slug>/homework/<slug:homework_slug>/stats` | `homework_statistics` | `courses.views.homework_statistics.homework_statistics` |
 | `/<slug:course_slug>/homework/<slug:homework_slug>/submissions` | `homework_submissions` | `courses.views.homework_submissions.homework_submissions` |
+| `/` | `course_list` | `courses.views.course_list.course_list` |
+| `/register/<slug:campaign_slug>/` | `registration_campaign` | `courses.views.registration.registration_campaign_view` |
+| `/wrapped/<int:year>/` | `wrapped` | `courses.views.wrapped.wrapped_view` |
+| `/wrapped/<int:year>/<int:student_id>/` | `user_wrapped` | `courses.views.wrapped.user_wrapped_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/calendar.ics` | `course_calendar` | `courses.views.course_calendar.course_calendar_view` |
+| `/<slug:course_slug>/<slug:cohort_identifier>/modules/<slug:module_slug>` | `module` | `courses.views.module.module_view` |
+| `/<slug:course_slug>/<slug:cohort_identifier>/modules/<slug:module_slug>/<slug:unit_slug>/read` | `unit_read_state` | `courses.views.module.update_unit_read_state` |
+| `/<slug:course_slug>/<slug:cohort_identifier>/modules/<slug:module_slug>/<slug:unit_slug>` | `unit` | `courses.views.unit.unit_view` |
+| `/<slug:course_slug>/<slug:cohort_year>` | `course` | `courses.views.course.course_view` |
+| `/<slug:course_slug>` | `course_family` | `courses.views.course.course_family_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/projects` | `list_all_project_submissions` | `courses.views.course_project_submissions.list_all_project_submissions_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/leaderboard` | `leaderboard` | `courses.views.course_leaderboard.leaderboard_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/leaderboard/<int:enrollment_id>/` | `leaderboard_score_breakdown` | `courses.views.course_leaderboard.leaderboard_score_breakdown_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/leaderboard/<int:enrollment_id>/report` | `leaderboard_complaint` | `courses.views.course_leaderboard.leaderboard_complaint_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/enrollment/toggle` | `update_enrollment_toggle` | `courses.views.course_enrollment.update_enrollment_toggle` |
+| `/<slug:course_slug>/<slug:cohort_year>/enrollment` | `enrollment` | `courses.views.course_enrollment.enrollment_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/dashboard` | `dashboard` | `courses.views.dashboard.dashboard_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>` | `project` | `courses.views.project.project_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/list` | `project_list` | `courses.views.project_submissions.projects_list_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval` | `projects_eval` | `courses.views.project_eval.projects_eval_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/results` | `project_results` | `courses.views.project_results.project_results` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/stats` | `project_statistics` | `courses.views.project_statistics.project_statistics` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/submissions` | `project_submissions` | `courses.views.project_submissions.project_submissions` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval/<int:review_id>` | `projects_eval_submit` | `courses.views.project_eval_submit.projects_eval_submit` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval/add/<int:submission_id>` | `projects_eval_add` | `courses.views.project_eval_actions.projects_eval_add` |
+| `/<slug:course_slug>/<slug:cohort_year>/project/<slug:project_slug>/eval/delete/<int:review_id>` | `projects_eval_delete` | `courses.views.project_eval_actions.projects_eval_delete` |
+| `/<slug:course_slug>/<slug:cohort_year>/homework/<slug:homework_slug>` | `homework` | `courses.views.homework.homework_view` |
+| `/<slug:course_slug>/<slug:cohort_year>/homework/<slug:homework_slug>/stats` | `homework_statistics` | `courses.views.homework_statistics.homework_statistics` |
+| `/<slug:course_slug>/<slug:cohort_year>/homework/<slug:homework_slug>/submissions` | `homework_submissions` | `courses.views.homework_submissions.homework_submissions` |
 
 ## Management commands
 
@@ -157,6 +183,7 @@ Mounted from `courses.urls`.
 | `process_datamailer_outbox` | `data` | Dispatch pending/retrying Datamailer outbox events. |
 | `reconcile_accounts` | `accounts` | Dry-run, apply, or rollback-check reviewed account mappings. |
 | `seed_local_courses` | `courses` | Seed the local development database with the pinned public course catalog so / and /courses show the same real courses. |
+| `seed_local_project_review` | `courses` | Seed a synthetic DE Zoomcamp Project 1 scenario and assign peer reviews in local/test SQLite only. |
 | `seed_local_questions` | `courses` | Seed representative homework questions for a local development form. |
 | `seed_local_social_providers` | `accounts` | Seed the local development database with placeholder Google, GitHub and Slack sign-in apps so /accounts/signup/ and /accounts/login/ render their provider buttons. The credentials are inert placeholders, not secrets. |
 | `send_deadline_reminders` | `courses` | Send Datamailer deadline reminders with transient recipient lists. |
@@ -172,10 +199,12 @@ Mounted from `courses.urls`.
 | `accounts` | `accounts` | `0001_initial, 0002_token, 0003_customuser_certificate_name, 0004_customuser_dark_mode, 0005_backfill_certificate_name_from_enrollment, 0006_customuser_country_customuser_region_and_more, 0007_customuser_email_deadline_reminders_and_more, 0008_customuser_email_course_updates, 0009_customuser_preferred_timezone, 0010_remove_customuser_email_course_updates_and_more, 0011_identity_expansion, 0012_backfill_normalized_identity` |
 | `api` | `api` | `none` |
 | `studio_courses` | `studio_courses` | `none` |
-| `courses` | `courses` | `0001_initial` |
+| `courses` | `courses` | `0001_initial, 0002_curriculum_and_project_criteria, 0003_alter_module_link_alter_unit_link, 0004_alter_criteriaresponse_criteria_and_more, 0005_cohort_identifier_and_more, 0006_alter_cohort_identifier, 0007_coursecurriculumimportrun_cohort_source_checksum_and_more, 0008_question_source_option_ids, 0009_homework_instructions_markdown_unit_content_markdown_and_more, 0010_unitreadstate` |
 | `data` | `data` | `0001_initial, 0002_datamaileroutboxevent, 0003_datamaileroutboxdispatchrun, 0004_datamailercontactevent_duplicate_count_and_more, 0005_datamailersendaudit` |
 
-The original numbered graph is retained here as historical provenance. The active phase-1
+The original numbered graph is retained here as historical provenance. The active
+phase-1
 `courses` graph is the single `0001_initial` migration documented in
-`migration-squash-gate.md`; later product migrations extend that graph only through reviewed
+`migration-squash-gate.md`; later product migrations extend that graph only through
+reviewed
 product issues.

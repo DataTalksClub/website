@@ -16,7 +16,10 @@ from scripts.render_course_platform_inventory import (
     render_inventory,
     route_entries,
 )
-from scripts.verify_course_platform_adoption import verify_cadmin_reference_allowlist
+from scripts.verify_course_platform_adoption import (
+    retired_adoption_destinations,
+    verify_cadmin_reference_allowlist,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ADOPTION_DIR = REPO_ROOT / "_docs/adoption/course-platform"
@@ -43,6 +46,8 @@ EXPECTED_COMMANDS = {
     "process_datamailer_outbox": "data",
     "reconcile_accounts": "accounts",
     "seed_local_courses": "courses",
+    "seed_local_project_review": "courses",
+    "seed_local_questions": "courses",
     "send_deadline_reminders": "courses",
     "sync_datamailer_contacts": "courses",
     "sync_datamailer_recipient_lists": "courses",
@@ -60,7 +65,7 @@ EXPECTED_MIGRATION_COUNTS = {
     "accounts": 12,
     "api": 0,
     "studio_courses": 0,
-    "courses": 1,
+    "courses": 10,
     "data": 5,
 }
 EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES: dict[tuple[str, str], str] = {}
@@ -164,187 +169,34 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
     def test_all_recorded_copies_exist_with_recorded_integration_state(self):
         copied_rows = _read_tsv(MANIFEST_PATH)
         patch_rows = _read_tsv(PATCH_MANIFEST_PATH)
-        historical_course_migrations = {
-            row["destination_path"]
-            for row in copied_rows
-            if row["destination_path"].startswith("courses/migrations/")
-        }
+        retired_destinations = retired_adoption_destinations(
+            REPO_ROOT, (row["destination_path"] for row in copied_rows)
+        )
         patches = {
             row["destination_path"]: row
             for row in patch_rows
-            if row["destination_path"] not in historical_course_migrations
+            if row["destination_path"] not in retired_destinations
         }
 
         self.assertEqual(len(copied_rows), 768)
-        self.assertEqual(
-            set(patches),
-            {
-                "api/openapi/course_schemas.py",
-                "api/openapi/content_paths/homeworks.py",
-                "api/openapi/content_paths/projects.py",
-                "api/openapi/spec.py",
-                "api/views/health.py",
-                "accounts/admin.py",
-                "accounts/auth.py",
-                "accounts/forms.py",
-                "accounts/migrations/0005_backfill_certificate_name_from_enrollment.py",
-                "accounts/models.py",
-                "accounts/templates/accounts/login.html",
-                "accounts/tests_account_settings.py",
-                "accounts/tests_auth.py",
-                "accounts/tests_token_admin.py",
-                "accounts/views/impersonation.py",
-                "accounts/views/login.py",
-                "studio_courses/deadline_extension.py",
-                "studio_courses/apps.py",
-                "studio_courses/templates/studio_courses/_extend_deadline_menu.html",
-                "studio_courses/templates/studio_courses/base.html",
-                "studio_courses/templates/studio_courses/campaign_form.html",
-                "studio_courses/templates/studio_courses/campaign_registrations.html",
-                "studio_courses/templates/studio_courses/cloudwatch_dashboard.html",
-                "studio_courses/templates/studio_courses/course_admin.html",
-                "studio_courses/templates/studio_courses/course_list.html",
-                "studio_courses/templates/studio_courses/datamailer_events.html",
-                "studio_courses/templates/studio_courses/datamailer_operations.html",
-                "studio_courses/templates/studio_courses/enrollment_edit.html",
-                "studio_courses/templates/studio_courses/enrollments.html",
-                "studio_courses/templates/studio_courses/homework_submission_edit.html",
-                "studio_courses/templates/studio_courses/homework_submissions.html",
-                "studio_courses/templates/studio_courses/leaderboard_complaints.html",
-                "studio_courses/templates/studio_courses/project_submission_edit.html",
-                "studio_courses/templates/studio_courses/project_submissions.html",
-                "studio_courses/templates/studio_courses/include/campaign_field.html",
-                "studio_courses/tests/campaign_view_base.py",
-                "studio_courses/tests/homework_view_base.py",
-                "studio_courses/tests/impersonation_base.py",
-                "studio_courses/tests/project_view_base.py",
-                "studio_courses/tests/__init__.py",
-                "studio_courses/tests/test_campaign_datamailer_views.py",
-                "studio_courses/tests/test_campaign_views.py",
-                "studio_courses/tests/test_cloudwatch_dashboard_views.py",
-                "studio_courses/tests/test_course_views.py",
-                "studio_courses/tests/test_datamailer_views.py",
-                "studio_courses/tests/test_homework_views.py",
-                "studio_courses/tests/test_homework_submission_edit_views.py",
-                "studio_courses/tests/test_impersonation_enrollment_views.py",
-                "studio_courses/tests/test_impersonation_stop_views.py",
-                "studio_courses/tests/test_impersonation_views.py",
-                "studio_courses/tests/test_leaderboard_views.py",
-                "studio_courses/tests/test_project_action_views.py",
-                "studio_courses/tests/test_project_submission_edit_views.py",
-                "studio_courses/tests/test_project_views.py",
-                "studio_courses/tests/test_view_models.py",
-                "studio_courses/urls.py",
-                "studio_courses/views/campaign_forms.py",
-                "studio_courses/views/campaigns.py",
-                "studio_courses/views/course_admin.py",
-                "studio_courses/views/datamailer.py",
-                "studio_courses/views/datamailer_operations.py",
-                "studio_courses/views/enrollment.py",
-                "studio_courses/views/enrollment_complaints.py",
-                "studio_courses/views/enrollment_edit.py",
-                "studio_courses/views/homework.py",
-                "studio_courses/views/homework_submission_edit.py",
-                "studio_courses/views/homework_submission_list.py",
-                "studio_courses/views/observability.py",
-                "studio_courses/views/helpers.py",
-                "studio_courses/views/project_submission_edit.py",
-                "studio_courses/views/project_submission_list.py",
-                "studio_courses/views/projects.py",
-                "course_management/datamailer_templates/README.md",
-                "course_management/datamailer_templates/definitions/peer_review.py",
-                "course_management/datamailer_templates/definitions/scores.py",
-                "course_management/datamailer_outbox_dispatch.py",
-                "course_management/datamailer_templates/definitions/common.py",
-                "course_management/observability/events.py",
-                "course_management/settings.py",
-                "course_management/urls.py",
-                "course_platform_templates/account/logout.html",
-                "course_platform_templates/accounts/account_settings.html",
-                "course_platform_templates/base.html",
-                "course_platform_templates/include/pagination.html",
-                "course_platform_templates/socialaccount/authentication_error.html",
-                "course_platform_templates/socialaccount/connections.html",
-                "course_platform_templates/socialaccount/login_cancelled.html",
-                "course_platform_templates/socialaccount/signup.html",
-                "courses/models/__init__.py",
-                "courses/models/project.py",
-                "courses/templates/courses/course.html",
-                "courses/templates/courses/course_list.html",
-                "courses/templatetags/custom_filters.py",
-                "courses/templates/courses/dashboard.html",
-                "courses/templates/courses/enrollment.html",
-                "courses/templates/courses/leaderboard.html",
-                "courses/templates/courses/leaderboard_complaint.html",
-                "courses/templates/courses/leaderboard_score_breakdown.html",
-                "courses/templates/courses/register.html",
-                "courses/templates/courses/user_wrapped.html",
-                "courses/templates/courses/wrapped.html",
-                "courses/templates/homework/homework.html",
-                "courses/templates/homework/stats.html",
-                "courses/templates/homework/submissions.html",
-                "courses/templates/include/faq_contribution_field.html",
-                "courses/templates/include/learning_in_public_links.html",
-                "courses/templates/index.html",
-                "courses/templates/projects/eval.html",
-                "courses/templates/projects/eval_submit.html",
-                "courses/templates/projects/list.html",
-                "courses/templates/projects/list_all.html",
-                "courses/templates/projects/project.html",
-                "courses/templates/projects/results.html",
-                "courses/templates/projects/stats.html",
-                "courses/templates/projects/submissions.html",
-                "courses/static/courses.css",
-                "courses/static/time_left.js",
-                "courses/static/settings_toggles.js",
-                "courses/static/user_menu.js",
-                "courses/tests/homework_submissions_base.py",
-                "courses/tests/homework_submission_validation_base.py",
-                "courses/tests/leaderboard_base.py",
-                "courses/tests/test_course_list_metadata.py",
-                "courses/tests/test_course_list_ordering.py",
-                "courses/tests/test_datamailer_certificates.py",
-                "courses/tests/test_datamailer_registration.py",
-                "courses/tests/test_datamailer_signals.py",
-                "courses/tests/test_datamailer_transactional.py",
-                "courses/tests/course_leaderboard_base.py",
-                "courses/tests/test_homework.py",
-                "courses/tests/test_homework_submission_closed.py",
-                "courses/tests/test_homework_submissions_hidden_answers.py",
-                "courses/tests/test_homework_submissions.py",
-                "courses/tests/test_homework_submissions_admin_link.py",
-                "courses/tests/test_homework_question_stats.py",
-                "courses/tests/test_homework_submission_validation.py",
-                "courses/tests/test_leaderboard_score_breakdown_admin.py",
-                "courses/tests/test_course_homework_display.py",
-                "courses/tests/test_course_links.py",
-                "courses/tests/test_noindex.py",
-                "courses/tests/test_registration_campaign_course_page.py",
-                "courses/tests/test_project_submissions_view.py",
-                "courses/tests/test_project_eval.py",
-                "courses/tests/test_project_submission_invalid.py",
-                "courses/tests/test_project_view.py",
-                "courses/tests/test_registration_campaigns.py",
-                "courses/tests/test_unit_url_validation.py",
-                "courses/views/homework_submissions.py",
-                "courses/views/homework_learning_links.py",
-                "courses/views/course_calendar_events.py",
-                "courses/views/course_homeworks.py",
-                "courses/views/course_list.py",
-                "courses/views/course_projects.py",
-                "courses/views/course_page_context.py",
-                "courses/views/project_submissions.py",
-                "courses/views/registration.py",
-                "courses/validators/custom_url_validators.py",
-                "data/tests/test_observability.py",
-                "scripts/generate_production_like_leaderboard_data.py",
-                "scripts/load_rds_export.py",
-                "scripts/score_project_dev.py",
-            },
-        )
+        expected_patches = set()
         for row in copied_rows:
             destination_path = row["destination_path"]
-            if destination_path in historical_course_migrations:
+            if destination_path in retired_destinations:
+                continue
+            destination = REPO_ROOT / destination_path
+            if not destination.is_file():
+                continue
+            if (
+                destination.stat().st_size != int(row["size_bytes"])
+                or _digest(destination) != row["sha256"]
+            ):
+                expected_patches.add(destination_path)
+        self.assertEqual(set(patches), expected_patches)
+        self.assertTrue(all(row["rationale"].strip() for row in patches.values()))
+        for row in copied_rows:
+            destination_path = row["destination_path"]
+            if destination_path in retired_destinations:
                 continue
             destination = REPO_ROOT / destination_path
             expected = patches.get(destination_path, row)
@@ -382,7 +234,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
     def test_every_adopted_route_resolves_through_the_unified_urlconf(self):
         routes = route_entries()
 
-        self.assertEqual(len(routes), 89)
+        self.assertEqual(len(routes), 115)
         for route in routes:
             with self.subTest(route=route.route, name=route.name):
                 example_path = route.example_path()
@@ -393,6 +245,12 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                         "course",
                         kwargs={"course_slug": "example-course"},
                     )
+                if route.surface == "Public courses" and not example_path.startswith("/courses"):
+                    # ``courses.urls`` is mounted at ``/courses/`` in the unified
+                    # URLconf.  The generated inventory intentionally keeps the
+                    # source URLconf's route shape, so add the deployment mount
+                    # only for this resolver smoke test.
+                    example_path = "/courses" + example_path
                 match = resolve(example_path)
                 self.assertEqual(match.url_name, route.name or None)
                 callback_name = f"{match.func.__module__}.{match.func.__name__}"
@@ -436,7 +294,7 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
         self.assertEqual(migration_names("courses")[0], "0001_initial")
         self.assertEqual(
             migration_names("courses")[-1],
-            "0001_initial",
+            "0010_unitreadstate",
         )
         self.assertEqual(migration_names("data")[0], "0001_initial")
         self.assertEqual(migration_names("data")[-1], "0005_datamailersendaudit")
