@@ -1,5 +1,5 @@
-from datetime import timedelta
 from collections import defaultdict
+from datetime import timedelta
 
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -11,12 +11,12 @@ from courses.models import (
     PeerReview,
     PeerReviewState,
     Project,
-    ProjectSubmission,
     ProjectState,
+    ProjectSubmission,
     User,
 )
 from courses.project_assignment import assign_peer_reviews_for_project
-
+from courses.views.url_utils import cohort_url_kwargs
 
 credentials = dict(
     username="test@test.com",
@@ -65,15 +65,11 @@ class ProjectActionsTestBase(TestCase):
         return assign_peer_reviews_for_project(self.project)
 
     def project_peer_reviews(self):
-        peer_reviews = PeerReview.objects.filter(
-            submission_under_evaluation__project=self.project
-        )
+        peer_reviews = PeerReview.objects.filter(submission_under_evaluation__project=self.project)
         return list(peer_reviews)
 
     def assert_no_peer_reviews(self):
-        peer_reviews = PeerReview.objects.filter(
-            submission_under_evaluation__project=self.project
-        )
+        peer_reviews = PeerReview.objects.filter(submission_under_evaluation__project=self.project)
         peer_review_count = peer_reviews.count()
         self.assertEqual(peer_review_count, 0)
 
@@ -84,9 +80,7 @@ class ProjectActionsTestBase(TestCase):
             ProjectState.PEER_REVIEWING.value,
         )
         peer_reviews = self.project_peer_reviews()
-        expected_num_assignments = (
-            num_submissions * self.project.number_of_peers_to_evaluate
-        )
+        expected_num_assignments = num_submissions * self.project.number_of_peers_to_evaluate
         peer_review_count = len(peer_reviews)
         self.assertEqual(peer_review_count, expected_num_assignments)
         self.assert_peer_reviews_distributed(peer_reviews, num_submissions)
@@ -115,36 +109,39 @@ class ProjectActionsTestBase(TestCase):
     def project_list_url(self):
         return reverse(
             "project_list",
-            args=[self.course.slug, self.project.slug],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+            },
         )
 
     def add_eval_url(self, submission_id):
         return reverse(
             "projects_eval_add",
-            args=[
-                self.course.slug,
-                self.project.slug,
-                submission_id,
-            ],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+                "submission_id": submission_id,
+            },
         )
 
     def delete_eval_url(self, peer_review_id):
         return reverse(
             "projects_eval_delete",
-            args=[
-                self.course.slug,
-                self.project.slug,
-                peer_review_id,
-            ],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+                "review_id": peer_review_id,
+            },
         )
 
     def projects_eval_url(self):
         return reverse(
             "projects_eval",
-            args=[
-                self.course.slug,
-                self.project.slug,
-            ],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+            },
         )
 
     def find_optional_eval_candidate_id(self):
