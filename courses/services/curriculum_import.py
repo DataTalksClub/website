@@ -273,12 +273,8 @@ class _CurriculumImporter:
     def _upsert_course(self) -> Course:
         source = self.command.source.course
         source_id = UUID(source.content_id)
-        by_stable = (
-            Course.objects.select_for_update()
-            .filter(source_stable_id=self.command.source_stable_id)
-            .first()
-        )
-        by_content = Course.objects.select_for_update().filter(source_content_id=source_id).first()
+        by_stable = Course.objects.filter(source_stable_id=self.command.source_stable_id).first()
+        by_content = Course.objects.filter(source_content_id=source_id).first()
         if by_stable is not None and by_content is not None and by_stable.pk != by_content.pk:
             raise CurriculumImportError(
                 "course_source_identity_conflict", source_path=source.source_path
@@ -294,19 +290,14 @@ class _CurriculumImporter:
                     "course_source_ownership_conflict", source_path=source.source_path
                 )
         else:
-            slug_match = Course.objects.select_for_update().filter(slug=source.slug).first()
+            slug_match = Course.objects.filter(slug=source.slug).first()
             if slug_match is not None and slug_match.source_content_id is not None:
                 raise CurriculumImportError(
                     "course_slug_collision", source_path=source.source_path, pointer="/slug"
                 )
             course = slug_match or Course()
 
-        slug_collision = (
-            Course.objects.select_for_update()
-            .filter(slug=source.slug)
-            .exclude(pk=course.pk)
-            .exists()
-        )
+        slug_collision = Course.objects.filter(slug=source.slug).exclude(pk=course.pk).exists()
         if slug_collision:
             raise CurriculumImportError(
                 "course_slug_collision", source_path=source.source_path, pointer="/slug"
@@ -340,20 +331,10 @@ class _CurriculumImporter:
         if source.content_id is None or source.source_path is None:
             raise CurriculumImportError("explicit_cohort_source_identity_missing")
         source_id = UUID(source.content_id)
-        by_content = (
-            Cohort.objects.select_for_update()
-            .filter(course=course, source_content_id=source_id)
-            .first()
-        )
-        by_identifier = (
-            Cohort.objects.select_for_update()
-            .filter(course=course, identifier=source.identifier)
-            .first()
-        )
+        by_content = Cohort.objects.filter(course=course, source_content_id=source_id).first()
+        by_identifier = Cohort.objects.filter(course=course, identifier=source.identifier).first()
         by_slug = (
-            Cohort.objects.select_for_update().filter(slug=source.legacy_slug).first()
-            if source.legacy_slug
-            else None
+            Cohort.objects.filter(slug=source.legacy_slug).first() if source.legacy_slug else None
         )
         collisions = {row.pk for row in (by_content, by_identifier, by_slug) if row is not None}
         if len(collisions) > 1:
@@ -368,18 +349,12 @@ class _CurriculumImporter:
             cohort = candidate or Cohort(course=course)
 
         target_slug = source.legacy_slug or f"{course.slug}-{source.identifier}"
-        if (
-            Cohort.objects.select_for_update()
-            .filter(slug=target_slug)
-            .exclude(pk=cohort.pk)
-            .exists()
-        ):
+        if Cohort.objects.filter(slug=target_slug).exclude(pk=cohort.pk).exists():
             raise CurriculumImportError(
                 "cohort_slug_collision", source_path=source.source_path, pointer="/legacy_slug"
             )
         if (
-            Cohort.objects.select_for_update()
-            .filter(course=course, identifier=source.identifier)
+            Cohort.objects.filter(course=course, identifier=source.identifier)
             .exclude(pk=cohort.pk)
             .exists()
         ):
@@ -416,9 +391,7 @@ class _CurriculumImporter:
         for position, item in enumerate(source.flow):
             if not isinstance(item, ProjectFlowSource):
                 continue
-            project = (
-                Project.objects.select_for_update().filter(course=cohort, slug=item.slug).first()
-            )
+            project = Project.objects.filter(course=cohort, slug=item.slug).first()
             if project is None:
                 raise CurriculumImportError(
                     "project_reference_missing",
@@ -468,14 +441,8 @@ class _CurriculumImporter:
 
     def _upsert_homework(self, cohort: Cohort, source: HomeworkSource) -> Homework:
         source_id = UUID(source.content_id)
-        homework = (
-            Homework.objects.select_for_update()
-            .filter(course=cohort, source_content_id=source_id)
-            .first()
-        )
-        slug_match = (
-            Homework.objects.select_for_update().filter(course=cohort, slug=source.slug).first()
-        )
+        homework = Homework.objects.filter(course=cohort, source_content_id=source_id).first()
+        slug_match = Homework.objects.filter(course=cohort, slug=source.slug).first()
         if homework is None:
             if slug_match is not None:
                 raise CurriculumImportError(
@@ -530,14 +497,10 @@ class _CurriculumImporter:
 
     def _upsert_questions(self, homework: Homework, source: HomeworkSource) -> None:
         incoming_ids = {UUID(question.content_id) for question in source.questions}
-        stale = (
-            Question.objects.select_for_update()
-            .filter(
-                homework=homework,
-                source_content_id__isnull=False,
-            )
-            .exclude(source_content_id__in=incoming_ids)
-        )
+        stale = Question.objects.filter(
+            homework=homework,
+            source_content_id__isnull=False,
+        ).exclude(source_content_id__in=incoming_ids)
         if stale.exists() and Submission.objects.filter(homework=homework).exists():
             raise CurriculumImportError(
                 "protected_question_removal", source_path=source.source_path
@@ -555,16 +518,10 @@ class _CurriculumImporter:
         source: HomeworkQuestionSource,
     ) -> Question:
         source_id = UUID(source.content_id)
-        question = (
-            Question.objects.select_for_update()
-            .filter(homework=homework, source_content_id=source_id)
-            .first()
-        )
-        stable_match = (
-            Question.objects.select_for_update()
-            .filter(homework=homework, source_question_id=source.id)
-            .first()
-        )
+        question = Question.objects.filter(homework=homework, source_content_id=source_id).first()
+        stable_match = Question.objects.filter(
+            homework=homework, source_question_id=source.id
+        ).first()
         if question is None:
             if stable_match is not None:
                 raise CurriculumImportError("question_identity_collision", source_path=source_path)
@@ -624,14 +581,8 @@ class _CurriculumImporter:
         position: int,
     ) -> Module:
         source_id = UUID(source.content_id)
-        module = (
-            Module.objects.select_for_update()
-            .filter(cohort=cohort, source_content_id=source_id)
-            .first()
-        )
-        slug_match = (
-            Module.objects.select_for_update().filter(cohort=cohort, slug=source.slug).first()
-        )
+        module = Module.objects.filter(cohort=cohort, source_content_id=source_id).first()
+        slug_match = Module.objects.filter(cohort=cohort, slug=source.slug).first()
         if module is None:
             if slug_match is not None:
                 raise CurriculumImportError(
@@ -672,14 +623,8 @@ class _CurriculumImporter:
 
     def _upsert_unit(self, module: Module, source: UnitSource, position: int) -> Unit:
         source_id = UUID(source.content_id)
-        unit = (
-            Unit.objects.select_for_update()
-            .filter(module=module, source_content_id=source_id)
-            .first()
-        )
-        slug_match = (
-            Unit.objects.select_for_update().filter(module=module, slug=source.slug).first()
-        )
+        unit = Unit.objects.filter(module=module, source_content_id=source_id).first()
+        slug_match = Unit.objects.filter(module=module, slug=source.slug).first()
         if unit is None:
             if slug_match is not None:
                 raise CurriculumImportError("unit_slug_collision", source_path=source.source_path)
@@ -710,26 +655,18 @@ class _CurriculumImporter:
         incoming_module_ids: set[UUID],
         incoming_homework_ids: set[UUID],
     ) -> None:
-        stale_homeworks = (
-            Homework.objects.select_for_update()
-            .filter(
-                course=cohort,
-                source_content_id__isnull=False,
-            )
-            .exclude(source_content_id__in=incoming_homework_ids)
-        )
+        stale_homeworks = Homework.objects.filter(
+            course=cohort,
+            source_content_id__isnull=False,
+        ).exclude(source_content_id__in=incoming_homework_ids)
         if Submission.objects.filter(homework__in=stale_homeworks).exists():
             raise CurriculumImportError(
                 "protected_homework_removal", source_path=cohort.source_path or "."
             )
-        stale_modules = (
-            Module.objects.select_for_update()
-            .filter(
-                cohort=cohort,
-                source_content_id__isnull=False,
-            )
-            .exclude(source_content_id__in=incoming_module_ids)
-        )
+        stale_modules = Module.objects.filter(
+            cohort=cohort,
+            source_content_id__isnull=False,
+        ).exclude(source_content_id__in=incoming_module_ids)
         stale_homework_ids = set(stale_modules.values_list("terminal_homework_id", flat=True))
         if Submission.objects.filter(homework_id__in=stale_homework_ids).exists():
             raise CurriculumImportError(
@@ -831,7 +768,7 @@ def _record_failure(
     state: str,
 ) -> None:
     with transaction.atomic():
-        run = CourseCurriculumImportRun.objects.select_for_update().get(pk=run_id)
+        run = CourseCurriculumImportRun.objects.get(pk=run_id)
         run.state = state
         run.diagnostics = [diagnostic.as_dict() for diagnostic in error.diagnostics]
         run.counts = {}
@@ -867,7 +804,7 @@ def import_course_repository_curriculum(
 
     try:
         with transaction.atomic():
-            run = CourseCurriculumImportRun.objects.select_for_update().get(pk=run.pk)
+            run = CourseCurriculumImportRun.objects.get(pk=run.pk)
             run.state = CourseCurriculumImportRun.State.APPLYING
             run.diagnostics = []
             run.counts = {}
