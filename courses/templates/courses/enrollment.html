@@ -1,17 +1,14 @@
+{% extends "core/content_page.html" %}
 {% load seo static %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>Edit enrollment details — {{ course.title }} — DataTalks.Club</title>
+
+{% block document_title %}Edit enrollment details — {{ course.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     <meta name="robots" content="noindex">
     {% canonical_link canonical_url %}
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Course enrollment profile, design 5a (issue #179).  This is the
        * per-course half of the account settings page, so it is built from
@@ -28,8 +25,6 @@
        * switch its full accessible name, the noindex directive and the
        * certificate destination are exactly what the view already rendered.
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
        * Enrollment rules.
@@ -190,28 +185,17 @@
           width: 100%;
         }
       }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream enrollment-hero" aria-labelledby="enrollment-heading">
+{% endblock %}
+
+{% block header_band_class %}enrollment-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="enrollment-heading"{% endblock %}
+
+{% block page_header %}
         {% comment %}
           The trail the adopted shell used to draw, as the design 5a primitive:
           every ancestor is a link and the current page is plain text.
         {% endcomment %}
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -224,7 +208,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell shell-reading">
+        <div>
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="enrollment-heading">Edit Enrollment Details</h1>
           <p class="enrollment-lede">
@@ -237,10 +221,10 @@
             </a>
           </p>
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender" aria-labelledby="public-identity-heading">
-        <div class="shell shell-reading">
+{% block page_content %}
+      <section aria-labelledby="public-identity-heading">
           <form method="post">
             {% csrf_token %}
             <div class="band-head">
@@ -337,10 +321,10 @@
               >Save changes</button>
             </div>
           </form>
-        </div>
       </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
+{% endblock %}
+
+{% block page_scripts %}
     {% comment %}
       The two scripts the adopted page loaded, in the same order: the shared
       form validator (a no-op here, it only binds form.needs-validation) and
@@ -348,5 +332,4 @@
     {% endcomment %}
     <script src="{% static 'homework.js' %}"></script>
     <script src="{% static 'settings_toggles.js' %}"></script>
-  </body>
-</html>
+{% endblock %}

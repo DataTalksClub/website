@@ -20,3 +20,16 @@
 - Business mutations belong in application services shared by public views, Studio, jobs, and the admin API.
 - Network side effects happen after commit through durable jobs. Product-domain behavior is introduced only by its owning issue.
 - Development hostname: `web.dtcdev.click`.
+
+## Design-system page shells
+
+- Ordinary public course/platform pages extend `templates/core/content_page.html`.
+  That parent owns the cream/yellow header surface, lavender content surface, and
+  normal `.content-shell` width; child templates provide only page-specific
+  metadata, styles, header, content, and scripts.
+- Do not recreate the document shell, masthead/footer, or normal width in an
+  ordinary child template. Use `.shell-breakout` for a genuinely wide table or
+  diagram, with a page-specific reason.
+- The only top-level layout exceptions are the homepage (`core/home.html`) and
+  authentication pages. Auth pages may use their own width/layout while keeping
+  the lavender content surface.

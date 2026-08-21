@@ -1,11 +1,11 @@
 """One shell for every public design-system page.
 
-The pages each inline their own document rather than
-extending a base template, and for a while each also inlined its own copy of the
-masthead, the footer and the script block.  Copying a shell five times is how
-`/slack` left the primary navigation and `user_menu.js` left the script set
-without a single test going red: every page still passed its own contracts, and
-nothing compared the pages to each other.
+The public pages either extend a shared document parent or include the shell
+partials directly when they are intentionally bespoke.  For a while each page
+also inlined its own copy of the masthead, the footer and the script block.
+Copying a shell five times is how `/slack` left the primary navigation and
+`user_menu.js` left the script set without a single test going red: every page
+still passed its own contracts, and nothing compared the pages to each other.
 
 These tests do that comparison.  The shell now lives in
 ``core/_site_shell_head.html`` and ``core/_site_shell_foot.html``; a page that
@@ -333,11 +333,28 @@ class DesignFiveAShellTests(TestCase):
 
         for name in DESIGN_SYSTEM_TEMPLATES:
             with self.subTest(template=name):
-                origin = cast(ResolvedTemplate, get_template(name)).origin
-                if origin is None:
-                    self.fail(f"template has no loader origin: {name}")
-                source = Path(origin.name).read_text(encoding="utf-8")
+                source_parts = []
+                template_name = name
+                while template_name:
+                    origin = cast(ResolvedTemplate, get_template(template_name)).origin
+                    if origin is None:
+                        self.fail(f"template has no loader origin: {template_name}")
+                    source = Path(origin.name).read_text(encoding="utf-8")
+                    source_parts.append(source)
+                    source_without_comments = re.sub(
+                        r"\{%\s*comment\s*%\}.*?\{%\s*endcomment\s*%\}",
+                        "",
+                        source,
+                        flags=re.DOTALL,
+                    )
+                    extends = re.search(
+                        r"\{%\s*extends\s+[\"']([^\"']+)[\"']\s*%\}",
+                        source_without_comments,
+                    )
+                    template_name = extends.group(1) if extends else ""
+
+                inherited_source = "\n".join(source_parts)
                 for partial in SHELL_PARTIALS:
-                    self.assertIn(f'{{% include "{partial}" %}}', source)
+                    self.assertIn(f'{{% include "{partial}" %}}', inherited_source)
                 self.assertNotIn('<header class="masthead">', source)
                 self.assertNotIn("analytics_preferences.js", source)

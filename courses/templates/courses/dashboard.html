@@ -1,16 +1,13 @@
+{% extends "core/content_page.html" %}
 {% load seo %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ course.title }} dashboard — DataTalks.Club</title>
+
+{% block document_title %}{{ course.title }} dashboard — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     {% canonical_link canonical_url %}
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Course dashboard, design 5a (issue #179).  The read-only companion
        * to the course page: how the whole cohort is doing, band by band.
@@ -22,7 +19,6 @@
        * what courses/views/dashboard_context.py already supplied.
        * ------------------------------------------------------------------ */
 
-      {% include "core/_design_system.html" %}
       {% include "public/_card_link_styles.html" %}
 
       :root {
@@ -55,6 +51,12 @@
         flex-wrap: wrap;
         gap: 0.75rem;
         margin-top: 1.25rem;
+      }
+
+      .content-page-content > .content-shell > .dashboard-section + .dashboard-section {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 2.75rem;
+        padding-top: 2.75rem;
       }
 
       .dashboard-card h3 {
@@ -208,28 +210,17 @@
           display: grid;
         }
       }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream dashboard-hero" aria-labelledby="dashboard-heading">
+{% endblock %}
+
+{% block header_band_class %}dashboard-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="dashboard-heading"{% endblock %}
+
+{% block page_header %}
         {% comment %}
           The trail the adopted shell used to draw, as the design 5a primitive:
           every ancestor is a link and the current page is plain text.
         {% endcomment %}
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -242,7 +233,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell">
+        <div>
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="dashboard-heading">{{ course.title }} Dashboard</h1>
           <p class="dashboard-lede">
@@ -256,10 +247,10 @@
             </div>
           {% endif %}
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender" aria-labelledby="totals-heading">
-        <div class="shell">
+{% block page_content %}
+      <section aria-labelledby="totals-heading">
           <h2 id="totals-heading" class="sr-only">Course and project totals</h2>
           <div class="card-grid card-grid-2">
             <div class="card dashboard-card">
@@ -338,25 +329,23 @@
               </p>
             </div>
           </div>
-        </div>
       </section>
 
       {% if homework_stats %}
-        <section class="band band-lavender" aria-labelledby="homework-statistics-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="homework-statistics-heading">Homework statistics</h2>
-                <p>Median time and score by homework. Hover values on desktop for interquartile ranges.</p>
-              </div>
+        <section class="dashboard-section" aria-labelledby="homework-statistics-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="homework-statistics-heading">Homework statistics</h2>
+              <p>Median time and score by homework. Hover values on desktop for interquartile ranges.</p>
             </div>
-            <div
-              class="stats-scroll"
-              tabindex="0"
-              role="region"
-              aria-labelledby="homework-statistics-heading"
-            >
-              <table class="stats-table">
+          </div>
+          <div
+            class="stats-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="homework-statistics-heading"
+          >
+            <table class="stats-table">
                 <thead>
                   <tr>
                     <th scope="col">Homework</th>
@@ -411,33 +400,31 @@
                     </tr>
                   {% endfor %}
                 </tbody>
-              </table>
-            </div>
+            </table>
           </div>
         </section>
       {% endif %}
 
       {% if homework_difficulty_stats %}
-        <section class="band band-lavender" aria-labelledby="assignment-difficulty-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="assignment-difficulty-heading">Assignment difficulty</h2>
-                <p>
-                  Ranked by lowest median question score relative to the maximum
-                  achievable. Normalizing by question count makes homeworks of
-                  different lengths comparable; a lower percentage indicates a harder
-                  assignment.
-                </p>
-              </div>
+        <section class="dashboard-section" aria-labelledby="assignment-difficulty-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="assignment-difficulty-heading">Assignment difficulty</h2>
+              <p>
+                Ranked by lowest median question score relative to the maximum
+                achievable. Normalizing by question count makes homeworks of
+                different lengths comparable; a lower percentage indicates a harder
+                assignment.
+              </p>
             </div>
-            <div
-              class="stats-scroll"
-              tabindex="0"
-              role="region"
-              aria-labelledby="assignment-difficulty-heading"
-            >
-              <table class="stats-table">
+          </div>
+          <div
+            class="stats-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="assignment-difficulty-heading"
+          >
+            <table class="stats-table">
                 <thead>
                   <tr>
                     <th scope="col">Rank</th>
@@ -460,32 +447,30 @@
                     </tr>
                   {% endfor %}
                 </tbody>
-              </table>
-            </div>
+            </table>
           </div>
         </section>
       {% endif %}
 
       {% if question_difficulty %}
-        <section class="band band-lavender" aria-labelledby="question-difficulty-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="question-difficulty-heading">Question difficulty</h2>
-                <p>
-                  Share of submitted answers that were correct, per question. A lower
-                  percentage points to a harder or more confusing question.
-                  Participation-only questions are excluded.
-                </p>
-              </div>
+        <section class="dashboard-section" aria-labelledby="question-difficulty-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="question-difficulty-heading">Question difficulty</h2>
+              <p>
+                Share of submitted answers that were correct, per question. A lower
+                percentage points to a harder or more confusing question.
+                Participation-only questions are excluded.
+              </p>
             </div>
-            <div
-              class="stats-scroll"
-              tabindex="0"
-              role="region"
-              aria-labelledby="question-difficulty-heading"
-            >
-              <table class="stats-table">
+          </div>
+          <div
+            class="stats-scroll"
+            tabindex="0"
+            role="region"
+            aria-labelledby="question-difficulty-heading"
+          >
+            <table class="stats-table">
                 <thead>
                   <tr>
                     <th scope="col">Homework</th>
@@ -518,27 +503,25 @@
                     {% endfor %}
                   {% endfor %}
                 </tbody>
-              </table>
-            </div>
+            </table>
           </div>
         </section>
       {% endif %}
 
       {% if submission_timing %}
-        <section class="band band-lavender" aria-labelledby="submission-timing-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="submission-timing-heading">Submission timing</h2>
-                <p>
-                  When homework submissions arrive relative to the deadline, across all
-                  assignments.
-                </p>
-              </div>
+        <section class="dashboard-section" aria-labelledby="submission-timing-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="submission-timing-heading">Submission timing</h2>
+              <p>
+                When homework submissions arrive relative to the deadline, across all
+                assignments.
+              </p>
             </div>
-            <div class="row-list">
-              {% for bucket in submission_timing %}
-                <div class="list-row">
+          </div>
+          <div class="row-list">
+            {% for bucket in submission_timing %}
+              <div class="list-row">
                   <div>
                     <p class="meter-label">{{ bucket.label }}</p>
                     {% comment %}
@@ -550,55 +533,47 @@
                     </div>
                   </div>
                   <p class="mono-note">{{ bucket.count }} ({{ bucket.pct }}%)</p>
-                </div>
-              {% endfor %}
-            </div>
+              </div>
+            {% endfor %}
           </div>
         </section>
       {% endif %}
 
       {% if engagement_trend %}
-        <section class="band band-lavender" aria-labelledby="engagement-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="engagement-heading">Engagement over time</h2>
-                <p>
-                  Homework submissions per week, across all assignments. Bars are scaled
-                  to the busiest week.
-                </p>
-              </div>
+        <section class="dashboard-section" aria-labelledby="engagement-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="engagement-heading">Engagement over time</h2>
+              <p>
+                Homework submissions per week, across all assignments. Bars are scaled
+                to the busiest week.
+              </p>
             </div>
-            <div class="row-list">
-              {% for week in engagement_trend %}
-                <div class="list-row trend-row">
+          </div>
+          <div class="row-list">
+            {% for week in engagement_trend %}
+              <div class="list-row trend-row">
                   <p class="mono-note">{{ week.label }}</p>
                   <div class="progress meter-track" aria-hidden="true">
                     <div class="progress-fill" style="width: {{ week.bar_pct }}%"></div>
                   </div>
                   <p class="trend-count">{{ week.count }}</p>
-                </div>
-              {% endfor %}
-            </div>
+              </div>
+            {% endfor %}
           </div>
         </section>
       {% endif %}
 
       {% if graduates_count > 0 %}
-        <section class="band band-lavender" aria-labelledby="graduates-heading">
-          <div class="shell">
-            <div class="band-head">
-              <div>
-                <h2 id="graduates-heading">Graduates</h2>
-              </div>
+        <section class="dashboard-section" aria-labelledby="graduates-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="graduates-heading">Graduates</h2>
             </div>
-            <p class="dashboard-note">
-              {{ graduates_count }} students completed the course and received certificates.
-            </p>
           </div>
+          <p class="dashboard-note">
+            {{ graduates_count }} students completed the course and received certificates.
+          </p>
         </section>
       {% endif %}
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+{% endblock %}

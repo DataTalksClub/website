@@ -1,14 +1,9 @@
+{% extends "core/content_page.html" %}
 {% load seo %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>Leaderboard — {{ course.title }} — DataTalks.Club</title>
+
+{% block document_title %}Leaderboard — {{ course.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     {% canonical_link canonical_url %}
     <meta name="description" content="Scores, positions and public student profiles for {{ course.title }}.">
     <meta property="og:type" content="website">
@@ -18,7 +13,9 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:site" content="@DataTalksClub">
     <meta name="twitter:title" content="Leaderboard — {{ course.title }} — DataTalks.Club">
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Course leaderboard, design 5a (issue #179).  Like every rebuilt page
        * it carries its complete stylesheet inline — the shared design system
@@ -28,8 +25,6 @@
        * This is a visual port: every score, position, destination and query
        * parameter is the one the page already rendered.
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
        * Leaderboard-specific rules.  The ranked table is the system's
@@ -52,7 +47,7 @@
       .leaderboard-lede {
         color: var(--body-text);
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        max-width: 46rem;
+        max-width: 100%;
       }
 
       /* --- the signed-in learner's own record --------------------------- */
@@ -232,18 +227,13 @@
           display: grid;
         }
       }
-    </style>
-  </head>
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream leaderboard-hero" aria-labelledby="leaderboard-heading">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+{% endblock %}
+
+{% block header_band_class %}leaderboard-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="leaderboard-heading"{% endblock %}
+
+{% block page_header %}
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -256,7 +246,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell leaderboard-hero-inner">
+        <div class="leaderboard-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="leaderboard-heading">Leaderboard</h1>
           <p class="leaderboard-lede">
@@ -296,10 +286,10 @@
             </aside>
           {% endif %}
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender" aria-labelledby="standings-heading">
-        <div class="shell">
+{% block page_content %}
+        <section aria-labelledby="standings-heading">
           <div class="band-head">
             <div>
               <h2 id="standings-heading">Standings</h2>
@@ -396,9 +386,5 @@
           <p class="leaderboard-data">
             <a class="band-link" href="{% url 'api_course_leaderboard' course_slug=course.slug %}">Leaderboard data (YAML)</a>
           </p>
-        </div>
-      </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+        </section>
+{% endblock %}

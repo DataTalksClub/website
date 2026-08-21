@@ -189,9 +189,8 @@ the band it sits in.
   with `padding-inline: 1rem` (`1.25rem` at ≥40rem).
 - **Measure**: `--measure` = `38rem` is the reading measure — about 70
   characters of prose body text. `.prose-reading` and `.prose-lede` are held to
-  it; a page that wants its whole column at the measure sets its shell to
-  `calc(var(--measure) + 2.5rem)` so the shell's own padding still fits (the
-  article page does exactly that).
+  it; ordinary pages use the design-system `--content-width` through
+  `.content-shell` rather than choosing a local max width.
 - **Radius scale**: `0.45rem` status pills · `0.5–0.7rem` small controls and
   CTAs · `0.9rem` cards, modules, player frame · `1.1rem` inset panels ·
   `1.5rem` the featured slab · `999px` pills, discs, avatars.
@@ -202,6 +201,31 @@ the band it sits in.
   var(--shadow-soft)`; CTAs `0.3rem 0.3rem 0 var(--shadow)`; the featured slab
   `0.45rem 0.45rem 0 var(--shadow-soft)`; the ink/bubble CTA pair `0.25rem
   0.25rem 0 var(--bubble)`; the signup pill `0 3px 0 var(--shadow)`.
+
+## The ordinary content-page shell
+
+Ordinary public course/platform pages extend
+`templates/core/content_page.html`. The parent is the single owner of the
+document shell, normal content width, and the two page surfaces:
+
+- a cream/yellow `band-cream` header containing breadcrumbs, the title, and
+  page-specific header actions;
+- a lavender `band-lavender` content surface containing the page body.
+
+Children fill `document_title`, `metadata`, `page_styles`, `page_header`,
+`page_content`, and `page_scripts`. They must preserve their view-provided
+context, forms, metadata, scripts, and routes inside those blocks. They do not
+copy the doctype, masthead/footer, or top-level bands, and they do not create a
+competing normal width. A genuinely wide table or diagram may use the shared
+`.shell-breakout` primitive inside the content surface with a page-specific
+reason.
+
+The only top-level layout exceptions are the homepage (`core/home.html`) and
+the authentication pages. Authentication may use its own entrance width and
+composition, but its content surface remains lavender. A course registration
+page, dashboard, enrollment page, leaderboard, homework/statistics page,
+module/unit page, and project page are ordinary pages and use the shared
+parent.
 
 ## The band system
 

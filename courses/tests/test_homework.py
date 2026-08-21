@@ -15,7 +15,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
         response = self.get_homework_response()
         body = response.content.decode()
         breadcrumb = re.search(
-            r'<nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">'
+            r'<nav class="breadcrumbs" aria-label="Breadcrumb">'
             r"(.*?)</nav>",
             body,
             re.DOTALL,

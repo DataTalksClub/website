@@ -1,17 +1,14 @@
+{% extends "core/content_page.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ homework.title }} statistics — {{ course.title }} — DataTalks.Club</title>
+
+{% block document_title %}{{ homework.title }} statistics — {{ course.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     <meta name="robots" content="noindex">
     <meta name="description" content="Distribution of scores and reported study time for {{ homework.title }}.">
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Homework statistics, design 5a (issue #179).  Like every rebuilt page
        * it carries its complete stylesheet inline — the shared design system
@@ -21,8 +18,6 @@
        * This is a visual port: every statistic, including a real zero, is the
        * value the copied page rendered (issue #144).
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       :root {
         --page: var(--lavender);
@@ -229,18 +224,13 @@
           grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
-    </style>
-  </head>
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream stats-hero" aria-labelledby="stats-heading">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+{% endblock %}
+
+{% block header_band_class %}stats-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="stats-heading"{% endblock %}
+
+{% block page_header %}
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
@@ -253,7 +243,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell stats-hero-inner">
+        <div class="stats-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="stats-heading">{{ homework.title }} Statistics</h1>
           <p class="stats-lede">
@@ -282,10 +272,10 @@
             </div>
           </div>
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender" aria-labelledby="score-distribution-heading">
-        <div class="shell">
+{% block page_content %}
+      <section aria-labelledby="score-distribution-heading">
           <div class="band-head">
             <div>
               <h2 id="score-distribution-heading">Score distribution</h2>
@@ -341,11 +331,9 @@
               </tbody>
             </table>
           </div>
-        </div>
       </section>
 
-      <section class="band band-lavender" aria-labelledby="time-distribution-heading">
-        <div class="shell">
+      <section aria-labelledby="time-distribution-heading">
           <div class="band-head">
             <div>
               <h2 id="time-distribution-heading">Time distribution</h2>
@@ -392,12 +380,10 @@
               </tbody>
             </table>
           </div>
-        </div>
       </section>
 
       {% if question_stats %}
-        <section class="band band-lavender" aria-labelledby="question-breakdown-heading">
-          <div class="shell">
+        <section aria-labelledby="question-breakdown-heading">
             <div class="band-head">
               <div>
                 <h2 id="question-breakdown-heading">Question breakdown</h2>
@@ -479,25 +465,22 @@
                 </article>
               {% endfor %}
             </div>
-          </div>
         </section>
       {% endif %}
 
-      <section class="band band-lavender" aria-labelledby="stats-calculated-heading">
-        <div class="shell">
+      <section aria-labelledby="stats-calculated-heading">
           <h2 id="stats-calculated-heading" class="sr-only">When these statistics were calculated</h2>
           <p class="stats-calculated">
             Calculated:
             <span class="local-date" data-timestamp="{{ stats.last_calculated|date:'U' }}">{{ stats.last_calculated|date:"j F Y, H:i" }}</span>
           </p>
-        </div>
       </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
+{% endblock %}
+
+{% block page_scripts %}
     {% comment %}
       The local-date rewriter copied with the course platform; it restates the
       calculation time in the reader's own timezone from data-timestamp.
     {% endcomment %}
     <script src="{% static 'local_date.js' %}"></script>
-  </body>
-</html>
+{% endblock %}

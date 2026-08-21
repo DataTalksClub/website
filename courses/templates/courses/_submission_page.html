@@ -1,225 +1,214 @@
+{% extends "core/content_page.html" %}
 {% load seo static %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{% block title %}{% endblock %}</title>
-    {% block meta_robots %}{% endblock %}
-    {% canonical_link canonical_url %}
-    {% block seo_meta %}{% endblock %}
-    <style>
-      {% include "core/_design_system.html" %}
 
-      /* One reading-width/page-ground shell for every learner mutation surface.
-         Homework, project submission, and peer review only replace the content
-         blocks below; their page furniture stays one document. */
-      .submission-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
-      }
+{% comment %}
+  Shared learner mutation shell. Homework, project submission, and peer review
+  pages replace only the content blocks below; the content-page parent owns the
+  cream header, lavender content ground, and normal content width.
+{% endcomment %}
 
-      .submission-hero-inner {
-        display: grid;
-        gap: 0.75rem;
-        justify-items: start;
-      }
+{% block document_title %}{% endblock %}
 
-      .submission-lede {
-        color: var(--body-text);
-        font-size: clamp(0.95rem, 1.5vw, 1.05rem);
-        max-width: 46rem;
-      }
+{% block metadata %}
+  {% block meta_robots %}{% endblock %}
+  {% canonical_link canonical_url %}
+  {% block seo_meta %}{% endblock %}
+{% endblock %}
 
-      .submission-specs {
-        margin-top: 0.4rem;
-        width: 100%;
-      }
+{% block page_styles %}
+  /* One reading-width/page-ground shell for every learner mutation surface.
+     Homework, project submission, and peer review only replace the content
+     blocks below; their page furniture stays one document. */
+  .submission-hero .breadcrumbs {
+    margin-bottom: 0.35rem;
+    margin-top: -0.85rem;
+  }
 
-      .submission-specs dd {
-        margin: 0;
-      }
+  .submission-hero-inner {
+    display: grid;
+    gap: 0.75rem;
+    justify-items: start;
+  }
 
-      .submission-actions {
-        align-items: center;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-      }
+  .submission-lede {
+    color: var(--body-text);
+    font-size: clamp(0.95rem, 1.5vw, 1.05rem);
+    max-width: 46rem;
+  }
 
-      .submission-notices {
-        display: grid;
-        gap: 0.9rem;
-        width: 100%;
-      }
+  .submission-specs {
+    margin-top: 0.4rem;
+    width: 100%;
+  }
 
-      .submission-support {
-        color: var(--body-text);
-        max-width: 46rem;
-      }
+  .submission-specs dd {
+    margin: 0;
+  }
 
-      .submission-support p {
-        margin: 0;
-      }
+  .submission-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
 
-      .submission-form {
-        display: grid;
-        gap: 2rem;
-        max-width: 46rem;
-      }
+  .submission-notices {
+    display: grid;
+    gap: 0.9rem;
+    width: 100%;
+  }
 
-      .submission-fields {
-        display: grid;
-        gap: 1.5rem;
-        max-width: 46rem;
-      }
+  .submission-support {
+    color: var(--body-text);
+    max-width: 46rem;
+  }
 
-      .submission-section-heading {
-        color: var(--ink);
-        font-size: clamp(1.4rem, 3vw, 1.87rem);
-        font-weight: 800;
-        letter-spacing: -0.015em;
-        line-height: 1.12;
-      }
+  .submission-support p {
+    margin: 0;
+  }
 
-      .submission-status {
-        color: var(--body-text);
-        display: grid;
-        font-size: 0.92rem;
-        gap: 0.3rem;
-      }
+  .submission-form {
+    display: grid;
+    gap: 2rem;
+    max-width: 46rem;
+  }
 
-      .submission-form-actions {
-        border-top: 2px dashed var(--line-soft);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 1.25rem;
-        padding-top: 1.25rem;
-      }
+  .submission-fields {
+    display: grid;
+    gap: 1.5rem;
+    max-width: 46rem;
+  }
 
-      .submission-target {
-        display: grid;
-        gap: 0.75rem;
-        max-width: 46rem;
-      }
+  .submission-section-heading {
+    color: var(--ink);
+    font-size: clamp(1.4rem, 3vw, 1.87rem);
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    line-height: 1.12;
+  }
 
-      .submission-target h2 {
-        font-size: 1.15rem;
-      }
+  .submission-status {
+    color: var(--body-text);
+    display: grid;
+    font-size: 0.92rem;
+    gap: 0.3rem;
+  }
 
-      .submission-navigation {
-        border-top: 1.5px dashed var(--line-soft);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: space-between;
-        margin-top: 2.5rem;
-        padding-top: 1.25rem;
-      }
+  .submission-form-actions {
+    border-top: 2px dashed var(--line-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
 
-      .submission-navigation-next {
-        margin-inline-start: auto;
-      }
+  .submission-target {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 46rem;
+  }
 
-      @media (max-width: 47.99rem) {
-        .submission-actions,
-        .submission-form-actions {
-          display: grid;
-          width: 100%;
-        }
-      }
+  .submission-target h2 {
+    font-size: 1.15rem;
+  }
 
-      {% block extra_styles %}
+  .submission-navigation {
+    border-top: 1.5px dashed var(--line-soft);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: space-between;
+    margin-top: 2.5rem;
+    padding-top: 1.25rem;
+  }
+
+  .submission-navigation-next {
+    margin-inline-start: auto;
+  }
+
+  @media (max-width: 47.99rem) {
+    .submission-actions,
+    .submission-form-actions {
+      display: grid;
+      width: 100%;
+    }
+  }
+
+  {% block extra_styles %}
+  {% endblock %}
+{% endblock %}
+
+{% block header_band_class %}submission-hero{% endblock %}
+{% block content_band_class %}submission-band{% endblock %}
+{% block header_attributes %}aria-labelledby="submission-heading"{% endblock %}
+
+{% block page_header %}
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li>
+        <a href="{% url 'course_list' %}">Courses</a>
+      </li>
+      <li>
+        {% if course.course %}
+          <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
+        {% else %}
+          <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
+        {% endif %}
+      </li>
+      {% block breadcrumbs %}
       {% endblock %}
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream submission-hero" {% block hero_attributes %}aria-labelledby="submission-heading"{% endblock %}>
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'course_list' %}">Courses</a>
-            </li>
-            <li>
-              {% if course.course %}
-                <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
-              {% else %}
-                <a href="{% url 'course' course.slug %}">{{ course.title }}</a>
-              {% endif %}
-            </li>
-            {% block breadcrumbs %}
-            {% endblock %}
-          </ol>
-        </nav>
-        <div class="shell shell-reading submission-hero-inner">
-          {% block hero_eyebrow %}
-          {% endblock %}
-          {% block hero_heading %}
-            <h1 id="submission-heading">Submission</h1>
-          {% endblock %}
-          {% block hero_lede %}
-          {% endblock %}
-          {% block hero_instructions %}
-          {% endblock %}
-          {% block hero_specs %}
-          {% endblock %}
-          {% block hero_actions %}
-          {% endblock %}
-          {% block hero_notices %}
-          {% endblock %}
-        </div>
-      </section>
-      {% if accepting_submissions or submission.pk or homework.is_scored or project or review %}
-        <section class="band band-lavender submission-band" {% block submission_attributes %}{% endblock %}>
-          <div class="shell shell-reading">
-            {% block submission_content %}
-            {% endblock %}
-            {% if homework %}
-              {% if previous_homework or next_homework %}
-                <nav class="submission-navigation" aria-label="Homework navigation">
-                  {% if previous_homework %}
-                    {% if course.course %}
-                      {% url 'homework' course.course.slug course.identifier previous_homework.slug as previous_homework_url %}
-                    {% else %}
-                      {% url 'homework' course.slug previous_homework.slug as previous_homework_url %}
-                    {% endif %}
-                    {% include "core/_button.html" with href=previous_homework_url label="← Previous homework" variant="secondary" compact=True aria_label="Previous homework" %}
-                  {% endif %}
-                  {% if next_homework %}
-                    {% if course.course %}
-                      {% url 'homework' course.course.slug course.identifier next_homework.slug as next_homework_url %}
-                    {% else %}
-                      {% url 'homework' course.slug next_homework.slug as next_homework_url %}
-                    {% endif %}
-                    {% include "core/_button.html" with href=next_homework_url label="Next homework →" variant="secondary" compact=True classes="submission-navigation-next" aria_label="Next homework" %}
-                  {% endif %}
-                </nav>
-              {% endif %}
-            {% endif %}
-          </div>
-        </section>
-      {% endif %}
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-    {% block extra_js %}
+    </ol>
+  </nav>
+  <div class="submission-hero-inner">
+    {% block hero_eyebrow %}
     {% endblock %}
-  </body>
-</html>
+    {% block hero_heading %}
+      <h1 id="submission-heading">Submission</h1>
+    {% endblock %}
+    {% block hero_lede %}
+    {% endblock %}
+    {% block hero_instructions %}
+    {% endblock %}
+    {% block hero_specs %}
+    {% endblock %}
+    {% block hero_actions %}
+    {% endblock %}
+    {% block hero_notices %}
+    {% endblock %}
+  </div>
+{% endblock %}
+
+{% block page_content %}
+  {% if accepting_submissions or submission.pk or homework.is_scored or project or review %}
+    {% block submission_content %}
+    {% endblock %}
+    {% if homework %}
+      {% if previous_homework or next_homework %}
+        <nav class="submission-navigation" aria-label="Homework navigation">
+          {% if previous_homework %}
+            {% if course.course %}
+              {% url 'homework' course.course.slug course.identifier previous_homework.slug as previous_homework_url %}
+            {% else %}
+              {% url 'homework' course.slug previous_homework.slug as previous_homework_url %}
+            {% endif %}
+            {% include "core/_button.html" with href=previous_homework_url label="← Previous homework" variant="secondary" compact=True aria_label="Previous homework" %}
+          {% endif %}
+          {% if next_homework %}
+            {% if course.course %}
+              {% url 'homework' course.course.slug course.identifier next_homework.slug as next_homework_url %}
+            {% else %}
+              {% url 'homework' course.slug next_homework.slug as next_homework_url %}
+            {% endif %}
+            {% include "core/_button.html" with href=next_homework_url label="Next homework →" variant="secondary" compact=True classes="submission-navigation-next" aria_label="Next homework" %}
+          {% endif %}
+        </nav>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+  {% block extra_js %}
+  {% endblock %}
+{% endblock %}

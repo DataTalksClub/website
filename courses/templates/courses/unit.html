@@ -1,18 +1,14 @@
+{% extends "core/content_page.html" %}
 {% load seo static %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ unit.title }} — {{ cohort.title }} — DataTalks.Club</title>
+
+{% block document_title %}{{ unit.title }} — {{ cohort.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     {% canonical_link canonical_url %}
     <meta name="description" content="{{ unit.title }} in {{ module.title }}, {{ cohort.title }}.">
-    <style>
-      {% include "core/_design_system.html" %}
+{% endblock %}
+
+{% block page_styles %}
       {% include "courses/_module_rail_styles.html" %}
 
       :root {
@@ -90,24 +86,13 @@
           margin-left: 0;
         }
       }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream unit-hero" aria-labelledby="unit-heading">
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
+{% endblock %}
+
+{% block header_band_class %}unit-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="unit-heading"{% endblock %}
+
+{% block page_header %}
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -124,14 +109,15 @@
             <li aria-current="page">{{ unit.title }}</li>
           </ol>
         </nav>
-        <div class="shell shell-reading unit-hero-inner">
+        <div class="unit-hero-inner">
           <h1 id="unit-heading">{{ unit.title }}</h1>
           <p class="unit-module">{{ module.title }}</p>
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender" aria-label="Unit content">
-        <div class="shell module-layout">
+{% block page_content %}
+      <section aria-label="Unit content">
+        <div class="module-layout">
           {% include "courses/_module_rail.html" %}
           <div class="module-main unit-main">
             {% if video_embed_url %}
@@ -183,7 +169,4 @@
           </div>
         </div>
       </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+{% endblock %}

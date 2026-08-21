@@ -1,14 +1,9 @@
+{% extends "core/content_page.html" %}
 {% load seo static custom_filters %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ course.title }} — DataTalks.Club</title>
+
+{% block document_title %}{{ course.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     {% canonical_link canonical_url %}
     <meta name="description" content="{{ course.home_outcome|striptags|truncatechars:180 }}">
     <meta property="og:type" content="website">
@@ -20,7 +15,9 @@
     <meta name="twitter:site" content="@DataTalksClub">
     <meta name="twitter:title" content="{{ course.title }} — DataTalks.Club">
     <meta name="twitter:description" content="{{ course.home_outcome|striptags|truncatechars:180 }}">
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Course page, design 5a (issue #179).  Like the homepage, this page
        * carries its own complete stylesheet: the shared design system partial
@@ -34,8 +31,6 @@
        * and single module accordion hid the assignment list behind a click on
        * a page whose whole job is to show it.
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
        * Course-page-specific rules.  Every shared primitive this page uses —
@@ -377,29 +372,17 @@
           border-top: 1.5px dashed var(--line-soft);
         }
       }
-    </style>
-  </head>
-  {% url 'account_settings' as account_settings_url %}
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream course-hero" aria-labelledby="course-heading">
+{% endblock %}
+
+{% block header_band_class %}course-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="course-heading"{% endblock %}
+
+{% block page_header %}
         {% comment %}
           The trail the adopted shell used to draw, restored as a design 5a
           primitive: the ancestor index is a link, the current page is text.
         {% endcomment %}
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -410,7 +393,7 @@
             <li aria-current="page">{{ course.identifier }}</li>
           </ol>
         </nav>
-        <div class="shell shell-reading course-hero-inner">
+        <div class="course-hero-inner">
           <h1 id="course-heading">{{ course.title }}</h1>
           {% if course.home_outcome %}
             <div class="course-lede">{{ course.home_outcome|urlize_target_blank }}</div>
@@ -500,8 +483,9 @@
             </dl>
           {% endif %}
         </div>
-      </section>
+{% endblock %}
 
+{% block page_content %}
       {% comment %}
         The assignments, as two tables under one content band: Homework then
         Projects, the arrangement the page carried before the design 5a port.
@@ -509,8 +493,6 @@
         the link to the page work is handed in on — nothing has to be opened to
         find out when something is due.
       {% endcomment %}
-      <section class="band band-lavender">
-        <div class="shell shell-reading">
           {% if is_module_curriculum %}
             <section aria-labelledby="curriculum-flow-heading">
               <div class="band-head">
@@ -815,21 +797,20 @@
             <p class="course-fineprint">
               {% if is_authenticated %}
                 All deadlines are shown in your
-                <a class="band-link" href="{{ account_settings_url }}#display-preferences-section">account timezone</a>.
+                {% url 'account_settings' as course_account_settings_url %}
+                <a class="band-link" href="{{ course_account_settings_url }}#display-preferences-section">account timezone</a>.
               {% else %}
                 All deadlines are shown in your timezone.
               {% endif %}
               <a class="band-link" href="{% url 'course_calendar' course.course.slug course.identifier %}">Calendar feed</a>
             </p>
           </section>
-        </div>
-      </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
+{% endblock %}
+
+{% block page_scripts %}
     {% comment %}
       The deadline countdown copied with the course platform; it rewrites every
       .time-left node from its data-deadline attribute and needs no other markup.
     {% endcomment %}
     <script src="{% static 'time_left.js' %}"></script>
-  </body>
-</html>
+{% endblock %}

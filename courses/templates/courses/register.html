@@ -1,16 +1,13 @@
+{% extends "core/content_page.html" %}
 {% load accessibility seo static %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ campaign.title }} Registration - DataTalks.Club</title>
+
+{% block document_title %}{{ campaign.title }} Registration - DataTalks.Club{% endblock %}
+
+{% block metadata %}
     {% canonical_link canonical_url %}
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Registration campaign page, design 5a (issue #179).  This is the one
        * registration form the site owns — mockup 6b draws the same form on
@@ -30,8 +27,6 @@
        * courses/views/registration.py already rendered.
        * ------------------------------------------------------------------ */
 
-      {% include "core/_design_system.html" %}
-
       :root {
         --page: var(--lavender);
       }
@@ -40,15 +35,15 @@
        * Registration rules.
        * ------------------------------------------------------------------ */
 
-      /* One column, the width the account pages already use for a form, so a
-         field row never runs the full 76rem shell. */
-      .registration-shell {
-        max-width: 46rem;
-      }
-
       .registration-hero .breadcrumbs {
         margin-bottom: 0.35rem;
         margin-top: -0.85rem;
+      }
+
+      .content-page-content > .content-shell > .registration-section + .registration-section {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 2.75rem;
+        padding-top: 2.75rem;
       }
 
       /* The campaign's own artwork, bounded by the column and keeping its
@@ -361,28 +356,17 @@
           width: 100%;
         }
       }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream registration-hero" aria-labelledby="registration-heading">
+{% endblock %}
+
+{% block header_band_class %}registration-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="registration-heading"{% endblock %}
+
+{% block page_header %}
         {% comment %}
           The trail the adopted shell used to draw, as the design 5a primitive:
           the ancestor index is a link and the current page is plain text.
         {% endcomment %}
-        <nav class="shell registration-shell breadcrumbs" aria-label="Breadcrumb">
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
@@ -392,7 +376,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell registration-shell">
+        <div>
           {% if campaign.hero_image_url %}
             <div class="registration-hero-frame">
               <img
@@ -441,11 +425,12 @@
             </div>
           {% endif %}
         </div>
-      </section>
+{% endblock %}
 
+{% block page_content %}
       {% if marketing_html or video_embed_url %}
-        <section class="band band-lavender" aria-labelledby="registration-about-heading">
-          <div class="shell registration-shell">
+        <section class="registration-section" aria-labelledby="registration-about-heading">
+          <div>
             <h2 id="registration-about-heading" class="sr-only">About {{ campaign.title }}</h2>
             {% if marketing_html %}
               <div class="prose">{{ marketing_html }}</div>
@@ -463,8 +448,8 @@
         </section>
       {% endif %}
 
-      <section class="band band-lavender" aria-labelledby="registration-form-heading">
-        <div class="shell registration-shell">
+      <section class="registration-section" aria-labelledby="registration-form-heading">
+        <div>
           {% if registration %}
             <div class="card registration-panel">
               <div class="registration-submitted">
@@ -570,8 +555,9 @@
           {% endif %}
         </div>
       </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
+{% endblock %}
+
+{% block page_scripts %}
     <script src="{% static 'country_combobox.js' %}"></script>
     <script>
       /* The submit button follows the form's own validity, exactly as the
@@ -595,5 +581,4 @@
         });
       });
     </script>
-  </body>
-</html>
+{% endblock %}

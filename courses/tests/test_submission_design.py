@@ -98,12 +98,14 @@ class SharedSubmissionPrimitiveTests(SimpleTestCase):
 
 
 class SubmissionTemplateStructureTests(SimpleTestCase):
-    def test_course_action_uses_shared_buttons_without_the_old_ink_cta(self) -> None:
+    def test_course_catalogue_actions_use_design_tokens_without_the_old_ink_cta(self) -> None:
         source = read_template("courses/templates/courses/course_list.html")
 
-        self.assertIn('{% include "core/_button.html"', source)
-        self.assertIn('label="Continue course →" variant="primary"', source)
-        self.assertIn('label="Open course →" variant="secondary"', source)
+        self.assertIn('class="cta cta-secondary cta-compact courses-wrapped-action"', source)
+        self.assertIn('class="cta cta-primary cta-compact"', source)
+        self.assertIn(">Register</a>", source)
+        self.assertNotIn("Continue course", source)
+        self.assertNotIn("Open course", source)
         self.assertNotIn("cta-ink", source)
 
     def test_homework_uses_shared_shell_without_repeated_facts_or_one_off_boxes(self) -> None:
@@ -146,9 +148,9 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         self.assertIn('label="Manage project in Studio" variant="subtle"', project)
         self.assertIn("include 'include/learning_in_public_links.html'", project)
         self.assertIn("include 'include/learning_in_public_links.html'", peer_review)
-        self.assertIn('class="shell shell-reading submission-hero-inner"', shared)
-        self.assertIn('class="shell shell-reading"', shared)
-        self.assertIn('class="band band-lavender submission-band"', shared)
+        self.assertIn('class="submission-hero-inner"', shared)
+        self.assertIn('{% extends "core/content_page.html" %}', shared)
+        self.assertIn('{% block content_band_class %}submission-band{% endblock %}', shared)
         for field in ("github_link", "commit_id", "time_spent", "certificate_name"):
             with self.subTest(field=field):
                 self.assertIn(f'name="{field}"', project)
@@ -162,15 +164,17 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
         source = read_template("courses/templates/courses/enrollment.html")
         course_source = read_template("courses/templates/courses/course.html")
 
-        self.assertIn('class="band band-lavender"', source)
+        self.assertIn('{% extends "core/content_page.html" %}', source)
         self.assertIn(
-            '<nav class="shell shell-reading breadcrumbs"',
+            '<nav class="breadcrumbs"',
             source,
         )
-        self.assertEqual(
-            source.count('class="shell shell-reading'),
-            course_source.count('class="shell shell-reading'),
+        self.assertIn('{% extends "core/content_page.html" %}', course_source)
+        self.assertIn(
+            'class="shell content-shell"',
+            read_template("templates/core/content_page.html"),
         )
+        self.assertNotIn('class="shell shell-reading', source)
         self.assertNotIn("enrollment-shell", source)
         self.assertNotIn("max-width: 46rem", source)
         self.assertIn('<form method="post">', source)

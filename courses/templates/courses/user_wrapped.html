@@ -1,14 +1,9 @@
+{% extends "core/content_page.html" %}
 {% load seo %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ display_name }}'s DataTalks.Club Wrapped {{ year }}</title>
+
+{% block document_title %}{{ display_name }}'s DataTalks.Club Wrapped {{ year }}{% endblock %}
+
+{% block metadata %}
     {% comment %}
       This page is meant to be shared, so — as on the page it replaces — it
       carries no robots directive: the share links below are pointless if the
@@ -23,7 +18,9 @@
     <meta name="twitter:site" content="@DataTalksClub">
     <meta name="twitter:title" content="{{ display_name }}'s DataTalks.Club Wrapped {{ year }}">
     <meta name="twitter:description" content="A year of learning achievements at DataTalks.Club.">
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * One person's Wrapped, design 5a (issue #179).  The shareable half of
        * the year in review, and the sibling of courses/wrapped.html: it uses
@@ -36,8 +33,6 @@
        * absent robots directive are exactly what courses/views/wrapped.py
        * already supplied.
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       :root {
         --page: var(--lavender);
@@ -80,6 +75,18 @@
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
+      }
+
+      /* The shared content-page parent supplies the lavender ground and the
+         outer content measure. These inner sections retain the wrapped page's
+         rhythm without creating another page-width shell. */
+      .wrapped-section {
+        border-bottom: 2px dashed var(--line-soft);
+        padding-block: 2.25rem;
+      }
+
+      .wrapped-section:first-child {
+        padding-top: 0;
       }
 
       /* The closing band, in the ink treatment the homepage's closing band
@@ -128,54 +135,43 @@
           width: 100%;
         }
       }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream wrapped-hero" aria-labelledby="user-wrapped-heading">
-        {% comment %}
-          The trail back to the year this page belongs to, as the design 5a
-          primitive: the ancestor is a link and the current page is plain text.
-        {% endcomment %}
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'wrapped' year %}">{{ year }} Wrapped</a>
-            </li>
-            <li aria-current="page">
-              {{ display_name|default:viewed_user.username }}'s Wrapped
-            </li>
-          </ol>
-        </nav>
-        <div class="shell">
-          <p class="mono-label mono-label-indigo">Year in review</p>
-          {% if no_activity %}
-            <h1 id="user-wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>
-            <p class="wrapped-lede">{{ display_name }}'s year in review.</p>
-          {% else %}
-            <h1 id="user-wrapped-heading">
-              {{ display_name }}'s DataTalks.Club Wrapped {{ year }}
-            </h1>
-            <p class="wrapped-lede">A year of learning achievements.</p>
-          {% endif %}
-        </div>
-      </section>
+{% endblock %}
+
+{% block header_band_class %}wrapped-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="user-wrapped-heading"{% endblock %}
+
+{% block page_header %}
+      {% comment %}
+        The trail back to the year this page belongs to, as the design 5a
+        primitive: the ancestor is a link and the current page is plain text.
+      {% endcomment %}
+      <nav class="breadcrumbs" aria-label="Breadcrumb">
+        <ol>
+          <li>
+            <a href="{% url 'wrapped' year %}">{{ year }} Wrapped</a>
+          </li>
+          <li aria-current="page">
+            {{ display_name|default:viewed_user.username }}'s Wrapped
+          </li>
+        </ol>
+      </nav>
+      <p class="mono-label mono-label-indigo">Year in review</p>
+      {% if no_activity %}
+        <h1 id="user-wrapped-heading">DataTalks.Club Wrapped {{ year }}</h1>
+        <p class="wrapped-lede">{{ display_name }}'s year in review.</p>
+      {% else %}
+        <h1 id="user-wrapped-heading">
+          {{ display_name }}'s DataTalks.Club Wrapped {{ year }}
+        </h1>
+        <p class="wrapped-lede">A year of learning achievements.</p>
+      {% endif %}
+{% endblock %}
+
+{% block page_content %}
 
       {% if no_activity %}
-        <section class="band band-lavender" aria-labelledby="no-activity-heading">
-          <div class="shell">
+        <section class="wrapped-section" aria-labelledby="no-activity-heading">
+          <div>
             <div class="panel panel-lavender panel-outlined" role="status">
               <h2 id="no-activity-heading">No activity in {{ year }}</h2>
               <p>
@@ -186,15 +182,15 @@
         </section>
 
         <section class="band band-ink" aria-labelledby="explore-courses-heading">
-          <div class="shell wrapped-closing">
+          <div class="wrapped-closing">
             <h2 id="explore-courses-heading" class="sr-only">Keep learning</h2>
             {% url 'course_list' as course_list_url %}
             {% include "core/_button.html" with href=course_list_url label="Explore courses" variant="primary" %}
           </div>
         </section>
       {% else %}
-        <section class="band band-lavender" aria-labelledby="year-highlights-heading">
-          <div class="shell">
+        <section class="wrapped-section" aria-labelledby="year-highlights-heading">
+          <div>
             <div class="band-head">
               <div>
                 <h2 id="year-highlights-heading">{{ year }} highlights</h2>
@@ -223,8 +219,8 @@
           </div>
         </section>
 
-        <section class="band band-lavender" aria-labelledby="contributions-heading">
-          <div class="shell">
+        <section class="wrapped-section" aria-labelledby="contributions-heading">
+          <div>
             <div class="band-head">
               <div>
                 <h2 id="contributions-heading">Submissions and contributions</h2>
@@ -260,8 +256,8 @@
         </section>
 
         {% if user_stats.courses %}
-          <section class="band band-lavender" aria-labelledby="courses-in-year-heading">
-            <div class="shell">
+          <section class="wrapped-section" aria-labelledby="courses-in-year-heading">
+            <div>
               <div class="band-head">
                 <div>
                   <h2 id="courses-in-year-heading">Courses in {{ year }}</h2>
@@ -271,9 +267,11 @@
                 {% for course in user_stats.courses %}
                   <div class="list-row">
                     <p>
-                      <a href="{% url 'leaderboard_score_breakdown' course.course_slug course.cohort_year course.enrollment_id %}">
+                      {% if course.leaderboard_url %}
+                        <a href="{{ course.leaderboard_url }}">{{ course.title }}</a>
+                      {% else %}
                         {{ course.title }}
-                      </a>
+                      {% endif %}
                     </p>
                     <p class="wrapped-course-score">{{ course.score }} points</p>
                   </div>
@@ -283,8 +281,8 @@
           </section>
         {% endif %}
 
-        <section class="band band-lavender" aria-labelledby="share-wrapped-heading">
-          <div class="shell">
+        <section class="wrapped-section" aria-labelledby="share-wrapped-heading">
+          <div>
             <div class="band-head">
               <div>
                 <h2 id="share-wrapped-heading">Share your {{ year }} Wrapped</h2>
@@ -305,7 +303,7 @@
         </section>
 
         <section class="band band-ink" aria-labelledby="user-wrapped-next-year-heading">
-          <div class="shell wrapped-closing">
+          <div class="wrapped-closing">
             <div>
               <h2 id="user-wrapped-next-year-heading">Keep learning in {{ year|add:1 }}</h2>
               <p>Join us for more courses.</p>
@@ -315,7 +313,4 @@
           </div>
         </section>
       {% endif %}
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+{% endblock %}

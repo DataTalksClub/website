@@ -50,6 +50,7 @@ SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 # project page may append its own scripts after these, never before them.
 EXPECTED_SCRIPTS = (
     "timezone_preference.js",
+    "core/code_blocks.js",
     "user_menu.js",
     "core/site_navigation.js",
     "core/accessibility.js",
@@ -255,8 +256,12 @@ class ProjectDesignFiveAShellTests(TestCase):
         """The shell is included by the base, never inlined by a page."""
 
         source = (PROJECT_TEMPLATES / "_base.html").read_text(encoding="utf-8")
+        parent_source = (
+            PROJECT_TEMPLATES.parents[2] / "templates/core/content_page.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn('{% extends "core/content_page.html" %}', source)
         for partial in SHELL_PARTIALS:
-            self.assertIn(f'{{% include "{partial}" %}}', source)
+            self.assertIn(f'{{% include "{partial}" %}}', parent_source)
 
         for template in sorted(PROJECT_TEMPLATES.glob("*.html")):
             with self.subTest(template=template.name):
@@ -284,7 +289,11 @@ class ProjectDesignFiveAShellTests(TestCase):
 
         self.assertIn('{% extends "courses/_submission_page.html" %}', project_template)
         self.assertIn('{% extends "courses/_submission_page.html" %}', review_template)
-        self.assertIn('class="band band-lavender submission-band"', shared_template)
+        self.assertIn('{% extends "core/content_page.html" %}', shared_template)
+        self.assertIn(
+            '{% block content_band_class %}submission-band{% endblock %}',
+            shared_template,
+        )
 
         bodies = self.rendered_pages()
         self.assertIn('class="needs-validation cmp-form project-form', bodies["project"])

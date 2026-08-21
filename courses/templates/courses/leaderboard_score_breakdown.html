@@ -1,16 +1,13 @@
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ enrollment.display_name }} — {{ enrollment.course.title }} — DataTalks.Club</title>
+{% extends "core/content_page.html" %}
+
+{% block document_title %}{{ enrollment.display_name }} — {{ enrollment.course.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     <meta name="robots" content="noindex">
     <meta name="description" content="How {{ enrollment.display_name }} scored on {{ enrollment.course.title }}.">
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Leaderboard score breakdown, design 5a (issue #179).  Like every
        * rebuilt page it carries its complete stylesheet inline — the shared
@@ -21,8 +18,6 @@
        * the flag dialog's form target, field names and options are the ones
        * the copied page already carried.
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       :root {
         --page: var(--lavender);
@@ -209,18 +204,13 @@
           display: grid;
         }
       }
-    </style>
-  </head>
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream record-hero" aria-labelledby="record-heading">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+{% endblock %}
+
+{% block header_band_class %}record-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="record-heading"{% endblock %}
+
+{% block page_header %}
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course' enrollment.course.course.slug enrollment.course.identifier %}">{{ enrollment.course.title }}</a>
@@ -233,7 +223,7 @@
             </li>
           </ol>
         </nav>
-        <div class="shell record-hero-inner">
+        <div class="record-hero-inner">
           <p class="mono-label mono-label-indigo">{{ enrollment.course.title }}</p>
           <h1 id="record-heading">{{ enrollment.display_name }}</h1>
           {% if public_profile and public_profile.about_me %}
@@ -280,10 +270,10 @@
             >Flag this record</button>
           </div>
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender" aria-labelledby="homework-submissions-heading">
-        <div class="shell">
+{% block page_content %}
+      <section aria-labelledby="homework-submissions-heading">
           <div class="band-head">
             <div>
               <h2 id="homework-submissions-heading">Homework submissions</h2>
@@ -337,11 +327,9 @@
               <p class="record-empty">No submissions yet.</p>
             {% endfor %}
           </div>
-        </div>
       </section>
 
-      <section class="band band-lavender" aria-labelledby="project-submissions-heading">
-        <div class="shell">
+      <section aria-labelledby="project-submissions-heading">
           <div class="band-head">
             <div>
               <h2 id="project-submissions-heading">Project submissions</h2>
@@ -402,9 +390,8 @@
               <p class="record-empty">No project submissions found.</p>
             {% endfor %}
           </div>
-        </div>
       </section>
-    </main>
+
     <dialog id="leaderboard-flag-dialog" class="flag-dialog" aria-labelledby="leaderboard-flag-heading">
       <form method="post" id="leaderboard-flag-form">
         {% csrf_token %}
@@ -440,7 +427,9 @@
         </div>
       </form>
     </dialog>
-    {% include "core/_site_shell_foot.html" %}
+{% endblock %}
+
+{% block page_scripts %}
     <script>
       document.addEventListener('DOMContentLoaded', function() {
         var dialog = document.getElementById('leaderboard-flag-dialog');
@@ -462,5 +451,4 @@
         });
       });
     </script>
-  </body>
-</html>
+{% endblock %}

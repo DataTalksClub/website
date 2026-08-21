@@ -1,14 +1,9 @@
+{% extends "core/content_page.html" %}
 {% load seo %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>Flag leaderboard record — {{ course.title }} — DataTalks.Club</title>
+
+{% block document_title %}Flag leaderboard record — {{ course.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     {% canonical_link canonical_url %}
     <meta name="description" content="Tell the {{ course.title }} course team what looks wrong on a leaderboard record.">
     <meta property="og:type" content="website">
@@ -17,7 +12,9 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:site" content="@DataTalksClub">
     <meta name="twitter:title" content="Flag leaderboard record — {{ course.title }} — DataTalks.Club">
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Leaderboard flag form, design 5a (issue #179).  The page carries its
        * complete stylesheet inline — the shared design system partial first,
@@ -27,8 +24,6 @@
        * token, the posted field names and the destination it returns to are
        * exactly the ones the copied page used.
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
        * Page-specific rules.
@@ -92,18 +87,13 @@
           display: grid;
         }
       }
-    </style>
-  </head>
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream complaint-hero" aria-labelledby="complaint-heading">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
+{% endblock %}
+
+{% block header_band_class %}complaint-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="complaint-heading"{% endblock %}
+
+{% block page_header %}
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
               <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
@@ -119,17 +109,17 @@
             </li>
           </ol>
         </nav>
-        <div class="shell complaint-hero-inner">
+        <div class="complaint-hero-inner">
           <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="complaint-heading">Flag leaderboard record</h1>
           <p class="mono-note">{{ enrollment.display_name }} · {{ enrollment.total_score }} points</p>
           {% url 'leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id as score_breakdown_url %}
           {% include "core/_button.html" with href=score_breakdown_url label="Back to record" variant="secondary" compact=True %}
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender" aria-labelledby="flag-form-heading">
-        <div class="shell">
+{% block page_content %}
+        <section aria-labelledby="flag-form-heading">
           <h2 id="flag-form-heading" class="sr-only">Flag details</h2>
           <form method="post" class="complaint-form">
             {% csrf_token %}
@@ -159,9 +149,5 @@
               {% include "core/_button.html" with href=score_breakdown_url label="Cancel" variant="secondary" %}
             </div>
           </form>
-        </div>
-      </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+        </section>
+{% endblock %}

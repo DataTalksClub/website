@@ -34,11 +34,13 @@ DEADLINE_PAGES = (
 # lopsided circle from the 4a mockup is the same shape in both themes.
 THEME_NEUTRAL_TOKENS = {
     "--clay",
+    "--content-width",
     "--drawn-circle",
     "--drawn-circle-b",
     "--drawn-circle-c",
     "--font-mono",
     "--font-sans",
+    "--form-measure",
     "--gold",
     "--graph-edge",
     "--measure",
@@ -59,9 +61,14 @@ def _palette(source: str, selector: str) -> set[str]:
 def _rule_body(source: str, selector: str) -> str:
     """Return the declarations of the first rule whose selector list ends in `selector`."""
 
-    start = source.index(f"{selector} {{")
-    end = source.index("}", start)
-    return source[source.index("{", start) + 1 : end]
+    match = re.search(
+        rf"(?m)^[ \t]*{re.escape(selector)}(?:\s*,[^{{]*)?\s*\{{",
+        source,
+    )
+    if match is None:
+        raise ValueError(f"selector not found: {selector}")
+    end = source.index("}", match.end())
+    return source[match.end() : end]
 
 
 class DesignSystemTokenTests(SimpleTestCase):

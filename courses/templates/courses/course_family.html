@@ -1,17 +1,13 @@
+{% extends "core/content_page.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ course_family.title }} — DataTalks.Club</title>
+
+{% block document_title %}{{ course_family.title }} — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     <meta name="description" content="{{ course_family.description|striptags|truncatechars:180 }}">
-    <style>
-      {% include "core/_design_system.html" %}
+{% endblock %}
+
+{% block page_styles %}
 
       :root {
         --page: var(--lavender);
@@ -121,33 +117,28 @@
           order: 2;
         }
       }
-    </style>
-  </head>
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream family-hero" aria-labelledby="family-heading">
-        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
+{% endblock %}
+
+{% block header_band_class %}family-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="family-heading"{% endblock %}
+
+{% block page_header %}
+        <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li><a href="{% url 'course_list' %}">Courses</a></li>
             <li aria-current="page">{{ course_family.title }}</li>
           </ol>
         </nav>
-        <div class="shell shell-reading family-hero-inner">
+        <div class="family-hero-inner">
           <h1 id="family-heading">{{ course_family.title }}</h1>
           {% if course_family.description %}
             <div class="family-lede">{{ course_family.description }}</div>
           {% endif %}
         </div>
-      </section>
+{% endblock %}
 
-      <section class="band band-lavender family-editions-band" aria-labelledby="editions-heading">
-        <div class="shell shell-reading">
+{% block page_content %}
+      <section class="family-editions-band" aria-labelledby="editions-heading">
           <div class="band-head">
             <div>
               <h2 id="editions-heading">Cohort editions</h2>
@@ -191,9 +182,5 @@
           {% else %}
             <p class="family-empty">No cohorts are available yet.</p>
           {% endif %}
-        </div>
       </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+{% endblock %}

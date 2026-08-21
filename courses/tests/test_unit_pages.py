@@ -104,8 +104,8 @@ class PublicUnitPageTests(TestCase):
             f'<link rel="canonical" href="https://datatalks.club{url}">',
             html=True,
         )
-        self.assertContains(response, 'class="band band-lavender"')
-        self.assertContains(response, 'class="shell module-layout"')
+        self.assertContains(response, 'class="band band-lavender content-page-content')
+        self.assertContains(response, 'class="module-layout"')
 
     def test_middle_unit_links_to_previous_and_next_units_with_buttons(self):
         response = self.client.get(self.unit_url(self.middle_unit))

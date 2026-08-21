@@ -1,0 +1,71 @@
+{% load seo static %}
+{% comment %}
+  Shared content-page document for the public website and course platform.
+
+  Every ordinary content page has one cream header followed by one lavender
+  content surface. Both surfaces use the same `content-shell`, whose width is
+  owned by the design system. Home and authentication pages have dedicated
+  layouts and do not extend this document.
+
+  Child templates provide the document metadata, page stylesheet, header and
+  content blocks. Page-specific sections may still be composed inside the
+  lavender content block, but the outer page hierarchy remains fixed here.
+{% endcomment %}
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
+    {% block title %}
+      <title>{% block document_title %}DataTalks.Club{% endblock %}</title>
+    {% endblock %}
+    {% block metadata %}
+      {% canonical_link canonical_url %}
+    {% endblock %}
+    <style>
+      {% include "core/_design_system.html" %}
+      {% block page_styles %}
+      {% endblock %}
+    </style>
+    {% block head_extra %}
+    {% endblock %}
+  </head>
+  {% url 'toggle_dark_mode' as dark_mode_toggle_url %}
+  {% url 'update_timezone_preference' as timezone_update_url %}
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{{ dark_mode_toggle_url }}"
+    {% if user.is_authenticated %}
+      data-account-id="{{ user.pk }}"
+      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
+      data-timezone-update-url="{{ timezone_update_url }}"
+    {% endif %}
+    {% block body_attributes %}
+    {% endblock %}
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream content-page-header {% block header_band_class %}{% endblock %}" {% block header_attributes %}{% endblock %}>
+        <div class="shell content-shell">
+          {% block page_header %}
+          {% endblock %}
+        </div>
+      </section>
+      <section class="band band-lavender content-page-content {% block content_band_class %}{% endblock %}" {% block content_attributes %}{% endblock %}>
+        <div class="shell content-shell">
+          {% block page_content %}
+          {% endblock %}
+        </div>
+      </section>
+    </main>
+    {% include "core/_site_shell_foot.html" %}
+    {% block page_scripts %}
+    {% endblock %}
+  </body>
+</html>

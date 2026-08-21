@@ -71,6 +71,10 @@ Rules for editing:
         /* The long-form reading measure: about 70 characters of `.prose` body
            text, the width a page of prose is set to. */
         --measure: 38rem;
+        /* The normal outer content column. The shell's inline padding is part
+           of the layout, so ordinary pages use this token through
+           `.content-shell`; page templates do not invent a competing width. */
+        --content-width: calc(var(--measure) + 2.5rem);
         /* Mutation surfaces use a slightly wider measure than long-form prose,
            while still keeping controls comfortable on a large screen. */
         --form-measure: 46rem;
@@ -483,8 +487,16 @@ Rules for editing:
          reads as one line of body copy.  A page in this system that genuinely
          cannot hold the column says so with evidence rather than inventing a
          width of its own. */
+      /* Ordinary pages extend `core/content_page.html`. That parent owns one
+         cream header band, one lavender content band, and the normal content
+         width below. Child templates fill its page_header/page_content blocks;
+         they do not recreate the document shell or choose another width.
+         `core/home.html` is the homepage exception and the account/auth
+         templates are the authentication exception. A genuine wide element
+         uses `.shell-breakout` locally rather than widening the page shell. */
+      .content-shell,
       .shell-reading {
-        max-width: calc(var(--measure) + 2.5rem);
+        max-width: var(--content-width);
       }
 
       /* --- masthead ----------------------------------------------------- */

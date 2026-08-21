@@ -1,3 +1,4 @@
+{% extends "core/content_page.html" %}
 {% load seo %}
 {% comment %}
   The design 5a shell for the learner project pages (issue #179).
@@ -23,32 +24,24 @@
   .filter-pill, .field-*, .row-list, .stat-tile and .mono-* primitives, before
   writing anything in its own extra_styles block.
 
-  Blocks a page fills: title, meta_robots, extra_styles, breadcrumbs (the li
+  Blocks a page fills: document_title, meta_robots, extra_styles, breadcrumbs (the li
   items after "Courses / <course>"), page_head, project_content and extra_js.
 
   Nothing here changes what a page does: forms, actions, field names, CSRF
   tokens, permission checks and redirects all stay in the pages themselves,
   exactly as the copied platform wrote them.
 {% endcomment %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>
-      {% block title %}
-        {{ course.title }} — DataTalks.Club
-      {% endblock %}
-    </title>
+{% block document_title %}
+  {{ course.title }} — DataTalks.Club
+{% endblock %}
+
+{% block metadata %}
     {% block meta_robots %}
     {% endblock %}
     {% canonical_link canonical_url %}
-    <style>
-      {% include "core/_design_system.html" %}
+{% endblock %}
+
+{% block page_styles %}
 
       /* ------------------------------------------------------------------ *
        * Project-page patterns.  Everything below is built from the tokens
@@ -247,54 +240,44 @@
         font-weight: 700;
       }
 
-      {% block extra_styles %}
+  {% block extra_styles %}
+  {% endblock %}
+{% endblock %}
+
+{% block header_band_class %}project-header-band{% endblock %}
+{% block content_band_class %}project-content-band{% endblock %}
+{% block content_attributes %}aria-label="Project content"{% endblock %}
+
+{% block page_header %}
+  {% comment %}
+    The trail the adopted shell used to draw, as the design system's own
+    primitive: every ancestor is a link and the page itself is plain text on
+    li[aria-current="page"], which each page supplies.
+  {% endcomment %}
+  <nav class="breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <li>
+        <a href="{% url 'course_list' %}">Courses</a>
+      </li>
+      <li>
+        <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
+      </li>
+      {% block breadcrumbs %}
       {% endblock %}
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream">
-        <div class="shell">
-          {% comment %}
-            The trail the adopted shell used to draw, as the design system's
-            own primitive: every ancestor is a link and the page itself is
-            plain text on li[aria-current="page"], which each page supplies.
-          {% endcomment %}
-          <nav class="breadcrumbs" aria-label="Breadcrumb">
-            <ol>
-              <li>
-                <a href="{% url 'course_list' %}">Courses</a>
-              </li>
-              <li>
-                <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
-              </li>
-              {% block breadcrumbs %}
-              {% endblock %}
-            </ol>
-          </nav>
-          {% block page_head %}
-          {% endblock %}
-          <div class="project-stack">
-            {% block project_content %}
-            {% endblock %}
-          </div>
-        </div>
-      </section>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-    {% block extra_js %}
+    </ol>
+  </nav>
+  {% block page_head %}
+  {% endblock %}
+{% endblock %}
+
+{% block page_content %}
+  <div class="project-stack">
+    {% block project_content %}
     {% endblock %}
-  </body>
-</html>
+  </div>
+{% endblock %}
+
+{% block page_scripts %}
+  {% block extra_js %}
+  {% endblock %}
+{% endblock %}

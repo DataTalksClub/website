@@ -89,7 +89,10 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
 
     def test_course_page_does_not_render_a_cohort_year_eyebrow(self):
         body = self.client.get(self.course_url()).content.decode()
-        hero_start = body.index('<section class="band band-cream course-hero"')
+        hero_match = re.search(r'<section[^>]*\bcourse-hero\b[^>]*>', body)
+        self.assertIsNotNone(hero_match)
+        assert hero_match is not None
+        hero_start = hero_match.start()
         hero = body[hero_start : body.index("</section>", hero_start)]
 
         self.assertNotIn("mono-label-indigo", hero)
@@ -171,7 +174,7 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
         self.assertTrue(shells)
         for shell in shells:
             with self.subTest(shell=shell):
-                self.assertIn("shell-reading", shell)
+                self.assertIn("content-shell", shell)
 
     def test_the_course_profile_is_an_action_beside_the_others(self):
         """Every control the course offers is in the one row of actions."""
@@ -304,16 +307,17 @@ class CoursePageBreadcrumbTests(CourseDetailViewTestBase):
         self.assertIn("<ol>", trail)
         self.assertNotIn("<ul>", trail)
         crumbs = re.findall(r"<li[^>]*>(.*?)</li>", trail, re.DOTALL)
-        self.assertEqual(len(crumbs), 2)
+        self.assertEqual(len(crumbs), 3)
         self.assertIn(f'href="{reverse("course_list")}"', crumbs[0])
         self.assertIn(">Courses<", crumbs[0])
+        self.assertIn(f">{self.course.title}<", crumbs[1])
 
     def test_the_current_page_is_marked_and_is_not_a_link(self):
         _body, trail = self.breadcrumb_nav()
 
         current = re.search(r'<li aria-current="page">(.*?)</li>', trail, re.DOTALL)
         self.assertIsNotNone(current)
-        self.assertIn(self.course.title, current.group(1))
+        self.assertIn(str(self.course.year), current.group(1))
         self.assertNotIn("<a", current.group(1))
 
     def test_separators_are_css_drawn_and_never_written_into_the_markup(self):

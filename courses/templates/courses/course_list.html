@@ -1,14 +1,9 @@
+{% extends "core/content_page.html" %}
 {% load seo static custom_filters %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>Courses — DataTalks.Club</title>
+
+{% block document_title %}Courses — DataTalks.Club{% endblock %}
+
+{% block metadata %}
     {% canonical_link canonical_url %}
     <meta
       name="description"
@@ -28,15 +23,15 @@
       name="twitter:description"
       content="Free, community-created data and AI courses with practical homework, real projects and peer review."
     >
-    <style>
+{% endblock %}
+
+{% block page_styles %}
       /* ------------------------------------------------------------------ *
        * Courses index, design 5a / mockup 6a (issue #179).  Like every
        * rebuilt page it carries its complete stylesheet inline: the shared
        * design system partial first, then this page's own layout.  It
        * deliberately loads none of the older site CSS.
        * ------------------------------------------------------------------ */
-
-      {% include "core/_design_system.html" %}
 
       /* ------------------------------------------------------------------ *
        * Courses-index rules.  Shared primitives (status pills,
@@ -101,6 +96,12 @@
       .courses-wrapped-action {
         align-self: center;
         justify-self: start;
+      }
+
+      .content-page-content > .content-shell > #courses > section + section {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 2.75rem;
+        padding-top: 2.75rem;
       }
 
       /* --- active cohorts ----------------------------------------------- */
@@ -304,24 +305,13 @@
           justify-content: flex-end;
         }
       }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
-    {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream courses-hero" aria-labelledby="courses-hero-heading">
-        <div class="shell shell-reading courses-hero-grid">
+{% endblock %}
+
+{% block header_band_class %}courses-hero{% endblock %}
+{% block header_attributes %}aria-labelledby="courses-hero-heading"{% endblock %}
+
+{% block page_header %}
+        <div class="courses-hero-grid">
           <div>
             <h1 id="courses-hero-heading">Learn data skills. For free. Together.</h1>
             <p class="courses-lede">
@@ -331,41 +321,40 @@
             </p>
           </div>
         </div>
-      </section>
+{% endblock %}
+
+{% block page_content %}
       {% if SHOW_WRAPPED and wrapped_year %}
         {% comment %}
           The site's only entry point into Wrapped.  It sits between the hero and the
           catalogue rather than inside a course section.
         {% endcomment %}
-        <section class="band band-lavender courses-wrapped" aria-labelledby="wrapped-heading">
-          <div class="shell shell-reading">
-            <div class="band-head">
-              <div>
-                <h2 id="wrapped-heading">
-                  DataTalks.Club Wrapped {{ wrapped_year }}
-                </h2>
-                <p>
-                  Check out your year of learning in review: statistics, course
-                  progress, and your {{ wrapped_year }} leaderboard rank.
-                </p>
-              </div>
-              <a class="cta cta-secondary cta-compact courses-wrapped-action" href="{% url 'wrapped' wrapped_year %}">
-                View your {{ wrapped_year }} wrapped →
-              </a>
+        <section class="courses-wrapped" aria-labelledby="wrapped-heading">
+          <div class="band-head">
+            <div>
+              <h2 id="wrapped-heading">
+                DataTalks.Club Wrapped {{ wrapped_year }}
+              </h2>
+              <p>
+                Check out your year of learning in review: statistics, course
+                progress, and your {{ wrapped_year }} leaderboard rank.
+              </p>
             </div>
+            <a class="cta cta-secondary cta-compact courses-wrapped-action" href="{% url 'wrapped' wrapped_year %}">
+              View your {{ wrapped_year }} wrapped →
+            </a>
           </div>
         </section>
       {% endif %}
       <div id="courses">
-        <section class="band band-lavender" aria-labelledby="active-heading">
-            <div class="shell shell-reading">
-              <div class="live-head">
-                <span class="status-dot status-dot-pulse" aria-hidden="true"></span>
-                <h2 id="active-heading">Active now — you can still join</h2>
-              </div>
-              {% if active_courses %}
-                <div class="active-list">
-                  {% for card in active_course_cards %}
+          <section class="courses-active" aria-labelledby="active-heading">
+            <div class="live-head">
+              <span class="status-dot status-dot-pulse" aria-hidden="true"></span>
+              <h2 id="active-heading">Active now — you can still join</h2>
+            </div>
+            {% if active_courses %}
+              <div class="active-list">
+                {% for card in active_course_cards %}
                     {% comment %}
                       One column at reading width: run facts (dates, enrolment) in the
                       head row, the title as the link, the description, the deadline
@@ -412,27 +401,25 @@
                         {% endif %}
                       </div>
                     </article>
-                  {% endfor %}
-                </div>
-              {% else %}
-                <p class="band-note">No active courses right now.</p>
-              {% endif %}
-            </div>
+                {% endfor %}
+              </div>
+            {% else %}
+              <p class="band-note">No active courses right now.</p>
+            {% endif %}
         </section>
         {% if open_registration_courses %}
-          <section class="band band-lavender" aria-labelledby="open-heading">
-            <div class="shell shell-reading">
-              <div class="band-head">
-                <div>
-                  <h2 id="open-heading">Open registration</h2>
-                  <p>
-                    These cohorts have not started yet. Register now and you get the schedule,
-                    the Slack channel and homework reminders.
-                  </p>
-                </div>
+          <section class="courses-open" aria-labelledby="open-heading">
+            <div class="band-head">
+              <div>
+                <h2 id="open-heading">Open registration</h2>
+                <p>
+                  These cohorts have not started yet. Register now and you get the schedule,
+                  the Slack channel and homework reminders.
+                </p>
               </div>
-              <div class="card-grid card-grid-2">
-                {% for card in open_registration_course_cards %}
+            </div>
+            <div class="card-grid card-grid-2">
+              {% for card in open_registration_course_cards %}
                   {% url 'course_family' card.family.slug as family_url %}
                   {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
                   <article class="card course-card"
@@ -464,28 +451,26 @@
                       {% endif %}
                     </div>
                   </article>
-                {% endfor %}
-              </div>
+              {% endfor %}
             </div>
           </section>
         {% endif %}
         {% if archive_groups %}
-          <section class="band band-lavender" aria-labelledby="finished-heading">
-            <div class="shell shell-reading">
-              <div class="band-head">
-                <div>
-                  <h2 id="finished-heading">Finished courses</h2>
-                  <p>
-                    These cohorts have ended, and everything they produced stays public:
-                    videos, homework and solutions. There is nothing left to register for.
-                  </p>
-                </div>
+          <section class="courses-finished" aria-labelledby="finished-heading">
+            <div class="band-head">
+              <div>
+                <h2 id="finished-heading">Finished courses</h2>
+                <p>
+                  These cohorts have ended, and everything they produced stays public:
+                  videos, homework and solutions. There is nothing left to register for.
+                </p>
               </div>
-              {% for group in archive_groups %}
-                <section class="finished-group" aria-labelledby="finished-{{ group.year|slugify }}">
-                  <h3 class="finished-year" id="finished-{{ group.year|slugify }}">{{ group.year }}</h3>
-                  <div class="row-list">
-                    {% for card in group.courses %}
+            </div>
+            {% for group in archive_groups %}
+              <section class="finished-group" aria-labelledby="finished-{{ group.year|slugify }}">
+                <h3 class="finished-year" id="finished-{{ group.year|slugify }}">{{ group.year }}</h3>
+                <div class="row-list">
+                  {% for card in group.courses %}
                       {% comment %}
                         The last two columns are `auto` rather than fractions: at
                         reading width four fixed shares left the titles wrapping to
@@ -519,15 +504,11 @@
                           {% endif %}
                         </div>
                       </div>
-                    {% endfor %}
-                  </div>
-                </section>
-              {% endfor %}
-            </div>
+                  {% endfor %}
+                </div>
+              </section>
+            {% endfor %}
           </section>
         {% endif %}
       </div>
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+{% endblock %}
