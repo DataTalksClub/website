@@ -39,6 +39,18 @@ urlpatterns = [
     path("podcast.html", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path("podcast/", public_views.permanent_public_redirect, {"target": "/podcast"}),
     path(
+        "podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
+        public_views.permanent_public_redirect,
+        {"target": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"},
+        name="podcast-ai-adoption-legacy",
+    ),
+    path(
+        "podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
+        public_views.podcast_detail,
+        {"slug": "s24e05-ai-adoption-in-enterprise-beyond-writing-code"},
+        name="podcast-ai-adoption",
+    ),
+    path(
         "podcast/<path:slug>/",
         public_views.permanent_detail_redirect,
         {"collection": "podcast"},

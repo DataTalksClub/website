@@ -120,6 +120,7 @@ _EMAIL_PREFERENCES_CONSOLE_RE = re.compile(
     r"\s+at http://127\.0\.0\.1:[0-9]+/static/settings_toggles\.js:44:17$"
 )
 _OFFLINE_ROUTE_BYTES: dict[str, tuple[bytes, str]] = {}
+_YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com"
 
 
 class _PageLifecycle(Protocol):
@@ -575,6 +576,16 @@ def context(
                 body=body,
                 headers={"access-control-allow-origin": "*"},
             )
+            return
+        if (
+            authorization is None
+            and f"{parsed.scheme}://{parsed.netloc}" == _YOUTUBE_EMBED_ORIGIN
+            and parsed.path.startswith("/embed/")
+        ):
+            # Episode pages render a validated provider iframe.  Keep every core
+            # browser scenario offline while allowing the iframe contract itself
+            # to load, just as episode-specific tests do with their page route.
+            route.fulfill(status=200, content_type="text/html", body="")
             return
         origin = f"{parsed.scheme}://{parsed.netloc}"
         if allowed_origin and origin == allowed_origin:

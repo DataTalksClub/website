@@ -8,6 +8,7 @@ from typing import Any
 from django.conf import settings
 from django.test import SimpleTestCase
 
+from content.podcast_routes import podcast_canonical_path
 from content.public_data import public_projection
 
 
@@ -66,8 +67,15 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertTrue(all(item["query_policy"] == "preserve_raw" for item in aliases.values()))
         self.assertTrue(all(item["final_path"] not in aliases for item in aliases.values()))
         for final_path, final in finals.items():
-            self.assertTrue(final_path.endswith(".html"))
-            clean_path = final_path.removesuffix(".html")
+            if final["collection"] == "podcasts":
+                self.assertEqual(final_path, podcast_canonical_path(final["record_key"]))
+            else:
+                self.assertTrue(final_path.endswith(".html"))
+            clean_path = (
+                f"/podcast/{final['record_key']}"
+                if final["collection"] == "podcasts"
+                else final_path.removesuffix(".html")
+            )
             self.assertEqual(
                 {
                     aliases[clean_path]["final_path"],

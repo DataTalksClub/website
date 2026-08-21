@@ -234,6 +234,8 @@ class ResponseBoundaryTests(TestCase):
         self.assertIn("default-src 'self'", response.headers["Content-Security-Policy"])
         self.assertIn("object-src 'none'", response.headers["Content-Security-Policy"])
         self.assertIn("frame-ancestors 'none'", response.headers["Content-Security-Policy"])
+        self.assertIn("https://creators.spotify.com", response.headers["Content-Security-Policy"])
+        self.assertIn("https://open.spotify.com", response.headers["Content-Security-Policy"])
         self.assertNotIn("'unsafe-eval'", response.headers["Content-Security-Policy"])
         self.assertIn("geolocation=()", response.headers["Permissions-Policy"])
         self.assertEqual(response.headers["Referrer-Policy"], "same-origin")

@@ -11,7 +11,11 @@ from urllib.parse import quote
 from content.inventory import content_route_contracts
 from content.public_data import PROJECTION_ROOT, public_projection
 from content.services import PreparedDocument
-from scripts.build_public_projection import _article_blocks
+from scripts.build_public_projection import (
+    _article_blocks,
+    _canonical_podcast_platform_key,
+    _canonical_podcast_platform_url,
+)
 from scripts.build_public_projection import _string as _projection_string
 
 from .adapter import CandidateAsset, CandidateBundle, CandidateRelation, DtcContentValidationError
@@ -40,6 +44,10 @@ _DECLARED_TRANSFORMS = (
     "five exact accepted-pin remote article images absent from #105 blocks are omitted from "
     "rendered HTML under code-pinned source checksums",
     "podcast transcripts remain separate documents while #105 embeds their ordered segments",
+    (
+        "podcast provider keys and legacy Spotify-host destinations are canonicalized at "
+        "projection boundary"
+    ),
     "Person display names and paths are #105 presentation expansion over exact relation keys",
     "projection collection ordering is presentation-only; adapter records use stable key order",
     "database public-path identities use checked percent encoding where #105 stores "
@@ -536,11 +544,12 @@ def verify_initial_projection_parity(
                     seo_description=description,
                     image_path=image_path,
                 )
-                expected_links = {
-                    str(label): value
-                    for label, value in sorted((metadata.get("links") or {}).items())
-                    if value != "TODO"
-                }
+                expected_links: dict[str, str] = {}
+                for label, value in sorted((metadata.get("links") or {}).items()):
+                    if value == "TODO":
+                        continue
+                    provider = _canonical_podcast_platform_key(label)
+                    expected_links[provider] = _canonical_podcast_platform_url(provider, value)
                 podcast_expectations: tuple[tuple[str, Any], ...] = (
                     (
                         "short",

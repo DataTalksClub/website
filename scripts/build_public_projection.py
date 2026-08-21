@@ -21,7 +21,7 @@ import uuid
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, quote, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit, urlunsplit
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -35,10 +35,15 @@ from content.event_description_bridge import (  # noqa: E402
     apply_bridge_to_events,
     bridge_manifest_binding,
 )
+from content.podcast_routes import podcast_canonical_path  # noqa: E402
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
 DEFAULT_OUTPUT = REPOSITORY_ROOT / "content" / "public_projection"
+PODCAST_PLATFORM_SEED = REPOSITORY_ROOT / "scripts" / "podcast_platforms.json"
+PODCAST_PLATFORM_FILENAME = "podcast_platforms.json"
+SPOTIFY_FOR_CREATORS_URL = "https://creators.spotify.com/pod/profile/datatalksclub/"
+PODCAST_PLATFORM_KEY_ALIASES = {"anchor": "spotify_for_creators"}
 EDITORIAL_ROUTE_MIGRATION_FILENAME = "editorial_route_migration.json"
 EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
     REPOSITORY_ROOT / "_docs" / "compatibility" / "editorial-route-migration.schema.json"
@@ -381,6 +386,150 @@ def _safe_url(value: Any, *, field: str, optional: bool = True) -> str:
     ):
         raise ProjectionBuildError(f"unsafe public URL: {field}")
     return value
+
+
+def _canonical_podcast_platform_key(value: Any) -> str:
+    key = _string(value, field="podcast platform provider", maximum=100)
+    return PODCAST_PLATFORM_KEY_ALIASES.get(key, key)
+
+
+def _canonical_podcast_platform_url(provider: str, value: str) -> str:
+    """Keep episode destinations on Spotify for Creators after the Anchor move."""
+
+    if provider != "spotify_for_creators":
+        return value
+    parsed = urlsplit(value)
+    hostname = (parsed.hostname or "").casefold().removeprefix("www.")
+    if hostname not in {"anchor.fm", "podcasters.spotify.com", "creators.spotify.com"}:
+        return value
+    marker = "/episodes/"
+    if marker in parsed.path:
+        suffix = parsed.path.split(marker, 1)[1]
+        # A small number of legacy exports duplicated the full destination after
+        # the episode slug. Keep the first valid episode path while canonicalizing
+        # the provider host and path.
+        suffix = re.split(r"https?://", suffix, maxsplit=1)[0].rstrip("/")
+        if not suffix:
+            return SPOTIFY_FOR_CREATORS_URL
+        return urlunsplit(
+            (
+                "https",
+                "creators.spotify.com",
+                f"/pod/profile/datatalksclub/episodes/{suffix}",
+                parsed.query,
+                parsed.fragment,
+            )
+        )
+    return SPOTIFY_FOR_CREATORS_URL
+
+
+def _podcast_platforms(path: Path) -> list[dict[str, str]]:
+    try:
+        value = json.loads(_read_text(path, maximum=32 * 1024))
+    except json.JSONDecodeError as exc:
+        raise ProjectionBuildError("podcast platform seed is not valid JSON") from exc
+    if not isinstance(value, list) or not value:
+        raise ProjectionBuildError("podcast platform seed must be a non-empty list")
+    platforms: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for item in value:
+        if not isinstance(item, dict) or set(item) != {
+            "key",
+            "provider",
+            "label",
+            "title",
+            "url",
+            "dot",
+        }:
+            raise ProjectionBuildError("podcast platform seed record shape mismatch")
+        key = _string(item["key"], field="podcast platform key", maximum=100)
+        provider = _canonical_podcast_platform_key(item["provider"])
+        if key != provider or provider not in {
+            "apple",
+            "spotify",
+            "youtube",
+            "spotify_for_creators",
+        } or provider in seen:
+            raise ProjectionBuildError("podcast platform seed provider mismatch")
+        label = _string(item["label"], field="podcast platform label", maximum=100)
+        title = _string(item["title"], field="podcast platform title", maximum=100)
+        if title != label:
+            raise ProjectionBuildError("podcast platform title mismatch")
+        dot = _string(item["dot"], field="podcast platform dot", maximum=50)
+        if not re.fullmatch(r"dot-[a-z0-9-]+", dot):
+            raise ProjectionBuildError("podcast platform dot class mismatch")
+        url = _safe_url(item["url"], field="podcast platform URL", optional=False)
+        if not url.startswith("https://"):
+            raise ProjectionBuildError("podcast platform URL must use HTTPS")
+        if provider == "spotify_for_creators" and url != SPOTIFY_FOR_CREATORS_URL:
+            raise ProjectionBuildError("Spotify for Creators URL mismatch")
+        seen.add(provider)
+        platforms.append(
+            {
+                "key": key,
+                "provider": provider,
+                "label": label,
+                "title": title,
+                "url": url,
+                "dot": dot,
+            }
+        )
+    if seen != {"apple", "spotify", "youtube", "spotify_for_creators"}:
+        raise ProjectionBuildError("podcast platform seed inventory mismatch")
+    return platforms
+
+
+def _podcast_resources(value: Any, *, source_name: str) -> list[dict[str, str]]:
+    """Validate the small, source-ordered resource shape episode pages can expose."""
+
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise ProjectionBuildError(f"podcast resources rejected: {source_name[:120]}")
+    resources: list[dict[str, str]] = []
+    for resource in value:
+        if not isinstance(resource, dict) or set(resource) != {"title", "url"}:
+            raise ProjectionBuildError(f"podcast resource rejected: {source_name[:120]}")
+        url = _safe_url(resource.get("url"), field="podcast resource", optional=False)
+        if not url.startswith("https://"):
+            # A small number of historical source records still carry HTTP-only links.  Keep
+            # the source order for resources that meet the public contract and omit the unsafe
+            # destination rather than manufacturing an HTTPS upgrade in the projection.
+            continue
+        resources.append(
+            {
+                "title": _string(
+                    resource.get("title"),
+                    field="podcast resource title",
+                    maximum=500,
+                ),
+                "url": url,
+            }
+        )
+    return resources
+
+
+def _podcast_video(
+    raw: dict[str, Any], links: dict[str, str], *, source_name: str
+) -> dict[str, str] | None:
+    """Project only a YouTube id that exactly agrees with the source watch link."""
+
+    identities = raw.get("ids")
+    if identities is None:
+        return None
+    if not isinstance(identities, dict):
+        raise ProjectionBuildError(f"podcast ids rejected: {source_name[:120]}")
+    video_id = identities.get("youtube")
+    if video_id is None:
+        return None
+    if not isinstance(video_id, str) or YOUTUBE_VIDEO_ID.fullmatch(video_id) is None:
+        # The optional source identity is unavailable until content corrects it; the validated
+        # watch link still remains available as the page's fallback destination.
+        return None
+    youtube_url = links.get("youtube", "")
+    if ("youtube", video_id) not in _recording_identities(youtube_url):
+        raise ProjectionBuildError(f"podcast YouTube identity mismatch: {source_name[:120]}")
+    return {"provider": "youtube", "id": video_id}
 
 
 def _source_url(repository: str, revision: str, source_path: str) -> str:
@@ -1133,7 +1282,7 @@ def _main_records(
         legacy_path = _string(raw.get("legacy_path"), field="podcast path", maximum=500)
         if legacy_path != f"/podcast/{slug}.html":
             raise ProjectionBuildError(f"podcast route mismatch: {path.name[:120]}")
-        public_path = f"/podcast/{slug}.html"
+        public_path = podcast_canonical_path(slug)
         transcript_path = raw.get("transcript")
         transcript: list[dict[str, Any]] = []
         transcript_provenance: dict[str, str] | None = None
@@ -1234,7 +1383,12 @@ def _main_records(
                     continue
                 safe = _safe_url(value, field=f"podcast link {label}")
                 if safe:
-                    podcast_links[str(label)] = safe
+                    provider = _canonical_podcast_platform_key(label)
+                    if provider in podcast_links:
+                        raise ProjectionBuildError(
+                            f"duplicate podcast platform provider: {path.name[:120]}"
+                        )
+                    podcast_links[provider] = _canonical_podcast_platform_url(provider, safe)
         podcasts.append(
             {
                 "slug": slug,
@@ -1256,6 +1410,8 @@ def _main_records(
                 ),
                 "guests": _safe_key_list(raw.get("guests"), field="podcast guest"),
                 "links": podcast_links,
+                "resources": _podcast_resources(raw.get("resources"), source_name=path.name),
+                "video": _podcast_video(raw, podcast_links, source_name=path.name),
                 "transcript": transcript,
                 "transcript_provenance": transcript_provenance,
                 "image_source": _string(
@@ -2087,7 +2243,12 @@ def _expected_editorial_routes(
         for record in collections[collection]:
             final_path = record["public_path"]
             clean_path = f"{prefix}/{record['slug']}"
-            if final_path != f"{clean_path}.html":
+            expected_path = (
+                podcast_canonical_path(record["slug"])
+                if collection == "podcasts"
+                else f"{clean_path}.html"
+            )
+            if final_path != expected_path:
                 raise ProjectionBuildError("editorial route final does not match its stable key")
             final = {
                 "collection": collection,
@@ -2363,6 +2524,7 @@ def _copy_media(
         public_paths.add(public_path)
         records.append(
             {
+                "record_key": relative,
                 "slug": relative,
                 "public_path": public_path,
                 "content_type": {
@@ -2418,6 +2580,7 @@ def _copy_people_media(
         public_paths.add(public_path)
         records.append(
             {
+                "record_key": relative,
                 "slug": relative,
                 "public_path": public_path,
                 "content_type": {
@@ -2638,6 +2801,10 @@ def build(args: argparse.Namespace) -> None:
         f"{name}.json": _write_json(output / f"{name}.json", records)
         for name, records in collections.items()
     }
+    artifact_digests[PODCAST_PLATFORM_FILENAME] = _write_json(
+        output / PODCAST_PLATFORM_FILENAME,
+        _podcast_platforms(PODCAST_PLATFORM_SEED),
+    )
     artifact_digests["media.json"] = _write_json(output / "media.json", media)
     artifact_digests["wiki_graph.json"] = _write_json(output / "wiki_graph.json", graph)
     artifact_digests["wiki_search.json"] = _write_json(output / "wiki_search.json", search)

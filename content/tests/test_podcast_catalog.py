@@ -9,13 +9,20 @@ from xml.etree import ElementTree
 from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
 from django.test import Client, SimpleTestCase, TestCase
+from django.urls import reverse
 from django.utils.html import conditional_escape, escape
 
 from content.podcast_content import (
+    _spotify_creator_embed,
+    episode_navigation,
     episode_view,
     listening_platform_phrase,
     published_display,
     season_episodes,
+)
+from content.podcast_routes import (
+    PODCAST_ROUTE_MIGRATION_PATH,
+    podcast_legacy_path,
 )
 from content.public_data import ordered_podcasts, podcast_seasons, public_projection
 from core.seo import validated_canonical_url
@@ -229,17 +236,74 @@ class PodcastPageCompositionTests(SimpleTestCase):
         self.assertIn("Artwork unavailable.", missing)
         self.assertNotIn("<img", missing)
 
-        # Both frames — the linked one and the plain one — draw the same artwork.
+        # The fallback frame still draws the shared artwork partial. A validated embed is
+        # intentionally an iframe rather than an artwork link.
         source = (REPOSITORY_ROOT / "templates/public/podcast_detail.html").read_text(
             encoding="utf-8"
         )
-        self.assertEqual(source.count('{% include "public/_episode_artwork.html" %}'), 2)
+        self.assertEqual(source.count('{% include "public/_episode_artwork.html" %}'), 1)
 
     def test_publication_dates_are_read_and_never_guessed(self) -> None:
         self.assertEqual(published_display("2021-02-23"), "Feb 23, 2021")
         self.assertEqual(published_display(""), "")
         with self.assertRaisesRegex(ImproperlyConfigured, "publication date is invalid"):
             published_display("23 February 2021")
+
+    def test_timestamp_fallbacks_keep_non_youtube_destinations_and_skip_unseekable_rows(
+        self,
+    ) -> None:
+        record = dict(ordered_podcasts()[0])
+        record["links"] = {"spotify": "https://open.spotify.com/episode/synthetic"}
+        record["video"] = None
+        record["transcript"] = [
+            {"line": "Readable without a numeric seek point.", "time": "About noon"},
+            {"line": "A native listening fallback.", "sec": 42, "time": "0:42"},
+        ]
+
+        view = episode_view(record)
+
+        self.assertEqual(len(view.timestamp_entries), 1)
+        self.assertEqual(view.timestamp_entries[0].fallback_url, record["links"]["spotify"])
+        self.assertEqual(view.transcript[0].fallback_url, "")
+
+    def test_spotify_creator_link_derives_a_safe_embed_without_inventing_an_id(self) -> None:
+        target = public_projection()["podcasts_by_slug"][
+            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
+        ]
+        creator_key = next(
+            key for key in ("spotify_for_creators", "anchor") if key in target["links"]
+        )
+        record = {
+            **target,
+            "links": {creator_key: target["links"][creator_key]},
+            "video": None,
+        }
+
+        view = episode_view(record)
+
+        self.assertIsNotNone(view.spotify)
+        assert view.spotify is not None
+        self.assertEqual(view.spotify.provider, "spotify")
+        self.assertEqual(
+            view.spotify.media_id,
+            "AI-Adoption-in-Enterprise-Beyond-Writing-Code---Ivan-Bilan-e3l6h0m",
+        )
+        self.assertEqual(
+            view.spotify.embed_url,
+            "https://creators.spotify.com/pod/profile/datatalksclub/embed/episodes/"
+            "AI-Adoption-in-Enterprise-Beyond-Writing-Code---Ivan-Bilan-e3l6h0m",
+        )
+        self.assertIs(view.player, view.spotify)
+        self.assertIsNone(
+            _spotify_creator_embed(
+                "https://evil.example/pod/profile/datatalksclub/episodes/not-a-source"
+            )
+        )
+        self.assertIsNone(
+            _spotify_creator_embed(
+                "https://creators.spotify.com/pod/profile/datatalksclub/episodes/not-safe/https:bad"
+            )
+        )
 
     def test_missing_or_invented_identity_fails_closed(self) -> None:
         record = dict(ordered_podcasts()[0])
@@ -258,6 +322,280 @@ class PodcastPageCompositionTests(SimpleTestCase):
             episode_view({**record, "links": {"youtube": "http://example.invalid/insecure"}})
         with self.assertRaisesRegex(ImproperlyConfigured, "must not be empty"):
             season_episodes(())
+
+
+class PodcastEpisodeParityTests(TestCase):
+    representative_slug = "s24e06-how-to-build-ai-that-actually-ships-in-production"
+
+    def representative(self) -> tuple[dict, dict]:
+        projection = public_projection()
+        return projection, projection["podcasts_by_slug"][self.representative_slug]
+
+    def test_representative_composes_resources_video_timestamps_and_person_bio(self) -> None:
+        projection, record = self.representative()
+        view = episode_view(record, people_by_slug=projection["people_by_slug"])
+
+        self.assertEqual(
+            record["image_path"],
+            "/images/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg",
+        )
+        self.assertEqual(view.image_path, record["image_path"])
+        self.assertEqual(
+            [(resource.title, resource.url) for resource in view.resources],
+            [
+                ("Website", "https://alexkimds.github.io/"),
+                ("Linkedin", "https://www.linkedin.com/in/aleksandrkim/"),
+            ],
+        )
+        self.assertIsNotNone(view.video)
+        assert view.video is not None
+        self.assertEqual(view.video.provider, "youtube")
+        self.assertEqual(view.video.video_id, "PosCx_4fwt0")
+        self.assertEqual(
+            view.video.embed_url,
+            "https://www.youtube-nocookie.com/embed/PosCx_4fwt0?enablejsapi=1&rel=0",
+        )
+        self.assertEqual(len(view.transcript), len(record["transcript"]))
+        self.assertEqual(len(view.timestamp_entries), 146)
+        self.assertEqual(
+            view.timestamp_entries[0].fallback_url,
+            "https://www.youtube.com/watch?v=PosCx_4fwt0&t=0",
+        )
+        guest = view.guests[0]
+        self.assertEqual(guest.name, "Aleksandr Kim")
+        self.assertEqual(guest.image_path, "/images/authors/aleksandrkim.jpg")
+        self.assertIn("Senior Data Scientist at Intuit", guest.summary)
+        self.assertEqual(
+            [link.label for link in guest.profile_links],
+            ["Website", "LinkedIn"],
+        )
+
+    def test_representative_page_is_server_rendered_and_undated_metadata_is_omitted(self) -> None:
+        _, record = self.representative()
+        response = self.client.get(record["public_path"])
+        body = response.content.decode()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Cache-Control"], "max-age=0, must-revalidate")
+        for heading_id in (
+            "show-notes-heading",
+            "timestamps-heading",
+            "transcript-heading",
+            "guest-bios-heading",
+            "related-episodes-heading",
+        ):
+            self.assertContains(response, f'id="{heading_id}"')
+        self.assertContains(response, 'id="podcast-video-player"')
+        self.assertContains(response, 'href="https://www.youtube.com/watch?v=PosCx_4fwt0&amp;t=0"')
+        self.assertNotIn('property="article:published_time"', body)
+        match = re.search(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
+            body,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        assert match is not None
+        graph = json.loads(match.group(1))["@graph"]
+        entity = next(item for item in graph if item.get("@type") == "PodcastEpisode")
+        self.assertNotIn("datePublished", entity)
+        self.assertEqual(entity["episodeNumber"], record["episode"])
+        self.assertEqual(entity["partOfSeason"]["seasonNumber"], record["season"])
+        self.assertEqual(entity["url"], "https://datatalks.club" + record["public_path"])
+        self.assertNotIn("wiki_graph", body)
+        self.assertNotIn("list-manage.com", body)
+        self.assertNotIn(record["transcript_provenance"]["source_url"], body)
+
+    def test_spotify_creator_episode_renders_the_responsive_accessible_player(self) -> None:
+        projection = public_projection()
+        source = projection["podcasts_by_slug"][
+            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
+        ]
+        creator_key = next(
+            key for key in ("spotify_for_creators", "anchor") if key in source["links"]
+        )
+        synthetic = {
+            **source,
+            "slug": "synthetic-spotify-creator-player",
+            "public_path": "/podcast/synthetic-spotify-creator-player.html",
+            "links": {creator_key: source["links"][creator_key]},
+            "video": None,
+            "resources": [],
+            "transcript": [],
+            "guest_profiles": [],
+            "guests": [],
+        }
+        synthetic_projection = {
+            **projection,
+            "podcasts": (synthetic,),
+            "podcasts_by_slug": {synthetic["slug"]: synthetic},
+        }
+
+        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+            response = self.client.get(synthetic["public_path"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-video-provider="spotify"')
+        self.assertContains(
+            response,
+            'src="https://creators.spotify.com/pod/profile/datatalksclub/embed/episodes/'
+            "AI-Adoption-in-Enterprise-Beyond-Writing-Code---Ivan-Bilan-e3l6h0m"
+            '"',
+        )
+        self.assertContains(
+            response,
+            'title="Listen to AI Adoption in Enterprise Beyond Writing Code on Spotify"',
+        )
+        self.assertContains(response, "allowfullscreen")
+        self.assertContains(response, "Audio unavailable.")
+
+    def test_s24e05_youtube_player_uses_the_stored_watch_url_identity(self) -> None:
+        projection = public_projection()
+        source = projection["podcasts_by_slug"][
+            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
+        ]
+        view = episode_view(source, people_by_slug=projection["people_by_slug"])
+
+        self.assertEqual(source["links"]["youtube"], "https://www.youtube.com/watch?v=XzokRd_IPSc")
+        self.assertIsNotNone(view.video)
+        assert view.video is not None
+        self.assertEqual(view.video.video_id, "XzokRd_IPSc")
+        self.assertEqual(
+            view.video.embed_url,
+            "https://www.youtube-nocookie.com/embed/XzokRd_IPSc?enablejsapi=1&rel=0",
+        )
+        response = self.client.get(source["public_path"])
+        self.assertContains(response, 'data-video-provider="youtube"')
+        self.assertContains(response, f'data-video-id="{view.video.video_id}"')
+        self.assertContains(response, f'src="{view.video.embed_url.replace("&", "&amp;")}"')
+
+    def test_dated_episode_keeps_exact_visible_and_structured_publication_date(self) -> None:
+        projection, record = self.representative()
+        dated = {
+            **record,
+            "slug": "synthetic-dated-episode",
+            "public_path": "/podcast/synthetic-dated-episode.html",
+            "published": "2026-02-03",
+        }
+        synthetic_projection = {
+            **projection,
+            "podcasts": (dated,),
+            "podcasts_by_slug": {dated["slug"]: dated},
+        }
+        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+            response = self.client.get(dated["public_path"])
+        body = response.content.decode()
+        self.assertContains(response, 'property="article:published_time" content="2026-02-03"')
+        self.assertContains(response, 'datetime="2026-02-03"')
+        match = re.search(
+            r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
+            body,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(match)
+        assert match is not None
+        entity = next(
+            item
+            for item in json.loads(match.group(1))["@graph"]
+            if item.get("@type") == "PodcastEpisode"
+        )
+        self.assertEqual(entity["datePublished"], "2026-02-03")
+
+    def test_episode_navigation_uses_real_adjacency_and_same_season_related_limit(self) -> None:
+        projection, record = self.representative()
+        next_record = {
+            **record,
+            "slug": "s24e07-synthetic-next",
+            "public_path": "/podcast/s24e07-synthetic-next.html",
+            "title": "Synthetic Season 24 Episode 7",
+            "episode": 7,
+            "published": "",
+        }
+        previous, following, related = episode_navigation(
+            record,
+            (next_record, *projection["podcasts"]),
+            people_by_slug=projection["people_by_slug"],
+        )
+        assert previous is not None
+        assert following is not None
+        self.assertEqual(previous.episode, 5)
+        self.assertEqual(following.episode, 7)
+        self.assertEqual(len(related), 3)
+        self.assertEqual([item.episode for item in related], [7, 5, 4])
+        self.assertNotIn(record["public_path"], [item.public_path for item in related])
+
+    def test_query_detail_is_no_store_and_unsafe_methods_keep_allowlist(self) -> None:
+        _, record = self.representative()
+        response = self.client.get(record["public_path"] + "?utm_source=test")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Cache-Control"], "no-store, max-age=0")
+        post = self.client.post(record["public_path"])
+        self.assertEqual(post.status_code, 405)
+        self.assertEqual(post.headers["Allow"], "GET, HEAD")
+        self.assertEqual(cache_directives(post), {"no-store", "max-age=0"})
+
+    def test_optional_media_and_reading_fields_omit_empty_controls(self) -> None:
+        projection, record = self.representative()
+        synthetic = {
+            **record,
+            "slug": "synthetic-no-media",
+            "public_path": "/podcast/synthetic-no-media.html",
+            "title": "Synthetic episode without optional media",
+            "links": {"spotify": "https://open.spotify.com/episode/synthetic"},
+            "guest_profiles": [{"key": "unknown", "name": "Unknown Guest", "public_path": ""}],
+            "guests": ["unknown"],
+            "image_path": "/images/podcast/not-available.jpg",
+            "media_available": False,
+            "resources": [],
+            "video": None,
+            "transcript": [],
+        }
+        synthetic_projection = {
+            **projection,
+            "podcasts": (synthetic,),
+            "podcasts_by_slug": {synthetic["slug"]: synthetic},
+        }
+        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+            response = self.client.get(synthetic["public_path"])
+        body = response.content.decode()
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Video unavailable.")
+        self.assertContains(response, 'href="https://open.spotify.com/episode/synthetic"')
+        for heading_id in ("show-notes-heading", "timestamps-heading", "transcript-heading"):
+            self.assertNotIn(f'id="{heading_id}"', body)
+        self.assertNotIn('id="podcast-video-player"', body)
+        self.assertNotIn('href="#"', body)
+        self.assertContains(response, "No portrait")
+        self.assertNotIn("not-available.jpg", body)
+        self.assertNotIn('property="og:image"', body)
+        self.assertNotIn('name="twitter:image"', body)
+
+    def test_valid_video_without_artwork_keeps_a_text_fallback_and_no_social_image(self) -> None:
+        projection, record = self.representative()
+        synthetic = {
+            **record,
+            "slug": "synthetic-video-without-artwork",
+            "public_path": "/podcast/synthetic-video-without-artwork.html",
+            "links": {"youtube": record["links"]["youtube"]},
+            "image_path": "",
+            "media_available": False,
+            "resources": [],
+            "transcript": [],
+            "guest_profiles": [],
+            "guests": [],
+        }
+        synthetic_projection = {
+            **projection,
+            "podcasts": (synthetic,),
+            "podcasts_by_slug": {synthetic["slug"]: synthetic},
+        }
+        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+            response = self.client.get(synthetic["public_path"])
+
+        body = response.content.decode()
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="podcast-video-player"')
+        self.assertContains(response, "Artwork unavailable.")
+        self.assertNotIn('property="og:image"', body)
+        self.assertNotIn('name="twitter:image"', body)
 
 
 class PodcastSeasonNavigationTests(TestCase):
@@ -322,8 +660,10 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertEqual(len(podcasts), 205)
         self.assertEqual({episode["public_path"] for episode in podcasts}, podcast_finals)
         self.assertEqual(len(podcast_finals), 205)
-        self.assertTrue(
-            all(path.startswith("/podcast/") and path.endswith(".html") for path in podcast_finals)
+        self.assertTrue(all(path.startswith("/podcast/") for path in podcast_finals))
+        self.assertEqual(
+            {path for path in podcast_finals if not path.endswith(".html")},
+            {PODCAST_ROUTE_MIGRATION_PATH},
         )
         self.assertEqual(len(podcast_aliases), 410)
         self.assertEqual({item["final_path"] for item in podcast_aliases}, podcast_finals)
@@ -343,7 +683,37 @@ class PodcastSeasonNavigationTests(TestCase):
                 response = self.client.generic(method, f"{alias_path}?{query}", follow=False)
                 self.assertEqual(response.status_code, 301)
                 self.assertEqual(response.headers["Location"], f"{final_path}?{query}")
-            self.assertEqual(self.client.post(alias_path).status_code, 405)
+        self.assertEqual(self.client.post(alias_path).status_code, 405)
+
+    def test_s24e05_uses_the_new_canonical_route_and_redirects_its_html_path(self) -> None:
+        projection = public_projection()
+        episode = projection["podcasts_by_slug"][
+            "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
+        ]
+        canonical = episode["public_path"]
+        legacy = podcast_legacy_path(episode["slug"])
+        query = "utm_source=route%2Btest&blank="
+
+        self.assertEqual(canonical, PODCAST_ROUTE_MIGRATION_PATH)
+        self.assertEqual(reverse("podcast-ai-adoption"), canonical)
+        self.assertEqual(reverse("podcast-ai-adoption-legacy"), legacy)
+        final = self.client.get(f"{canonical}?{query}", follow=False)
+        self.assertEqual(final.status_code, 200)
+        self.assertContains(
+            final,
+            f'<link rel="canonical" href="https://datatalks.club{canonical}">',
+            count=1,
+        )
+        self.assertContains(
+            final,
+            f'<meta property="og:url" content="https://datatalks.club{canonical}">',
+            count=1,
+        )
+        for method in ("GET", "HEAD"):
+            response = self.client.generic(method, f"{legacy}?{query}", follow=False)
+            self.assertEqual(response.status_code, 301)
+            self.assertEqual(response.headers["Location"], f"{canonical}?{query}")
+        self.assertEqual(self.client.post(legacy).status_code, 405)
 
         competing_path = (
             f"/podcast/s{episode['season']:02d}e{episode['episode']:02d}/competing-title"
@@ -659,7 +1029,7 @@ class PodcastSeasonNavigationTests(TestCase):
         undated = [episode for episode in season.episodes if not episode["published"]]
         self.assertEqual(body.count('class="list-row archive-row'), len(season.episodes))
         self.assertEqual(body.count("archive-row archive-row-undated"), len(undated))
-        self.assertIn(f"podcast · season {season.number}", body)
+        self.assertNotIn(f"podcast · season {season.number}", body)
         # The catalogue has no duration and no global episode number; the design's
         # "58 min" and "#214" therefore have no stand-in on the page.
         self.assertNotIn(" min<", body)
@@ -672,14 +1042,15 @@ class PodcastSeasonNavigationTests(TestCase):
 
         self.assertContains(response, 'class="status-pill status-pill-mint"')
         self.assertContains(response, f"Season {episode['season']} · Episode {episode['episode']}")
-        self.assertContains(response, 'class="player-frame episode-player"')
+        self.assertContains(response, 'class="player-frame episode-player episode-video"')
+        self.assertContains(response, f'data-video-id="{episode["video"]["id"]}"')
         self.assertContains(response, f'href="{episode["links"]["youtube"]}"')
         self.assertContains(response, f'src="{episode["image_path"]}"')
         for platform, label in (
             ("apple", "Apple Podcasts"),
             ("spotify", "Spotify"),
             ("youtube", "YouTube"),
-            ("anchor", "Anchor"),
+            ("spotify_for_creators", "Spotify for Creators"),
         ):
             self.assertContains(response, f'href="{episode["links"][platform]}"')
             self.assertContains(response, label)

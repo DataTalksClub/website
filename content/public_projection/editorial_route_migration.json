@@ -12530,7 +12530,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
+      "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
       "query_policy": "preserve_raw",
       "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
       "source_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code",
@@ -12538,7 +12538,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
+      "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
       "query_policy": "preserve_raw",
       "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
       "source_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code/",
@@ -12737,7 +12737,7 @@
       "status_code": 301
     }
   ],
-  "content_sha256": "1444e441a0950781c4a92d5c8b4a10c2c11b87d29a4f2fa4f83f53dcb8a7282f",
+  "content_sha256": "ff96d8f2ca0c94059e5f0ef73088ceee28b72faed86dcf8b02da7ca424252a75",
   "counts": {
     "aliases": 1592,
     "finals": 796
@@ -22924,7 +22924,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code.html",
+      "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
       "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
       "source": {
         "checksum": "f968ef115b11b368633bef5d835a37841ee6aad8acfa365531fa0eb02cdf6bcf",
@@ -22940,7 +22940,7 @@
       "final_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
       "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
       "source": {
-        "checksum": "47c8d1fcb41f1dfe855cecb477fbada147420fea20fccac9c676cf854f915234",
+        "checksum": "62554e94b5d8ab04ab7f7b060ffec0fa6ff7c61e53a2b929f7f6db1b3df25c90",
         "repository": "DataTalksClub/content",
         "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
         "source_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
@@ -23099,8 +23099,8 @@
     "source_artifacts": {
       "articles.json": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9",
       "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
-      "people.json": "f1bc223aee48ff614bcc24351f3253897459b1b7e75ea70ecd5dec98ff1b0a44",
-      "podcasts.json": "33409b09c184a02ff6b685d805d9ad05d74bb15d5b34ea86f34c5a10b4cb0c8d"
+      "people.json": "2eead505ef53d723f5387b9a10bee1952a29a16fd536af945e9a4ed58c929eb2",
+      "podcasts.json": "723cbac24b2b175390227984fdade52612b86606b85bb94ed3aba29439431d54"
     },
     "source_revisions": [
       {

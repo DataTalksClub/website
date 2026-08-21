@@ -46,7 +46,13 @@ from .pagination import (
     public_page_url,
 )
 from .person_content import person_view
-from .podcast_content import episode_view, listening_platform_phrase, season_episodes
+from .podcast_content import (
+    episode_navigation,
+    episode_view,
+    listening_platform_phrase,
+    podcast_platform_links,
+    season_episodes,
+)
 from .public_data import (
     PROJECTION_ROOT,
     event_date_groups,
@@ -542,7 +548,8 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
     if not valid_query:
         return _no_store(HttpResponseBadRequest("Bad request."))
 
-    seasons = podcast_seasons()
+    projection = public_projection()
+    seasons = podcast_seasons(projection["podcasts"])
     latest_season = seasons[0].number
     selected_number = latest_season if requested_season is None else requested_season
     season_index = next(
@@ -574,6 +581,7 @@ def podcast_hub(request: HttpRequest) -> HttpResponse:
             "episodes": episodes,
             "episode_total": sum(len(available.episodes) for available in seasons),
             "listening_platforms": listening_platform_phrase(episodes),
+            "podcast_platform_links": podcast_platform_links(projection["podcast_platforms"]),
             "season_links": tuple(
                 {
                     "number": available.number,
@@ -701,8 +709,42 @@ def article_detail(request: HttpRequest, slug: str) -> HttpResponse:
     )
 
 
-def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
-    return _render(
+def _render_podcast_detail(
+    request: HttpRequest,
+    episode: dict,
+    *,
+    projection: dict | None = None,
+) -> HttpResponse:
+    projection = projection or public_projection()
+    image_path = (
+        episode["image_path"]
+        if episode.get("media_available") and episode.get("image_path")
+        else ""
+    )
+    previous_episode, next_episode, related_episodes = episode_navigation(
+        episode,
+        projection["podcasts"],
+        people_by_slug=projection["people_by_slug"],
+    )
+    episode_entity = {
+        "@type": "PodcastEpisode",
+        "url": _canonical(episode["public_path"]),
+        "name": episode["title"],
+        "description": episode["description"],
+        "episodeNumber": episode["episode"],
+        "partOfSeason": {
+            "@type": "PodcastSeason",
+            "seasonNumber": episode["season"],
+        },
+        "partOfSeries": {
+            "@type": "PodcastSeries",
+            "name": "DataTalks.Club Podcast",
+            "url": _canonical("/podcast"),
+        },
+        **({"datePublished": episode["published"]} if episode["published"] else {}),
+        **({"image": _canonical(image_path)} if image_path else {}),
+    }
+    response = _render(
         request,
         "public/podcast_detail.html",
         path=episode["public_path"],
@@ -710,29 +752,15 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
         description=episode["description"],
         context={
             "record": episode,
-            "episode": episode_view(episode),
+            "episode": episode_view(episode, people_by_slug=projection["people_by_slug"]),
+            "previous_episode": previous_episode,
+            "next_episode": next_episode,
+            "related_episodes": related_episodes,
             "og_type": "article",
-            "og_image_url": _canonical(episode["image_path"]) if episode["image_path"] else "",
-            "published_time": episode["published"],
+            "og_image_url": _canonical(image_path) if image_path else "",
+            "published_time": episode["published"] or "",
             "structured_data": _json_ld(
-                {
-                    "@type": "PodcastEpisode",
-                    "url": _canonical(episode["public_path"]),
-                    "name": episode["title"],
-                    "description": episode["description"],
-                    "datePublished": episode["published"],
-                    "episodeNumber": episode["episode"],
-                    "partOfSeries": {
-                        "@type": "PodcastSeries",
-                        "name": "DataTalks.Club Podcast",
-                        "url": _canonical("/podcast"),
-                    },
-                    **(
-                        {"image": _canonical(episode["image_path"])}
-                        if episode["image_path"]
-                        else {}
-                    ),
-                },
+                episode_entity,
                 (
                     ("Home", "/"),
                     ("Podcast", "/podcast"),
@@ -741,14 +769,23 @@ def _render_podcast_detail(request: HttpRequest, episode: dict) -> HttpResponse:
             ),
         },
     )
+    response["Cache-Control"] = (
+        "no-store, max-age=0"
+        if request.META.get("QUERY_STRING", "")
+        else "max-age=0, must-revalidate"
+    )
+    return response
 
 
-@require_safe
+@csrf_exempt
 def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    episode = public_projection()["podcasts_by_slug"].get(slug)
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    projection = public_projection()
+    episode = projection["podcasts_by_slug"].get(slug)
     if episode is None:
         raise Http404
-    return _render_podcast_detail(request, episode)
+    return _render_podcast_detail(request, episode, projection=projection)
 
 
 @require_safe

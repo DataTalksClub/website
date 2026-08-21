@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test import TestCase
 
 from content.docs_projection import docs_page
+from content.podcast_routes import PODCAST_ROUTE_MIGRATION_PATH, podcast_legacy_path
 from content.public_data import public_paths, public_projection
 from content.review_projection import review_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
@@ -150,7 +151,7 @@ class PublicRouteAndSeoTests(TestCase):
                 self.assertNotIn("Location", response.headers)
                 self.assertNotContains(response, 'rel="canonical"', status_code=404)
 
-    def test_editorial_detail_aliases_redirect_directly_to_html_canonicals(self) -> None:
+    def test_editorial_detail_aliases_redirect_directly_to_canonicals(self) -> None:
         projection = public_projection()
         migration = projection["editorial_route_migration"]
         self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_592})
@@ -161,13 +162,28 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertEqual(len(alias_map), 1_592)
         self.assertEqual(set(alias_map.values()), canonical_paths)
         self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
-        self.assertTrue(all(path.endswith(".html") for path in canonical_paths))
+        self.assertEqual(
+            {path for path in canonical_paths if not path.endswith(".html")},
+            {PODCAST_ROUTE_MIGRATION_PATH},
+        )
         self.assertEqual(
             set(alias_map),
             {
                 alias
-                for path in canonical_paths
-                for alias in (path.removesuffix(".html"), f"{path.removesuffix('.html')}/")
+                for item in migration["finals"]
+                for alias in (
+                    (
+                        podcast_legacy_path(item["record_key"]).removesuffix(".html")
+                        if item["collection"] == "podcasts"
+                        else item["final_path"].removesuffix(".html")
+                    ),
+                    (
+                        podcast_legacy_path(item["record_key"]).removesuffix(".html")
+                        if item["collection"] == "podcasts"
+                        else item["final_path"].removesuffix(".html")
+                    )
+                    + "/",
+                )
             },
         )
 

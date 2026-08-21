@@ -44,6 +44,50 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         with self.assertRaisesRegex(builder.ProjectionBuildError, "invalid public field"):
             builder._string("x" * 101, field="test", maximum=100)
 
+    def test_podcast_resources_keep_only_bounded_https_destinations_in_source_order(self) -> None:
+        resources = builder._podcast_resources(
+            [
+                {"title": "First", "url": "https://example.test/first"},
+                {"title": "Historical HTTP link", "url": "http://example.test/old"},
+                {"title": "Second", "url": "https://example.test/second"},
+            ],
+            source_name="episode.yaml",
+        )
+        self.assertEqual(
+            resources,
+            [
+                {"title": "First", "url": "https://example.test/first"},
+                {"title": "Second", "url": "https://example.test/second"},
+            ],
+        )
+        with self.assertRaisesRegex(builder.ProjectionBuildError, "unsafe public URL"):
+            builder._podcast_resources(
+                [{"title": "Unsafe", "url": "javascript:alert(1)"}],
+                source_name="episode.yaml",
+            )
+
+    def test_podcast_video_requires_a_source_identity_that_matches_the_watch_link(self) -> None:
+        raw = {"ids": {"youtube": "Video_1"}}
+        links = {"youtube": "https://www.youtube.com/watch?v=Video_1"}
+        self.assertEqual(
+            builder._podcast_video(raw, links, source_name="episode.yaml"),
+            {"provider": "youtube", "id": "Video_1"},
+        )
+        self.assertIsNone(builder._podcast_video({}, links, source_name="episode.yaml"))
+        self.assertIsNone(
+            builder._podcast_video(
+                {"ids": {"youtube": "bad id"}},
+                links,
+                source_name="episode.yaml",
+            )
+        )
+        with self.assertRaisesRegex(builder.ProjectionBuildError, "identity mismatch"):
+            builder._podcast_video(
+                {"ids": {"youtube": "Other_1"}},
+                links,
+                source_name="episode.yaml",
+            )
+
     def test_podcast_numbers_require_positive_integer_source_values(self) -> None:
         self.assertEqual(builder._positive_integer(1, field="podcast season"), 1)
         for value in (None, False, True, "1", 0, -1, 1.0):
@@ -262,7 +306,14 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertEqual(manifest["counts"], {"finals": 796, "aliases": 1_592})
         self.assertEqual(len(manifest["finals"]), 796)
         self.assertEqual(len(manifest["aliases"]), 1_592)
-        self.assertTrue(all(item["final_path"].endswith(".html") for item in manifest["finals"]))
+        self.assertEqual(
+            {
+                item["final_path"]
+                for item in manifest["finals"]
+                if not item["final_path"].endswith(".html")
+            },
+            {"/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"},
+        )
         self.assertTrue(
             all(not item["source_path"].endswith(".html") for item in manifest["aliases"])
         )

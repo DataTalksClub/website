@@ -55,6 +55,13 @@
          last band continues. */
       :root {
         --page: var(--lavender);
+        --episode-player-text: #fdfaf3;
+        --episode-player-link: #c9cdf2;
+      }
+
+      body.dark-mode {
+        --episode-player-text: #eaeaf7;
+        --episode-player-link: #a9b0f2;
       }
 
       /* The episode reads as one column, the width the design gives long prose. */
@@ -91,6 +98,126 @@
         overflow: hidden;
         position: relative;
         text-decoration: none;
+      }
+
+      .episode-video {
+        aspect-ratio: 16 / 9;
+        background: var(--band-ink-bg);
+      }
+
+      .episode-video iframe {
+        border: 0;
+        height: 100%;
+        inset: 0;
+        position: absolute;
+        width: 100%;
+      }
+
+      /* Spotify's compact episode player has a fixed content height, while its
+         width remains fluid with the reading column. */
+      .episode-video[data-video-provider="spotify"] {
+        aspect-ratio: auto;
+        min-height: 152px;
+      }
+
+      .episode-video[data-video-provider="spotify"] iframe {
+        height: 152px;
+      }
+
+      .episode-video-fallback {
+        align-items: center;
+        display: none;
+        justify-content: center;
+        min-height: 15rem;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .episode-video-fallback-copy {
+        display: grid;
+        gap: 0.65rem;
+        max-width: 32rem;
+      }
+
+      .episode-video-fallback-copy p {
+        margin: 0;
+      }
+
+      .episode-video-fallback-copy {
+        color: var(--episode-player-text);
+      }
+
+      .episode-video-fallback-copy .band-link {
+        color: var(--episode-player-link);
+      }
+
+      /* A third-party frame earns visibility only after it has loaded.  Until
+         then the native destination remains the useful surface, which also
+         gives blocked frames a graceful failure state. */
+      .episode-video:not([data-video-state="available"]) .episode-video-fallback {
+        display: flex;
+      }
+
+      .episode-video:not([data-video-state="available"]) iframe {
+        display: none;
+      }
+
+      .episode-video[data-video-state="available"] .episode-video-fallback {
+        display: none;
+      }
+
+      /* The server-rendered link is the no-JS player.  JavaScript removes this
+         state after the document head has enabled the iframe presentation. */
+      .no-js .episode-video iframe,
+      .episode-video[data-video-state="unavailable"] iframe {
+        display: none;
+      }
+
+      .no-js .episode-video .episode-video-fallback,
+      .episode-video[data-video-state="unavailable"] .episode-video-fallback {
+        display: flex;
+      }
+
+      .episode-video[data-video-state="unavailable"] {
+        aspect-ratio: auto;
+      }
+
+      .episode-fallback {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        min-height: 15rem;
+        padding: 2rem;
+        text-align: center;
+      }
+
+      .episode-fallback-copy {
+        display: grid;
+        gap: 0.65rem;
+        max-width: 32rem;
+        position: relative;
+        z-index: 1;
+      }
+
+      .episode-fallback-copy p {
+        margin: 0;
+      }
+
+      .episode-artwork {
+        margin-top: 1rem;
+      }
+
+      .episode-artwork img {
+        border: 2px solid var(--line);
+        border-radius: 0.8rem;
+        display: block;
+        max-height: 18rem;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .episode-artwork-missing {
+        margin-top: 1rem;
       }
 
       .player-art {
@@ -135,6 +262,187 @@
         margin-top: 1.5rem;
       }
 
+      .listen-row .pill-button,
+      .episode-resource-list a,
+      .episode-timestamp,
+      .episode-navigation a {
+        overflow-wrap: anywhere;
+      }
+
+      .episode-tabs {
+        align-items: center;
+        border-bottom: 2px solid var(--line);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .episode-tab {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+        font-weight: 800;
+        padding: 0.35rem 0;
+      }
+
+      .episode-section {
+        scroll-margin-top: 1.5rem;
+      }
+
+      .episode-resource-list {
+        display: grid;
+        gap: 0.75rem;
+        list-style: none;
+        margin: 1.25rem 0 0;
+        padding: 0;
+      }
+
+      .episode-resource-list li {
+        align-items: baseline;
+        border-bottom: 1px dashed var(--line);
+        display: flex;
+        gap: 0.75rem;
+        justify-content: space-between;
+        padding-bottom: 0.75rem;
+      }
+
+      .episode-resource-list li:last-child {
+        border-bottom: 0;
+      }
+
+      .episode-timestamp {
+        align-items: baseline;
+        display: inline-flex;
+        gap: 0.8rem;
+        min-height: 2.75rem;
+      }
+
+      .transcript-time-link {
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        white-space: nowrap;
+      }
+
+      .episode-bios {
+        display: grid;
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+      }
+
+      .guest-bio-card {
+        align-items: start;
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: auto minmax(0, 1fr);
+      }
+
+      .guest-bio-portrait,
+      .guest-bio-placeholder {
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        height: 5rem;
+        object-fit: cover;
+        width: 5rem;
+      }
+
+      .guest-bio-placeholder {
+        align-items: center;
+        background: var(--mint);
+        display: flex;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .guest-bio-copy {
+        min-width: 0;
+      }
+
+      .guest-bio-copy h3 {
+        margin-top: 0;
+      }
+
+      .guest-bio-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.9rem;
+        margin-top: 0.75rem;
+      }
+
+      .episode-navigation {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        margin-top: 1.5rem;
+      }
+
+      .episode-navigation a {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.8rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-height: 5rem;
+        padding: 0.9rem 1rem;
+        text-decoration: none;
+      }
+
+      .episode-navigation a:hover {
+        box-shadow: 0.25rem 0.25rem 0 var(--shadow-soft);
+      }
+
+      .episode-navigation .next-episode {
+        text-align: right;
+      }
+
+      .episode-related {
+        margin-top: 1.5rem;
+      }
+
+      .related-episode-card {
+        min-width: 0;
+      }
+
+      .related-artwork,
+      .related-artwork-missing {
+        aspect-ratio: 16 / 9;
+        border-radius: 0.55rem;
+        display: block;
+        margin-bottom: 0.65rem;
+        object-fit: cover;
+        width: 100%;
+      }
+
+      .related-artwork-missing {
+        align-items: center;
+        background: var(--mint);
+        border: 1px dashed var(--line);
+        display: flex;
+        justify-content: center;
+        padding: 1rem;
+        text-align: center;
+      }
+
+      .related-episode-card h3 {
+        font-size: 1.05rem;
+        margin: 0;
+      }
+
+      .related-episode-card h3 a {
+        color: var(--ink);
+      }
+
+      .related-episode-meta {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
       /* Transcript: shared timestamp rows, with the section headers the source
          gives the conversation and the speaker as each row's mark. */
       .transcript-section {
@@ -177,6 +485,18 @@
           display: inline;
           margin-left: 0.4rem;
         }
+
+        .episode-navigation {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .episode-navigation .next-episode {
+          text-align: left;
+        }
+
+        .guest-bio-card {
+          grid-template-columns: minmax(0, 1fr);
+        }
       }
     </style>
   </head>
@@ -204,59 +524,95 @@
         </div>
       </section>
 
-      {% comment %}
-        The seam sits where the title block ends: the way back, the season
-        marker and the title are where the page starts, and the episode itself
-        — the recording, its guest, what it is about and where to hear it —
-        reads on the cool ground every other page reads on.
-      {% endcomment %}
       <section class="band band-lavender episode-read" aria-label="About this episode">
         <div class="shell episode-shell">
-          {% comment %}
-            Artwork and a listening link are independent facts, so the frame draws its
-            artwork either way and only becomes a link when there is something to open.
-            The link names itself with its own label, so the artwork keeps the episode's
-            identity in its alt instead of being folded into the link's name.
-          {% endcomment %}
-          {% if episode.watch_url %}
-            <a
-              class="player-frame episode-player"
-              href="{{ episode.watch_url }}"
-              rel="noopener noreferrer"
-              aria-label="Play {{ episode.title }} on {{ episode.watch_label }}"
+          {% if episode.player %}
+            <div
+              class="player-frame episode-player episode-video"
+              data-video-provider="{{ episode.player.provider }}"
+              data-video-id="{{ episode.player.media_id }}"
+              data-video-state="loading"
             >
-              {% include "public/_episode_artwork.html" %}
-              <span class="play-disc play-disc-large" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M9 6.5l9 5.5-9 5.5z"/>
-                </svg>
-              </span>
-            </a>
+              <iframe
+                id="podcast-video-player"
+                src="{{ episode.player.embed_url }}"
+                title="{{ episode.player.action_label }} {{ episode.title }} on {{ episode.player.provider_label }}"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+              <div class="episode-video-fallback" data-video-fallback role="status">
+                <div class="episode-video-fallback-copy">
+                  <p>
+                    <strong>{{ episode.player.media_label }} unavailable.</strong>
+                  </p>
+                  <p>Use one of the listening links below to hear this episode.</p>
+                  {% if episode.watch_url %}
+                    <a
+                      class="band-link"
+                      href="{{ episode.watch_url }}"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open {{ episode.watch_label }}
+                      <span class="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
           {% else %}
-            <div class="player-frame episode-player">
+            <div class="player-frame episode-player episode-fallback">
               {% include "public/_episode_artwork.html" %}
+              <div class="episode-fallback-copy">
+                <p>
+                  <strong>Video unavailable.</strong>
+                </p>
+                <p>Use one of the listening links below to hear this episode.</p>
+                {% if episode.watch_url %}
+                  <a
+                    class="band-link"
+                    href="{{ episode.watch_url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Open {{ episode.watch_label }}
+                    <span class="sr-only"> (opens in a new tab)</span>
+                  </a>
+                {% endif %}
+              </div>
             </div>
           {% endif %}
-          {% comment %}
-            The guest, in the shared person chip at its standalone size, with the
-            role named beneath.  The chip's own name is the way to the profile,
-            which is why the row no longer carries a separate "Profile" link: a
-            reader is offered one way through to a person, not two, and the link
-            they are offered says whose profile it is.
-          {% endcomment %}
+          {% if episode.player and episode.media_available %}
+            <figure class="episode-artwork">
+              <img
+                src="{{ episode.image_path }}"
+                alt="Artwork for {{ episode.title }}"
+                decoding="async"
+              >
+            </figure>
+          {% elif episode.player %}
+            <p class="mono-note episode-artwork-missing">Artwork unavailable.</p>
+          {% endif %}
           {% for guest in episode.guests %}
             <div class="guest-row person-chip-lead">
-              {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" %}
+              {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" only %}
               <p class="mono-label">guest</p>
             </div>
           {% endfor %}
           <p class="episode-description">{{ episode.description }}</p>
           {% if episode.platform_links %}
-            <div class="listen-row">
+            <div class="listen-row" role="group" aria-label="Listen or watch this episode">
               {% for link in episode.platform_links %}
-                <a class="pill-button" href="{{ link.url }}" rel="noopener noreferrer">
+                <a
+                  class="pill-button"
+                  href="{{ link.url }}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   <span class="dot {{ link.dot }}" aria-hidden="true"></span>
                   {{ link.label }}
+                  <span class="sr-only"> (opens in a new tab)</span>
                 </a>
               {% endfor %}
             </div>
@@ -269,34 +625,275 @@
         </div>
       </section>
 
-      {% if record.transcript %}
-        <section class="band band-lavender" aria-labelledby="transcript-heading">
+      {% if episode.resources or episode.timestamp_entries or episode.transcript %}
+        <section class="band band-lavender" aria-label="Episode reading sections">
           <div class="shell episode-shell">
-            <div class="band-head">
-              <div>
-                <h2 id="transcript-heading">Transcript</h2>
-                <p>The conversation in full, as it was recorded.</p>
-              </div>
-            </div>
-            {% for entry in record.transcript %}
-              {% if entry.header %}
-                <h3 class="transcript-section">{{ entry.header }}</h3>
-              {% else %}
-                <div class="timestamp-row">
-                  <span class="timestamp-mark">
-                    {{ entry.who }}
-                    {% if entry.time %}
-                      <span class="transcript-time">{{ entry.time }}</span>
-                    {% endif %}
-                  </span>
-                  <p>{{ entry.line }}</p>
-                </div>
+            <nav class="episode-tabs" aria-label="Episode sections">
+              {% if episode.resources %}
+                <a class="episode-tab" href="#show-notes">Show Notes</a>
               {% endif %}
-            {% endfor %}
+              {% if episode.timestamp_entries %}
+                <a class="episode-tab" href="#timestamps">Timestamps</a>
+              {% endif %}
+              {% if episode.transcript %}
+                <a class="episode-tab" href="#transcript">Transcript</a>
+              {% endif %}
+            </nav>
+
+            {% if episode.resources %}
+              <section id="show-notes" class="episode-section" aria-labelledby="show-notes-heading">
+                <div class="band-head">
+                  <div>
+                    <h2 id="show-notes-heading">Show Notes</h2>
+                    <p>Links and resources mentioned in this episode.</p>
+                  </div>
+                </div>
+                <ul class="episode-resource-list">
+                  {% for resource in episode.resources %}
+                    <li>
+                      <a href="{{ resource.url }}" target="_blank" rel="noopener noreferrer">
+                        {{ resource.title }}
+                        <span class="sr-only"> (opens in a new tab)</span>
+                      </a>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+
+            {% if episode.timestamp_entries %}
+              <section id="timestamps" class="episode-section" aria-labelledby="timestamps-heading">
+                <div class="band-head">
+                  <div>
+                    <h2 id="timestamps-heading">Timestamps</h2>
+                    <p>Jump to a moment in the conversation.</p>
+                  </div>
+                </div>
+                {% for entry in episode.timestamp_entries %}
+                  <div class="timestamp-row timestamp-index-row">
+                    <span class="timestamp-mark">
+                      {% if entry.fallback_url %}
+                        <a
+                          class="episode-timestamp"
+                          href="{{ entry.fallback_url }}"
+                          data-seconds="{{ entry.seconds }}"
+                          aria-label="Jump to {{ entry.time }}: {{ entry.line }}"
+                        >
+                          <span class="transcript-time-link">{{ entry.time }}</span>
+                        </a>
+                      {% else %}
+                        <span class="transcript-time-link">{{ entry.time }}</span>
+                      {% endif %}
+                      {% if entry.who %}
+                        <span class="transcript-time">{{ entry.who }}</span>
+                      {% endif %}
+                    </span>
+                    <p>{{ entry.line }}</p>
+                  </div>
+                {% endfor %}
+              </section>
+            {% endif %}
+
+            {% if episode.transcript %}
+              <section id="transcript" class="episode-section" aria-labelledby="transcript-heading">
+                <div class="band-head">
+                  <div>
+                    <h2 id="transcript-heading">Transcript</h2>
+                    <p>The conversation in full, as it was recorded.</p>
+                  </div>
+                </div>
+                {% for entry in episode.transcript %}
+                  {% if entry.header %}
+                    <h3 class="transcript-section">{{ entry.header }}</h3>
+                  {% else %}
+                    <div class="timestamp-row" id="{{ entry.anchor }}">
+                      <span class="timestamp-mark">
+                        {% if entry.fallback_url %}
+                          <a
+                            class="transcript-time-link"
+                            href="{{ entry.fallback_url }}"
+                            data-seconds="{{ entry.seconds }}"
+                            aria-label="Jump to {{ entry.time }}: {{ entry.line }}"
+                          >{{ entry.time }}</a>
+                        {% elif entry.time %}
+                          <span class="transcript-time-link">{{ entry.time }}</span>
+                        {% endif %}
+                        {% if entry.who %}
+                          <span class="transcript-time">{{ entry.who }}</span>
+                        {% endif %}
+                      </span>
+                      <p>{{ entry.line }}</p>
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </section>
+            {% endif %}
           </div>
         </section>
       {% endif %}
+
+      {% if episode.guests %}
+        <section class="band band-lavender" aria-labelledby="guest-bios-heading">
+          <div class="shell episode-shell">
+            <div class="band-head">
+              <div>
+                {% if episode.guests|length != 1 %}
+                  <h2 id="guest-bios-heading">About the guests</h2>
+                {% else %}
+                  <h2 id="guest-bios-heading">About the guest</h2>
+                {% endif %}
+              </div>
+            </div>
+            <div class="episode-bios">
+              {% for guest in episode.guests %}
+                <article class="guest-bio-card">
+                  {% if guest.media_available %}
+                    <img
+                      class="guest-bio-portrait"
+                      src="{{ guest.image_path }}"
+                      alt="Portrait of {{ guest.name }}"
+                      width="160"
+                      height="160"
+                      loading="lazy"
+                      decoding="async"
+                    >
+                  {% else %}
+                    <div
+                      class="guest-bio-placeholder"
+                      role="img"
+                      aria-label="No portrait available for {{ guest.name }}"
+                    >No portrait</div>
+                  {% endif %}
+                  <div class="guest-bio-copy">
+                    <h3>
+                      {% if guest.public_path %}
+                        <a class="band-link" href="{{ guest.public_path }}">{{ guest.name }}</a>
+                      {% else %}
+                        {{ guest.name }}
+                      {% endif %}
+                    </h3>
+                    {% if guest.summary %}
+                      <p>{{ guest.summary }}</p>
+                    {% endif %}
+                    {% if guest.profile_links %}
+                      <ul class="guest-bio-links" aria-label="{{ guest.name }} profile links">
+                        {% for link in guest.profile_links %}
+                          <li>
+                            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+                              {{ link.label }}<span class="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    {% endif %}
+                  </div>
+                </article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      {% if previous_episode or next_episode %}
+        <section class="band band-lavender" aria-labelledby="episode-navigation-heading">
+          <div class="shell episode-shell">
+            <h2 id="episode-navigation-heading">More episodes</h2>
+            <nav class="episode-navigation" aria-label="Episode navigation">
+              {% if previous_episode %}
+                <a href="{{ previous_episode.public_path }}" class="previous-episode">
+                  <span class="mono-label">← Previous episode</span>
+                  <strong>{{ previous_episode.title }}</strong>
+                </a>
+              {% endif %}
+              {% if next_episode %}
+                <a href="{{ next_episode.public_path }}" class="next-episode">
+                  <span class="mono-label">Next episode →</span>
+                  <strong>{{ next_episode.title }}</strong>
+                </a>
+              {% endif %}
+            </nav>
+          </div>
+        </section>
+      {% endif %}
+
+      {% if related_episodes %}
+        <section class="band band-lavender episode-related" aria-labelledby="related-episodes-heading">
+          <div class="shell episode-shell">
+            <div class="band-head">
+              <div>
+                <h2 id="related-episodes-heading">More from this season</h2>
+                <p>Continue with another conversation from Season {{ episode.season }}.</p>
+              </div>
+            </div>
+            <div class="card-grid card-grid-3">
+              {% for related in related_episodes %}
+                <article class="card related-episode-card">
+                  {% if related.media_available %}
+                    <img
+                      class="related-artwork"
+                      src="{{ related.image_path }}"
+                      alt="Artwork for {{ related.title }}"
+                      loading="lazy"
+                      decoding="async"
+                    >
+                  {% else %}
+                    <div class="related-artwork-missing">Artwork unavailable.</div>
+                  {% endif %}
+                  <p class="related-episode-meta">{{ related.season_episode }}</p>
+                  <h3>
+                    <a href="{{ related.public_path }}">{{ related.title }}</a>
+                  </h3>
+                  <p>{{ related.description }}</p>
+                </article>
+              {% endfor %}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      {% include "public/_podcast_episode_extensions.html" %}
     </main>
     {% include "core/_site_shell_foot.html" %}
+    <script>
+      /* Timestamp links are useful links first. When the validated YouTube player is
+         present, changing its source seeks to the same point. Spotify remains a
+         responsive embedded player, but keeps native timestamp destinations. */
+      (function () {
+        var links = document.querySelectorAll('[data-seconds]');
+        var player = document.getElementById('podcast-video-player');
+        var frame = document.querySelector('[data-video-provider][data-video-id]');
+        if (!player || !frame) {
+          return;
+        }
+        player.addEventListener('load', function () {
+          frame.setAttribute('data-video-state', 'available');
+        });
+        player.addEventListener('error', function () {
+          frame.setAttribute('data-video-state', 'unavailable');
+          player.remove();
+        });
+        if (frame.getAttribute('data-video-provider') !== 'youtube' || !links.length) {
+          return;
+        }
+        var videoId = frame.getAttribute('data-video-id');
+        links.forEach(function (link) {
+          link.addEventListener('click', function (event) {
+            var seconds = Number(link.getAttribute('data-seconds'));
+            if (
+              frame.getAttribute('data-video-state') === 'unavailable'
+              || !videoId
+              || !Number.isFinite(seconds)
+              || seconds < 0
+            ) {
+              return;
+            }
+            event.preventDefault();
+            player.src = 'https://www.youtube-nocookie.com/embed/' +
+              encodeURIComponent(videoId) + '?enablejsapi=1&rel=0&start=' + Math.floor(seconds);
+            link.focus();
+          });
+        });
+      })();
+    </script>
   </body>
 </html>
