@@ -46,18 +46,14 @@ class DashboardAuthenticationTestCase(TestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    def test_dashboard_redirects_before_first_homework_is_scored(self):
+    def test_dashboard_is_available_before_first_homework_is_scored(self):
         self.course.first_homework_scored = False
         self.course.save()
 
         dashboard_url = self.dashboard_url()
         response = self.client.get(dashboard_url)
-        course_url = reverse(
-            "course",
-            kwargs={
-                "course_slug": self.course.course.slug,
-                "cohort_year": self.course.year,
-            },
-        )
 
-        self.assertRedirects(response, course_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "courses/dashboard.html")
+        self.assertEqual(response.context["course"], self.course)
+        self.assertContains(response, "Test Course Dashboard")
