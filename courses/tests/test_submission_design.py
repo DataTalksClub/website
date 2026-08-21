@@ -91,8 +91,10 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
 
     def test_homework_uses_shared_shell_without_repeated_facts_or_one_off_boxes(self) -> None:
         source = read_template("courses/templates/homework/homework.html")
+        form_source = read_template("courses/templates/homework/_submission_form.html")
 
         self.assertIn('{% extends "courses/_submission_page.html" %}', source)
+        self.assertIn('{% include "homework/_submission_form.html" %}', source)
         self.assertNotIn("homework-notice", source)
         self.assertNotIn("homework-specs", source)
         self.assertIn('<h1 id="submission-heading">{{ homework.title }}</h1>', source)
@@ -104,8 +106,17 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
                 'classes="callout-quiet" message="No public answers are '
                 'available for this homework yet."'
             ),
-            source,
+            form_source,
         )
+        for field in (
+            "answer_{{ question.id }}",
+            'name="homework_url"',
+            'name="time_spent_lectures"',
+            'name="time_spent_homework"',
+            'name="problems_comments"',
+        ):
+            with self.subTest(field=field):
+                self.assertIn(field, form_source)
 
     def test_project_and_peer_review_extend_the_shared_submission_shell(self) -> None:
         project = read_template("courses/templates/projects/project.html")

@@ -3,7 +3,10 @@ from django.http import HttpRequest
 
 from courses.models.homework import Answer, Homework, Question, Submission
 from courses.views.homework_answers import process_question_options
-from courses.views.homework_context import homework_state_context
+from courses.views.homework_context import (
+    homework_navigation_context,
+    homework_state_context,
+)
 from courses.views.homework_post_fields import (
     apply_homework_post_preview_fields,
 )
@@ -77,6 +80,7 @@ def homework_detail_build_context_from_post(
         "disable_learning_in_public": disable_learning_in_public,
     }
     context.update(state_context)
+    context.update(homework_navigation_context(data.course, data.homework))
     return context
 
 

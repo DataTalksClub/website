@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -51,6 +52,51 @@ def homework_state_context(homework: Homework) -> dict[str, bool]:
     }
 
 
+def homework_instructions_url(
+    course: Cohort,
+    homework: Homework,
+) -> str:
+    """Return the explicit or source-backed instructions URL for a homework."""
+
+    if homework.instructions_url:
+        return homework.instructions_url
+
+    repository_url = course.course.github_repo_url or course.github_repo_url
+    if not repository_url or not homework.source_path or not homework.source_commit_sha:
+        return ""
+
+    instructions_path = PurePosixPath(homework.source_path).with_suffix(".md")
+    return (
+        f"{repository_url.rstrip('/')}/blob/"
+        f"{homework.source_commit_sha}/{instructions_path.as_posix()}"
+    )
+
+
+def homework_navigation_context(
+    course: Cohort,
+    homework: Homework,
+) -> dict[str, object]:
+    """Provide adjacent homework records in the same public due-date order."""
+
+    homeworks = list(
+        Homework.objects.filter(course=course).order_by("due_date", "id")
+    )
+    current_index = next(
+        index for index, candidate in enumerate(homeworks) if candidate.pk == homework.pk
+    )
+    return {
+        "instructions_url": homework_instructions_url(course, homework),
+        "previous_homework": (
+            homeworks[current_index - 1] if current_index > 0 else None
+        ),
+        "next_homework": (
+            homeworks[current_index + 1]
+            if current_index + 1 < len(homeworks)
+            else None
+        ),
+    }
+
+
 def homework_detail_build_context_not_authenticated(
     course: Cohort,
     homework: Homework,
@@ -71,6 +117,7 @@ def homework_detail_build_context_not_authenticated(
         "accepting_submissions": accepting_submissions,
         "deadline_passed": homework_deadline_passed(homework),
     }
+    context.update(homework_navigation_context(course, homework))
 
     return context
 
@@ -138,6 +185,7 @@ def homework_detail_build_context_authenticated(data) -> dict:
         "disable_learning_in_public": disable_learning_in_public,
     }
     context.update(state_context)
+    context.update(homework_navigation_context(data.course, data.homework))
     return context
 
 

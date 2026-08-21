@@ -1,0 +1,222 @@
+{% load custom_filters %}
+
+<form method="post" class="needs-validation cmp-form homework-form submission-form" novalidate>
+  {% if is_authenticated %}
+    {% csrf_token %}
+  {% endif %}
+  <div>
+    <div class="band-head">
+      <div>
+        {% if homework.is_scored and not is_authenticated %}
+          <h2 id="questions-heading" class="submission-section-heading">Correct answers</h2>
+        {% else %}
+          <h2 id="questions-heading" class="submission-section-heading">Questions</h2>
+        {% endif %}
+      </div>
+    </div>
+    {% if homework.is_scored and not is_authenticated %}
+      <p class="submission-support">Review the expected answers for this scored homework.</p>
+    {% elif instructions_url %}
+      <p class="submission-support">
+        This form is only for submitting your answers. For the homework instructions, check the
+        <a class="band-link" href="{{ instructions_url }}" target="_blank" rel="noopener noreferrer">instructions</a>.
+      </p>
+    {% endif %}
+    <div class="submission-fields homework-fields cmp-form-fields">
+      {% for question, answer in question_answers %}
+        <fieldset class="question">
+          <legend class="question-text" id="question-label-{{ question.id }}">
+            {{ forloop.counter }}. {{ question.text }}
+            {% if question.scores_for_correct_answer != 0 %}
+              <span class="question-note">({{ question.scores_for_correct_answer }} {{ question.scores_for_correct_answer|pluralize:"point,points" }})</span>
+            {% else %}
+              <span class="question-note">(not graded)</span>
+            {% endif %}
+          </legend>
+          {% if is_authenticated and answer.no_answer_submitted %}
+            <p class="no-answer-indicator">No answer was submitted for this question</p>
+          {% endif %}
+          {% if question.question_type == 'MC' %}
+            <div class="question-options">
+              {% for option in answer.options %}
+                <div class="form-check {{ option.correctly_selected_class }}">
+                  <input
+                    class="form-check-input"
+                    id="radio-{{ question.id }}-{{ forloop.counter }}"
+                    type="radio"
+                    name="answer_{{ question.id }}"
+                    value="{{ option.index }}"
+                    aria-labelledby="question-label-{{ question.id }} radio-label-{{ question.id }}-{{ forloop.counter }}"
+                    {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                    {% if disabled %}disabled{% endif %}
+                  />
+                  <label
+                    class="form-check-label"
+                    id="radio-label-{{ question.id }}-{{ forloop.counter }}"
+                    for="radio-{{ question.id }}-{{ forloop.counter }}"
+                  >
+                    {{ option.value }}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          {% elif question.question_type == 'CB' %}
+            <div class="question-options">
+              {% for option in answer.options %}
+                <div class="form-check {{ option.correctly_selected_class }}">
+                  <input
+                    class="form-check-input"
+                    id="checkbox-{{ question.id }}-{{ forloop.counter }}"
+                    type="checkbox"
+                    name="answer_{{ question.id }}"
+                    value="{{ option.index }}"
+                    aria-labelledby="question-label-{{ question.id }} checkbox-label-{{ question.id }}-{{ forloop.counter }}"
+                    {% if option.is_selected or not is_authenticated and homework.is_scored and option.is_correct %}checked{% endif %}
+                    {% if disabled %}disabled{% endif %}
+                  />
+                  <label
+                    class="form-check-label"
+                    id="checkbox-label-{{ question.id }}-{{ forloop.counter }}"
+                    for="checkbox-{{ question.id }}-{{ forloop.counter }}"
+                  >
+                    {{ option.value }}
+                  </label>
+                </div>
+              {% endfor %}
+            </div>
+          {% elif question.question_type == 'FF' %}
+            <input
+              class="field-input form-control {{ answer.correctly_selected_class }}"
+              {% if question.answer_type == 'INT' %}
+                type="number"
+                step="1"
+                inputmode="numeric"
+              {% elif question.answer_type == 'FLT' %}
+                type="number"
+                step="any"
+                inputmode="decimal"
+              {% else %}
+                type="text"
+              {% endif %}
+              name="answer_{{ question.id }}"
+              id="answer_{{ question.id }}"
+              value="{{ answer.text|default:'' }}"
+              aria-labelledby="question-label-{{ question.id }}"
+              {% if disabled %}disabled{% endif %}
+            />
+          {% elif question.question_type == 'FL' %}
+            <textarea
+              class="field-input form-control {{ answer.correctly_selected_class }}"
+              name="answer_{{ question.id }}"
+              id="answer_{{ question.id }}"
+              rows="5"
+              aria-labelledby="question-label-{{ question.id }}"
+              {% if disabled %}disabled{% endif %}
+            >{{ answer.text|default:'' }}</textarea>
+          {% endif %}
+          {% if answer.correctly_selected_class == 'option-answer-correct' %}
+            <p><span class="status-pill status-pill-mint">Correct</span></p>
+          {% elif answer.correctly_selected_class == 'option-answer-incorrect' %}
+            <p><span class="status-pill status-pill-wait">Incorrect</span></p>
+          {% endif %}
+        </fieldset>
+      {% empty %}
+        {% include "core/_callout.html" with tone="info" classes="callout-quiet" message="No public answers are available for this homework yet." %}
+      {% endfor %}
+    </div>
+  </div>
+  {% if is_authenticated %}
+    <div>
+      <div class="band-head band-head-secondary">
+        <div>
+          <h2 id="submission-details-heading">Submission details</h2>
+        </div>
+      </div>
+      <div class="submission-fields homework-fields cmp-form-fields">
+        {% if homework.homework_url_field %}
+          {% if homework.is_scored %}
+            <div class="field">
+              <p class="field-label">Homework URL</p>
+              <p class="readonly-value">{{ submission.homework_link|default:"Not submitted" }}</p>
+            </div>
+          {% else %}
+            <div class="field">
+              <label class="field-label" for="homework_url">Homework URL</label>
+              <p class="field-hint">Link to GitHub or other public code-hosting website.</p>
+              <input
+                type="url"
+                class="field-input form-control {% if 'homework_url' in error_fields %}is-invalid{% endif %}"
+                id="homework_url"
+                name="homework_url"
+                value="{{ submission.homework_link|default:'' }}"
+                required
+              />
+              <div class="invalid-feedback">Check that the repository exists and is public.</div>
+            </div>
+          {% endif %}
+        {% endif %}
+        {% include 'include/learning_in_public_links.html' with course=course learning_in_public_cap=homework.learning_in_public_cap learning_in_public_links=submission.learning_in_public_links disabled=disabled accepting_submissions=accepting_submissions disable_learning_in_public=disable_learning_in_public %}
+        {% if homework.time_spent_lectures_field %}
+          {% if homework.is_scored %}
+            <div class="field">
+              <p class="field-label">Time spent on lectures (hours) (optional)</p>
+              <p class="readonly-value">{{ submission.time_spent_lectures|default:"Not submitted" }}</p>
+            </div>
+          {% else %}
+            <div class="field">
+              <label class="field-label" for="time_spent_lectures">Time spent on lectures (hours) (optional)</label>
+              <p class="field-hint">How much time (in hours) did you spend on watching lectures and reading?</p>
+              <input type="number" class="field-input form-control" name="time_spent_lectures" id="time_spent_lectures" min="0" value="{{ submission.time_spent_lectures|default:'' }}" />
+            </div>
+          {% endif %}
+        {% endif %}
+        {% if homework.time_spent_homework_field %}
+          {% if homework.is_scored %}
+            <div class="field">
+              <p class="field-label">Time spent on homework (hours) (optional)</p>
+              <p class="readonly-value">{{ submission.time_spent_homework|default:"Not submitted" }}</p>
+            </div>
+          {% else %}
+            <div class="field">
+              <label class="field-label" for="time_spent_homework">Time spent on homework (hours) (optional)</label>
+              <p class="field-hint">How much time (in hours) did you spend on homework?</p>
+              <input type="number" class="field-input form-control" name="time_spent_homework" id="time_spent_homework" min="0" value="{{ submission.time_spent_homework|default:'' }}" />
+            </div>
+          {% endif %}
+        {% endif %}
+        {% if course.homework_problems_comments_field %}
+          <div class="field">
+            <label class="field-label" for="problems_comments">Problems or comments (optional)</label>
+            <textarea class="field-input form-control" name="problems_comments" id="problems_comments" {% if disabled %}disabled{% endif %}>{{ submission.problems_comments|default:'' }}</textarea>
+          </div>
+        {% endif %}
+        {% if homework.faq_contribution_field %}
+          {% include 'include/faq_contribution_field.html' %}
+        {% endif %}
+      </div>
+      <div class="submission-status homework-status">
+        {% if submission.pk %}
+          <p>Status: Last saved at <span>{{ submission.submitted_at|user_datetime:request }}</span></p>
+        {% else %}
+          <p>Status: Not saved yet</p>
+        {% endif %}
+        {% if not homework.is_scored and is_authenticated %}
+          {% if accepting_submissions and deadline_passed %}
+            <p>You can still save and update your answers until this homework is closed. Your latest saved version will be scored.</p>
+          {% else %}
+            <p>You can save partial answers and update them until the deadline. Your latest saved version will be scored.</p>
+          {% endif %}
+        {% endif %}
+      </div>
+      {% if is_authenticated and not homework.is_scored %}
+        <div class="submission-form-actions homework-submit cmp-form-actions">
+          {% if not submission.pk %}
+            {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
+          {% else %}
+            {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update submission" variant="primary" compact=True %}
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</form>

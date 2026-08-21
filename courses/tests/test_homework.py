@@ -1,7 +1,9 @@
 import re
+import uuid
 from pathlib import Path
 
 from django.urls import reverse
+from django.utils import timezone
 
 from courses.tests.homework_view_base import (
     HomeworkDetailViewTestBase,
@@ -119,6 +121,80 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
 
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, "Instructions")
+
+    def test_homework_detail_restores_reference_metadata_and_source_instructions_link(self):
+        self.course.course.github_repo_url = "https://github.com/DataTalksClub/llm-zoomcamp"
+        self.course.course.save(update_fields=["github_repo_url"])
+        self.homework.source_content_id = uuid.uuid4()
+        self.homework.source_path = "cohorts/2026/01-agentic-rag/homework.yaml"
+        self.homework.source_commit_sha = "a" * 40
+        self.homework.source_checksum = "b" * 64
+        self.homework.save(
+            update_fields=[
+                "source_content_id",
+                "source_path",
+                "source_commit_sha",
+                "source_checksum",
+            ]
+        )
+
+        response = self.get_homework_response()
+
+        instructions_url = (
+            "https://github.com/DataTalksClub/llm-zoomcamp/blob/"
+            f"{'a' * 40}/cohorts/2026/01-agentic-rag/homework.md"
+        )
+        self.assertContains(response, "deadline")
+        self.assertContains(response, self.homework.due_date.strftime("%Y"))
+        self.assertContains(response, "Deadlines are shown in your timezone.")
+        self.assertContains(response, "Instructions on GitHub")
+        self.assertContains(response, instructions_url)
+        self.assertContains(response, "callout callout-info callout-quiet")
+
+    def test_homework_detail_navigation_uses_canonical_cohort_homework_urls(self):
+        previous_homework = self.create_adjacent_homework(
+            slug="homework-previous",
+            title="Homework 0: Previous",
+            due_date=self.homework.due_date - timezone.timedelta(days=1),
+        )
+        next_homework = self.create_adjacent_homework(
+            slug="homework-next",
+            title="Homework 2: Next",
+            due_date=self.homework.due_date + timezone.timedelta(days=1),
+        )
+
+        response = self.get_homework_response()
+        previous_url = reverse(
+            "homework",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
+                "homework_slug": previous_homework.slug,
+            },
+        )
+        next_url = reverse(
+            "homework",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
+                "homework_slug": next_homework.slug,
+            },
+        )
+
+        self.assertEqual(response.context["previous_homework"], previous_homework)
+        self.assertEqual(response.context["next_homework"], next_homework)
+        self.assertContains(response, f'href="{previous_url}"')
+        self.assertContains(response, "← Previous homework")
+        self.assertContains(response, f'href="{next_url}"')
+        self.assertContains(response, "Next homework →")
+
+    def create_adjacent_homework(self, *, slug, title, due_date):
+        return self.homework.__class__.objects.create(
+            course=self.course,
+            slug=slug,
+            title=title,
+            due_date=due_date,
+        )
 
     def test_homework_detail_authenticated_no_submission(self):
         response = self.get_homework_response(login=True)
