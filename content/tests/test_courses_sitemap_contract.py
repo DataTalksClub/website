@@ -17,6 +17,7 @@ URLSET_NS = {"s": SITEMAP_NAMESPACE}
 COURSES_HUB = f"{PRODUCTION_ORIGIN}/courses"
 COURSES_COHORT = f"{PRODUCTION_ORIGIN}/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026"
 VISIBLE_SLUGS = ("aa-visible-sitemap-2026", "zeta-visible-sitemap-2026")
+VISIBLE_FAMILY_SLUGS = tuple(slug.removesuffix("-2026") for slug in VISIBLE_SLUGS)
 HIDDEN_SLUG = "hidden-sitemap-2026"
 PRIVATE_MARKERS = (
     "hidden-learner-secret@example.invalid",
@@ -63,8 +64,8 @@ class CoursesSitemapContractTests(TestCase):
             locations,
             [
                 COURSES_HUB,
-                f"{PRODUCTION_ORIGIN}/courses/{VISIBLE_SLUGS[0]}",
-                f"{PRODUCTION_ORIGIN}/courses/{VISIBLE_SLUGS[1]}",
+                f"{PRODUCTION_ORIGIN}/courses/{VISIBLE_FAMILY_SLUGS[0]}",
+                f"{PRODUCTION_ORIGIN}/courses/{VISIBLE_FAMILY_SLUGS[1]}",
                 COURSES_COHORT,
             ],
         )

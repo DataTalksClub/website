@@ -433,7 +433,10 @@ class RealUrlAndCourseCanonicalTests(TestCase):
             count=1,
         )
 
-        detail_path = reverse("course", args=[hidden.slug])
+        detail_path = reverse(
+            "course",
+            kwargs={"course_slug": hidden.course.slug, "cohort_year": hidden.identifier},
+        )
         detail = self.client.get(detail_path)
         self.assertEqual(detail.status_code, 200)
         self.assertContains(
@@ -442,7 +445,12 @@ class RealUrlAndCourseCanonicalTests(TestCase):
             count=1,
         )
 
-        enrollment = self.client.get(reverse("enrollment", args=[hidden.slug]))
+        enrollment = self.client.get(
+            reverse(
+                "enrollment",
+                kwargs={"course_slug": hidden.course.slug, "cohort_year": hidden.identifier},
+            )
+        )
         self.assertEqual(enrollment.status_code, 302)
         self.assertNotIn(b'rel="canonical"', enrollment.content)
 
@@ -464,7 +472,10 @@ class RealUrlAndCourseCanonicalTests(TestCase):
             "/cadmin/",
             "/cadmin",
             "/auth/logout",
-            reverse("enrollment", args=[course.slug]),
+            reverse(
+                "enrollment",
+                kwargs={"course_slug": course.course.slug, "cohort_year": course.identifier},
+            ),
             "/api/courses/missing/homeworks/missing/submissions",
         )
         for path in paths:

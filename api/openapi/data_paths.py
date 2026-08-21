@@ -3,6 +3,7 @@ from .primitives import (
     OperationData,
     content_response,
     operation,
+    request_body,
     response,
     schema_request_body,
     schema_response,
@@ -233,6 +234,28 @@ DATAMAILER_SEND_AUDITS_DATA = OperationData(
 )
 DATAMAILER_SEND_AUDITS_OPERATION = operation(DATAMAILER_SEND_AUDITS_DATA)
 
+GITHUB_COURSE_REPOSITORY_WEBHOOK_RESPONSES = {
+    "202": response("Course repository push accepted", JSON),
+    "400": INVALID_EVENT_PAYLOAD_RESPONSE,
+    "401": INVALID_WEBHOOK_TOKEN_RESPONSE,
+    "404": COURSE_NOT_FOUND_RESPONSE,
+    "409": response("Webhook delivery conflicts with an existing delivery", JSON),
+    "503": WEBHOOK_NOT_CONFIGURED_RESPONSE,
+}
+GITHUB_COURSE_REPOSITORY_WEBHOOK_DATA = OperationData(
+    "api_github_course_repository_webhook",
+    ["Course Repository"],
+    "Receive a GitHub course repository push",
+    GITHUB_COURSE_REPOSITORY_WEBHOOK_RESPONSES,
+    body=request_body(JSON),
+    requires_auth=False,
+    description=(
+        "Accepts a signed GitHub push event for a registered course repository "
+        "and schedules the corresponding content synchronization job."
+    ),
+)
+GITHUB_COURSE_REPOSITORY_WEBHOOK_OPERATION = operation(GITHUB_COURSE_REPOSITORY_WEBHOOK_DATA)
+
 DATA_PATHS_BY_URL_NAME = {
     "api_health": {
         "get": API_HEALTH_OPERATION,
@@ -257,6 +280,9 @@ DATA_PATHS_BY_URL_NAME = {
     },
     "api_datamailer_events": {
         "post": DATAMAILER_EVENTS_OPERATION,
+    },
+    "api_github_course_repository_webhook": {
+        "post": GITHUB_COURSE_REPOSITORY_WEBHOOK_OPERATION,
     },
     "api_datamailer_send_audits": {
         "get": DATAMAILER_SEND_AUDITS_OPERATION,

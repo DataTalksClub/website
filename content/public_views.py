@@ -23,7 +23,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_safe
 
 from core.sponsors import public_events_hub_sponsors
-from courses.models import Course
+from courses.models import Cohort
 from events.identity import (
     EventIdentityNotFound,
     canonical_detail_path,
@@ -1125,9 +1125,10 @@ def _section_records(section: str) -> tuple[tuple[str, str], ...]:
             ("/courses", ""),
             *(
                 (f"/courses/{slug}", "")
-                for slug in Course.objects.filter(visible=True)
-                .order_by("slug")
-                .values_list("slug", flat=True)
+                for slug in Cohort.objects.filter(visible=True, course__visible=True)
+                .order_by("course__slug")
+                .values_list("course__slug", flat=True)
+                .distinct()
             ),
             ("/courses/ai-dev-tools-zoomcamp/cohorts/ai-dev-tools-2026", ""),
         )
