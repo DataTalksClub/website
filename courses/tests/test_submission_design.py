@@ -61,6 +61,23 @@ class SharedSubmissionPrimitiveTests(SimpleTestCase):
         self.assertIn('role="alert"', attention)
         self.assertIn("callout callout-info callout-quiet", quiet)
 
+    def test_callout_action_does_not_inherit_callout_classes(self) -> None:
+        template = get_template("core/_callout.html")
+
+        rendered = template.render(
+            {
+                "tone": "info",
+                "classes": "callout-quiet",
+                "button_url": "/accounts/login/",
+                "button_label": "Log in",
+                "button_variant": "primary",
+            }
+        )
+
+        self.assertIn('class="callout callout-info callout-quiet"', rendered)
+        self.assertIn('class="cta cta-primary cta-compact"', rendered)
+        self.assertNotIn("cta-primary cta-compact callout-quiet", rendered)
+
     def test_subtle_button_and_quiet_callout_are_token_driven(self) -> None:
         design_system = read_template("templates/core/_design_system.html")
         subtle_start = design_system.index(".cta-subtle,")
