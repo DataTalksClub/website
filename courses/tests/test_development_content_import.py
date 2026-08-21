@@ -14,7 +14,7 @@ from django.test import TestCase, override_settings
 
 from core.bootstrap import RuntimeEnvironment
 from core.models import IdempotencyRecord
-from courses.models import Cohort
+from courses.models import Cohort, Course
 from courses.services.development_content_import import (
     APPROVED_SCHEMA_CHECKSUM,
     ArtifactContract,
@@ -123,6 +123,10 @@ class DevelopmentContentImportTests(TestCase):
         self.assertTrue(second.replayed)
         self.assertTrue(first.sensitive_tables_preserved)
         self.assertEqual(Cohort.objects.get(pk=101).slug, "imported-course")
+        imported_cohort = Cohort.objects.get(pk=101)
+        self.assertIsNotNone(imported_cohort.uuid)
+        self.assertEqual(imported_cohort.course.slug, "imported-course")
+        self.assertEqual(Course.objects.count(), 1)
         next_course = Cohort.objects.create(
             slug="post-import-course",
             title="Post-import course",

@@ -1,4 +1,78 @@
-from courses.models.wrapped import WrappedStatistics, UserWrappedStatistics
+from django.urls import reverse
+
+from courses.models import Cohort
+from courses.models.wrapped import UserWrappedStatistics, WrappedStatistics
+from courses.views.url_utils import cohort_url_kwargs
+
+
+def _wrapped_course_records(records: list[dict]) -> list[dict]:
+    """Add canonical leaderboard URLs to current and legacy Wrapped records."""
+
+    normalized = [dict(record) for record in records]
+    legacy_slugs = {
+        str(record["slug"])
+        for record in normalized
+        if record.get("slug")
+        and (not record.get("course_slug") or not record.get("cohort_year"))
+    }
+    cohorts = {
+        cohort.slug: cohort
+        for cohort in Cohort.objects.filter(slug__in=legacy_slugs).select_related("course")
+    }
+
+    for record in normalized:
+        course_slug = record.get("course_slug")
+        cohort_year = record.get("cohort_year")
+        if not course_slug or not cohort_year:
+            cohort = cohorts.get(str(record.get("slug", "")))
+            if cohort is not None:
+                route_kwargs = cohort_url_kwargs(cohort)
+                course_slug = route_kwargs["course_slug"]
+                cohort_year = route_kwargs["cohort_year"]
+                record.update(route_kwargs)
+
+        if course_slug and cohort_year:
+            record["course_url"] = reverse(
+                "course",
+                kwargs={
+                    "course_slug": course_slug,
+                    "cohort_year": cohort_year,
+                },
+            )
+        elif record.get("slug"):
+            record["course_url"] = reverse(
+                "course",
+                kwargs={"course_slug": record["slug"]},
+            )
+        else:
+            record["course_url"] = ""
+
+        enrollment_id = record.get("enrollment_id")
+        if enrollment_id is None:
+            continue
+        if course_slug and cohort_year:
+            record["leaderboard_url"] = reverse(
+                "leaderboard_score_breakdown",
+                kwargs={
+                    "course_slug": course_slug,
+                    "cohort_year": cohort_year,
+                    "enrollment_id": enrollment_id,
+                },
+            )
+        elif record.get("slug"):
+            # Keep old Wrapped rows usable when their cohort was retired from
+            # the current database: the legacy edition route is still valid.
+            record["leaderboard_url"] = reverse(
+                "leaderboard_score_breakdown",
+                kwargs={
+                    "course_slug": record["slug"],
+                    "enrollment_id": enrollment_id,
+                },
+            )
+        else:
+            record["leaderboard_url"] = ""
+
+    return normalized
 
 
 def visible_wrapped_statistics(year: int) -> WrappedStatistics | None:
@@ -9,7 +83,7 @@ def visible_wrapped_statistics(year: int) -> WrappedStatistics | None:
 
 
 def platform_stats_context(wrapped_stats: WrappedStatistics) -> dict:
-    course_stats = wrapped_stats.course_stats[:4]
+    course_stats = _wrapped_course_records(wrapped_stats.course_stats[:4])
     if not wrapped_stats.course_stats:
         course_stats = []
 
@@ -33,7 +107,7 @@ def user_stats_context(user_wrapped: UserWrappedStatistics) -> dict:
     total_hours = wrapped_hours_label(user_wrapped.total_hours)
     return {
         "total_points": user_wrapped.total_points,
-        "courses_enrolled": user_wrapped.courses,
+        "courses_enrolled": _wrapped_course_records(user_wrapped.courses),
         "total_hours": total_hours,
         "certificates_earned": user_wrapped.certificates_earned,
     }
@@ -95,7 +169,7 @@ def shareable_user_stats_context(
     total_hours = wrapped_hours_label(user_wrapped.total_hours)
     return {
         "total_points": user_wrapped.total_points,
-        "courses": user_wrapped.courses,
+        "courses": _wrapped_course_records(user_wrapped.courses),
         "total_hours": total_hours,
         "homework_count": user_wrapped.homework_count,
         "project_count": user_wrapped.project_count,

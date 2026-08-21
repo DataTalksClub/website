@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 import stat
+import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
@@ -23,6 +24,7 @@ from core.bootstrap import RuntimeEnvironment
 from core.idempotency import execute_idempotent
 from courses.models import (
     Cohort,
+    Course,
     Homework,
     HomeworkStatistics,
     Project,
@@ -81,6 +83,8 @@ APPROVED_RELATIONSHIPS = {
 }
 IDEMPOTENCY_SCOPE = "courses.development-content-import"
 RECEIPT_TABLE = "core_idempotencyrecord"
+COURSE_FAMILY_TABLE = Course._meta.db_table
+COHORT_TABLE = Cohort._meta.db_table
 EXPECTED_LIST_TEMPLATE_SHA256 = "26e391ffdd2c90b89a668c41118f4a8e43efd2b5dde015097f893aee707984ef"
 EXPECTED_DETAIL_TEMPLATE_SHA256 = "f6bae6c52f318df50a409432cd1b0e04af70ce14db5e173173f75a4c902fa3af"
 DATE_COLUMNS = frozenset({"start_date", "end_date"})
@@ -114,6 +118,7 @@ BOOLEAN_COLUMNS = frozenset(
 )
 JSON_COLUMNS = frozenset({"options", "course_stats", "leaderboard"})
 IMPORTED_MODELS = (
+    Course,
     Cohort,
     RegistrationCampaign,
     Homework,
@@ -388,6 +393,26 @@ def _insert_value(column: str, value: Any) -> Any:
     return value
 
 
+def _imported_cohort_uuid(source_id: Any, slug: str) -> uuid.UUID:
+    """Give legacy cohort rows the UUID required by the split schema."""
+
+    return uuid.uuid5(
+        uuid.NAMESPACE_URL,
+        f"{IDEMPOTENCY_SCOPE}:cohort:{source_id}:{slug}",
+    )
+
+
+def _insert_cohort_rows(rows: list[tuple[Any, ...]]) -> None:
+    columns = ALLOWLIST[COHORT_TABLE]
+    for row in rows:
+        values = {
+            column: _insert_value(column, value)
+            for column, value in zip(columns, row, strict=True)
+        }
+        values["uuid"] = _imported_cohort_uuid(values["id"], str(values["slug"]))
+        Cohort(**values).save(force_insert=True)
+
+
 def _insert_dataset(dataset: AllowedDataset) -> None:
     quote = connection.ops.quote_name
     with connection.cursor() as cursor:
@@ -395,6 +420,12 @@ def _insert_dataset(dataset: AllowedDataset) -> None:
             columns = ALLOWLIST[table]
             inserted_columns = columns
             rows = dataset.rows[table]
+            if table == COHORT_TABLE:
+                # The approved artifact contains the pre-split cohort table.
+                # Insert these rows through the model so Cohort.save() creates
+                # the required Course family and this schema's required uuid.
+                _insert_cohort_rows(rows)
+                continue
             if table == "courses_wrappedstatistics":
                 inserted_columns = (*columns, "leaderboard")
                 rows = [(*row, []) for row in rows]
@@ -440,7 +471,7 @@ def _protected_target_evidence() -> dict[str, tuple[int, str]]:
     evidence: dict[str, tuple[int, str]] = {}
     with connection.cursor() as cursor:
         for table in sorted(schema):
-            if table == RECEIPT_TABLE or table in ALLOWLIST:
+            if table in {RECEIPT_TABLE, COURSE_FAMILY_TABLE} or table in ALLOWLIST:
                 continue
             columns = sorted(schema[table])
             cursor.execute(

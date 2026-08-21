@@ -2,9 +2,10 @@ from django.test import TestCase
 from django.urls import reverse
 
 from courses.models import (
+    Cohort,
     User,
-    WrappedStatistics,
     UserWrappedStatistics,
+    WrappedStatistics,
 )
 
 
@@ -56,8 +57,8 @@ class WrappedViewTests(TestCase):
             certificates_earned=1,
             courses=[
                 {
-                    "title": "Course 1",
-                    "slug": "course-1",
+                    "title": "Wrapped Course",
+                    "slug": "wrapped-course",
                     "score": 100,
                     "enrollment_id": 1,
                 }
@@ -68,6 +69,10 @@ class WrappedViewTests(TestCase):
 
     def setUp(self):
         self.user = self.create_user()
+        self.cohort = Cohort.objects.create(
+            slug="wrapped-course",
+            title="Wrapped Course",
+        )
         self.wrapped = self.create_wrapped_statistics()
         self.user_wrapped = self.create_user_wrapped_statistics()
 
@@ -99,6 +104,7 @@ class WrappedViewTests(TestCase):
             course_stats_count,
             4,
         )
+        self.assertContains(response, 'href="/courses/course-1/"')
         self.assertEqual(
             response.context["user_stats"]["total_points"], 100
         )
@@ -108,6 +114,15 @@ class WrappedViewTests(TestCase):
         self.assertEqual(
             response.context["leaderboard"], self.wrapped.leaderboard
         )
+        expected_url = reverse(
+            "leaderboard_score_breakdown",
+            kwargs={
+                "course_slug": "wrapped-course",
+                "cohort_year": "2026",
+                "enrollment_id": 1,
+            },
+        )
+        self.assertContains(response, f'href="{expected_url}"')
 
     def test_wrapped_view_hides_invisible_statistics(self):
         self.wrapped.is_visible = False
@@ -128,9 +143,19 @@ class WrappedViewTests(TestCase):
         self.assertFalse(response.context["no_activity"])
         self.assertEqual(response.context["display_name"], "Alice")
         self.assertEqual(response.context["user_rank"], 1)
+        course = response.context["user_stats"]["courses"][0]
+        self.assertEqual(course["course_slug"], "wrapped-course")
+        self.assertEqual(course["cohort_year"], "2026")
         self.assertEqual(
-            response.context["user_stats"]["courses"],
-            self.user_wrapped.courses,
+            course["leaderboard_url"],
+            reverse(
+                "leaderboard_score_breakdown",
+                kwargs={
+                    "course_slug": "wrapped-course",
+                    "cohort_year": "2026",
+                    "enrollment_id": 1,
+                },
+            ),
         )
         self.assertEqual(
             response.context["twitter_text"],
