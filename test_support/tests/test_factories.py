@@ -139,7 +139,7 @@ def test_current_domain_scenarios_create_every_named_leaf_as_real_orm_or_simulat
     expected_labels = {
         "accounts_management.custom_user": "accounts.customuser",
         "editorial_content.content_source": "content.contentsource",
-        "adopted_courses.course": "courses.course",
+        "adopted_courses.course": "courses.cohort",
         "historical_event_totals.historical_source_run": "events.historicalregistrationsourcerun",
         "operations_jobs.operation": "core.operation",
         "provider_neutral_messaging.captured_message": "messaging.captured_message",

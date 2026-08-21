@@ -809,7 +809,7 @@ def _courses(context: FactoryContext, state: str) -> dict[str, object]:
         try:
             invalid.full_clean()
         except ValidationError:
-            course_value = _rejected("courses.course", "end_before_start")
+            course_value = _rejected("courses.cohort", "end_before_start")
         else:
             raise RuntimeError("invalid course factory state was not rejected")
     return {
