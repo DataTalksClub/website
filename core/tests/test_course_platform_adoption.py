@@ -241,10 +241,12 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 if route.surface == "Public courses" and route.name == "course_list":
                     example_path = reverse("course_list")
                 if route.surface == "Public courses" and route.name == "course":
-                    example_path = reverse(
-                        "course",
-                        kwargs={"course_slug": "example-course"},
-                    )
+                    route_kwargs = {"course_slug": "example-course"}
+                    if "<slug:cohort_" in route.route:
+                        route_kwargs["cohort_year"] = "2026"
+                        example_path = reverse("course", kwargs=route_kwargs)
+                    else:
+                        example_path = reverse("courses:course", kwargs=route_kwargs)
                 if route.surface == "Public courses" and not example_path.startswith("/courses"):
                     # ``courses.urls`` is mounted at ``/courses/`` in the unified
                     # URLconf.  The generated inventory intentionally keeps the
@@ -257,6 +259,12 @@ class CoursePlatformAdoptionContractTests(SimpleTestCase):
                 expected_callback = EXPECTED_UNIFIED_ROUTE_CALLBACK_OVERRIDES.get(
                     (route.surface, route.name), route.callback
                 )
+                if (
+                    route.surface == "Public courses"
+                    and route.name == "course"
+                    and "<slug:cohort_" not in route.route
+                ):
+                    expected_callback = "courses.views.course_aliases.legacy_course_redirect"
                 self.assertEqual(callback_name, expected_callback)
 
     def test_every_adopted_management_command_loads(self):

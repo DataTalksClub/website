@@ -213,7 +213,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Learn data skills. For free. Together.")
         self.assertContains(response, "No active courses right now.")
         self.assertNotContains(response, "Data Engineering Zoomcamp 2026")
-        self.assertContains(response, 'class="band band-cream courses-hero"')
+        self.assertContains(response, 'class="band band-cream content-page-header courses-hero"')
         self.assertContains(response, 'id="courses"')
         self.assertContains(response, "Active now — you can still join")
         self.assertNotContains(response, "data-course-row")
@@ -326,7 +326,11 @@ class MainHomepageRoutingTests(TestCase):
         self.assertLess(catalog.index(active.title), catalog.index("Open registration"))
         self.assertLess(catalog.index("Open registration"), catalog.index(registration.title))
         self.assertLess(catalog.index(registration.title), catalog.index("Finished courses"))
-        self.assertLess(catalog.index("Finished courses"), catalog.index(archived.title))
+        # The catalogue now collapses editions into one family row.  The
+        # finished card therefore uses the family title while the edition
+        # identifier remains in the action link.
+        self.assertLess(catalog.index("Finished courses"), catalog.index(archived.course.title))
+        self.assertContains(response, "Latest edition · 2024")
         self.assertContains(response, "registration open")
         self.assertNotContains(response, 'id="course-families-heading"')
         self.assertNotContains(response, "No active cohort coursework right now.")
@@ -359,7 +363,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Learn data skills. For free. Together.")
         self.assertNotContains(response, "AI Dev Tools Zoomcamp")
 
-    def test_database_backed_cmp_course_path_remains_intact(self) -> None:
+    def test_database_backed_course_family_and_cohort_paths_remain_intact(self) -> None:
         course = Cohort.objects.create(
             title="Compatibility course",
             slug="compatibility-course",
@@ -368,11 +372,19 @@ class MainHomepageRoutingTests(TestCase):
         )
 
         slash_alias = reverse("courses:course", kwargs={"course_slug": course.slug})
-        canonical_path = reverse("course", kwargs={"course_slug": course.slug})
+        family_path = reverse("course_family", kwargs={"course_slug": course.course.slug})
+        canonical_path = reverse(
+            "course",
+            kwargs={
+                "course_slug": course.course.slug,
+                "cohort_year": course.identifier,
+            },
+        )
         legacy_path = reverse("legacy-course", kwargs={"course_slug": course.slug})
 
         self.assertEqual(slash_alias, "/courses/compatibility-course/")
-        self.assertEqual(canonical_path, "/courses/compatibility-course")
+        self.assertEqual(family_path, "/courses/compatibility-course")
+        self.assertEqual(canonical_path, "/courses/compatibility-course/2026")
         self.assertEqual(legacy_path, "/compatibility-course/")
         self.assertIs(resolve(canonical_path).func, course_view)
         self.assertIs(resolve(slash_alias).func, legacy_course_redirect)
@@ -396,7 +408,7 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertContains(
             canonical,
-            '<link rel="canonical" href="https://datatalks.club/courses/compatibility-course">',
+            '<link rel="canonical" href="https://datatalks.club/courses/compatibility-course/2026">',
             count=1,
         )
         csrf_client = Client(enforce_csrf_checks=True)

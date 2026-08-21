@@ -11,16 +11,12 @@ from courses import urls as course_urls
 from courses.views import course_aliases, course_list
 from studio_courses import urls as studio_course_urls
 
-legacy_course_patterns = [
+course_patterns = [
     pattern
     for pattern in course_urls.urlpatterns
-    if pattern.name not in {"course", "course_family", "course_list"}
+    if pattern.name != "course_list" and str(pattern.pattern) != "<slug:course_slug>/"
 ]
-namespaced_course_patterns = [
-    pattern
-    for pattern in course_urls.urlpatterns
-    if pattern.name not in {"course", "course_family", "course_list"}
-]
+namespaced_course_patterns = [*course_patterns]
 namespaced_course_patterns.append(
     path(
         "<slug:course_slug>/",
@@ -142,7 +138,7 @@ urlpatterns = [
     ),
     path(
         "courses/",
-        include([pattern for pattern in course_urls.urlpatterns if pattern.name != "course_list"]),
+        include(course_patterns),
     ),
     path(
         "courses/",
