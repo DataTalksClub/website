@@ -193,7 +193,7 @@ class CurriculumImportServiceTests(TestCase):
         self.assertEqual(module.terminal_homework.slug, "hw1")
         self.assertEqual(module.source_content_id, UUID("21111111-1111-4111-8111-111111111111"))
         units = list(Unit.objects.filter(module=module))
-        self.assertEqual([unit.slug for unit in units], ["introduction", "environment"])
+        self.assertEqual([unit.slug for unit in units], ["01-intro", "02-environment"])
         self.assertIn("The first lesson in the Agentic RAG", units[0].content_markdown)
         self.assertIn("<", units[0].rendered_html)
 
@@ -257,7 +257,7 @@ class CurriculumImportServiceTests(TestCase):
         original_module_pks = {module.cohort_id: module.pk for module in modules}
         original_unit_pks = {
             unit.module.cohort_id: unit.pk
-            for unit in Unit.objects.filter(slug="introduction").select_related("module")
+            for unit in Unit.objects.filter(slug="01-intro").select_related("module")
         }
 
         updated_unit = replace(
@@ -291,7 +291,7 @@ class CurriculumImportServiceTests(TestCase):
 
         for module in Module.objects.filter(cohort__in=(cohort_2026, cohort_2027)):
             self.assertEqual(module.pk, original_module_pks[module.cohort_id])
-            unit = module.units.get(slug="introduction")
+            unit = module.units.get(slug="01-intro")
             self.assertEqual(unit.pk, original_unit_pks[module.cohort_id])
             self.assertEqual(unit.title, "Updated shared introduction")
 

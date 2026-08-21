@@ -53,9 +53,17 @@ def test_parses_llm_zoomcamp_modules_and_legacy_cohorts_without_database() -> No
     assert modules_cohort.format == "modules"
     module_item, project_item = modules_cohort.flow
     assert isinstance(module_item, ModuleFlowSource)
+    assert module_item.module.slug == "01-agentic-rag"
     assert [unit.source_path for unit in module_item.module.units] == [
-        "01-agentic-rag/lessons/01-intro.md",
-        "01-agentic-rag/lessons/02-environment.md",
+        "cohorts/2026/01-agentic-rag/lessons/01-intro.md",
+        "cohorts/2026/01-agentic-rag/lessons/02-environment.md",
+    ]
+    assert [unit.slug for unit in module_item.module.units] == ["01-intro", "02-environment"]
+    intro = module_item.module.units[0]
+    assert intro.markdown == "# Introduction\n\nThe first lesson in the Agentic RAG module.\n"
+    assert intro.metadata.video_url == "https://www.youtube.com/watch?v=fixture-intro"
+    assert [(source.label, source.source_path) for source in intro.metadata.code] == [
+        ("notebook.ipynb", "cohorts/2026/01-agentic-rag/code/notebook.ipynb")
     ]
     assert module_item.homework.source_path == "cohorts/2026/01-agentic-rag/homework.yaml"
     assert isinstance(project_item, ProjectFlowSource)
@@ -68,6 +76,33 @@ def test_parses_llm_zoomcamp_modules_and_legacy_cohorts_without_database() -> No
         answer["algorithm"] = "plaintext"  # type: ignore[index]
     with pytest.raises(FrozenInstanceError):
         source.course.slug = "changed"  # type: ignore[misc]
+
+
+def test_rejects_non_youtube_lesson_video_url() -> None:
+    snapshot = fixture_snapshot()
+    path = "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
+    replace_bytes(
+        snapshot,
+        path,
+        b"https://www.youtube.com/watch?v=fixture-intro",
+        b"https://example.com/video",
+    )
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "lesson_video_url_invalid"
+
+
+def test_rejects_unknown_lesson_frontmatter_keys() -> None:
+    snapshot = fixture_snapshot()
+    path = "cohorts/2026/01-agentic-rag/lessons/01-intro.md"
+    replace_bytes(snapshot, path, b"video_url:", b"published: true\nvideo_url:")
+
+    with pytest.raises(CourseRepositoryValidationError) as raised:
+        parse_course_repository(snapshot)
+
+    assert diagnostic_code(raised) == "unknown_key"
 
 
 def test_accepts_an_arbitrary_slug_like_cohort_identifier() -> None:
@@ -109,7 +144,7 @@ def test_rejects_non_posix_or_escaping_snapshot_paths(bad_path: str, code: str) 
 
 def test_rejects_escaping_source_references() -> None:
     snapshot = fixture_snapshot()
-    path = "01-agentic-rag/module.yaml"
+    path = "cohorts/2026/01-agentic-rag/module.yaml"
     replace_bytes(snapshot, path, b"lessons/01-intro.md", b"../README.md")
 
     with pytest.raises(CourseRepositoryValidationError) as raised:
@@ -184,7 +219,7 @@ def test_rejects_duplicate_yaml_mapping_keys() -> None:
             b"  - project: project-01\n",
             (
                 b"  - module:\n"
-                b"      source: 01-agentic-rag/module.yaml\n"
+                b"      source: cohorts/2026/01-agentic-rag/module.yaml\n"
                 b"      homework: cohorts/2026/01-agentic-rag/homework.yaml\n"
             ),
             "duplicate_module_or_homework_reference",
@@ -222,7 +257,12 @@ def test_rejects_a_module_without_its_terminal_homework_reference() -> None:
 def test_rejects_broken_cross_references() -> None:
     snapshot = fixture_snapshot()
     path = "cohorts/2026/cohort.yaml"
-    replace_bytes(snapshot, path, b"01-agentic-rag/module.yaml", b"02-missing/module.yaml")
+    replace_bytes(
+        snapshot,
+        path,
+        b"cohorts/2026/01-agentic-rag/module.yaml",
+        b"cohorts/2026/02-missing/module.yaml",
+    )
 
     with pytest.raises(CourseRepositoryValidationError) as raised:
         parse_course_repository(snapshot)
@@ -266,15 +306,18 @@ def test_rejects_an_answer_envelope_copied_to_a_different_question_context() -> 
             b"31111111-1111-4111-8111-111111111111",
             "duplicate_unit_id_or_slug",
         ),
-        (b"slug: environment", b"slug: introduction", "duplicate_unit_id_or_slug"),
-        (b"lessons/02-environment.md", b"lessons/01-intro.md", "duplicate_unit_source"),
+        (
+            b"lessons/02-environment.md",
+            b"lessons/01-intro.md",
+            "duplicate_unit_id_or_slug",
+        ),
     ],
 )
 def test_rejects_duplicate_stable_content_ids_slugs_and_sources(
     old: bytes, new: bytes, code: str
 ) -> None:
     snapshot = fixture_snapshot()
-    path = "01-agentic-rag/module.yaml"
+    path = "cohorts/2026/01-agentic-rag/module.yaml"
     replace_bytes(snapshot, path, old, new)
 
     with pytest.raises(CourseRepositoryValidationError) as raised:

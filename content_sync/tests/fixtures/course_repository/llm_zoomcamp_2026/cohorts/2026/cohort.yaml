@@ -12,6 +12,6 @@ start_date: 2026-06-08
 end_date: 2026-08-17
 flow:
   - module:
-      source: 01-agentic-rag/module.yaml
+      source: cohorts/2026/01-agentic-rag/module.yaml
       homework: cohorts/2026/01-agentic-rag/homework.yaml
   - project: project-01

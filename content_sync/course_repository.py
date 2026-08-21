@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import binascii
 import hashlib
+import posixpath
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -38,6 +39,8 @@ from courses.services.curriculum_source import (
     HomeworkOptionSource,
     HomeworkQuestionSource,
     HomeworkSource,
+    LessonCodeSource,
+    LessonMetadata,
     ModuleFlowSource,
     ModuleSource,
     ProjectFlowSource,
@@ -429,6 +432,103 @@ def _relative_source_path(
     return resolved
 
 
+def _relative_source_reference(
+    value: object,
+    *,
+    source_path: str,
+    pointer: str,
+    snapshot: Mapping[str, bytes],
+    limits: CourseRepositoryLimits,
+) -> str:
+    """Resolve a safe Markdown-relative reference inside the snapshot."""
+
+    relative = _string(value, path=source_path, pointer=pointer, maximum=limits.max_path_chars)
+    if (
+        relative != relative.strip()
+        or "\\" in relative
+        or "\x00" in relative
+        or relative.startswith("/")
+        or _URL_SCHEME.match(relative)
+        or any(ord(character) < 32 or ord(character) == 127 for character in relative)
+    ):
+        _fail("invalid_repository_path", source_path, pointer)
+    resolved = posixpath.normpath(
+        (PurePosixPath(source_path).parent / PurePosixPath(relative)).as_posix()
+    )
+    if resolved == "." or resolved.startswith("../"):
+        _fail("invalid_repository_path", source_path, pointer)
+    if resolved not in snapshot:
+        _fail("source_path_missing", source_path, pointer)
+    return resolved
+
+
+def _parse_lesson_frontmatter(
+    raw: str,
+    *,
+    source_path: str,
+    snapshot: Mapping[str, bytes],
+    limits: CourseRepositoryLimits,
+) -> tuple[str, LessonMetadata]:
+    """Extract the strict lesson metadata block and return body Markdown."""
+
+    lines = raw.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        return raw, LessonMetadata()
+
+    closing_index: int | None = None
+    for index, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            closing_index = index
+            break
+    if closing_index is None:
+        _fail("lesson_frontmatter_unclosed", source_path)
+
+    frontmatter_text = "".join(lines[1:closing_index]).encode("utf-8")
+    mapping = _strict_mapping(
+        _load_yaml_mapping(frontmatter_text, path=source_path, limits=limits),
+        path=source_path,
+        pointer="/frontmatter",
+        allowed=frozenset({"video_url", "code"}),
+        required=frozenset(),
+    )
+
+    video_url: str | None = None
+    if "video_url" in mapping:
+        video_url = _https_url(mapping["video_url"], path=source_path, pointer="/video_url")
+        hostname = (urlsplit(video_url).hostname or "").casefold()
+        if hostname not in {"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"}:
+            _fail("lesson_video_url_invalid", source_path, "/video_url")
+
+    code_sources: list[LessonCodeSource] = []
+    if "code" in mapping:
+        for index, raw_code in enumerate(
+            _sequence(mapping["code"], path=source_path, pointer="/code")
+        ):
+            pointer = f"/code/{index}"
+            code = _strict_mapping(
+                raw_code,
+                path=source_path,
+                pointer=pointer,
+                allowed=frozenset({"label", "path"}),
+                required=frozenset({"label", "path"}),
+            )
+            code_sources.append(
+                LessonCodeSource(
+                    label=_string(code["label"], path=source_path, pointer=f"{pointer}/label"),
+                    source_path=_relative_source_reference(
+                        code["path"],
+                        source_path=source_path,
+                        pointer=f"{pointer}/path",
+                        snapshot=snapshot,
+                        limits=limits,
+                    ),
+                )
+            )
+
+    body = "".join(lines[closing_index + 1 :]).lstrip("\n")
+    return body, LessonMetadata(video_url=video_url, code=tuple(code_sources))
+
+
 class _Parser:
     def __init__(
         self,
@@ -450,11 +550,14 @@ class _Parser:
             _fail("course_manifest_missing", "course.yaml")
         course = self._parse_course()
         modules = tuple(self._parse_module(path) for path in self._module_manifest_paths())
-        module_slugs: set[str] = set()
+        module_slugs: set[tuple[tuple[str, ...], str]] = set()
         for module in modules:
-            if module.slug in module_slugs:
+            parts = PurePosixPath(module.source_path).parts
+            scope = parts[:2] if parts[:1] == ("cohorts",) else ("shared",)
+            identity = (scope, module.slug)
+            if identity in module_slugs:
                 _fail("duplicate_module_slug", module.source_path, "/slug")
-            module_slugs.add(module.slug)
+            module_slugs.add(identity)
         module_by_path = {module.source_path: module for module in modules}
         homeworks = tuple(
             self._parse_homework(path, course_slug=course.slug)
@@ -519,7 +622,9 @@ class _Parser:
             if name == "course.yaml":
                 valid = parts == ("course.yaml",)
             elif name == "module.yaml":
-                valid = len(parts) == 2 and parts[0] != "cohorts"
+                valid = (len(parts) == 2 and parts[0] != "cohorts") or (
+                    len(parts) == 4 and parts[0] == "cohorts"
+                )
             elif name == "cohort.yaml":
                 valid = len(parts) == 3 and parts[0] == "cohorts"
             elif name == "homework.yaml":
@@ -538,9 +643,17 @@ class _Parser:
             sorted(
                 path
                 for path in self.snapshot
-                if len(PurePosixPath(path).parts) == 2
-                and PurePosixPath(path).name == "module.yaml"
-                and PurePosixPath(path).parts[0] != "cohorts"
+                if PurePosixPath(path).name == "module.yaml"
+                and (
+                    (
+                        len(PurePosixPath(path).parts) == 2
+                        and PurePosixPath(path).parts[0] != "cohorts"
+                    )
+                    or (
+                        len(PurePosixPath(path).parts) == 4
+                        and PurePosixPath(path).parts[0] == "cohorts"
+                    )
+                )
             )
         )
 
@@ -661,11 +774,20 @@ class _Parser:
             path=path,
             pointer="",
             allowed=frozenset({"schema_version", "content_id", "slug", "title", "units"}),
-            required=frozenset({"schema_version", "content_id", "slug", "title", "units"}),
+            required=frozenset({"schema_version", "content_id", "title", "units"}),
         )
         _schema(mapping, path=path)
         content_id = _content_id(mapping["content_id"], path=path, pointer="/content_id")
         self._register_content_id(content_id, kind="module", path=path, pointer="/content_id")
+        module_slug = _slug(
+            PurePosixPath(path).parent.name,
+            path=path,
+            pointer="/slug",
+        )
+        if "slug" in mapping:
+            configured_slug = _slug(mapping["slug"], path=path, pointer="/slug")
+            if configured_slug != module_slug:
+                _fail("module_slug_path_mismatch", path, "/slug")
         units: list[UnitSource] = []
         unit_ids: set[str] = set()
         unit_slugs: set[str] = set()
@@ -679,17 +801,9 @@ class _Parser:
                 path=path,
                 pointer=pointer,
                 allowed=frozenset({"content_id", "slug", "title", "path"}),
-                required=frozenset({"content_id", "slug", "title", "path"}),
+                required=frozenset({"content_id", "title", "path"}),
             )
             unit_id = _content_id(unit["content_id"], path=path, pointer=f"{pointer}/content_id")
-            unit_slug = _slug(unit["slug"], path=path, pointer=f"{pointer}/slug")
-            if unit_id in unit_ids or unit_slug in unit_slugs:
-                _fail("duplicate_unit_id_or_slug", path, pointer)
-            unit_ids.add(unit_id)
-            unit_slugs.add(unit_slug)
-            self._register_content_id(
-                unit_id, kind="unit", path=path, pointer=f"{pointer}/content_id"
-            )
             source_path = _relative_source_path(
                 unit["path"],
                 manifest_path=path,
@@ -698,9 +812,34 @@ class _Parser:
                 limits=self.limits,
                 suffix=".md",
             )
+            unit_slug = _slug(
+                PurePosixPath(source_path).stem,
+                path=path,
+                pointer=f"{pointer}/slug",
+            )
+            if "slug" in unit:
+                configured_slug = _slug(unit["slug"], path=path, pointer=f"{pointer}/slug")
+                if configured_slug != unit_slug:
+                    _fail("unit_slug_path_mismatch", path, f"{pointer}/slug")
+            if unit_id in unit_ids or unit_slug in unit_slugs:
+                _fail("duplicate_unit_id_or_slug", path, pointer)
+            unit_ids.add(unit_id)
+            unit_slugs.add(unit_slug)
+            self._register_content_id(
+                unit_id, kind="unit", path=path, pointer=f"{pointer}/content_id"
+            )
             if source_path in unit_paths:
                 _fail("duplicate_unit_source", path, f"{pointer}/path")
             unit_paths.add(source_path)
+            raw_markdown = _decode_utf8(
+                self.snapshot[source_path], path=source_path, limits=self.limits
+            )
+            markdown, metadata = _parse_lesson_frontmatter(
+                raw_markdown,
+                source_path=source_path,
+                snapshot=self.snapshot,
+                limits=self.limits,
+            )
             units.append(
                 UnitSource(
                     content_id=unit_id,
@@ -709,14 +848,13 @@ class _Parser:
                         unit["title"], path=path, pointer=f"{pointer}/title", maximum=200
                     ),
                     source_path=source_path,
-                    markdown=_decode_utf8(
-                        self.snapshot[source_path], path=source_path, limits=self.limits
-                    ),
+                    markdown=markdown,
+                    metadata=metadata,
                 )
             )
         return ModuleSource(
             content_id=content_id,
-            slug=_slug(mapping["slug"], path=path, pointer="/slug"),
+            slug=module_slug,
             title=_string(mapping["title"], path=path, pointer="/title", maximum=200),
             source_path=path,
             units=tuple(units),
@@ -1147,6 +1285,9 @@ class _Parser:
                     )
                     if module_path not in module_by_path:
                         _fail("module_source_contract_invalid", path, f"{pointer}/module/source")
+                    module_parts = PurePosixPath(module_path).parts
+                    if module_parts[:1] == ("cohorts",) and module_parts[1] != identifier:
+                        _fail("module_cohort_mismatch", path, f"{pointer}/module/source")
                     homework_path = _referenced_path(
                         module_ref["homework"],
                         path=path,

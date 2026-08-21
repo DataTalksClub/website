@@ -25,12 +25,29 @@ class CourseSource:
 
 
 @dataclass(frozen=True, slots=True)
+class LessonCodeSource:
+    """One source file exposed by a lesson's ``code`` frontmatter."""
+
+    label: str
+    source_path: str
+
+
+@dataclass(frozen=True, slots=True)
+class LessonMetadata:
+    """Structured lesson metadata kept separate from rendered Markdown."""
+
+    video_url: str | None = None
+    code: tuple[LessonCodeSource, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class UnitSource:
     content_id: str
     slug: str
     title: str
     source_path: str
     markdown: str
+    metadata: LessonMetadata = LessonMetadata()
 
 
 @dataclass(frozen=True, slots=True)
@@ -140,6 +157,8 @@ __all__ = (
     "HomeworkOptionSource",
     "HomeworkQuestionSource",
     "HomeworkSource",
+    "LessonCodeSource",
+    "LessonMetadata",
     "ModuleFlowSource",
     "ModuleSource",
     "ProjectFlowSource",
