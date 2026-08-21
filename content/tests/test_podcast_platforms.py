@@ -60,6 +60,13 @@ class PodcastPlatformDataTests(TestCase):
             {item["provider"] for item in projection["podcast_platforms"]},
             {"apple", "spotify", "youtube", "spotify_for_creators"},
         )
+        self.assertEqual(
+            [item["key"] for item in projection["podcast_platforms"]],
+            [item["provider"] for item in projection["podcast_platforms"]],
+        )
+        self.assertTrue(
+            all(item["title"] == item["label"] for item in projection["podcast_platforms"])
+        )
         self.assertTrue(
             all("anchor" not in record.get("links", {}) for record in projection["podcasts"])
         )

@@ -173,10 +173,12 @@ until all checks below pass.
    ```
 
    Then run the profile-appropriate fresh commands: `make test-ci-focused` for the selected
-   closure, `make test` for full Django, `make test-playwright-core` for backend-only browser
-   impact, or `make test-playwright` for render impact. Use `make verification-quality` and
-   `make verification-full` when the graph, policy, shared infrastructure, or new app boundary
-   warrants the broader contract.
+   closure, `make test-django-full` for the push full Django component,
+   `make test-playwright-core` for backend-only browser impact, or `make test-playwright` for
+   render impact. The local `make test` aggregate remains compatibility-inclusive; the scheduled
+   full-regression plan explicitly records and runs that aggregate so compatibility executes once
+   there. Use `make verification-quality` and `make verification-full` when the graph, policy,
+   shared infrastructure, or new app boundary warrants the broader contract.
 
 7. Record evidence and keep the backstop. Validate the plan with
    the following commands:
@@ -268,6 +270,15 @@ that output's path, size, SHA-256, format, and derived counts. Reuse, report val
 gates reopen the retained output and independently derive those counts. A recorder-only status file,
 caller-supplied count, missing output, or count/output mismatch is invalid evidence.
 
+Playwright uses the tracked quarantine policy in
+[`playwright-flake-policy.md`](playwright-flake-policy.md). Blocking targets exclude the
+`quarantine` marker, while the scheduled monitor runs `make test-playwright-quarantined`.
+Playwright evidence records `attempted`, `passed`, `failed`, `rerun`, and `quarantined`
+alongside the existing test counts. A successful blocking run must contain the plugin's
+complete summary and a matching pytest summary; partial output, an unexpected rerun, or a
+count mismatch cannot satisfy the aggregate gate. The scheduled quarantine report is
+non-blocking for deployment but retains a failure verdict and its digest-bound output.
+
 Large structured-content artifacts fail closed unless every record has a non-empty identity from
 the graph-declared stable fields and at least one valid canonical relative or HTTP(S) URL. Record
 hashes are not synthesized as identities, empty catalogs do not pass, and URL completeness compares
@@ -335,6 +346,13 @@ one, because local evidence must never be silently attributed to an issue the ca
 Override `VERIFY_BASE_SHA`, `VERIFY_HEAD_SHA`, `VERIFY_OUTPUT_DIR`, or `VERIFY_EVIDENCE_DIR` only
 with explicit reviewed paths/revisions. `verification-run` executes only allowlisted argument
 vectors and records each rerun result below `.tmp/verification/evidence/`.
+
+The full-profile Django command in a normal push plan is `make test-django-full`, which runs the
+complete Django suite without the compatibility prerequisite. Compatibility is a separate plan
+component and is owned by the quality job only when its disposition is `rerun`. `make test` remains
+the compatibility-inclusive local aggregate (`test-compatibility` followed by
+`test-django-full`); scheduled full regression passes `--full-django-command "make test"` to retain
+that explicit local/scheduled contract.
 
 Every component execution is bounded by an explicit per-component wall-clock timeout. The default
 is 3600 seconds (one hour), which exceeds the longest legitimate local suite: the full Django run,

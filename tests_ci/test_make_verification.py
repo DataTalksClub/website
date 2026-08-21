@@ -97,8 +97,8 @@ def test_playwright_targets_keep_profiles_and_use_the_bounded_faulthandler_timeo
         " and not remote_readonly and not remote_mutation and not live_email and not live_provider"
     )
     expected = {
-        "test-playwright-core": f"-m 'core{excluded_markers}'",
-        "test-playwright": f"-m '(core or full){excluded_markers}'",
+        "test-playwright-core": f"-m 'core and not quarantine{excluded_markers}'",
+        "test-playwright": f"-m '(core or full) and not quarantine{excluded_markers}'",
         "test-accessibility": f"-m 'accessibility{excluded_markers}'",
     }
     for target, marker_expression in expected.items():

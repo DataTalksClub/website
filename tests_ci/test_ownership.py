@@ -106,11 +106,12 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
     assert application_test_labels(graph) == {
         "api": ("api",),
         "studio_courses": ("studio_courses",),
-        "content": ("accounts", "content.tests", "content_sync", "core"),
+        "content": ("accounts", "api", "content.tests", "content_sync", "core"),
         "courses": (
             "accounts",
             "api",
             "content.tests",
+            "content_sync",
             "core",
             "courses",
             "data",
@@ -119,7 +120,7 @@ def test_graph_is_valid_deterministic_and_preserves_reviewed_closures() -> None:
             "studio_courses",
         ),
         "data": ("api", "courses", "data", "studio_courses"),
-        "jobs": ("events", "jobs"),
+        "jobs": ("api", "content_sync", "events", "jobs"),
         "management_api": ("api", "management_api", "studio"),
         "management_auth": (
             "accounts",
@@ -212,6 +213,7 @@ def test_impact_resolves_transitive_test_nodes_and_hostile_filenames() -> None:
         "accounts",
         "api",
         "content.tests",
+        "content_sync",
         "core",
         "courses",
         "data",

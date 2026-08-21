@@ -1,8 +1,8 @@
 .PHONY: setup lock-check lint format format-check typecheck migrations-check django-check deployment-check \
-	test-core test test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
+	test-core test test-django-full test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
-	test-accessibility \
+	test-accessibility test-playwright-quarantined \
 	test-course-platform-sync course-platform-source-checkout course-platform-sync-dry-run course-platform-sync \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
@@ -165,7 +165,11 @@ course-platform-sync:
 		$(if $(CMP_SOURCE_CHECKOUT),--source-checkout "$(CMP_SOURCE_CHECKOUT)",) \
 		--apply
 
-test: test-compatibility
+test: test-compatibility test-django-full
+
+# Push CI records compatibility as its own plan-controlled component. Keep the
+# ordinary local and scheduled `test` aggregate compatibility-inclusive.
+test-django-full:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python manage.py test --parallel --noinput
 
@@ -310,16 +314,25 @@ test-playwright-core:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
 		uv run --frozen pytest playwright_tests \
+		-p ci.playwright_flake_policy \
 		-o faulthandler_timeout=120 \
-		-m 'core and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
+		-m 'core and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-playwright:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
 		uv run --frozen pytest playwright_tests \
+		-p ci.playwright_flake_policy \
 		-o faulthandler_timeout=120 \
-		-m '(core or full) and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
+		-m '(core or full) and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
+test-playwright-quarantined:
+	set +e; DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+		uv run --frozen pytest playwright_tests -p ci.playwright_flake_policy \
+		-o faulthandler_timeout=120 \
+		-m 'quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v; \
+	status=$$?; if [ "$$status" -eq 5 ]; then exit 0; fi; exit "$$status"
 test-accessibility:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \

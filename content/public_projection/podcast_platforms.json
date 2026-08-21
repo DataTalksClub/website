@@ -1,26 +1,34 @@
 [
   {
     "dot": "dot-bubble",
+    "key": "apple",
     "label": "Apple Podcasts",
     "provider": "apple",
+    "title": "Apple Podcasts",
     "url": "https://podcasts.apple.com/us/podcast/id1541710331"
   },
   {
     "dot": "dot-green",
+    "key": "spotify",
     "label": "Spotify",
     "provider": "spotify",
+    "title": "Spotify",
     "url": "https://open.spotify.com/show/0pck8zuiXdI0OrCg86DAPy"
   },
   {
     "dot": "dot-clay",
+    "key": "youtube",
     "label": "YouTube",
     "provider": "youtube",
+    "title": "YouTube",
     "url": "https://www.youtube.com/c/DataTalksClub"
   },
   {
     "dot": "dot-gold",
+    "key": "spotify_for_creators",
     "label": "Spotify for Creators",
     "provider": "spotify_for_creators",
+    "title": "Spotify for Creators",
     "url": "https://creators.spotify.com/pod/profile/datatalksclub/"
   }
 ]

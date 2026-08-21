@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from ci.evidence import (
+    ALLOWED_COMPONENT_COMMANDS,
     EVIDENCE_SCHEMA_VERSION,
     OUTPUT_FORMATS,
     EvidenceError,
@@ -81,6 +82,28 @@ def plan_for_render_change(tmp_path: Path):
         now=datetime(2026, 8, 9, 12, tzinfo=UTC),
     )
     return repository, plan
+
+
+def test_full_django_evidence_uses_the_compatibility_free_ci_command(
+    tmp_path: Path,
+) -> None:
+    _repository, plan = plan_for_render_change(tmp_path)
+
+    assert plan["components"]["django"]["command"] == "make test-django-full"
+    assert ALLOWED_COMPONENT_COMMANDS["django"] == frozenset(
+        {"make test", "make test-django-full", "make test-ci-focused"}
+    )
+
+    with pytest.raises(EvidenceError, match="evidence command does not match"):
+        build_envelope(
+            plan=plan,
+            component="django",
+            result="success",
+            origin=local_origin(),
+            command="make test",
+            execution_environment=plan["components"]["django"]["environment"],
+            completed_at=datetime(2026, 8, 9, 12, tzinfo=UTC),
+        )
 
 
 def local_origin(role: str = "tester") -> dict[str, object]:
@@ -189,6 +212,8 @@ def test_machine_output_claim_records_actual_pass_skip_counts_and_rejects_forger
     output_path = root / "playwright-output.log"
     output_path.write_text(
         "193 passed, 7 skipped in 1.25s\n"
+        "DTC_FLAKE_POLICY_V1 attempted=200 passed=193 failed=0 skipped=7 "
+        "rerun=0 quarantined=0 complete=1\n"
         "Destroying test database for alias 'default'...\n"
         "make[1]: Leaving directory '/workspace'\n",
         encoding="utf-8",
@@ -223,10 +248,14 @@ def test_machine_output_claim_records_actual_pass_skip_counts_and_rejects_forger
     forged["counts"]["tests"] = forged["counts"]["passed"] = 999
     forged["counts"]["skipped"] = 0
     forged["counts"]["assertions"] = 999
+    forged["counts"]["attempted"] = 999
     forged["output"]["counts"] = {
         "assertions": 999,
+        "attempted": 999,
         "failed": 0,
         "passed": 999,
+        "quarantined": 0,
+        "rerun": 0,
         "skipped": 0,
         "tests": 999,
     }
@@ -395,7 +424,7 @@ def test_partial_pytest_output_cannot_validate_as_success(tmp_path: Path) -> Non
         encoding="utf-8",
     )
 
-    with pytest.raises(EvidenceError, match="terminal test summary"):
+    with pytest.raises(EvidenceError, match="flake-policy"):
         machine_output_claim(
             output_path,
             root=root,

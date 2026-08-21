@@ -204,7 +204,7 @@
     },
     {
       "path": "content/public_projection/podcasts.json",
-      "sha256": "33409b09c184a02ff6b685d805d9ad05d74bb15d5b34ea86f34c5a10b4cb0c8d",
+      "sha256": "723cbac24b2b175390227984fdade52612b86606b85bb94ed3aba29439431d54",
       "class": "captured_compatibility",
       "reason": "Hash-bound issue #119 projection preserves source-authored public podcast descriptions and transcript wording.",
       "follow_up": "#119; regenerate only from the pinned accepted sources",
@@ -212,7 +212,7 @@
     },
     {
       "path": "content/public_projection/wiki.json",
-      "sha256": "5f64f4d4a7a7436830d5a5c039e081d82fbf47ac01b7fb891fa6c5816650ce68",
+      "sha256": "325742bd47f62a805b5f6a2c87333be1861018145cb440545c6c1ec114f6c17d",
       "class": "captured_compatibility",
       "reason": "Hash-bound issue #105 projection preserves source-authored public Wiki wording.",
       "follow_up": "#105; regenerate only from the pinned accepted sources",
@@ -220,7 +220,7 @@
     },
     {
       "path": "content/public_projection/wiki_search.json",
-      "sha256": "e8f82b7471ce9152f994f2dfc3ef370b8d2a98384834051985dd45c5269f7307",
+      "sha256": "ca67b78201578e82d930d0cda357ce33d255ad8480998db5109d014f21174d96",
       "class": "captured_compatibility",
       "reason": "Hash-bound issue #105 search projection preserves source-authored public Wiki wording.",
       "follow_up": "#105; regenerate only from the pinned accepted sources",

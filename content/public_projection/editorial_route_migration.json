@@ -12737,7 +12737,7 @@
       "status_code": 301
     }
   ],
-  "content_sha256": "10be48bcfb0d09a3c7c3b93f9ad4a4977cb2a0cfab4070f0d2f54c7af30e6620",
+  "content_sha256": "ff96d8f2ca0c94059e5f0ef73088ceee28b72faed86dcf8b02da7ca424252a75",
   "counts": {
     "aliases": 1592,
     "finals": 796
@@ -22940,7 +22940,7 @@
       "final_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
       "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
       "source": {
-        "checksum": "47c8d1fcb41f1dfe855cecb477fbada147420fea20fccac9c676cf854f915234",
+        "checksum": "62554e94b5d8ab04ab7f7b060ffec0fa6ff7c61e53a2b929f7f6db1b3df25c90",
         "repository": "DataTalksClub/content",
         "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
         "source_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
@@ -23100,7 +23100,7 @@
       "articles.json": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9",
       "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
       "people.json": "2eead505ef53d723f5387b9a10bee1952a29a16fd536af945e9a4ed58c929eb2",
-      "podcasts.json": "4c131680fd8fcdc036d0c488eb0f8609d00cf1f29a10e31ba9b3369cfa653e63"
+      "podcasts.json": "723cbac24b2b175390227984fdade52612b86606b85bb94ed3aba29439431d54"
     },
     "source_revisions": [
       {

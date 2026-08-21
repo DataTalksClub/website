@@ -1,0 +1,136 @@
+{% comment %}
+  Episode-only knowledge graph extension (issue #217).
+
+  The SVG is a bounded visual summary.  The ordered list is the complete,
+  server-rendered contract and remains the useful surface with JavaScript off;
+  keeping the two surfaces in this partial makes their labels and destinations
+  visibly auditable together.
+{% endcomment %}
+<section
+  class="episode-knowledge-graph band-lavender band"
+  aria-labelledby="episode-graph-heading"
+>
+  <div class="shell episode-shell">
+    <div class="band-head">
+      <div>
+        <h2 id="episode-graph-heading">Related knowledge graph</h2>
+        {% if episode_graph.state == "available" %}
+          <p>
+            Projection-backed connections from this episode's canonical graph node.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if episode_graph.state == "available" %}
+      {% if episode_graph.layouts %}
+        <div class="graph-frame" aria-describedby="episode-graph-visual-note">
+          {% for layout in episode_graph.layouts %}
+            <svg
+              class="graph-svg graph-svg-{{ layout.kind }}"
+              viewBox="0 0 {{ layout.width }} {{ layout.height }}"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <g aria-hidden="true">
+                {% for edge in layout.edges %}
+                  <line
+                    class="graph-svg-edge"
+                    x1="{{ edge.x1 }}"
+                    y1="{{ edge.y1 }}"
+                    x2="{{ edge.x2 }}"
+                    y2="{{ edge.y2 }}"
+                  />
+                {% endfor %}
+              </g>
+              {% for node in layout.nodes %}
+                <g class="graph-svg-node">
+                  <rect
+                    class="graph-svg-shape"
+                    x="{{ node.left }}"
+                    y="{{ node.top }}"
+                    width="{{ node.width }}"
+                    height="{{ node.height }}"
+                    rx="{{ node.radius }}"
+                  />
+                  {% spaceless %}
+                    <text text-anchor="middle" font-size="{{ node.font_size }}">
+                      {% for line in node.lines %}
+                        <tspan x="{{ node.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                      {% endfor %}
+                    </text>
+                  {% endspaceless %}
+                </g>
+              {% endfor %}
+              <g class="graph-svg-node graph-svg-hub">
+                <rect
+                  class="graph-svg-shape"
+                  x="{{ layout.hub.left }}"
+                  y="{{ layout.hub.top }}"
+                  width="{{ layout.hub.width }}"
+                  height="{{ layout.hub.height }}"
+                  rx="{{ layout.hub.radius }}"
+                />
+                {% spaceless %}
+                  <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">
+                    {% for line in layout.hub.lines %}
+                      <tspan x="{{ layout.hub.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                    {% endfor %}
+                  </text>
+                {% endspaceless %}
+              </g>
+            </svg>
+          {% endfor %}
+          <p id="episode-graph-visual-note" class="graph-legend">
+            Showing {{ episode_graph.visual_count }} of {{ episode_graph.unique_neighbors }}
+            unique connections visually; {{ episode_graph.raw_links }} graph link records are
+            aggregated in the complete list below.
+          </p>
+        </div>
+      {% else %}
+        <p class="prose-unavailable">
+          All {{ episode_graph.unique_neighbors }} connections are listed below.
+        </p>
+      {% endif %}
+
+      <div class="band-head band-head-secondary">
+        <div>
+          <h3 id="episode-graph-connections-heading">All related connections</h3>
+          <p>Each destination and relation remains available without the visual summary.</p>
+        </div>
+      </div>
+      <ol
+        id="episode-graph-connections"
+        class="card-grid card-grid-2"
+        aria-labelledby="episode-graph-connections-heading"
+      >
+        {% for neighbour in episode_graph.neighbors %}
+          <li class="card">
+            {% if neighbour.url %}
+              <a
+                class="band-link"
+                href="{{ neighbour.url }}"
+                aria-label="{{ neighbour.label }} ({{ neighbour.type }}; {{ neighbour.relation_kind }})"
+              >
+                {{ neighbour.label }}
+              </a>
+            {% else %}
+              <span>{{ neighbour.label }}</span>
+            {% endif %}
+            <p class="mono-note">
+              {{ neighbour.type }} · {{ neighbour.relation_kind }} · weight {{ neighbour.weight }}
+            </p>
+          </li>
+        {% endfor %}
+      </ol>
+    {% elif episode_graph.state == "no_data" %}
+      <p class="prose-unavailable">
+        No related knowledge-graph connections are available for this episode yet.
+      </p>
+    {% else %}
+      <p class="prose-unavailable">
+        Related knowledge graph is temporarily unavailable.
+      </p>
+    {% endif %}
+  </div>
+</section>

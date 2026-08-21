@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import threading
 from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
@@ -120,6 +121,9 @@ _EMAIL_PREFERENCES_CONSOLE_RE = re.compile(
     r"\s+at http://127\.0\.0\.1:[0-9]+/static/settings_toggles\.js:44:17$"
 )
 _OFFLINE_ROUTE_BYTES: dict[str, tuple[bytes, str]] = {}
+_YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com"
+_LIVE_SERVER_READY_TIMEOUT_SECONDS = 10.0
+_LIVE_SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10.0
 
 
 class _PageLifecycle(Protocol):
@@ -134,6 +138,12 @@ class _RequestLifecycle(Protocol):
     def frame(self) -> object: ...
 
     def is_navigation_request(self) -> bool: ...
+
+
+class _ThreadShareableConnection(Protocol):
+    def inc_thread_sharing(self) -> None: ...
+
+    def dec_thread_sharing(self) -> None: ...
 
 
 @dataclass
@@ -454,14 +464,137 @@ def _deny_external_network() -> Generator[None]:
         yield
 
 
+def _live_server_connections(
+    server: live_server_helper.LiveServer,
+) -> tuple[_ThreadShareableConnection, ...]:
+    return tuple(server.thread.connections_override.values())
+
+
+def _live_server_diagnostic(
+    server: live_server_helper.LiveServer,
+    *,
+    phase: str,
+    timeout_seconds: float,
+    outcome: str = "timed out",
+    shutdown_thread_alive: bool | None = None,
+) -> str:
+    thread = server.thread
+    error = thread.error
+    error_detail = "none" if error is None else f"{type(error).__name__}: {error}"
+    details = [
+        f"live-server {phase} {outcome} after {timeout_seconds:.1f}s",
+        f"thread_alive={thread.is_alive()}",
+        f"ready={thread.is_ready.is_set()}",
+        f"thread_id={thread.ident}",
+        f"port={thread.port}",
+        f"error={error_detail}",
+    ]
+    if shutdown_thread_alive is not None:
+        details.append(f"shutdown_thread_alive={shutdown_thread_alive}")
+    return "; ".join(details)
+
+
+def _restore_live_server_connections(
+    connections: tuple[_ThreadShareableConnection, ...],
+) -> None:
+    for connection in reversed(connections):
+        connection.dec_thread_sharing()
+
+
+def _stop_live_server(
+    server: live_server_helper.LiveServer,
+    *,
+    connections: tuple[_ThreadShareableConnection, ...],
+) -> None:
+    termination_errors: list[BaseException] = []
+
+    def terminate() -> None:
+        try:
+            server.thread.terminate()
+        except BaseException as error:  # pragma: no cover - exercised by a broken server
+            termination_errors.append(error)
+
+    shutdown_thread = threading.Thread(
+        target=terminate,
+        name="dtc-live-server-shutdown",
+        daemon=True,
+    )
+    shutdown_thread.start()
+    shutdown_thread.join(timeout=_LIVE_SERVER_SHUTDOWN_TIMEOUT_SECONDS)
+    server_thread_alive = server.thread.is_alive()
+    if shutdown_thread.is_alive() or server_thread_alive:
+        if not server_thread_alive:
+            _restore_live_server_connections(connections)
+        raise RuntimeError(
+            _live_server_diagnostic(
+                server,
+                phase="shutdown",
+                timeout_seconds=_LIVE_SERVER_SHUTDOWN_TIMEOUT_SECONDS,
+                shutdown_thread_alive=shutdown_thread.is_alive(),
+            )
+        )
+    if termination_errors:
+        _restore_live_server_connections(connections)
+        raise RuntimeError(
+            "live-server shutdown raised "
+            f"{type(termination_errors[0]).__name__}: {termination_errors[0]}"
+        ) from termination_errors[0]
+    _restore_live_server_connections(connections)
+
+
+def _start_live_server(server: live_server_helper.LiveServer) -> None:
+    connections = _live_server_connections(server)
+    for connection in connections:
+        connection.inc_thread_sharing()
+    try:
+        server.thread.start()
+    except BaseException:
+        _restore_live_server_connections(connections)
+        raise
+
+    try:
+        if not server.thread.is_ready.wait(timeout=_LIVE_SERVER_READY_TIMEOUT_SECONDS):
+            raise RuntimeError(
+                _live_server_diagnostic(
+                    server,
+                    phase="readiness",
+                    timeout_seconds=_LIVE_SERVER_READY_TIMEOUT_SECONDS,
+                )
+            )
+        if server.thread.error is not None:
+            raise RuntimeError(
+                _live_server_diagnostic(
+                    server,
+                    phase="startup",
+                    timeout_seconds=_LIVE_SERVER_READY_TIMEOUT_SECONDS,
+                    outcome="reported an error",
+                )
+            ) from server.thread.error
+    except BaseException as start_error:
+        try:
+            _stop_live_server(server, connections=connections)
+        except BaseException as shutdown_error:
+            raise RuntimeError(
+                f"{start_error} (startup cleanup failed: {shutdown_error})"
+            ) from start_error
+        raise
+
+
 @pytest.fixture(scope="session")
-def live_server(request: pytest.FixtureRequest):
+def live_server(django_db_setup: None):
     from django.conf import settings
 
-    server = live_server_helper.LiveServer("127.0.0.1")
-    settings.TEST_RUNTIME.record_server(origin=server.url, worker_id=current_worker_id())
-    yield server
-    server.stop()
+    del django_db_setup
+    server = live_server_helper.LiveServer("127.0.0.1", start=False)
+    started = False
+    try:
+        _start_live_server(server)
+        started = True
+        settings.TEST_RUNTIME.record_server(origin=server.url, worker_id=current_worker_id())
+        yield server
+    finally:
+        if started:
+            _stop_live_server(server, connections=_live_server_connections(server))
 
 
 @pytest.fixture
@@ -480,6 +613,7 @@ def browser_context_args() -> dict[str, object]:
 def strict_csp_page(
     browser: Browser,
     browser_context_args: dict[str, object],
+    request: pytest.FixtureRequest,
     live_server,
 ):
     """Provide a browser page that receives and enforces the production CSP.
@@ -499,6 +633,18 @@ def strict_csp_page(
         service_workers="block",
         timezone_id="UTC",
     )
+    context_closed = False
+
+    def close_context_after_setup_failure() -> None:
+        nonlocal context_closed
+        if context_closed:
+            return
+        try:
+            context.close()
+        finally:
+            context_closed = True
+
+    request.addfinalizer(close_context_after_setup_failure)
     origin = live_server.url
 
     def route_request(route: Route) -> None:
@@ -515,7 +661,12 @@ def strict_csp_page(
     try:
         yield page
     finally:
-        context.close()
+        try:
+            context.close()
+        except BaseException as error:  # pragma: no cover - browser failure path
+            pytest.fail(f"strict CSP browser context cleanup failed ({type(error).__name__})")
+        finally:
+            context_closed = True
 
 
 @pytest.fixture
@@ -556,6 +707,18 @@ def context(
         service_workers="block",
         timezone_id="UTC",
     )
+    context_closed = False
+
+    def close_context_after_setup_failure() -> None:
+        nonlocal context_closed
+        if context_closed:
+            return
+        try:
+            context.close()
+        finally:
+            context_closed = True
+
+    request.addfinalizer(close_context_after_setup_failure)
     denied_urls: set[str] = set()
     failures: list[str] = []
     cancellation_tracker = NavigationCancellationTracker(allowed_origin)
@@ -575,6 +738,16 @@ def context(
                 body=body,
                 headers={"access-control-allow-origin": "*"},
             )
+            return
+        if (
+            authorization is None
+            and f"{parsed.scheme}://{parsed.netloc}" == _YOUTUBE_EMBED_ORIGIN
+            and parsed.path.startswith("/embed/")
+        ):
+            # Episode pages render a validated provider iframe.  Keep every core
+            # browser scenario offline while allowing the iframe contract itself
+            # to load, just as episode-specific tests do with their page route.
+            route.fulfill(status=200, content_type="text/html", body="")
             return
         origin = f"{parsed.scheme}://{parsed.netloc}"
         if allowed_origin and origin == allowed_origin:
@@ -713,19 +886,41 @@ def context(
     try:
         yield context
     finally:
-        for failed_url, failure in cancellation_tracker.take_unexplained_aborts():
-            failures.append(f"request failed: {urlsplit(failed_url).path} ({failure})")
-        cancellation_tracker.begin_context_close()
-        report = getattr(request.node, "rep_call", None)
-        if report is not None and report.failed:
-            pages = context.pages
-            if pages:
-                pages[0].screenshot(path=screenshot_path, full_page=True)
-        context.tracing.stop(path=trace_path)
-        redact_trace_emails(trace_path)
-        context.close()
-        for root in owned_publication_roots(settings.BASE_DIR, worker.artifacts):
-            scan_artifacts(root, canaries=artifact_canaries())
+        cleanup_errors: list[str] = []
+        try:
+            for failed_url, failure in cancellation_tracker.take_unexplained_aborts():
+                failures.append(f"request failed: {urlsplit(failed_url).path} ({failure})")
+            cancellation_tracker.begin_context_close()
+        except BaseException as error:
+            cleanup_errors.append(f"browser lifecycle finalization failed ({type(error).__name__})")
+        try:
+            report = getattr(request.node, "rep_call", None)
+            if report is not None and report.failed:
+                pages = context.pages
+                if pages:
+                    pages[0].screenshot(path=screenshot_path, full_page=True)
+        except BaseException as error:
+            cleanup_errors.append(f"browser failure capture failed ({type(error).__name__})")
+        try:
+            context.tracing.stop(path=trace_path)
+        except BaseException as error:
+            cleanup_errors.append(f"browser trace cleanup failed ({type(error).__name__})")
+        try:
+            redact_trace_emails(trace_path)
+        except BaseException as error:
+            cleanup_errors.append(f"browser trace redaction failed ({type(error).__name__})")
+        try:
+            context.close()
+        except BaseException as error:
+            cleanup_errors.append(f"browser context cleanup failed ({type(error).__name__})")
+        finally:
+            context_closed = True
+        try:
+            for root in owned_publication_roots(settings.BASE_DIR, worker.artifacts):
+                scan_artifacts(root, canaries=artifact_canaries())
+        except BaseException as error:
+            cleanup_errors.append(f"browser artifact scan failed ({type(error).__name__})")
+        failures.extend(cleanup_errors)
         if failures:
             pytest.fail("; ".join(sorted(set(failures))))
 

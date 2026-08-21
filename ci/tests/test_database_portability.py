@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts import check_database_portability as portability
 from scripts.check_database_portability import (
     AUTHORITATIVE_SPECIFICATIONS,
     COMPATIBILITY_SPECIFICATIONS,
@@ -16,6 +17,20 @@ from scripts.check_database_portability import (
 )
 
 FIXTURE_ROOT = Path(__file__).parent / "fixtures" / "database_portability"
+
+
+@pytest.mark.parametrize("command", portability.FULL_DJANGO_COMMANDS)
+def test_ordinary_ci_guard_accepts_legacy_and_ci_full_django_commands(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    command: str,
+) -> None:
+    workflow = portability.WORKFLOW.read_text(encoding="utf-8")
+    workflow_path = tmp_path / "ci.yml"
+    workflow_path.write_text(workflow.replace("make test-django-full", command), encoding="utf-8")
+    monkeypatch.setattr(portability, "WORKFLOW", workflow_path)
+
+    assert portability.check_workflow() == []
 
 
 def test_current_normative_specifications_satisfy_the_portability_policy() -> None:

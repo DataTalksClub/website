@@ -346,8 +346,15 @@ def ring_layouts(
     spokes: Sequence[GraphPoint],
     *,
     wide_wrap_over: float | None = None,
+    narrow_hub: GraphPoint | None = None,
 ) -> tuple[GraphLayout, ...]:
-    """Arrange one hub and its ring of spokes for a wide and a narrow screen."""
+    """Arrange one hub and its ring of spokes for a wide and a narrow screen.
+
+    A caller may provide a compact narrow hub when the full hub label is a
+    page-length title.  The default keeps the existing wiki/homepage geometry
+    byte-for-byte equivalent; episode pages use the episode identity in this
+    optional slot so the established narrow ring remains legible.
+    """
 
     return (
         graph_layout(
@@ -364,7 +371,7 @@ def ring_layouts(
             NARROW_FRAME,
             NARROW_HUB,
             NARROW_POSITIONS,
-            hub,
+            narrow_hub or hub,
             spokes,
             wrap_over=NARROW_WRAP_OVER,
         ),

@@ -13,6 +13,12 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from ci.flake_policy import (
+    FLAKE_POLICY_LINE,
+    FlakePolicyError,
+    parse_policy_output,
+    policy_counts_for_evidence,
+)
 from ci.ownership import matches_any, sha256_json
 
 EVIDENCE_SCHEMA_VERSION = 3
@@ -51,7 +57,9 @@ ALLOWED_COMPONENT_COMMANDS = {
     ),
     "container": frozenset({"make verification-container", "exact release image verification"}),
     "content_invariants": frozenset({"make verification-content-invariants"}),
-    "django": frozenset({"make test", "make test-ci-focused"}),
+    # `make test` remains the explicit local/scheduled aggregate; push full
+    # profile CI records the compatibility-free Django target separately.
+    "django": frozenset({"make test", "make test-django-full", "make test-ci-focused"}),
     "evidence_validation": frozenset({"make test-ci"}),
     "playwright": frozenset({"make test-playwright-core", "make test-playwright"}),
     "quality": frozenset({"quality-contract-v1"}),
@@ -668,7 +676,15 @@ def _validate_counts(
         "screenshots": {"assertions", "captures"},
         "selector": {"changed_paths", "direct_nodes", "downstream_nodes"},
     }[component]
+    policy_fields = {"attempted", "quarantined", "rerun"}
+    present_policy_fields = policy_fields.intersection(value)
+    if present_policy_fields and present_policy_fields != policy_fields:
+        raise EvidenceError("evidence counts have an incomplete flake-policy contract")
     expected = required.union(component_required)
+    if present_policy_fields:
+        if component not in TEST_OUTPUT_COMPONENTS:
+            raise EvidenceError("flake-policy counts are only valid for test output")
+        expected |= policy_fields
     if set(value) != expected:
         raise EvidenceError("evidence counts omit required component metrics")
     if value["artifacts"] != artifact_count or value["commands"] <= 0:
@@ -678,6 +694,11 @@ def _validate_counts(
             raise EvidenceError("evidence count must prove non-empty verification work")
     if value["tests"] != value["passed"] + value["failed"] + value["skipped"]:
         raise EvidenceError("test outcome counts do not equal the executed test count")
+    if present_policy_fields:
+        if value["tests"] != value["attempted"]:
+            raise EvidenceError("flake-policy attempted and test counts differ")
+        if value["rerun"] and result == "success":
+            raise EvidenceError("successful evidence cannot contain rerun attempts")
     if result == "success" and value["failed"] != 0:
         raise EvidenceError("successful evidence cannot contain failed outcomes")
     if result == "success" and component in TEST_OUTPUT_COMPONENTS and value["tests"] <= 0:
@@ -708,7 +729,12 @@ def machine_output_claim(
     if component in TEST_OUTPUT_COMPONENTS:
         output_format = "test-log-v1"
         try:
-            counts = _test_output_counts(body, result=result)
+            counts = _test_output_counts(
+                body,
+                result=result,
+                require_policy=component == "playwright" and result == "success",
+                require_complete=component == "playwright" and result == "success",
+            )
         except EvidenceError:
             if result == "success":
                 raise
@@ -829,9 +855,19 @@ def _validate_machine_output_claim(
         "content-invariants-v1": {"records", "structured_files"},
         "screenshot-artifact-v1": {"captures"},
     }.get(value["format"], set())
+    if not isinstance(counts, dict):
+        raise EvidenceError("machine output counts are invalid")
+    policy_fields = {"attempted", "quarantined", "rerun"}
+    present_policy_fields = policy_fields.intersection(counts)
+    if present_policy_fields and present_policy_fields != policy_fields:
+        raise EvidenceError("machine output flake-policy counts are incomplete")
     if (
         not isinstance(counts, dict)
-        or set(counts) != required.union(extra)
+        or set(counts)
+        not in (
+            required.union(extra),
+            required.union(extra).union(policy_fields),
+        )
         or any(
             not isinstance(key, str)
             or not isinstance(item, int)
@@ -841,14 +877,56 @@ def _validate_machine_output_claim(
         )
     ):
         raise EvidenceError("machine output counts are invalid")
+    if present_policy_fields:
+        if component not in TEST_OUTPUT_COMPONENTS:
+            raise EvidenceError("machine output flake-policy counts are unsupported")
+        if counts["attempted"] != counts["tests"]:
+            raise EvidenceError("machine output attempted and test counts differ")
     return {"artifact": dict(value["artifact"]), "counts": dict(counts), "format": value["format"]}
 
 
-def _test_output_counts(body: bytes, *, result: str) -> dict[str, int]:
+def _test_output_counts(
+    body: bytes,
+    *,
+    result: str,
+    require_policy: bool = False,
+    require_complete: bool = False,
+) -> dict[str, int]:
     try:
         text = body.decode("utf-8")
     except UnicodeError as exc:
         raise EvidenceError("test output must be UTF-8") from exc
+    parsed_policy = None
+    try:
+        parsed_policy = parse_policy_output(body)
+    except FlakePolicyError:
+        if require_policy:
+            try:
+                _standard_test_output_counts(text, result=result)
+            except EvidenceError as exc:
+                if "interrupted pytest run" in str(exc):
+                    raise
+            raise EvidenceError("test output is missing a valid flake-policy summary") from None
+        if FLAKE_POLICY_LINE in text:
+            raise EvidenceError("test output contains an invalid flake-policy summary") from None
+    standard_counts = _standard_test_output_counts(text, result=result)
+    if parsed_policy is not None:
+        policy_counts = policy_counts_for_evidence(parsed_policy)
+        complete = parsed_policy["complete"]
+        if require_complete and (not complete or standard_counts is None):
+            raise EvidenceError("test output is partial or lacks a pytest completion summary")
+        if standard_counts is not None and any(
+            standard_counts[key] != policy_counts[key]
+            for key in ("passed", "failed", "skipped", "tests")
+        ):
+            raise EvidenceError("pytest and flake-policy counts contradict one another")
+        return policy_counts
+    if standard_counts is None:
+        raise EvidenceError("test output contains no machine-verifiable outcome counts")
+    return standard_counts
+
+
+def _standard_test_output_counts(text: str, *, result: str) -> dict[str, int] | None:
     lines = text.splitlines()
     meaningful_lines = [
         line.strip()
@@ -856,6 +934,7 @@ def _test_output_counts(body: bytes, *, result: str) -> dict[str, int]:
         if line.strip()
         and not MAKE_DIRECTORY_RE.fullmatch(line.strip())
         and not DJANGO_DATABASE_TEARDOWN_RE.fullmatch(line.strip())
+        and not line.strip().startswith(FLAKE_POLICY_LINE)
     ]
     last_nonempty = meaningful_lines[-1] if meaningful_lines else ""
     if result == "success":
@@ -898,7 +977,7 @@ def _test_output_counts(body: bytes, *, result: str) -> dict[str, int]:
         skipped += unittest_skips
     tests = passed + failed + skipped
     if tests <= 0:
-        raise EvidenceError("test output contains no machine-verifiable outcome counts")
+        return None
     return {
         "assertions": tests,
         "failed": failed,

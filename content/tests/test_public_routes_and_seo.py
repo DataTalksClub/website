@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test import TestCase
 
 from content.docs_projection import docs_page
+from content.podcast_routes import PODCAST_ROUTE_MIGRATION_PATH, podcast_legacy_path
 from content.public_data import public_paths, public_projection
 from content.review_projection import review_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
@@ -163,21 +164,28 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
         self.assertEqual(
             {path for path in canonical_paths if not path.endswith(".html")},
-            {"/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"},
+            {PODCAST_ROUTE_MIGRATION_PATH},
         )
-        expected_aliases = {
-            alias
-            for path in canonical_paths
-            if path.endswith(".html")
-            for alias in (path.removesuffix(".html"), f"{path.removesuffix('.html')}/")
-        }
-        expected_aliases.update(
+        self.assertEqual(
+            set(alias_map),
             {
-                "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code",
-                "/podcast/s24e05-ai-adoption-in-enterprise-beyond-writing-code/",
-            }
+                alias
+                for item in migration["finals"]
+                for alias in (
+                    (
+                        podcast_legacy_path(item["record_key"]).removesuffix(".html")
+                        if item["collection"] == "podcasts"
+                        else item["final_path"].removesuffix(".html")
+                    ),
+                    (
+                        podcast_legacy_path(item["record_key"]).removesuffix(".html")
+                        if item["collection"] == "podcasts"
+                        else item["final_path"].removesuffix(".html")
+                    )
+                    + "/",
+                )
+            },
         )
-        self.assertEqual(set(alias_map), expected_aliases)
 
         query = "x=%2F&x=&q=A+B&q=A%20B"
         for source, target in alias_map.items():

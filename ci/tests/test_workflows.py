@@ -134,7 +134,9 @@ def test_selected_django_always_uses_fresh_sqlite_and_validated_closed_runner() 
     )
     assert "make test-factories" in script
     assert "make test-migrations" in script
-    assert "make test" in script
+    full_commands = logical_shell_commands({"steps": [selected_step]})
+    assert "make test-django-full" in full_commands
+    assert "make test" not in full_commands
     assert "postgres" not in script.lower()
     validation = next(
         step
@@ -431,6 +433,7 @@ def test_scheduled_workflow_has_no_mutation_or_aws_jobs_and_checks_exact_sha() -
         "migrations",
         "django",
         "playwright",
+        "playwright-quarantine",
         "container",
         "full-regression",
         "scheduled-gate",
@@ -510,6 +513,23 @@ def test_scheduled_playwright_executes_and_records_the_planner_core_command() ->
     assert f'--command "{planner_command}"' in recording["run"]
 
 
+def test_scheduled_quarantine_monitor_is_bounded_visible_and_non_blocking() -> None:
+    data = workflow("scheduled-full-regression.yml")
+    quarantine = data["jobs"]["playwright-quarantine"]
+    assert quarantine["if"] == "always() && needs.selector.result == 'success'"
+    assert quarantine["needs"] == "selector"
+    assert quarantine["continue-on-error"] == "true"
+    assert quarantine["timeout-minutes"] == "45"
+    script = runs(quarantine)
+    assert "make test-playwright-quarantined" in script
+    assert "ci.flake_policy report" in script
+    assert "playwright-quarantine-report.json" in script
+    assert "playwright-quarantine-${{ github.run_id }}-attempt-${{ github.run_attempt }}" in str(
+        quarantine
+    )
+    assert "playwright-quarantine" not in str(data["jobs"]["full-regression"]["needs"])
+
+
 def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() -> None:
     jobs = workflow("scheduled-full-regression.yml")["jobs"]
     assert jobs["full-regression"]["name"] == "full-regression"
@@ -528,7 +548,16 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "DTC_SQLITE_PATH" not in jobs["django"]["env"]
     assert "make test-factories" in runs(jobs["factories"])
     assert "make test-migrations" in runs(jobs["migrations"])
-    assert "make test" in runs(jobs["django"])
+    django_step = next(
+        step
+        for step in jobs["django"]["steps"]
+        if step.get("name") == "Run and retain the complete Django output"
+    )
+    django_commands = logical_shell_commands({"steps": [django_step]})
+    assert "make test" in django_commands
+    assert "make test-django-full" not in django_commands
+    assert '--command "make test"' in runs(jobs["django"])
+    assert '--full-django-command "make test"' in runs(jobs["selector"])
     assert "make test-playwright-core" in runs(jobs["playwright"])
     assert "ci.quality_contract" in runs(jobs["quality"])
     assert "make verification-quality" not in runs(jobs["quality"])

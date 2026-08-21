@@ -204,6 +204,82 @@ def test_run_capture_pins_test_settings_for_every_child_when_unset(
     assert "DJANGO_SETTINGS_MODULE=website.settings.test" in capsys.readouterr().out
 
 
+def test_run_capture_inherits_acquired_runtime_identity_for_every_child(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    inputs = _inputs(tmp_path)
+    runtime = FakeRuntime()
+    migration = FakeProcess()
+    server = FakeProcess()
+    capture = FakeProcess()
+    environments: dict[str, dict[str, str]] = {}
+    run_id = "shared-runtime-run"
+
+    monkeypatch.delenv("DJANGO_SETTINGS_MODULE", raising=False)
+    monkeypatch.delenv(screenshot_runtime.test_runtime.OWNER_TOKEN_ENV, raising=False)
+    monkeypatch.delenv(screenshot_runtime.test_runtime.RUN_ID_ENV, raising=False)
+
+    def acquire(_repository: Path) -> FakeRuntime:
+        monkeypatch.setenv(
+            screenshot_runtime.test_runtime.OWNER_TOKEN_ENV,
+            runtime._owner_token,
+        )
+        monkeypatch.setenv(screenshot_runtime.test_runtime.RUN_ID_ENV, run_id)
+        return runtime
+
+    monkeypatch.setattr(screenshot_runtime.TestRuntime, "acquire", acquire)
+
+    def run_migration(
+        _repository: Path,
+        *,
+        environment: dict[str, str],
+    ) -> FakeProcess:
+        environments["migration"] = dict(environment)
+        return migration
+
+    def run_server(
+        _repository: Path,
+        *,
+        host: str,
+        port: int,
+        log_path: Path,
+        environment: dict[str, str],
+    ) -> FakeProcess:
+        del host, port, log_path
+        environments["server"] = dict(environment)
+        return server
+
+    def run_capture(
+        _repository: Path,
+        *,
+        plan: Path,
+        output: Path,
+        base_url: str,
+        environment: dict[str, str],
+    ) -> FakeProcess:
+        del plan, output, base_url
+        environments["capture"] = dict(environment)
+        return capture
+
+    monkeypatch.setattr(screenshot_runtime, "_run_migration", run_migration)
+    monkeypatch.setattr(screenshot_runtime, "_run_server", run_server)
+    monkeypatch.setattr(screenshot_runtime, "_run_capture", run_capture)
+    monkeypatch.setattr(screenshot_runtime, "_wait_for_server", lambda **_kwargs: None)
+    monkeypatch.setattr(screenshot_runtime, "_terminate_processes", lambda *_processes: None)
+
+    assert screenshot_runtime.run_capture(**inputs) == 0
+
+    assert set(environments) == {"migration", "server", "capture"}
+    for environment in environments.values():
+        assert environment["DTC_TEST_OWNER_TOKEN"] == runtime._owner_token
+        assert environment["DTC_TEST_RUN_ID"] == run_id
+        assert (
+            environment["DJANGO_SETTINGS_MODULE"]
+            == screenshot_runtime.AUTHORIZED_DJANGO_SETTINGS_MODULE
+        )
+
+
 def test_run_capture_rejects_wrong_settings_before_any_child_or_capture(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

@@ -247,6 +247,7 @@ def test_focused_runner_uses_parallel_noninteractive_command_and_only_validated_
             "--parallel",
             "--noinput",
             "accounts",
+            "api",
             "content.tests",
             "content_sync",
             "core",

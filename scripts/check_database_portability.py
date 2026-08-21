@@ -36,6 +36,7 @@ AUTHORITATIVE_SPECIFICATIONS = (
 COMPATIBILITY_SPECIFICATIONS = (FORMER_AWS_SPEC_NAME,)
 EXPECTED_SPECIFICATIONS = AUTHORITATIVE_SPECIFICATIONS + COMPATIBILITY_SPECIFICATIONS
 ORDINARY_JOBS = ("quality", "django", "playwright", "container")
+FULL_DJANGO_COMMANDS = ("make test", "make test-django-full")
 APPLICATION_ROOTS = (
     "accounts",
     "api",
@@ -1251,10 +1252,17 @@ def check_workflow() -> list[str]:
         if isinstance(step, dict)
         for line in str(step.get("run", "")).splitlines()
     ]
-    required_full_commands = ("make test-factories", "make test-migrations", "make test")
+    required_full_commands = ("make test-factories", "make test-migrations")
+    full_django_indices = tuple(
+        index for index, command in enumerate(command_lines) if command in FULL_DJANGO_COMMANDS
+    )
     try:
-        full_indices = tuple(command_lines.index(command) for command in required_full_commands)
-    except ValueError:
+        if len(full_django_indices) != 1:
+            raise ValueError
+        full_indices = tuple(command_lines.index(command) for command in required_full_commands) + (
+            full_django_indices[0],
+        )
+    except (IndexError, ValueError):
         errors.append("ordinary Django CI does not run the owned full SQLite harness")
     else:
         if tuple(sorted(full_indices)) != full_indices:

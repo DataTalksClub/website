@@ -43,6 +43,15 @@ def _settle_analytics_preferences(page: Page) -> None:
         expect(preferences).to_be_hidden()
 
 
+def _stub_video_provider(page: Page) -> None:
+    """Keep the browser suite offline while exercising the rendered iframe contract."""
+
+    page.route(
+        "https://www.youtube-nocookie.com/**",
+        lambda route: route.fulfill(status=200, content_type="text/html", body=""),
+    )
+
+
 def _assert_no_horizontal_overflow(page: Page) -> None:
     overflow = page.evaluate(
         """() => ({
@@ -71,6 +80,7 @@ def test_index_and_episode_render_the_design_system_in_both_themes(
     origin = live_server.url
     episode = ordered_podcasts()[0]
     season = podcast_seasons()[0]
+    _stub_video_provider(page)
     console_errors: list[str] = []
     page.on(
         "console",
@@ -112,18 +122,22 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     live_server,
 ) -> None:
     episode = ordered_podcasts()[0]
+    _stub_video_provider(page)
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    player = page.locator("a.player-frame")
+    player = page.locator(".episode-video")
     expect(player).to_have_count(1)
-    expect(player).to_have_attribute("href", episode["links"]["youtube"])
-    expect(player).to_have_attribute(
-        "aria-label",
-        f"Play {episode['title']} on YouTube",
+    expect(player).to_have_attribute("data-video-id", episode["video"]["id"])
+    iframe = page.locator("#podcast-video-player")
+    expect(iframe).to_have_attribute(
+        "title",
+        f"Watch {episode['title']} on YouTube",
     )
-    player.focus()
-    focus = player.evaluate(
+    platform_link = page.locator(f'.listen-row a[href="{episode["links"]["youtube"]}"]')
+    expect(platform_link).to_have_count(1)
+    platform_link.focus()
+    focus = platform_link.evaluate(
         """(node) => {
           const style = getComputedStyle(node);
           return {
@@ -134,14 +148,18 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
         }"""
     )
     assert focus["focused"] is True, focus
-    # The artwork carries the episode's identity, and the link carries its own name,
-    # so neither borrows the other's meaning.  The guests' portrait chips are also
-    # images in main, but their credit is the name printed beside them, so the
-    # shared `_person_chip` partial keeps them decorative with empty alt text.
+    # Episode and related artwork carry useful alternative text.  The shared
+    # person-chip portrait is deliberately decorative because the adjacent name
+    # is the accessible credit.
     artwork_alt = f"Artwork for {episode['title']}"
-    alts = page.locator("main img").evaluate_all("(nodes) => nodes.map((n) => n.alt)")
+    image_data = page.locator("main img").evaluate_all(
+        "(nodes) => nodes.map((n) => ({alt: n.alt, className: n.className}))"
+    )
+    alts = [image["alt"] for image in image_data]
     assert alts.count(artwork_alt) == 1, alts
-    assert set(alts) <= {artwork_alt, ""}, alts
+    assert all(
+        image["alt"] or image["className"] == "person-chip-portrait" for image in image_data
+    ), image_data
     expect(page.locator("#transcript-heading")).to_be_visible()
 
 
@@ -156,6 +174,7 @@ def test_index_and_episode_stay_usable_at_320px_without_javascript(
         viewport={"width": 320, "height": 800},
     )
     page = context.new_page()
+    _stub_video_provider(page)
     try:
         for path, label in (("/podcast", "index"), (episode["public_path"], "episode")):
             response = page.goto(f"{live_server.url}{path}", wait_until="domcontentloaded")

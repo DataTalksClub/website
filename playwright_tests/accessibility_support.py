@@ -176,7 +176,7 @@ def skip_link_issues(page: Page, state: str) -> list[str]:
 def focus_issues(page: Page, state: str) -> list[str]:
     selector = (
         'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), '
-        'select:not([disabled]), textarea:not([disabled]), summary, [tabindex="0"]'
+        'select:not([disabled]), textarea:not([disabled]), summary, iframe[title], [tabindex="0"]'
     )
     page.evaluate(
         """
@@ -234,7 +234,11 @@ def focus_issues(page: Page, state: str) -> list[str]:
                 description: `${node.tagName.toLowerCase()}#${node.id}`
                   + `[${(node.getAttribute('aria-label') || node.textContent || '')
                     .trim().slice(0, 32)}]`,
-                focusVisible: outline || shadow,
+                // A focused iframe owns a separate browsing context.  Its focus
+                // indicator is rendered by the embedded document, so the parent
+                // document cannot expose it through the iframe element's computed
+                // outline; the titled frame remains a tracked keyboard target.
+                focusVisible: node.tagName === 'IFRAME' || outline || shadow,
                 focusStyle: `${style.outlineWidth}/${style.outlineStyle}/${style.boxShadow}`,
                 obscured: Boolean(
                   top && top !== node && !node.contains(top) && !top.contains(node)
