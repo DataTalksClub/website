@@ -48,7 +48,7 @@ def test_validator_rejects_unknown_model_key() -> None:
 
 def test_validator_rejects_migration_count_drift() -> None:
     source = _source().replace(
-        "Current migrations: `accounts=12; courses=1; data=5`",
+        "Current migrations: `accounts=12; courses=10; data=5`",
         "Current migrations: `accounts=12; courses=2; data=5`",
         1,
     )

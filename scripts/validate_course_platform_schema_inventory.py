@@ -368,10 +368,10 @@ def _validate_metadata(lines: list[str]) -> None:
         "Models (current adopted target)": "32",
         "Models (pinned CMP)": "26",
         "Models (target overlays)": "6",
-        "Adopted routes": "89",
+        "Adopted routes": "115",
         "Pinned CMP commands": "13",
         "Target-owned commands": "5",
-        "Current command registry": "18",
+        "Current command registry": "22",
     }
     for label, expected_value in expected.items():
         value = _metadata_value(lines, label)
@@ -388,7 +388,7 @@ def _validate_metadata(lines: list[str]) -> None:
         if not UTC_PATTERN.fullmatch(value):
             raise ValidationError(f"{label} must be an explicit UTC timestamp ending in Z")
     migration_values = {
-        "Current migrations": {"accounts": 12, "courses": 1, "data": 5},
+        "Current migrations": {"accounts": 12, "courses": 10, "data": 5},
         "Pinned CMP migrations": {"accounts": 10, "courses": 40, "data": 5},
     }
     for label, expected_counts in migration_values.items():
@@ -496,12 +496,10 @@ def _validate_phase1_schema_source() -> None:
     root = Path.cwd()
     try:
         cohort_source = (root / "courses/models/cohort.py").read_text(encoding="utf-8")
-        migration_source = (root / "courses/migrations/0001_initial.py").read_text(
-            encoding="utf-8"
-        )
+        migration_source = (root / "courses/migrations/0001_initial.py").read_text(encoding="utf-8")
     except OSError as exc:
         raise ValidationError("phase-1 Cohort schema evidence is missing") from exc
-    if not re.search(r"^class Cohort\(models\.Model\):", cohort_source, re.MULTILINE):
+    if not re.search(r"^class Cohort\([^\n]+\):", cohort_source, re.MULTILINE):
         raise ValidationError("phase-1 Cohort model declaration is missing")
     if not re.search(
         r"^\s+outcome\s*=\s*models\.TextField\([^\n]*blank=True[^\n]*\)",
@@ -520,7 +518,7 @@ def _validate_phase1_schema_source() -> None:
 
 def _validate_migration_rows(lines: list[str], audit_path: Path) -> None:
     rows = _table(lines, "## Migration baselines", MIGRATION_COLUMNS)
-    expected = {"accounts": (12, 10), "courses": (1, 40), "data": (5, 5)}
+    expected = {"accounts": (12, 10), "courses": (10, 40), "data": (5, 5)}
     if len(rows) != len(expected):
         raise ValidationError(
             "migration baseline must contain exactly accounts, courses, and data rows"
@@ -620,7 +618,7 @@ def _validate_repository_baselines() -> None:
         raise ValidationError(f"source pin is not valid JSON: {SOURCE_PIN_PATH}") from exc
     if source_pin.get("source_commit") != SOURCE_PIN_COMMIT:
         raise ValidationError("checked-in source pin commit does not match the captured source")
-    expected_current = {"accounts": 12, "courses": 1, "data": 5}
+    expected_current = {"accounts": 12, "courses": 10, "data": 5}
     for app, expected in expected_current.items():
         actual = len(list((root / app / "migrations").glob("[0-9]*.py")))
         if actual != expected:

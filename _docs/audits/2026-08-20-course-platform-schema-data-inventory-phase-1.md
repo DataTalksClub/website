@@ -15,12 +15,12 @@ The 2026-08-14 audit remains historical evidence for the pre-squash Course graph
 - Models (current adopted target): `32`
 - Models (pinned CMP): `26`
 - Models (target overlays): `6`
-- Current migrations: `accounts=12; courses=1; data=5`
+- Current migrations: `accounts=12; courses=10; data=5`
 - Pinned CMP migrations: `accounts=10; courses=40; data=5`
-- Adopted routes: `89`
+- Adopted routes: `115`
 - Pinned CMP commands: `13`
 - Target-owned commands: `5`
-- Current command registry: `18`
+- Current command registry: `22`
 
 The source binding is the checked-in [CMP source pin](../adoption/course-platform/source-pin.json). The pinned ledger, overlay checksums, migration-squash gate, generated route/command inventory, and adoption verification are the evidence authority: [copied-files.tsv](../adoption/course-platform/copied-files.tsv), [integration-patched-files.tsv](../adoption/course-platform/integration-patched-files.tsv), [migration-squash-gate.md](../adoption/course-platform/migration-squash-gate.md), [behavior-inventory.md](../adoption/course-platform/behavior-inventory.md), and [verification.md](../adoption/course-platform/verification.md).
 
@@ -30,7 +30,7 @@ The inventory was made from checked-in source declarations, migration files, man
 
 The current adopted target surface is exactly 32 model classes: 26 classes retained from the pinned CMP baseline and six target-owned overlays. The six overlays are the three account identity/reconciliation classes from [#100](https://github.com/DataTalksClub/website/issues/100) and the three course registration-count aggregate classes from [#133](https://github.com/DataTalksClub/website/issues/133). They are not presented as pinned CMP source.
 
-Migration counts intentionally keep two baselines separate. The phase-1 target graph has 12, 1, and 5 active numbered migrations for `accounts`, `courses`, and `data`; the pinned CMP graph remains 10, 40, and 5. The active `courses` graph is the single squashed `0001_initial` migration, and its retained `courses_course` table is now represented by `Cohort`, including `Cohort.outcome`. The generated adopted behavior inventory remains the route/command authority: 89 routes, 13 pinned CMP commands, five target-owned commands, and an 18-command current registry. This document links that inventory rather than copying its route or command tables.
+Migration counts intentionally keep two baselines separate. The phase-1 target graph has 12, 10, and 5 active numbered migrations for `accounts`, `courses`, and `data`; the pinned CMP graph remains 10, 40, and 5. The active `courses` graph retains the local phase-1 `Course`/`Cohort` schema and its reviewed curriculum migrations, while the `courses_course` table is represented by `Cohort`, including `Cohort.outcome`. The generated adopted behavior inventory remains the route/command authority: 115 routes, 13 pinned CMP commands, five target-owned commands, and a 22-command current registry. This document links that inventory rather than copying its route or command tables.
 
 ## Model/table inventory
 
@@ -83,7 +83,7 @@ The phase-1 rename keeps the existing course table and attaches the new outcome 
 | App | Current numbered migrations | Pinned CMP numbered migrations | Current evidence | Pinned evidence | Distinction |
 | --- | ---: | ---: | --- | --- | --- |
 | accounts | 12 | 10 | [current graph](../../accounts/migrations/0001_initial.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | 0011 identity overlays and 0012 normalized-identity backfill are target additions; no squash |
-| courses | 1 | 40 | [current graph](../../courses/migrations/0001_initial.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | the active phase-1 graph is squashed to 0001; pinned CMP remains at 40 |
+| courses | 10 | 40 | [current graph](../../courses/migrations/0001_initial.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | the active phase-1 graph retains 0001 plus reviewed curriculum migrations; pinned CMP remains at 40 |
 | data | 5 | 5 | [current graph](../../data/migrations/0001_initial.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | Current and pinned numbered graphs have the same count |
 
 The checked-in [migration-squash gate](../adoption/course-platform/migration-squash-gate.md) records the local-only phase-1 squash. The old numbered course migrations remain only in the pinned provenance ledger and the historical 2026-08-14 audit; this inventory does not claim a production upgrade path.
@@ -143,14 +143,14 @@ The classification is one controlled value per edge. Open decision issues are ha
 
 ## Export and compatibility boundaries
 
-The rows below name each exported or compatibility surface without duplicating the 89-route/18-command generated tables. Every row has one classification, provenance, evidence, and a hand-off.
+The rows below name each exported or compatibility surface without duplicating the 115-route/22-command generated tables. Every row has one classification, provenance, evidence, and a hand-off.
 
 | Key | Boundary | Classification | Owner / provenance | Evidence | Hand-off |
 | --- | --- | --- | --- | --- | --- |
 | routes.accounts | 9 account routes mounted from accounts.urls | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #30; #23 |
-| routes.compatibility-api | 29 compatibility API routes mounted from api.urls | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #16; #23 |
+| routes.compatibility-api | 30 compatibility API routes mounted from api.urls | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #16; #23 |
 | routes.studio-courses | 26 Studio Courses routes mounted from studio_courses.urls | side-effect | target-overlay; #116 | [behavior inventory](../adoption/course-platform/behavior-inventory.md); [integration patches](../adoption/course-platform/integration-patches.md) | #14; #16; #23 |
-| routes.public-courses | 25 public course routes mounted from courses.urls | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #14; #15; #16; #23 |
+| routes.public-courses | 50 public course routes mounted from courses.urls | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #14; #15; #16; #23 |
 | export.api-course-criteria | Course criteria YAML export | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #16; #23 |
 | export.api-leaderboard | Leaderboard YAML export | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #16; #23 |
 | export.api-homework-submissions | Homework submissions export | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #16; #23 |
@@ -163,7 +163,7 @@ The rows below name each exported or compatibility surface without duplicating t
 | compat.datamailer-callback | /api/datamailer/events callback history boundary | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md); [verification](../adoption/course-platform/verification.md) | #21; #22; #23 |
 | compat.datamailer-send-audits | /api/datamailer/send-audits history/export boundary | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md); [verification](../adoption/course-platform/verification.md) | #21; #22; #23 |
 | commands.pinned-cmp | 13 pinned CMP management commands | side-effect | pinned-cmp; #30 | [behavior inventory](../adoption/course-platform/behavior-inventory.md) | #21; #22; #23 |
-| commands.target-owned | 5 target-owned commands in the 18-command current registry | side-effect | target-overlay; #100; #107; #128 | [behavior inventory](../adoption/course-platform/behavior-inventory.md); [integration patches](../adoption/course-platform/integration-patches.md) | #15; #21; #22; #23 |
+| commands.target-owned | 5 target-owned commands in the 22-command current registry | side-effect | target-overlay; #100; #107; #128 | [behavior inventory](../adoption/course-platform/behavior-inventory.md); [integration patches](../adoption/course-platform/integration-patches.md) | #15; #21; #22; #23 |
 
 The route and command numbers are observations, not approval to redirect, import, send, or expose data. Authenticated API consumers and legacy-host behavior remain unresolved under #16; Datamailer remains migration/history-only under #21 and #22; privacy and retention remain unresolved under #23.
 
