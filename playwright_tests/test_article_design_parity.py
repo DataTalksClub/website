@@ -9,6 +9,7 @@ push the page sideways at 320px, and the heading anchors are reachable.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -139,6 +140,128 @@ def test_the_body_reads_at_a_measure_and_keeps_its_anchors(
         "(node) => getComputedStyle(node, '::marker').color"
     )
     assert marker != "", marker
+
+
+def test_a_code_sample_can_be_copied_with_accessible_feedback(
+    browser: Browser,
+    live_server,
+) -> None:
+    context = browser.new_context(
+        permissions=["clipboard-read", "clipboard-write"],
+        viewport={"width": 1440, "height": 900},
+    )
+    page = context.new_page()
+    try:
+        response = page.goto(
+            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            wait_until="networkidle",
+        )
+        assert response is not None and response.status == 200
+        _settle_analytics_preferences(page)
+
+        frame = page.locator(".code-block").first
+        expect(frame).to_be_visible()
+        code = frame.locator("pre code")
+        expected = code.text_content() or ""
+        button = frame.get_by_role("button", name="Copy code")
+        expect(button).to_have_text("Copy")
+        button.focus()
+        button.press("Enter")
+
+        expect(frame.get_by_role("status")).to_have_text("Code copied to clipboard.")
+        expect(button).to_have_text("Copied")
+        assert page.evaluate("navigator.clipboard.readText()") == expected
+    finally:
+        context.close()
+
+
+def test_a_copy_failure_explains_the_manual_fallback(
+    browser: Browser,
+    live_server,
+) -> None:
+    context = browser.new_context(viewport={"width": 1440, "height": 900})
+    page = context.new_page()
+    page.add_init_script(
+        """
+        Object.defineProperty(navigator, "clipboard", {
+          configurable: true,
+          value: {writeText: () => Promise.reject(new Error("blocked"))}
+        });
+        """
+    )
+    try:
+        response = page.goto(
+            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            wait_until="networkidle",
+        )
+        assert response is not None and response.status == 200
+        _settle_analytics_preferences(page)
+
+        frame = page.locator(".code-block").first
+        button = frame.get_by_role("button", name="Copy code")
+        button.focus()
+        button.press("Enter")
+
+        expect(frame.get_by_role("status")).to_have_text(
+            "Could not copy code. Select and copy it manually."
+        )
+        expect(button).to_have_text("Try again")
+        expect(button).to_have_class(re.compile(r"\bis-error\b"))
+    finally:
+        context.close()
+
+
+def test_a_code_sample_uses_language_tokens_in_both_themes(
+    page: Page,
+    live_server,
+) -> None:
+    page.set_viewport_size({"width": 1440, "height": 900})
+    response = page.goto(
+        f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+        wait_until="networkidle",
+    )
+    assert response is not None and response.status == 200
+    _settle_analytics_preferences(page)
+
+    code = page.locator(".prose pre code").first
+    expect(code).to_have_attribute("data-code-language", "python")
+    expect(code.locator(".code-token-keyword").first).to_be_visible()
+    expect(code.locator(".code-token-string").first).to_be_visible()
+    expect(code.locator(".code-token-function").first).to_be_visible()
+    light_keyword = code.locator(".code-token-keyword").first.evaluate(
+        "(node) => getComputedStyle(node).color"
+    )
+
+    page.locator("#dark-mode-toggle").click()
+    expect(page.locator("body.dark-mode")).to_have_count(1)
+    dark_keyword = code.locator(".code-token-keyword").first.evaluate(
+        "(node) => getComputedStyle(node).color"
+    )
+    assert light_keyword != dark_keyword
+
+
+def test_a_code_sample_stays_plain_when_javascript_is_disabled(
+    browser: Browser,
+    live_server,
+) -> None:
+    context = browser.new_context(
+        java_script_enabled=False,
+        viewport={"width": 390, "height": 844},
+    )
+    page = context.new_page()
+    try:
+        response = page.goto(
+            f"{live_server.url}/blog/open-source-free-ai-agent-evaluation-tools.html",
+            wait_until="domcontentloaded",
+        )
+        assert response is not None and response.status == 200
+        code = page.locator(".prose pre code").first
+        expect(code).to_be_visible()
+        expect(page.locator(".code-block-copy")).to_have_count(0)
+        expect(page.locator(".code-token-keyword")).to_have_count(0)
+        assert (code.text_content() or "").startswith("from arize.otel import register")
+    finally:
+        context.close()
 
 
 def test_the_article_stays_usable_at_320px_without_javascript(
