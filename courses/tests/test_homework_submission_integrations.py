@@ -2,9 +2,6 @@ from unittest.mock import patch
 
 from django.test import override_settings
 
-from courses.tests.homework_submission_integration_base import (
-    HomeworkSubmissionIntegrationBase,
-)
 from courses.tests.homework_submission_confirmation_helpers import (
     assert_confirmation_context,
     assert_confirmation_payload_basics,
@@ -14,6 +11,9 @@ from courses.tests.homework_submission_confirmation_helpers import (
     confirmation_post_data,
     datamailer_preference_post_data,
     public_base_url_post_data,
+)
+from courses.tests.homework_submission_integration_base import (
+    HomeworkSubmissionIntegrationBase,
 )
 
 
@@ -67,5 +67,5 @@ class HomeworkSubmissionConfirmationTest(HomeworkSubmissionIntegrationBase):
         payload = send_email.call_args.args[0]
         self.assertEqual(
             payload["context"]["update_url"],
-            "https://dev.courses.datatalks.club/course/homework/hw1",
+            f"https://dev.courses.datatalks.club{self.homework_url()}",
         )

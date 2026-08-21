@@ -4,17 +4,13 @@ from courses.models import QuestionTypes
 def confirmation_post_data(test_case):
     return {
         f"answer_{test_case.multiple_choice_question.id}": ["2"],
-        f"answer_{test_case.free_form_question.id}": [
-            "I used pandas and DuckDB."
-        ],
+        f"answer_{test_case.free_form_question.id}": ["I used pandas and DuckDB."],
         f"answer_{test_case.checkbox_question.id}": ["1", "3"],
         "learning_in_public_links[]": ["https://example.com/post"],
         "time_spent_lectures": "2.5",
         "time_spent_homework": "4",
         "problems_comments": "No blockers.",
-        "faq_contribution_url": (
-            "https://github.com/DataTalksClub/faq/pull/1"
-        ),
+        "faq_contribution_url": ("https://github.com/DataTalksClub/faq/pull/1"),
     }
 
 
@@ -43,10 +39,7 @@ def assert_confirmation_payload_basics(test_case, payload, submission):
     test_case.assertEqual(payload["category_tag"], "submission-results")
     test_case.assertEqual(
         payload["idempotency_key"],
-        (
-            f"homework-submission:{submission.id}:"
-            f"{submission.submitted_at.isoformat()}"
-        ),
+        (f"homework-submission:{submission.id}:{submission.submitted_at.isoformat()}"),
     )
     test_case.assertEqual(
         payload["metadata"]["event"],
@@ -59,7 +52,7 @@ def assert_confirmation_context(test_case, payload, submission):
     test_case.assertEqual(context["submission_id"], submission.id)
     test_case.assertEqual(
         context["update_url"],
-        "http://localhost/course/homework/hw1",
+        f"http://localhost{test_case.homework_url()}",
     )
     test_case.assertEqual(
         context["profile_url"],

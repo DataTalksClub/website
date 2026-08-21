@@ -14,6 +14,7 @@ from courses.models import (
     Submission,
     User,
 )
+from courses.views.url_utils import cohort_url_kwargs
 
 
 class HomeworkSubmissionIntegrationBase(TestCase):
@@ -86,7 +87,10 @@ class HomeworkSubmissionIntegrationBase(TestCase):
     def homework_url(self):
         return reverse(
             "homework",
-            args=[self.course.slug, self.homework.slug],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "homework_slug": self.homework.slug,
+            },
         )
 
     def post_homework(self, post_data):
