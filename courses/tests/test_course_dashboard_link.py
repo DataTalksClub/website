@@ -4,7 +4,7 @@ from courses.tests.course_view_base import CourseDetailViewTestBase
 
 
 class CourseDashboardLinkTest(CourseDetailViewTestBase):
-    def test_course_detail_hides_dashboard_until_first_homework_scored(self):
+    def test_course_detail_keeps_dashboard_link_before_first_homework_scored(self):
         route_kwargs = {
             "course_slug": self.course.course.slug,
             "cohort_year": self.course.year,
@@ -14,12 +14,12 @@ class CourseDashboardLinkTest(CourseDetailViewTestBase):
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
-        self.assertNotContains(response, "Course dashboard")
+        self.assertContains(response, "Course dashboard")
         dashboard_url = reverse(
             "dashboard",
             kwargs=route_kwargs,
         )
-        self.assertNotContains(
+        self.assertContains(
             response,
             dashboard_url,
         )

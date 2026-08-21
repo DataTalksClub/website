@@ -1,5 +1,6 @@
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import date
 
 from django.conf import settings
 from django.db.models import Count
@@ -10,6 +11,7 @@ from core.course_index_content import (
     cohort_dates_display,
     enrolled_state_label,
 )
+from core.home_content import course_catalog
 from courses.models.cohort import Cohort
 from courses.models.wrapped import WrappedStatistics
 from courses.services.registration_counts import (
@@ -32,8 +34,47 @@ class CourseListCourses:
     archive_courses_by_year: dict
 
 
+@dataclass(frozen=True)
+class CourseFamilyCard:
+    """One catalogue row for a reusable course family.
+
+    The family owns the copy shown on the card.  The selected cohort supplies
+    the edition-specific facts that the catalogue already exposes, such as
+    dates, registration state, assignments, and enrolment state.
+    """
+
+    family: object
+    cohort: Cohort
+    cohorts: tuple[Cohort, ...]
+    status: str
+
+    @property
+    def title(self) -> str:
+        return self.family.title
+
+    @property
+    def outcome(self) -> str:
+        return getattr(self.family, "outcome", "") or ""
+
+    @property
+    def edition_label(self) -> str:
+        if self.status == "active":
+            return "Current edition"
+        if self.status == "open_registration":
+            return "Next edition"
+        return "Latest edition"
+
+    @property
+    def github_repo_url(self) -> str:
+        return (
+            getattr(self.family, "github_repo_url", "")
+            or getattr(self.cohort, "github_repo_url", "")
+            or ""
+        )
+
+
 def visible_course_list_queryset():
-    courses = Cohort.objects.filter(visible=True)
+    courses = Cohort.objects.filter(visible=True, course__visible=True)
     homework_count = Count("homework", distinct=True)
     project_count = Count("project", distinct=True)
     learner_count = Count("enrollment", distinct=True)
@@ -75,6 +116,23 @@ def split_courses_by_status(courses, now):
 
 
 def featured_course(active_courses):
+    active_by_family_slug = {
+        course.course.slug: course
+        for course in active_courses
+        if getattr(course, "course", None) is not None
+    }
+    active_by_cohort_slug = {course.slug: course for course in active_courses}
+    for catalog_course in course_catalog():
+        shared_course = active_by_family_slug.get(
+            getattr(catalog_course, "family", "")
+        )
+        if shared_course is None:
+            # Keep the existing projection bridge working while old source
+            # records still expose an edition slug as their public identity.
+            shared_course = active_by_cohort_slug.get(catalog_course.slug)
+        if shared_course is not None:
+            return shared_course
+
     for course in active_courses:
         title = course.title.lower()
         if not title.startswith("fake"):
@@ -134,6 +192,69 @@ def other_active_courses(active_courses, featured_course):
         if course != featured_course:
             other_courses.append(course)
     return other_courses
+
+
+def _cohort_recency_key(cohort):
+    return (
+        cohort.year,
+        cohort.start_date or date.min,
+        cohort.end_date or date.min,
+        cohort.id,
+    )
+
+
+def course_family_cards(course_groups: CourseListCourses) -> list[CourseFamilyCard]:
+    """Collapse visible cohort editions into one family card each.
+
+    A live edition wins over an upcoming edition, and an upcoming edition wins
+    over an archived one.  Within a status, the newest edition is the public
+    route represented by the card.
+    """
+
+    cohorts_by_family = defaultdict(list)
+    for cohort in course_groups.courses:
+        cohorts_by_family[cohort.course_id].append(cohort)
+
+    active_ids = {cohort.id for cohort in course_groups.active_courses}
+    open_ids = {cohort.id for cohort in course_groups.open_registration_courses}
+    finished_ids = {cohort.id for cohort in course_groups.finished_courses}
+
+    cards = []
+    for cohorts in cohorts_by_family.values():
+        active = [cohort for cohort in cohorts if cohort.id in active_ids]
+        open_registration = [
+            cohort for cohort in cohorts if cohort.id in open_ids
+        ]
+        finished = [cohort for cohort in cohorts if cohort.id in finished_ids]
+
+        if active:
+            status = "active"
+            candidates = active
+        elif open_registration:
+            status = "open_registration"
+            candidates = open_registration
+        else:
+            status = "finished"
+            candidates = finished
+
+        representative = max(candidates, key=_cohort_recency_key)
+        cards.append(
+            CourseFamilyCard(
+                family=representative.course,
+                cohort=representative,
+                cohorts=tuple(sorted(cohorts, key=_cohort_recency_key, reverse=True)),
+                status=status,
+            )
+        )
+
+    return cards
+
+
+def course_family_archive_groups(cards):
+    archive_courses_by_year = defaultdict(list)
+    for card in cards:
+        archive_courses_by_year[card.cohort.home_year].append(card)
+    return course_archive_groups(archive_courses_by_year)
 
 
 def prepare_course_list_courses(user):
@@ -237,14 +358,42 @@ def course_list_context(request):
     for course in course_groups.open_registration_courses:
         course.index_registered = registered_learner_count(course)
 
-    selected_featured_course = featured_course(course_groups.active_courses)
-    archive_groups = course_archive_groups(
-        course_groups.archive_courses_by_year
+    family_cards = course_family_cards(course_groups)
+    active_family_cards = [
+        card for card in family_cards if card.status == "active"
+    ]
+    open_registration_family_cards = [
+        card for card in family_cards if card.status == "open_registration"
+    ]
+    finished_family_cards = [
+        card for card in family_cards if card.status == "finished"
+    ]
+
+    selected_featured_course = featured_course(
+        [card.cohort for card in active_family_cards]
+    )
+    selected_featured_card = next(
+        (
+            card
+            for card in active_family_cards
+            if card.cohort == selected_featured_course
+        ),
+        None,
     )
     secondary_active_courses = other_active_courses(
-        course_groups.active_courses,
+        [card.cohort for card in active_family_cards],
         selected_featured_course,
     )
+    secondary_active_family_cards = [
+        card for card in active_family_cards if card is not selected_featured_card
+    ]
+    displayed_active_family_cards = secondary_active_family_cards
+    if selected_featured_card is not None:
+        displayed_active_family_cards = [
+            selected_featured_card,
+            *secondary_active_family_cards,
+        ]
+    archive_groups = course_family_archive_groups(finished_family_cards)
     home_stats = course_home_stats(
         course_groups.courses,
         course_groups.active_courses,
@@ -252,12 +401,23 @@ def course_list_context(request):
     )
 
     context = {
-        "active_courses": course_groups.active_courses,
-        "open_registration_courses": course_groups.open_registration_courses,
+        # Keep the cohort lists available to existing context consumers while
+        # the page itself renders the family-card lists below.
+        "active_courses": [
+            card.cohort for card in displayed_active_family_cards
+        ],
+        "open_registration_courses": [
+            card.cohort for card in open_registration_family_cards
+        ],
         "archive_groups": archive_groups,
         "featured_course": selected_featured_course,
-        "finished_courses": course_groups.finished_courses,
+        "finished_courses": [card.cohort for card in finished_family_cards],
         "other_active_courses": secondary_active_courses,
+        "course_family_cards": family_cards,
+        "active_course_cards": displayed_active_family_cards,
+        "open_registration_course_cards": open_registration_family_cards,
+        "finished_course_cards": finished_family_cards,
+        "featured_course_card": selected_featured_card,
         "home_stats": home_stats,
         "show_active_courses": True,
         "show_open_registration": True,

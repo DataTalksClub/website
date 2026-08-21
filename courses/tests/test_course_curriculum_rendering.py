@@ -86,7 +86,7 @@ class CoursePageCurriculumRenderingTests(TestCase):
         self.assertNotContains(response, 'id="curriculum-flow-heading"')
         self.assertNotContains(response, 'class="row-list course-flow"')
 
-    def test_module_flow_orders_modules_projects_units_and_terminal_homework(self):
+    def test_module_flow_orders_modules_projects_and_terminal_homework(self):
         cohort = self.make_cohort("module-rendering", CurriculumFormat.MODULES)
         homework_a = self.make_homework(
             cohort,
@@ -192,13 +192,9 @@ class CoursePageCurriculumRenderingTests(TestCase):
 
         ordered_titles = (
             "Module A",
-            "Module A Unit 1",
-            "Module A Unit 2",
             "Module A Homework",
             "Project X",
             "Module B",
-            "Module B Unit 1",
-            "Module B Unit 2",
             "Module B Homework",
             "Project Y",
         )
@@ -219,12 +215,11 @@ class CoursePageCurriculumRenderingTests(TestCase):
         self.assertContains(
             response,
             reverse(
-                "unit",
+                "module",
                 kwargs={
                     "course_slug": cohort.course.slug,
                     "cohort_identifier": cohort.identifier,
                     "module_slug": module_b.slug,
-                    "unit_slug": "module-b-unit-1",
                 },
             ),
         )

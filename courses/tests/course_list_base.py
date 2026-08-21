@@ -135,7 +135,9 @@ class CourseListViewTestBase(TestCase):
     def configure_active_course_metadata(self):
         self.course.start_date = timezone.datetime(2026, 1, 15).date()
         self.course.end_date = timezone.datetime(2026, 4, 15).date()
-        self.course.description = "Database-provided course summary."
+        self.course.description = "Edition description should not be shown."
+        self.course.course.outcome = "Database-provided course summary."
+        self.course.course.save(update_fields=["outcome"])
         self.course.registration_url = (
             "https://courses.datatalks.club/test-course/register"
         )

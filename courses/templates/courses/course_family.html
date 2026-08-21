@@ -1,25 +1,199 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script>
+      document.documentElement.classList.remove("no-js");
+      document.documentElement.classList.add("js");
+    </script>
     <title>{{ course_family.title }} — DataTalks.Club</title>
     <meta name="description" content="{{ course_family.description|striptags|truncatechars:180 }}">
+    <style>
+      {% include "core/_design_system.html" %}
+
+      :root {
+        --page: var(--lavender);
+      }
+
+      .family-hero .breadcrumbs {
+        margin-bottom: 0.35rem;
+        margin-top: -0.85rem;
+      }
+
+      .family-hero-inner {
+        padding-bottom: 3.25rem;
+        padding-top: 2rem;
+      }
+
+      .family-hero h1 {
+        font-size: clamp(2rem, 5vw, 3.4rem);
+        max-width: 44rem;
+      }
+
+      .family-lede {
+        font-size: clamp(1rem, 1.7vw, 1.15rem);
+        margin-top: 0.9rem;
+        max-width: 44rem;
+      }
+
+      .family-editions-band {
+        padding-block: 3rem 4rem;
+      }
+
+      .family-editions {
+        display: grid;
+        gap: 1rem;
+        margin-top: 1.5rem;
+      }
+
+      .family-edition {
+        background: var(--card);
+        border: 2px solid var(--line);
+        box-shadow: 0.28rem 0.28rem 0 var(--shadow-soft);
+        padding: 1.25rem;
+      }
+
+      .family-edition-head {
+        align-items: flex-start;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+      }
+
+      .family-edition-label {
+        color: var(--muted);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.35rem;
+        text-transform: uppercase;
+      }
+
+      .family-edition h2 {
+        font-size: clamp(1.25rem, 2vw, 1.65rem);
+      }
+
+      .family-edition h2 a,
+      .family-project a {
+        color: var(--ink);
+      }
+
+      .family-projects {
+        margin-top: 1.5rem;
+      }
+
+      .family-projects h3 {
+        font-size: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .family-project {
+        align-items: baseline;
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+      }
+
+      .family-project-state {
+        color: var(--muted);
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        text-transform: uppercase;
+      }
+
+      .family-empty {
+        color: var(--muted);
+        margin-top: 1.5rem;
+      }
+
+      @media (max-width: 42rem) {
+        .family-edition-head,
+        .family-project {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 0.65rem;
+        }
+
+        .family-project-state {
+          order: 2;
+        }
+      }
+    </style>
   </head>
-  <body>
-    <main>
-      <p><a href="{% url 'course_list' %}">Courses</a></p>
-      <h1>{{ course_family.title }}</h1>
-      {% if course_family.description %}<p>{{ course_family.description }}</p>{% endif %}
-      <h2>Cohorts</h2>
-      <ul>
-        {% for cohort in cohorts %}
-          <li><a href="{% url 'course' course_family.slug cohort.identifier %}">{{ cohort.title }}</a></li>
-        {% empty %}
-          <li>No cohorts are available yet.</li>
-        {% endfor %}
-      </ul>
+  <body
+    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
+    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
+    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
+    data-toggle-url="{% url 'toggle_dark_mode' %}"
+  >
+    {% include "core/_site_shell_head.html" %}
+    <main id="main-content" tabindex="-1">
+      <section class="band band-cream family-hero" aria-labelledby="family-heading">
+        <nav class="shell shell-reading breadcrumbs" aria-label="Breadcrumb">
+          <ol>
+            <li><a href="{% url 'course_list' %}">Courses</a></li>
+            <li aria-current="page">{{ course_family.title }}</li>
+          </ol>
+        </nav>
+        <div class="shell shell-reading family-hero-inner">
+          <h1 id="family-heading">{{ course_family.title }}</h1>
+          {% if course_family.description %}
+            <div class="family-lede">{{ course_family.description }}</div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="band band-lavender family-editions-band" aria-labelledby="editions-heading">
+        <div class="shell shell-reading">
+          <div class="band-head">
+            <div>
+              <h2 id="editions-heading">Cohort editions</h2>
+              <p>Choose an edition to see its schedule, curriculum, and learner work.</p>
+            </div>
+          </div>
+
+          {% if cohort_editions %}
+            <div class="family-editions">
+              {% for edition in cohort_editions %}
+                <article class="family-edition" aria-labelledby="edition-{{ edition.cohort.identifier|slugify }}">
+                  <div class="family-edition-head">
+                    <div>
+                      <p class="family-edition-label">Cohort {{ edition.cohort.identifier }}</p>
+                      <h2 id="edition-{{ edition.cohort.identifier|slugify }}">
+                        <a href="{% url 'course' course_family.slug edition.cohort.identifier %}">{{ edition.cohort.title }}</a>
+                      </h2>
+                    </div>
+                    {% url 'course' course_family.slug edition.cohort.identifier as edition_url %}
+                    {% include "core/_button.html" with href=edition_url label="View cohort" variant="secondary" compact=True %}
+                  </div>
+
+                  {% if edition.projects %}
+                    <div class="family-projects">
+                      <h3>Projects</h3>
+                      <ul class="row-list" role="list">
+                        {% for project in edition.projects %}
+                          <li class="list-row family-project">
+                            <a href="{% url 'project' course_slug=course_family.slug cohort_year=edition.cohort.identifier project_slug=project.slug %}">{{ project.title }}</a>
+                            <span class="family-project-state">{{ project.get_state_display }}</span>
+                          </li>
+                        {% endfor %}
+                      </ul>
+                    </div>
+                  {% else %}
+                    <p class="family-empty">No projects are available for this edition yet.</p>
+                  {% endif %}
+                </article>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="family-empty">No cohorts are available yet.</p>
+          {% endif %}
+        </div>
+      </section>
     </main>
+    {% include "core/_site_shell_foot.html" %}
   </body>
 </html>

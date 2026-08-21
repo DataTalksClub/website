@@ -3,18 +3,18 @@ from dataclasses import dataclass
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 
-from courses.models.cohort import (
-    Course,
-    Cohort,
-    CurriculumFormat,
-    CourseRegistration,
-    Enrollment,
-    RegistrationCampaign,
-)
 from courses.course_page_content import (
     course_modules,
     course_specs,
     submission_progress,
+)
+from courses.models.cohort import (
+    Cohort,
+    Course,
+    CourseRegistration,
+    CurriculumFormat,
+    Enrollment,
+    RegistrationCampaign,
 )
 from courses.models.project import ProjectState
 from courses.services.curriculum_flow import build_curriculum_flow
@@ -32,6 +32,14 @@ class CoursePageData:
     homeworks: list
     projects: list
     registration_campaign: object
+
+
+@dataclass(frozen=True)
+class CourseFamilyEdition:
+    """Public data for one visible edition on a course-family page."""
+
+    cohort: Cohort
+    projects: list
 
 
 def active_registration_campaign_for_course(
@@ -187,6 +195,13 @@ def course_page_context(data: CoursePageData) -> dict:
         "is_authenticated": data.user.is_authenticated,
         "registration_campaign": data.registration_campaign,
     }
+    course_editions = visible_course_editions(data.course)
+    context["course_editions"] = course_editions
+    context["other_course_editions"] = [
+        edition
+        for edition in course_editions
+        if edition.pk != data.course.pk
+    ]
     user_context = course_user_context(
         data.user,
         data.course,
@@ -230,4 +245,40 @@ def course_family_page_data(course_slug: str):
         Course.objects.prefetch_related("cohorts"),
         slug=course_slug,
         visible=True,
+    )
+
+
+def visible_course_editions(course: Cohort) -> list[Cohort]:
+    """Return the visible editions in the family, newest first."""
+
+    return list(
+        Cohort.objects.filter(
+            course=course.course,
+            visible=True,
+        ).order_by("-year", "-id")
+    )
+
+
+def course_family_page_context(family: Course, user) -> dict:
+    """Build the family landing context without changing cohort view logic."""
+
+    editions = [
+        CourseFamilyEdition(
+            cohort=cohort,
+            projects=get_projects_for_course(cohort, user),
+        )
+        for cohort in visible_course_editions_for_family(family)
+    ]
+    return {
+        "course_family": family,
+        "cohorts": [edition.cohort for edition in editions],
+        "cohort_editions": editions,
+    }
+
+
+def visible_course_editions_for_family(family: Course) -> list[Cohort]:
+    """Return only public editions for the family landing page."""
+
+    return list(
+        family.cohorts.filter(visible=True).order_by("-year", "-id")
     )

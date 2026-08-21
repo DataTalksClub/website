@@ -1,12 +1,12 @@
 from django.http import Http404, HttpRequest, HttpResponse
-
-from django.shortcuts import render, redirect
+from django.shortcuts import redirect, render
 
 from courses.views.course_page_context import (
     CoursePageData,
+    course_family_page_context,
+    course_family_page_data,
     course_page_context,
     course_page_data,
-    course_family_page_data,
     should_redirect_to_registration_campaign,
 )
 
@@ -52,9 +52,9 @@ def course_family_view(request: HttpRequest, course_slug: str) -> HttpResponse:
         # A small fixture/management shim for old edition-slug requests. Public
         # links are generated from the family/identifier route below.
         return course_view(request, course_slug)
-    cohorts = family.cohorts.filter(visible=True).order_by("-year", "-id")
+    context = course_family_page_context(family, request.user)
     return render(
         request,
         "courses/course_family.html",
-        {"course_family": family, "cohorts": cohorts},
+        context,
     )

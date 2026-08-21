@@ -215,7 +215,8 @@
       /* --- module flow -------------------------------------------------- */
 
       /* Module cohorts use the same row vocabulary as the legacy assignment
-         lists, with nested unit rows and the terminal homework kept visible. */
+         lists. The module row opens the module reader; its units stay on that
+         focused page, while the terminal homework remains visible in the flow. */
       .course-flow {
         --row-cols: minmax(0, 1fr);
       }
@@ -231,10 +232,6 @@
 
       .course-flow-module h3 {
         font-size: 1.2rem;
-      }
-
-      .course-flow-units .list-row {
-        padding-block: 0.65rem;
       }
 
       .course-flow-terminal {
@@ -407,9 +404,10 @@
             <li>
               <a href="{% url 'course_list' %}">Courses</a>
             </li>
-            <li aria-current="page">
-              {{ course.title }}
+            <li>
+              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
             </li>
+            <li aria-current="page">{{ course.identifier }}</li>
           </ol>
         </nav>
         <div class="shell shell-reading course-hero-inner">
@@ -433,14 +431,12 @@
             {% if course.github_repo_url %}
               {% include "core/_button.html" with href=course.github_repo_url label="Course materials on GitHub" variant="secondary" compact=True target="_blank" rel="noopener noreferrer" %}
             {% endif %}
-            {% if course.first_homework_scored %}
-              {% url 'leaderboard' course.course.slug course.identifier as course_leaderboard_url %}
-              {% include "core/_button.html" with href=course_leaderboard_url label="Course leaderboard" variant="secondary" compact=True %}
-            {% endif %}
-            {% if course.first_homework_scored %}
-              {% url 'dashboard' course.course.slug course.identifier as course_dashboard_url %}
-              {% include "core/_button.html" with href=course_dashboard_url label="Course dashboard" variant="secondary" compact=True %}
-            {% endif %}
+            {% url 'leaderboard' course.course.slug course.identifier as course_leaderboard_url %}
+            {% include "core/_button.html" with href=course_leaderboard_url label="Course leaderboard" variant="secondary" compact=True %}
+            {% url 'dashboard' course.course.slug course.identifier as course_dashboard_url %}
+            {% include "core/_button.html" with href=course_dashboard_url label="Course dashboard" variant="secondary" compact=True %}
+            {% url 'list_all_project_submissions' course.course.slug course.identifier as project_submissions_url %}
+            {% include "core/_button.html" with href=project_submissions_url label="Project submissions" variant="secondary" compact=True %}
             {% if is_authenticated and has_enrollment %}
               {% url 'enrollment' course.course.slug course.identifier as enrollment_url %}
               {% include "core/_button.html" with href=enrollment_url label="Edit course profile" variant="secondary" compact=True %}
@@ -528,31 +524,10 @@
                     {% if flow_item.kind == "module" %}
                       <li class="list-row course-flow-module">
                         <div>
-                          {% if flow_item.module.link %}
-                            <h3>
-                              <a class="band-link" href="{{ flow_item.module.link }}">{{ flow_item.module.title }}</a>
-                            </h3>
-                          {% else %}
-                            <h3>{{ flow_item.module.title }}</h3>
-                          {% endif %}
-                          {% if flow_item.units %}
-                            <ol
-                              class="row-list course-flow-units"
-                              role="list"
-                              aria-label="{{ flow_item.module.title }} units"
-                            >
-                              {% for unit in flow_item.units %}
-                                <li class="list-row">
-                                  {% if unit.link %}
-                                    <a class="band-link" href="{{ unit.link }}">{{ unit.title }}</a>
-                                  {% else %}
-                                    {% url 'unit' course.course.slug course.identifier flow_item.module.slug unit.slug as unit_url %}
-                                    <a class="band-link" href="{{ unit_url }}">{{ unit.title }}</a>
-                                  {% endif %}
-                                </li>
-                              {% endfor %}
-                            </ol>
-                          {% endif %}
+                          <h3>
+                            {% url 'module' course.course.slug course.identifier flow_item.module.slug as module_url %}
+                            <a class="band-link" href="{{ module_url }}">{{ flow_item.module.title }}</a>
+                          </h3>
                           <div class="course-flow-terminal">
                             <p class="mono-label">Homework</p>
                             <div class="row-list course-rows">
@@ -779,6 +754,24 @@
               <p>There are no homeworks or projects available for this course yet. Come back later.</p>
             </div>
           {% endif %}
+          {% endif %}
+          {% if other_course_editions %}
+            <section aria-labelledby="other-editions-heading">
+              <div class="band-head band-head-secondary">
+                <div>
+                  <h2 id="other-editions-heading">Other editions</h2>
+                  <p>Explore previous and other cohorts of {{ course_family.title }}.</p>
+                </div>
+              </div>
+              <div class="row-list course-rows">
+                {% for edition in other_course_editions %}
+                  <div class="list-row">
+                    <a class="course-row-title band-link" href="{% url 'course' course_family.slug edition.identifier %}">{{ edition.title }}</a>
+                    <span class="mono-note">{{ edition.identifier }}</span>
+                  </div>
+                {% endfor %}
+              </div>
+            </section>
           {% endif %}
           <section aria-labelledby="next-heading">
             <h2 id="next-heading" class="sr-only">Registration and deadlines</h2>

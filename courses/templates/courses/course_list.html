@@ -365,48 +365,52 @@
               </div>
               {% if active_courses %}
                 <div class="active-list">
-                  {% for course in active_courses %}
+                  {% for card in active_course_cards %}
                     {% comment %}
                       One column at reading width: run facts (dates, enrolment) in the
                       head row, the title as the link, the description, the deadline
                       panel, and the actions last.  The band heading already announces
                       the active state, so the card repeats no "active" pill.
                     {% endcomment %}
+                    {% url 'course_family' card.family.slug as family_url %}
+                    {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
                     <article class="card active-card"
                              role="link"
                              tabindex="0"
-                             onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.identifier %}'"
-                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.identifier %}'; }">
-                      {% if course.index_when or course.index_enrolled_state %}
+                             onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
+                             onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ edition_url }}'; }">
+                      {% if card.cohort.index_when or card.cohort.index_enrolled_state %}
                         <div class="active-card-head">
-                          {% if course.index_when %}
-                            <span class="mono-note">{{ course.index_when }}</span>
+                          {% if card.cohort.index_when %}
+                            <span class="mono-note">{{ card.cohort.index_when }}</span>
                           {% endif %}
-                          {% if course.index_enrolled_state %}
-                            <span class="status-pill">{{ course.index_enrolled_state }}</span>
+                          {% if card.cohort.index_enrolled_state %}
+                            <span class="status-pill">{{ card.cohort.index_enrolled_state }}</span>
                           {% endif %}
                         </div>
                       {% endif %}
                       <h3>
-                        <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
+                        <a href="{{ edition_url }}">{{ card.title }}</a>
                       </h3>
-                      {% if course.home_outcome %}
-                        <p>{{ course.home_outcome }}</p>
+                      {% if card.outcome %}
+                        <p>{{ card.outcome }}</p>
                       {% endif %}
-                      {% if course.home_current_assignment %}
+                      {% if card.cohort.home_current_assignment %}
                         <div class="panel panel-mint panel-outlined assignment-panel">
                           <div class="assignment-head">
-                            <span class="mono-label mono-label-green">{{ course.home_current_assignment_label }}</span>
-                            <span class="mono-note">due {{ course.home_current_assignment.due_date|user_datetime:request }}</span>
+                            <span class="mono-label mono-label-green">{{ card.cohort.home_current_assignment_label }}</span>
+                            <span class="mono-note">due {{ card.cohort.home_current_assignment.due_date|user_datetime:request }}</span>
                           </div>
-                          <span class="assignment-title">{{ course.home_current_assignment.label }}: {{ course.home_current_assignment.title }}</span>
+                          <span class="assignment-title">{{ card.cohort.home_current_assignment.label }}: {{ card.cohort.home_current_assignment.title }}</span>
                         </div>
                       {% endif %}
-                      {% if course.github_repo_url %}
-                        <div class="active-actions">
-                          <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>
-                        </div>
-                      {% endif %}
+                      <div class="active-actions">
+                        <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
+                        <a class="row-action" href="{{ family_url }}">All editions</a>
+                        {% if card.github_repo_url %}
+                          <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
+                        {% endif %}
+                      </div>
                     </article>
                   {% endfor %}
                 </div>
@@ -428,32 +432,35 @@
                 </div>
               </div>
               <div class="card-grid card-grid-2">
-                {% for course in open_registration_courses %}
+                {% for card in open_registration_course_cards %}
+                  {% url 'course_family' card.family.slug as family_url %}
+                  {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
                   <article class="card course-card"
                            role="link"
                            tabindex="0"
-                           onclick="if (!event.target.closest('a, button')) window.location.href='{% url 'course' course.course.slug course.identifier %}'"
-                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{% url 'course' course.course.slug course.identifier %}'; }">
+                           onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
+                           onkeydown="if ((event.key === 'Enter' || event.key === ' ') && !event.target.closest('a, button')) { event.preventDefault(); window.location.href='{{ family_url }}'; }">
                     <div class="course-card-head">
                       <span class="status-pill status-pill-open">registration open</span>
-                      {% if course.index_dates %}
-                        <span class="mono-note">{{ course.index_dates }}</span>
+                      {% if card.cohort.index_dates %}
+                        <span class="mono-note">{{ card.cohort.index_dates }}</span>
                       {% endif %}
                     </div>
                     <h3>
-                        <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
+                        <a href="{{ family_url }}">{{ card.title }}</a>
                     </h3>
-                    {% if course.home_outcome %}
-                      <p>{{ course.home_outcome }}</p>
+                    {% if card.outcome %}
+                      <p>{{ card.outcome }}</p>
                     {% endif %}
                     <div class="course-card-foot">
-                      {% if course.index_registered %}
-                        <span class="course-card-registered">{{ course.index_registered }} registered</span>
+                      <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
+                      {% if card.cohort.index_registered %}
+                        <span class="course-card-registered">{{ card.cohort.index_registered }} registered</span>
                       {% endif %}
-                      {% if course.registration_campaign and not course.is_enrolled and not course.is_registered %}
-                        <a class="cta cta-primary cta-compact" href="{% url 'registration_campaign' course.registration_campaign.slug %}">Register</a>
-                      {% elif course.home_registration_open and not course.is_enrolled %}
-                        <a class="cta cta-primary cta-compact" href="{{ course.registration_url }}">Register</a>
+                      {% if card.cohort.registration_campaign and not card.cohort.is_enrolled and not card.cohort.is_registered %}
+                        <a class="cta cta-primary cta-compact" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
+                      {% elif card.cohort.home_registration_open and not card.cohort.is_enrolled %}
+                        <a class="cta cta-primary cta-compact" href="{{ card.cohort.registration_url }}">Register</a>
                       {% endif %}
                     </div>
                   </article>
@@ -478,33 +485,37 @@
                 <section class="finished-group" aria-labelledby="finished-{{ group.year|slugify }}">
                   <h3 class="finished-year" id="finished-{{ group.year|slugify }}">{{ group.year }}</h3>
                   <div class="row-list">
-                    {% for course in group.courses %}
+                    {% for card in group.courses %}
                       {% comment %}
                         The last two columns are `auto` rather than fractions: at
                         reading width four fixed shares left the titles wrapping to
                         three lines beside an actions column that is empty for every
                         course without a public repository.
                       {% endcomment %}
+                      {% url 'course_family' card.family.slug as family_url %}
+                      {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
                       <div class="list-row" style="--row-cols: 1.6fr 1.4fr auto auto">
                         <div>
                           <h4 class="course-row-title">
-                            <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
+                            <a href="{{ edition_url }}">{{ card.title }}</a>
                           </h4>
-                          {% if course.index_length %}
-                            <p class="course-row-length">{{ course.index_length }}</p>
+                          {% if card.cohort.index_length %}
+                            <p class="course-row-length">{{ card.cohort.index_length }}</p>
                           {% endif %}
                         </div>
-                        <p class="course-row-description">{{ course.home_outcome }}</p>
+                        <p class="course-row-description">{{ card.outcome }}</p>
                         <div>
-                          {% if course.is_enrolled %}
+                          {% if card.cohort.is_enrolled %}
                             <span class="status-pill">enrolled</span>
                           {% else %}
                             <span class="status-pill status-pill-wait">finished</span>
                           {% endif %}
                         </div>
                         <div class="course-row-actions">
-                          {% if course.github_repo_url %}
-                            <a class="row-action" href="{{ course.github_repo_url }}">GitHub</a>
+                          <a class="row-action" href="{{ edition_url }}">{{ card.edition_label }} · {{ card.cohort.identifier }} →</a>
+                          <a class="row-action" href="{{ family_url }}">All editions</a>
+                          {% if card.github_repo_url %}
+                            <a class="row-action" href="{{ card.github_repo_url }}">GitHub</a>
                           {% endif %}
                         </div>
                       </div>
