@@ -38,7 +38,7 @@ def test_runner_uses_only_allowlisted_argument_vectors(tmp_path) -> None:
 
 def test_runner_uses_complete_suites_for_full_plan(tmp_path) -> None:
     full = plan_for(tmp_path, {"api/templates/api/page.html": "changed\n"})
-    assert command_for(full, "django") == ("make", "test")
+    assert command_for(full, "django") == ("make", "test-django-full")
     assert command_for(full, "playwright") == ("make", "test-playwright")
 
 

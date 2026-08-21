@@ -193,7 +193,7 @@ def command_for(plan: Mapping[str, Any], component: str) -> tuple[str, ...]:
         return ("make", "verification-content-invariants")
     if component == "django":
         if plan["profile"] == "full":
-            return ("make", "test")
+            return ("make", "test-django-full")
         if not plan["test_labels"]:
             raise RunnerError("focused Django verification requires selected test labels")
         return ("make", "test-ci-focused")

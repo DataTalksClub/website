@@ -54,6 +54,7 @@ jobs:
           uv run --frozen python -m ci.verification plan \
             --repository . --base "$GITHUB_SHA" --head "$GITHUB_SHA" \
             --selection .tmp/scheduled/ci-selection.json --consumer ci \
+            --full-django-command "make test" \
             --output .tmp/scheduled/verification-plan.json \
             --summary "$GITHUB_STEP_SUMMARY"
           uv run --frozen python -m ci.verification environment \
