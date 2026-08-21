@@ -193,7 +193,13 @@ class DesignFiveAShellTests(TestCase):
         return {
             "home": reverse("home"),
             "courses index": reverse("course_list"),
-            "course page": reverse("course", kwargs={"course_slug": self.course.slug}),
+            "course page": reverse(
+                "course",
+                kwargs={
+                    "course_slug": self.course.course.slug,
+                    "cohort_year": self.course.identifier,
+                },
+            ),
             "events index": reverse("events"),
             "past events": reverse("events-past"),
             "event page": self.event["public_path"],
