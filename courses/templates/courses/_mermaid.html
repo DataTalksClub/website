@@ -1,0 +1,25 @@
+{% load static %}
+{% comment %}
+  Mermaid is included only by Markdown-backed course unit pages. The loader is
+  deliberately small and self-guards before importing the self-hosted runtime,
+  so a unit without a diagram does not download Mermaid.
+{% endcomment %}
+<style>
+  .prose div.mermaid {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .prose div.mermaid > svg {
+    max-width: none;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .prose div.mermaid:not([data-processed]) {
+    white-space: pre;
+  }
+</style>
+<script type="module" src="{% static 'courses/mermaid_render.js' %}" defer></script>

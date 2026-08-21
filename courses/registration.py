@@ -1,3 +1,4 @@
+import html
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -103,6 +104,7 @@ ALLOWED_MARKDOWN_TAGS = [
     "blockquote",
     "br",
     "code",
+    "div",
     "em",
     "h1",
     "h2",
@@ -116,7 +118,23 @@ ALLOWED_MARKDOWN_TAGS = [
     "strong",
     "ul",
 ]
-ALLOWED_MARKDOWN_ATTRIBUTES = {"a": ["href", "title", "rel", "target"]}
+ALLOWED_MARKDOWN_ATTRIBUTES = {
+    "a": ["href", "title", "rel", "target"],
+    "div": ["class"],
+}
+
+
+class _CourseMarkdownRenderer(mistune.HTMLRenderer):
+    """Render Mermaid fences as inert, escaped source for the browser runtime."""
+
+    def block_code(self, code: str, info: str | None = None) -> str:
+        language = (info or "").strip().partition(" ")[0].lower()
+        if language == "mermaid":
+            return f'<div class="mermaid">{html.escape(code)}</div>\n'
+        return super().block_code(code, info)
+
+
+_COURSE_MARKDOWN = mistune.create_markdown(renderer=_CourseMarkdownRenderer())
 
 
 def region_for_country(country):
@@ -127,13 +145,19 @@ def render_markdown(markdown_text):
     if not markdown_text:
         return ""
 
-    html = mistune.html(markdown_text)
+    rendered_html = _COURSE_MARKDOWN(markdown_text)
     return bleach.clean(
-        html,
+        rendered_html,
         tags=ALLOWED_MARKDOWN_TAGS,
         attributes=ALLOWED_MARKDOWN_ATTRIBUTES,
         protocols=["http", "https", "mailto"],
     )
+
+
+def markdown_has_mermaid(rendered_html: str) -> bool:
+    """Return whether rendered course Markdown needs the Mermaid runtime."""
+
+    return '<div class="mermaid">' in rendered_html
 
 
 def _youtube_watch_video_id(url):

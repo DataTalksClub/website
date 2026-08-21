@@ -94,3 +94,6 @@
 <script src="{% static 'core/site_navigation.js' %}"></script>
 <script src="{% static 'core/accessibility.js' %}"></script>
 <script src="{% static 'core/analytics_preferences.js' %}"></script>
+{% if unit %}
+  {% include "courses/_mermaid.html" %}
+{% endif %}
