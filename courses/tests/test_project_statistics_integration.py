@@ -14,6 +14,7 @@ from courses.models import (
     ProjectSubmission,
     User,
 )
+from courses.views.url_utils import cohort_url_kwargs
 
 credentials = dict(
     username="test@test.com",
@@ -202,7 +203,10 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
     def project_statistics_url(self):
         return reverse(
             "project_statistics",
-            args=[self.course.slug, self.project.slug],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+            },
         )
 
     def assert_statistics_view_content(self, response):
@@ -226,11 +230,17 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
     def assert_statistics_link_absent(self, project, view_name):
         stats_url = reverse(
             "project_statistics",
-            args=[self.course.slug, project.slug],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": project.slug,
+            },
         )
         page_url = reverse(
             view_name,
-            args=[self.course.slug, project.slug],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": project.slug,
+            },
         )
         response = self.client.get(page_url)
 
@@ -249,7 +259,11 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
         self.assert_statistics_view_content(response)
 
         project_url = reverse(
-            "project", args=[self.course.slug, self.project.slug]
+            "project",
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+            },
         )
         project_response = self.client.get(project_url)
         self.assertContains(project_response, "Project statistics")
@@ -259,19 +273,29 @@ class ProjectStatisticsIntegrationTestCase(TestCase):
         """Test that statistics links appear in appropriate navigation areas"""
         stats_url = reverse(
             "project_statistics",
-            args=[self.course.slug, self.project.slug],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+            },
         )
 
         results_url = reverse(
             "project_results",
-            args=[self.course.slug, self.project.slug],
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+            },
         )
         results_response = self.client.get(results_url)
         self.assertContains(results_response, "Project statistics")
         self.assertContains(results_response, stats_url)
 
         list_url = reverse(
-            "project_list", args=[self.course.slug, self.project.slug]
+            "project_list",
+            kwargs={
+                **cohort_url_kwargs(self.course),
+                "project_slug": self.project.slug,
+            },
         )
         list_response = self.client.get(list_url)
         self.assertContains(list_response, "Project statistics")
