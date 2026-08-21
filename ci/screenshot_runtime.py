@@ -122,7 +122,7 @@ def _wait_for_server(
     raise ScreenshotRuntimeError(f"server did not become ready at {health_url}")
 
 
-def _build_child_environment() -> dict[str, str]:
+def _validate_child_settings() -> None:
     configured = os.environ.get("DJANGO_SETTINGS_MODULE")
     if configured is not None and configured != AUTHORIZED_DJANGO_SETTINGS_MODULE:
         raise ScreenshotRuntimeError(
@@ -130,6 +130,10 @@ def _build_child_environment() -> dict[str, str]:
             f"DJANGO_SETTINGS_MODULE={AUTHORIZED_DJANGO_SETTINGS_MODULE}; "
             "refusing to spawn children"
         )
+
+
+def _build_child_environment() -> dict[str, str]:
+    _validate_child_settings()
     environment = os.environ.copy()
     environment["DJANGO_SETTINGS_MODULE"] = AUTHORIZED_DJANGO_SETTINGS_MODULE
     return environment
@@ -248,7 +252,7 @@ def run_capture(
         _validate_local_endpoint(base_url=base_url, host=host, port=port)
     except ValueError as error:
         raise ScreenshotRuntimeError("screenshot server URL is malformed") from error
-    environment = _build_child_environment()
+    _validate_child_settings()
     print(f"screenshot runtime: using DJANGO_SETTINGS_MODULE={AUTHORIZED_DJANGO_SETTINGS_MODULE}")
     output.mkdir(parents=True, exist_ok=True)
 
@@ -281,6 +285,10 @@ def run_capture(
     signal.signal(signal.SIGTERM, handle_signal)
     signal.signal(signal.SIGINT, handle_signal)
     try:
+        # TestRuntime.acquire() establishes the owner token and run identity in
+        # the coordinator environment. Snapshot the child environment only after
+        # that boundary so every child shares the owned runtime.
+        environment = _build_child_environment()
         migration = _run_migration(repository, environment=environment)
         migration_result = migration.wait()
         if migration_result != 0:
