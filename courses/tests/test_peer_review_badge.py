@@ -1,23 +1,22 @@
 from django.db import connection
-from django.test import TestCase, Client
+from django.test import Client, TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
 from courses.models import (
-    User,
     Cohort,
+    CriteriaResponse,
     Enrollment,
+    PeerReview,
+    PeerReviewState,
     Project,
     ProjectState,
     ProjectSubmission,
-    PeerReview,
-    PeerReviewState,
     ReviewCriteria,
     ReviewCriteriaTypes,
-    CriteriaResponse,
+    User,
 )
-
 from courses.project_assignment import ProjectActionStatus
 from courses.project_scoring import score_project
 
@@ -90,7 +89,11 @@ class PeerReviewBadgeTests(TestCase):
     def course_project(self):
         self.client.login(username="test@test.com", password="12345")
         course_url = reverse(
-            "course", kwargs={"course_slug": self.course.slug}
+            "course",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
+            },
         )
         response = self.client.get(course_url)
         self.assertEqual(response.status_code, 200)
@@ -135,8 +138,7 @@ class PeerReviewBadgeTests(TestCase):
             slug=slug,
             state=ProjectState.PEER_REVIEWING.value,
             submission_due_date=timezone.now() - timezone.timedelta(days=1),
-            peer_review_due_date=timezone.now()
-            + timezone.timedelta(days=7),
+            peer_review_due_date=timezone.now() + timezone.timedelta(days=7),
         )
         ProjectSubmission.objects.create(
             project=project,
@@ -148,7 +150,11 @@ class PeerReviewBadgeTests(TestCase):
     def _course_page_query_count(self):
         self.client.login(username="test@test.com", password="12345")
         course_url = reverse(
-            "course", kwargs={"course_slug": self.course.slug}
+            "course",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
+            },
         )
         with CaptureQueriesContext(connection) as ctx:
             response = self.client.get(course_url)
@@ -280,7 +286,11 @@ class PeerReviewBadgeEndToEndTests(TestCase):
         """Helper to get current badge state from course view"""
         self.client.login(username="main@test.com", password="12345")
         course_url = reverse(
-            "course", kwargs={"course_slug": self.course.slug}
+            "course",
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
+            },
         )
         response = self.client.get(course_url)
         self.assertEqual(response.status_code, 200)
@@ -308,9 +318,7 @@ class PeerReviewBadgeEndToEndTests(TestCase):
         )
 
     def move_peer_review_deadline_to_past(self):
-        self.project.peer_review_due_date = (
-            timezone.now() - timezone.timedelta(hours=1)
-        )
+        self.project.peer_review_due_date = timezone.now() - timezone.timedelta(hours=1)
         self.project.save()
 
     def score_project_and_assert_completion(self):
@@ -352,19 +360,13 @@ class PeerReviewBadgeEndToEndTests(TestCase):
         2 reviews -> red
         3 reviews -> green (after scoring)
         """
-        self.assert_review_badge_is_red(
-            "Badge should be red when no reviews are submitted"
-        )
+        self.assert_review_badge_is_red("Badge should be red when no reviews are submitted")
 
         self.submit_review(self.peer_reviews[0], "3")
-        self.assert_review_badge_is_red(
-            "Badge should be red after 1 review (need 3 total)"
-        )
+        self.assert_review_badge_is_red("Badge should be red after 1 review (need 3 total)")
 
         self.submit_review(self.peer_reviews[1], "2")
-        self.assert_review_badge_is_red(
-            "Badge should be red after 2 reviews (need 3 total)"
-        )
+        self.assert_review_badge_is_red("Badge should be red after 2 reviews (need 3 total)")
 
         self.submit_review(self.peer_reviews[2], "3")
         self.assert_review_badge_is_green(

@@ -31,7 +31,13 @@ class CourseListVisibilityTest(CourseListViewTestBase):
             visible=False,
         )
 
-        url = reverse("course", kwargs={"course_slug": "hidden-course"})
+        url = reverse(
+            "course",
+            kwargs={
+                "course_slug": hidden_course.course.slug,
+                "cohort_year": hidden_course.identifier,
+            },
+        )
         response = self.client.get(url)
 
         self.assertEqual(response.status_code, 200)
