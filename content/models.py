@@ -20,7 +20,7 @@ from core.models import RevisionedModel
 
 SHA1_PATTERN = r"^[0-9a-f]{40}$"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
-PUBLIC_CONTRACT_DIGEST = "50f875806217865ef35b74f58ed885c4b5c832284391dbea7f84344d3416f66d"
+PUBLIC_CONTRACT_DIGEST = "31f505350566bfcde0a30109dadcfb3565042fd395b4c1bd151966f94d361332"
 FROZEN_RELEASE_STATUSES = frozenset({"ready", "active", "superseded", "invalid", "failed"})
 
 sha1_validator = RegexValidator(SHA1_PATTERN, "Enter a full lowercase Git SHA.")
