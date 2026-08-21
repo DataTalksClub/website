@@ -518,14 +518,14 @@
               {% for enrollment in enrollments %}
                 <div class="list-row">
                   <div>
-                    <a href="{% url 'course' enrollment.course.slug %}">
+                    <a href="{% url 'course' enrollment.course.course.slug enrollment.course.identifier %}">
                       {{ enrollment.course.title }}
                     </a>
                     <p class="enrollment-name">Leaderboard: {{ enrollment.display_name }}</p>
                   </div>
                   <a
                     class="cta cta-compact cta-secondary enrollment-action"
-                    href="{% url 'enrollment' enrollment.course.slug %}"
+                    href="{% url 'enrollment' enrollment.course.course.slug enrollment.course.identifier %}"
                   >
                     Edit course profile
                   </a>
