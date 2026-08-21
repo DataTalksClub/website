@@ -225,6 +225,166 @@
       "reason": "Hash-bound issue #105 search projection preserves source-authored public Wiki wording.",
       "follow_up": "#105; regenerate only from the pinned accepted sources",
       "expected_count": 29
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/blockDiagram-e7344b80.js",
+      "sha256": "faca16fe192fb15157e417d60b52842b5d0216b5e8bf5c003878986c11db0f4a",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 3
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/c4Diagram-2531b94e.js",
+      "sha256": "430df16a17677e4e179719fb070e912bfbc08ea4eb9ca3ae8cd0b675fc2fa386",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 3
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/classDiagram-968d359f.js",
+      "sha256": "29b6a0223264f23c008548dd02f427265f7ff76b4de9e462a56fa95ccd55d9bb",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 2
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/classDiagram-v2-7b5b808d.js",
+      "sha256": "d40c34a4be7e7a80942097b4078140b62626e85e325ddeefa17367a92594cc50",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 3
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/edges-2ea5eef4.js",
+      "sha256": "e3724281d4a74ca5958ad24c94628cc89e534e8519188b0b023414cc1811d277",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 1
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/erDiagram-13f45bc1.js",
+      "sha256": "b5bf1d893a6be00c0f7d1fcce3bd9b239a9ccf08f777714d6c5d16423e944a82",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 2
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/flowDiagram-399972d6.js",
+      "sha256": "461d48257cffb290a58d34c3f2bdb6cd0832b920a125a9cc5e83c467060136df",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 4
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/flowchart-elk-definition-943e3409.js",
+      "sha256": "50be4509b8008174a0ab60c1f0a332d5449c26cffe6f3643417a8c5d61c98bf1",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 3
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/ganttDiagram-fede5d06.js",
+      "sha256": "0bd74b1cf7aaaefca095f689bbb518f6030a1d4dc90c174db87168ad32c5d2bf",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 4
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/journeyDiagram-89a2fe2f.js",
+      "sha256": "fb3b2b1d20cb1ca664aca7362013406f815b3de5b9c8a9e0a01940a0efedfa18",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 2
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/mermaid-500b880f.js",
+      "sha256": "a21e93b9979b8a1a02a3363869c9daa8e31a780cfeeb4b9e4e6adf6204234adc",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 4
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/quadrantDiagram-38c8dfb0.js",
+      "sha256": "11f04b426faca374127d12944c138593cea4fba038c9597681985129182385d6",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 2
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/requirementDiagram-fe52b071.js",
+      "sha256": "fd329bdcc60d777797d71502787fe2f0f44ea9eee53cbd98dd0483beb9a87ed8",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 2
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/sankeyDiagram-6f81076f.js",
+      "sha256": "b9f0df39c0e396c3ba7a389065492dfb2c7356ec2cd245b6e570587231141468",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 3
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/sequenceDiagram-76a50a21.js",
+      "sha256": "3aeeb9ce8f376093d0a4ccca06c48447cc626bf38425004559a03114bb2215db",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 4
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/stateDiagram-4a035e10.js",
+      "sha256": "0938fee82622393d0259f6bab4899d85d6d0454624a7ff5572fe4789dec47431",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 3
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/stateDiagram-v2-915d1ba4.js",
+      "sha256": "e949e687eb20e870a1ba5d07931ce81d51761b192b160c127b5625c7a0db3e80",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 2
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/styles-3decd627.js",
+      "sha256": "909ace212dd8e149c6fc5d8103e324557c7611a605776118cf975d54b467769b",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 1
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/styles-eaa5a822.js",
+      "sha256": "fcefaad2826d5caf7e8a202846513ade8b2487f683fd003bd8f7ab8e3de2534d",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 4
+    },
+    {
+      "path": "courses/static/courses/vendor/mermaid/10/timeline-definition-16881ace.js",
+      "sha256": "b25dc3c620033a2507e19336ce5a48872ae1f15266f568e3174a3c8df180bccc",
+      "class": "frozen_historical",
+      "reason": "Pinned vendored Mermaid code retains the upstream sandbox security-level implementation; it is not project environment terminology.",
+      "follow_up": "Refresh this hash and count with the next reviewed Mermaid upgrade.",
+      "expected_count": 2
     }
   ],
   "rules": [
