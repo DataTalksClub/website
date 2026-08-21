@@ -5,6 +5,7 @@ from accounts.tests_base import (
     DATAMAILER_DISABLED_SETTINGS,
     AccountCourseTestCase,
 )
+from courses.views.url_utils import cohort_url_kwargs
 
 
 @override_settings(**DATAMAILER_DISABLED_SETTINGS)
@@ -21,7 +22,7 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
     def test_account_settings_certificate_name_shows_in_enrollment_form(self):
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
-        enrollment_url = reverse("enrollment", args=[self.course.slug])
+        enrollment_url = reverse("enrollment", kwargs=cohort_url_kwargs(self.course))
         payload = {
             "certificate_name": "Account Certificate",
             "github_url": "",
@@ -38,9 +39,7 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
         response = self.client.get(enrollment_url)
 
         self.assertEqual(response.status_code, 200)
-        certificate_name_value = (
-            response.context["form"]["certificate_name"].value()
-        )
+        certificate_name_value = response.context["form"]["certificate_name"].value()
         self.assertEqual(
             certificate_name_value,
             "Account Certificate",
@@ -49,7 +48,7 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
     def test_enrollment_form_links_to_account_public_profile(self):
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
-        enrollment_url = reverse("enrollment", args=[self.course.slug])
+        enrollment_url = reverse("enrollment", kwargs=cohort_url_kwargs(self.course))
 
         response = self.client.get(enrollment_url)
 
@@ -60,8 +59,8 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
     def test_enrollment_certificate_name_saves_to_user_profile(self):
         self.client.force_login(self.user)
         account_settings_url = reverse("account_settings")
-        course_url = reverse("course", args=[self.course.slug])
-        enrollment_url = reverse("enrollment", args=[self.course.slug])
+        course_url = reverse("course", kwargs=cohort_url_kwargs(self.course))
+        enrollment_url = reverse("enrollment", kwargs=cohort_url_kwargs(self.course))
         payload = self.enrollment_payload(display_public_profile=True)
         payload["certificate_name"] = "Enrollment Certificate"
 
@@ -79,9 +78,7 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
         response = self.client.get(account_settings_url)
 
         self.assertEqual(response.status_code, 200)
-        certificate_name_value = (
-            response.context["form"]["certificate_name"].value()
-        )
+        certificate_name_value = response.context["form"]["certificate_name"].value()
         self.assertEqual(
             certificate_name_value,
             "Enrollment Certificate",
@@ -89,8 +86,8 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
 
     def test_enrollment_public_profile_flag_saves_enabled(self):
         self.client.force_login(self.user)
-        course_url = reverse("course", args=[self.course.slug])
-        enrollment_url = reverse("enrollment", args=[self.course.slug])
+        course_url = reverse("course", kwargs=cohort_url_kwargs(self.course))
+        enrollment_url = reverse("enrollment", kwargs=cohort_url_kwargs(self.course))
         payload = self.enrollment_payload(display_public_profile=True)
 
         response = self.client.post(enrollment_url, payload)
@@ -101,7 +98,7 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
 
     def test_enrollment_toggle_updates_public_profile_immediately(self):
         self.client.force_login(self.user)
-        url = reverse("update_enrollment_toggle", args=[self.course.slug])
+        url = reverse("update_enrollment_toggle", kwargs=cohort_url_kwargs(self.course))
         payload = {"field": "display_public_profile", "value": "true"}
 
         response = self.client.post(url, payload)
@@ -117,7 +114,7 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
 
     def test_enrollment_toggle_rejects_unknown_field(self):
         self.client.force_login(self.user)
-        url = reverse("update_enrollment_toggle", args=[self.course.slug])
+        url = reverse("update_enrollment_toggle", kwargs=cohort_url_kwargs(self.course))
         payload = {"field": "total_score", "value": "true"}
 
         response = self.client.post(url, payload)
@@ -128,8 +125,8 @@ class EnrollmentProfileTestCase(AccountCourseTestCase):
         self.enrollment.display_public_profile = True
         self.enrollment.save()
         self.client.force_login(self.user)
-        course_url = reverse("course", args=[self.course.slug])
-        enrollment_url = reverse("enrollment", args=[self.course.slug])
+        course_url = reverse("course", kwargs=cohort_url_kwargs(self.course))
+        enrollment_url = reverse("enrollment", kwargs=cohort_url_kwargs(self.course))
         payload = self.enrollment_payload()
 
         response = self.client.post(enrollment_url, payload)
