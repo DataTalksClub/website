@@ -51,7 +51,7 @@
   <div class="admin-head">
     <h1>{{ course.title }}</h1>
     <div class="admin-toolbar">
-      <a href="{% url 'course' course.slug %}" title="View public course page" class="cta cta-secondary cta-compact">
+      <a href="{% url 'course' course.course.slug course.identifier %}" title="View public course page" class="cta cta-secondary cta-compact">
         Public
       </a>
       <a href="/admin/courses/course/{{ course.id }}/change/" title="Edit in Django Admin" class="cta cta-secondary cta-compact">
@@ -80,7 +80,7 @@
       <a href="{% url 'studio_courses_enrollments' course.slug %}" class="cta cta-primary cta-compact">
         Find student
       </a>
-      <a href="{% url 'leaderboard' course.slug %}" class="cta cta-secondary cta-compact">
+      <a href="{% url 'leaderboard' course.course.slug course.identifier %}" class="cta cta-secondary cta-compact">
         Leaderboard
       </a>
       <a href="{% url 'studio_courses_leaderboard_complaints' course.slug %}" class="cta cta-secondary cta-compact">
@@ -228,7 +228,7 @@
                 Actions
               </summary>
               <div class="admin-menu-panel">
-                <a href="{% url 'homework' course.slug hw.slug %}" class="admin-menu-item">
+                <a href="{% url 'homework' course.course.slug course.identifier hw.slug %}" class="admin-menu-item">
                   Public
                 </a>
                 <a href="/admin/courses/homework/{{ hw.id }}/change/" class="admin-menu-item">
@@ -319,7 +319,7 @@
                 Actions
               </summary>
               <div class="admin-menu-panel">
-                <a href="{% url 'project' course.slug proj.slug %}" class="admin-menu-item">
+                <a href="{% url 'project' course.course.slug course.identifier proj.slug %}" class="admin-menu-item">
                   Public
                 </a>
                 <a href="/admin/courses/project/{{ proj.id }}/change/" class="admin-menu-item">

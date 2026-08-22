@@ -50,7 +50,7 @@
               </h3>
               <p class="mono-note">{{ course.slug }}</p>
               <p class="admin-toolbar">
-                <a href="{% url 'course' course.slug %}" title="Open student view">
+                <a href="{% url 'course' course.course.slug course.identifier %}" title="Open student view">
                   Student view
                 </a>
                 <a href="/admin/courses/course/{{ course.id }}/change/" title="Edit in Django Admin">

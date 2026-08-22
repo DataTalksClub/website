@@ -47,7 +47,7 @@
       <a href="{% url 'studio_courses_course' course.slug %}" class="cta cta-secondary cta-compact">
         Back to Courses
       </a>
-      <a href="{% url 'leaderboard' course.slug %}" class="cta cta-secondary cta-compact">
+      <a href="{% url 'leaderboard' course.course.slug course.identifier %}" class="cta cta-secondary cta-compact">
         View Leaderboard
       </a>
     </div>
@@ -85,7 +85,7 @@
         <div class="admin-toolbar">
           <span class="status-pill status-pill-wait">{{ enrollment.open_complaints }} open</span>
           <span class="status-pill">{{ enrollment.total_complaints }} total</span>
-          <a href="{% url 'leaderboard_score_breakdown' course.slug enrollment.id %}" class="cta cta-secondary cta-compact">
+          <a href="{% url 'leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id %}" class="cta cta-secondary cta-compact">
             Scores
           </a>
           <a href="{% url 'studio_courses_enrollment_edit' course.slug enrollment.id %}" class="cta cta-secondary cta-compact">

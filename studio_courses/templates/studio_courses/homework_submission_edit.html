@@ -47,7 +47,7 @@
 
     <div class="admin-toolbar">
       <a href="{% url 'studio_courses_homework_submissions' course.slug homework.slug %}">Back to Submissions</a>
-      <a href="{% url 'homework' course.slug homework.slug %}" title="View public homework page">Public</a>
+      <a href="{% url 'homework' course.course.slug course.identifier homework.slug %}" title="View public homework page">Public</a>
       <a href="/admin/courses/submission/{{ submission.id }}/change/" title="Edit in Django Admin">Django</a>
     </div>
 
