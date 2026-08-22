@@ -1,8 +1,8 @@
 from django.test import Client, TestCase
+from django.urls import reverse
 
 from accounts.studio_test_support import grant_studio_role
 from courses.models import Cohort, RegistrationCampaign, User
-
 
 DATAMAILER_SETTINGS = {
     "DATAMAILER_URL": "https://datamailer.example.com",
@@ -85,7 +85,11 @@ class CampaignStudioCoursesViewBase(TestCase):
     def assert_campaign_edit_page(self, response):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Edit registration landing page")
-        self.assertContains(response, "/register/llm-zoomcamp/")
+        registration_url = reverse(
+            "registration_campaign",
+            kwargs={"campaign_slug": "llm-zoomcamp"},
+        )
+        self.assertContains(response, registration_url)
 
     def assert_created_campaign_saved(self, campaign):
         self.assertEqual(campaign.current_course, self.course)
@@ -111,7 +115,7 @@ class CampaignStudioCoursesViewBase(TestCase):
         self.assertEqual(payload["recipient_list_key"], self.course.slug)
         self.assertEqual(
             payload["metadata"]["registration_url"],
-            "https://courses.example.com/register/llm-zoomcamp/",
+            "https://courses.example.com/courses/register/llm-zoomcamp/",
         )
         self.assertEqual(
             payload["metadata"]["course_slug"], self.course.slug

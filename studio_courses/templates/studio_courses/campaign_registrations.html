@@ -42,7 +42,7 @@
     <p class="mono-label mono-label-indigo">Registration campaign</p>
     <h1>{{ campaign.title }}</h1>
     <p>
-      <a href="{% url 'registration_campaign' campaign.slug %}">/register/{{ campaign.slug }}/</a>
+      <a href="{% url 'registration_campaign' campaign.slug %}">/courses/register/{{ campaign.slug }}/</a>
     </p>
     <div class="admin-toolbar">
       <a href="{% url 'studio_courses_campaign_edit' campaign.slug %}" class="cta cta-secondary cta-compact">

@@ -2,7 +2,6 @@ from django import forms
 
 from courses.models.cohort import RegistrationCampaign
 
-
 REGISTRATION_CAMPAIGN_TITLE_WIDGET = forms.TextInput(
     attrs={"class": "form-control"}
 )
@@ -144,7 +143,7 @@ class RegistrationCampaignForm(forms.ModelForm):
             "video_url": "Video URL",
         }
         help_texts = {
-            "slug": "Public URL: /register/<slug>/",
+            "slug": "Public URL: /courses/register/<slug>/",
             "edition_label": "Shown above the page title, for example 2026 cohort.",
             "current_course": "The course edition promoted by this landing page.",
             "is_active": "Inactive campaigns do not render publicly.",
