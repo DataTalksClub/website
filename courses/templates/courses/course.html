@@ -1,7 +1,9 @@
 {% extends "core/content_page.html" %}
 {% load seo static custom_filters %}
 
-{% block document_title %}{{ course.title }} — DataTalks.Club{% endblock %}
+{% block document_title %}
+  {{ course.title }} — DataTalks.Club
+{% endblock %}
 
 {% block metadata %}
     {% canonical_link canonical_url %}
@@ -374,8 +376,12 @@
       }
 {% endblock %}
 
-{% block header_band_class %}course-hero{% endblock %}
-{% block header_attributes %}aria-labelledby="course-heading"{% endblock %}
+{% block header_band_class %}
+  course-hero
+{% endblock %}
+{% block header_attributes %}
+  aria-labelledby="course-heading"
+{% endblock %}
 
 {% block page_header %}
         {% comment %}
@@ -473,7 +479,7 @@
           {% if course_specs %}
             <dl class="spec-strip course-specs">
               {% for spec in course_specs %}
-                <div class="spec{% if spec.label == 'starts' or spec.label == 'ends' %} spec-date{% endif %}">
+                <div class="spec {{ spec.classes }}">
                   <dt class="mono-label">{{ spec.label }}</dt>
                   <dd>
                     <strong>{{ spec.value }}</strong>

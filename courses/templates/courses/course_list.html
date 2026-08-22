@@ -1,7 +1,9 @@
 {% extends "core/content_page.html" %}
 {% load seo static custom_filters %}
 
-{% block document_title %}Courses — DataTalks.Club{% endblock %}
+{% block document_title %}
+  Courses — DataTalks.Club
+{% endblock %}
 
 {% block metadata %}
     {% canonical_link canonical_url %}
@@ -307,8 +309,12 @@
       }
 {% endblock %}
 
-{% block header_band_class %}courses-hero{% endblock %}
-{% block header_attributes %}aria-labelledby="courses-hero-heading"{% endblock %}
+{% block header_band_class %}
+  courses-hero
+{% endblock %}
+{% block header_attributes %}
+  aria-labelledby="courses-hero-heading"
+{% endblock %}
 
 {% block page_header %}
         <div class="courses-hero-grid">

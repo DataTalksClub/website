@@ -57,6 +57,10 @@ class CoursePageEditorialContentTests(CourseDetailViewTestBase):
             ["starts", "ends", "length", "homework", "projects", "registered"],
         )
         self.assertEqual(specs[-1].value, "643 people")
+        self.assertEqual(
+            [spec.classes for spec in specs],
+            ["spec-date", "spec-date", "", "", "", ""],
+        )
 
     def test_modules_number_homework_then_projects_continuously(self):
         modules = course_modules(["a", "b"], ["c"])
@@ -89,7 +93,7 @@ class CoursePageRenderTests(CourseDetailViewTestBase):
 
     def test_course_page_does_not_render_a_cohort_year_eyebrow(self):
         body = self.client.get(self.course_url()).content.decode()
-        hero_match = re.search(r'<section[^>]*\bcourse-hero\b[^>]*>', body)
+        hero_match = re.search(r"<section[^>]*\bcourse-hero\b[^>]*>", body)
         self.assertIsNotNone(hero_match)
         assert hero_match is not None
         hero_start = hero_match.start()

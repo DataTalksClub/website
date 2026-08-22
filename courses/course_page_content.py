@@ -10,12 +10,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+
 @dataclass(frozen=True, slots=True)
 class CourseSpec:
     """One label-over-value fact in the hero's dashed fact strip."""
 
     label: str
     value: str
+    classes: str = ""
 
 
 # How the design writes a course date: "Mon, Sep 14, 2026".
@@ -37,9 +39,11 @@ def course_specs(
 
     specs: list[CourseSpec] = []
     if course.start_date:
-        specs.append(CourseSpec("starts", course.start_date.strftime(SPEC_DATE_FORMAT)))
+        specs.append(
+            CourseSpec("starts", course.start_date.strftime(SPEC_DATE_FORMAT), "spec-date")
+        )
     if course.end_date:
-        specs.append(CourseSpec("ends", course.end_date.strftime(SPEC_DATE_FORMAT)))
+        specs.append(CourseSpec("ends", course.end_date.strftime(SPEC_DATE_FORMAT), "spec-date"))
     duration = getattr(course, "home_duration_label", "TBA")
     if duration and duration != "TBA":
         specs.append(CourseSpec("length", duration))
