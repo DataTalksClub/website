@@ -1,7 +1,9 @@
 {% extends "core/content_page.html" %}
 {% load accessibility seo static %}
 
-{% block document_title %}{{ campaign.title }} Registration - DataTalks.Club{% endblock %}
+{% block document_title %}
+  {{ campaign.title }} Registration - DataTalks.Club
+{% endblock %}
 
 {% block metadata %}
     {% canonical_link canonical_url %}
@@ -358,8 +360,12 @@
       }
 {% endblock %}
 
-{% block header_band_class %}registration-hero{% endblock %}
-{% block header_attributes %}aria-labelledby="registration-heading"{% endblock %}
+{% block header_band_class %}
+  registration-hero
+{% endblock %}
+{% block header_attributes %}
+  aria-labelledby="registration-heading"
+{% endblock %}
 
 {% block page_header %}
         {% comment %}

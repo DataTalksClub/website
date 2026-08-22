@@ -1,7 +1,9 @@
 {% extends "core/content_page.html" %}
 {% load seo static %}
 
-{% block document_title %}Edit enrollment details — {{ course.title }} — DataTalks.Club{% endblock %}
+{% block document_title %}
+  Edit enrollment details — {{ course.title }} — DataTalks.Club
+{% endblock %}
 
 {% block metadata %}
     <meta name="robots" content="noindex">
@@ -187,8 +189,12 @@
       }
 {% endblock %}
 
-{% block header_band_class %}enrollment-hero{% endblock %}
-{% block header_attributes %}aria-labelledby="enrollment-heading"{% endblock %}
+{% block header_band_class %}
+  enrollment-hero
+{% endblock %}
+{% block header_attributes %}
+  aria-labelledby="enrollment-heading"
+{% endblock %}
 
 {% block page_header %}
         {% comment %}
