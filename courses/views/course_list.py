@@ -11,7 +11,7 @@ from core.course_index_content import (
     cohort_dates_display,
     enrolled_state_label,
 )
-from core.home_content import FEATURED_FAMILY
+from core.home_content import COURSE_FAMILIES
 from courses.models.cohort import Cohort
 from courses.models.wrapped import WrappedStatistics
 from courses.services.registration_counts import (
@@ -121,9 +121,10 @@ def featured_course(active_courses):
         for course in active_courses
         if getattr(course, "course", None) is not None
     }
-    featured = active_by_family_slug.get(FEATURED_FAMILY)
-    if featured is not None:
-        return featured
+    for family_slug, _title, _label in COURSE_FAMILIES:
+        featured = active_by_family_slug.get(family_slug)
+        if featured is not None:
+            return featured
 
     for course in active_courses:
         title = course.title.lower()
