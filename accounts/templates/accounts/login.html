@@ -5,15 +5,9 @@
   <title>Sign in — DataTalks.Club</title>
 {% endblock %}
 
-{% block auth_header_class %}auth-hero{% endblock %}
-{% block auth_shell_class %}auth-shell{% endblock %}
-{% block auth_content_shell_class %}auth-shell{% endblock %}
-{% block auth_heading_id %}sign-in-heading{% endblock %}
-{% block auth_content_heading_id %}sign-in-content-heading{% endblock %}
-
 {% block auth_header %}
   <p class="mono-label mono-label-indigo">Account</p>
-  <h1 id="sign-in-heading">Sign In</h1>
+  <h1 id="auth-heading">Sign In</h1>
   {% if development_owner_login_enabled or providers %}
     <p class="auth-lede">Choose your preferred login method</p>
   {% endif %}
@@ -22,7 +16,7 @@
 {% block auth_content %}
   {% if providers %}
     <div class="card auth-panel">
-      <h2 id="sign-in-content-heading">Continue with a social account</h2>
+      <h2>Continue with a social account</h2>
       {% include "account/_social_provider_choices.html" with provider_list=providers provider_url_mode="provided" provider_container_class="auth-choices" %}
       <p class="auth-reassurance">
         Secure login — we never store your social media passwords
@@ -38,7 +32,9 @@
     </p>
   {% endif %}
   {% if providers and development_owner_login_enabled %}
-    <p class="auth-or"><span>or sign in with email</span></p>
+    <p class="auth-or">
+      <span>or sign in with email</span>
+    </p>
   {% endif %}
   {% if development_owner_login_enabled %}
     <section class="card auth-panel" aria-labelledby="sign-in-password-heading">

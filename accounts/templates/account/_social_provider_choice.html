@@ -1,0 +1,7 @@
+<a
+  class="cta cta-secondary {{ provider_item_class|default:'provider-choice' }}"
+  href="{{ provider_url }}"
+>
+  {% include "account/_provider_mark.html" with provider_id=provider.id only %}
+  Continue with {{ provider.name }}
+</a>

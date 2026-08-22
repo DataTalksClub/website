@@ -31,16 +31,6 @@
 
       /* The sign-in form uses the same surfaces and controls as sign-up. The
          shared parent owns these rules so the two auth pages cannot drift. */
-      .auth-shell {
-        max-width: 30rem;
-      }
-
-      .auth-hero h1 {
-        font-size: clamp(1.7rem, 3.4vw, 2.5rem);
-        letter-spacing: -0.025em;
-        margin-top: 0.6rem;
-      }
-
       .auth-lede {
         font-size: clamp(0.95rem, 1.5vw, 1.05rem);
         margin-top: 0.75rem;
@@ -159,14 +149,14 @@
   >
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
-      <section class="band band-cream {% block auth_header_class %}entrance-hero{% endblock %}" aria-labelledby="{% block auth_heading_id %}auth-heading{% endblock %}">
-        <div class="shell {% block auth_shell_class %}entrance-shell{% endblock %}">
+      <section class="band band-cream entrance-hero" aria-labelledby="auth-heading">
+        <div class="shell entrance-shell">
           {% block auth_header %}
           {% endblock %}
         </div>
       </section>
-      <section class="band band-lavender" aria-labelledby="{% block auth_content_heading_id %}auth-content-heading{% endblock %}">
-        <div class="shell {% block auth_content_shell_class %}entrance-shell{% endblock %}">
+      <section class="band band-lavender" aria-label="Account options">
+        <div class="shell entrance-shell">
           {% block auth_content %}
           {% endblock %}
         </div>

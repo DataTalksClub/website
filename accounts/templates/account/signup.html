@@ -5,12 +5,9 @@
   <title>Create your account · DataTalks.Club</title>
 {% endblock %}
 
-{% block auth_heading_id %}signup-heading{% endblock %}
-{% block auth_content_heading_id %}signup-ways-heading{% endblock %}
-
 {% block auth_header %}
   <p class="mono-label mono-label-indigo">Account</p>
-  <h1 id="signup-heading">Create your account</h1>
+  <h1 id="auth-heading">Create your account</h1>
   <p class="entrance-lede">
     One DataTalks.Club account covers every free course: enrolling, submitting
     homework and appearing on the leaderboard.
@@ -24,7 +21,7 @@
 {% block auth_content %}
   <div class="band-head">
     <div>
-      <h2 id="signup-ways-heading">Choose how you sign up</h2>
+      <h2>Choose how you sign up</h2>
     </div>
   </div>
   {% get_providers as socialaccount_providers %}
