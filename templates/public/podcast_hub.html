@@ -181,7 +181,7 @@
                 leaving a column of empty space down the newest season.  The
                 guests are the card's credit, drawn as the shared person chip.
               {% endcomment %}
-              {% include "public/_archive_row.html" with row_title=episode.title row_url=episode.public_path row_date=episode.published row_mark="play" row_eyebrow=episode.season_episode row_summary=episode.description row_credits=episode.guests row_class="episode-row" row_hook="data-podcast-episode" only %}
+              {% include "public/_archive_row.html" with row_title=episode.title row_url=episode.public_path row_date=episode.published row_mark="play" row_pill=episode.season_episode row_summary=episode.description row_credits=episode.guests row_class="episode-row" row_hook="data-podcast-episode" only %}
             {% endfor %}
           </div>
         </div>

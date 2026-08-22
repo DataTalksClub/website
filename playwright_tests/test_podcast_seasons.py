@@ -115,7 +115,7 @@ def test_podcast_card_is_a_whole_keyboard_destination_without_nested_interactive
     )
     assert card_style == {
         "background": "rgba(0, 0, 0, 0)",
-        "border": "0px",
+        "border": "2px",
         "shadow": "none",
     }, card_style
     meta_style = meta.evaluate(
