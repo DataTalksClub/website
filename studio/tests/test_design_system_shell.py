@@ -45,6 +45,7 @@ SHELL_PARTIALS = ("core/_site_shell_head.html", "core/_site_shell_foot.html")
 # Studio surface may append its own scripts after these, never before them.
 EXPECTED_SCRIPTS = (
     "timezone_preference.js",
+    "core/code_blocks.js",
     "user_menu.js",
     "core/site_navigation.js",
     "core/accessibility.js",
