@@ -39,10 +39,10 @@ BODIES_BELOW_THE_SEAM: dict[str, str] = {
     "templates/review/docs_detail.html": '<div class="docs-layout">',
     "templates/review/faq_home.html": '<div class="row-list faq-rows">',
     "templates/review/registration_preview.html": 'aria-labelledby="registration-state-heading"',
-    "templates/core/content_page.html": '{% block page_content %}',
+    "templates/core/content_page.html": "{% block page_content %}",
     # Authentication pages share their bands through auth_page.html; the child
     # supplies the ways in through the parent's content block.
-    "accounts/templates/account/auth_page.html": '{% block auth_content %}',
+    "accounts/templates/account/auth_page.html": "{% block auth_content %}",
 }
 
 # Every public reading surface the rule governs: the editorial pages, the review
@@ -162,13 +162,13 @@ class BandGroundTests(SimpleTestCase):
         signup = REPOSITORY_ROOT / "accounts/templates/account/signup.html"
         source = signup.read_text(encoding="utf-8")
         self.assertIn('{% extends "account/auth_page.html" %}', source)
-        self.assertIn('account/_social_provider_choices.html', source)
+        self.assertIn("account/_social_provider_choices.html", source)
 
     def test_course_uses_the_shared_content_page_band(self) -> None:
         course = REPOSITORY_ROOT / "courses/templates/courses/course.html"
         source = course.read_text(encoding="utf-8")
         self.assertIn('{% extends "core/content_page.html" %}', source)
-        self.assertIn('{% block page_content %}', source)
+        self.assertIn("{% block page_content %}", source)
 
     def test_the_homepage_keeps_its_own_alternation(self) -> None:
         # Guards the exception itself: the homepage is drawn from its own mockup and
