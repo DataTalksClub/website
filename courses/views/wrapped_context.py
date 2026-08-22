@@ -40,8 +40,10 @@ def _wrapped_course_records(records: list[dict]) -> list[dict]:
                 },
             )
         elif record.get("slug"):
+            # Historical Wrapped rows may only retain the family/cohort slug.
+            # Link them to the family page without inventing a missing edition.
             record["course_url"] = reverse(
-                "course",
+                "course_family",
                 kwargs={"course_slug": record["slug"]},
             )
         else:
@@ -60,15 +62,9 @@ def _wrapped_course_records(records: list[dict]) -> list[dict]:
                 },
             )
         elif record.get("slug"):
-            # Keep old Wrapped rows usable when their cohort was retired from
-            # the current database: the legacy edition route is still valid.
-            record["leaderboard_url"] = reverse(
-                "leaderboard_score_breakdown",
-                kwargs={
-                    "course_slug": record["slug"],
-                    "enrollment_id": enrollment_id,
-                },
-            )
+            # A score breakdown needs a cohort identifier.  Do not emit a
+            # broken link for historical rows whose cohort is unavailable.
+            record["leaderboard_url"] = ""
         else:
             record["leaderboard_url"] = ""
 

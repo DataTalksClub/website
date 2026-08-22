@@ -104,7 +104,11 @@ class WrappedViewTests(TestCase):
             course_stats_count,
             4,
         )
-        self.assertContains(response, 'href="/courses/course-1/"')
+        course_family_url = reverse(
+            "course_family",
+            kwargs={"course_slug": "course-1"},
+        )
+        self.assertContains(response, f'href="{course_family_url}"')
         self.assertEqual(
             response.context["user_stats"]["total_points"], 100
         )
