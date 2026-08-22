@@ -216,15 +216,7 @@ passes. The approved engineer commit records `Closes #145`; the orchestrator
 merges locally with `--no-ff` and pushes `main`. No pull request or automatic
 source merge is used.
 
-## 6. CI drift checks
-
-`.github/workflows/cmp-upstream-sync.yml` runs a read-only report on schedule and
-can be started manually with a source ref. It has `contents: read` permission,
-uploads the report as an artifact, and cannot commit, merge, deploy, or change an
-issue. A report is an input to a normal issue and lifecycle review, not an
-approval.
-
-## 7. Rollback
+## 6. Rollback
 
 The safest rollback is to revert the approved website sync commit, restoring the
 previous copied files, manifest, README pin, and `source-pin.json` together:
