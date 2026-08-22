@@ -39,10 +39,10 @@ BODIES_BELOW_THE_SEAM: dict[str, str] = {
     "templates/review/docs_detail.html": '<div class="docs-layout">',
     "templates/review/faq_home.html": '<div class="row-list faq-rows">',
     "templates/review/registration_preview.html": 'aria-labelledby="registration-state-heading"',
-    "courses/templates/courses/course.html": '<div class="row-list course-rows">',
-    # The sign-up page: the ways in are the page's body, so they read on the
-    # content ground rather than in the warm hero the heading sits in.
-    "accounts/templates/account/signup.html": '<div class="provider-choices">',
+    "templates/core/content_page.html": '{% block page_content %}',
+    # Authentication pages share their bands through auth_page.html; the child
+    # supplies the ways in through the parent's content block.
+    "accounts/templates/account/auth_page.html": '{% block auth_content %}',
 }
 
 # Every public reading surface the rule governs: the editorial pages, the review
@@ -157,6 +157,18 @@ class BandGroundTests(SimpleTestCase):
                     "This page's body reads on the content ground, not in the warm "
                     'hero.  See "Which ground a band takes" in _docs/design/design-5a.md.',
                 )
+
+    def test_signup_uses_the_shared_auth_content_band(self) -> None:
+        signup = REPOSITORY_ROOT / "accounts/templates/account/signup.html"
+        source = signup.read_text(encoding="utf-8")
+        self.assertIn('{% extends "account/auth_page.html" %}', source)
+        self.assertIn('account/_social_provider_choices.html', source)
+
+    def test_course_uses_the_shared_content_page_band(self) -> None:
+        course = REPOSITORY_ROOT / "courses/templates/courses/course.html"
+        source = course.read_text(encoding="utf-8")
+        self.assertIn('{% extends "core/content_page.html" %}', source)
+        self.assertIn('{% block page_content %}', source)
 
     def test_the_homepage_keeps_its_own_alternation(self) -> None:
         # Guards the exception itself: the homepage is drawn from its own mockup and
