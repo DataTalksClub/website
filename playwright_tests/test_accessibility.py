@@ -293,6 +293,14 @@ def accessibility_environment() -> AccessibilityEnvironment:
     )
     wiki = public["wiki"][0]
     faq = review_public["faq"]
+    course_route = {
+        "course_slug": course.course.slug,
+        "cohort_year": course.identifier,
+    }
+    empty_course_route = {
+        "course_slug": empty_course.course.slug,
+        "cohort_year": empty_course.identifier,
+    }
 
     surfaces = {
         "home": Surface("/"),
@@ -355,53 +363,53 @@ def accessibility_environment() -> AccessibilityEnvironment:
             reverse("registration_campaign", kwargs={"campaign_slug": error_campaign.slug})
         ),
         "dashboard": Surface(
-            reverse("dashboard", kwargs={"course_slug": course.slug}),
+            reverse("dashboard", kwargs=course_route),
             actor="learner",
         ),
         "enrollment": Surface(
-            reverse("enrollment", kwargs={"course_slug": course.slug}),
+            reverse("enrollment", kwargs=course_route),
             actor="learner",
         ),
         "homework": Surface(
             reverse(
                 "homework",
-                kwargs={"course_slug": course.slug, "homework_slug": homework.slug},
+                kwargs={**course_route, "homework_slug": homework.slug},
             ),
             actor="learner",
         ),
         "project": Surface(
             reverse(
                 "project",
-                kwargs={"course_slug": course.slug, "project_slug": project.slug},
+                kwargs={**course_route, "project_slug": project.slug},
             ),
             actor="learner",
         ),
         "peer-review": Surface(
             reverse(
                 "projects_eval",
-                kwargs={"course_slug": course.slug, "project_slug": project.slug},
+                kwargs={**course_route, "project_slug": project.slug},
             ),
             actor="reviewer",
         ),
         "score": Surface(
             reverse(
                 "leaderboard_score_breakdown",
-                kwargs={"course_slug": course.slug, "enrollment_id": enrollment.id},
+                kwargs={**course_route, "enrollment_id": enrollment.id},
             ),
             actor="learner",
         ),
         "leaderboard": Surface(
-            reverse("leaderboard", kwargs={"course_slug": course.slug}),
+            reverse("leaderboard", kwargs=course_route),
             actor="learner",
         ),
         "complaint": Surface(
             reverse(
                 "leaderboard_complaint",
-                kwargs={"course_slug": course.slug, "enrollment_id": enrollment.id},
+                kwargs={**course_route, "enrollment_id": enrollment.id},
             ),
             actor="reviewer",
         ),
-        "course-empty": Surface(reverse("course", kwargs={"course_slug": empty_course.slug})),
+        "course-empty": Surface(reverse("course", kwargs=empty_course_route)),
         "studio-courses": Surface(reverse("studio_courses_course_list"), actor="site-admin"),
         "studio-course-form": Surface(
             reverse("studio_courses_campaign_create"),
@@ -452,8 +460,8 @@ def _visit_surface(
     page.wait_for_load_state("load")
 
     if name == "login-error":
-        page.get_by_label("Email").fill("invalid@example.invalid")
-        page.get_by_label("Password").fill("synthetic-invalid-password")
+        page.get_by_label("Email", exact=True).fill("invalid@example.invalid")
+        page.get_by_label("Password", exact=True).fill("synthetic-invalid-password")
         page.get_by_role("button", name="Sign in").click()
         expect(page.get_by_role("alert")).to_be_visible()
     elif name == "credential-copy":
@@ -553,8 +561,7 @@ def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
     account_menu = page.locator("details.user-menu")
     expect(account_menu).not_to_have_attribute("open", "")
     hidden_courses_link = account_menu.locator("a.user-menu-item", has_text="Courses")
-    expect(hidden_courses_link).to_have_count(1)
-    assert hidden_courses_link.evaluate("node => node.checkVisibility()") is False
+    expect(hidden_courses_link).to_have_count(0)
 
     geometry = page.locator(".breadcrumbs a[href]").evaluate_all(
         """nodes => nodes.map(node => {

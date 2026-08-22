@@ -53,8 +53,8 @@ def redact_one_time_token(page: Page, raw_token: str) -> None:
 
 def assert_visible_login_controls(page: Page) -> None:
     controls = (
-        page.get_by_label("Email"),
-        page.get_by_label("Password"),
+        page.get_by_label("Email", exact=True),
+        page.get_by_label("Password", exact=True),
     )
     boxes = []
     for control in controls:
@@ -161,17 +161,17 @@ def test_owner_login_distinct_surfaces_and_credential_lifecycle(
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth + 1")
     page.screenshot(path=screenshot_path("development-login", viewport), full_page=True)
 
-    page.get_by_label("Email").fill("invalid-owner@example.test")
-    page.get_by_label("Password").fill("invalid-password")
+    page.get_by_label("Email", exact=True).fill("invalid-owner@example.test")
+    page.get_by_label("Password", exact=True).fill("invalid-password")
     page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text("Sign-in was not successful")
-    expect(page.get_by_label("Password")).to_have_value("")
+    expect(page.get_by_label("Password", exact=True)).to_have_value("")
     assert "invalid-password" not in page.content()
     assert_visible_login_controls(page)
     page.screenshot(path=screenshot_path("development-login-invalid", viewport), full_page=True)
 
-    page.get_by_label("Email").fill(OWNER_EMAIL)
-    page.get_by_label("Password").fill(OWNER_PASSWORD)
+    page.get_by_label("Email", exact=True).fill(OWNER_EMAIL)
+    page.get_by_label("Password", exact=True).fill(OWNER_PASSWORD)
     page.get_by_role("button", name="Sign in", exact=True).click()
     expect(page).to_have_url(f"{live_server.url}/studio/")
     expect(page.get_by_role("heading", name="Studio", exact=True)).to_be_visible()

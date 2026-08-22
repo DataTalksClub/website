@@ -348,14 +348,22 @@ def test_database_course_catalog_renders_the_design_system_index(
     course_links = {
         role: assert_copied_course_catalog_link(
             page,
-            path=reverse("course", kwargs={"course_slug": course.slug}),
-            title=course.title,
+            path=reverse(
+                "course",
+                kwargs={
+                    "course_slug": course.course.slug,
+                    "cohort_year": course.identifier,
+                },
+            ),
+            title=course.course.title,
         )
         for role, course in cmp_course_catalog.items()
     }
     archived_link = course_links["archived"]
     # The finished-course row now names its own destination instead of wrapping a whole card.
-    expect(page.get_by_role("link", name=ARCHIVED_COURSE["title"], exact=True)).to_have_count(1)
+    expect(
+        page.get_by_role("link", name=cmp_course_catalog["archived"].course.title, exact=True)
+    ).to_have_count(1)
     expect(archived_link.locator("xpath=ancestor::article[@role='link']")).to_have_count(0)
     expect(
         archived_link.locator("xpath=ancestor::section[1]").get_by_role(
@@ -363,8 +371,9 @@ def test_database_course_catalog_renders_the_design_system_index(
         )
     ).to_be_visible()
     expect(page.get_by_text("registration open", exact=True)).to_be_visible()
-    # The rebuilt page carries no click-anywhere card: every course is reached by a real link.
-    assert page.locator("#courses article[role='link']").count() == 0
+    # Active and registration cards are keyboard-accessible whole-card destinations;
+    # their real title/action links remain the semantic targets.
+    assert page.locator("#courses article[role='link']").count() == 2
     assert page.locator("#courses article.card").count() == 2
     section_order = [text.strip() for text in page.locator("#courses h2").all_text_contents()]
     assert section_order == [ACTIVE_HEADING, OPEN_HEADING, FINISHED_HEADING]
@@ -402,7 +411,10 @@ def test_database_course_catalog_renders_the_design_system_index(
     expect(page.locator("#main-content")).to_be_focused()
     detail_path = reverse(
         "course",
-        kwargs={"course_slug": cmp_course_catalog["active"].slug},
+        kwargs={
+            "course_slug": cmp_course_catalog["active"].course.slug,
+            "cohort_year": cmp_course_catalog["active"].identifier,
+        },
     )
     # The active card now offers its title and its CTA as two real links to the
     # same course, so the keyboard pass takes the first (the title).
@@ -689,7 +701,7 @@ def test_no_database_course_catalog_uses_the_design_system_empty_state(
     page.screenshot(path=SCREENSHOTS / f"course-catalog-empty-{suffix}.png", full_page=True)
     _capture_design_dark_mode(page, SCREENSHOTS / f"course-catalog-empty-dark-{suffix}.png")
 
-    missing_detail = page.goto(f"{live_server.url}/courses/de-zoomcamp-2026")
+    missing_detail = page.goto(f"{live_server.url}/courses/de-zoomcamp/2026")
     assert missing_detail is not None and missing_detail.status == 404
     expect(page.get_by_role("heading", name="Page not found")).to_be_visible()
     expect(page.locator('link[rel="canonical"]')).to_have_count(0)

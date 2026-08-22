@@ -210,7 +210,7 @@ def test_returning_learner_keeps_one_account_across_site_and_courses(
     expect(page.locator("body")).to_have_attribute("data-account-id", str(learner.pk))
     page.locator('summary[aria-label="Account menu"]').click()
     account_menu = page.locator(".user-menu-panel")
-    expect(account_menu.get_by_role("link", name="Courses", exact=True)).to_be_visible()
+    expect(account_menu.get_by_role("link", name="Courses", exact=True)).to_have_count(0)
     expect(account_menu.get_by_role("link", name="Account settings")).to_be_visible()
     expect(account_menu.get_by_role("link", name="Login connections")).to_be_visible()
     expect(account_menu.get_by_role("link", name="Studio", exact=True)).to_have_count(0)
