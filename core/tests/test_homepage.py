@@ -213,7 +213,10 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "Learn data skills. For free. Together.")
         self.assertContains(response, "No active courses right now.")
         self.assertNotContains(response, "Data Engineering Zoomcamp 2026")
-        self.assertContains(response, 'class="band band-cream content-page-header courses-hero"')
+        self.assertRegex(
+            response.content.decode(),
+            r'class="band band-cream content-page-header\s+courses-hero\s*"',
+        )
         self.assertContains(response, 'id="courses"')
         self.assertContains(response, "Active now — you can still join")
         self.assertNotContains(response, "data-course-row")
