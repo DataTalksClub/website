@@ -57,6 +57,13 @@ jobs:
             --full-django-command "make test" \
             --output .tmp/scheduled/verification-plan.json \
             --summary "$GITHUB_STEP_SUMMARY"
+          uv run --frozen python -m ci.history \
+            --repository "$GITHUB_REPOSITORY" \
+            --token "$GITHUB_TOKEN" \
+            --workflow ci.yml \
+            --current-run-id "$GITHUB_RUN_ID" \
+            --report .tmp/scheduled/selection-observability.json \
+            --summary "$GITHUB_STEP_SUMMARY"
           uv run --frozen python -m ci.verification environment \
             --plan .tmp/scheduled/verification-plan.json --component selector \
             --allow-hosted-runner-drift \
