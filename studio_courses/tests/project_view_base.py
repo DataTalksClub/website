@@ -17,7 +17,6 @@ from courses.models import (
     User,
 )
 
-
 credentials = dict(
     username="test@test.com",
     email="test@test.com",
@@ -151,21 +150,24 @@ class ProjectStudioCoursesViewTestBase(TestCase):
 
     def project_submissions_url(self):
         kwargs = {
-            "course_slug": self.course.slug,
+            "course_slug": self.course.course.slug,
+            "cohort_year": self.course.identifier,
             "project_slug": self.project.slug,
         }
         return reverse("project_submissions", kwargs=kwargs)
 
     def project_url(self):
         kwargs = {
-            "course_slug": self.course.slug,
+            "course_slug": self.course.course.slug,
+            "cohort_year": self.course.identifier,
             "project_slug": self.project.slug,
         }
         return reverse("project", kwargs=kwargs)
 
     def leaderboard_score_breakdown_url(self, enrollment):
         kwargs = {
-            "course_slug": self.course.slug,
+            "course_slug": self.course.course.slug,
+            "cohort_year": self.course.identifier,
             "enrollment_id": enrollment.id,
         }
         return reverse("leaderboard_score_breakdown", kwargs=kwargs)

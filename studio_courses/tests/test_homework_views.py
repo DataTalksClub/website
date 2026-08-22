@@ -4,7 +4,6 @@ from unittest.mock import patch
 from django.urls import reverse
 from django.utils import timezone
 
-from studio_courses.tests.homework_view_base import HomeworkStudioCoursesViewTestBase
 from courses.models import (
     Enrollment,
     HomeworkState,
@@ -12,6 +11,7 @@ from courses.models import (
     QuestionTypes,
     User,
 )
+from studio_courses.tests.homework_view_base import HomeworkStudioCoursesViewTestBase
 
 
 class HomeworkStudioCoursesSubmissionViewTests(HomeworkStudioCoursesViewTestBase):
@@ -21,7 +21,8 @@ class HomeworkStudioCoursesSubmissionViewTests(HomeworkStudioCoursesViewTestBase
         url = reverse(
             "homework_submissions",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
                 "homework_slug": self.homework.slug,
             },
         )
@@ -101,10 +102,14 @@ class HomeworkStudioCoursesActionRedirectTests(HomeworkStudioCoursesViewTestBase
         self.login_admin()
         submissions_url = self.studio_courses_homework_submissions_url()
 
-        response = self.post_homework_action_to_submissions("studio_courses_homework_set_correct_answers")
+        response = self.post_homework_action_to_submissions(
+            "studio_courses_homework_set_correct_answers"
+        )
         self.assertRedirects(response, submissions_url)
 
-        response = self.post_homework_action_to_submissions("studio_courses_homework_clear_correct_answers")
+        response = self.post_homework_action_to_submissions(
+            "studio_courses_homework_clear_correct_answers"
+        )
         self.assertRedirects(response, submissions_url)
 
     def test_homework_actions_ignore_unsafe_next_redirects(self):

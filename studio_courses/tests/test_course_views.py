@@ -63,7 +63,10 @@ class CourseStudioCoursesViewTests(TestCase):
         )
         public_course_url = reverse(
             "course",
-            kwargs={"course_slug": self.course.slug},
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
+            },
         )
         django_admin_url = f"/admin/courses/course/{self.course.id}/change/"
         datamailer_operations_url = reverse("studio_courses_datamailer_operations")
@@ -142,7 +145,10 @@ class CourseStudioCoursesViewTests(TestCase):
         )
         public_course_url = reverse(
             "course",
-            kwargs={"course_slug": self.course.slug},
+            kwargs={
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
+            },
         )
         django_admin_url = f"/admin/courses/course/{self.course.id}/change/"
 

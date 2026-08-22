@@ -7,16 +7,16 @@ from django.utils import timezone
 
 from accounts.studio_test_support import grant_studio_role
 from courses.models import (
-    User,
+    Answer,
+    AnswerTypes,
     Cohort,
     Enrollment,
     Homework,
     HomeworkState,
     Question,
-    AnswerTypes,
     QuestionTypes,
     Submission,
-    Answer,
+    User,
 )
 
 
@@ -412,7 +412,8 @@ class HomeworkStudioCoursesViewTestBase(TestCase):
         return reverse(
             "homework",
             kwargs={
-                "course_slug": self.course.slug,
+                "course_slug": self.course.course.slug,
+                "cohort_year": self.course.identifier,
                 "homework_slug": self.homework.slug,
             },
         )
