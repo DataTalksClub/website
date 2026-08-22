@@ -461,6 +461,25 @@ def test_scheduled_workflow_has_no_mutation_or_aws_jobs_and_checks_exact_sha() -
         )
 
 
+def test_scheduled_selector_emits_bounded_selection_observability() -> None:
+    data = workflow("scheduled-full-regression.yml")
+    selector = data["jobs"]["selector"]
+    script = runs(selector)
+
+    assert "python -m ci.history" in script
+    assert "--workflow ci.yml" in script
+    assert '--current-run-id "$GITHUB_RUN_ID"' in script
+    assert "--report .tmp/scheduled/selection-observability.json" in script
+    assert '--summary "$GITHUB_STEP_SUMMARY"' in script
+    assert script.index("ci.verification plan") < script.index("ci.history")
+
+    upload = next(
+        step for step in selector["steps"] if step.get("uses") == "actions/upload-artifact@v4"
+    )
+    assert upload["with"]["path"] == ".tmp/scheduled"
+    assert upload["with"]["retention-days"] == "30"
+
+
 def test_scheduled_evidence_capture_and_record_symmetrically_allow_runner_drift() -> None:
     jobs = workflow("scheduled-full-regression.yml")["jobs"]
     evidence_jobs = {"selector", "quality", "django", "playwright", "container"}
