@@ -3,6 +3,7 @@ from __future__ import annotations
 import errno
 import json
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -192,14 +193,55 @@ def seed_synthetic_snapshot(path: Path) -> None:
     path.chmod(0o600)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
+    connection.create_function(
+        "REGEXP",
+        2,
+        lambda expression, value: bool(value and re.search(expression, str(value))),
+        deterministic=True,
+    )
     connection.execute("PRAGMA foreign_keys=OFF")
 
+    _insert(
+        connection,
+        "courses_course_family",
+        {
+            "id": "00000000000000000000000000000001",
+            "slug": "data-engineering",
+            "title": "Data Engineering Zoomcamp",
+            "description": "Data engineering course family.",
+            "outcome": "Build reliable data systems.",
+            "github_repo_url": "https://github.com/DataTalksClub/data-engineering-zoomcamp",
+            "docs_url": "",
+            "faq_document_url": "",
+            "social_media_hashtag": "#dezoomcamp",
+            "visible": 1,
+        },
+    )
+    _insert(
+        connection,
+        "courses_course_family",
+        {
+            "id": "00000000000000000000000000000002",
+            "slug": "ml-zoomcamp",
+            "title": "Machine Learning Zoomcamp",
+            "description": "Machine learning course family.",
+            "outcome": "Train practical machine learning models.",
+            "github_repo_url": "https://github.com/DataTalksClub/machine-learning-zoomcamp",
+            "docs_url": "",
+            "faq_document_url": "",
+            "social_media_hashtag": "#mlzoomcamp",
+            "visible": 1,
+        },
+    )
     _insert(
         connection,
         "courses_course",
         {
             "id": 1,
             "slug": "data-engineering-2026",
+            "uuid": "00000000000000000000000000000011",
+            "identifier": "2026",
+            "year": 2026,
             "title": "Data Engineering Zoomcamp 2026",
             "description": "Current public course content.",
             "start_date": "2026-01-12",
@@ -214,6 +256,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "homework_problems_comments_field": 1,
             "project_passing_score": 7,
             "visible": 1,
+            "course_id": "00000000000000000000000000000001",
         },
     )
     _insert(
@@ -222,6 +265,9 @@ def seed_synthetic_snapshot(path: Path) -> None:
         {
             "id": 2,
             "slug": "ml-zoomcamp-2024",
+            "uuid": "00000000000000000000000000000012",
+            "identifier": "2024",
+            "year": 2024,
             "title": "Machine Learning Zoomcamp 2024",
             "description": "Archived public course content.",
             "start_date": "2024-09-01",
@@ -236,6 +282,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "homework_problems_comments_field": 1,
             "project_passing_score": 10,
             "visible": 1,
+            "course_id": "00000000000000000000000000000002",
         },
     )
     _insert(
@@ -273,6 +320,7 @@ def seed_synthetic_snapshot(path: Path) -> None:
             "time_spent_homework_field": 1,
             "faq_contribution_field": 1,
             "state": "OP",
+            "instructions_markdown": "Public homework instructions.",
         },
     )
     _insert(
@@ -698,6 +746,29 @@ class ReviewImportWorkflowTests(TestCase):
                     "SELECT seq FROM sqlite_sequence WHERE name = 'courses_course'"
                 ).fetchone()[0],
                 2,
+            )
+            self.assertEqual(
+                connection.execute(
+                    "SELECT slug, title FROM courses_course_family ORDER BY slug"
+                ).fetchall(),
+                [
+                    ("data-engineering", "Data Engineering Zoomcamp"),
+                    ("ml-zoomcamp", "Machine Learning Zoomcamp"),
+                ],
+            )
+            self.assertEqual(
+                connection.execute(
+                    """
+                    SELECT cohort.slug, family.slug, cohort.identifier, cohort.year
+                    FROM courses_course AS cohort
+                    JOIN courses_course_family AS family ON family.id = cohort.course_id
+                    ORDER BY cohort.id
+                    """
+                ).fetchall(),
+                [
+                    ("data-engineering-2026", "data-engineering", "2026", 2026),
+                    ("ml-zoomcamp-2024", "ml-zoomcamp", "2024", 2024),
+                ],
             )
 
         self.assertEqual(artifact.stat().st_mode & 0o777, 0o600)

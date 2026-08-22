@@ -1046,13 +1046,118 @@ def _read_allowed_dataset(connection: sqlite3.Connection) -> AllowedDataset:
     )
 
 
+def _imported_cohort_uuid(source_id: Any, slug: str) -> str:
+    """Give legacy cohort rows the UUID required by the split schema."""
+
+    return uuid.uuid5(
+        uuid.NAMESPACE_URL,
+        f"courses.development-content-import:cohort:{source_id}:{slug}",
+    ).hex
+
+
+def _legacy_course_family_values(row: tuple[Any, ...]) -> dict[str, Any]:
+    values = dict(zip(ALLOWLIST["courses_course"], row, strict=True))
+    slug = str(values["slug"])
+    family_slug = re.sub(r"-\d{4}$", "", slug) or slug
+    title = re.sub(r"\s+\d{4}$", "", str(values["title"])).strip()
+    family_id = uuid.uuid5(
+        uuid.NAMESPACE_URL,
+        f"courses.development-content-import:course:{family_slug}",
+    ).hex
+    return {
+        "id": family_id,
+        "slug": family_slug,
+        "title": title or family_slug.replace("-", " ").title(),
+        "description": str(values["description"]),
+        "outcome": "",
+        "github_repo_url": str(values["github_repo_url"] or ""),
+        "docs_url": "",
+        "faq_document_url": str(values["faq_document_url"] or ""),
+        "social_media_hashtag": str(values["social_media_hashtag"] or ""),
+        "visible": values["visible"],
+    }
+
+
+def _legacy_cohort_values(row: tuple[Any, ...], family_id: str) -> dict[str, Any]:
+    values = dict(zip(ALLOWLIST["courses_course"], row, strict=True))
+    slug = str(values["slug"])
+    match = re.search(r"(?:-|\s)(\d{4})$", slug or str(values["title"]))
+    year = int(match.group(1)) if match else 2026
+    return {
+        **values,
+        "uuid": _imported_cohort_uuid(values["id"], slug),
+        "year": year,
+        "outcome": "",
+        "course_id": family_id,
+        "curriculum_format": "legacy",
+        "identifier": str(year),
+    }
+
+
+def _insert_course_families(
+    target: sqlite3.Connection,
+    rows: Sequence[tuple[Any, ...]],
+) -> dict[str, str]:
+    families: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        values = _legacy_course_family_values(row)
+        families.setdefault(str(values["slug"]), values)
+
+    if not families:
+        return {}
+
+    columns = (
+        "id",
+        "slug",
+        "title",
+        "description",
+        "outcome",
+        "github_repo_url",
+        "docs_url",
+        "faq_document_url",
+        "social_media_hashtag",
+        "visible",
+    )
+    column_sql = ", ".join(_quote_identifier(column) for column in columns)
+    placeholders = ", ".join("?" for _column in columns)
+    target.executemany(
+        f"INSERT INTO {_quote_identifier('courses_course_family')} "
+        f"({column_sql}) VALUES ({placeholders})",
+        [tuple(family[column] for column in columns) for family in families.values()],
+    )
+    return {slug: str(family["id"]) for slug, family in families.items()}
+
+
 def _insert_dataset(target: sqlite3.Connection, dataset: AllowedDataset) -> None:
     target.execute("PRAGMA foreign_keys=ON")
     with target:
+        family_ids = _insert_course_families(
+            target,
+            dataset.rows["courses_course"],
+        )
         for table in COPY_ORDER:
             columns = ALLOWLIST[table]
             target_columns = columns
             target_rows = dataset.rows[table]
+            if table == "courses_course":
+                target_columns = (
+                    *columns,
+                    "uuid",
+                    "year",
+                    "outcome",
+                    "course_id",
+                    "curriculum_format",
+                    "identifier",
+                )
+                cohort_rows = []
+                for row in target_rows:
+                    family_slug = str(_legacy_course_family_values(row)["slug"])
+                    cohort = _legacy_cohort_values(row, family_ids[family_slug])
+                    cohort_rows.append(tuple(cohort[column] for column in target_columns))
+                target_rows = cohort_rows
+            elif table == "courses_homework":
+                target_columns = (*columns, "instructions_markdown")
+                target_rows = [(*row, "") for row in target_rows]
             if table == "courses_wrappedstatistics":
                 target_columns = (*columns, "leaderboard")
                 target_rows = [(*row, "[]") for row in target_rows]
