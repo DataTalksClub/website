@@ -11,7 +11,7 @@ from core.course_index_content import (
     cohort_dates_display,
     enrolled_state_label,
 )
-from core.home_content import course_catalog
+from core.home_content import FEATURED_FAMILY
 from courses.models.cohort import Cohort
 from courses.models.wrapped import WrappedStatistics
 from courses.services.registration_counts import (
@@ -121,17 +121,9 @@ def featured_course(active_courses):
         for course in active_courses
         if getattr(course, "course", None) is not None
     }
-    active_by_cohort_slug = {course.slug: course for course in active_courses}
-    for catalog_course in course_catalog():
-        shared_course = active_by_family_slug.get(
-            getattr(catalog_course, "family", "")
-        )
-        if shared_course is None:
-            # Keep the existing projection bridge working while old source
-            # records still expose an edition slug as their public identity.
-            shared_course = active_by_cohort_slug.get(catalog_course.slug)
-        if shared_course is not None:
-            return shared_course
+    featured = active_by_family_slug.get(FEATURED_FAMILY)
+    if featured is not None:
+        return featured
 
     for course in active_courses:
         title = course.title.lower()
