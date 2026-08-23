@@ -6,7 +6,9 @@ acceptance or permission to bypass the repository lifecycle.
 
 ## Repository state
 
-- `origin/main` is `c48bec2` (`Fix backlog audit quality markers`).
+- `origin/main` is `759460e` (`Update backlog handoff audit`), a report-only
+  child of the audited code baseline `c48bec2` (`Fix backlog audit quality
+  markers`). The code/spec tree is unchanged by `759460e`.
 - The shared root is a dirty `issue-216-engineer` checkout with mixed podcast,
   course-repository, projection, and test changes. Preserve it; do not use it
   as an engineer or tester worktree.
@@ -54,14 +56,16 @@ acceptance or permission to bypass the repository lifecycle.
   authorized.
 - Successive five-slot read-only waves rebaselined #65, #198, #26, #66, #9,
   #109, #112, #133, #165, #213, #210, #212, #76, #77, #74, #60, #102,
-  #73, #29, #23, #15, #16, and #22 against `c48bec2`. Completed lanes were
+  #73, #29, #23, #15, #16, and #22 against `c48bec2` (with report-only
+  `759460e` now at the tip). Completed lanes were
   closed before replacement; no code, issue, CI, deployment, AWS, provider,
   commit, push, or worktree-deletion mutation was authorized.
-- The current five parallel lanes are #126, #127, #128, #129, and #130. The
+- The current five parallel lanes are #127, #131, #132, #133, and #134. The
   completed current-head audits for #36 and #38–#48, plus the latest #105,
   #106, #108, #109, #110, #111, #112, #113, #114, #115, #116, #117, #118,
-  #119, #120, #121, #122, #123, #124, and #125 checks, were closed before
-  replacement; preserve the dirty root and all candidate worktrees.
+  #119, #120, #121, #122, #123, #124, #125, #126, #128, #129, and #130 checks, were
+  closed before replacement; preserve the dirty root and all candidate
+  worktrees.
 
 ## Parallel lanes
 
@@ -156,10 +160,11 @@ needed.
   PM, on-call, deployment, and current-main route evidence accepted. Remove it
   from the active-lane list and keep its parent #59 parity work separate; do not
   reopen or redeploy #115.
-- The latest #116 audit confirms the mechanical `cadmin` → `studio_courses`
+- The latest #116 audit confirms the mechanical legacy course-admin →
+  `studio_courses`
   rename is already closed/completed, independently tested, PM accepted, and
   deployed. Remove it from active-lane accounting; the broader #59 parity and
-  `/cadmin` removal gates remain separate.
+  legacy compatibility-route removal gates remain separate.
 - The latest #114 audit confirms the settings feature is already merged, tested,
   PM accepted, deployed, and closed. Retire its stale lane entry; any fresh
   current-head accessibility/settings envelope belongs to #65/#107 or a new
@@ -197,6 +202,22 @@ needed.
   but the required owner/legal HUMAN gate remains open while the issue is
   incorrectly closed. Obtain the owner decision, then reconcile it as a narrow
   successor/current-head gate; do not enable analytics or dispatch code now.
+- The latest #126 audit confirms the focus-ring/skip-link accessibility fix is
+  already merged, accepted, deployed, and closed. Retire its stale lane; the
+  current c48 release failure is separate and no #126 rerun is warranted.
+- The latest #130 audit marks the old CMP visual request stale/superseded, not
+  completed: the target surfaces were rebuilt under design 5a, #179 owns
+  home/unified, and a named successor is still needed for events/detail. Retire
+  #130’s active lane and do not revive its old candidate or HUMAN visual gate.
+- The latest #128 audit keeps the course-page adoption issue OPEN/BLOCKED: the
+  historical CMP candidate is merged, but current design-5a overlays intentionally
+  differ from its pinned hashes. A product owner must decide CMP parity versus
+  #179’s design-5a ownership before any tester, engineering, or supersession
+  action; do not infer the decision from the deployed CMP sibling.
+- The latest #129 audit marks the visual umbrella stale rather than dispatchable:
+  current Design 5a supersedes its pinned CMP authority, #128 owns the course
+  conflict, #179 owns home/unified, and events/detail still need a named owner.
+  Reconcile #128/#129/#130/#179 before any implementation or tester lane.
 - The latest #105 audit leaves the issue blocked on a fresh exact-current-main
   deployment, both health checks, and authorized production SEO/Search Console
   evidence; its public People/Event wording is stale and must be reconciled
