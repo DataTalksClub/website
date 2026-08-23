@@ -195,7 +195,7 @@ needed.
   failures.
 - The fresh #102 audit confirms the human gate is still undecided: the
   retained `31616994243` artifact has no owner-decision field and no later
-  comment changes the status. Do not dispatch a drill until the owner records
+  comment changes the status. Do not run a drill until the owner records
   either acceptance of that artifact or authorization for an exclusive,
   readiness-checked development-only `post_mutation_smoke` with
   `DEVELOPMENT_AUTO_DEPLOY=false` and redacted evidence.
@@ -368,11 +368,12 @@ needed.
 - The completed #59 audit confirms Course/Cohort Studio/API parity is
   OPEN/P0/BLOCKED: the 115-route inventory is not an action-policy matrix,
   only nine registration-count capabilities are registered, object scope and
-  high-risk preview/reauth/idempotency are missing, and Django-admin/cadmin
+  high-risk preview/reauth/idempotency are missing, and legacy management-UI
   dependencies remain. Groom a PM-only parity inventory before implementation.
 - The fresh #59 audit confirms that PM-only matrix is ready to groom but cannot
-  claim parity or unblock engineering. It must reconcile Studio/cadmin, 45
-  admin-API operations, 11 Django-admin handlers, and 35 commands with owners,
+  claim parity or unblock engineering. It must reconcile Studio and the legacy
+  management UI, 45 admin-API operations, 11 Django-admin handlers, and 35
+  commands with owners,
   shared services, object/field policy, audit, idempotency/concurrency,
   async/partial-failure behavior, and removal gates; unresolved cells stay
   blocked by #32/#33, #51–#58, #20/#28, #21/#22, and Relay #1–#3.
@@ -521,7 +522,7 @@ needed.
 - The completed #14 audit confirms Course/Cohort ownership remains OPEN/P0/
   decision with no owner acceptance. Current family/cohort code is present, but
   duplication is incomplete and history/criteria ownership still have gaps;
-  phase-two worktrees are clean but stale/unaccepted. Do not dispatch #51/#53/
+  phase-two worktrees are clean but stale/unaccepted. Do not start #51/#53/
   #55/#56/#60/#218 until the owner records the family-versus-cohort and
   definition-only duplication decision.
 - The fresh #14 audit confirms the owner must still accept or replace the
@@ -587,14 +588,14 @@ needed.
   close self-service signup, preserve it with verified-email/abuse controls, or
   define a new contract; current code leaves the email signup path open despite
   `ACCOUNT_ALLOW_REGISTRATION = False`.
-- #94 is OPEN and blocked by #78: the legacy `sandbox/website` Terraform root,
-  state keys, and OIDC boundary remain in place; no engineer lane is safe until
+- #94 is OPEN and blocked by #78: the legacy non-development website Terraform
+  root, state keys, and OIDC boundary remain in place; no engineer lane is safe until
   immutable development-environment activation and a fresh readiness preflight
   pass.
 - The fresh #94 audit confirms no `development/website` root or activation
-  evidence exists: state remains `sandbox/website/terraform.tfstate`, workflow
-  bindings still name `sandbox`, GitHub has no development environment or
-  variables, and `DEVELOPMENT_AUTO_DEPLOY` is true. Keep #94 stopped; after
+  evidence exists: state remains under the old website Terraform root, workflow
+  bindings still name the old environment, GitHub has no development environment
+  or variables, and `DEVELOPMENT_AUTO_DEPLOY` is true. Keep #94 stopped; after
   #78 closes, perform only the authorized read-only 98-address/state/lock/
   identity/no-change-plan preflight.
 - #78 is source/operator-accepted but still OPEN/HUMAN: GitHub OIDC remains
@@ -605,7 +606,7 @@ needed.
   still has zero Actions environments/variables and `main.protected=false`; the
   OIDC readback remains default, while AWS preflight stops at HTTP 403. The
   smallest safe action is a named-owner, read-only GitHub/AWS preflight with
-  redacted readbacks; no OIDC enablement, IAM bootstrap, workflow dispatch, or
+  redacted readbacks; no OIDC enablement, IAM bootstrap, workflow trigger, or
   Terraform apply is authorized.
 - #63 is OPEN and incomplete despite the merged #141 non-identity baseline; a
   PM-owned child still needs the route/export authorization matrix, legacy-auth
@@ -634,7 +635,7 @@ needed.
   #20/#28/#32/#61. Do not start an engineer lane yet.
 - The fresh #33 audit confirms `/api/v1/admin/` is strict Bearer-only with
   hashed/scoped/expiring/revocable principals, while legacy `/api/` raw-token,
-  cadmin, and provider-neutral Studio paths remain separate. The safe child is
+  legacy management-UI, and provider-neutral Studio paths remain separate. The safe child is
   documentation-only coexistence/deprecation mapping under #52; do not alter
   authentication, routes, token storage, models, credentials, or deployment.
 - The fresh #107 audit confirms its development credential foundation is
@@ -654,7 +655,7 @@ needed.
   recomputation and Studio/API parity are missing. Do not start until
   #23/#14/#15/#28 and #52/#54–#56 are resolved.
 - #59 is OPEN/P0 and not implementation-ready. The management registry covers
-  only nine registration-count capabilities; Studio/cadmin, compatibility API,
+  only nine registration-count capabilities; Studio and the legacy management UI,
   Django admin, and commands still lack an owner-mapped action matrix and
   shared-service/parity contract. Keep it blocked pending #20/#28, #14/#15,
   #32/#33, #48–#51, and #54–#58 decisions.
@@ -674,6 +675,14 @@ needed.
   and the terminal current-main Playwright plus named real screen-reader/manual
   matrix are still absent. Start only a tester-owned refresh from current main;
   do not reuse the stale candidate or add a new accessibility implementation.
+- A supplemental current-main #65 audit confirms merged `58932b4` remains an
+  ancestor, but the manual evidence template is blank and the latest green
+  scheduled run covers only core Playwright, not the full accessibility lane.
+  Since that merge, 1,255 files changed, including current course/auth, event
+  Q&A, podcast, learner-module, shell, and auth work; the registry has no
+  explicit Q&A/module/Mermaid/code-copy state IDs. Keep #65 OPEN/HUMAN and
+  rebaseline a tester from `efda44d` with current-owner coverage decisions;
+  do not absorb those product states into #65 implementation.
 - #54 is OPEN/P0 and not assignable. Registration still permits anonymous
   legacy behavior and lacks CourseInterest, RegistrationWindow, conversion,
   MemberProfile, EmailDelivery, and complete Studio/API contracts. PM should
@@ -731,7 +740,7 @@ needed.
 - #26 is OPEN/P0 and blocked as a decision issue. The proposed production
   targets (availability, latency, freshness, Relay acceptance, DB RPO, and
   service RTO) and development targets are not owner-approved, and no alert
-  ownership/runbook matrix or measured restore evidence exists. Do not dispatch
+  ownership/runbook matrix or measured restore evidence exists. Do not start
   #66/#73/#74 work until the owner records an explicit decision.
 - #191 is OPEN and blocked at the source-of-truth decision gate. RDS rotates
   its master credential while ECS receives a separate static `DATABASE_URL`; no
@@ -740,7 +749,7 @@ needed.
   secrets, or readiness from this backlog lane.
 - The fresh #191 audit confirms the same fail-closed boundary on clean refs:
   Terraform enables RDS-managed credentials but ECS still reads the separate
-  static `website-sandbox/database-url`; no website-specific rotation sync,
+  static application `database-url` secret; no website-specific rotation sync,
   stale-secret alarm, or named implementation/operations owner exists. Keep
   #191 OPEN/P0/BLOCKED and request one redacted owner decision before any AWS,
   secrets, IAM, or rotation-shaped verification.
@@ -935,7 +944,7 @@ needed.
   projection rather than a canonical source-backed boundary, host/instructor/
   maintainer roles and aliases/removal guards are missing, and Studio/API
   parity is absent. Re-groom a bounded Person adapter/resolver child before
-  dispatch; do not widen #39 or link accounts/staff.
+  beginning; do not widen #39 or link accounts/staff.
 - The completed #38 audit confirms the editorial GitHub sync issue is groomed
   but not implementation-ready as a full delivery. Generic HMAC/replay/jobs
   and immutable release foundations exist, but no source-specific ingress,
@@ -1016,7 +1025,8 @@ needed.
   lacks accepted retention, high-risk mutation, permission, Relay, and
   reconciliation contracts; #28/#50/#54–#57 remain gates.
 - #59 is OPEN/BLOCKED. A #30-derived owner-mapped parity matrix covering
-  Studio, cadmin, Django admin, commands, compatibility APIs, shared services,
+  Studio, the legacy management UI, Django admin, commands, compatibility APIs,
+  shared services,
   permissions, audit, idempotency, and removal gates is still missing; #32/#33
   and #51–#58 remain dependencies.
 - The #133 tester replacement was rejected before execution by the agent
