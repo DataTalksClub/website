@@ -24,6 +24,7 @@ from core.services import ServiceContext
 
 from .inventory import content_route_contracts
 from .models import (
+    LEGACY_PUBLIC_CONTRACT_DIGEST,
     PUBLIC_CONTRACT_DIGEST,
     ActiveContentPath,
     ContentAsset,
@@ -425,6 +426,10 @@ def create_content_release(
     _validate_version(command.rendering_version, field_name="rendering_version")
     if not _SHA256.fullmatch(command.public_contracts_sha256):
         raise ValueError("public_contracts_sha256 must be a lowercase SHA-256 digest")
+    if command.public_contracts_sha256 != PUBLIC_CONTRACT_DIGEST:
+        raise ContentReadinessError(
+            "new content releases must use the checked public contract artifact"
+        )
     provenance = _safe_json_object(command.request_provenance)
     with transaction.atomic(using=using):
         source = lock_revisioned(
@@ -864,9 +869,19 @@ def _readiness_counts(release: ContentRelease, *, using: str) -> tuple[int, int,
     return document_count, relation_count, asset_count
 
 
-def _validate_frozen_readiness(release: ContentRelease, *, using: str) -> None:
-    if release.public_contracts_sha256 != PUBLIC_CONTRACT_DIGEST:
-        raise ContentReadinessError("release is not bound to the checked public contract artifact")
+def _validate_frozen_readiness(
+    release: ContentRelease,
+    *,
+    using: str,
+    allow_legacy_contract: bool = False,
+) -> None:
+    allowed_digests = (
+        (PUBLIC_CONTRACT_DIGEST, LEGACY_PUBLIC_CONTRACT_DIGEST)
+        if allow_legacy_contract
+        else (PUBLIC_CONTRACT_DIGEST,)
+    )
+    if release.public_contracts_sha256 not in allowed_digests:
+        raise ContentReadinessError("release is not bound to a supported public contract artifact")
     if not release.asset_manifest_checksum or not _SHA256.fullmatch(
         release.asset_manifest_checksum
     ):
@@ -1366,7 +1381,7 @@ def _rollback_swap_state(
         raise ContentLifecycleError("rollback target was not a previously active release")
     if retained.activated_at is None or retained.superseded_at is None:
         raise ContentLifecycleError("rollback target lacks retained activation evidence")
-    _validate_frozen_readiness(retained, using=using)
+    _validate_frozen_readiness(retained, using=using, allow_legacy_contract=True)
     _validate_active_path_claims(source, current, using=using)
     _validate_enabled_namespace(source, retained, using=using)
     return source, current, retained

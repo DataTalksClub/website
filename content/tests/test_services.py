@@ -7,7 +7,13 @@ from unittest.mock import patch
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 
-from content.models import ContentDocument, ContentRelease, expected_storage_prefix
+from content.models import (
+    LEGACY_PUBLIC_CONTRACT_DIGEST,
+    PUBLIC_CONTRACT_DIGEST,
+    ContentDocument,
+    ContentRelease,
+    expected_storage_prefix,
+)
 from content.queries import (
     ResolvePublicAsset,
     ResolvePublicDocument,
@@ -63,6 +69,77 @@ class ContentLifecycleTests(TestCase):
             ),
             context=CONTEXT,
         )
+
+    def test_new_release_digest_is_current_and_legacy_release_can_be_rolled_back(self) -> None:
+        source = make_source()
+        source.refresh_from_db()
+        with self.assertRaisesRegex(
+            ContentReadinessError,
+            "checked public contract artifact",
+        ):
+            create_content_release(
+                CreateContentRelease(
+                    source_id=source.id,
+                    expected_source_revision=source.revision,
+                    commit_sha="a" * 40,
+                    parser_version="parser-v1",
+                    rendering_version="renderer-v1",
+                    request_provenance={"mode": "legacy-digest-rejection"},
+                    public_contracts_sha256=LEGACY_PUBLIC_CONTRACT_DIGEST,
+                ),
+                context=CONTEXT,
+            )
+        self.assertEqual(ContentRelease.objects.count(), 0)
+
+        first = activate(source, make_ready_release(source, commit_character="b"))
+        self.assertEqual(first.public_contracts_sha256, PUBLIC_CONTRACT_DIGEST)
+        second = make_ready_release(source, commit_character="c")
+        first.refresh_from_db()
+        source.refresh_from_db()
+        ContentRelease.objects.filter(pk=second.id).update(
+            public_contracts_sha256=LEGACY_PUBLIC_CONTRACT_DIGEST,
+        )
+        second.refresh_from_db()
+        with self.assertRaises(ContentReadinessError):
+            activate_content_release(
+                ActivateContentRelease(
+                    source.id,
+                    second.id,
+                    source.revision,
+                    second.revision,
+                    "legacy digest cannot activate as a new candidate",
+                ),
+                context=CONTEXT,
+            )
+        source.refresh_from_db()
+        self.assertEqual(source.active_release_id, first.id)
+
+        ContentRelease.objects.filter(pk=second.id).update(
+            public_contracts_sha256=PUBLIC_CONTRACT_DIGEST,
+        )
+        second.refresh_from_db()
+        source.refresh_from_db()
+        activate(source, second)
+
+        ContentRelease.objects.filter(pk=first.id).update(
+            public_contracts_sha256=LEGACY_PUBLIC_CONTRACT_DIGEST,
+        )
+        first.refresh_from_db()
+        source.refresh_from_db()
+        rollback_content_release(
+            RollbackContentRelease(
+                source.id,
+                first.id,
+                source.revision,
+                first.revision,
+                "retain legacy release",
+            ),
+            context=CONTEXT,
+        )
+        source.refresh_from_db()
+        first.refresh_from_db()
+        self.assertEqual(source.active_release_id, first.id)
+        self.assertEqual(first.public_contracts_sha256, LEGACY_PUBLIC_CONTRACT_DIGEST)
 
     def test_allowed_terminal_edges_and_omitted_transitions_fail_closed(self) -> None:
         source = make_source()
