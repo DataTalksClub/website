@@ -12,6 +12,12 @@ from django.test import TestCase, override_settings
 
 from accounts.studio_test_support import authenticated_studio_client, make_studio_user
 from content.public_data import public_projection
+from events.importers import (
+    ProtectedSourceError,
+    registered_source_options,
+    resolve_registered_source_reference,
+    source_reference_digest,
+)
 from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
 from management_api.concurrency import revision_etag
 from management_auth.models import APICredential, APIPrincipal
@@ -275,6 +281,122 @@ class HistoricalRegistrationManagementTests(TestCase):
 
 
 class HistoricalRegistrationStudioAccessTests(TestCase):
+    def test_reserved_source_tokens_resolve_collisions_without_disclosure(self) -> None:
+        normal_key = "synthetic-normal-source"
+        collision_key = f"source:{source_reference_digest(normal_key)}"
+        registry = {
+            normal_key: {"provider": "eventbrite"},
+            collision_key: {"provider": "luma"},
+        }
+        user = make_studio_user(
+            username="synthetic-source-collision-operator",
+            roles=("event_operator",),
+        )
+
+        with override_settings(HISTORICAL_REGISTRATION_SOURCES=registry):
+            response = authenticated_studio_client(user).get(
+                "/studio/events/historical-registration-totals/"
+            )
+            options = registered_source_options()
+            resolved_by_label = {
+                option["label"]: resolve_registered_source_reference(option["value"])
+                for option in options
+            }
+            direct_raw_selection = resolve_registered_source_reference(collision_key)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, normal_key)
+        self.assertNotContains(response, collision_key)
+        self.assertEqual(
+            resolved_by_label,
+            {
+                "Eventbrite historical registration source": normal_key,
+                "Luma historical registration source": collision_key,
+            },
+        )
+        self.assertEqual(direct_raw_selection, collision_key)
+        self.assertEqual(len(options), 2)
+        self.assertTrue(
+            all(
+                option["value"].startswith("__dtc_historical_source_token_v1__:")
+                for option in options
+            )
+        )
+
+    def test_reserved_source_tokens_reject_malformed_and_unknown_values(self) -> None:
+        source_key = "synthetic-token-validation-source"
+        registry = {source_key: {"provider": "luma"}}
+        with override_settings(HISTORICAL_REGISTRATION_SOURCES=registry):
+            valid_token = registered_source_options()[0]["value"]
+            malformed_token = f"{valid_token[:-1]}g"
+            unknown_token = f"{valid_token[: valid_token.index(':') + 1]}{'0' * 64}"
+
+            with self.assertRaisesMessage(ProtectedSourceError, "source_reference_token_invalid"):
+                resolve_registered_source_reference(malformed_token)
+            with self.assertRaisesMessage(ProtectedSourceError, "source_reference_unregistered"):
+                resolve_registered_source_reference(unknown_token)
+
+    def test_source_choices_redact_synthetic_and_real_keys(self) -> None:
+        user = make_studio_user(
+            username="synthetic-source-redaction-operator",
+            roles=("event_operator",),
+        )
+        synthetic_key = "synthetic-studio-source-key"
+        real_luma_key = "real-luma-protected-source"
+        real_eventbrite_key = "real-eventbrite-protected-source"
+        registry = {
+            synthetic_key: {"provider": "luma"},
+            real_luma_key: {"provider": "luma"},
+            real_eventbrite_key: {"provider": "eventbrite"},
+        }
+        with override_settings(HISTORICAL_REGISTRATION_SOURCES=registry):
+            response = authenticated_studio_client(user).get(
+                "/studio/events/historical-registration-totals/"
+            )
+            options = registered_source_options()
+            selected_keys = {
+                resolve_registered_source_reference(option["value"]) for option in options
+            }
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Luma historical registration source")
+        self.assertContains(response, "Eventbrite historical registration source")
+        for source_key in (synthetic_key, real_luma_key, real_eventbrite_key):
+            self.assertNotContains(response, source_key)
+        self.assertEqual(len(options), 3)
+        self.assertEqual(
+            selected_keys,
+            {synthetic_key, real_luma_key, real_eventbrite_key},
+        )
+        self.assertTrue(
+            all(
+                option["value"].startswith("__dtc_historical_source_token_v1__:")
+                for option in options
+            )
+        )
+
+    def test_mixed_type_source_registry_is_safe_for_studio_and_redacts_keys(self) -> None:
+        user = make_studio_user(
+            username="synthetic-mixed-source-registry-operator",
+            roles=("event_operator",),
+        )
+        string_key = "synthetic-mixed-type-source-key"
+        non_string_key = ("synthetic-non-string-source-key",)
+        registry = {
+            string_key: {"provider": "luma"},
+            non_string_key: {"provider": "eventbrite"},
+        }
+
+        with override_settings(HISTORICAL_REGISTRATION_SOURCES=registry):
+            response = authenticated_studio_client(user).get(
+                "/studio/events/historical-registration-totals/"
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Luma historical registration source")
+        self.assertNotContains(response, string_key)
+        self.assertNotContains(response, str(non_string_key))
+
     def test_event_operator_has_private_safe_routes_and_other_operator_is_denied(self) -> None:
         event_operator = make_studio_user(
             username="synthetic-event-operator",
@@ -300,3 +422,16 @@ class HistoricalRegistrationStudioAccessTests(TestCase):
             "/studio/events/historical-registration-totals/"
         )
         self.assertEqual(denied.status_code, 403)
+
+    def test_unauthorized_source_registry_is_not_rendered(self) -> None:
+        content_operator = make_studio_user(
+            username="synthetic-source-redaction-denied",
+            roles=("content_operator",),
+        )
+        source_key = "synthetic-denied-source-key"
+        with override_settings(HISTORICAL_REGISTRATION_SOURCES={source_key: {"provider": "luma"}}):
+            denied = authenticated_studio_client(content_operator).get(
+                "/studio/events/historical-registration-totals/"
+            )
+        self.assertEqual(denied.status_code, 403)
+        self.assertNotIn(source_key, denied.content.decode())

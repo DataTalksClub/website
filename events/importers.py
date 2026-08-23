@@ -64,6 +64,12 @@ MAX_ROWS = 2_000_000
 _REFERENCE = re.compile(r"^[a-z][a-z0-9_.:-]{0,127}$")
 _EVENTBRITE_ENTRY = re.compile(r"^(?P<event_id>[0-9]{1,20})\.csv$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
+# `_REFERENCE` requires a lowercase leading character, so this leading-underscore
+# namespace cannot collide with a registered raw source reference.
+_REGISTERED_SOURCE_TOKEN_PREFIX = "__dtc_historical_source_token_v1__:"
+_REGISTERED_SOURCE_TOKEN = re.compile(
+    rf"{re.escape(_REGISTERED_SOURCE_TOKEN_PREFIX)}(?P<digest>[0-9a-f]{{64}})"
+)
 
 
 class ProtectedSourceError(ValueError):
@@ -748,6 +754,65 @@ def source_reference_digest(reference: str) -> str:
     if not isinstance(reference, str) or _REFERENCE.fullmatch(reference) is None:
         raise ProtectedSourceError("source_reference_invalid")
     return hashlib.sha256(f"dtc-source-reference-v1\0{reference}".encode()).hexdigest()
+
+
+def registered_source_options() -> tuple[dict[str, str], ...]:
+    """Return safe Studio choices without exposing registry keys."""
+
+    registry = _source_registry()
+    labels: dict[str, str] = {
+        HistoricalRegistrationSourceRun.Provider.LUMA: "Luma historical registration source",
+        HistoricalRegistrationSourceRun.Provider.EVENTBRITE: (
+            "Eventbrite historical registration source"
+        ),
+    }
+    options: list[dict[str, str]] = []
+    for reference in sorted(reference for reference in registry if isinstance(reference, str)):
+        try:
+            token = f"{_REGISTERED_SOURCE_TOKEN_PREFIX}{source_reference_digest(reference)}"
+        except ProtectedSourceError:
+            continue
+        configuration = registry[reference]
+        provider = configuration.get("provider") if isinstance(configuration, Mapping) else None
+        if not isinstance(provider, str):
+            provider = ""
+        options.append(
+            {
+                "value": token,
+                "label": labels.get(provider, "Protected historical registration source"),
+            }
+        )
+    return tuple(options)
+
+
+def resolve_registered_source_reference(selection: str) -> str:
+    """Resolve a Studio selection token while retaining direct service input support."""
+
+    if not isinstance(selection, str):
+        raise ProtectedSourceError("source_reference_invalid")
+    registry = _source_registry()
+    if selection.startswith(_REGISTERED_SOURCE_TOKEN_PREFIX):
+        token = _REGISTERED_SOURCE_TOKEN.fullmatch(selection)
+        if token is None:
+            raise ProtectedSourceError("source_reference_token_invalid")
+        digest = token["digest"]
+        matches: list[str] = []
+        for reference in registry:
+            if not isinstance(reference, str):
+                continue
+            try:
+                if source_reference_digest(reference) == digest:
+                    matches.append(reference)
+            except ProtectedSourceError:
+                continue
+        if len(matches) != 1:
+            raise ProtectedSourceError("source_reference_unregistered")
+        return matches[0]
+
+    source_reference_digest(selection)
+    if selection not in registry:
+        raise ProtectedSourceError("source_reference_unregistered")
+    return selection
 
 
 def derive_registered_source(

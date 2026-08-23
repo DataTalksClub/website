@@ -398,7 +398,10 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
             screenshot(page, "studio-import-list", suffix)
 
             page.get_by_label("Provider").select_option("luma")
-            page.get_by_label("Registered source reference").select_option("synthetic-studio-luma")
+            page.get_by_label("Registered source reference").select_option(
+                label="Luma historical registration source"
+            )
+            assert "synthetic-studio-luma" not in page.content()
             page.get_by_label("Confirm aggregate-only staging").check()
             page.get_by_role("button", name="Stage source", exact=True).click()
             expect(
@@ -556,8 +559,9 @@ def test_studio_stage_replay_map_validate_activate_preview_rollback_and_denial(
             assert_private(unsupported_list)
             page.get_by_label("Provider").select_option("eventbrite")
             page.get_by_label("Registered source reference").select_option(
-                "synthetic-studio-unsupported"
+                label="Eventbrite historical registration source"
             )
+            assert "synthetic-studio-unsupported" not in page.content()
             page.get_by_label("Confirm aggregate-only staging").check()
             page.get_by_role("button", name="Stage source", exact=True).click()
             expect(
