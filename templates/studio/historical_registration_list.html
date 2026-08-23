@@ -56,7 +56,7 @@
             <label class="field-label" for="source-reference">Registered source reference</label>
             <select class="field-input" id="source-reference" name="source_reference" required>
               {% for reference in source_references %}
-                <option value="{{ reference }}">{{ reference }}</option>
+                <option value="{{ reference.value }}">{{ reference.label }}</option>
               {% endfor %}
             </select>
           </div>

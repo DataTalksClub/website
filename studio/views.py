@@ -2,7 +2,6 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from django.conf import settings
 from django.http import (
     HttpRequest,
     HttpResponse,
@@ -68,7 +67,11 @@ from courses.services.registration_counts import (
     serialize_run as serialize_course_count_run,
 )
 from events.identity import EventIdentityNotFound, get_event_identity, list_event_identities
-from events.importers import ProtectedSourceError
+from events.importers import (
+    ProtectedSourceError,
+    registered_source_options,
+    resolve_registered_source_reference,
+)
 from events.models import HistoricalEventMapping, HistoricalRegistrationSourceRun
 from events.services import (
     HistoricalRegistrationConflict,
@@ -1457,7 +1460,9 @@ def historical_registration_list(request: HttpRequest) -> HttpResponse:
             if request.POST.get("confirmed") != "true":
                 raise HistoricalRegistrationInvalid("confirmation_required")
             provider = request.POST.get("provider", "")
-            source_reference = request.POST.get("source_reference", "")
+            source_reference = resolve_registered_source_reference(
+                request.POST.get("source_reference", "")
+            )
             mapping_set_revision = int(request.POST.get("mapping_set_revision", "0"))
             idempotency_key = request.POST.get("idempotency_key", "")
 
@@ -1492,12 +1497,10 @@ def historical_registration_list(request: HttpRequest) -> HttpResponse:
     listing = CAPABILITY_REGISTRY.require("events.historical_registration_import.manage").service(
         page=1, page_size=100
     )
-    registry = getattr(settings, "HISTORICAL_REGISTRATION_SOURCES", {})
-    references = (
-        tuple(sorted(reference for reference in registry if isinstance(reference, str)))
-        if isinstance(registry, dict)
-        else ()
-    )
+    try:
+        references = registered_source_options()
+    except ProtectedSourceError:
+        references = ()
     return render(
         request,
         "studio/historical_registration_list.html",
