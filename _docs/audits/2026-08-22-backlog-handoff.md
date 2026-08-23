@@ -1359,6 +1359,159 @@ freshly groomed accounts-only `MemberProfile` foundation; exclude signup,
   leaving the sync ledger with a retired copied migration path. Repair the
   adoption verifier/ledger before the next source-pin update.
 
+## Rolling current-head audit wave — 2026-08-23
+
+This wave audited the open backlog against the exact `origin/main` head
+`5c851fae11679b069831b19b26df674dd4991c9d` (the product code ancestor is
+`c48bec2`). Five read-only explorer lanes were kept active in parallel and
+replaced on completion. They inspected issue history, process gates, specs,
+source, tests, preserved worktrees, and release evidence; they made no file,
+GitHub, CI, deployment, AWS, provider, or production-data changes.
+
+### Shared release boundary
+
+- Scheduled full regression run `32629364762` passed for the audited head, but
+  this is ordinary regression evidence, not issue acceptance or deployment
+  evidence.
+- Push run `32625832598` failed in `auto-capture-prior` while capturing the
+  managed worker/web pair. Publish and deploy were skipped. No current-head
+  release, smoke, or on-call acceptance exists.
+- The development host remains an older release and has no current-head
+  readiness proof; the observed `/health/ready` state was `503` with database
+  or migration unavailability. Do not use the live host as evidence for this
+  wave.
+- Every issue below remains subject to the required PM → engineer → independent
+  tester → PM → focused commit/merge → matching deployment lifecycle. A green
+  general regression does not substitute for those gates.
+
+### Decision-owner blockers
+
+The following decisions remain open, unassigned, and without an owner
+`ACCEPT`, `ACCEPT WITH CHANGE`, or `REJECT`. Draft comments and recommendations
+are not acceptance:
+
+- **#12 — editorial source workflow:** reconcile four versus five source
+  authorities, branch/path/adapter limits, webhook identity/replay, activation
+  and rollback ownership, permissions, and the public-reader cutover boundary.
+- **#14 — Course/Cohort ownership:** the implementation has advanced, but the
+  owner has not accepted criteria reuse, duplication/history boundaries, or
+  deferred versioning. Re-audit #51/#53/#55/#56/#218 only after the decision.
+- **#15 — legacy course mapping:** the 12-row slug/year catalogue is not a
+  complete source-bound mapping. It lacks legacy IDs, aliases, dispositions,
+  review metadata, and fail-closed duplicate/ambiguity checks.
+- **#16 — course consumers and redirects:** the current contract has 115
+  routes, all `preserve` with production probes `not_performed`; the
+  `/cohorts/` route contract still conflicts with emitted URLs, and no
+  host-level redirect Lambda map is authorized.
+- **#17 — verified registration:** the decision must be event-only for
+  accountless registration and must separately require a verified durable
+  account/profile for courses, with short-lived single-use tokens, replay and
+  enumeration behavior, and account-link conflict rules.
+- **#18 — capacity:** the safe MVP direction is “no capacity enforcement,” not
+  a permanent unlimited-capacity promise. The owner must bind event-only versus
+  course scope and explicitly defer seats, waitlists, promotion, and capacity
+  notifications.
+- **#19 — time zones:** Europe/Berlin is currently an implementation default,
+  not an accepted decision. The owner must settle aware-value precedence, UTC
+  and IANA storage, DST folds/gaps, leap days, display, ICS, and notifications.
+- **#20 — staff identity:** no provider, MFA, claims, offboarding, outage, or
+  break-glass policy is accepted; no provider-specific implementation is
+  authorized.
+- **#22 — email purpose catalog:** purpose, owner, audience, trigger,
+  sender/reply-to, immutable template version, typed context, idempotency,
+  consent/legal basis, retention, and deferrals are not approved.
+- **#23 — privacy:** ownership, processors, lawful bases, retention/legal hold,
+  accountless rights, deletion/tombstone propagation, minors, recording, public
+  output, and provider payload controls remain provisional.
+- **#24 — search:** PostgreSQL is only a recommendation. The owner must settle
+  portable projection semantics, `/wiki` versus retired `/podwiki`, query and
+  filter behavior, ranking, privacy/no-store, fallback, and rollback.
+- **#26 — service targets:** no separate development/production SLO, RPO, RTO,
+  alert owner, measurement source, exclusions, escalation, or review trigger
+  has been accepted.
+- **#27 — analytics:** the current no-provider behavior is fail-closed, but
+  the removal of legacy GTM/cookies is not recorded as an accepted privacy
+  decision. Do not enable analytics.
+- **#28 — high-risk actions:** boolean confirmation is not an accepted
+  reauthentication/proof contract. Preview binding, freshness, replay,
+  revisions, audit, partial failure, dual approval, and break-glass rules are
+  unresolved.
+- **#29 — preservation-first cutover:** the policy direction is supported but
+  not accepted. Preserve compatibility, DNS/edge, redirect, sender, and
+  production-cutover actions remain stopped until owners and artifacts are
+  named.
+
+### Current product and verification dispositions
+
+- **Security and operations (#32, #33, #36, #61, #63, #64, #65, #66,
+  #73, #74, #76, #77, #78):** no-go or human/decision blocked. The current
+  tree has useful provider-neutral sessions, API credentials, audit browsing,
+  headers, and generic observability, but no accepted production OIDC/MFA,
+  break-glass, object/field authorization, privacy rights/retention workflow,
+  manual screen-reader evidence, complete fault/restore rehearsal, aggregate
+  release report, or live AWS/OIDC activation. #65 also exposes a verification
+  gap: the scheduled workflow runs the core browser tier while full-marked
+  accessibility states and real assistive-technology evidence remain pending.
+- **Editorial sync and content (#38, #39, #40, #41, #42, #43, #44):** no-go or
+  not started. Static projections exist, but there is no accepted GitHub source
+  workflow, source-backed candidate/preview/activation path, canonical Person
+  resolver, complete main-site collection coverage, current docs source pin,
+  FAQ source parity, or unified search/graph activation. Specific regressions
+  include the docs projection lagging the source, missing legacy docs assets,
+  the FAQ count mismatch `1,395` versus `1,401`, an unrendered FAQ `edit_url`,
+  `/podwiki` text surviving in stale issue/planning contracts, search filters
+  being ineffective, and search responses lacking the required private/no-store
+  policy.
+- **Events and email (#45, #46, #47, #48, #49, #50, #111):** no-go before
+  engineering. The site remains aggregate/Q&A-only: there is no native
+  `EventRegistration`, verification/cancellation flow, attendance/export
+  model, calendar contract, `EmailDelivery`, Relay integration, or configurable
+  event-question/consent surface. Legacy Datamailer remains callable. A
+  concrete adjacent defect is that event invalidation emits numeric paths while
+  the worker accepts only an obsolete UUID path. Do not reuse the course
+  registration flow for event work; it carries newsletter and legacy sender
+  behavior.
+- **Course and migration (#51, #52, #53, #54, #55, #56, #57, #58, #59,
+  #60):** open and blocked. Course/Cohort groundwork is present, but the
+  production migration is a reset/squashed schema rather than a reviewed
+  expand/contract upgrade; the family mapping is synthetic; generic URLs still
+  conflict with the `/cohorts/` specification; cohort ownership/integrity,
+  safe duplication, scoring/reconciliation, scoped authorization, Studio/API
+  parity, learner privacy, and migration rehearsal are unaccepted.
+- **#149 — CMP integration:** the CMP behavior is not adopted. The pin remains
+  `98a2352`, the prior overlay review was explicitly blocked with 13 conflicts,
+  and no current-main implementation or acceptance exists. Do not run the
+  retired drift workflow or copy CMP behavior literally. The current website
+  still has direct Datamailer notifications, unconditional peer-review
+  visibility, and no accepted score-hiding/privacy adaptation.
+- **#218 — main-branch contamination:** this issue is OPEN and unaccepted, but
+  its implementation chain (`ffabaf2`, `1a293d2`, `fa453ee`, `9a89bb6`,
+  `3addc1c`, `7660fc4`, `d224b67`, `da40ae8`) is already on `origin/main`. It
+  has no tester/PM evidence. Findings include criteria fallback to all Cohort
+  criteria, foreign-review submission by ID, an empty migration allowlist,
+  silently omitted curriculum targets, loss of Unit content during duplication,
+  and scope drift into unrelated sync/read-state work. Do not send this head to
+  testing or release as accepted #218 work; the PM must record the contamination
+  and decide whether to contain or re-groom it.
+
+### Smallest safe next actions
+
+1. Obtain the explicit decision-owner responses for #12, #14–#20, #22–#24,
+   #26–#29 before authorizing dependent implementation.
+2. Freeze the current-head evidence/traceability matrix for #73/#74/#76/#77,
+   including ten specs, twenty decision sections, owners, artifact digests,
+   freshness, exceptions, and human NO-GO entries.
+3. Re-groom the Course/Cohort chain (#51–#60 and #218) around the reviewed
+   mapping, route contract, migration strategy, and source-of-truth boundary;
+   do not use dirty proposal worktrees as delivery lanes.
+4. Repair the narrow confirmed defects before broad feature work: event
+   invalidation path mismatch, search private/no-store policy, docs/FAQ source
+   parity, route-shape drift, project/review object binding, and the #218
+   curriculum/duplication correctness issues.
+5. Only after PM grooming and decision closure, create fresh engineer lanes,
+   run independent focused tests/screenshots, obtain PM acceptance, then merge
+   and verify the exact deployed SHA.
+
 ## Worktree policy
 
 Dirty or unmerged candidates remain preserved, including the active #109,
@@ -1371,12 +1524,12 @@ any cleanup.
 
 ## Next actions
 
-1. Collect the five active lane reports on completion and replace each closed
-   lane immediately with the next bounded backlog question.
-2. Route PASS/FAIL and human-gate results to the owning issues; keep blocked
-   work out of merge/PM acceptance.
-3. Reconcile accepted candidates against current `origin/main`, then run the
-   independent tester and PM gates again if the base moved.
+1. Route the rolling-wave findings to the owning issue decisions; keep blocked
+   work out of merge and PM acceptance.
+2. Re-groom the decision chain for #12, #14–#20, #22–#24, #26–#29, and #218
+   before opening new implementation lanes.
+3. Reconcile accepted candidates against current `origin/main`, then rerun the
+   independent tester and PM gates whenever the base moves.
 4. Merge only fully accepted work, push the exact SHA, and verify the matching
    deployment before closing an issue.
 5. Remove only clean, unique-change-free worktrees after checking their branch,
