@@ -223,12 +223,11 @@ def render_inventory() -> str:
     lines.extend(
         [
             "",
-            "The original numbered graph is retained here as historical provenance. The active",
-            "phase-1",
-            "`courses` graph is the single `0001_initial` migration documented in",
-            "`migration-squash-gate.md`; later product migrations extend that graph only through",
-            "reviewed",
-            "product issues.",
+            "The deployed numbered `courses` graph through `0041` is retained as migration",
+            "provenance. Fresh databases use `0001_squashed_0029` for the main legacy branch,",
+            "run the separate `0027` branch before its `0031` merge, and cross the schema",
+            "boundary at `0042_course_schema_bridge`; current product migrations continue",
+            "through `0051_unitreadstate` as documented in `migration-squash-gate.md`.",
             "",
         ]
     )

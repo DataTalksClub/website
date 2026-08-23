@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0007_coursecurriculumimportrun_cohort_source_checksum_and_more'),
+        ('courses', '0048_coursecurriculumimportrun_cohort_source_checksum_and_more'),
     ]
 
     operations = [

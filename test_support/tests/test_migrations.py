@@ -37,6 +37,7 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts-profile-v1",
                 "content-active-paths-v1",
                 "content-contract-digest-v1",
+                "courses-legacy-history-v1",
             },
         )
         for seed in seeds:
@@ -51,6 +52,7 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts-profile-v1": True,
                 "content-active-paths-v1": True,
                 "content-contract-digest-v1": False,
+                "courses-legacy-history-v1": False,
             },
         )
 
@@ -66,8 +68,13 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts/migrations/0005_backfill_certificate_name_from_enrollment.py",
                 "accounts/migrations/0012_backfill_normalized_identity.py",
                 "content/migrations/0002_active_content_path_claims.py",
-                "courses/migrations/0002_curriculum_and_project_criteria.py",
-                "courses/migrations/0005_cohort_identifier_and_more.py",
+                "courses/migrations/0003_replace_commas_with_linebreaks_in_possible_answers.py",
+                "courses/migrations/0004_update_correct_answer_indexes.py",
+                "courses/migrations/0005_update_answers_with_indexes.py",
+                "courses/migrations/0006_course_first_homework_scored.py",
+                "courses/migrations/0042_course_schema_bridge.py",
+                "courses/migrations/0043_curriculum_and_project_criteria.py",
+                "courses/migrations/0046_cohort_identifier_and_more.py",
                 "events/migrations/0005_seed_event_identity_manifest.py",
                 "events/migrations/0006_event_public_id.py",
                 "events/migrations/0007_reconcile_public_event_identity.py",
@@ -433,7 +440,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
     def test_course_phase_two_schema_has_reusable_families_and_cohort_backed_relations(
         self,
     ) -> None:
-        courses_target = ("courses", "0001_initial")
+        courses_target = ("courses", "0042_course_schema_bridge")
         _executor, apps = self._migrate([courses_target])
         Course = apps.get_model("courses", "Course")
         Cohort = apps.get_model("courses", "Cohort")
@@ -464,10 +471,12 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         seed = load_migration_seed(SEED_ROOT / "accounts-profile-v1.json")
         self.assertTrue(seed.reversible)
         courses_target = ("courses", "0001_initial")
-        executor, apps = self._migrate([seed.start, courses_target])
+        executor, apps = self._migrate(
+            [seed.start, courses_target],
+            replace_migrations=False,
+        )
         User = apps.get_model("accounts", "CustomUser")
         Course = apps.get_model("courses", "Course")
-        Cohort = apps.get_model("courses", "Cohort")
         Enrollment = apps.get_model("courses", "Enrollment")
         user_values = seed.payload["users"][0]
         user = User.objects.create(
@@ -476,12 +485,7 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
             email="synthetic-profile@example.invalid",
             password="synthetic-hash",
         )
-        family = Course.objects.create(
-            slug="synthetic-profile-family",
-            title="Synthetic profile family",
-        )
-        course = Cohort.objects.create(
-            course=family,
+        course = Course.objects.create(
             slug="synthetic-profile-course",
             title="Synthetic profile course",
             description="Synthetic",
@@ -495,15 +499,21 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
             certificate_name=enrollment_values["certificate_name"],
         )
 
-        executor, apps = self._migrate([seed.target])
+        executor, apps = self._migrate([seed.target], replace_migrations=False)
         MigratedUser = apps.get_model("accounts", "CustomUser")
         migrated = MigratedUser.objects.get(pk=user.pk)
         self.assertEqual(migrated.certificate_name, "Synthetic Learner")
 
-        executor, apps = self._migrate([seed.start, courses_target])
+        executor, apps = self._migrate(
+            [seed.start, courses_target],
+            replace_migrations=False,
+        )
         ReversedUser = apps.get_model("accounts", "CustomUser")
         self.assertEqual(ReversedUser.objects.get(pk=user.pk).username, "synthetic-profile")
-        executor, apps = self._migrate([seed.target, courses_target])
+        executor, apps = self._migrate(
+            [seed.target, courses_target],
+            replace_migrations=False,
+        )
         ResumedUser = apps.get_model("accounts", "CustomUser")
         self.assertEqual(
             ResumedUser.objects.get(pk=user.pk).certificate_name,
@@ -613,8 +623,17 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         executor, apps = self._migrate([seed.target])
         self.assertEqual(apps.get_model("content", "ActiveContentPath").objects.count(), 2)
 
-    def _migrate(self, targets: list[tuple[str, str]]):
+    def _migrate(
+        self,
+        targets: list[tuple[str, str]],
+        *,
+        replace_migrations: bool = True,
+    ):
         executor = MigrationExecutor(self.connection)
+        executor.loader = MigrationLoader(
+            self.connection,
+            replace_migrations=replace_migrations,
+        )
         executor.migrate(targets)
         apps = executor.loader.project_state(targets).apps
         return executor, apps

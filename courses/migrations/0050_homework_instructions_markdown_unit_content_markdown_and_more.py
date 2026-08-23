@@ -4,7 +4,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0008_question_source_option_ids'),
+        ('courses', '0049_question_source_option_ids'),
     ]
 
     operations = [

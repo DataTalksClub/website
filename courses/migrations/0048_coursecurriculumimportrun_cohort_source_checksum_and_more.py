@@ -9,7 +9,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("courses", "0006_alter_cohort_identifier"),
+        ("courses", "0047_alter_cohort_identifier"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

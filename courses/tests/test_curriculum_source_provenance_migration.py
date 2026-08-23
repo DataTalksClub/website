@@ -10,10 +10,10 @@ from django.db.migrations.executor import MigrationExecutor
 
 
 class CurriculumSourceProvenanceMigrationTests(unittest.TestCase):
-    migrate_from = ("courses", "0006_alter_cohort_identifier")
+    migrate_from = ("courses", "0047_alter_cohort_identifier")
     migrate_to = (
         "courses",
-        "0007_coursecurriculumimportrun_cohort_source_checksum_and_more",
+        "0048_coursecurriculumimportrun_cohort_source_checksum_and_more",
     )
 
     def setUp(self) -> None:
