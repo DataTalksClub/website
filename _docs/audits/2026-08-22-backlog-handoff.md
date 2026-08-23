@@ -6,9 +6,10 @@ acceptance or permission to bypass the repository lifecycle.
 
 ## Repository state
 
-- `origin/main` is `759460e` (`Update backlog handoff audit`), a report-only
+- `origin/main` is `41be48d` (`Keep backlog audit outside legacy-route allowlist`),
+  a report-only child of `759460e`, itself a report-only
   child of the audited code baseline `c48bec2` (`Fix backlog audit quality
-  markers`). The code/spec tree is unchanged by `759460e`.
+  markers`). The code/spec tree is unchanged by either report-only commit.
 - The shared root is a dirty `issue-216-engineer` checkout with mixed podcast,
   course-repository, projection, and test changes. Preserve it; do not use it
   as an engineer or tester worktree.
@@ -44,10 +45,74 @@ acceptance or permission to bypass the repository lifecycle.
   `20260821-062421-11b2bd1`, no successful release record was written, and
   `/health/ready` remains unhealthy. Do not claim that this push deployed the
   fresh website.
+- The later report-only push `41be48d` passed resolve, classification, container,
+  quality, Playwright, screenshots, Django, and the CI gate in run
+  `32623722033`, but its `auto-capture-prior` job failed with
+  `release failed safely: web captured terminal counts differ`; publish and
+  deploy were skipped. This is another release-control-plane blocker, not
+  evidence that the website is serving the fresh code.
 - Fresh bounded audits for #14, #23, and #22 are complete and recorded. The
   completed lane results and the next safe continuation point are listed
   below; until those decision paths are accepted, do not move the source pin,
   copy the CMP tree literally, or rerun deployment from this backlog audit.
+
+## Three-day regression audit — Sol / high reasoning — 2026-08-23
+
+- Verdict: current `origin/main` is not releasable. The audit covered the clean
+  `c9c141b..c48bec2` product range (166 commits, 708 files changed,
+  `+159,117/-7,690`) across application code, templates, CSS/JS/media,
+  migrations, tests, settings, workflows, deployment controls, and specs.
+  Report-only commits `759460e` and `41be48d` add no product code. No state was
+  modified by the audit.
+- P0 confirmed migration defect: commit `a0590be` changes the
+  `content.0004` release-digest default and immediately adds a new check, but
+  does not rewrite existing `ContentRelease` rows. A populated database can
+  therefore fail the constraint during upgrade. The empty-database migration
+  coverage in `test_support/tests/test_migrations.py` does not exercise
+  `0003 → 0004`. This is a 100%-confidence defect and a roughly 95%-confidence
+  explanation for the migration failure in `32611786971`; do not rerun the
+  migration unchanged. Groom a data-rewrite/allowance decision and a populated
+  migration test before release.
+- P0 operational blocker: current run `32623722033` passed the code gates but
+  `auto-capture-prior` failed with `web captured terminal counts differ` /
+  `service_pending_nonzero`; publish and deploy were skipped. This confirms
+  current main is not deployed, but does not by itself prove a code cause.
+  Release/on-call must reconcile the exact web/worker ECS terminal tuples before
+  an authorized fresh run.
+- P1 confirmed CMP integration bug: on a failed first project submission,
+  `courses/views/project.py` substitutes a truthy unsaved submission and
+  `courses/templates/projects/project.html` renders it as submitted, including
+  saved timestamp and update/remove actions. The deployed CMP `c3b35e3` fixes
+  this with persisted `has_submission`; the website remains pinned to
+  `98a2352`, and the dirty website candidate has a failed adoption envelope.
+  Groom a narrow target-native adaptation and rerun the full tester/PM gates.
+- P1 confirmed podcast SEO regression: unreferenced commit `3fddeec` makes the
+  S24E05 slash URL canonical while the established `.html` URL redirects. This
+  contradicts the URL/SEO spec and the compatibility inventory, and has no
+  issue/lifecycle evidence. Restore `.html` as the canonical `200` unless a
+  separately accepted compatibility migration changes the contract.
+- P1 confirmed course URL contract drift: commits `641d517` and `7e4e1dd`
+  generate `/courses/<course>/<cohort>` routes, while the authoritative specs
+  require `/courses/<course>/cohorts/<cohort>` and child paths. PM must resolve
+  the spec-versus-implementation contract; this is not a one-route fix.
+- P1 lifecycle violation: substantial #218 implementation lineage is on main
+  while #218 remains open/unassigned with 0/23 checks, without the required
+  reviewed mapping, migration preflight, tester, PM, or production-like
+  evidence. Stop treating that scope as complete and split it into groomed
+  child issues.
+- P2 confirmed asset regression: commit `bf82c20` renamed the S24E07 artwork to
+  S24E06, but the accepted compatibility inventory still requires the old
+  S24E07 URL and the exact-file media view now returns 404. Preserve the old
+  path as a reviewed immutable alias while retaining the corrected binding.
+- P2 migration risk: `courses.0005` backfills every blank cohort identifier to
+  `str(year)` before enforcing `(course, identifier)` uniqueness. Two same-year
+  cohorts can collide; add a production-like collision fixture and an explicit
+  policy before enforcing the constraint.
+- P2 CMP process risk: the deployed CMP pin-to-head delta is 40 files and
+  includes peer-review visibility, system evaluation, score hiding, and the
+  failed-submission fix, while #149 has no owner decision and 0/7 checks. Keep
+  the source pin unchanged; record adopt/defer/reject per behavior family and
+  repair the retired-path ledger through a groomed lifecycle change.
 
 ## Backlog continuation — 2026-08-23
 
@@ -57,15 +122,18 @@ acceptance or permission to bypass the repository lifecycle.
 - Successive five-slot read-only waves rebaselined #65, #198, #26, #66, #9,
   #109, #112, #133, #165, #213, #210, #212, #76, #77, #74, #60, #102,
   #73, #29, #23, #15, #16, and #22 against `c48bec2` (with report-only
-  `759460e` now at the tip). Completed lanes were
+  `41be48d` now at the tip). Completed lanes were
   closed before replacement; no code, issue, CI, deployment, AWS, provider,
   commit, push, or worktree-deletion mutation was authorized.
-- The current five parallel lanes are #127, #131, #132, #133, and #134. The
+- No implementation lane is currently safely dispatchable; #184 is the
+  current release/on-call follow-up. A separate
+  high-reasoning, read-only regression audit covers all website changes from
+  the last three days; it is not an implementation lane. The
   completed current-head audits for #36 and #38–#48, plus the latest #105,
   #106, #108, #109, #110, #111, #112, #113, #114, #115, #116, #117, #118,
-  #119, #120, #121, #122, #123, #124, #125, #126, #128, #129, and #130 checks, were
-  closed before replacement; preserve the dirty root and all candidate
-  worktrees.
+  #119, #120, #121, #122, #123, #124, #125, #126, #127, #128, #129, #130, #131, #132, #134, #135, #136, #137, #138, #139, #140, #142, #143, #144, #149, #179, #184, and #186
+  checks, were closed before replacement; preserve the dirty root and all
+  candidate worktrees.
 
 ## Parallel lanes
 
@@ -218,6 +286,111 @@ needed.
   current Design 5a supersedes its pinned CMP authority, #128 owns the course
   conflict, #179 owns home/unified, and events/detail still need a named owner.
   Reconcile #128/#129/#130/#179 before any implementation or tester lane.
+- The latest #127 audit keeps the event-content/registration epic blocked and
+  stale-as-written. The content-only bridge is already consumed, but DB-backed
+  event content, native registration, route-contract, email, privacy, and
+  verification decisions remain open. Re-groom it into content and activation
+  phases; do not import protected data or create a CTA/worktree now.
+- The latest #131 audit confirms the content-only event-description bridge is
+  already merged, independently accepted, deployed, and closed. Retire its
+  stale lane; numeric route and native registration follow-ups belong to
+  #127/#45/#46, and no #131 rerun is warranted.
+- The latest #132 audit confirms the podcast focus/season implementation is
+  already merged and present, but its old release record and `page` query
+  criterion are superseded. Retire it from active lanes; any deployment or
+  readiness issue belongs to #72/#73/#74/#77, not #132.
+- The latest #134 audit confirms the historical course-registration visual fix
+  is already merged, accepted, deployed, and closed, while its old CMP shell is
+  superseded by design 5a. Retire the stale lane; any current registration
+  visual acceptance needs a separately groomed owner and no #134 rerun.
+- The latest #135 audit confirms its UUID event-route slice is already merged,
+  accepted, and closed, but later #173 superseded the route contract with
+  numeric public IDs. Retire #135 as historical; do not reuse its old evidence
+  or reopen its candidate.
+- The latest #136 audit confirms the historical UUID identity foundation is
+  already merged and closed, while #173 superseded its public URL contract with
+  numeric IDs. Retire it as historical; route any remaining work through the
+  blocked event consumers, not a #136 rerun.
+- The latest #140 audit confirms its historical event-timeline rail is already
+  merged, accepted, deployed, and closed, but later design-5a work superseded
+  that structure. Retire the stale lane; any renewed timeline treatment needs a
+  new bounded issue with current screenshots and acceptance criteria.
+- The latest #137 audit confirms its provenance fallback implementation is
+  merged, but current failed-job reruns still cannot reproduce the selected
+  plan/component artifacts. Retire the stale closed lane and groom a narrow
+  current-head follow-up before any new acceptance claim; do not dispatch #137
+  itself.
+- The latest #138 audit confirms its migration allowlist fix is merged, but its
+  direct run failed and no independent tester/on-call closure reconciliation is
+  recorded. Link the downstream #139 evidence and successful scheduled run,
+  attribute the unrelated deployment failure, then retire #138 without code.
+- The latest #141 audit confirms its security implementation is already merged,
+  accepted, and present on `origin/main`; the lane is stale, not dispatchable.
+  Its exact post-merge CI run `31670579095` and same-SHA scheduled run
+  `31671713743` failed without an on-call reconciliation, while the issue body
+  still has unchecked acceptance boxes. Retire #141 and have the release owner
+  reconcile those failures against the later descendant before recording
+  operational closure; do not change its code.
+- The latest #143 audit confirms its CI-contract implementation is already
+  merged, accepted, deployed, and closed, with later current-head scheduled
+  checks still passing. Retire the stale lane and route the unrelated
+  `32623722033` auto-capture failure to release/on-call; do not reopen or rerun
+  #143.
+- The latest #145 audit confirms its CMP sync implementation is already
+  merged, accepted, deployed, and closed. Future upstream adoption is blocked
+  by the retired-manifest ledger/sync mismatch and the open #149 owner
+  decisions; create a fresh adoption issue after those decisions rather than
+  reopening or rerunning #145.
+- The latest #144 audit confirms its substantive implementation is present, but
+  the issue is already closed and its old copied-CMP surface is superseded by
+  Design 5a. Historical exact-SHA CI failures still lack on-call
+  reconciliation, and the literal model-choice-label wording would need a new
+  narrow issue if it remains required. Retire #144; do not reopen or rerun it.
+- The latest #142 audit confirms the canonical `/slack` route and redirect are
+  merged, but the issue was closed before its push CI failure was reconciled.
+  Current article projection data still contains 14 `/slack.html` destinations
+  with no article-renderer rewrite. Retire the stale lane, route the failed
+  run to on-call, and obtain a PM decision on whether article links belong in
+  #142 or a new narrow follow-up; do not rerun the old candidate.
+- The latest #186 audit confirms that anonymous email signup is still open
+  despite `ACCOUNT_ALLOW_REGISTRATION = False`, creating active unverified
+  accounts. This is a real security risk, but the issue is explicitly
+  decision-gated: a product owner must choose open, closed, or invite-only
+  signup and the email-verification/abuse posture before implementation.
+  Keep #186 blocked; do not make an implicit security-policy change.
+- The latest #149 audit confirms CMP adoption is still decision-only. The
+  website must remain pinned to `98a2352`: current CMP `a9e7dbf` is a 40-file
+  delta containing system evaluation, peer-review visibility, score hiding,
+  notification, and failed-submission behavior. No target integration exists
+  for several of those contracts, and the current overlay review is stale.
+  Require explicit adopt/defer/reject decisions per behavior family, including
+  Relay compatibility, before any source bytes move.
+- The latest #179 audit confirms the Design 5a homepage is already present but
+  blocked on product/editorial and release evidence, not a new rebuild. The
+  placeholder `MEMBER_STORIES` require an owner decision to approve attributable
+  stories or remove the section; current `32623722033` failed before publish,
+  and live `/health/ready` is still 503 on the older release. Retain #179 open
+  until that decision, independent screenshots/PM acceptance, and a successful
+  exact-head deployment are recorded.
+- The latest #184 audit confirms its Docs/FAQ Slack-link implementation is
+  present and independently accepted, but the issue is reopened pending
+  release/on-call verification after the failed promotion. Make no code change;
+  verify the promoted source, readiness, `/slack`, and rendered Docs/FAQ links
+  before PM closure. The 14 legacy links in seven article bodies are outside
+  #184 and need a separate groomed content/SEO issue.
+- The latest #139 audit confirms its implementation is merged, but closure is
+  still blocked by the historical deploy failure `31616994243`
+  (`web runtime coherence deadline expired`) and the current
+  `32623722033` auto-capture failure (`web captured terminal counts differ`).
+  Later `review_import` changes also invalidate the old tester envelope. Do not
+  reimplement #139; route it to release/on-call reconciliation and a fresh
+  bounded evidence pass.
+- The latest #133 audit keeps the aggregate implementation blocked on a failed
+  official tester envelope and a missing protected-source HUMAN gate. Focused
+  behavior passed, but missing source checkout, duplicate structured identities,
+  and invalid machine counts invalidate the evidence. Repair the shared runner,
+  rebaseline against the current head, then rerun tester → PM → human gates;
+  do not create another implementation candidate now.
 - The latest #105 audit leaves the issue blocked on a fresh exact-current-main
   deployment, both health checks, and authorized production SEO/Search Console
   evidence; its public People/Event wording is stale and must be reconciled
