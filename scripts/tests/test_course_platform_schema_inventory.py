@@ -22,7 +22,7 @@ def test_schema_inventory_has_exact_static_baseline() -> None:
 
 def test_validator_rejects_main_sha_drift() -> None:
     mutated = _source().replace(
-        "4825aa38f27903518b941a251520c60a6845f61a",
+        "b7c693efbb4ea8c429fd3525d129bbd84504719d",
         "a" * 40,
         1,
     )
@@ -48,7 +48,7 @@ def test_validator_rejects_unknown_model_key() -> None:
 
 def test_validator_rejects_migration_count_drift() -> None:
     source = _source().replace(
-        "Current migrations: `accounts=12; courses=10; data=5`",
+        "Current migrations: `accounts=12; courses=52; data=5`",
         "Current migrations: `accounts=12; courses=2; data=5`",
         1,
     )
@@ -60,9 +60,9 @@ def test_validator_rejects_migration_count_drift() -> None:
 def test_validator_rejects_controlled_vocabulary_drift() -> None:
     source = _source().replace(
         "| courses.Cohort | courses | Cohort | courses_course | courses/models/cohort.py | "
-        "courses/migrations/0001_initial.py | pinned-cmp | #30 | definition |",
+        "courses/migrations/0042_course_schema_bridge.py | pinned-cmp | #30 | definition |",
         "| courses.Cohort | courses | Cohort | courses_course | courses/models/cohort.py | "
-        "courses/migrations/0001_initial.py | pinned-cmp | #30 | unknown |",
+        "courses/migrations/0042_course_schema_bridge.py | pinned-cmp | #30 | unknown |",
         1,
     )
 

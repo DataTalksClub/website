@@ -21,7 +21,7 @@ REPOSITORY = "DataTalksClub/website"
 AUDIT_PATH = Path("_docs/audits/2026-08-20-course-platform-schema-data-inventory-phase-1.md")
 SOURCE_PIN_PATH = Path("_docs/adoption/course-platform/source-pin.json")
 COPIED_MANIFEST_PATH = Path("_docs/adoption/course-platform/copied-files.tsv")
-CURRENT_MAIN_SHA = "4825aa38f27903518b941a251520c60a6845f61a"
+CURRENT_MAIN_SHA = "b7c693efbb4ea8c429fd3525d129bbd84504719d"
 SOURCE_PIN_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 EXPECTED_REF = "refs/heads/main"
 
@@ -388,7 +388,7 @@ def _validate_metadata(lines: list[str]) -> None:
         if not UTC_PATTERN.fullmatch(value):
             raise ValidationError(f"{label} must be an explicit UTC timestamp ending in Z")
     migration_values = {
-        "Current migrations": {"accounts": 12, "courses": 10, "data": 5},
+        "Current migrations": {"accounts": 12, "courses": 52, "data": 5},
         "Pinned CMP migrations": {"accounts": 10, "courses": 40, "data": 5},
     }
     for label, expected_counts in migration_values.items():
@@ -475,8 +475,11 @@ def _validate_model_rows(lines: list[str], audit_path: Path) -> None:
             r"(?:accounts|courses|data)/migrations/\d{4}_[^ ]+\.py", migration
         ):
             raise ValidationError(f"missing migration provenance for {key}")
-        if key.startswith("courses.") and "courses/migrations/0001_initial.py" not in migration:
-            raise ValidationError(f"phase-1 courses model must use the squashed migration: {key}")
+        if (
+            key == "courses.Cohort"
+            and "courses/migrations/0042_course_schema_bridge.py" not in migration
+        ):
+            raise ValidationError(f"current Cohort model must use the bridge migration: {key}")
         _validate_evidence(evidence, audit_path, minimum=2)
         _validate_handoff(evidence, required=False)
 
@@ -496,7 +499,9 @@ def _validate_phase1_schema_source() -> None:
     root = Path.cwd()
     try:
         cohort_source = (root / "courses/models/cohort.py").read_text(encoding="utf-8")
-        migration_source = (root / "courses/migrations/0001_initial.py").read_text(encoding="utf-8")
+        migration_source = (root / "courses/migrations/0042_course_schema_bridge.py").read_text(
+            encoding="utf-8"
+        )
     except OSError as exc:
         raise ValidationError("phase-1 Cohort schema evidence is missing") from exc
     if not re.search(r"^class Cohort\([^\n]+\):", cohort_source, re.MULTILINE):
@@ -507,18 +512,19 @@ def _validate_phase1_schema_source() -> None:
         re.MULTILINE,
     ):
         raise ValidationError("phase-1 Cohort.outcome declaration is missing")
-    if not re.search(r"name=['\"]Cohort['\"]", migration_source):
-        raise ValidationError("phase-1 Cohort migration operation is missing")
+    if not re.search(r"new_name=['\"]Cohort['\"]", migration_source):
+        raise ValidationError("course schema bridge Cohort operation is missing")
     if not re.search(
-        r"\(['\"]outcome['\"],\s*models\.TextField\([^\n]*blank=True[^\n]*\)",
+        r"name=['\"]outcome['\"].*?models\.TextField\(.*?blank=True",
         migration_source,
+        re.DOTALL,
     ):
-        raise ValidationError("phase-1 Cohort.outcome migration field is missing")
+        raise ValidationError("course schema bridge Cohort.outcome field is missing")
 
 
 def _validate_migration_rows(lines: list[str], audit_path: Path) -> None:
     rows = _table(lines, "## Migration baselines", MIGRATION_COLUMNS)
-    expected = {"accounts": (12, 10), "courses": (10, 40), "data": (5, 5)}
+    expected = {"accounts": (12, 10), "courses": (52, 40), "data": (5, 5)}
     if len(rows) != len(expected):
         raise ValidationError(
             "migration baseline must contain exactly accounts, courses, and data rows"
@@ -618,7 +624,7 @@ def _validate_repository_baselines() -> None:
         raise ValidationError(f"source pin is not valid JSON: {SOURCE_PIN_PATH}") from exc
     if source_pin.get("source_commit") != SOURCE_PIN_COMMIT:
         raise ValidationError("checked-in source pin commit does not match the captured source")
-    expected_current = {"accounts": 12, "courses": 10, "data": 5}
+    expected_current = {"accounts": 12, "courses": 52, "data": 5}
     for app, expected in expected_current.items():
         actual = len(list((root / app / "migrations").glob("[0-9]*.py")))
         if actual != expected:

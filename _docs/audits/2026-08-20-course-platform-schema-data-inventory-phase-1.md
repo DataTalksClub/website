@@ -8,14 +8,14 @@ The 2026-08-14 audit remains historical evidence for the pre-squash Course graph
 
 - Snapshot repository: `DataTalksClub/website`
 - Snapshot ref: `refs/heads/main`
-- Snapshot SHA: `4825aa38f27903518b941a251520c60a6845f61a`
+- Snapshot SHA: `b7c693efbb4ea8c429fd3525d129bbd84504719d`
 - Source pin commit: `98a235283904b4ef9ad29e196298540756cf1bcc`
 - Snapshot at (UTC): `2026-08-20T14:03:00Z`
 - Repository provenance observed at (UTC): `2026-08-20T14:03:01Z`
 - Models (current adopted target): `32`
 - Models (pinned CMP): `26`
 - Models (target overlays): `6`
-- Current migrations: `accounts=12; courses=10; data=5`
+- Current migrations: `accounts=12; courses=52; data=5`
 - Pinned CMP migrations: `accounts=10; courses=40; data=5`
 - Adopted routes: `115`
 - Pinned CMP commands: `13`
@@ -41,7 +41,7 @@ Migration counts intentionally keep two baselines separate. The phase-1 target g
 | accounts.AccountIdentityAlias | accounts | AccountIdentityAlias | accounts_accountidentityalias | accounts/models.py | accounts/migrations/0011_identity_expansion.py | target-overlay | #100 | identity | [declaration](../../accounts/models.py); [migration](../../accounts/migrations/0011_identity_expansion.py) |
 | accounts.AccountIdentityQuarantine | accounts | AccountIdentityQuarantine | accounts_accountidentityquarantine | accounts/models.py | accounts/migrations/0011_identity_expansion.py | target-overlay | #100 | history | [declaration](../../accounts/models.py); [migration](../../accounts/migrations/0011_identity_expansion.py) |
 | accounts.AccountReconciliationRun | accounts | AccountReconciliationRun | accounts_accountreconciliationrun | accounts/models.py | accounts/migrations/0011_identity_expansion.py | target-overlay | #100 | history | [declaration](../../accounts/models.py); [migration](../../accounts/migrations/0011_identity_expansion.py) |
-| courses.Cohort | courses | Cohort | courses_course | courses/models/cohort.py | courses/migrations/0001_initial.py | pinned-cmp | #30 | definition | [declaration](../../courses/models/cohort.py); [migration](../../courses/migrations/0001_initial.py) |
+| courses.Cohort | courses | Cohort | courses_course | courses/models/cohort.py | courses/migrations/0042_course_schema_bridge.py | pinned-cmp | #30 | definition | [declaration](../../courses/models/cohort.py); [migration](../../courses/migrations/0042_course_schema_bridge.py) |
 | courses.RegistrationCampaign | courses | RegistrationCampaign | courses_registrationcampaign | courses/models/cohort.py | courses/migrations/0001_initial.py | pinned-cmp | #30 | definition | [declaration](../../courses/models/cohort.py); [migration](../../courses/migrations/0001_initial.py) |
 | courses.CourseRegistration | courses | CourseRegistration | courses_courseregistration | courses/models/cohort.py | courses/migrations/0001_initial.py | pinned-cmp | #30 | operational | [declaration](../../courses/models/cohort.py); [migration](../../courses/migrations/0001_initial.py) |
 | courses.Enrollment | courses | Enrollment | courses_enrollment | courses/models/cohort.py | courses/migrations/0001_initial.py | pinned-cmp | #30 | learner | [declaration](../../courses/models/cohort.py); [migration](../../courses/migrations/0001_initial.py) |
@@ -77,16 +77,16 @@ The phase-1 rename keeps the existing course table and attaches the new outcome 
 
 | Model | Field | Declaration evidence | Migration evidence |
 | --- | --- | --- | --- |
-| courses.Cohort | outcome | [declaration](../../courses/models/cohort.py) | [migration](../../courses/migrations/0001_initial.py) |
+| courses.Cohort | outcome | [declaration](../../courses/models/cohort.py) | [migration](../../courses/migrations/0042_course_schema_bridge.py) |
 ## Migration baselines
 
 | App | Current numbered migrations | Pinned CMP numbered migrations | Current evidence | Pinned evidence | Distinction |
 | --- | ---: | ---: | --- | --- | --- |
 | accounts | 12 | 10 | [current graph](../../accounts/migrations/0001_initial.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | 0011 identity overlays and 0012 normalized-identity backfill are target additions; no squash |
-| courses | 10 | 40 | [current graph](../../courses/migrations/0001_initial.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | the active phase-1 graph retains 0001 plus reviewed curriculum migrations; pinned CMP remains at 40 |
+| courses | 52 | 40 | [legacy boundary](../../courses/migrations/0041_courseregistrationcountsourcerun_and_more.py); [bridge](../../courses/migrations/0042_course_schema_bridge.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | the deployed 0001–0041 identities remain available; fresh installs replace only the main 0001–0026, 0028–0029 branch, retain 0027 for the 0031 merge, cross at 0042, and finish at 0051; pinned CMP remains at 40 |
 | data | 5 | 5 | [current graph](../../data/migrations/0001_initial.py); [behavior inventory](../adoption/course-platform/behavior-inventory.md) | [pinned ledger](../adoption/course-platform/copied-files.tsv); [verification](../adoption/course-platform/verification.md) | Current and pinned numbered graphs have the same count |
 
-The checked-in [migration-squash gate](../adoption/course-platform/migration-squash-gate.md) records the local-only phase-1 squash. The old numbered course migrations remain only in the pinned provenance ledger and the historical 2026-08-14 audit; this inventory does not claim a production upgrade path.
+The checked-in [migration-squash gate](../adoption/course-platform/migration-squash-gate.md) records the compatibility repair. The deployed numbered course migrations remain in the repository so Django can recognize applied legacy identities; the deterministic `0042` bridge preserves the physical table and data before the repaired leaf. This inventory does not claim production authorization.
 
 ## Relationship edges
 

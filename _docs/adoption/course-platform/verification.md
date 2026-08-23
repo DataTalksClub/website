@@ -7,8 +7,8 @@ target checksum. Copied characterization and E2E files remain unchanged except f
 overlays in `integration-patched-files.tsv`.
 
 The characterization, E2E, and adoption totals below are the pre-phase-1 baseline from that source
-commit. The migration evidence section records the current local Course-to-Cohort migration state
-and its completed local replay.
+commit. The migration evidence section records the repaired compatibility graph for the deployed
+legacy course boundary; it does not claim a populated deployment or production readiness.
 
 ## Characterization results
 
@@ -34,16 +34,27 @@ leaderboard, Studio Courses, helper, and fallback-cleanup checks passed.
 
 ## Migration evidence
 
-- Phase 1 intentionally replaces the active `courses` history with one `0001_initial` migration.
-  It defines `Cohort`, `Cohort.outcome`, the legacy `courses_course` table, and Cohort-backed
-  course relations. The pinned numbered migration records remain historical provenance only.
-- `makemigrations --check --dry-run` reports no model drift for the new graph.
-- `make test-migrations` passes all 16 migration-aware tests, including the Cohort schema contract
-  and the historical account profile backfill; `make migrations-check` reports no drift.
-- A fresh `.tmp/local.sqlite3` replayed every migration to every leaf, then the local course,
-  question, and social-provider fixtures were reseeded. No production database was touched.
-- This local squash is not a production upgrade path. Production-like parity, data reconciliation,
-  and reverse/forward migration windows remain unverified.
+- The deployed lower boundary is `11b2bd11f85625a21b12e5f0c9b04c12a6b1d664`, with
+  `courses.0001_initial` through `courses.0041_courseregistrationcountsourcerun_and_more`.
+- `courses.0001_squashed_0029` replaces the main legacy branch (`0001`–`0026`, `0028`, and
+  `0029`) only. `courses.0027` remains a separate branch because `courses.0031` explicitly merges
+  it with `courses.0030`; the fresh plan therefore runs `0027` after `0030` and before `0031`.
+  `courses.0030`–`0041` remain available as named modules because the account backfill dependency
+  must stay outside the replacement without creating a circular graph.
+- `courses.0042_course_schema_bridge` preserves the legacy `courses_course` table and row IDs,
+  creates a stable one-family-per-legacy-course mapping, and leaves current post-squash operations
+  in `0043`–`0051`.
+- The compatibility tests construct the raw legacy applied-history state with
+  `MigrationLoader(replace_migrations=False)`, populate redacted course/enrollment/homework/
+  project/review/statistics/certificate/registration data, and compare row counts, primary keys,
+  foreign keys, checksums, content-type/permission rows, and `django_migrations` provenance after
+  upgrade and replay.
+- The bridge rollback/retry test forces a failed historical data operation, verifies the atomic
+  rollback, then reruns the same candidate successfully. Fresh migration, migration import
+  isolation, `makemigrations --check --dry-run`, and `make test-migrations` are local-only checks;
+  no development or production database is used.
+- Exact-image populated deployment, readiness, deployed smoke, failure classification, and
+  post-push CI/on-call evidence remain HUMAN gates for issue #220.
 
 ## Inventory and repository checks
 

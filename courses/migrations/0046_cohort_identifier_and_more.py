@@ -17,7 +17,7 @@ def backfill_cohort_identifiers(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0004_alter_criteriaresponse_criteria_and_more'),
+        ('courses', '0045_alter_criteriaresponse_criteria_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

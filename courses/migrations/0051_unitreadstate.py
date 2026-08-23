@@ -9,7 +9,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('courses', '0009_homework_instructions_markdown_unit_content_markdown_and_more'),
+        ('courses', '0050_homework_instructions_markdown_unit_content_markdown_and_more'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 

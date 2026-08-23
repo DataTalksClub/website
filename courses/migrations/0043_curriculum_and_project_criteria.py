@@ -54,7 +54,7 @@ def backfill_project_criteria(apps, schema_editor):
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("courses", "0001_initial"),
+        ("courses", "0042_course_schema_bridge"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
