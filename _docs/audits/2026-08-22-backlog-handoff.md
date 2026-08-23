@@ -6,10 +6,11 @@ acceptance or permission to bypass the repository lifecycle.
 
 ## Repository state
 
-- `origin/main` is `41be48d` (`Keep backlog audit outside legacy-route allowlist`),
-  a report-only child of `759460e`, itself a report-only
-  child of the audited code baseline `c48bec2` (`Fix backlog audit quality
-  markers`). The code/spec tree is unchanged by either report-only commit.
+- `origin/main` is `fdbb5e9` (`Record three-day regression audit findings`),
+  a report-only child of `41be48d`, itself a report-only child of `759460e`,
+  all descended from the audited code baseline `c48bec2` (`Fix backlog audit
+  quality markers`). The code/spec tree is unchanged by these report-only
+  commits.
 - The shared root is a dirty `issue-216-engineer` checkout with mixed podcast,
   course-repository, projection, and test changes. Preserve it; do not use it
   as an engineer or tester worktree.
@@ -62,8 +63,8 @@ acceptance or permission to bypass the repository lifecycle.
   `c9c141b..c48bec2` product range (166 commits, 708 files changed,
   `+159,117/-7,690`) across application code, templates, CSS/JS/media,
   migrations, tests, settings, workflows, deployment controls, and specs.
-  Report-only commits `759460e` and `41be48d` add no product code. No state was
-  modified by the audit.
+  Report-only commits `759460e`, `41be48d`, and `fdbb5e9` add no product code.
+  No state was modified by the audit.
 - P0 confirmed migration defect: commit `a0590be` changes the
   `content.0004` release-digest default and immediately adds a new check, but
   does not rewrite existing `ContentRelease` rows. A populated database can
@@ -122,7 +123,7 @@ acceptance or permission to bypass the repository lifecycle.
 - Successive five-slot read-only waves rebaselined #65, #198, #26, #66, #9,
   #109, #112, #133, #165, #213, #210, #212, #76, #77, #74, #60, #102,
   #73, #29, #23, #15, #16, and #22 against `c48bec2` (with report-only
-  `41be48d` now at the tip). Completed lanes were
+  `fdbb5e9` now at the tip). Completed lanes were
   closed before replacement; no code, issue, CI, deployment, AWS, provider,
   commit, push, or worktree-deletion mutation was authorized.
 - No implementation lane is currently safely dispatchable; #184 is the
