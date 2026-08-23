@@ -6,7 +6,7 @@ acceptance or permission to bypass the repository lifecycle.
 
 ## Repository state
 
-- `origin/main` is `efda44d` (`Retire CMP upstream drift workflow`).
+- `origin/main` is `c48bec2` (`Fix backlog audit quality markers`).
 - The shared root is a dirty `issue-216-engineer` checkout with mixed podcast,
   course-repository, projection, and test changes. Preserve it; do not use it
   as an engineer or tester worktree.
@@ -16,9 +16,10 @@ acceptance or permission to bypass the repository lifecycle.
 
 ## CMP deployment reconciliation — 2026-08-23
 
-- The sibling `course-management-platform` checkout was pulled with
-  `git pull --ff-only` and is clean at `a9e7dbf` (`Update production versions:
-  20260822-125047-c3b35e3`). The deployed functional commit is `c3b35e3`
+- The sibling `course-management-platform` checkout is clean at `a9e7dbf`
+  (`Update production versions: 20260822-125047-c3b35e3`); a fresh
+  `git fetch --prune` confirms that this is still `origin/main`, with no
+  newer CMP changes. The deployed functional commit is `c3b35e3`
   (`Show Not submitted status after failed project submission`). The full
   source-pin-to-head delta is 40 files, `+2,010/-43` lines, and also includes
   peer-review visibility (`80d67df`), system project-evaluation fallback
@@ -33,6 +34,14 @@ acceptance or permission to bypass the repository lifecycle.
   the four candidate-introduced adoption-ledger drifts and the full Playwright
   timeout. Keep it out of the merge/PM gate until a groomed adoption/evidence
   issue refreshes only the affected rows and the official envelope passes.
+- The corrective report push at `c48bec2` passed source resolution, classification,
+  quality, container, Django, Playwright, screenshots, CI aggregation, prior
+  capture, and image publication in run `32611786971`. Deployment then failed
+  safely while running the migration task with `ReleaseContractError`/
+  `contract_contradiction`; the pre-mutation active pair remained
+  `20260821-062421-11b2bd1`, no successful release record was written, and
+  `/health/ready` remains unhealthy. Do not claim that this push deployed the
+  fresh website.
 - Fresh bounded audits for #14, #23, and #22 are complete and recorded. The
   completed lane results and the next safe continuation point are listed
   below; until those decision paths are accepted, do not move the source pin,
@@ -40,29 +49,33 @@ acceptance or permission to bypass the repository lifecycle.
 
 ## Backlog continuation — 2026-08-23
 
-- Five inherited-model read-only lanes were run in parallel: #191, #54, #218,
-  #9, and Relay #2. Their results are recorded below; all remain blocked or
-  decision-only, and no engineer candidate was authorized.
-- The #65 and #66 follow-up questions were audited locally after the agent
-  quota was reached. #65 needs a fresh current-main tester/manual evidence
-  refresh; #66 needs #26’s approved SLO/RPO/RTO matrix before any child work.
-- Replacement agent spawns were rejected by the five-thread runner limit. No
-  files, issues, CI, AWS, provider, deployment, commit, or push mutation was
-  made during this continuation. Preserve the dirty root and all unrelated
-  worktrees.
+- The initial five inherited-model lanes (#191, #54, #218, #9, and Relay #2)
+  completed as blocked or decision-only audits; no engineer candidate was
+  authorized.
+- Successive five-slot read-only waves rebaselined #65, #198, #26, #66, #9,
+  #109, #112, #133, #165, #213, #210, #212, #76, #77, #74, #60, #102,
+  #73, #29, #23, #15, #16, and #22 against `c48bec2`. Completed lanes were
+  closed before replacement; no code, issue, CI, deployment, AWS, provider,
+  commit, push, or worktree-deletion mutation was authorized.
+- The current five parallel lanes are #126, #127, #128, #129, and #130. The
+  completed current-head audits for #36 and #38–#48, plus the latest #105,
+  #106, #108, #109, #110, #111, #112, #113, #114, #115, #116, #117, #118,
+  #119, #120, #121, #122, #123, #124, and #125 checks, were closed before
+  replacement; preserve the dirty root and all candidate worktrees.
 
 ## Parallel lanes
 
-No agent lanes are currently active. All five requested parallel audit slots
-have completed, and the runner rejected replacement spawns after reaching its
-five-thread quota. The completed results are recorded below; the next bounded
-backlog question is a documentation-only course canonical-route ownership
-record, which remains blocked on owner decisions.
-
-The #65 WCAG/critical-flow and #66 observability/SLO/backup-restore audits,
-plus Relay #2, were handled as read-only local/agent audits after the quota was
-reached; their results are recorded below. No code, GitHub, AWS, provider, or
-deployment mutation was made.
+All active lanes are read-only and must return exact current-head evidence
+before any acceptance or follow-up implementation is considered. Completed
+findings include: #198/#165/#212 remain open solely for exact-SHA deployment
+and readiness evidence; #26/#23/#29 and #15/#16/#22 have no owner decisions;
+#66/#60/#73/#74/#76/#77 are not dispatchable; #109/#112/#133/#210 remain
+tester-invalid or stale; and #213’s source fix is present but its issue is
+reopened by the failed deployment gate. The decision wave also confirmed that
+#17/#18/#19/#20/#24/#27/#28 have no owner acceptance, while #21/#32/#33 are
+groomed parents blocked by those decisions. The latest #65 independent tester
+returned NO-GO: automated gates pass, but manual real-screen-reader evidence
+and two current verification controls remain missing.
 
 Completed lane reports remain recorded below; they are not active agents. When
 a lane completes, close it, record its evidence, and immediately replace it
@@ -110,6 +123,86 @@ needed.
   timed out after 3,600 seconds. Preserve the current and superseded dirty
   #112 snapshots; no archive or merge is authorized until a named tester
   completes the official gate and PM accepts it.
+- The latest #108 audit confirms that only its documentation/specification
+  commit is merged: no MemberProfile, Slack grant, EmailDelivery, self-profile
+  API, Studio member endpoint, or human rehearsal exists. Keep it blocked and
+  re-groom an accounts-only MemberProfile foundation after the #49/#21/#22,
+  privacy, registration, and management-control decisions; do not revive the
+  broad feature request.
+- The latest #109 audit keeps the origin/cache candidate blocked: its focused
+  retry passed, but the independent full Django/Playwright, screenshot, and PM
+  gates are missing. AWS edge work additionally needs the #78/#94 controls and
+  an owner decision for CloudFront/WAF/cache cost and rollback; do not merge or
+  push the dirty candidate.
+- The latest #110 audit confirms that the issue is already closed/completed with
+  accepted release-identity and deployment evidence. Its current-main caveat
+  belongs to the release lane (#73/#74), so do not reopen or redeploy #110.
+- The latest #111 audit keeps the event-registration request blocked and
+  unassigned: no native registration/question/answer or consent models exist,
+  its slug-only route text conflicts with the numeric route contract, and the
+  #17/#22/#23 plus event, email, privacy, and management gates remain open.
+  Re-groom a synthetic, non-activated question-catalog child before any full
+  implementation.
+- The latest #113 audit confirms that the issue is already closed/completed:
+  implementation, independent tester, PM, post-merge remediation, and current
+  scheduled verification are accepted. Its current-main deployment failure is
+  a separate release-lane problem; do not reopen or redeploy #113.
+- The latest #112 audit keeps the aggregate issue blocked. The merged aggregate
+  is present, but `origin/main` still renders opaque registry keys; the five-file
+  redaction candidate is uncommitted, its independent full Playwright gate timed
+  out, and the protected-source HUMAN gate is missing. Preserve the dirty
+  snapshots and route the runner problem to #76 before another tester run.
+- The latest #115 audit confirms it is already closed/completed, with tester,
+  PM, on-call, deployment, and current-main route evidence accepted. Remove it
+  from the active-lane list and keep its parent #59 parity work separate; do not
+  reopen or redeploy #115.
+- The latest #116 audit confirms the mechanical `cadmin` → `studio_courses`
+  rename is already closed/completed, independently tested, PM accepted, and
+  deployed. Remove it from active-lane accounting; the broader #59 parity and
+  `/cadmin` removal gates remain separate.
+- The latest #114 audit confirms the settings feature is already merged, tested,
+  PM accepted, deployed, and closed. Retire its stale lane entry; any fresh
+  current-head accessibility/settings envelope belongs to #65/#107 or a new
+  bounded follow-up, not #114.
+- The latest #117 audit confirms its digest-first ECR lookup/fail-closed fix is
+  already merged, accepted, and historically deployed. Retire the stale lane;
+  any current release failure is owned by the release lane, while protected
+  event totals remain with #112.
+- The latest #118 audit confirms its deterministic pinned-source/artifact fix is
+  already closed, independently accepted, and deployed. Retire the stale lane;
+  its historical route count is not current evidence, and the current release
+  failure belongs to the separate release lane.
+- The latest #119 audit confirms the podcast endpoint is already closed and
+  accepted, but its historical `?page=` contract was superseded by #132/#196’s
+  current `?season=` contract. Retire #119 as historical; do not reopen or reuse
+  its old verification envelope.
+- The latest #120 audit confirms the process/waiting guidance is already merged,
+  independently accepted, and deployed. Retire it from active-lane accounting;
+  do not reopen or rerun the historical documentation release.
+- The latest #121 audit confirms the strict CMP marker registry and standalone
+  test configuration are already merged, accepted, and deployed. Retire its
+  stale lane; the current release failure is separate and no #121 rerun is
+  warranted.
+- The latest #122 audit confirms its desktop/mobile/200%-zoom settings fix is
+  already merged, accepted, and deployed. Retire its stale lane; later Studio
+  shell work supersedes the old CSS path, and no #122 rerun is warranted.
+- The latest #123 audit confirms the network/lifecycle classifier is already
+  merged, independently accepted, deployed, and closed. Retire its stale lane;
+  the current c48 deployment failure is separate and does not justify a rerun.
+- The latest #124 audit confirms the Relay ownership/documentation reconciliation
+  is already merged, accepted, and deployed. Retire its stale lane; downstream
+  #22 and #48/#49/#50 runtime decisions remain separate and #124 needs no rerun.
+- The latest #125 audit confirms the disabled legal/analytics slice is not
+  implementation-ready: its historical tester/PM/deployment evidence exists,
+  but the required owner/legal HUMAN gate remains open while the issue is
+  incorrectly closed. Obtain the owner decision, then reconcile it as a narrow
+  successor/current-head gate; do not enable analytics or dispatch code now.
+- The latest #105 audit leaves the issue blocked on a fresh exact-current-main
+  deployment, both health checks, and authorized production SEO/Search Console
+  evidence; its public People/Event wording is stale and must be reconciled
+  rather than implemented. The latest #106 audit confirms it is already closed
+  and superseded by #21; replace stale #106 references in open issues with the
+  canonical Relay/website sequence.
 - #76 is not engineer-ready: it is a broad release parent with missing
   contract/owner/artifact matrix and open #63/#64/#65/#66/#73/#74/#77 gates.
   Groom a separate child for socket-stall reproduction, owner isolation,
@@ -664,25 +757,18 @@ needed.
   graduate export, versioned Wrapped payload, Studio/API parity, or accepted
   privacy/public-sharing decision. Keep communication mechanics under #50 and
   wait for #28/#50/#54–#57 plus the privacy owner before engineering.
-- #65 is OPEN/HUMAN and not accepted. The automated accessibility slice is
-  merged, but evidence drifted after the candidate; current-main full
-  accessibility and real manual screen-reader/browser evidence are missing.
-  No engineer work is justified; a fresh tester rebaseline is the next safe
-  action.
-- The fresh #65 rebaseline confirms the automated/product slice was accepted
-  and deployed earlier, but the issue remains OPEN/HUMAN: the latest candidate
-  evidence was based on `35cb2e1`, while current `origin/main` is `efda44d`,
-  and the terminal current-main Playwright plus named real screen-reader/manual
-  matrix are still absent. Start only a tester-owned refresh from current main;
-  do not reuse the stale candidate or add a new accessibility implementation.
-- A supplemental current-main #65 audit confirms merged `58932b4` remains an
-  ancestor, but the manual evidence template is blank and the latest green
-  scheduled run covers only core Playwright, not the full accessibility lane.
-  Since that merge, 1,255 files changed, including current course/auth, event
-  Q&A, podcast, learner-module, shell, and auth work; the registry has no
-  explicit Q&A/module/Mermaid/code-copy state IDs. Keep #65 OPEN/HUMAN and
-  rebaseline a tester from `efda44d` with current-owner coverage decisions;
-  do not absorb those product states into #65 implementation.
+- #65 is OPEN/HUMAN and remains NO-GO for PM acceptance. From clean current
+  main `c48bec2`, the tester completed the automated envelope: 29 accessibility,
+  209 core Playwright, 234 full Playwright, 2,480 Django, 601 CI, container,
+  lint/type/migration/security, link, and SEO checks all passed after a visual
+  rerun. The registry is stable at 87 states with no identity drift.
+- The #65 gate still lacks an independently completed real screen-reader/manual
+  matrix (keyboard traversal, named AT/browser/OS, zoom, small widths, text
+  spacing, reduced motion, forced colors, contrast, target size, and long/error
+  states). `verification-content-invariants` also fails on duplicate structured
+  content identities, and `compatibility-source-artifacts-check` fails because
+  the pinned `dtc-main-site` checkout is missing. Keep #65 OPEN/HUMAN; repair
+  those controls and obtain the manual evidence before PM acceptance.
 - #54 is OPEN/P0 and not assignable. Registration still permits anonymous
   legacy behavior and lacks CourseInterest, RegistrationWindow, conversion,
   MemberProfile, EmailDelivery, and complete Studio/API contracts. PM should
@@ -939,48 +1025,74 @@ needed.
   Lambda relevance threshold; `/wiki` and legacy `/podwiki` contract treatment
   is unresolved. Keep #44 blocked and do not add search schema or retire the
   Lambda before the owner freezes those decisions.
-- The completed #40 audit confirms full Person work is not implementation-ready:
-  #39↔#40 has a dependency cycle, the current 438-profile JSON is a frozen
-  projection rather than a canonical source-backed boundary, host/instructor/
-  maintainer roles and aliases/removal guards are missing, and Studio/API
-  parity is absent. Re-groom a bounded Person adapter/resolver child before
-  beginning; do not widen #39 or link accounts/staff.
-- The completed #38 audit confirms the editorial GitHub sync issue is groomed
-  but not implementation-ready as a full delivery. Generic HMAC/replay/jobs
-  and immutable release foundations exist, but no source-specific ingress,
-  fetch/reconciliation/coalescing, persisted candidate quarantine, preview,
-  invalidation, freshness alerts, or Studio/API parity exists. Re-groom a
-  narrow signed dtc-content intake/reconciliation child only; keep activation,
-  management, public cutover, and other adapters out of scope.
+- The fresh #36 audit confirms its implementation, historical QA/PM acceptance,
+  and merge are valid ancestors of current `origin/main`, but the issue stays
+  OPEN/HUMAN: the current exact-SHA deployment failed during migration, and
+  current CloudFront plus application-level noindex/private evidence is still
+  absent. Do not close it from the historical green run.
+- The fresh #40 audit confirms full Person work is blocked and not dispatchable:
+  #39↔#40 still forms a dependency cycle, #12 source ownership is unresolved,
+  and the 438-profile JSON is a frozen rendering projection rather than a
+  canonical source-backed boundary. Re-groom a network-free Person adapter and
+  resolver child with explicit storage authority, alias/removal diagnostics,
+  and zero account/staff side effects; do not widen #39 or link accounts.
+- The fresh #38 audit confirms the editorial GitHub sync issue is BLOCKED and
+  not dispatchable. #12 has no owner decision for source, webhook, activation,
+  permissions, or cutover; current code only has generic delivery fencing and
+  a course-specific webhook, not editorial reconciliation, candidates,
+  preview, or Studio/API management. Re-groom one signed, allowlisted
+  `dtc-content` intake/reconciliation child only after the contract gate.
 - The completed #45 audit confirms Event lifecycle work is blocked and its
   issue body is stale: it still describes slug-only routes while the accepted
   numeric `/events/<public-id>/<title-slug>` contract is current. #18/#19/#40
   remain unresolved; Event content/lifecycle/calendar/Studio work is absent,
   and #46/#49/#112 boundaries must be split before engineering. Do not start
   the full Event epic from its current text.
-- The completed #39 audit confirms broad main-site collection migration is
-  not release-ready. Existing baked projections cover 796 canonical finals/
+- The fresh #39 audit confirms broad main-site collection migration is NO-GO
+  and not dispatchable. Existing baked projections cover 796 canonical finals/
   1,592 aliases, but no source-backed candidate, complete 5,533-row
-  import-or-exception ledger, unified adapter, full #35 parity, or independent
-  tester/PM evidence exists. Re-groom a Person-free remaining-main adapter
-  child after resolving the #39/#40 dependency cycle; keep docs/FAQ/Podwiki
-  adapters separate.
-- The completed #41 audit confirms Docs has only a partial static projection:
-  106 pages/39 assets versus 175 compatibility paths, with no source adapter,
-  candidate validation, full link/SEO parity, Mermaid/callout coverage, or
-  docs-specific gate. Re-groom a network-free `dtc-docs` adapter child before
-  coupling it to GitHub sync or unified search.
-- The completed #43 audit confirms Podwiki work is not implementation-ready:
-  the issue conflicts with the authoritative `/wiki` (not `/podwiki`) route,
-  has a #43↔#44 dependency cycle, no source adapter/fixtures, and static
-  projections lose citation timestamps/aliases/dates and truncate relations.
-  Re-groom a `/wiki`-canonical parser/fixture child before search/graph
-  activation; keep #38/#40/#24/#44 integration downstream.
-- The completed #42 audit confirms FAQ has a strong frozen projection (1,401
-  questions, 1,401 fragments) but no source adapter/import lifecycle. Edit
-  links are present in data but not rendered, deep-anchor behavior and exact
-  source JSON parity are unproved, and importer security fixtures are absent.
-  Groom an offline pinned FAQ parity child before GitHub sync/activation.
+  import-or-exception ledger, unified adapter, full #35 parity, or tester/PM
+  evidence exists. Re-groom a Person-free, network-free remaining-main
+  adapter child covering only pinned people-adjacent references, tools,
+  conferences, other pages, and migration inputs; remove the #39/#40 cycle
+  before coupling it to sync or activation.
+- The fresh #41 audit confirms Docs is BLOCKED and not dispatchable: the
+  106-page/39-asset projection covers only part of 175 compatibility paths,
+  has no source adapter, candidate validation, full link/SEO parity,
+  Mermaid/callout coverage, or docs gate. Re-groom a network-free `dtc-docs`
+  parity child and keep sync in #38 and unified search in #44.
+- The fresh #42 audit confirms FAQ is STALE as written and not closure-ready:
+  the 1,401-question frozen projection and routes exist, but no source
+  importer exists, `edit_url` is not rendered, and source parity differs
+  between the 1,395-record planning note and 1,401-record projection. Re-groom
+  an offline pinned parity/import child; keep activation/search downstream.
+- The fresh #43 audit confirms the issue is STALE as written: it requires the
+  retired `/podwiki/` route, while the accepted current contract is canonical
+  `/wiki` and unredirected 404 for `/podwiki*`. Reconcile residual timestamp,
+  type-filter, and date requirements into a new owner issue, then supersede
+  #43; do not implement `/podwiki`.
+- The fresh #44 audit confirms search/graph activation is BLOCKED and not
+  dispatchable. #24 has no owner decision, #38–#43 remain open, and #43↔#44
+  plus #39↔#40 create dependency cycles. Re-groom adapters separately from
+  shared projection/activation and record the #24 decision first.
+- The fresh #45 audit confirms Event lifecycle is BLOCKED and not dispatchable:
+  the issue still contains superseded slug-only routes, while current specs
+  require numeric public IDs; scheduling, timezone, registration, calendar,
+  and people relations are absent. Resolve #18/#19 and reconcile #45 with
+  #46/#49/#112 before a new engineer handoff.
+- The fresh #46 audit confirms native registration is BLOCKED: the site is
+  aggregate-only with no attendee model, registration route, or email delivery
+  runtime. Resolve #17 verification/replay semantics, then reconcile numeric
+  routes and #45/#49/#22/#23 before grooming implementation.
+- The fresh #47 audit confirms event operations are BLOCKED: no registration,
+  attendance, change/cancellation, export/ICS, or durable operation service
+  exists, and numeric public paths conflict with a UUID-only invalidation
+  validator. Groom a documentation-only route/action contract child after its
+  seven open dependencies are accepted.
+- The fresh #48 audit confirms communication adoption is BLOCKED: no email
+  models, Relay client, template management surface, or EmailDelivery flow
+  exists, while legacy Datamailer sends remain. Resolve #22’s purpose catalog
+  and Relay #1–#3 plus #32/#33/#49 before any website integration.
 - The completed #111 audit confirms event registration questions/sponsor
   consent are not implementation-ready. No native registration, question,
   answer, sponsor-consent, newsletter-intent, or management surface exists;
@@ -988,8 +1100,8 @@ needed.
   immutable question-catalog child is safe after PM re-grooming.
 - The completed #108 audit confirms the parent is not implementation-ready:
   it remains OPEN/P0/HUMAN with all 14 criteria unchecked and no runtime,
-  tester, deployment, or human rehearsal evidence. The safe next slice is a
-  freshly groomed accounts-only `MemberProfile` foundation; exclude signup,
+tester, deployment, or human rehearsal evidence. The safe next slice is a
+freshly groomed accounts-only `MemberProfile` foundation; exclude signup,
   registration mutations, Slack/Relay, Studio/admin, privacy deletion, and
   production import until their owner contracts are accepted.
 - The completed #47 audit confirms event registration operations, attendance,
