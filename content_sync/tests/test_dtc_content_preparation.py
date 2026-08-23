@@ -9,6 +9,7 @@ from unittest.mock import patch
 from django.test import TestCase
 
 from content.models import (
+    LEGACY_PUBLIC_CONTRACT_DIGEST,
     ActiveContentPath,
     ContentAsset,
     ContentDocument,
@@ -472,6 +473,131 @@ class DtcContentPreparationTests(TestCase):
             ),
             before,
         )
+
+    def test_legacy_digest_replay_candidate_is_rejected_without_mutating_existing_release(
+        self,
+    ) -> None:
+        source = self._source()
+        with fixture_checkout() as root:
+            verified = verify_fixture_checkout(root, salt="legacy-replay")
+            first = prepare_dtc_content_candidate(
+                source_id=source.id,
+                expected_source_revision=source.revision,
+                verified_checkout=verified,
+                commit_sha=verified.commit_sha,
+                person_resolver=_resolve_person,
+                context=CONTEXT,
+            )
+            ContentRelease.objects.filter(pk=first.release.id).update(
+                public_contracts_sha256=LEGACY_PUBLIC_CONTRACT_DIGEST,
+            )
+            source.refresh_from_db()
+
+            def snapshot() -> dict[str, object]:
+                return {
+                    "release": ContentRelease.objects.values(
+                        "id",
+                        "source_id",
+                        "sequence",
+                        "commit_sha",
+                        "parser_version",
+                        "rendering_version",
+                        "status",
+                        "revision",
+                        "request_provenance",
+                        "document_count",
+                        "relation_count",
+                        "asset_count",
+                        "public_contracts_sha256",
+                        "asset_manifest_checksum",
+                        "created_at",
+                        "updated_at",
+                    ).get(pk=first.release.id),
+                    "documents": list(
+                        ContentDocument.objects.filter(release_id=first.release.id)
+                        .order_by("pk")
+                        .values(
+                            "id",
+                            "release_id",
+                            "content_kind",
+                            "stable_key",
+                            "source_path",
+                            "checksum",
+                            "raw_body",
+                            "raw_structured_data",
+                            "rendered_html",
+                            "adapter_metadata",
+                            "is_published",
+                        )
+                    ),
+                    "relations": list(
+                        ContentRelation.objects.filter(source_document__release_id=first.release.id)
+                        .order_by("pk")
+                        .values(
+                            "id",
+                            "source_document_id",
+                            "relation_type",
+                            "target_kind",
+                            "target_key",
+                            "resolved_target_document_id",
+                            "resolved_public_path",
+                            "order",
+                            "is_required",
+                        )
+                    ),
+                    "assets": list(
+                        ContentAsset.objects.filter(release_id=first.release.id)
+                        .order_by("pk")
+                        .values(
+                            "id",
+                            "release_id",
+                            "source_path",
+                            "stable_public_path",
+                            "storage_key",
+                            "content_type",
+                            "size",
+                            "checksum",
+                        )
+                    ),
+                }
+
+            before = snapshot()
+            counts_before = (
+                ContentRelease.objects.count(),
+                ContentDocument.objects.count(),
+                ContentRelation.objects.count(),
+                ContentAsset.objects.count(),
+                AuditEvent.objects.count(),
+            )
+            source_before = (source.revision, source.active_release_id)
+
+            with self.assertRaises(DtcContentValidationError) as raised:
+                prepare_dtc_content_candidate(
+                    source_id=source.id,
+                    expected_source_revision=source.revision,
+                    verified_checkout=verified,
+                    commit_sha=verified.commit_sha,
+                    person_resolver=_resolve_person,
+                    context=CONTEXT,
+                )
+
+        self.assertEqual(
+            raised.exception.diagnostics[0].code,
+            "existing_release_contract_digest_mismatch",
+        )
+        source.refresh_from_db()
+        self.assertEqual((source.revision, source.active_release_id), source_before)
+        self.assertEqual(
+            (
+                ContentRelease.objects.count(),
+                ContentDocument.objects.count(),
+                ContentRelation.objects.count(),
+                ContentAsset.objects.count(),
+                AuditEvent.objects.count(),
+            ),
+            counts_before,
+        )
+        self.assertEqual(snapshot(), before)
 
     def test_legacy_and_dtc_sources_cannot_overlap_adopted_ownership(self) -> None:
         legacy = create_content_source(

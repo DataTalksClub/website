@@ -4,12 +4,15 @@ import hashlib
 import unittest
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 from django.conf import settings
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.loader import MigrationLoader
 from django.test import SimpleTestCase
 
+from test_support.factories.context import canonical_json_bytes
 from test_support.migrations import (
     assert_data_migration_isolation,
     assert_stable_migration_module_isolation,
@@ -33,6 +36,7 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts-identity-v1",
                 "accounts-profile-v1",
                 "content-active-paths-v1",
+                "content-contract-digest-v1",
             },
         )
         for seed in seeds:
@@ -46,6 +50,7 @@ class MigrationSeedContractTests(SimpleTestCase):
                 "accounts-identity-v1": True,
                 "accounts-profile-v1": True,
                 "content-active-paths-v1": True,
+                "content-contract-digest-v1": False,
             },
         )
 
@@ -136,9 +141,294 @@ class IsolatedMigrationExecutorTests(unittest.TestCase):
         executor = MigrationExecutor(self.connection)
         leaves = executor.loader.graph.leaf_nodes()
         self.assertEqual(executor.loader.applied_migrations, {})
+        self.assertIn(
+            ("content", "0006_finalize_content_release_contract_digest"),
+            leaves,
+        )
         executor.migrate(leaves)
         applied = MigrationExecutor(self.connection).loader.applied_migrations
         self.assertTrue(all(leaf in applied for leaf in leaves))
+
+    def test_content_contract_digest_populated_pre_repair_path_preserves_rows_and_is_idempotent(
+        self,
+    ) -> None:
+        seed = load_migration_seed(SEED_ROOT / "content-contract-digest-v1.json")
+        target = seed.target
+        executor, apps = self._migrate([seed.start])
+        self._populate_content_contract_fixture(apps, seed)
+        before = self._content_contract_snapshot(apps)
+
+        executor = MigrationExecutor(self.connection)
+        executor.migrate([target])
+        migrated_apps = MigrationExecutor(self.connection).loader.project_state([target]).apps
+        after = self._content_contract_snapshot(migrated_apps)
+        self.assertEqual(after, before)
+        self.assertEqual(
+            after["aggregate"],
+            {
+                "counts": {
+                    "active_paths": seed.expected["active_paths"],
+                    "assets": seed.expected["assets"],
+                    "documents": seed.expected["documents"],
+                    "relations": seed.expected["relations"],
+                    "releases": seed.expected["releases"],
+                },
+                "checksum": before["aggregate"]["checksum"],
+            },
+        )
+        self.assertEqual(
+            set(
+                migrated_apps.get_model("content", "ContentRelease").objects.values_list(
+                    "public_contracts_sha256", flat=True
+                )
+            ),
+            {seed.payload["releases"][0]["digest"]},
+        )
+        self._assert_one_contract_constraint()
+
+        executor = MigrationExecutor(self.connection)
+        executor.migrate([target])
+        reapplied = self._content_contract_snapshot(
+            MigrationExecutor(self.connection).loader.project_state([target]).apps
+        )
+        self.assertEqual(reapplied, after)
+
+        applied = MigrationExecutor(self.connection).loader.applied_migrations
+        self.assertIn(("content", "0005_repair_content_release_contract_digest"), applied)
+        self.assertIn(("content", "0006_finalize_content_release_contract_digest"), applied)
+        self.assertIn(
+            ("content", "0004_remove_contentrelease_content_release_contract_sha_ck_and_more"),
+            applied,
+        )
+
+    def test_content_contract_digest_already_recorded_0004_state_converges_without_data_loss(
+        self,
+    ) -> None:
+        seed = load_migration_seed(SEED_ROOT / "content-contract-digest-v1.json")
+        published_0004 = (
+            "content",
+            "0004_remove_contentrelease_content_release_contract_sha_ck_and_more",
+        )
+        original_executor = MigrationExecutor(self.connection)
+        original_executor.loader = MigrationLoader(self.connection, replace_migrations=False)
+        original_executor.migrate([published_0004])
+        original_apps = original_executor.loader.project_state([published_0004]).apps
+        self._populate_content_contract_fixture(
+            original_apps,
+            seed,
+            digest="31f505350566bfcde0a30109dadcfb3565042fd395b4c1bd151966f94d361332",
+        )
+        before = self._content_contract_snapshot(original_apps)
+
+        target = seed.target
+        executor = MigrationExecutor(self.connection)
+        executor.migrate([target])
+        migrated_apps = MigrationExecutor(self.connection).loader.project_state([target]).apps
+        self.assertEqual(self._content_contract_snapshot(migrated_apps), before)
+        self._assert_one_contract_constraint()
+
+        ContentRelease = migrated_apps.get_model("content", "ContentRelease")
+        source_id = UUID(seed.payload["source"]["id"])
+        legacy = ContentRelease.objects.create(
+            id=UUID("00000000-0000-0000-0000-000000002203"),
+            source_id=source_id,
+            sequence=3,
+            commit_sha="c" * 40,
+            parser_version="contract-digest-v1",
+            rendering_version="contract-digest-v1",
+            status="queued",
+            requested_at=FROZEN_AT,
+            public_contracts_sha256=seed.payload["releases"][0]["digest"],
+        )
+        self.assertEqual(
+            ContentRelease.objects.get(pk=legacy.pk).public_contracts_sha256,
+            seed.payload["releases"][0]["digest"],
+        )
+        applied = MigrationExecutor(self.connection).loader.applied_migrations
+        self.assertIn(published_0004, applied)
+        self.assertIn(("content", "0006_finalize_content_release_contract_digest"), applied)
+
+    def _populate_content_contract_fixture(self, apps, seed, *, digest: str | None = None) -> None:
+        payload = seed.payload
+        ContentSource = apps.get_model("content", "ContentSource")
+        ContentRelease = apps.get_model("content", "ContentRelease")
+        ContentDocument = apps.get_model("content", "ContentDocument")
+        ContentRelation = apps.get_model("content", "ContentRelation")
+        ContentAsset = apps.get_model("content", "ContentAsset")
+        ActiveContentPath = apps.get_model("content", "ActiveContentPath")
+        source = ContentSource.objects.create(
+            id=UUID(payload["source"]["id"]),
+            stable_id=payload["source"]["stable_id"],
+            display_name="Synthetic contract digest source",
+            repository_owner="DataTalksClub",
+            repository_name="contract-digest-fixture",
+            branch="main",
+            path_allowlist=["content/"],
+            adapter_type="fixture",
+            mount_path="/",
+            enabled=payload["source"]["enabled"],
+            last_successful_commit=payload["source"]["last_successful_commit"],
+        )
+        for release_payload in payload["releases"]:
+            ContentRelease.objects.create(
+                id=UUID(release_payload["id"]),
+                source=source,
+                sequence=release_payload["sequence"],
+                based_on_release_id=release_payload["based_on_release_id"],
+                commit_sha=release_payload["commit_sha"],
+                parser_version="contract-digest-fixture-v1",
+                rendering_version="contract-digest-fixture-v1",
+                status=release_payload["status"],
+                requested_at=FROZEN_AT,
+                fetched_at=FROZEN_AT,
+                validated_at=FROZEN_AT,
+                activated_at=FROZEN_AT,
+                superseded_at=(FROZEN_AT if release_payload["status"] == "superseded" else None),
+                document_count=1,
+                relation_count=1,
+                asset_count=1,
+                asset_manifest_checksum=release_payload["asset_manifest_checksum"],
+                public_contracts_sha256=digest or release_payload["digest"],
+                request_provenance={"fixture": "content-contract-digest-v1"},
+            )
+        for document_payload in payload["documents"]:
+            ContentDocument.objects.create(
+                id=UUID(document_payload["id"]),
+                release_id=document_payload["release_id"],
+                content_kind="fixture",
+                stable_key=document_payload["stable_key"],
+                source_path=f"{document_payload['stable_key']}.md",
+                checksum=document_payload["checksum"],
+                exact_public_path=document_payload["path"],
+                title=document_payload["stable_key"],
+                raw_frontmatter={"fixture": "content-contract-digest-v1"},
+                raw_body=f"# {document_payload['stable_key']}",
+                raw_structured_data="{}",
+                rendered_html=f"<h1>{document_payload['stable_key']}</h1>",
+                normalized_text=document_payload["stable_key"],
+                is_published=True,
+            )
+        for relation_payload in payload["relations"]:
+            ContentRelation.objects.create(
+                id=UUID(relation_payload["id"]),
+                source_document_id=relation_payload["source_document_id"],
+                relation_type=relation_payload["type"],
+                target_kind=relation_payload["target_kind"],
+                target_key=relation_payload["target_key"],
+                resolved_target_document_id=relation_payload.get("resolved_target_document_id"),
+                resolved_public_path=relation_payload.get("resolved_public_path"),
+                order=relation_payload["order"],
+                is_required=True,
+            )
+        for asset_payload in payload["assets"]:
+            ContentAsset.objects.create(
+                id=UUID(asset_payload["id"]),
+                release_id=asset_payload["release_id"],
+                source_path=asset_payload["path"].rsplit("/", 1)[-1],
+                stable_public_path=asset_payload["path"],
+                storage_key=asset_payload["storage_key"],
+                content_type="image/svg+xml",
+                size=128,
+                checksum=asset_payload["checksum"],
+            )
+        ContentSource.objects.filter(pk=source.pk).update(
+            active_release_id=payload["source"]["active_release_id"]
+        )
+        for path_payload in payload["active_paths"]:
+            ActiveContentPath.objects.create(
+                path_digest=path_payload["path_digest"],
+                exact_public_path=path_payload["path"],
+                source_id=path_payload["source_id"],
+                release_id=path_payload["release_id"],
+            )
+
+    def _content_contract_snapshot(self, apps) -> dict:
+        models = {
+            "source": apps.get_model("content", "ContentSource"),
+            "releases": apps.get_model("content", "ContentRelease"),
+            "documents": apps.get_model("content", "ContentDocument"),
+            "relations": apps.get_model("content", "ContentRelation"),
+            "assets": apps.get_model("content", "ContentAsset"),
+            "active_paths": apps.get_model("content", "ActiveContentPath"),
+        }
+        fields = {
+            "source": (
+                "id",
+                "active_release_id",
+                "stable_id",
+                "enabled",
+                "last_successful_commit",
+                "revision",
+            ),
+            "releases": (
+                "id",
+                "source_id",
+                "sequence",
+                "based_on_release_id",
+                "commit_sha",
+                "status",
+                "asset_manifest_checksum",
+                "public_contracts_sha256",
+                "document_count",
+                "relation_count",
+                "asset_count",
+                "request_provenance",
+            ),
+            "documents": (
+                "id",
+                "release_id",
+                "stable_key",
+                "exact_public_path",
+                "checksum",
+                "raw_body",
+                "raw_structured_data",
+                "rendered_html",
+                "adapter_metadata",
+            ),
+            "relations": (
+                "id",
+                "source_document_id",
+                "relation_type",
+                "target_kind",
+                "target_key",
+                "resolved_target_document_id",
+                "resolved_public_path",
+                "order",
+            ),
+            "assets": (
+                "id",
+                "release_id",
+                "source_path",
+                "stable_public_path",
+                "storage_key",
+                "size",
+                "checksum",
+            ),
+            "active_paths": (
+                "path_digest",
+                "exact_public_path",
+                "source_id",
+                "release_id",
+            ),
+        }
+        rows = {
+            name: list(model.objects.order_by("pk").values(*fields[name]))
+            for name, model in models.items()
+        }
+        counts = {name: len(values) for name, values in rows.items() if name != "source"}
+        checksum = hashlib.sha256(canonical_json_bytes(rows)).hexdigest()
+        return {"rows": rows, "aggregate": {"counts": counts, "checksum": checksum}}
+
+    def _assert_one_contract_constraint(self) -> None:
+        with self.connection.cursor() as cursor:
+            constraints = self.connection.introspection.get_constraints(
+                cursor,
+                "content_contentrelease",
+            )
+        self.assertEqual(
+            sum(name == "content_release_contract_sha_ck" for name in constraints),
+            1,
+        )
 
     def test_course_phase_two_schema_has_reusable_families_and_cohort_backed_relations(
         self,

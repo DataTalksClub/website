@@ -7,7 +7,13 @@ from typing import Any
 
 from django.db import IntegrityError, transaction
 
-from content.models import ContentDocument, ContentRelease, ContentSource, expected_storage_prefix
+from content.models import (
+    PUBLIC_CONTRACT_DIGEST,
+    ContentDocument,
+    ContentRelease,
+    ContentSource,
+    expected_storage_prefix,
+)
 from content.services import (
     CreateContentRelease,
     MarkReleaseReady,
@@ -101,6 +107,8 @@ def _existing_release(
     )
     if release is None:
         return None
+    if release.public_contracts_sha256 != PUBLIC_CONTRACT_DIGEST:
+        raise DtcContentValidationError("existing_release_contract_digest_mismatch")
     if release.status not in {
         ContentRelease.Status.READY,
         ContentRelease.Status.ACTIVE,
