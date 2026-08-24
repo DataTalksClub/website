@@ -957,7 +957,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .tmp/release-image.tar
-          key: tested-release-image-${{ needs.resolve-release.outputs.release_sha }}
+          key: tested-release-image-${{ needs.resolve-release.outputs.identity_schema }}-${{ needs.resolve-release.outputs.release_sha }}-${{ needs.resolve-release.outputs.version }}-${{ needs.resolve-release.outputs.constructed_at }}
       - name: Reject a rerun when its immutable image cache is missing
         if: >-
           github.run_attempt > 1 &&

@@ -218,6 +218,44 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert "release-image-" in str(jobs["container"])
 
 
+def test_tested_image_cache_key_tracks_the_sealed_release_identity() -> None:
+    container = workflow("ci.yml")["jobs"]["container"]
+    cache = next(step for step in container["steps"] if step.get("id") == "image-cache")
+    key = cache["with"]["key"]
+
+    assert key == (
+        "tested-release-image-${{ needs.resolve-release.outputs.identity_schema }}-"
+        "${{ needs.resolve-release.outputs.release_sha }}-"
+        "${{ needs.resolve-release.outputs.version }}-"
+        "${{ needs.resolve-release.outputs.constructed_at }}"
+    )
+    assert cache["if"] == "github.event_name == 'push' || inputs.reuse_existing_image == false"
+    assert "github.run_id" not in key
+    assert "github.run_attempt" not in key
+
+    def render(identity: dict[str, str]) -> str:
+        rendered = key
+        for field, value in identity.items():
+            rendered = rendered.replace("${{ needs.resolve-release.outputs." + field + " }}", value)
+        return rendered
+
+    first_identity = {
+        "identity_schema": "2",
+        "release_sha": "522c47d3d001a1ab083919b58c25eb51db301c63",
+        "version": "20260824-014815-522c47d",
+        "constructed_at": "2026-08-24T01:48:15Z",
+    }
+    later_identity = {
+        **first_identity,
+        "version": "20260824-021544-522c47d",
+        "constructed_at": "2026-08-24T02:15:44Z",
+    }
+
+    assert first_identity["release_sha"] == later_identity["release_sha"]
+    assert render(first_identity) == render(dict(first_identity))
+    assert render(first_identity) != render(later_identity)
+
+
 def test_container_jobs_establish_locked_environments_before_recording() -> None:
     normal = workflow("ci.yml")["jobs"]["container"]
     normal_sync = next(
