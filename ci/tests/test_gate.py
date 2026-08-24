@@ -22,7 +22,7 @@ from ci.provenance import (
     selection_digest,
 )
 from ci.schedule import dump_schedule_decision, unavailable_decision
-from ci.selection import ChangeRecord, classify_records, dump_selection
+from ci.selection import ChangeRecord, classify_records, dump_selection, full_selection
 from ci.verification import build_plan, create_report, dump_json
 from tests_ci.helpers import component_output, repository_with_change, selection_for
 
@@ -116,6 +116,33 @@ def test_normal_gate_requires_every_job_and_valid_selection(tmp_path: Path) -> N
         == "failure"
     )
     assert normal_gate(selection, outcomes)["selection_rejection_reason"] == "evidence_missing"
+
+
+def test_manual_dispatch_plan_preserves_no_base_contract(tmp_path: Path) -> None:
+    repository, _base, head = repository_with_change(tmp_path, {"api/a.py": "changed\n"})
+    selection = full_selection(
+        event="workflow_dispatch",
+        base=None,
+        head=head,
+        reason="manual_dispatch",
+    )
+
+    plan = build_plan(
+        repository=repository,
+        repository_id="DataTalksClub/website",
+        base="null",
+        head=head,
+        selection=selection,
+        now=datetime(2026, 8, 24, 1, tzinfo=UTC),
+        release_requires_image=True,
+    )
+
+    assert plan["base"] == head
+    assert plan["head"] == head
+    assert plan["profile"] == "full"
+    assert plan["reason"] == "manual_dispatch"
+    assert plan["changed_paths"] == []
+    assert plan["legacy_selection"]["base"] is None
 
 
 def test_normal_gate_requires_exact_ci_report_and_artifact_bound_evidence(

@@ -227,12 +227,23 @@ def build_plan(
     graph = dict(graph) if graph is not None else load_graph()
     digest = graph_digest(graph)
     now = now or utc_now()
+    manual_dispatch_without_base = (
+        selection.get("event") == "workflow_dispatch"
+        and selection.get("reason") == "manual_dispatch"
+        and selection.get("base") is None
+    )
     if records is None:
-        records = (
-            read_worktree_change_records(repository, base, head)
-            if include_worktree
-            else read_change_records(repository, base, head)
-        )
+        if manual_dispatch_without_base:
+            # Manual releases intentionally have no classifier comparison base.
+            # The full selection is already the safety decision; planning from an
+            # empty change set avoids turning the explicit null into a Git ref.
+            records = ()
+        else:
+            records = (
+                read_worktree_change_records(repository, base, head)
+                if include_worktree
+                else read_change_records(repository, base, head)
+            )
     paths = tuple(path for record in records for path in record.paths)
     impact = impact_for_paths(paths, graph)
     impact = _with_status_risks(impact, records, graph)
@@ -272,7 +283,7 @@ def build_plan(
         key=lambda item: (item["path"], item["status"]),
     )
     plan: dict[str, Any] = {
-        "base": base,
+        "base": head if manual_dispatch_without_base else base,
         "browser_profile": browser_profile,
         "changed_paths": changed_paths,
         "components": {},
