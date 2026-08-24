@@ -322,14 +322,19 @@ class DeploymentWorkflowContractTests(SimpleTestCase):
         self.assertIn('test "$version_digest" = "$recorded_digest"', reuse)
         self.assertIn(".config.digest) == $config", reuse)
 
-    def test_automatic_rerun_restores_exact_sha_cache_and_can_never_rebuild(self) -> None:
+    def test_automatic_rerun_restores_exact_sealed_identity_cache_and_can_never_rebuild(
+        self,
+    ) -> None:
         document = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
         steps = document["jobs"]["container"]["steps"]
         cache = next(step for step in steps if step.get("id") == "image-cache")
         self.assertEqual(cache["uses"], "actions/cache@v4")
         self.assertEqual(
             cache["with"]["key"],
-            "tested-release-image-${{ needs.resolve-release.outputs.release_sha }}",
+            "tested-release-image-${{ needs.resolve-release.outputs.identity_schema }}-"
+            "${{ needs.resolve-release.outputs.release_sha }}-"
+            "${{ needs.resolve-release.outputs.version }}-"
+            "${{ needs.resolve-release.outputs.constructed_at }}",
         )
         rejection = next(step for step in steps if step.get("name", "").startswith("Reject"))
         self.assertIn("github.run_attempt > 1", rejection["if"])
