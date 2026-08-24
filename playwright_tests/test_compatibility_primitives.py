@@ -5,7 +5,7 @@ from django.test import override_settings
 from playwright.sync_api import Browser, Page, expect
 
 pytestmark = [
-    pytest.mark.core,
+    pytest.mark.full,
     pytest.mark.usefixtures("_compatibility_fixture_settings"),
 ]
 

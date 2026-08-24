@@ -15,7 +15,7 @@ from management_auth.models import APIPrincipal
 from management_auth.services import create_principal
 
 pytestmark = [
-    pytest.mark.core,
+    pytest.mark.full,
     pytest.mark.django_db(transaction=True),
     pytest.mark.usefixtures("_credential_fixture_settings"),
 ]

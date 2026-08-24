@@ -16,7 +16,7 @@ from playwright.sync_api import Page, expect
 from content.person_content import person_view
 from content.public_data import public_projection
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-179/person")
 # The widest body of work in the catalogue, and a profile with none at all.

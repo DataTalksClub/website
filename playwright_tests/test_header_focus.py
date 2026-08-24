@@ -30,7 +30,7 @@ def focus_style(locator) -> dict[str, str | bool]:
     )
 
 
-@pytest.mark.core
+@pytest.mark.full
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
 @pytest.mark.parametrize("dark_mode", (False, True), ids=("light", "dark"))
 def test_header_pointer_and_keyboard_focus_are_visually_distinct(
@@ -101,7 +101,7 @@ def test_header_pointer_and_keyboard_focus_are_visually_distinct(
     )
 
 
-@pytest.mark.core
+@pytest.mark.full
 def test_skip_link_remains_keyboard_visible_without_outlining_main_content(
     page: Page,
     live_server,
@@ -125,7 +125,7 @@ def test_skip_link_remains_keyboard_visible_without_outlining_main_content(
     assert main_style["outlineWidth"] == "0px"
 
 
-@pytest.mark.core
+@pytest.mark.full
 @pytest.mark.parametrize("path", ("/", "/courses", "/events", "/podcast"))
 def test_account_menu_closes_on_escape_and_on_a_click_outside_it(
     page: Page,

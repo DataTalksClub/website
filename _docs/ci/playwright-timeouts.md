@@ -27,8 +27,8 @@ profile.
 
 ## Local per-test diagnostic budget
 
-`test-playwright-core`, `test-playwright`, `test-browser` (through its `test-playwright`
-prerequisite), and `test-accessibility` pass pytest's built-in
+`test-playwright-smoke`, `test-playwright-core`, `test-playwright`, `test-browser` (through its
+`test-playwright` prerequisite), and `test-accessibility` pass pytest's built-in
 `-o faulthandler_timeout=120` option. After 120 seconds, Python emits a diagnostic traceback for
 the running test and thread state, including the active pytest node when available. This option is
 dependency-free and diagnostic: it does not turn a wedged process into a successful run or replace

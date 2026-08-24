@@ -28,7 +28,7 @@ from courses.registration_count_importer import (
 from playwright_tests.accessibility_support import target_size_issues
 from playwright_tests.course_catalog_contract import assert_copied_course_catalog_link
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 # The courses index left the byte-exact CMP copy with the design 5a rebuild (issue #179);

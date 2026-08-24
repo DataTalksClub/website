@@ -61,7 +61,9 @@ ALLOWED_COMPONENT_COMMANDS = {
     # profile CI records the compatibility-free Django target separately.
     "django": frozenset({"make test", "make test-django-full", "make test-ci-focused"}),
     "evidence_validation": frozenset({"make test-ci"}),
-    "playwright": frozenset({"make test-playwright-core", "make test-playwright"}),
+    "playwright": frozenset(
+        {"make test-playwright-smoke", "make test-playwright-core", "make test-playwright"}
+    ),
     "quality": frozenset({"quality-contract-v1"}),
     "screenshots": frozenset({"independent tester desktop/mobile capture and inspection"}),
     "selector": frozenset(

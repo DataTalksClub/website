@@ -13,7 +13,7 @@ from accounts.studio_test_support import make_studio_user
 from core.models import AuditEvent
 
 pytestmark = [
-    pytest.mark.core,
+    pytest.mark.smoke,
     pytest.mark.django_db(transaction=True),
     pytest.mark.usefixtures("_studio_fixture_settings"),
 ]

@@ -774,13 +774,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ../ci-controller/.tmp/components-playwright
-          if [[ "$BROWSER_PROFILE" == "full" ]]; then
-            make test-playwright 2>&1 | \
-              tee ../ci-controller/.tmp/components-playwright/playwright-output.log
-          else
-            make test-playwright-core 2>&1 | \
-              tee ../ci-controller/.tmp/components-playwright/playwright-output.log
-          fi
+          case "$BROWSER_PROFILE" in
+            full) make test-playwright 2>&1 | \
+              tee ../ci-controller/.tmp/components-playwright/playwright-output.log ;;
+            core) make test-playwright-core 2>&1 | \
+              tee ../ci-controller/.tmp/components-playwright/playwright-output.log ;;
+            smoke) make test-playwright-smoke 2>&1 | \
+              tee ../ci-controller/.tmp/components-playwright/playwright-output.log ;;
+            *) echo "Unsupported browser profile: $BROWSER_PROFILE" >&2; exit 2 ;;
+          esac
       - name: Record Playwright evidence with the job's actual environment
         if: >-
           always() &&

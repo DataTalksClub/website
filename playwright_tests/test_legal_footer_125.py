@@ -7,7 +7,7 @@ from playwright.sync_api import Browser, Page, expect
 
 from playwright_tests.accessibility_support import axe_issues, structure_issues
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOT_DIR = Path(".tmp/screenshots/issue-125")
 LEGAL_PAGES = (

@@ -18,7 +18,7 @@ from courses.models.homework import Homework, HomeworkState
 from courses.models.project import Project, ProjectState
 
 pytestmark = [
-    pytest.mark.core,
+    pytest.mark.smoke,
     pytest.mark.django_db(transaction=True),
     pytest.mark.usefixtures("_identity_browser_settings"),
 ]

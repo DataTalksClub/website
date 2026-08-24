@@ -24,7 +24,7 @@ from playwright.sync_api import Browser, Page, expect
 from content.pagination import PUBLIC_PAGE_SIZE
 from content.public_data import public_projection
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-174")
 BOOKS = public_projection()["books"]

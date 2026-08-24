@@ -212,6 +212,7 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     playwright = jobs["playwright"]
     assert set(playwright["needs"]) == {"resolve-release", "classification"}
     assert playwright["timeout-minutes"] == "60"
+    assert "make test-playwright-smoke" in runs(playwright)
     assert "make test-playwright-core" in runs(playwright)
     assert "make test-playwright" in runs(playwright)
     assert "playwright_mode == 'rerun'" in str(playwright)
@@ -523,13 +524,13 @@ def test_scheduled_aggregate_state_explicitly_allows_hosted_runner_drift() -> No
     assert invocations[0].split().count("--allow-hosted-runner-drift") == 1
 
 
-def test_scheduled_playwright_executes_and_records_the_planner_core_command() -> None:
+def test_scheduled_playwright_executes_and_records_the_planner_full_command() -> None:
     playwright = workflow("scheduled-full-regression.yml")["jobs"]["playwright"]
     planner_command = json.loads((ROOT / "ci" / "ownership.json").read_text(encoding="utf-8"))[
         "components"
     ]["playwright"]["command"]
-    assert planner_command == "make test-playwright-core"
-    command_pattern = re.compile(r"\bmake test-playwright(?:-core)?\b")
+    assert planner_command == "make test-playwright"
+    command_pattern = re.compile(r"\bmake test-playwright(?:-(?:smoke|core))?\b")
 
     execution = next(
         step
@@ -591,7 +592,7 @@ def test_scheduled_full_marker_and_gate_cover_every_component_or_exact_skip() ->
     assert "make test-django-full" not in django_commands
     assert '--command "make test"' in runs(jobs["django"])
     assert '--full-django-command "make test"' in runs(jobs["selector"])
-    assert "make test-playwright-core" in runs(jobs["playwright"])
+    assert "make test-playwright" in runs(jobs["playwright"])
     assert "ci.quality_contract" in runs(jobs["quality"])
     assert "make verification-quality" not in runs(jobs["quality"])
     container = runs(jobs["container"])

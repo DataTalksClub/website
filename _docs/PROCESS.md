@@ -111,7 +111,10 @@ working around a dependency, merging before the independent gates pass, or hidin
   artifact; otherwise run the component. Unknown impact or evidence/history failure selects fresh
   full verification.
 - Template work must be verified at desktop and mobile sizes. The tester stores screenshots below `.tmp/screenshots/`, reads each image, and reports whether it contains the expected page rather than an error, debug page, or broken layout.
-- The tester runs focused Django tests plus `make test-playwright-core`. Broader checks are added when shared infrastructure or fixtures change.
+- The tester runs focused Django tests plus the applicable Playwright tier: `make
+  test-playwright-smoke` for backend-only changes, `make test-playwright-core` for ordinary
+  render impact, and `make test-playwright` for template, browser-harness, or full-backstop work.
+  Broader checks are added when shared infrastructure or fixtures change.
 - The tester independently recomputes the plan from the engineer's frozen base/head, validates
   every reused envelope and artifact, and explains any plan/digest drift before testing. The
   tester-final report may not contain a required skip or pending screenshot evidence.

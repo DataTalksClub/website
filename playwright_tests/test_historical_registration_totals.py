@@ -25,7 +25,7 @@ from events.models import (
     HistoricalRegistrationTotalState,
 )
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 VIEWPORTS = (
     ({"width": 1440, "height": 900}, "desktop"),
