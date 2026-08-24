@@ -78,6 +78,7 @@ def test_normal_workflow_keeps_release_concurrency_and_exact_base_contract() -> 
     assert checkouts[0]["with"]["ref"] == "${{ github.sha }}"
     assert checkouts[1]["with"]["fetch-depth"] == "0"
     assert "--repository ../release-source" in script
+    assert 'base="$(jq -er \'.base // "null"\' .tmp/ci-selection/ci-selection.json)"' in script
 
 
 def test_issue_205_bounds_the_push_and_scheduled_long_running_jobs() -> None:
