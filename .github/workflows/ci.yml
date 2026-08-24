@@ -406,7 +406,7 @@ jobs:
         name: Build the versioned risk and evidence plan
         run: |
           set -euo pipefail
-          base="$(jq -er .base .tmp/ci-selection/ci-selection.json)"
+          base="$(jq -er '.base // "null"' .tmp/ci-selection/ci-selection.json)"
           head="$(jq -er .head .tmp/ci-selection/ci-selection.json)"
           uv run --frozen python -m ci.verification plan \
             --repository ../release-source \
