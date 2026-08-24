@@ -24,7 +24,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
-from .public_data import podcast_public_path
+from .public_data import podcast_public_path, safe_public_graph_url
 
 # Listening destinations, in the order the pages offer them, with the platform
 # dot the design system reserves for each.  A link key outside this map is still
@@ -279,12 +279,10 @@ def _guests(
         name = profile.get("name")
         if not isinstance(name, str) or not name.strip():
             raise ImproperlyConfigured("Public podcast guest must have a name.")
-        public_path = profile.get("public_path") or ""
-        if public_path and (not isinstance(public_path, str) or not public_path.startswith("/")):
-            raise ImproperlyConfigured("Public podcast guest link must be a site path.")
+        public_path = safe_public_graph_url(profile.get("public_path", ""))
         person = people_by_slug.get(key) if people_by_slug and key else None
         if person is not None:
-            person_path = person.get("public_path") or ""
+            person_path = safe_public_graph_url(person.get("public_path", ""))
             if public_path and person_path != public_path:
                 raise ImproperlyConfigured("Public podcast guest profile path does not match.")
             public_path = person_path

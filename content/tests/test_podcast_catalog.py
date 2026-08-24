@@ -175,6 +175,34 @@ class PodcastPageCompositionTests(SimpleTestCase):
         # Seventeen entries carry no publication date, and the pages simply omit it.
         self.assertEqual(sum(1 for view in views if not view.published_display), 17)
 
+    def test_guest_public_paths_keep_only_safe_root_relative_links(self) -> None:
+        record = dict(ordered_podcasts()[0])
+        cases = (
+            ("/people/safe-guest.html", "/people/safe-guest.html"),
+            ("//external.example/guest", ""),
+            ("https://external.example/guest", ""),
+            ("/people/safe-guest.html?tab=bio", ""),
+            ("/people/safe-guest.html#bio", ""),
+            ("/people/../admin", ""),
+            ("/people/%2e%2e/admin", ""),
+            ("/people/safe-guest.html\x00", ""),
+        )
+        for raw_path, expected_path in cases:
+            with self.subTest(raw_path=repr(raw_path)):
+                record["guest_profiles"] = [
+                    {"key": "", "name": "Synthetic Guest", "public_path": raw_path}
+                ]
+                self.assertEqual(episode_view(record).guests[0].public_path, expected_path)
+
+        record["guest_profiles"] = [
+            {"key": "unsafe-person", "name": "Synthetic Guest", "public_path": ""}
+        ]
+        view = episode_view(
+            record,
+            people_by_slug={"unsafe-person": {"public_path": "//external.example/guest"}},
+        )
+        self.assertEqual(view.guests[0].public_path, "")
+
     def test_the_subscribe_sentence_names_only_platforms_every_episode_carries(self) -> None:
         """There is no show feed to link, so the copy points at what does exist."""
 
@@ -403,6 +431,43 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn("wiki_graph", body)
         self.assertNotIn("list-manage.com", body)
         self.assertNotIn(record["transcript_provenance"]["source_url"], body)
+
+    def test_episode_page_omits_unsafe_guest_paths_but_keeps_root_relative_links(self) -> None:
+        projection, record = self.representative()
+        safe_path = "/people/aleksandrkim.html"
+        unsafe_paths = (
+            "//external.example/guest",
+            "/people/safe-guest.html?tab=bio",
+            "/people/safe-guest.html#bio",
+            "/people/../admin",
+            "/people/safe-guest.html\x00",
+        )
+        synthetic = {
+            **record,
+            "slug": "synthetic-guest-path-validation",
+            "public_path": "/podcast/synthetic-guest-path-validation.html",
+            "guest_profiles": [
+                {"key": "", "name": "Safe Guest", "public_path": safe_path},
+                *(
+                    {"key": "", "name": f"Unsafe Guest {index}", "public_path": path}
+                    for index, path in enumerate(unsafe_paths, start=1)
+                ),
+            ],
+        }
+        synthetic_projection = {
+            **projection,
+            "podcasts": (synthetic,),
+            "podcasts_by_slug": {synthetic["slug"]: synthetic},
+        }
+
+        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+            response = self.client.get(synthetic["public_path"])
+
+        body = response.content.decode()
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'href="{safe_path}"')
+        for path in unsafe_paths:
+            self.assertNotIn(f'href="{path}"', body)
 
     def test_spotify_creator_episode_renders_the_responsive_accessible_player(self) -> None:
         projection = public_projection()
