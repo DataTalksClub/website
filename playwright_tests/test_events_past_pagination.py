@@ -162,7 +162,7 @@ def _assert_archive_page_contract(page: Page, page_number: int) -> None:
     _assert_control_targets(page)
 
 
-@pytest.mark.core
+@pytest.mark.full
 @pytest.mark.parametrize(
     ("viewport", "suffix"),
     [
@@ -220,7 +220,7 @@ def test_archive_pages_hold_the_shared_contract_at_both_widths(
     assert console_errors == []
 
 
-@pytest.mark.core
+@pytest.mark.full
 @pytest.mark.parametrize(
     ("viewport", "suffix"),
     [
@@ -261,7 +261,7 @@ def test_the_required_evidence_pages_work_without_javascript(
         context.close()
 
 
-@pytest.mark.core
+@pytest.mark.full
 def test_no_javascript_320px_reflow_and_keyboard_focus(browser: Browser, live_server) -> None:
     """The archive's narrowest reader: reflow, targets and a visible focus ring."""
 
@@ -321,7 +321,7 @@ def test_no_javascript_320px_reflow_and_keyboard_focus(browser: Browser, live_se
         context.close()
 
 
-@pytest.mark.core
+@pytest.mark.full
 def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> None:
     origin = live_server.url
 

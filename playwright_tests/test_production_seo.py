@@ -11,7 +11,7 @@ from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS, validate_sitema
 from core.views import PRODUCTION_ROBOTS_BODY
 
 pytestmark = [
-    pytest.mark.core,
+    pytest.mark.full,
     pytest.mark.django_db(transaction=True),
     pytest.mark.usefixtures("_production_seo_fixture_settings"),
 ]

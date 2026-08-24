@@ -11,7 +11,7 @@ from accounts.development_owner import bootstrap_development_owner
 from core.bootstrap import RuntimeEnvironment
 
 pytestmark = [
-    pytest.mark.core,
+    pytest.mark.full,
     pytest.mark.django_db(transaction=True),
     pytest.mark.usefixtures("_development_owner_settings"),
 ]

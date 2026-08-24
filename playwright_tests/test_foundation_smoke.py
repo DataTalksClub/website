@@ -6,7 +6,7 @@ from playwright.sync_api import Browser, Page, ViewportSize, expect
 from content.docs_projection import docs_projection
 from content.public_data import public_projection
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.smoke, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-105")
 PODCAST_SCREENSHOTS = Path(".tmp/screenshots/issue-132")
@@ -49,7 +49,6 @@ def _event_description_shot(page: Page, name: str) -> None:
     page.screenshot(path=EVENT_DESCRIPTION_SCREENSHOTS / name, full_page=True)
 
 
-@pytest.mark.core
 @pytest.mark.parametrize(
     ("viewport", "suffix"),
     [({"width": 1280, "height": 800}, "desktop"), ({"width": 390, "height": 844}, "mobile")],
@@ -124,7 +123,6 @@ def test_public_home_and_hubs(
             assert len(set(offsets)) == 3, offsets
 
 
-@pytest.mark.core
 @pytest.mark.parametrize(
     "viewport",
     [{"width": 1280, "height": 800}, {"width": 390, "height": 844}],
@@ -186,7 +184,6 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
     assert faq_course.status == 200
 
 
-@pytest.mark.core
 @pytest.mark.parametrize(
     ("viewport", "suffix"),
     [({"width": 1280, "height": 800}, "desktop"), ({"width": 390, "height": 844}, "mobile")],
@@ -228,7 +225,6 @@ def test_internal_event_to_person_flow(
     _shot(page, f"person-detail-{suffix}.png", full_page=True)
 
 
-@pytest.mark.core
 @pytest.mark.parametrize(
     ("viewport", "suffix"),
     [({"width": 1280, "height": 800}, "desktop"), ({"width": 390, "height": 844}, "mobile")],
@@ -277,7 +273,6 @@ def test_podcast_latest_middle_and_oldest_seasons(
     assert failed_requests == []
 
 
-@pytest.mark.core
 def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server) -> None:
     origin = live_server.url
     projection = public_projection()
@@ -353,7 +348,6 @@ def test_all_public_hub_aliases_redirect_once_with_query(page: Page, live_server
         assert "location" not in response.headers
 
 
-@pytest.mark.core
 def test_public_pages_remain_meaningful_without_javascript(
     browser: Browser,
     live_server,
@@ -399,7 +393,6 @@ def test_public_pages_remain_meaningful_without_javascript(
         context.close()
 
 
-@pytest.mark.core
 def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> None:
     origin = live_server.url
     podcast_path = next(
@@ -427,7 +420,6 @@ def test_oldest_latest_details_and_media_fallback(page: Page, live_server) -> No
             _shot(page, "wiki-detail-desktop.png")
 
 
-@pytest.mark.core
 def test_wiki_search_graph_and_removed_mount(page: Page, live_server) -> None:
     origin = live_server.url
     page.goto(f"{origin}/wiki")
@@ -449,7 +441,6 @@ def test_wiki_search_graph_and_removed_mount(page: Page, live_server) -> None:
     _shot(page, "podwiki-404-desktop.png")
 
 
-@pytest.mark.core
 def test_mobile_keyboard_navigation_and_no_results(page: Page, live_server) -> None:
     origin = live_server.url
     page.set_viewport_size({"width": 390, "height": 844})
@@ -468,7 +459,6 @@ def test_mobile_keyboard_navigation_and_no_results(page: Page, live_server) -> N
     _shot(page, "wiki-search-empty-mobile.png")
 
 
-@pytest.mark.core
 def test_wiki_catalogue_page_two_is_usable_without_javascript(
     browser: Browser,
     live_server,
@@ -496,7 +486,6 @@ def test_wiki_catalogue_page_two_is_usable_without_javascript(
         context.close()
 
 
-@pytest.mark.core
 def test_anonymous_staff_member_reaches_safe_sign_in_flow(page: Page, live_server) -> None:
     response = page.goto(f"{live_server.url}/studio/")
     assert response is not None and response.status == 200

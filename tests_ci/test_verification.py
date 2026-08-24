@@ -263,13 +263,13 @@ def test_prose_only_docs_are_explicitly_not_applicable(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize("path", ["api/views.py", "api/urls.py", "api/context_processors.py"])
-def test_data_shape_and_navigation_changes_require_full_browser_and_screenshots(
+def test_data_shape_and_navigation_changes_require_core_browser_and_screenshots(
     tmp_path: Path, path: str
 ) -> None:
     _repository, plan = make_plan(tmp_path, {path: "changed\n"})
     assert plan["profile"] == "full"
     assert plan["reason"] == "render_impact"
-    assert plan["browser_profile"] == "full"
+    assert plan["browser_profile"] == "core"
     assert plan["components"]["playwright"]["disposition"] == "rerun"
     assert plan["components"]["screenshots"]["disposition"] == "rerun"
 
@@ -314,7 +314,7 @@ def test_empty_canonical_diff_uses_shared_planner_and_fails_closed_to_full(
     assert plan["profile"] == "full"
     assert plan["reason"] == "diff_empty"
     assert plan["changed_paths"] == []
-    assert plan["components"]["playwright"]["command"] == "make test-playwright-core"
+    assert plan["components"]["playwright"]["command"] == "make test-playwright"
 
 
 def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
@@ -327,7 +327,7 @@ def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
     body = __import__("json").dumps(records)
     _repository, plan = make_plan(tmp_path, {"data/catalog.json": body})
     assert plan["profile"] == "focused"
-    assert plan["browser_profile"] == "core"
+    assert plan["browser_profile"] == "smoke"
     assert plan["components"]["django"]["disposition"] == "rerun"
     assert plan["components"]["content_invariants"]["disposition"] == "rerun"
     assert plan["components"]["screenshots"]["disposition"] == "not_applicable"

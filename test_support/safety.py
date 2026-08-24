@@ -10,7 +10,7 @@ from typing import Any, TypeVar, cast
 from urllib.parse import urlsplit
 
 SAFETY_MARKERS = frozenset({"remote_readonly", "remote_mutation", "live_email", "live_provider"})
-LOCAL_MARKERS = frozenset({"core", "full"})
+LOCAL_MARKERS = frozenset({"smoke", "core", "full"})
 DEVELOPMENT_HOSTS = frozenset({"web.dtcdev.click"})
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 _NAMESPACE_RE = re.compile(r"^[a-z0-9][a-z0-9-]{7,63}$")

@@ -29,7 +29,7 @@ def plan_for(tmp_path, changed):
 def test_runner_uses_only_allowlisted_argument_vectors(tmp_path) -> None:
     focused = plan_for(tmp_path, {"api/service.py": "changed\n"})
     assert command_for(focused, "django") == ("make", "test-ci-focused")
-    assert command_for(focused, "playwright") == ("make", "test-playwright-core")
+    assert command_for(focused, "playwright") == ("make", "test-playwright-smoke")
     assert command_for(focused, "content_invariants") == (
         "make",
         "verification-content-invariants",
@@ -79,7 +79,11 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
         if command[:3] == ["git", "-C", str(tmp_path / "repository")]:
             return subprocess.CompletedProcess(command, 0, stdout=f"{plan['head']}\n")
         output = "2 passed in 0.01s\n"
-        if command[:2] in (["make", "test-playwright-core"], ["make", "test-playwright"]):
+        if command[:2] in (
+            ["make", "test-playwright-smoke"],
+            ["make", "test-playwright-core"],
+            ["make", "test-playwright"],
+        ):
             output += (
                 "DTC_FLAKE_POLICY_V1 attempted=2 passed=2 failed=0 skipped=0 "
                 "rerun=0 quarantined=0 complete=1\n"
@@ -107,6 +111,7 @@ def test_runner_records_the_selected_tester_role(monkeypatch, tmp_path) -> None:
             elif kwargs.get("stdout") is not None:
                 output = "2 passed in 0.01s\n"
                 if self.args in {
+                    ("make", "test-playwright-smoke"),
                     ("make", "test-playwright-core"),
                     ("make", "test-playwright"),
                 }:

@@ -34,6 +34,7 @@ CI_SELECTION_PATH=.tmp/ci-selection/ci-selection.json make test-ci-focused
 make test-factories
 make migrations-check
 make test-migrations
+make test-playwright-smoke
 make test-playwright-core
 make test-playwright
 make test-browser
@@ -89,7 +90,10 @@ class from the network.
 
 ## Browser tests and safety metadata
 
-Every file below `playwright_tests/` must give each test exactly one `core` or `full` marker.
+Every file below `playwright_tests/` must give each test exactly one `smoke`, `core`, or `full`
+marker. The smoke tier is the bounded first-pass availability/auth and representative-surface
+coverage; core adds ordinary render-impact coverage; full retains exhaustive and high-risk
+coverage. The full target is the union of all three local tiers, while the tiers are disjoint.
 `remote_readonly`, `remote_mutation`, `live_email`, and `live_provider` are orthogonal safety markers;
 a test may use at most one. Ordinary local and CI marker expressions exclude all four.
 Django/unittest and service tests declare the equivalent non-pytest metadata with

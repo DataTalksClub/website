@@ -64,10 +64,12 @@ test label with the changed `app.*` closure, so a new static reverse import cann
 focused verification.
 
 Templates, CSS, JavaScript, navigation, view/URL/context/serializer data shape, browser fixtures,
-and screenshot-harness changes are render impact. They select the full browser suite and fresh
+and screenshot-harness changes are render impact. They select the appropriate browser tier and fresh
 independent desktop/mobile screenshots. Critical route/state coverage is derived from the impacted
 graph nodes; an unmapped render impact fails closed to every critical route/state. Backend-only
-changes use the core browser profile. A large value-only content change is verified with exhaustive
+changes use the smoke browser profile. Ordinary render-impact changes use the core browser profile;
+template and browser-harness changes use the full browser profile. A large value-only content change
+is verified with exhaustive
 deterministic artifacts binding record counts, stable identities and order, canonical URL order,
 uniqueness, metadata completeness, and file digests; it does not get a probabilistic sample.
 
@@ -148,8 +150,9 @@ until all checks below pass.
 
 4. Review the profile contract. In [`ci/verification.py`](../../ci/verification.py), verify
    that the graph metadata yields the intended `single_application`/focused Django profile,
-   `core` browser profile for backend-only changes, or `full` browser plus screenshot profile for
-   render impact. The focused labels are executed by
+   `smoke` browser profile for backend-only changes, `core` for ordinary render impact, or `full`
+   browser plus screenshot profile for template/browser-harness changes and the scheduled backstop.
+   The focused labels are executed by
    [`ci/focused_tests.py`](../../ci/focused_tests.py). Put risk in `ci/ownership.json`
    (`risk_flags`/`render_flags`) rather than weakening `_profile`, `_risk_reason`, or
    `_component_requirement`. Add impacted route/state nodes to that file's `screenshot_contract`
@@ -174,8 +177,9 @@ until all checks below pass.
 
    Then run the profile-appropriate fresh commands: `make test-ci-focused` for the selected
    closure, `make test-django-full` for the push full Django component,
-   `make test-playwright-core` for backend-only browser impact, or `make test-playwright` for
-   render impact. The local `make test` aggregate remains compatibility-inclusive; the scheduled
+   `make test-playwright-smoke` for backend-only browser impact, `make test-playwright-core` for
+   ordinary render impact, or `make test-playwright` for template/browser-harness and full
+   backstop coverage. The local `make test` aggregate remains compatibility-inclusive; the scheduled
    full-regression plan explicitly records and runs that aggregate so compatibility executes once
    there. Use `make verification-quality` and `make verification-full` when the graph, policy,
    shared infrastructure, or new app boundary warrants the broader contract.

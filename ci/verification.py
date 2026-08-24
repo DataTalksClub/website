@@ -252,9 +252,7 @@ def build_plan(
     )
     environment = environment_fingerprint()
     force_full, reason = _profile(selection, impact)
-    browser_profile = (
-        "full" if impact.render_impact or "surface.playwright" in impact.owners else "core"
-    )
+    browser_profile = _browser_profile(selection, impact)
     render_inputs = component_inputs(
         manifest, graph["components"]["screenshots"]["relevant_patterns"]
     )
@@ -410,7 +408,7 @@ def validate_plan(payload: object) -> dict[str, Any]:
         raise VerificationError("verification plan has an unsupported shape or schema")
     if payload["profile"] not in {"documentation", "focused", "full"}:
         raise VerificationError("verification profile is unsupported")
-    if payload["browser_profile"] not in {"core", "full"}:
+    if payload["browser_profile"] not in {"smoke", "core", "full"}:
         raise VerificationError("browser profile is unsupported")
     for field in ("base", "head", "repository", "graph_sha256", "reason", "created_at"):
         if not isinstance(payload[field], str) or not payload[field]:
@@ -505,6 +503,7 @@ def plan_summary(plan: Mapping[str, Any]) -> str:
         "",
         f"- Base/head: `{plan['base']}` / `{plan['head']}`",
         f"- Profile: `{plan['profile']}` (`{plan['reason']}`)",
+        f"- Browser profile: `{plan['browser_profile']}`",
         f"- Graph: `{plan['graph_sha256']}` (policy `{plan['policy_version']}`)",
         f"- Nodes: `{', '.join(plan['direct_nodes']) or 'none'}`",
         f"- Downstream: `{', '.join(plan['downstream_nodes']) or 'none'}`",
@@ -1494,6 +1493,25 @@ def _profile(selection: Mapping[str, Any], impact: Impact) -> tuple[bool, str]:
     return True, "unknown_impact"
 
 
+def _browser_profile(selection: Mapping[str, Any], impact: Impact) -> str:
+    """Choose the smallest browser tier that covers the changed surface."""
+
+    if (
+        {"surface.playwright", "surface.test_support"}.intersection(impact.owners)
+        or "segment:templates" in impact.render_reasons
+        or "surface.templates" in impact.owners
+        or "surface.course_platform_templates" in impact.owners
+        or (
+            selection.get("profile") == "full"
+            and selection.get("reason") in {"diff_empty", "manual_dispatch"}
+        )
+    ):
+        return "full"
+    if impact.render_impact:
+        return "core"
+    return "smoke"
+
+
 def _risk_reason(flags: Sequence[str]) -> str:
     priority = (
         "auth_security_privacy",
@@ -1596,7 +1614,11 @@ def _component_command(
     if component == "django":
         return full_django_command if profile == "full" else "make test-ci-focused"
     if component == "playwright":
-        return "make test-playwright" if browser_profile == "full" else "make test-playwright-core"
+        return {
+            "smoke": "make test-playwright-smoke",
+            "core": "make test-playwright-core",
+            "full": "make test-playwright",
+        }[browser_profile]
     if component == "container" and release_requires_image:
         return "exact release image verification"
     return command

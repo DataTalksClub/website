@@ -2,7 +2,7 @@
 	test-core test test-django-full test-ci test-ci-focused test-compatibility compatibility-source-artifacts-check \
 	compatibility-artifacts-check check-links check-seo compatibility-real-gate-blocked-check \
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
-	test-accessibility test-playwright-quarantined \
+	test-accessibility test-playwright-smoke test-playwright-quarantined \
 	test-course-platform-sync course-platform-source-checkout course-platform-sync-dry-run course-platform-sync \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
@@ -318,13 +318,21 @@ test-playwright-core:
 		-o faulthandler_timeout=120 \
 		-m 'core and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
+test-playwright-smoke:
+	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
+		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
+		timeout --foreground --signal=TERM --kill-after=30s 600s uv run --frozen pytest playwright_tests \
+		-p ci.playwright_flake_policy \
+		-o faulthandler_timeout=120 \
+		-m 'smoke and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
+
 test-playwright:
 	DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \
 		DJANGO_SETTINGS_MODULE=website.settings.test DJANGO_ALLOW_ASYNC_UNSAFE=true \
 		uv run --frozen pytest playwright_tests \
 		-p ci.playwright_flake_policy \
 		-o faulthandler_timeout=120 \
-		-m '(core or full) and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
+		-m '(smoke or core or full) and not quarantine and not remote_readonly and not remote_mutation and not live_email and not live_provider' -v
 
 test-playwright-quarantined:
 	set +e; DTC_TEST_RUN_ID="$${DTC_TEST_RUN_ID:-make-$${PPID}}" \

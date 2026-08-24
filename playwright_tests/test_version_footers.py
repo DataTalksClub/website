@@ -10,7 +10,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.studio_test_support import make_studio_user
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 VIEWPORTS = (
     ("desktop", {"width": 1440, "height": 900}),

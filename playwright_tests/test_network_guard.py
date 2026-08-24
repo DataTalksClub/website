@@ -6,7 +6,7 @@ import pytest
 
 from conftest import NavigationCancellationTracker
 
-pytestmark = pytest.mark.core
+pytestmark = pytest.mark.full
 
 ORIGIN = "http://127.0.0.1:8000"
 

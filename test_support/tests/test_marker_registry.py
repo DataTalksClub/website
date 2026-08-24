@@ -665,8 +665,9 @@ def test_make_targets_keep_local_and_safety_marker_families_separate() -> None:
         "not quarantine and not remote_readonly and not remote_mutation "
         "and not live_email and not live_provider"
     )
+    assert f"smoke and {playwright_exclusions}" in _make_recipe("test-playwright-smoke")
     assert f"core and {playwright_exclusions}" in _make_recipe("test-playwright-core")
-    assert f"(core or full) and {playwright_exclusions}" in _make_recipe("test-playwright")
+    assert f"(smoke or core or full) and {playwright_exclusions}" in _make_recipe("test-playwright")
 
     for marker in sorted(SAFETY_MARKERS):
         recipe = _make_recipe(f"test-{marker.replace('_', '-')}")

@@ -405,6 +405,7 @@ def pytest_configure(config: pytest.Config) -> None:
     if config.option.basetemp is None:
         config.option.basetemp = runtime.worker(current_worker_id()).browser / "pytest"
     for marker, description in (
+        ("smoke", "bounded availability/auth local Playwright coverage"),
         ("core", "bounded release-critical local Playwright coverage"),
         ("full", "additional deterministic local Playwright coverage"),
         ("remote_readonly", "explicit deployed read-only coverage"),
@@ -432,7 +433,7 @@ def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
             )
         if "/playwright_tests/" in f"/{path}" and len(local) != 1:
             raise pytest.UsageError(
-                f"{item.nodeid}: every Playwright test requires exactly one core/full marker"
+                f"{item.nodeid}: every Playwright test requires exactly one smoke/core/full marker"
             )
         if len(safety) > 1:
             raise pytest.UsageError(

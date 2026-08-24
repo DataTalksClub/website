@@ -31,7 +31,7 @@
       "validity_class": "standard"
     },
     "playwright": {
-      "command": "make test-playwright-core",
+      "command": "make test-playwright",
       "environment_dimensions": ["allowlisted_config", "architecture", "browser", "django", "operating_system", "playwright", "python", "runner_image", "uv"],
       "relevant_patterns": ["playwright_tests/**", "**/templates/**", "**/static/**", "**/views.py", "**/urls.py", "**/context_processors.py", "**/serializers.py", "**/fixtures/**", "pyproject.toml", "uv.lock"],
       "validity_class": "volatile"

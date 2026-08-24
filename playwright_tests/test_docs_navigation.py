@@ -5,7 +5,7 @@ from playwright.sync_api import Browser, expect
 
 from content.docs_projection import DOCS_SEARCH_URL, docs_navigation_tree
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 SCREENSHOTS = Path(".tmp/screenshots/issue-176")
 

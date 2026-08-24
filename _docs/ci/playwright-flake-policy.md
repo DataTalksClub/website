@@ -35,12 +35,14 @@ failure bucket.
 The blocking commands are explicit and exclude quarantined tests:
 
 ```text
+make test-playwright-smoke
 make test-playwright-core
 make test-playwright
 ```
 
-Both commands load `ci.playwright_flake_policy` and use `not quarantine` in their marker
-expression. The normal CI aggregate gate consumes their ordinary Playwright evidence and
+All three commands load `ci.playwright_flake_policy` and use `not quarantine` in their marker
+expression. Smoke is the bounded first-pass tier; core and full retain the broader render and
+high-risk coverage. The normal CI aggregate gate consumes their ordinary Playwright evidence and
 cannot pass a partial or internally inconsistent successful run.
 
 The scheduled monitor is also explicit:

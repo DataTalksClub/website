@@ -275,7 +275,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .tmp/evidence
-          make test-playwright-core 2>&1 | tee .tmp/evidence/playwright-output.log
+          make test-playwright 2>&1 | tee .tmp/evidence/playwright-output.log
       - name: Record shared Playwright envelope
         if: always()
         env:
@@ -289,7 +289,7 @@ jobs:
             --output .tmp/evidence/playwright-environment.json
           uv run --frozen python -m ci.verification record \
             --plan .tmp/input/verification-plan.json --component playwright \
-            --result "$JOB_STATUS" --command "make test-playwright-core" \
+            --result "$JOB_STATUS" --command "make test-playwright" \
             --origin-kind github_actions --repository-id "$GITHUB_REPOSITORY" \
             --workflow .github/workflows/scheduled-full-regression.yml --ref "$GITHUB_REF" \
             --run-id "$GITHUB_RUN_ID" --run-attempt "$GITHUB_RUN_ATTEMPT" \

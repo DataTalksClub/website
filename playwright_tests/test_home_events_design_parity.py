@@ -12,7 +12,7 @@ from content import public_views
 from content.public_data import EventGroups, event_groups
 from events.identity import load_identity_manifest
 
-pytestmark = [pytest.mark.core, pytest.mark.django_db(transaction=True)]
+pytestmark = [pytest.mark.full, pytest.mark.django_db(transaction=True)]
 
 CMP_SOURCE_COMMIT = "98a235283904b4ef9ad29e196298540756cf1bcc"
 CMP_BASE_SHA256 = "f51666391e33aec905f43312215bfd82094bfb0088414594f40bcbdfc21560b8"
