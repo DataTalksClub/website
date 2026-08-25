@@ -73,6 +73,7 @@ def homework_detail_build_context_from_post(
     state_context = homework_state_context(data.homework)
     context = {
         "course": data.course,
+        "course_family": data.course.course,
         "homework": data.homework,
         "question_answers": question_answers,
         "submission": bound_submission,

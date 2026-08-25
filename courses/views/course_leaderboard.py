@@ -79,6 +79,7 @@ def leaderboard_complaint_context(enrollment, form):
     context = {
         "enrollment": enrollment,
         "course": enrollment.course,
+        "course_family": enrollment.course.course,
         "form": form,
     }
     return context

@@ -22,6 +22,7 @@ def list_all_project_submissions_view(
     )
     context = {
         "course": course,
+        "course_family": course.course,
         "projects": projects,
         "submissions": submissions_page.object_list,
         "submissions_page": submissions_page,

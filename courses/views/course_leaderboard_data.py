@@ -43,6 +43,7 @@ def leaderboard_context(course, user, page_number):
         "page_range": page_range,
         "total_enrollments": paginator.count,
         "course": course,
+        "course_family": course.course,
         "current_student_enrollment": current_student.enrollment,
         "current_student_enrollment_id": current_student.enrollment_id,
         "current_student_page_number": current_student_page_number,

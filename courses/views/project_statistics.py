@@ -37,6 +37,7 @@ def project_statistics(request, course_slug, project_slug, cohort_year=None):
 
     context = {
         "course": course,
+        "course_family": course.course,
         "project": project,
         "stats": stats,
     }

@@ -239,7 +239,10 @@
               <a href="{% url 'course_list' %}">Courses</a>
             </li>
             <li>
-              <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
+              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
+            </li>
+            <li>
+              <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
             </li>
             <li aria-current="page">
               Leaderboard

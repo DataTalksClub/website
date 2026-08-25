@@ -39,6 +39,7 @@ def project_eval_submit_context(
         enrollment,
     )
     context["course"] = page.course
+    context["course_family"] = page.course.course
     add_project_eval_vote_context(request, page, context)
     return context
 

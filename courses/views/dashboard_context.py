@@ -34,6 +34,7 @@ def dashboard_context(course):
 
     return {
         "course": course,
+        "course_family": course.course,
         "total_enrollments": total_enrollments,
         "avg_total_score": avg_total_score,
         "overall_completion_rate": overall_completion_rate,
