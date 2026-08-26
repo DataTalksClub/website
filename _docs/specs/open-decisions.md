@@ -12,7 +12,7 @@ website's side, the same pattern already proven in the sibling AI Shipping Labs 
 (webhook push → clone → parse → upsert, no write-back). The staged prepare/ready/activate/rollback
 pipeline already built in `content/services.py` is more elaborate than that sibling's direct
 sync-and-upsert; whether to keep that extra staging is a separate, non-blocking implementation
-question, not part of this decision.
+question, not part of this decision. Tracked in #226.
 
 ## 2. Course-platform adoption (resolved by #13)
 
@@ -156,7 +156,9 @@ and no fail-closed default pending individual approval.
 Recipients control what they receive through an account-settings preference center rather than a
 pre-launch approval process. Retention uses one unified policy across every purpose instead of a
 bespoke retention class per purpose (see #12). Newsletter/marketing sends are in scope and subject
-to the same preference-center opt-out and unified retention policy as every other purpose.
+to the same preference-center opt-out and unified retention policy as every other purpose. An
+email-preference toggle mechanism already exists for course purposes; extending it to event/Slack/
+newsletter purposes is tracked in #227.
 
 ## 12. Privacy retention (resolved by #23)
 
@@ -173,7 +175,7 @@ identity gaps in the common case; if a learner opts into showing their real name
 certificate), that choice is permanent — an already-issued certificate isn't retroactively
 anonymized by a later deletion request.
 
-## 13. Search (approved 2026-08-26)
+## 13. Search (resolved by #24)
 
 Approved: use a backend-portable search projection for public site/docs/FAQ/Podwiki while
 preserving FAQ JSON and Podwiki search/filter contracts. The content/search issue owns ranking and
