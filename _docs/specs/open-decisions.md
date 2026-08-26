@@ -4,60 +4,126 @@ Status: owner review required
 
 The specs use the recommendations below so implementation can be concrete. Approving the specification index approves these defaults unless an item is changed explicitly.
 
-## 1. GitHub-backed editing
+## 1. GitHub-backed editing (resolved by #12)
 
-Recommendation: MVP Studio can validate, preview, sync, activate, roll back, diagnose, and open GitHub edits. It does not create commits or pull requests.
+Resolved: MVP Studio validates, previews, syncs, activates, rolls back, diagnoses, and opens GitHub edits.
+It never creates commits, branches, or pull requests — GitHub content stays read-only from the
+website's side, the same pattern already proven in the sibling AI Shipping Labs Django site
+(webhook push → clone → parse → upsert, no write-back). The staged prepare/ready/activate/rollback
+pipeline already built in `content/services.py` is more elaborate than that sibling's direct
+sync-and-upsert; whether to keep that extra staging is a separate, non-blocking implementation
+question, not part of this decision.
 
-Alternative: Studio creates branches/PRs through a GitHub App. This adds credential, conflict, review, and authorship workflows.
+## 2. Course-platform adoption (resolved by #13)
 
-## 2. Course-platform adoption
+Resolved: copied the existing course-management Django apps, migrations, behavior, compatibility APIs, and tests into this repository as-is from clean commit `98a235283904b4ef9ad29e196298540756cf1bcc`. Evolve them in place instead of reimplementing the platform. Implementation tracked in #30.
 
-Recommendation: copy the existing course-management Django apps, migrations, behavior, compatibility APIs, and tests into this repository at a recorded clean commit. Evolve them in place instead of reimplementing the platform.
+## 3. Course curriculum and cohorts (resolved by #14)
 
-## 3. Course curriculum and cohorts
+Resolved: new Course owns reusable family identity. The current edition-like Course becomes Cohort and keeps its current homework, projects, criteria, enrollments, submissions, scores, and certificates. Cohort duplication workflow implemented (`courses/tests/test_course_duplication.py`). Reusable/versioned curriculum remains deferred.
 
-Recommendation: new Course owns reusable family identity. The current edition-like Course becomes Cohort and keeps its current homework, projects, criteria, enrollments, submissions, scores, and certificates. Add a complete cohort duplication workflow. Defer reusable/versioned curriculum.
+## 4. Current course data grouping (resolved by #15)
 
-## 4. Current course data grouping
+Resolved: a reviewed mapping file from every legacy course-edition slug to a course family and
+cohort slug, never inferred by stripping a year. The family list is expected to grow as new
+courses launch — this is a living mapping, not a fixed enum.
 
-Recommendation: create a reviewed mapping file from every legacy course-edition slug to a course family and cohort slug. Never infer solely by stripping a year.
+`courses/course_family_catalog.py` already carries a reviewed 2024+ mapping for the six current
+families (`de-zoomcamp`, `ml-zoomcamp`, `llm-zoomcamp`, `mlops-zoomcamp`, `sma-zoomcamp`,
+`ai-dev-tools`), fail-closed on anything unmapped.
 
-Owner input needed: authoritative family names/slugs for unusual or one-off legacy courses.
+The confirmed complete pre-2024 legacy-edition inventory is DE/MLOps/ML Zoomcamp 2021-2023 (7
+cohort slugs); `ml-zoomcamp-2021` has certificates like every other edition, and the recovered
+`sha1(email)` hash is retained as the legacy identifier/alias. Regex-based slug inference is
+approved only as a one-time authoring aid inside import/fixture scripts, never live in production
+code.
 
-## 5. Course URL consolidation
+Implementation gap (not part of this decision, but required to satisfy it): the historical import
+added in `2032ceb` still creates pre-2024 cohorts without an explicit `course=`, so it still runs
+through `courses/models/cohort.py`'s regex year-stripping fallback in `Cohort.save()`. That fallback
+must be removed once the explicit mapping entries exist, and `ml-zoomcamp-2021` certificates still
+need locating/importing. Tracked in #224.
 
-Recommendation: new canonical pages live under `datatalks.club/courses/<course>/cohorts/<cohort>/`.
+## 5. Course URL consolidation (resolved by #16)
+
+Approved: new canonical pages live under `datatalks.club/courses/<course>/<cohort>/` (no
+`cohorts/` segment — matches the routes already implemented in `courses/urls.py`).
 Static SEO articles preserve their established `/blog/<slug>.html` canonicals. Their clean
 `/blog/<slug>` and trailing-slash aliases redirect directly to the `.html` final while preserving
 the raw query. Route the old course hostname to compatibility views until all consumers migrate,
 then replace it with a Terraform-managed redirect Lambda using an explicit path map.
 
-Owner input needed: inventory authenticated API clients before redirecting them; cross-host redirects may drop authorization. Keep direct compatibility responses until those clients are migrated.
+Owner input received: no known external/third-party API consumers of `courses.datatalks.club`
+beyond browsers and the known internal paths already catalogued in
+`_docs/compatibility/course-route-contracts.json` (115 routes, all classified `preserve`).
 
-## 6. Accountless event registration verification
+Resolved standalone: ICS calendar event UIDs (`courses/views/course_calendar_events.py`) keep the
+`@courses.datatalks.club` suffix permanently as a stable namespace string, independent of what
+happens to the host itself — changing it would orphan every already-subscribed calendar entry.
 
-Recommendation: accountless event registration requires email verification before confirmation and
-does not create a learner account. Course registration is a different, account-owned flow: it
+Owner override (2026-08-26): skip the authenticated production probe requirement and per-route
+owner/volume gate — a plain redirect is fine. Any authenticated route that doesn't survive the hop
+cleanly is an acceptable one-time inconvenience; affected users will just update their bookmarks.
+Activate the Terraform-managed redirect Lambda using the existing route contract manifest without
+waiting on that verification step.
+
+## 6. Accountless event registration verification (resolved by #17)
+
+Resolved: event registration offers two paths. OAuth (Google/GitHub) sign-in is the preferred,
+easier path — already-verified by the provider, confirmed immediately, no extra step. A plain
+email-only path stays available as a fallback for anyone who doesn't want to sign in: it starts
+`pending` and becomes `confirmed` only after the registrant clicks an emailed verification link.
+Neither path creates a learner account. Course registration is a different, account-owned flow: it
 requires a durable account with verified email ownership and a completed member profile before
 creating the confirmed registration, and it never creates an anonymous `CourseRegistration`.
 
-Alternative: immediate confirmation is simpler but makes third-party email abuse and typo registrations easier.
+Considered and rejected: requiring OAuth for event registration with no email-only fallback (the
+sibling AI Shipping Labs site's pattern — its `EventRegistration.user` is non-nullable). Simpler to
+build, but forces sign-in before registering for a talk; kept as the *preferred* path instead of the
+*only* path.
 
-## 7. Event capacity
+Implementation gap (not part of this decision, but required to satisfy it): `CourseRegistration.user`
+(`courses/models/cohort.py:334`) is currently nullable and must become required; no
+`EventRegistration`/pending-verification model exists yet and needs building from scratch.
 
-Recommendation: no capacity/waitlist in MVP. Add it only with explicit pending-seat, verification TTL, promotion, and concurrency rules.
+## 7. Event capacity (resolved by #18)
 
-## 8. Legacy timezone
+Resolved: no capacity/waitlist in MVP — events are unlimited-capacity. No partial `capacity` field
+should exist implying unsupported correctness. Add capacity/waitlist only later as an explicit,
+fully-specified feature with pending-seat, verification TTL, promotion, and concurrency rules.
 
-Recommendation: interpret legacy naive main-site event/book timestamps as `Europe/Berlin`, store new timestamps in UTC, and always retain/display an IANA timezone.
+## 8. Legacy timezone (resolved by #19)
 
-Owner input needed if legacy data used a different convention.
+Resolved: interpret legacy naive main-site event/book timestamps as `Europe/Berlin`, store new
+timestamps in UTC, and always retain/display an IANA timezone. Matches what's already implemented
+in `scripts/build_public_projection.py`.
 
-## 9. Staff identity
+DST-ambiguous and leap-day timestamps: no special handling — plain `zoneinfo.ZoneInfo` conversion,
+Python's default `fold=0` (earliest occurrence) for the one ambiguous hour at fall-back. This
+matches the existing convention in both `course_management/` (the legacy app already copied into
+this repo) and the sibling AI Shipping Labs site — neither does anything special for this case
+either. No manual exception-review process needed unless a specific past event is known to fall in
+that window.
 
-Recommendation: OIDC provider with enforced MFA, Django groups/permissions, and local break-glass access only.
+## 9. Staff identity (resolved by #20; MFA still pending externally)
 
-Owner input needed: use the existing shared Cognito setup or configure a different organizational OIDC provider.
+Resolved: reuse the existing shared Cognito pool (`us-east-1_H7nJu52Bs`, `auth.dtcdev.click`,
+already used for Datamailer's web auth per `aws-infra/sandbox/datamailer/variables.tf`) for Studio
+staff login, rather than a separate provider. Django groups/permissions still gate authorization on
+top of it; generic `is_staff` is not used as authorization.
+
+Blocking gap: this pool does not currently have MFA enabled — tracked in
+[DataTalksClub/aws-infra#24](https://github.com/DataTalksClub/aws-infra/issues/24). Staff OIDC login
+should not be considered production-ready until that lands.
+
+Related: [AI-Shipping-Labs/website#1464](https://github.com/AI-Shipping-Labs/website/issues/1464)
+proposes the sibling site adopt the same pool, for one consistent staff-identity story instead of a
+per-repo `is_staff` gate there.
+
+Owner override (2026-08-26): no dedicated break-glass credential process (no separate
+ownership/storage/rotation policy). Emergency recovery relies on the management API — which must
+match everything Studio can do (tracked in the parity epic #7) — with direct database access as the
+last-resort fallback if the API itself is unreachable.
 
 ## 10. Email provider and semantics (resolved by #21)
 
@@ -78,48 +144,87 @@ The development Relay sender ID `courses`, mapped by Relay to
 `DataTalks.Club Courses <courses@dtcdev.click>`, is approved by #21. Production configuration and
 broad recipients remain out of scope.
 
-## 11. Email purpose catalog
+Owner override (2026-08-26): marketing/newsletters are no longer deferred — see #22.
 
-Decision still required in #22: approve the owner, audience, Relay sender/reply-to, template/context,
-idempotency/version inputs, and retention class for every non-course purpose. The accountless event,
-Slack access, account, and other course/event lifecycle purposes described in these specs are target
-capabilities, not authorization to send. Until #22 resolves each entry, only the approved
-development `courses` sender/purpose may progress and every other purpose or sender fails closed.
-Marketing/newsletters remain deferred.
+## 11. Email purpose catalog (resolved by #22)
 
-## 12. Privacy retention
+Resolved: no per-purpose pre-approval gate. Any purpose described in these specs — accountless
+event, Slack access, account, course/event lifecycle, and now marketing/newsletter — may send once
+implemented; there is no separate owner/sender/retention sign-off step blocking it before launch,
+and no fail-closed default pending individual approval.
 
-Recommendation: use the provisional periods in the security/privacy spec, then obtain owner/privacy review before production data import.
+Recipients control what they receive through an account-settings preference center rather than a
+pre-launch approval process. Retention uses one unified policy across every purpose instead of a
+bespoke retention class per purpose (see #12). Newsletter/marketing sends are in scope and subject
+to the same preference-center opt-out and unified retention policy as every other purpose.
 
-Owner input needed: privacy contact, minors policy, educational-record retention, and deletion/anonymization expectations.
+## 12. Privacy retention (resolved by #23)
 
-## 13. Search
+Resolved: use the provisional periods already drafted in the security/privacy spec (unverified
+registrations 14 days, event PII 90 days post-event, delivery metadata 180 days, audit events 1
+year, etc.) as approved defaults.
 
-Recommendation: use a backend-portable search projection for public site/docs/FAQ/Podwiki while
+Privacy contact: Alexey Grigorev, alexey@datatalks.club. Minors policy: no restriction — teenagers
+taking courses is fine, no age-gating or special handling (age isn't verified at signup, so this is
+a blanket policy rather than a confirmed absence of under-13/16 users). Deletion/anonymization: full
+erasure of a learner's personal data on request. Educational-record retention: leaderboard/
+certificate display already defaults to an anonymous generated name, so erasure doesn't create
+identity gaps in the common case; if a learner opts into showing their real name (e.g. on a
+certificate), that choice is permanent — an already-issued certificate isn't retroactively
+anonymized by a later deletion request.
+
+## 13. Search (approved 2026-08-26)
+
+Approved: use a backend-portable search projection for public site/docs/FAQ/Podwiki while
 preserving FAQ JSON and Podwiki search/filter contracts. The content/search issue owns ranking and
 indexing details. Retire the separate Podwiki search Lambda only after relevance parity.
 
-## 14. Development network cost
+## 14. Development network cost (resolved by #25)
 
-Recommendation: dedicated two-AZ VPC, public ALB and tightly restricted public-IP ECS tasks, isolated private RDS, and no NAT gateway in development. Production uses private tasks and production-grade egress.
+Resolved: dedicated two-AZ VPC, public ALB, tightly restricted public-IP ECS tasks (ingress only
+from the ALB security group), isolated private RDS (PostgreSQL ingress only from the task security
+group), and no NAT gateway in development — avoiding the ~$65+/month baseline NAT Gateway cost for
+an environment that isn't serving real traffic, without weakening task/database isolation.
+Production retains private-task plus NAT/VPC-endpoint options. A NAT-backed sandbox remains
+available later as a separately costed change, not a blocker. Cross-repo follow-up filed as
+[DataTalksClub/aws-infra#25](https://github.com/DataTalksClub/aws-infra/issues/25) to confirm the
+provisioned sandbox VPC matches this topology and to decide production's NAT/VPC-endpoint choice.
 
-Alternative: NAT-backed private tasks in development more closely mirror production but add recurring cost.
+## 15. Service and recovery targets (resolved by #26)
 
-## 15. Service and recovery targets
+Approved: the drafted initial targets in the security/operations spec — 99.9% monthly availability
+for public reads and registration/enrollment submission; 95th-percentile cached response <500ms,
+uncached HTML <1s at the edge; 99% of approved transactional intents accepted by Relay within 5
+minutes; GitHub content freshness <15 minutes after an accepted main-branch commit; production
+database RPO ≤15 minutes, service RTO ≤4 hours; development RPO 24 hours, RTO one business day.
 
-Recommendation: use the initial SLO/RPO/RTO values in the security/operations spec and revise after measuring development behavior and cost.
+Named alert/runbook owners per target are not part of this approval and remain open for whoever
+picks up the observability implementation (#66).
 
-## 16. Analytics and tracking
+## 16. Analytics and tracking (resolved by #27)
 
-Recommendation: preserve only necessary existing analytics after privacy review; no new tracking pixels or behavioral analytics in MVP. Development/previews do not send production analytics.
+Approved: preserve only necessary existing analytics after privacy review; no new tracking pixels
+or behavioral analytics in MVP. Development/previews do not send production analytics.
 
-## 17. High-risk approvals
+Owner addition (2026-08-26): build a proper GA4 integration, scoped to acquisition-only signal
+(pageviews, sessions, referrer/UTM source) with GA4 "enhanced measurement" (behavioral event
+auto-tracking) explicitly off, wired behind the existing analytics-consent preference center.
+Implementation tracked in #225.
 
-Recommendation: reauthentication and explicit confirmation for staff-role grants, credentials, PII exports, content activation, bulk email/event cancellation, grading repair, and certificate mutation. Add dual approval later if operational evidence warrants it.
+## 17. High-risk approvals (resolved by #28)
 
-## 18. Production cutover scope
+Approved: reauthentication and explicit confirmation for staff-role grants, credentials, PII exports, content activation, bulk email/event cancellation, grading repair, and certificate mutation. No dual approval for now; add it later only if operational evidence warrants it.
 
-Recommendation: do not combine URL redesign or broad SEO improvements with cutover. Preserve first, measure, then improve in later releases.
+## 18. Production cutover scope (approved with a narrowed scope, 2026-08-26)
+
+Approved, narrowed to articles: static SEO articles (`/blog/<slug>.html` and their canonicals, per
+decision #5) keep the strict preserve-first rule — no URL redesign or SEO changes bundled into
+cutover; measure, then improve later. Reason: articles are the content that's mainly indexed by
+Google, so their existing URLs/canonicals carry real search ranking that a change could damage.
+
+Owner override: every other resource is not indexed as heavily, so the risk is lower — non-article
+routes may have their URLs updated and get SEO experimentation at or around cutover instead of
+waiting for a later release.
 
 ## 19. Member profile and Slack onboarding
 
