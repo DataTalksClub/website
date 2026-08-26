@@ -204,11 +204,11 @@
     },
     {
       "path": "core/tests/test_deployment_workflow.py",
-      "sha256": "19e5551b4f9418f0526337d0bd9fb1c8457d89c70781965a4ce704cdf3666e8d",
+      "sha256": "26078a354ed06bb410dd69b6bb8c5fdee40a08b686d1b7417b4f386a865a7130",
       "class": "legacy_contract_test",
-      "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, exact physical values, the issue-141 dependency advisory remediation, and the #191 rotation-sync runbook contract.",
+      "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, exact physical values, the issue-141 dependency advisory remediation, and the #191 static-credential runbook contract.",
       "follow_up": "#94",
-      "expected_count": 32
+      "expected_count": 29
     },
     {
       "path": "content/public_projection/podcasts.json",
@@ -424,9 +424,17 @@
       "path": "_docs/runbooks/development-release.md",
       "pattern": "(?:sandbox/website|website-sandbox|datamailer-sandbox|phone-aws-sandbox|phone-sandbox|github-sandbox|environments/sandbox|--env sandbox|environment: sandbox|Environment=sandbox|`sandbox`)",
       "class": "legacy_physical_identifier",
-      "reason": "Canonical runbook documents exact live physical identifiers, the legacy GitHub environment, and the #191 database-url sync stack.",
+      "reason": "Canonical runbook documents exact live physical identifiers, the legacy GitHub environment, and the #191 static-credential database boundary.",
       "follow_up": "#94",
-      "expected_count": 104
+      "expected_count": 92
+    },
+    {
+      "path": "_docs/specs/open-decisions.md",
+      "pattern": "(?:aws-infra/sandbox|NAT-backed sandbox|provisioned sandbox VPC)",
+      "class": "legacy_physical_identifier",
+      "reason": "Owner decisions name the unchanged aws-infra path and retained physical development topology without introducing environment terminology.",
+      "follow_up": "#94",
+      "expected_count": 3
     },
     {
       "path": "_docs/specs/08-aws-development-terraform.md",

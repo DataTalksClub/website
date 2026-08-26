@@ -1494,71 +1494,42 @@ unavailable, or either service cannot be proven terminal, stop and escalate—do
 drift repair. Attach only non-secret run/checkpoint/cluster/service/task/SHA/digest evidence to the
 incident and route any controller change through a groomed issue and independent acceptance.
 
-## Database URL rotation sync
+## Database credentials
 
-RDS-managed master credentials for `website-sandbox` rotate weekly (`RDS-EVENT-0016`,
-message `Reset master credentials`). The application does not read that RDS-managed
-secret. Tasks receive `DATABASE_URL` from the bootstrap container
-`website-sandbox/database-url` at process start. If that copy is stale, `/health/ready`
-fails closed with `database unavailable`, `/courses` returns 500, and deployment stops
-at the migration/readiness contract. `/health/live` can remain 200 on the previous
-release. The ready path is `/health/ready`.
+Development does **not** use RDS-managed weekly master-password rotation.
+`website-sandbox` keeps one static password in `website-sandbox/database-url`.
+Tasks inject `DATABASE_URL` at process start. The ready path is `/health/ready`.
 
-The durable mechanism is the independent `DataTalksClub/aws-infra` root
-`sandbox/website-database-url-sync`. It invokes on `RDS-EVENT-0016`, the same
-message prefix, `Secret Label Updated` for `AWSCURRENT` on `rds!db-*`, and a
-4-hour catch-up schedule. Each invocation:
+Network isolation is the control, not password expiry:
 
-1. copies username/password from the RDS-managed secret into a new
-   `website-sandbox/database-url` version, preserving host, port, database name, and
-   query string, only when the application secret differs;
-2. force-refreshes `website-sandbox-web` and `website-sandbox-worker` only after
-   that write so long-running tasks re-inject `AWSCURRENT`. A no-op catch-up does
-   not bounce tasks.
+- `PubliclyAccessible` is false;
+- database subnets have no internet route;
+- PostgreSQL ingress is only the website task security group.
 
-Application execution roles still cannot read the RDS-managed secret. Website Gate B
-still does not discover or read it. Terraform for this stack never writes secret
-values.
+Terraform sets `manage_master_user_password = false` and never stores the
+password. Do not print it or write it to Git, Terraform, logs, or issues.
 
-Named detection:
-
-- metric filters/alarms `website-sandbox-web-password-auth-failed` and
-  `website-sandbox-worker-password-auth-failed` on log groups
-  `/ecs/website-sandbox/web` and `/ecs/website-sandbox/worker` for
-  `password authentication failed`;
-- sync function logs at `/aws/lambda/website-sandbox-database-url-sync` (version IDs
-  and SHA-12 hashes only);
-- alarm `website-sandbox-database-url-sync-errors` on Lambda errors.
+If a leak ever requires a new password, an authorized operator updates RDS and
+`website-sandbox/database-url` together, then force-refreshes web and worker.
+Do not re-enable RDS-managed rotation: that is what caused the #160/#191
+outages.
 
 ### Verification
 
-With `DEVELOPMENT_AUTO_DEPLOY=false`, invoke
-`website-sandbox-database-url-sync` with an empty event. When already in sync the
-response is `changed=false` and `refreshed_services=[]`, with no secret values.
-Require `/health/live` and `/health/ready` to report the exact current live
-VERSION/source/digest triplet, with readiness checks `configuration`, `database`,
-and `migrations` all `ok`.
-
-A real rotation-shaped proof is the next `RDS-EVENT-0016` (or an authorized
-development-only staged reset) producing a new application secret version, a
-successful sync log with `changed=true`, task replacement, and the same ready
-triplet without a manual `put-secret-value`. The 4-hour catch-up is the bound if
-that event is missed.
+`aws rds describe-db-instances` for `website-sandbox` must show
+`PubliclyAccessible=false` and no `MasterUserSecret`. `/health/ready` must be
+200 with `configuration`, `database`, and `migrations` all `ok` on the live
+release triplet.
 
 ### Failure attribution
 
 1. Confirm `/health/ready` 503 `database unavailable` versus `/health/live` still
    serving the previous release.
-2. Read RDS events for `website-sandbox` and look for `Reset master credentials`.
-3. Compare `website-sandbox/database-url` version stages with the sync function log.
-   Do not print secret values.
-4. If the sync function errored or the application secret version did not move,
-   adopt the already-rotated credential into a new `website-sandbox/database-url`
-   version, run `migrate --noinput --check` on the live image, and
-   `update-service --force-new-deployment` for web and worker. Do not apply DDL or
-   register a new release.
-5. Re-enable automatic deployment only after `/health/ready` is 200 on the intended
-   release triplet.
+2. Confirm the instance is not public and still has no `MasterUserSecret`.
+3. If RDS events show `Reset master credentials`, rotation was re-enabled;
+   turn it off again and keep the application secret in sync.
+4. Re-enable automatic deployment only after `/health/ready` is 200 on the
+   intended release triplet.
 
 ## Evidence
 
