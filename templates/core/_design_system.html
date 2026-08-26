@@ -2684,6 +2684,7 @@ Rules for editing:
         fill: var(--lavender);
         stroke: var(--indigo);
         stroke-width: 2;
+        transition: fill 0.15s ease, stroke-width 0.15s ease;
       }
 
       .graph-svg-node text {
@@ -2703,6 +2704,16 @@ Rules for editing:
 
       .graph-svg-node:hover .graph-svg-shape {
         stroke-width: 3.5;
+      }
+
+      /* Some nodes are coloured by content type (`.graph-svg-type-*`, added
+         on the homepage explorer only — see home.html); those keep their
+         own fill on hover so it isn't clobbered.  A plain node — including
+         the untyped `/wiki/graph` nodes, which never carry a type class —
+         brightens instead. */
+      .graph-svg-node:not(.graph-svg-hub):not(.graph-svg-type-podcast):not(.graph-svg-type-person):not(.graph-svg-type-book):not(.graph-svg-type-guide):not(.graph-svg-type-how_to):not(.graph-svg-type-comparison):not(.graph-svg-type-roadmap):not(.graph-svg-type-transition):hover
+        .graph-svg-shape {
+        fill: var(--lavender-deep);
       }
 
       /* SVG links get the page's focus outline where engines draw it, and a

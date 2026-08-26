@@ -111,6 +111,30 @@
   const NARROW_WRAP_OVER = 104;
   const WIDE_WRAP_OVER = 168;
   const RING_SPOKES = WIDE_POSITIONS.length;
+
+  // Re-centre choreography: how long the outgoing ring holds before the new
+  // one renders, and the per-node stagger cap on the way in.  Kept in one
+  // place because home_graph.js's JS-driven *timing* (this setTimeout) isn't
+  // touched by the CSS `prefers-reduced-motion` kill switch in
+  // _design_system.html — only the transitions themselves are.
+  const LEAVE_DELAY_MS = 120;
+  const MAX_STAGGER_INDEX = RING_SPOKES - 1;
+  const REDUCE_MOTION_QUERY =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia("(prefers-reduced-motion: reduce)")
+      : null;
+
+  function prefersReducedMotion() {
+    return Boolean(REDUCE_MOTION_QUERY && REDUCE_MOTION_QUERY.matches);
+  }
+
+  // A synthesized click from Enter/Space activation on a link or button has
+  // `detail === 0`; a real mouse click has `detail >= 1`.  Used to decide
+  // whether to restore focus to the new hub after a re-centre wipes the
+  // clicked element out of the DOM.
+  function isKeyboardActivation(event) {
+    return Boolean(event) && event.detail === 0;
+  }
   const TYPE_ORDER = [
     "wiki",
     "guide",
@@ -362,7 +386,7 @@
     return state && state[HISTORY_KEY] ? state[HISTORY_KEY] : null;
   }
 
-  function nodeMarkup(node, extraClass) {
+  function nodeMarkup(node, extraClass, index) {
     const lines = node.lines
       .map(
         (line) =>
@@ -371,8 +395,12 @@
       .join("");
     const href = node.url ? ` href="${escapeHtml(node.url)}"` : "";
     const fullTitle = node.fullTitle || node.title;
+    // `--i` staggers the entrance transition per spoke (see the
+    // `[data-home-graph-live]` rules in home.html); the hub gets none, so it
+    // lands first.
+    const style = index == null ? "" : ` style="--i:${Math.min(index, MAX_STAGGER_INDEX)}"`;
     return (
-      `<a class="graph-svg-node ${extraClass} graph-svg-type-${escapeHtml(node.type)}"${href}` +
+      `<a class="graph-svg-node ${extraClass} graph-svg-type-${escapeHtml(node.type)}"${href}${style}` +
       ` data-node-id="${escapeHtml(node.id)}" title="${escapeHtml(fullTitle)}" aria-label="${escapeHtml(fullTitle)}">` +
       `<rect class="graph-svg-shape" x="${node.left}" y="${node.top}" width="${node.width}" height="${node.height}" rx="${node.radius}"/>` +
       `<text text-anchor="middle" font-size="${node.fontSize}">${lines}</text>` +
@@ -383,11 +411,12 @@
   function layoutMarkup(layout, hub, spokeCount, connectionCount) {
     const edges = layout.edges
       .map(
-        (edge) =>
-          `<line class="graph-svg-edge" x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}"/>`
+        (edge, index) =>
+          `<line class="graph-svg-edge" style="--i:${Math.min(index, MAX_STAGGER_INDEX)}"` +
+          ` x1="${edge.x1}" y1="${edge.y1}" x2="${edge.x2}" y2="${edge.y2}"/>`
       )
       .join("");
-    const nodes = layout.nodes.map((node) => nodeMarkup(node, "")).join("");
+    const nodes = layout.nodes.map((node, index) => nodeMarkup(node, "", index)).join("");
     const label = `${hub.title} and ${spokeCount} of its ${connectionCount} connections`;
     return (
       `<svg class="graph-svg graph-svg-${layout.kind}" viewBox="0 0 ${layout.width} ${layout.height}" role="group" aria-label="${escapeHtml(label)}">` +
@@ -459,42 +488,68 @@
         event.preventDefault();
         const id = nodeEl.getAttribute("data-node-id");
         if (nodeEl.classList.contains("graph-svg-hub")) return;
-        if (id) onExplore(id);
+        if (id) onExplore(id, isKeyboardActivation(event));
       });
     });
   }
 
-  function render(graph, node, linked, degreeById, onExplore) {
+  function render(graph, node, linked, degreeById, onExplore, options) {
+    options = options || {};
     if (!live || !node) return;
     const spokes = diverseNeighbors(linked, RING_SPOKES);
     const layouts = ringLayouts(
       nodePoint(node),
       spokes.map(nodePoint)
     );
+    if (options.animateEnter) live.classList.add("is-entering");
     live.innerHTML = layouts.map((layout) => layoutMarkup(layout, nodePoint(node), spokes.length, linked.length)).join("");
+    live.classList.remove("is-leaving");
     bindDrawing(onExplore);
     if (fallback) fallback.hidden = true;
     live.hidden = false;
     root.classList.add("is-ready");
+    if (options.animateEnter) {
+      // Force a reflow so the browser commits the suppressed `.is-entering`
+      // starting state before the next frame lifts it — otherwise removing
+      // the class immediately after setting it never triggers a transition.
+      void live.offsetWidth;
+      window.requestAnimationFrame(() => {
+        live.classList.remove("is-entering");
+      });
+    }
+    if (options.focusHub) {
+      const hubLink = live.querySelector(".graph-svg-hub");
+      if (hubLink && typeof hubLink.focus === "function") {
+        hubLink.focus({ preventScroll: true });
+      }
+    }
     if (status) {
       status.textContent = `Exploring ${node.label || node.title}. Click a neighbour to move there.`;
     }
     if (openPage) {
       if (node.url) {
-        openPage.hidden = false;
+        openPage.classList.remove("is-hidden-reserved");
         openPage.setAttribute("href", node.url);
         openPage.textContent = `${pageAction(node)} →`;
       } else {
-        openPage.hidden = true;
+        // Kept in the toolbar's flex flow (see `.is-hidden-reserved` in
+        // home.html) rather than `hidden`, so a hub without a page of its
+        // own doesn't reflow — and resize — the toolbar row.
+        openPage.classList.add("is-hidden-reserved");
       }
     }
     if (more) {
+      // Always in flow once JS is driving (see the `.home-graph-more` note
+      // in home.html): an empty `<summary>` reserves the same row height a
+      // real one would, so a hub with 8 or fewer connections doesn't shrink
+      // the frame relative to one with more.
+      more.hidden = false;
       const extras = linked.filter((item) => !spokes.some((spoke) => spoke.id === item.id));
+      more.classList.toggle("is-empty", extras.length === 0);
+      more.open = false;
       if (!extras.length) {
-        more.hidden = true;
-        more.innerHTML = "";
+        more.innerHTML = `<summary aria-hidden="true">&nbsp;</summary>`;
       } else {
-        more.hidden = false;
         more.innerHTML =
           `<summary>${extras.length} more connection${extras.length === 1 ? "" : "s"}</summary>` +
           `<ul class="home-graph-more-list">${extras
@@ -504,7 +559,9 @@
             )
             .join("")}</ul>`;
         more.querySelectorAll("[data-explore-id]").forEach((button) => {
-          button.addEventListener("click", () => onExplore(button.getAttribute("data-explore-id")));
+          button.addEventListener("click", (event) =>
+            onExplore(button.getAttribute("data-explore-id"), isKeyboardActivation(event))
+          );
         });
       }
     }
@@ -512,6 +569,35 @@
     if (legendCount) {
       legendCount.textContent = `${spokes.length} of ${linked.length} ${node.label || node.title} connections drawn`;
     }
+  }
+
+  // Orchestrates the leave -> enter crossfade around `render`: fades the
+  // outgoing ring (holding the clicked node in place), waits, then renders
+  // the new ring already staggering in.  Skipped — rendering immediately,
+  // as the widget always used to — for the very first paint and whenever
+  // prefers-reduced-motion is set, per the JS-timing guard called out above
+  // `LEAVE_DELAY_MS`.
+  function transitionRender(opts) {
+    const animate = opts.transition && !prefersReducedMotion();
+    if (!animate) {
+      live.classList.remove("is-leaving");
+      render(opts.graph, opts.node, opts.linked, opts.degreeById, opts.onExplore, {
+        animateEnter: false,
+        focusHub: opts.focusHub,
+      });
+      return;
+    }
+    live.classList.add("is-leaving");
+    if (opts.chosenId) {
+      const chosenEl = live.querySelector(`[data-node-id="${opts.chosenId}"]`);
+      if (chosenEl) chosenEl.classList.add("is-chosen");
+    }
+    window.setTimeout(() => {
+      render(opts.graph, opts.node, opts.linked, opts.degreeById, opts.onExplore, {
+        animateEnter: true,
+        focusHub: opts.focusHub,
+      });
+    }, LEAVE_DELAY_MS);
   }
 
   fetch(graphUrl, { credentials: "same-origin" })
@@ -534,15 +620,31 @@
       for (const [id, set] of seen) degreeById.set(id, set.size);
 
       let depth = 0;
+      // Whether `render` has run at least once: gates the re-centre
+      // crossfade off for the very first paint, which should appear exactly
+      // as it does today (no leaving ring to fade from).
+      let hasRendered = false;
       const syncBack = () => {
         if (backButton) backButton.hidden = depth < 1;
       };
-      const showNode = (node, historyMode) => {
+      const showNode = (node, historyMode, options) => {
         if (!node) return;
+        options = options || {};
         const linked = linkedNodes(graph, node, degreeById);
-        render(graph, node, linked, degreeById, (id) => {
-          const next = nodesById.get(id);
-          if (next) showNode(next, "push");
+        const shouldTransition = hasRendered;
+        hasRendered = true;
+        transitionRender({
+          graph,
+          node,
+          linked,
+          degreeById,
+          onExplore: (id, keyboard) => {
+            const next = nodesById.get(id);
+            if (next) showNode(next, "push", { chosenId: id, keyboard });
+          },
+          chosenId: options.chosenId || null,
+          focusHub: Boolean(options.keyboard),
+          transition: shouldTransition,
         });
         if (historyMode === "push") {
           depth += 1;

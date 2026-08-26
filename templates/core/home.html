@@ -452,6 +452,7 @@
         font-size: 0.82rem;
         font-weight: 600;
         padding: 0.28rem 0.8rem;
+        transition: background 0.15s ease, transform 0.15s ease;
       }
 
       .home-graph-tool:hover,
@@ -460,12 +461,31 @@
         text-decoration: none;
       }
 
+      .home-graph-tool:active {
+        transform: translateY(1px);
+      }
+
+      /* Toggled per hub (e.g. "Open wiki page" when the current hub has no
+         page of its own): kept in the flex flow with `visibility` rather than
+         `hidden`/`display: none`, so the toolbar's row count — and therefore
+         the frame's height — never changes just because a different node was
+         clicked. */
+      .home-graph-tool.is-hidden-reserved {
+        pointer-events: none;
+        visibility: hidden;
+      }
+
       .home-graph-status {
         color: var(--muted);
         font-size: 0.82rem;
         margin: 0 0 0.75rem;
       }
 
+      /* Always in flow once the JS-driven explorer takes over (see
+         home_graph.js), whether or not the current hub has extra neighbours
+         to list: an empty `<summary>` reserves the same row height a real
+         one would take, so re-centring on a hub with 8 or fewer connections
+         never shrinks the frame relative to one with more. */
       .home-graph-more {
         margin-top: 0.75rem;
       }
@@ -475,6 +495,12 @@
         cursor: pointer;
         font-size: 0.82rem;
         font-weight: 600;
+      }
+
+      .home-graph-more.is-empty summary {
+        cursor: default;
+        pointer-events: none;
+        visibility: hidden;
       }
 
       .home-graph-more-list {
@@ -496,7 +522,16 @@
         font-weight: 600;
         padding: 0.28rem 0.7rem;
         text-align: left;
+        transition: background 0.15s ease, transform 0.15s ease;
         width: 100%;
+      }
+
+      .home-graph-more-item:hover {
+        background: var(--lavender-deep);
+      }
+
+      .home-graph-more-item:active {
+        transform: translateY(1px);
       }
 
       .home-graph-more-item span {
@@ -525,6 +560,66 @@
       .graph-svg-node.graph-svg-type-roadmap:not(.graph-svg-hub) .graph-svg-shape,
       .graph-svg-node.graph-svg-type-transition:not(.graph-svg-hub) .graph-svg-shape {
         fill: var(--lavender-deep);
+      }
+
+      /* Re-centring the ring (a clicked neighbour, "Random topic", or Back)
+         swaps `[data-home-graph-live]`'s markup outright — the ring's fixed
+         slots come from core/graph_layout.py and never move — but the swap
+         itself crossfades instead of snapping: the outgoing ring fades with
+         the clicked node held in place (`.is-leaving` / `.is-chosen`), then
+         the incoming ring fades and scales in with a slight per-node stagger
+         (`.is-entering`, `--i`).  home_graph.js drives the class timing;
+         prefers-reduced-motion skips its delay, and the page's global motion
+         kill switch (`_design_system.html`) neutralises these transitions
+         outright for anyone who has asked for that. */
+
+      [data-home-graph-live] .graph-svg-node {
+        transform-box: fill-box;
+        transform-origin: center;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        transition-delay: calc(var(--i, 0) * 25ms);
+      }
+
+      [data-home-graph-live] .graph-svg-hub {
+        transition-delay: 0s;
+        /* Only the JS-driven hub is a no-op to click (home_graph.js's
+           bindDrawing intercepts and ignores it) — the SSR fallback's hub
+           and /wiki/graph's hub are ordinary working links, so their cursor
+           stays the default pointer. */
+        cursor: default;
+      }
+
+      [data-home-graph-live] .graph-svg-edge {
+        transition: opacity 0.18s ease;
+        transition-delay: calc(var(--i, 0) * 25ms);
+      }
+
+      [data-home-graph-live].is-leaving .graph-svg-node:not(.graph-svg-hub),
+      [data-home-graph-live].is-leaving .graph-svg-edge {
+        opacity: 0;
+        transition: opacity 0.12s ease;
+      }
+
+      [data-home-graph-live].is-leaving .graph-svg-node.is-chosen {
+        opacity: 1;
+      }
+
+      [data-home-graph-live].is-leaving .graph-svg-node.is-chosen .graph-svg-shape {
+        stroke: var(--indigo);
+        stroke-width: 3.5;
+      }
+
+      [data-home-graph-live].is-entering .graph-svg-node:not(.graph-svg-hub) {
+        opacity: 0;
+        transform: scale(0.94);
+      }
+
+      [data-home-graph-live].is-entering .graph-svg-hub {
+        transform: scale(0.97);
+      }
+
+      [data-home-graph-live].is-entering .graph-svg-edge {
+        opacity: 0;
       }
 
       /* --- closing band ------------------------------------------------- */
