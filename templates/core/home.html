@@ -907,7 +907,16 @@
                     <span class="story-identity">
                       <span class="avatar" aria-hidden="true"></span>
                       <span>
-                        <strong>{{ story.name }}</strong>
+                        <strong>
+                          {% if story.source_url %}
+                            <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
+                              {{ story.name }}
+                              <span class="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          {% else %}
+                            {{ story.name }}
+                          {% endif %}
+                        </strong>
                         <span class="story-context">{{ story.context }}</span>
                       </span>
                     </span>

@@ -109,6 +109,9 @@ class MemberStory:
     invent one. When ``before``/``after`` are absent the transition chip pair is
     skipped entirely (never a lone "after" chip); when ``elapsed`` is absent the
     elapsed pill is skipped.
+
+    ``source_url`` links the person's name back to the original public post the
+    quote was taken from, so the attribution is checkable rather than asserted.
     """
 
     quote: str
@@ -117,6 +120,7 @@ class MemberStory:
     before: str | None = None
     after: str | None = None
     elapsed: str | None = None
+    source_url: str | None = None
 
 
 # REAL, SOURCED TESTIMONIALS (issue #179).  These three quotes are taken verbatim from
@@ -135,6 +139,7 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
         quote="The DE zoom camp gave me skills that helped me land my first tech job.",
         name="Tim Claytor",
         context="DE Zoomcamp",
+        source_url="https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240",
     ),
     MemberStory(
         quote=(
@@ -144,6 +149,10 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
         ),
         name="Alexander Daniel Rios",
         context="Argentina · LLM Zoomcamp",
+        source_url=(
+            "https://www.linkedin.com/posts/alexander-daniel-rios_llmzoomcamp-ai-llm-"
+            "activity-7391098999820406784-ByF1"
+        ),
     ),
     MemberStory(
         quote=(
@@ -153,6 +162,10 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
         ),
         name="Zachary Keller",
         context="ML Zoomcamp",
+        source_url=(
+            "https://www.linkedin.com/posts/zrkeller_course-report-datatalksclub-ml-zoomcamp-"
+            "activity-7013629465083707392-RbZV"
+        ),
     ),
 )
 
