@@ -10,6 +10,12 @@
 
 {% block document_title %}{{ homework.title }} — {{ course.title }} — DataTalks.Club{% endblock %}
 
+{% block breadcrumbs %}
+  <li aria-current="page">
+    {{ homework.title }}
+  </li>
+{% endblock %}
+
 {% block seo_meta %}
   <meta name="description" content="{{ homework.description|striptags|truncatechars:180 }}">
   <meta property="og:type" content="website">

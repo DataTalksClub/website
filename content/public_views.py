@@ -978,7 +978,7 @@ def wiki_graph(request: HttpRequest) -> HttpResponse:
         request,
         "public/wiki_graph.html",
         path="/wiki/graph",
-        title="Podcast Graph — DataTalks.Club Wiki",
+        title="Knowledge Graph — DataTalks.Club Wiki",
         description=(
             "Explore wiki topics, typed content pages, people, podcasts, and books across the "
             "DataTalks.Club podcast archive."

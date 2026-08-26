@@ -668,8 +668,10 @@ class WikiPageTests(TestCase):
         self.record = public_projection()["wiki_by_slug"]["a-a-testing"]
         self.body = self.client.get(str(self.record["public_path"])).content.decode()
 
-    def test_the_page_keeps_its_kicker_title_summary_and_every_relation(self) -> None:
-        self.assertIn('<p class="mono-label mono-label-indigo">Wiki</p>', self.body)
+    def test_the_page_keeps_its_title_summary_and_every_relation(self) -> None:
+        # No `WIKI` kicker: the breadcrumb directly above already names the
+        # section, so a page-level eyebrow would only repeat it.
+        self.assertNotIn('<p class="mono-label mono-label-indigo">Wiki</p>', self.body)
         self.assertIn(escape(str(self.record["title"])), self.body)
         self.assertIn(escape(str(self.record["summary"])), self.body)
         self.assertIn('aria-label="Related concepts and sources"', self.body)

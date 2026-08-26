@@ -18,8 +18,14 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 BAND_PATTERN = re.compile(r'class="band (band-[a-z]+)')
 
-# The page background token, as a page's own stylesheet block sets it.
-PAGE_TOKEN_PATTERN = re.compile(r":root\s*\{[^}]*--page:\s*var\(--lavender\);")
+# A stale page-background override: before the 2026-08-26 design-consistency
+# audit, `.band-lavender` painted the `--lavender` tint, so a page that ended
+# on it had to move `--page` to match or the tail below the last band would
+# snap back to cream.  `.band-lavender` now paints `--cream` (the audit's
+# content-ground decision), which already matches the partial's default
+# `--page`, so this override is never needed any more; a template that still
+# carries it is stale.
+STALE_PAGE_TOKEN_PATTERN = re.compile(r":root\s*\{[^}]*--page:\s*var\(--lavender\);")
 
 # The first thing a page draws below the seam.  A page whose body slid back up
 # into the warm hero would put one of these ahead of its first lavender band,
@@ -122,22 +128,19 @@ class BandGroundTests(SimpleTestCase):
                 self.assertNotIn("band-mint", grounds)
                 self.assertNotIn("band-ink", grounds)
 
-    def test_a_page_that_ends_cool_carries_the_page_token(self) -> None:
+    def test_no_page_carries_a_stale_lavender_page_token(self) -> None:
         # `--page` is the body background, and the strip below the last band —
         # the analytics dialog's ground, and everything under the footer — is
-        # drawn with it.  A page whose last band is the content ground has to
-        # move the token with it, or that strip snaps back to cream between the
-        # lavender it continues and the cream footer.
+        # drawn with it.  The content ground is now cream (2026-08-26 design-
+        # consistency audit), matching the partial's default `--page`, so no
+        # governed template should still carry the old override.
         for template in GOVERNED_TEMPLATES:
-            bands = band_sequence(template)
-            if not bands or bands[-1] != "band-lavender":
-                continue
             with self.subTest(template=template.name):
-                self.assertIsNotNone(
-                    PAGE_TOKEN_PATTERN.search(template.read_text(encoding="utf-8")),
-                    f"{template.name} ends on the content ground but never sets "
-                    "`--page` to `var(--lavender)` on `:root` in its own stylesheet "
-                    "block, so the tail below its last band snaps back to cream.",
+                self.assertIsNone(
+                    STALE_PAGE_TOKEN_PATTERN.search(template.read_text(encoding="utf-8")),
+                    f"{template.name} still sets `--page` to `var(--lavender)`; the "
+                    "content ground is cream now, so this override is stale and the "
+                    "tail below the last band should already match.",
                 )
 
     def test_the_body_of_a_page_sits_below_the_seam(self) -> None:

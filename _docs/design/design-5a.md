@@ -235,7 +235,7 @@ inside. Four grounds exist:
 | Class | Background | When |
 | --- | --- | --- |
 | `band-cream` | `--cream` | the hero — the first band on a page, and only that |
-| `band-lavender` | `--lavender` | the content ground — every band after the hero |
+| `band-lavender` | `--cream` | the content ground — every band after the hero |
 | `band-mint` | `--mint` | an events *section* inside a page about several things (homepage only) |
 | `band-ink` | `--ink` (`#0d0f1c` dark) | the closing call-to-action band only |
 
@@ -243,21 +243,43 @@ Every band ends with the dashed separator (`border-bottom: 2px dashed
 var(--line-soft)`); `band-ink` has none because it closes the page. The
 masthead carries the same dashed rule. Do not invent new band colours.
 
+**`band-lavender` paints cream, not lavender** (2026-08-26 design-consistency
+audit). The class name is the content-ground *slot*, kept as-is rather than
+renamed across every template that uses it; what changed is only the colour
+that slot paints. A four-way comparison (current lavender ground, a white
+ground, a cream ground, and a white-ground-with-orange-accent experiment) found
+that this system's cards and panels already do their own separation work via
+2px ink borders and hard offset shadows, so the lavender tint was never
+load-bearing for hierarchy — it only cost something: a warm/cool seam under
+every hero, and a grey cast on the tan/green accents that sat on it. Cream
+removes the seam entirely and keeps the brand's paper warmth, and won or tied
+on every page type tested. `--lavender` itself is unchanged and stays in use
+as an **accent** surface — `.panel-lavender`, `.stat-tile`, status pills, the
+dashed catalogue pattern — anywhere it is a tinted panel sitting *on* the
+content ground rather than the ground itself. A deferred follow-up idea worth
+exploring: repurposing `--lavender` as an *inset* accent one level down from
+the ground (table header rows, zebra striping, dashboard sub-panels) to give
+dense or sparse data zones the internal structure the old full-band tint used
+to provide.
+
 ### Which ground a band takes
 
 This was rediscovered by hand three times — once per page that joined the
 system — so it is written down here rather than derived again.
 
-**The hero keeps cream. Everything after it is lavender.**
+**The hero keeps cream. Everything after it stays cream too.**
 
 - The **first band on a page is the hero**: masthead-adjacent, breadcrumb,
   `h1`, byline. It takes `band-cream`, the warm paper. The masthead is the one
   strip every page shares, and recolouring the ground directly under it makes a
   page look like it belongs to a different site.
-- **Every band after the hero takes `band-lavender`.** Lavender is the content
-  ground. A reader moving from `/events` to `/blog` to a person profile should
-  meet the same ground under the same kind of content; a page that alternates on
-  its own reads as a different site with the same masthead.
+- **Every band after the hero takes `band-lavender`**, which paints the same
+  cream as the hero (see above) — the class marks the content-ground slot, the
+  colour is unified with the hero on purpose so the page reads as one seamless
+  sheet rather than two grounds meeting at the fold. A reader moving from
+  `/events` to `/blog` to a person profile should meet the same ground under
+  the same kind of content; a page that alternates on its own reads as a
+  different site with the same masthead.
 - **The warm band marks where the page starts; it is not the page.** Everything
   below the seam is content, and content is cool: prose, cards, list rows, a
   detail body, a state panel, a form. What stays above it is the masthead, the
@@ -274,19 +296,18 @@ system — so it is written down here rather than derived again.
 Enforced by `content/tests/test_band_grounds.py`, which reads the band sequence
 out of every public page template and pins where each page's body sits.
 
-**`--page` follows the cool ground.** `--page` is the body background, and the
-strip below the last band — the analytics dialog's ground, and everything under
-the footer — is drawn with it. A page whose last band is lavender therefore sets
-
-```css
-:root {
-  --page: var(--lavender);
-}
-```
-
-in its own stylesheet block, or that strip snaps back to cream between the
-lavender it continues and the cream footer. The dark theme keeps its own
-`--page` from the partial, which is why the override names the light token only.
+**`--page` follows the ground.** `--page` is the body background, and the
+strip below the last band — the analytics dialog's ground, and everything
+under the footer — is drawn with it. Since the content ground is cream, the
+same as `--page`'s own default in the partial, a page whose last band is
+`band-lavender` needs no override at all — the tail already matches. (Before
+the 2026-08-26 audit, `band-lavender` painted the `--lavender` tint and every
+such page had to set `:root { --page: var(--lavender); }` in its own
+stylesheet block or the tail would snap back to cream; that override has since
+been removed everywhere. `content/tests/test_band_grounds.py` now guards
+against it reappearing.) A page that still ends on a genuinely different
+ground — `band-mint` or `band-ink`, homepage-only — is the only case that would
+need a `--page` override going forward.
 
 **When mint is still correct.** `band-mint` marks an events *section* inside a
 page that is about several things — it says "this part is events" only where the
@@ -301,14 +322,14 @@ events band, and `--mint` remains correct as a *panel* (`.panel-mint`) and as a
 action, last on the page, and it draws no dashed rule because nothing follows
 it.
 
-**Lavender after lavender.** Consecutive bands of the same ground are expected
-now, and they are separated the way the system always separated consecutive
-cream bands: the `.band` dashed bottom rule, then `2.25rem` (`2.9rem` at
-≥62rem) of padding, then the next `.band-head` heading. The dashed rule is
-deliberately quiet and reads the same on either ground — `--line-soft` against
-its band is 1.25:1 on light lavender against 1.35:1 on light cream, and 2.02:1
-against 2.10:1 in dark. What actually separates two sections is the heading and
-the space, not the colour; give every band after the hero a real `.band-head`.
+**Cream after cream.** Consecutive `band-lavender` sections share the same
+cream ground as the hero above them (and each other), and they are separated
+the way the system always separated consecutive same-ground bands: the
+`.band` dashed bottom rule, then `2.25rem` (`2.9rem` at ≥62rem) of padding,
+then the next `.band-head` heading. The dashed rule is deliberately quiet —
+`--line-soft` against light cream is 1.35:1, 2.10:1 in dark. What actually
+separates two sections is the heading and the space, not the colour; give
+every band after the hero a real `.band-head`.
 
 **The homepage is the exception.** `templates/core/home.html` is composed
 directly from `datatalks-homepage.source.html` and alternates cream, lavender,
@@ -1055,10 +1076,16 @@ count, a group or an edge the data does not carry.
 - **`/wiki/special-pages[/<category>]`** — the categories are `.filter-pills`
   as links with `aria-current="page"` on the current one; the pages themselves
   are the hub's rows, so a reader meets one catalogue shape and not two.
-- **`/wiki/<topic>`** — one 48rem reading column: the trail back, a `Wiki`
-  mono kicker, the title, the summary, the page's relations as `.chip`s
-  (linked ones indigo, each prefixed with its relation type for screen
-  readers), and then the page itself in `.prose`.
+- **`/wiki/<topic>`** — one reading column at the shared `--measure` (38rem),
+  the same measure the blog article uses: the trail back, the title, the
+  summary, the page's relations as `.chip`s (linked ones indigo, each
+  prefixed with its relation type for screen readers), and then the page
+  itself in `.prose`. (Earlier revisions of this document said "48rem" and
+  described a `Wiki` mono kicker above the title; the 48rem number never
+  matched the shared measure primitive actually in use, and the kicker only
+  repeated the breadcrumb's "Wiki" crumb directly above it — both corrected in
+  the 2026-08-26 design-consistency audit rather than carried forward as
+  drift.)
 
 ## The person profile, as built
 

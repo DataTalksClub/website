@@ -22,12 +22,6 @@
        * Wiki search rules.
        * ------------------------------------------------------------------ */
 
-      /* --page follows the cool ground, since that is what the tail below the
-         last band continues. */
-      :root {
-        --page: var(--lavender);
-      }
-
       .wiki-hero .breadcrumbs {
         margin-bottom: 0.35rem;
         margin-top: -0.85rem;
@@ -79,12 +73,10 @@
         max-width: 40rem;
       }
 
-      /* Narrow: the kind sits above the result instead of taking a column of
-         its own beside a title with nowhere left to wrap. */
-      @media (max-width: 47.99rem) {
-        .result-kind {
-          justify-self: start;
-        }
+      /* The pill hugs its label rather than stretching to fill the grid
+         cell's fixed column width, matching every other `.status-pill` use. */
+      .result-kind {
+        justify-self: start;
       }
     </style>
   </head>

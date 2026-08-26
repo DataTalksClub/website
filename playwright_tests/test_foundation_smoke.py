@@ -431,7 +431,7 @@ def test_wiki_search_graph_and_removed_mount(page: Page, live_server) -> None:
     expect(page.locator("h1")).to_be_visible()
 
     page.goto(f"{origin}/wiki/graph")
-    expect(page.get_by_role("heading", name="Podcast Graph")).to_be_visible()
+    expect(page.get_by_role("heading", name="Knowledge graph")).to_be_visible()
     expect(page.locator("main a").first).to_be_visible()
 
     response = page.goto(f"{origin}/podwiki")

@@ -925,7 +925,7 @@ Rules for editing:
       }
 
       .band-lavender {
-        background: var(--lavender);
+        background: var(--cream);
       }
 
       .band-mint {
@@ -1791,9 +1791,16 @@ Rules for editing:
         padding-inline: 0.9rem;
       }
 
+      /* The elided range names nothing a reader can go to, so it carries no
+         pill surface at all — a quiet mark, not a sand-coloured rounded
+         square dropped between the round page-number circles. */
       .pagination-gap {
+        background: none;
+        border: 0;
+        color: var(--muted);
         justify-content: center;
         min-width: 1.75rem;
+        padding-inline: 0;
       }
 
       /* The little state dot, on a status pill or beside a band heading. */
@@ -3240,6 +3247,21 @@ Rules for editing:
          written once for everything the fragment contains. */
       .prose-embed * + * {
         margin-top: 0.75rem;
+      }
+
+      /* A source body's own markup fragment can carry a table markdown
+         rendered from a block the content projection did not classify as a
+         dedicated table block, so it never reached `.prose-scroll`'s named,
+         keyboard-reachable region (2026-08-26 design-consistency audit found
+         this overflowing the viewport on a real article). This at least
+         keeps it from breaking the page's width; giving it the same
+         focusable region as `.prose-scroll` needs the source block
+         classified as a table at the content-pipeline level, which is a
+         separate follow-up. */
+      .prose-embed table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
       }
 
       .prose figcaption,

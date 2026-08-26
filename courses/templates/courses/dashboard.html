@@ -21,10 +21,6 @@
 
       {% include "public/_card_link_styles.html" %}
 
-      :root {
-        --page: var(--lavender);
-      }
-
       /* ------------------------------------------------------------------ *
        * Dashboard rules.
        * ------------------------------------------------------------------ */
@@ -237,7 +233,6 @@
           </ol>
         </nav>
         <div>
-          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="dashboard-heading">{{ course.title }} Dashboard</h1>
           <p class="dashboard-lede">
             Course-level participation, homework, and project statistics.

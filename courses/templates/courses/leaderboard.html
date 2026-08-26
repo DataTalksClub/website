@@ -250,48 +250,47 @@
           </ol>
         </nav>
         <div class="leaderboard-hero-inner">
-          <p class="mono-label mono-label-indigo">{{ course.title }}</p>
           <h1 id="leaderboard-heading">Leaderboard</h1>
           <p class="leaderboard-lede">
             Scores, positions, and public student profiles for this course.
           </p>
-          {% if current_student_enrollment %}
-            <aside class="panel panel-mint panel-outlined leaderboard-you" aria-labelledby="your-record-heading">
-              <h2 id="your-record-heading">Your Record</h2>
-              <p class="leaderboard-you-score">
-                <a class="band-link" href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=current_student_enrollment.id %}">Your total score: {{ current_student_enrollment.total_score }}</a>
-                <span class="status-pill">Position: {{ current_student_enrollment.position_on_leaderboard }}</span>
-              </p>
-              <p class="leaderboard-note">
-                Display name: {{ current_student_enrollment.display_name }}
-                <a class="band-link" href="{% url 'enrollment' course.course.slug course.identifier %}">(change)</a>
-              </p>
-              {% if not current_student_enrollment.display_on_leaderboard %}
-                <p class="leaderboard-note">Your record is hidden from the public leaderboard.</p>
-              {% endif %}
-              {% if current_student_enrollment.display_on_leaderboard %}
-                <div class="leaderboard-you-actions">
-                  {% if current_student_page_number %}
-                    {% with page_number=current_student_page_number|stringformat:"s" record_id=current_student_enrollment.id|stringformat:"s" %}
-                      {% with record_url="?page="|add:page_number|add:"#record-"|add:record_id %}
-                        {% include "core/_button.html" with href=record_url label="Jump to my record" variant="secondary" compact=True %}
-                      {% endwith %}
-                    {% endwith %}
-                  {% else %}
-                    {% with record_id=current_student_enrollment.id|stringformat:"s" %}
-                      {% with record_url="#record-"|add:record_id %}
-                        {% include "core/_button.html" with href=record_url label="Jump to my record" variant="secondary" compact=True %}
-                      {% endwith %}
-                    {% endwith %}
-                  {% endif %}
-                </div>
-              {% endif %}
-            </aside>
-          {% endif %}
         </div>
 {% endblock %}
 
 {% block page_content %}
+        {% if current_student_enrollment %}
+          <aside class="panel panel-mint panel-outlined leaderboard-you" aria-labelledby="your-record-heading">
+            <h2 id="your-record-heading">Your Record</h2>
+            <p class="leaderboard-you-score">
+              <a class="band-link" href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=current_student_enrollment.id %}">Your total score: {{ current_student_enrollment.total_score }}</a>
+              <span class="status-pill">Position: {{ current_student_enrollment.position_on_leaderboard|default:"—" }}</span>
+            </p>
+            <p class="leaderboard-note">
+              Display name: {{ current_student_enrollment.display_name }}
+              <a class="band-link" href="{% url 'enrollment' course.course.slug course.identifier %}">(change)</a>
+            </p>
+            {% if not current_student_enrollment.display_on_leaderboard %}
+              <p class="leaderboard-note">Your record is hidden from the public leaderboard.</p>
+            {% endif %}
+            {% if current_student_enrollment.display_on_leaderboard %}
+              <div class="leaderboard-you-actions">
+                {% if current_student_page_number %}
+                  {% with page_number=current_student_page_number|stringformat:"s" record_id=current_student_enrollment.id|stringformat:"s" %}
+                    {% with record_url="?page="|add:page_number|add:"#record-"|add:record_id %}
+                      {% include "core/_button.html" with href=record_url label="Jump to my record" variant="secondary" compact=True %}
+                    {% endwith %}
+                  {% endwith %}
+                {% else %}
+                  {% with record_id=current_student_enrollment.id|stringformat:"s" %}
+                    {% with record_url="#record-"|add:record_id %}
+                      {% include "core/_button.html" with href=record_url label="Jump to my record" variant="secondary" compact=True %}
+                    {% endwith %}
+                  {% endwith %}
+                {% endif %}
+              </div>
+            {% endif %}
+          </aside>
+        {% endif %}
         <section aria-labelledby="standings-heading">
           <div class="band-head">
             <div>
@@ -326,7 +325,7 @@
                 {% endif %}
                   <p class="leaderboard-rank">
                     <span class="sr-only">Position</span>
-                    {{ enrollment.position_on_leaderboard }}
+                    {{ enrollment.position_on_leaderboard|default:"—" }}
                   </p>
                   <p class="leaderboard-name">
                     <a href="{% url 'leaderboard_score_breakdown' course_slug=course.course.slug cohort_year=course.identifier enrollment_id=enrollment.id %}">{{ enrollment.display_name }}</a>

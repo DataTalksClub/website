@@ -173,12 +173,12 @@
     {% endblock %}
     {% block hero_actions %}
     {% endblock %}
-    {% block hero_notices %}
-    {% endblock %}
   </div>
 {% endblock %}
 
 {% block page_content %}
+  {% block hero_notices %}
+  {% endblock %}
   {% if accepting_submissions or submission.pk or homework.is_scored or project or review %}
     {% block submission_content %}
     {% endblock %}
