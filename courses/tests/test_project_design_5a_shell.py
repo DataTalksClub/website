@@ -231,6 +231,9 @@ class ProjectDesignFiveAShellTests(TestCase):
 
     def test_every_project_page_carries_the_trail_back_to_the_course(self) -> None:
         course_url = reverse("course", kwargs=self.course_route_kwargs())
+        family_url = reverse(
+            "course_family", kwargs={"course_slug": self.course.course.slug}
+        )
 
         for name, body in self.rendered_pages().items():
             with self.subTest(page=name):
@@ -239,7 +242,10 @@ class ProjectDesignFiveAShellTests(TestCase):
                     r'<nav class="(?:shell shell-reading )?breadcrumbs" aria-label="Breadcrumb">',
                 )
                 self.assertIn(f'<a href="{reverse("course_list")}">Courses</a>', body)
-                self.assertIn(f'<a href="{course_url}">{self.course.title}</a>', body)
+                self.assertIn(
+                    f'<a href="{family_url}">{self.course.course.title}</a>', body
+                )
+                self.assertIn(f'<a href="{course_url}">{self.course.identifier}</a>', body)
                 self.assertIn('<li aria-current="page">', body)
 
     def test_only_the_project_page_itself_is_offered_to_the_index(self) -> None:

@@ -105,6 +105,7 @@ def _render_enrollment_form(request, course, enrollment, form):
     context = {
         "form": form,
         "course": course,
+        "course_family": course.course,
         "enrollment": enrollment,
     }
     response = render(

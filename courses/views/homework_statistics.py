@@ -36,6 +36,7 @@ def scored_homework_statistics_response(
     question_stats = homework_question_stats(homework)
     context = {
         "course": course,
+        "course_family": course.course,
         "homework": homework,
         "stats": stats,
         "question_stats": question_stats,

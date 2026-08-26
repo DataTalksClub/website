@@ -59,6 +59,7 @@ def student_project_eval_context(course, project, user, eval_closed):
 
     return {
         "course": course,
+        "course_family": course.course,
         "project": project,
         "reviews": reviews,
         "assigned_reviews": review_groups.assigned_reviews,
@@ -83,6 +84,7 @@ def projects_eval_view(request, course_slug, project_slug, cohort_year=None):
     if not is_authenticated:
         context = {
             "course": course,
+            "course_family": course.course,
             "project": project,
             "is_authenticated": False,
             "eval_closed": eval_closed,

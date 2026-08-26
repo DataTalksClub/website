@@ -213,7 +213,13 @@
         <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
-              <a href="{% url 'course' enrollment.course.course.slug enrollment.course.identifier %}">{{ enrollment.course.title }}</a>
+              <a href="{% url 'course_list' %}">Courses</a>
+            </li>
+            <li>
+              <a href="{% url 'course_family' enrollment.course.course.slug %}">{{ enrollment.course.course.title }}</a>
+            </li>
+            <li>
+              <a href="{% url 'course' enrollment.course.course.slug enrollment.course.identifier %}">{{ enrollment.course.identifier }}</a>
             </li>
             <li>
               <a href="{% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier %}">Leaderboard</a>

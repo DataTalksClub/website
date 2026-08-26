@@ -96,6 +96,7 @@ def _project_results_context(course, project, user):
     if not user.is_authenticated:
         return {
             "course": course,
+            "course_family": course.course,
             "project": project,
             "is_authenticated": False,
         }
@@ -110,6 +111,7 @@ def _project_results_context(course, project, user):
     feedback = _project_results_feedback(submission)
     return {
         "course": course,
+        "course_family": course.course,
         "project": project,
         "submission": submission,
         "scores": scores,

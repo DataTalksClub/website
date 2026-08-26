@@ -46,6 +46,7 @@ def projects_list_context(course, project, submissions_page, viewer_state):
 
     return {
         "course": course,
+        "course_family": course.course,
         "project": project,
         "submissions": submissions_page.object_list,
         "submissions_page": submissions_page,

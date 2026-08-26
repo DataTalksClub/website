@@ -96,10 +96,16 @@
         <nav class="breadcrumbs" aria-label="Breadcrumb">
           <ol>
             <li>
-              <a href="{% url 'course' course.course.slug course.identifier %}">{{ course.title }}</a>
+              <a href="{% url 'course_list' %}">Courses</a>
             </li>
             <li>
-              <a href="{% url 'leaderboard' course.course.slug course.identifier %}">Leaderboard</a>
+              <a href="{% url 'course_family' course_family.slug %}">{{ course_family.title }}</a>
+            </li>
+            <li>
+              <a href="{% url 'course' course_family.slug course.identifier %}">{{ course.identifier }}</a>
+            </li>
+            <li>
+              <a href="{% url 'leaderboard' course_family.slug course.identifier %}">Leaderboard</a>
             </li>
             <li>
               <a href="{% url 'leaderboard_score_breakdown' course.course.slug course.identifier enrollment.id %}">{{ enrollment.display_name }}</a>

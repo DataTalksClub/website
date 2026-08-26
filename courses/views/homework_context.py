@@ -110,6 +110,7 @@ def homework_detail_build_context_not_authenticated(
     accepting_submissions = homework.state == HomeworkState.OPEN.value
     context = {
         "course": course,
+        "course_family": course.course,
         "homework": homework,
         "question_answers": question_answers,
         "is_authenticated": False,
@@ -178,6 +179,7 @@ def homework_detail_build_context_authenticated(data) -> dict:
     state_context = homework_state_context(data.homework)
     context = {
         "course": data.course,
+        "course_family": data.course.course,
         "homework": data.homework,
         "question_answers": question_answers,
         "submission": data.submission,
