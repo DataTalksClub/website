@@ -31,19 +31,47 @@ def classify_git_change(
     after: str,
     github_sha: str,
     release_sha: str,
+    dispatch_operation: str = "",
 ) -> dict[str, object]:
     safe_base = base if SHA_RE.fullmatch(base) else None
     safe_head = release_sha if SHA_RE.fullmatch(release_sha) else None
 
-    def full(reason: str) -> dict[str, object]:
-        return full_selection(event=event, base=safe_base, head=safe_head, reason=reason)
-
-    if event == "workflow_dispatch":
+    def full(reason: str, *, use_base: str | None = None) -> dict[str, object]:
         return full_selection(
             event=event,
-            base=None,
+            base=safe_base if use_base is None else use_base,
             head=safe_head,
-            reason="manual_dispatch",
+            reason=reason,
+        )
+
+    if event == "workflow_dispatch":
+        if dispatch_operation != "promote" or not SHA_RE.fullmatch(release_sha):
+            return full_selection(
+                event=event,
+                base=None,
+                head=safe_head,
+                reason="manual_dispatch",
+            )
+        if not _exact_commit(repository, release_sha):
+            return full_selection(
+                event=event,
+                base=None,
+                head=safe_head,
+                reason="manual_dispatch",
+            )
+        parent = _first_parent(repository, release_sha)
+        if parent is None:
+            return full_selection(
+                event=event,
+                base=None,
+                head=safe_head,
+                reason="manual_dispatch",
+            )
+        return _classify_range(
+            repository,
+            event=event,
+            base=parent,
+            release_sha=release_sha,
         )
     if event != "push":
         return full("head_invalid")
@@ -59,6 +87,23 @@ def classify_git_change(
         return full("head_unavailable")
     if not _exact_commit(repository, base):
         return full("base_unavailable")
+    return _classify_range(
+        repository,
+        event=event,
+        base=base,
+        release_sha=release_sha,
+    )
+
+
+def _classify_range(
+    repository: Path,
+    *,
+    event: str,
+    base: str,
+    release_sha: str,
+) -> dict[str, object]:
+    def full(reason: str) -> dict[str, object]:
+        return full_selection(event=event, base=base, head=release_sha, reason=reason)
 
     ancestor = _git(repository, "merge-base", "--is-ancestor", base, release_sha, check=False)
     if ancestor.returncode == 1:
@@ -105,6 +150,16 @@ def classify_git_change(
         base=base,
         head=release_sha,
     )
+
+
+def _first_parent(repository: Path, revision: str) -> str | None:
+    result = _git(repository, "rev-parse", "--verify", f"{revision}^1", check=False)
+    if result.returncode != 0:
+        return None
+    parent = result.stdout.strip().decode("ascii", errors="replace")
+    if not SHA_RE.fullmatch(parent) or not _exact_commit(repository, parent):
+        return None
+    return parent
 
 
 def _ordinary_record(
@@ -203,6 +258,7 @@ def main() -> None:
     select.add_argument("--source-after-sha")
     select.add_argument("--source-before-sha")
     select.add_argument("--provenance-output")
+    select.add_argument("--dispatch-operation", default="")
     validate = subparsers.add_parser("validate")
     validate.add_argument("--input", required=True)
     args = parser.parse_args()
@@ -217,6 +273,7 @@ def main() -> None:
         after=args.after,
         github_sha=args.github_sha,
         release_sha=args.release_sha,
+        dispatch_operation=args.dispatch_operation,
     )
     dump_selection(selection, args.output)
     provenance = None

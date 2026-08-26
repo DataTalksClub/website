@@ -464,6 +464,38 @@ def test_partial_pytest_output_cannot_validate_as_success(tmp_path: Path) -> Non
         )
 
 
+def test_make_timeout_wrapper_echo_is_not_an_interrupted_pytest_run(tmp_path: Path) -> None:
+    _repository, plan = plan_for_api(tmp_path)
+    root = tmp_path / "evidence"
+    root.mkdir()
+    output_path = root / "playwright-output.log"
+    timeout_echo = (
+        "\ttimeout --foreground --signal=TERM --kill-after=30s 600s "
+        "uv run --frozen pytest playwright_tests \\\n"
+    )
+    policy = (
+        "DTC_FLAKE_POLICY_V1 attempted=30 passed=30 failed=0 skipped=0 "
+        "rerun=0 quarantined=0 complete=1\n"
+    )
+    output_path.write_text(
+        timeout_echo
+        + "============================= test session starts ==============================\n"
+        + "collected 30 items\n"
+        + policy
+        + "================ 30 passed, 207 deselected in 207.83s (0:03:27) ================\n",
+        encoding="utf-8",
+    )
+    claim = machine_output_claim(
+        output_path,
+        root=root,
+        component="playwright",
+        plan=plan,
+        result="success",
+    )
+    assert claim["counts"]["passed"] == 30
+    assert claim["counts"]["tests"] == 30
+
+
 def test_timed_out_partial_playwright_output_is_a_terminal_failure_report(
     tmp_path: Path,
 ) -> None:

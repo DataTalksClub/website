@@ -95,7 +95,7 @@ PYTEST_TERMINAL_SUMMARY_RE = re.compile(
     re.IGNORECASE,
 )
 PYTEST_INTERRUPTION_RE = re.compile(
-    r"(?im)^(?:[+!]{3,}.*\b(?:Timeout|KeyboardInterrupt)\b.*|"
+    r"(?m)^(?:[+!]{3,}.*\b(?:Timeout|KeyboardInterrupt)\b.*|"
     r"\s*(?:Timeout|KeyboardInterrupt|Terminated|SIG(?:TERM|KILL))\b.*)$"
 )
 UNITTEST_STATUS_RE = re.compile(r"^(?:OK(?:\s+\(.*\))?|FAILED(?:\s+\(.*\))?)$", re.IGNORECASE)

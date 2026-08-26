@@ -226,8 +226,8 @@ def validate_selection(payload: object) -> dict[str, Any]:
         raise ValueError("test_labels must be sorted, unique, and allowlisted")
 
     if payload["profile"] == "focused":
-        if payload["event"] != "push":
-            raise ValueError("only push events may use a focused selection")
+        if payload["event"] not in {"push", "workflow_dispatch"}:
+            raise ValueError("only push and promote-dispatch events may use a focused selection")
         if payload["reason"] != "single_application" or len(roots) != 1:
             raise ValueError("focused selection must identify one mapped application")
         if base is None or head is None:
@@ -239,14 +239,11 @@ def validate_selection(payload: object) -> dict[str, Any]:
             raise ValueError("full selection must use a full-suite reason")
         if labels:
             raise ValueError("full selection cannot contain focused labels")
-    if payload["event"] == "workflow_dispatch" and (
-        payload["profile"] != "full"
-        or payload["reason"] != "manual_dispatch"
-        or payload["base"] is not None
-    ):
-        raise ValueError(
-            "manual dispatch must be an explicit full selection without a guessed base"
-        )
+    if payload["event"] == "workflow_dispatch" and payload["reason"] == "manual_dispatch":
+        if payload["profile"] != "full" or payload["base"] is not None:
+            raise ValueError(
+                "unsafe dispatch must be an explicit full selection without a guessed base"
+            )
     if payload["event"] == "push" and payload["reason"] == "manual_dispatch":
         raise ValueError("push selection cannot use the manual-dispatch reason")
     return payload

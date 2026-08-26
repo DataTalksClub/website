@@ -317,6 +317,30 @@ def test_empty_canonical_diff_uses_shared_planner_and_fails_closed_to_full(
     assert plan["components"]["playwright"]["command"] == "make test-playwright"
 
 
+def test_worktree_ci_records_keep_smoke_playwright_on_empty_committed_range(
+    tmp_path: Path,
+) -> None:
+    repository, _base, head = repository_with_change(tmp_path, {"ci/classifier.py": "changed\n"})
+    selection = classify_records((), event="push", base=head, head=head)
+    records = (ChangeRecord("M", ("ci/classifier.py",)),)
+    plan = build_plan(
+        repository=repository,
+        repository_id="DataTalksClub/website",
+        base=head,
+        head=head,
+        selection=selection,
+        records=records,
+        now=NOW,
+    )
+    assert selection["reason"] == "diff_empty"
+    assert plan["direct_nodes"]
+    assert plan["render"]["impact"] is False
+    assert plan["browser_profile"] == "smoke"
+    assert plan["components"]["playwright"]["command"] == "make test-playwright-smoke"
+    assert plan["profile"] == "full"
+    assert plan["reason"] == "test_infrastructure"
+
+
 def test_large_value_only_content_is_digest_exhaustive_without_visual_rerun(
     tmp_path: Path,
 ) -> None:

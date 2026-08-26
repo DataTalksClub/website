@@ -216,6 +216,12 @@ def test_aggregate_gate_is_the_release_dependency() -> None:
     assert "make test-playwright-core" in runs(playwright)
     assert "make test-playwright" in runs(playwright)
     assert "playwright_mode == 'rerun'" in str(playwright)
+    quality = jobs["quality"]
+    assert quality["permissions"]["actions"] == "write"
+    assert "gh run cancel" in runs(quality)
+    django = jobs["django"]
+    assert "django_mode == 'rerun'" in str(django)
+    assert "--dispatch-operation" in runs(jobs["classification"])
     assert "release-image-" in str(jobs["container"])
 
 
