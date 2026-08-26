@@ -22,6 +22,12 @@
        * Wiki page rules.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       /* The reading column: the width the design gives long prose. */
       /* The same reading column every content page holds. */
       .wiki-shell {
@@ -102,6 +108,7 @@
           </ol>
         </nav>
         <div class="shell wiki-shell">
+          <p class="mono-label mono-label-indigo">Wiki</p>
           <h1 id="wiki-page-heading">{{ record.title }}</h1>
           <p class="wiki-summary">{{ record.summary }}</p>
           {% if record.relations %}

@@ -82,7 +82,7 @@ class LoginPageConfigurationTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'name="email"')
         self.assertContains(response, 'name="password"')
-        self.assertContains(response, "Choose your preferred sign-in method")
+        self.assertContains(response, "Choose your preferred login method")
         self.assertNotContains(response, "Back to courses")
         self.assertNotContains(response, "Sign-in is temporarily unavailable")
 
@@ -95,7 +95,7 @@ class LoginPageConfigurationTests(TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertContains(response, "Sign-in is temporarily unavailable")
                 self.assertNotContains(response, "Back to courses")
-                self.assertNotContains(response, "Choose your preferred sign-in method")
+                self.assertNotContains(response, "Choose your preferred login method")
 
     def test_seeded_cmp_providers_render_on_login_and_signup(self) -> None:
         seed_local_social_providers()
@@ -106,8 +106,8 @@ class LoginPageConfigurationTests(TestCase):
 
                 self.assertEqual(response.status_code, 200)
                 if "login" in path:
-                    self.assertContains(response, "Sign in")
-                    self.assertContains(response, "Choose your preferred sign-in method")
+                    self.assertContains(response, "Sign In")
+                    self.assertContains(response, "Choose your preferred login method")
                 self.assertNotContains(response, "Sign-in is temporarily unavailable")
                 for provider, name in PLACEHOLDER_PROVIDERS:
                     with self.subTest(path=path, provider=provider):

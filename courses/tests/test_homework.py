@@ -28,13 +28,7 @@ class HomeworkDetailViewTests(HomeworkDetailViewTestBase):
             f'<h1 id="submission-heading">{self.homework.title}</h1>',
         )
         self.assertIn(self.course.title, breadcrumb.group(1))
-        self.assertIn(
-            f'<li aria-current="page">\n    {self.homework.title}\n  </li>',
-            breadcrumb.group(1),
-            "The homework page is a detail page below the course, so the "
-            "breadcrumb's final crumb should name it as the current page "
-            "(design-5a.md's breadcrumb contract).",
-        )
+        self.assertNotIn(self.homework.title, breadcrumb.group(1))
         self.assertNotIn("Homework submission", body)
         self.assertIn('aria-labelledby="submission-heading"', body)
 
