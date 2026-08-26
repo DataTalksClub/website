@@ -102,53 +102,57 @@ class CatalogCourse:
 
 @dataclass(frozen=True, slots=True)
 class MemberStory:
-    """One "people who were exactly where you are" card."""
+    """One "people who were exactly where you are" card.
 
-    before: str
-    after: str
+    ``before``, ``after``, and ``elapsed`` are optional: not every real testimonial
+    states a clean role transition or an elapsed time, and the template must not
+    invent one. When ``before``/``after`` are absent the transition chip pair is
+    skipped entirely (never a lone "after" chip); when ``elapsed`` is absent the
+    elapsed pill is skipped.
+    """
+
     quote: str
     name: str
     context: str
-    elapsed: str
+    before: str | None = None
+    after: str | None = None
+    elapsed: str | None = None
 
 
-# PLACEHOLDER COPY.  These three quotes come from the #179 mockup, not from named members
-# who have agreed to be quoted.  Replace them with real, attributable stories (or drop the
-# entries, which hides the section) before this page is served from datatalks.club.
+# REAL, SOURCED TESTIMONIALS (issue #179).  These three quotes are taken verbatim from
+# public posts by named members (e.g. LinkedIn) and independently verified via direct
+# link, replacing the earlier mockup placeholder copy.  None of them states a
+# before/after role transition or an elapsed time, so those fields are intentionally
+# left unset rather than invented — see MemberStory above for how the template handles
+# that.
+#
+# IMPORTANT: these individuals have NOT been contacted for homepage-specific consent.
+# They posted this content publicly elsewhere, but that is not the same as agreeing to
+# be quoted on datatalks.club's homepage. Do not ship this to production until that
+# consent step happens.
 MEMBER_STORIES: tuple[MemberStory, ...] = (
     MemberStory(
-        before="QA analyst",
-        after="Data engineer",
-        quote=(
-            "I finished the pipeline homework, put it on GitHub, and used it as my whole "
-            "portfolio. Three interviews later I had the job — and my current stack is the "
-            "one from the course."
-        ),
-        name="Tolu A.",
-        context="Lagos · DE Zoomcamp",
-        elapsed="11 months",
+        quote="The DE zoom camp gave me skills that helped me land my first tech job.",
+        name="Tim Claytor",
+        context="DE Zoomcamp",
     ),
     MemberStory(
-        before="Excel reports",
-        after="ML in prod",
         quote=(
-            "Deploying a model terrified me. The MLOps homework made me do it eight times, "
-            "and the Slack caught every mistake before my team ever saw it."
+            "This course gave me hands-on experience in building LLM-powered applications, "
+            "including prompt engineering, retrieval-augmented generation (RAG), pipeline "
+            "orchestration, and vector search optimization."
         ),
-        name="Marta S.",
-        context="Kraków · MLOps Zoomcamp",
-        elapsed="7 months",
+        name="Alexander Daniel Rios",
+        context="Argentina · LLM Zoomcamp",
     ),
     MemberStory(
-        before="Backend dev",
-        after="Shipping agents",
         quote=(
-            "I built an agent that survives restarts, and now I run the AI features at my "
-            "company. Two years ago I was the person asking what RAG meant."
+            "No other course I've taken or explored took such a comprehensive approach to "
+            "what it means to develop ML models, all while maintaining a level of "
+            "accessibility that opens the doors to folks from all different backgrounds."
         ),
-        name="Nikhil R.",
-        context="Bengaluru · LLM Zoomcamp",
-        elapsed="2 years",
+        name="Zachary Keller",
+        context="ML Zoomcamp",
     ),
 )
 

@@ -800,11 +800,13 @@
             <div class="card-grid card-grid-3">
               {% for story in member_stories %}
                 <figure class="card">
-                  <div class="story-transition">
-                    <span class="chip chip-plain">{{ story.before }}</span>
-                    <span aria-hidden="true">→</span>
-                    <span class="chip chip-plain chip-green">{{ story.after }}</span>
-                  </div>
+                  {% if story.before and story.after %}
+                    <div class="story-transition">
+                      <span class="chip chip-plain">{{ story.before }}</span>
+                      <span aria-hidden="true">→</span>
+                      <span class="chip chip-plain chip-green">{{ story.after }}</span>
+                    </div>
+                  {% endif %}
                   <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
                   <figcaption class="story-person">
                     <span class="story-identity">
@@ -814,7 +816,9 @@
                         <span class="story-context">{{ story.context }}</span>
                       </span>
                     </span>
-                    <span class="story-elapsed">{{ story.elapsed }}</span>
+                    {% if story.elapsed %}
+                      <span class="story-elapsed">{{ story.elapsed }}</span>
+                    {% endif %}
                   </figcaption>
                 </figure>
               {% endfor %}
