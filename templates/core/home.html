@@ -891,8 +891,38 @@
                 <h2 id="stories-heading">People who were exactly where you are</h2>
                 <p>Same courses, same Slack, no shortcuts. Here's what changed and how long it took.</p>
               </div>
+              <div class="scroller-controls">
+                <button
+                  class="scroller-button"
+                  type="button"
+                  data-scroll="-1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories left"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 5l-7 7 7 7"/>
+                  </svg>
+                </button>
+                <button
+                  class="scroller-button"
+                  type="button"
+                  data-scroll="1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories right"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
+              </div>
             </div>
-            <div class="card-grid card-grid-3">
+            <div
+              class="stories-scroller"
+              id="stories-scroller"
+              role="group"
+              aria-label="Member stories"
+              tabindex="0"
+            >
               {% for story in member_stories %}
                 <figure class="card">
                   {% if story.before and story.after %}
@@ -990,6 +1020,7 @@
                 class="scroller-button"
                 type="button"
                 data-scroll="-1"
+                data-scroll-target="catalog-scroller"
                 aria-label="Scroll catalogue left"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1000,6 +1031,7 @@
                 class="scroller-button"
                 type="button"
                 data-scroll="1"
+                data-scroll-target="catalog-scroller"
                 aria-label="Scroll catalogue right"
               >
                 <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -1297,15 +1329,18 @@
     <script src="{% static 'core/home_graph.js' %}"></script>
     <script>
       (function () {
-        var scroller = document.getElementById('catalog-scroller');
-        if (!scroller) {
-          return;
-        }
+        // Both horizontal strips (the course catalogue and member stories) share
+        // this one handler: each button names its own scroller by id, so a new
+        // carousel only has to reuse the markup, not add a new script.
         Array.prototype.forEach.call(
           document.querySelectorAll('[data-scroll]'),
           function (button) {
+            var scroller = document.getElementById(button.getAttribute('data-scroll-target'));
+            if (!scroller) {
+              return;
+            }
             button.addEventListener('click', function () {
-              var card = scroller.querySelector('.course-card');
+              var card = scroller.firstElementChild;
               var step = card ? card.getBoundingClientRect().width + 20 : 320;
               var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
               scroller.scrollBy({

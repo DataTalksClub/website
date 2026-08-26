@@ -111,11 +111,14 @@ Rules for editing:
            read on the lavender band of a light page and on the navy of a dark
            one, and this pale periwinkle is what the homepage has always drawn. */
         --graph-edge: #b9bfd8;
-        /* The wiki graph's podcast-type node fill.  Aliases --gold in light
-           mode, but --gold is deliberately pinned to the same flat value in
-           both themes for the small RSS platform dot it otherwise serves --
-           this node's own label text uses --ink, which does flip per theme,
-           so it needs its own token to keep 4.5:1 contrast in dark mode. */
+        /* The podcast-type ring node's fill (home.html's
+           .graph-svg-type-podcast).  Aliases --gold in light mode, but gets
+           its own dark-mode value below: --gold is deliberately held flat
+           across themes for the RSS platform dot, which carries no text of
+           its own (design-5a.md).  A ring node does — `.graph-svg-node text`
+           always inks itself with --ink, which flips to a near-white in dark
+           mode — so pairing that text with --gold's still-light dark-mode
+           value read as a washed-out, unreadable pill. */
         --graph-podcast: var(--gold);
         /* Syntax roles are semantic rather than language-specific.  The
            highlighter uses these names for Python, shell, SQL, YAML, JSON,
@@ -180,17 +183,17 @@ Rules for editing:
            extended-token table of _docs/design/design-5a.md.  Without them a
            status pill kept its light surface while its text flipped to the dark
            ink, which is unreadable; --clay and --gold hold in both themes. */
-        /* --gold stays flat across themes for the RSS platform dot, so the
-           podcast graph node needs its own dark value: a dark, desaturated
-           amber in the same hue family, giving 7.1:1 contrast against dark
-           mode's --ink label text (see the --graph-podcast aliases above). */
-        --graph-podcast: #5c4b26;
         --lavender-deep: #2d3565;
         --sand: #2a2740;
         --olive: #cbb98a;
         --green-ship: #93c7a5;
         --bubble: #3c4372;
         --on-bubble: #e8e5dd;
+        /* A dark, desaturated take on the light-mode gold (#e2c67a) that
+           --graph-podcast aliases above — same amber hue, low enough
+           lightness that the node text (--ink, near-white here) clears AA
+           (7.1:1) instead of the 1.4:1 a flat --gold gave it. */
+        --graph-podcast: #5c4b26;
         --code-comment: #a4a9bd;
         --code-keyword: #c4b5fd;
         --code-string: #9bd3ac;
@@ -1365,6 +1368,37 @@ Rules for editing:
         .scroller-button {
           transition: none;
         }
+      }
+
+      /* --- member stories scroller ---------------------------------------- */
+
+      /* The "people who were exactly where you are" strip reuses the catalogue
+         scroller's shape -- grid-auto-flow column, scroll-snap, a hidden native
+         scrollbar, and the shared `.scroller-button`/`.scroller-controls` arrows
+         -- rather than a second bespoke carousel. It differs only in its column
+         math: the cards read one-up on narrow and tablet screens (the same
+         density `.card-grid-3` showed before 62rem) and three-up at 62rem and
+         wider (the same density `.card-grid-3` showed there), so converting the
+         static grid to a carousel does not change how many cards are visible at
+         a glance, only how the rest are reached. */
+      .stories-scroller {
+        display: grid;
+        gap: 1.25rem;
+        grid-auto-columns: 100%;
+        grid-auto-flow: column;
+        overflow-x: auto;
+        padding: 0.4rem 0.4rem 0.6rem;
+        margin-inline: -0.4rem;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+      }
+
+      .stories-scroller::-webkit-scrollbar {
+        display: none;
+      }
+
+      .stories-scroller > * {
+        scroll-snap-align: start;
       }
 
       /* --- announcement / impersonation --------------------------------- */
@@ -3347,6 +3381,11 @@ Rules for editing:
         .catalog-scroller {
           grid-auto-columns: minmax(min(17rem, 82%), 1fr);
         }
+
+        /* Member stories get the same peek treatment as the catalogue. */
+        .stories-scroller {
+          grid-auto-columns: minmax(min(17rem, 82%), 1fr);
+        }
       }
 
       @media (min-width: 40rem) {
@@ -3366,6 +3405,12 @@ Rules for editing:
 
         .card-grid-3 {
           grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        /* Member stories show three cards at a time here, the same density
+           `.card-grid-3` showed as a static grid before the carousel. */
+        .stories-scroller {
+          grid-auto-columns: calc((100% - 2 * 1.25rem) / 3);
         }
       }
 

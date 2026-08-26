@@ -428,6 +428,113 @@ class MainHomepageRoutingTests(TestCase):
                 self.assertNotContains(response, 'rel="canonical"', status_code=404)
 
 
+class MemberStoriesCarouselTests(TestCase):
+    """The "people who were exactly where you are" band is a carousel of six.
+
+    Six real, sourced testimonials alternate man/woman; the section reuses the
+    catalogue's `.scroller-button`/`.scroller-controls` carousel shape instead of
+    a second bespoke pattern (see `.stories-scroller` in `_design_system.html`).
+    """
+
+    # The alternation the site owner asked for: man, woman, man, woman, man, woman.
+    EXPECTED_NAME_ORDER = (
+        "Tim Claytor",
+        "Nevenka Lukic",
+        "Alexander Daniel Rios",
+        "Jocelyn Dumlao",
+        "Zachary Keller",
+        "Hanaa Hammad",
+    )
+
+    def test_all_six_stories_render_in_the_alternating_order(self) -> None:
+        from core.home_content import MEMBER_STORIES
+
+        self.assertEqual(
+            tuple(story.name for story in MEMBER_STORIES),
+            self.EXPECTED_NAME_ORDER,
+        )
+
+        response = self.client.get(reverse("home"))
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+
+        positions = [body.index(name) for name in self.EXPECTED_NAME_ORDER]
+        self.assertEqual(positions, sorted(positions))
+
+        self.assertEqual(
+            len(re.findall(r'<figure class="card">', body)),
+            len(self.EXPECTED_NAME_ORDER),
+        )
+
+    def test_stories_render_inside_the_carousel_container_not_a_static_grid(self) -> None:
+        response = self.client.get(reverse("home"))
+        body = response.content.decode()
+
+        heading_index = body.index('id="stories-heading"')
+        section = body[heading_index : body.index("</section>", heading_index)]
+
+        self.assertIn('class="stories-scroller"', section)
+        self.assertIn('id="stories-scroller"', section)
+        self.assertIn('role="group"', section)
+        self.assertIn('aria-label="Member stories"', section)
+        self.assertIn('tabindex="0"', section)
+        # The static three-up grid is gone from this section; only the climb
+        # explainer above it still uses the plain card-grid.
+        self.assertNotIn('class="card-grid card-grid-3"', section)
+
+    def test_carousel_controls_target_the_stories_scroller_and_reuse_the_shared_button(
+        self,
+    ) -> None:
+        response = self.client.get(reverse("home"))
+        body = response.content.decode()
+
+        for label in ("Scroll member stories left", "Scroll member stories right"):
+            with self.subTest(label=label):
+                self.assertIn(f'aria-label="{label}"', body)
+
+        self.assertIn('data-scroll-target="stories-scroller"', body)
+        self.assertEqual(
+            body.count('data-scroll-target="stories-scroller"'),
+            2,
+        )
+        # The controls reuse the exact same button/arrow markup the catalogue
+        # scroller already uses, rather than a second bespoke control.
+        self.assertIn('data-scroll-target="catalog-scroller"', body)
+
+    def test_a_story_without_a_photo_falls_back_to_the_decorative_avatar(self) -> None:
+        from core.home_content import MemberStory
+
+        synthetic_stories = (
+            MemberStory(
+                quote="Real quote from a member with a photo.",
+                name="Has Photo",
+                context="Role · City",
+                photo_static_path="core/testimonials/tim-claytor.jpg",
+            ),
+            MemberStory(
+                quote="Real quote from a member without a photo yet.",
+                name="No Photo Yet",
+                context="Role · City",
+            ),
+        )
+
+        with mock.patch("core.views.MEMBER_STORIES", synthetic_stories):
+            response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+
+        with_photo = body[body.index("Has Photo") - 600 : body.index("Has Photo")]
+        without_photo = body[body.index("No Photo Yet") - 600 : body.index("No Photo Yet")]
+
+        self.assertIn(
+            '<img class="avatar" src="/static/core/testimonials/tim-claytor.jpg"',
+            with_photo,
+        )
+        self.assertNotIn('<img class="avatar"', without_photo)
+        self.assertIn('<span class="avatar" aria-hidden="true"></span>', without_photo)
+
+
 class HomepageWikiGraphTests(TestCase):
     """The wiki-graph section draws real data as one scalable SVG per width."""
 
