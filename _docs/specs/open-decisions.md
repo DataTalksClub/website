@@ -184,7 +184,7 @@ indexing details. Retire the separate Podwiki search Lambda only after relevance
 ## 14. Development network cost (resolved by #25)
 
 Resolved: dedicated two-AZ VPC, public ALB, tightly restricted public-IP ECS tasks (ingress only
-from the ALB security group), isolated private RDS (PostgreSQL ingress only from the task security
+from the ALB security group), isolated private RDS PostgreSQL (ingress only from the task security
 group), and no NAT gateway in development — avoiding the ~$65+/month baseline NAT Gateway cost for
 an environment that isn't serving real traffic, without weakening task/database isolation.
 Production retains private-task plus NAT/VPC-endpoint options. A NAT-backed sandbox remains
