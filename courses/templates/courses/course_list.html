@@ -265,10 +265,12 @@
       .course-row-length {
         color: var(--muted);
         font-size: 0.82rem;
+        margin-top: 0.15rem;
       }
 
       .course-row-description {
         font-size: 0.9rem;
+        margin-top: 0.3rem;
       }
 
       .course-row-actions {
@@ -478,14 +480,17 @@
                 <div class="row-list">
                   {% for card in group.courses %}
                       {% comment %}
-                        The last two columns are `auto` rather than fractions: at
-                        reading width four fixed shares left the titles wrapping to
-                        three lines beside an actions column that is empty for every
-                        course without a public repository.
+                        The title column gets the row's whole flexible share
+                        and carries the outcome line under it: giving the
+                        (usually empty) outcome its own fixed 1.4fr column left
+                        the title wrapping one word per line at reading width,
+                        beside a status pill and actions column that stayed
+                        the same size whether or not there was outcome copy to
+                        balance against.
                       {% endcomment %}
                       {% url 'course_family' card.family.slug as family_url %}
                       {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
-                      <div class="list-row" style="--row-cols: 1.6fr 1.4fr auto auto">
+                      <div class="list-row" style="--row-cols: minmax(0, 1fr) auto auto">
                         <div>
                           <h4 class="course-row-title">
                             <a href="{{ edition_url }}">{{ card.title }}</a>
@@ -493,8 +498,10 @@
                           {% if card.cohort.index_length %}
                             <p class="course-row-length">{{ card.cohort.index_length }}</p>
                           {% endif %}
+                          {% if card.outcome %}
+                            <p class="course-row-description">{{ card.outcome }}</p>
+                          {% endif %}
                         </div>
-                        <p class="course-row-description">{{ card.outcome }}</p>
                         <div>
                           {% if card.cohort.is_enrolled %}
                             <span class="status-pill">enrolled</span>
