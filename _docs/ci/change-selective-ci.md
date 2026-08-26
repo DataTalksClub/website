@@ -7,9 +7,12 @@ engineering, push CI, scheduled-state calculation, tester review, and handoff re
 
 The accepted #104 source contract remains the first stage. A push is classified from the complete
 `before..after` range using a full-history, rename/copy-aware, NUL-delimited Git diff. The immutable
-release SHA must equal the push `after` SHA and `github.sha`. Manual non-probe releases remain full;
-probe jobs remain separate. Invalid SHAs, missing trees, unsupported records, and ambiguous ranges
-fail closed.
+release SHA must equal the push `after` SHA and `github.sha`. A `workflow_dispatch` promote of a
+reachable main SHA classifies the exact first parent of that SHA the same way; rollback/probe
+dispatch and a missing parent stay `manual_dispatch` full. Invalid SHAs, missing trees, unsupported
+records, and ambiguous ranges fail closed. Release CI aims for about five minutes of wall-clock
+time on ordinary changes. The four-hour scheduled full regression and live deployed smoke stay off
+that critical path.
 
 ## Ownership and impact closure
 
@@ -68,7 +71,9 @@ and screenshot-harness changes are render impact. They select the appropriate br
 independent desktop/mobile screenshots. Critical route/state coverage is derived from the impacted
 graph nodes; an unmapped render impact fails closed to every critical route/state. Backend-only
 changes use the smoke browser profile. Ordinary render-impact changes use the core browser profile;
-template and browser-harness changes use the full browser profile. A large value-only content change
+template and browser-harness changes use the full browser profile. An empty committed range
+(`diff_empty`) or leftover `manual_dispatch` forces full Playwright only when impact has no
+owners; local worktree plans keep smoke or core from known owners and render. A large value-only content change
 is verified with exhaustive
 deterministic artifacts binding record counts, stable identities and order, canonical URL order,
 uniqueness, metadata completeness, and file digests; it does not get a probabilistic sample.
@@ -87,7 +92,7 @@ safety net.
 | Reason | Cause | Remedy |
 | --- | --- | --- |
 | `single_application` | Every changed path maps to exactly one root in the graph-derived `APPLICATION_TEST_LABELS`, and no full-run guard applies. | Keep that application's reviewed closure complete. Focused Django tests are selected with the profile-appropriate browser checks. |
-| `manual_dispatch` | A `workflow_dispatch` run has no trusted push base and is deliberately full. | Use a push for ordinary change selection; keep manual runs full. |
+| `manual_dispatch` | Rollback/probe dispatch, or a promote whose first parent cannot be proven. | `operation=promote` of a reachable main SHA classifies `release_sha^1..release_sha` instead of this full fallback. |
 | `head_invalid` | The event is neither `push` nor `workflow_dispatch`, or the release SHA is malformed or zero. | Supply the exact 40-character release commit and a supported event; do not guess a head. |
 | `head_mismatch` | The release SHA, push `after`, and `github.sha` do not agree. | Reconcile the immutable release identity and rerun against that exact SHA. |
 | `base_zero` | The push has no parent, such as the first commit on a branch. | No narrowing is safe; use the full run. |
@@ -96,7 +101,7 @@ safety net.
 | `base_unavailable` | The base commit is unavailable, or Git cannot evaluate the ancestry query. | Fetch the complete base and history; do not classify a partial checkout. |
 | `non_ancestor_base` | The base is not an ancestor of the release commit. | Use the correct push base; a guessed or unrelated base requires full verification. |
 | `diff_failed` | The canonical Git diff command failed. | Repair the repository/object state and rerun the canonical diff; do not substitute a filename list. |
-| `diff_empty` | The canonical range contains no records. | Treat it as full and investigate the event/range if a change was expected. |
+| `diff_empty` | The canonical range contains no records. | Treat Django and control-plane components as full and investigate the event/range if a change was expected. Local worktree plans still choose the browser tier from known owners; empty owners remain full Playwright. |
 | `unsupported_status` | The name-status stream contains a change kind outside the supported ordinary/add/modify/delete/rename/copy parser rule. | Review the change and extend the parser rule before narrowing it. |
 | `diff_unparseable` | The NUL-delimited name-status stream is malformed. | Recreate the canonical full-history diff and fix the producer or checkout; keep the full fallback. |
 | `unsupported_file_mode` | A changed path has a non-ordinary mode, or tree-mode inspection failed. | Resolve the special-file/symlink/mode issue and review it as full coverage. |

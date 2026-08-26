@@ -74,6 +74,42 @@ def test_manual_dispatch_never_guesses_a_base(tmp_path: Path) -> None:
     assert result["base"] is None
 
 
+def test_rollback_dispatch_stays_full_without_a_base(tmp_path: Path) -> None:
+    repo, head = repository(tmp_path)
+    result = classify_git_change(
+        repository=repo,
+        event="workflow_dispatch",
+        base="",
+        after="",
+        github_sha=head,
+        release_sha=head,
+        dispatch_operation="rollback",
+    )
+    assert result["profile"] == "full"
+    assert result["reason"] == "manual_dispatch"
+    assert result["base"] is None
+
+
+def test_promote_dispatch_classifies_the_first_parent_range(tmp_path: Path) -> None:
+    repo, base = repository(tmp_path)
+    (repo / "api" / "module.py").write_text("BASE = False\n", encoding="utf-8")
+    head = commit(repo, "head")
+    result = classify_git_change(
+        repository=repo,
+        event="workflow_dispatch",
+        base="",
+        after="",
+        github_sha="c" * 40,
+        release_sha=head,
+        dispatch_operation="promote",
+    )
+    assert result["profile"] == "focused"
+    assert result["reason"] == "single_application"
+    assert result["base"] == base
+    assert result["head"] == head
+    assert result["event"] == "workflow_dispatch"
+
+
 def test_unsafe_push_sources_fail_safe_with_stable_reasons(tmp_path: Path) -> None:
     repo, head = repository(tmp_path)
     cases = [

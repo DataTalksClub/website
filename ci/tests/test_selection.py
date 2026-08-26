@@ -205,10 +205,18 @@ def test_schema_rejects_focused_manual_or_focused_reason_on_full() -> None:
     focused = classify_records(
         (ChangeRecord("M", ("api/a.py",)),), event="push", base=BASE, head=HEAD
     )
-    with pytest.raises(ValueError):
-        validate_selection({**focused, "event": "workflow_dispatch"})
+    validate_selection({**focused, "event": "workflow_dispatch"})
     with pytest.raises(ValueError):
         validate_selection({**focused, "profile": "full", "test_labels": []})
+    with pytest.raises(ValueError):
+        validate_selection(
+            full_selection(
+                event="workflow_dispatch",
+                base=BASE,
+                head=HEAD,
+                reason="manual_dispatch",
+            )
+        )
 
 
 def test_json_and_summary_are_deterministic_and_do_not_include_filenames(tmp_path: Path) -> None:

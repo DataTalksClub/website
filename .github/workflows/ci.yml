@@ -366,6 +366,7 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_BEFORE: ${{ github.event.before }}
           EVENT_AFTER: ${{ github.event.after }}
+          INPUT_OPERATION: ${{ inputs.operation }}
           RELEASE_SHA: ${{ needs.resolve-release.outputs.release_sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -380,6 +381,7 @@ jobs:
             --after "$EVENT_AFTER" \
             --github-sha "$GITHUB_SHA" \
             --release-sha "$RELEASE_SHA" \
+            --dispatch-operation "${INPUT_OPERATION:-}" \
             --run-id "$RUN_ID" \
             --created-attempt "$RUN_ATTEMPT" \
             --controller-sha "$CONTROLLER_SHA" \
@@ -457,6 +459,9 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.operation != 'probe'
     needs: [resolve-release, classification]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
     # The versioned quality contract normally completes in under two minutes;
     # retain setup and evidence-recording headroom without an unbounded queue.
     timeout-minutes: 15
@@ -491,6 +496,11 @@ jobs:
           uv run --frozen python -m ci.quality_contract \
             --repository ../release-source 2>&1 | \
             tee .tmp/components-quality/quality-output.log
+      - name: Cancel remaining release jobs after a quality failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run cancel --repo "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
       - name: Run CI orchestration contract tests from the workflow controller
         working-directory: .tmp/ci-controller
         run: |
@@ -599,7 +609,9 @@ jobs:
           name: ci-selection-${{ github.run_id }}-attempt-${{ github.run_attempt }}
           path: .tmp/ci-controller/.tmp/verification-input
       - run: uv sync --locked
+        if: needs.classification.outputs.django_mode == 'rerun'
       - run: uv lock --check
+        if: needs.classification.outputs.django_mode == 'rerun'
       - name: Restore the reviewed CI selection
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -670,6 +682,7 @@ jobs:
           uv run --frozen python -m ci.classifier validate
           --input ../release-source/.tmp/ci-selection/resolved/ci-selection.json
       - name: Run the selected or complete Django suite
+        if: needs.classification.outputs.django_mode == 'rerun'
         env:
           CI_SELECTION_PATH: .tmp/ci-selection/resolved/ci-selection.json
           SELECTED_PROFILE: ${{ needs.classification.outputs.profile }}
@@ -692,7 +705,10 @@ jobs:
               ;;
           esac
       - name: Record Django evidence with the job's actual environment
-        if: always() && needs.classification.result == 'success'
+        if: >-
+          always() &&
+          needs.classification.result == 'success' &&
+          needs.classification.outputs.django_mode == 'rerun'
         working-directory: .tmp/ci-controller
         env:
           JOB_STATUS: ${{ job.status }}

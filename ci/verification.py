@@ -1496,15 +1496,17 @@ def _profile(selection: Mapping[str, Any], impact: Impact) -> tuple[bool, str]:
 def _browser_profile(selection: Mapping[str, Any], impact: Impact) -> str:
     """Choose the smallest browser tier that covers the changed surface."""
 
+    unknown_range = (
+        selection.get("profile") == "full"
+        and selection.get("reason") in {"diff_empty", "manual_dispatch"}
+        and not impact.owners
+    )
     if (
         {"surface.playwright", "surface.test_support"}.intersection(impact.owners)
         or "segment:templates" in impact.render_reasons
         or "surface.templates" in impact.owners
         or "surface.course_platform_templates" in impact.owners
-        or (
-            selection.get("profile") == "full"
-            and selection.get("reason") in {"diff_empty", "manual_dispatch"}
-        )
+        or unknown_range
     ):
         return "full"
     if impact.render_impact:
