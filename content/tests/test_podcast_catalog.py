@@ -432,6 +432,126 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn("list-manage.com", body)
         self.assertNotIn(record["transcript_provenance"]["source_url"], body)
 
+    def test_hero_leads_with_guest_identity_and_the_standfirst_description(self) -> None:
+        # Issue #234: the live production page leads with the guest's identity
+        # and the episode standfirst before anything else. This page keeps the
+        # h1 title-only (so the JSON-LD `name` above stays clean) and instead
+        # surfaces the guest chip and the description inside the cream hero,
+        # ahead of the player/platform band — not duplicated in both places.
+        projection, record = self.representative()
+        view = episode_view(record, people_by_slug=projection["people_by_slug"])
+        response = self.client.get(record["public_path"])
+        body = response.content.decode()
+
+        hero_start = body.find('class="band band-cream episode-hero"')
+        about_start = body.find('class="band band-lavender episode-read"')
+        self.assertNotEqual(hero_start, -1)
+        self.assertNotEqual(about_start, -1)
+        about_end = body.find("<section", about_start + 1)
+        self.assertNotEqual(about_end, -1)
+        hero_html = body[hero_start:about_start]
+        about_html = body[about_start:about_end]
+
+        self.assertIn(escape(view.guests[0].name), hero_html)
+        self.assertIn(escape(view.description), hero_html)
+        self.assertNotIn(escape(view.guests[0].name), about_html)
+        self.assertNotIn(escape(view.description), about_html)
+
+    def test_about_band_names_the_listening_platforms_with_a_real_heading(self) -> None:
+        _, record = self.representative()
+        response = self.client.get(record["public_path"])
+
+        self.assertContains(response, "Listen to or watch on your favorite platform")
+        self.assertContains(response, 'id="platform-links-heading"')
+        self.assertContains(response, 'aria-labelledby="platform-links-heading"')
+
+    def test_reading_sections_render_without_baked_in_tab_roles_or_hidden_panels(self) -> None:
+        # The tabs are progressive enhancement applied by client-side script: the
+        # server-rendered page must never bake in ARIA tab roles or a `hidden`
+        # panel, or a visitor without JavaScript loses reachable content.
+        _, record = self.representative()
+        response = self.client.get(record["public_path"])
+        body = response.content.decode()
+
+        self.assertNotIn('role="tablist"', body)
+        self.assertNotIn('role="tab"', body)
+        self.assertNotIn('role="tabpanel"', body)
+        for section_id in ("show-notes", "timestamps", "transcript"):
+            match = re.search(rf'<section id="{section_id}"[^>]*>', body)
+            self.assertIsNotNone(match)
+            assert match is not None
+            self.assertNotIn("hidden", match.group(0))
+
+    def test_previous_and_next_episode_cards_show_their_season_and_episode(self) -> None:
+        projection, record = self.representative()
+        previous_episode, next_episode, _ = episode_navigation(
+            record, projection["podcasts"], people_by_slug=projection["people_by_slug"]
+        )
+        response = self.client.get(record["public_path"])
+        body = response.content.decode()
+
+        if previous_episode is not None:
+            self.assertIn(previous_episode.season_episode, body)
+        if next_episode is not None:
+            self.assertIn(next_episode.season_episode, body)
+
+    def test_related_episode_cards_show_the_guest_instead_of_the_description(self) -> None:
+        projection, record = self.representative()
+        _, _, related_episodes = episode_navigation(
+            record, projection["podcasts"], people_by_slug=projection["people_by_slug"]
+        )
+        self.assertTrue(related_episodes)
+        response = self.client.get(record["public_path"])
+        body = response.content.decode()
+
+        related_start = body.find('id="related-episodes-heading"')
+        self.assertNotEqual(related_start, -1)
+        related_html = body[related_start:]
+        for related in related_episodes:
+            if related.guest_names:
+                self.assertIn(escape(related.guest_names), related_html)
+            self.assertNotIn(escape(related.description), related_html)
+
+    def test_a_player_present_episode_renders_no_redundant_artwork_figure(self) -> None:
+        _, record = self.representative()
+        response = self.client.get(record["public_path"])
+        body = response.content.decode()
+
+        self.assertNotIn('class="episode-artwork"', body)
+        self.assertNotIn("episode-artwork-missing", body)
+
+    def test_a_no_player_episode_keeps_its_only_artwork_in_the_fallback(self) -> None:
+        # No catalogue record lacks a player today (verified against the full
+        # projection), so this exercises the documented no-player state with a
+        # synthetic record, the same way the Spotify-creator test above does.
+        projection, record = self.representative()
+        synthetic = {
+            **record,
+            "slug": "synthetic-no-player-episode",
+            "public_path": "/podcast/synthetic-no-player-episode.html",
+            "video": None,
+            "links": {},
+        }
+        synthetic_projection = {
+            **projection,
+            "podcasts": (synthetic,),
+            "podcasts_by_slug": {synthetic["slug"]: synthetic},
+        }
+        view = episode_view(synthetic, people_by_slug=projection["people_by_slug"])
+        self.assertIsNone(view.player)
+
+        with patch("content.public_views.public_projection", return_value=synthetic_projection):
+            response = self.client.get(synthetic["public_path"])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="player-frame episode-player episode-fallback"')
+        # The fallback's own artwork partial is the page's only artwork for a
+        # no-player episode: either the real image or its named-missing state.
+        body = response.content.decode()
+        self.assertTrue(
+            'class="player-art"' in body or 'class="player-art-missing mono-note"' in body
+        )
+
     def test_episode_page_omits_unsafe_guest_paths_but_keeps_root_relative_links(self) -> None:
         projection, record = self.representative()
         safe_path = "/people/aleksandrkim.html"
@@ -633,7 +753,9 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)
 
-    def test_valid_video_without_artwork_keeps_a_text_fallback_and_no_social_image(self) -> None:
+    def test_valid_video_without_artwork_omits_the_redundant_artwork_and_social_image(
+        self,
+    ) -> None:
         projection, record = self.representative()
         synthetic = {
             **record,
@@ -658,7 +780,9 @@ class PodcastEpisodeParityTests(TestCase):
         body = response.content.decode()
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'id="podcast-video-player"')
-        self.assertContains(response, "Artwork unavailable.")
+        # The player already fills the visual slot artwork would take, so a
+        # video-present episode with no image shows no separate artwork note.
+        self.assertNotIn("Artwork unavailable.", body)
         self.assertNotIn('property="og:image"', body)
         self.assertNotIn('name="twitter:image"', body)
 
@@ -1110,7 +1234,9 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertContains(response, 'class="player-frame episode-player episode-video"')
         self.assertContains(response, f'data-video-id="{episode["video"]["id"]}"')
         self.assertContains(response, f'href="{episode["links"]["youtube"]}"')
-        self.assertContains(response, f'src="{episode["image_path"]}"')
+        # The player fills the artwork's visual slot, so a video-present episode
+        # renders no separate artwork image alongside it.
+        self.assertNotContains(response, f'src="{episode["image_path"]}"')
         for platform, label in (
             ("apple", "Apple Podcasts"),
             ("spotify", "Spotify"),

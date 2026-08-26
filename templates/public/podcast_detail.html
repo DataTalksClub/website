@@ -203,23 +203,6 @@
         margin: 0;
       }
 
-      .episode-artwork {
-        margin-top: 1rem;
-      }
-
-      .episode-artwork img {
-        border: 2px solid var(--line);
-        border-radius: 0.8rem;
-        display: block;
-        max-height: 18rem;
-        object-fit: cover;
-        width: 100%;
-      }
-
-      .episode-artwork-missing {
-        margin-top: 1rem;
-      }
-
       .player-art {
         height: 100%;
         inset: 0;
@@ -255,11 +238,18 @@
         margin-top: 1.5rem;
       }
 
+      .episode-listen {
+        margin-top: 1.5rem;
+      }
+
+      .episode-listen h2 {
+        margin: 0 0 0.6rem;
+      }
+
       .listen-row {
         display: flex;
         flex-wrap: wrap;
         gap: 0.5rem;
-        margin-top: 1.5rem;
       }
 
       .listen-row .pill-button,
@@ -279,15 +269,32 @@
       }
 
       .episode-tab {
+        border-bottom: 3px solid transparent;
+        color: var(--muted);
         display: inline-flex;
         min-height: 2.75rem;
         align-items: center;
         font-weight: 800;
         padding: 0.35rem 0;
+        text-decoration: none;
+      }
+
+      /* Set by the tab script only: without it every link keeps its plain,
+         always-visible fallback appearance. */
+      .episode-tab[aria-selected="true"] {
+        border-bottom-color: var(--ink);
+        color: var(--ink);
       }
 
       .episode-section {
         scroll-margin-top: 1.5rem;
+      }
+
+      /* The script hides every panel but the active one with the `hidden`
+         attribute; without JavaScript no panel ever gets it, so all three stay
+         stacked and reachable exactly as the anchor links describe them. */
+      .episode-section[hidden] {
+        display: none;
       }
 
       .episode-resource-list {
@@ -521,6 +528,13 @@
             <span class="status-pill status-pill-mint">{{ episode.season_episode }}</span>
           </p>
           <h1 id="episode-heading">{{ episode.title }}</h1>
+          {% for guest in episode.guests %}
+            <div class="guest-row person-chip-lead">
+              {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" only %}
+              <p class="mono-label">guest</p>
+            </div>
+          {% endfor %}
+          <p class="episode-description">{{ episode.description }}</p>
         </div>
       </section>
 
@@ -583,38 +597,25 @@
               </div>
             </div>
           {% endif %}
-          {% if episode.player and episode.media_available %}
-            <figure class="episode-artwork">
-              <img
-                src="{{ episode.image_path }}"
-                alt="Artwork for {{ episode.title }}"
-                decoding="async"
-              >
-            </figure>
-          {% elif episode.player %}
-            <p class="mono-note episode-artwork-missing">Artwork unavailable.</p>
-          {% endif %}
-          {% for guest in episode.guests %}
-            <div class="guest-row person-chip-lead">
-              {% include "public/_person_chip.html" with person=guest|person_chip chip_loading="eager" only %}
-              <p class="mono-label">guest</p>
-            </div>
-          {% endfor %}
-          <p class="episode-description">{{ episode.description }}</p>
           {% if episode.platform_links %}
-            <div class="listen-row" role="group" aria-label="Listen or watch this episode">
-              {% for link in episode.platform_links %}
-                <a
-                  class="pill-button"
-                  href="{{ link.url }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <span class="dot {{ link.dot }}" aria-hidden="true"></span>
-                  {{ link.label }}
-                  <span class="sr-only"> (opens in a new tab)</span>
-                </a>
-              {% endfor %}
+            <div class="episode-listen">
+              <h2 id="platform-links-heading" class="mono-label">
+                Listen to or watch on your favorite platform
+              </h2>
+              <div class="listen-row" role="group" aria-labelledby="platform-links-heading">
+                {% for link in episode.platform_links %}
+                  <a
+                    class="pill-button"
+                    href="{{ link.url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <span class="dot {{ link.dot }}" aria-hidden="true"></span>
+                    {{ link.label }}
+                    <span class="sr-only"> (opens in a new tab)</span>
+                  </a>
+                {% endfor %}
+              </div>
             </div>
           {% endif %}
           {% if episode.published %}
@@ -803,12 +804,14 @@
                 <a href="{{ previous_episode.public_path }}" class="previous-episode">
                   <span class="mono-label">← Previous episode</span>
                   <strong>{{ previous_episode.title }}</strong>
+                  <span class="mono-note">{{ previous_episode.season_episode }}</span>
                 </a>
               {% endif %}
               {% if next_episode %}
                 <a href="{{ next_episode.public_path }}" class="next-episode">
                   <span class="mono-label">Next episode →</span>
                   <strong>{{ next_episode.title }}</strong>
+                  <span class="mono-note">{{ next_episode.season_episode }}</span>
                 </a>
               {% endif %}
             </nav>
@@ -843,7 +846,9 @@
                   <h3>
                     <a href="{{ related.public_path }}">{{ related.title }}</a>
                   </h3>
-                  <p>{{ related.description }}</p>
+                  {% if related.guest_names %}
+                    <p>{{ related.guest_names }}</p>
+                  {% endif %}
                 </article>
               {% endfor %}
             </div>
@@ -893,6 +898,77 @@
             link.focus();
           });
         });
+      })();
+
+      /* Progressive enhancement of the reading sections: the server always
+         renders Show Notes, Timestamps and Transcript stacked and reachable
+         through the anchor links above them, so a visitor without JavaScript
+         loses nothing. When this runs, the same anchors and sections become a
+         real WAI-ARIA tabs widget (https://www.w3.org/WAI/ARIA/apg/patterns/tabs/)
+         with one panel visible at a time, Show Notes first. */
+      (function () {
+        var nav = document.querySelector('.episode-tabs');
+        if (!nav) {
+          return;
+        }
+        var tabs = Array.prototype.slice.call(nav.querySelectorAll('a.episode-tab'));
+        if (tabs.length < 2) {
+          return;
+        }
+        var panels = tabs.map(function (tab) {
+          var id = tab.getAttribute('href').slice(1);
+          return document.getElementById(id);
+        });
+        if (panels.indexOf(null) !== -1) {
+          return;
+        }
+
+        nav.setAttribute('role', 'tablist');
+
+        function activate(index, moveFocus) {
+          tabs.forEach(function (tab, tabIndex) {
+            var selected = tabIndex === index;
+            tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+            tab.setAttribute('tabindex', selected ? '0' : '-1');
+            panels[tabIndex].hidden = !selected;
+          });
+          if (moveFocus) {
+            tabs[index].focus();
+          }
+        }
+
+        tabs.forEach(function (tab, index) {
+          var panel = panels[index];
+          tab.setAttribute('role', 'tab');
+          tab.setAttribute('aria-controls', panel.id);
+
+          tab.addEventListener('click', function (event) {
+            event.preventDefault();
+            activate(index, false);
+          });
+
+          tab.addEventListener('keydown', function (event) {
+            var nextIndex = null;
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+              nextIndex = (index + 1) % tabs.length;
+            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+              nextIndex = (index - 1 + tabs.length) % tabs.length;
+            } else if (event.key === 'Home') {
+              nextIndex = 0;
+            } else if (event.key === 'End') {
+              nextIndex = tabs.length - 1;
+            }
+            if (nextIndex !== null) {
+              event.preventDefault();
+              activate(nextIndex, true);
+            }
+          });
+
+          panel.setAttribute('role', 'tabpanel');
+          panel.setAttribute('tabindex', '0');
+        });
+
+        activate(0, false);
       })();
     </script>
   </body>
