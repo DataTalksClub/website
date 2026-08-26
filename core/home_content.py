@@ -130,12 +130,12 @@ class MemberStory:
     photo_static_path: str | None = None
 
 
-# REAL, SOURCED TESTIMONIALS (issue #179).  These three quotes are taken verbatim from
+# REAL, SOURCED TESTIMONIALS (issue #179).  These six quotes are taken verbatim from
 # public posts by named members (e.g. LinkedIn) and independently verified via direct
 # link, replacing the earlier mockup placeholder copy.  None of them states a
 # before/after role transition or an elapsed time, so those fields are intentionally
 # left unset rather than invented — see MemberStory above for how the template handles
-# that.
+# that.  The order alternates man/woman/man/woman/man/woman.
 #
 # IMPORTANT: these individuals have NOT been contacted for homepage-specific consent.
 # They posted this content publicly elsewhere, but that is not the same as agreeing to
@@ -143,14 +143,29 @@ class MemberStory:
 # consent step happens.
 MEMBER_STORIES: tuple[MemberStory, ...] = (
     MemberStory(
-        quote="The DE zoom camp gave me skills that helped me land my first tech job.",
+        quote="The Data Engineering Zoomcamp gave me skills that helped me land my first tech job.",
         name="Tim Claytor",
         photo_static_path="core/testimonials/tim-claytor.jpg",
-        context="Data Science · Nashville",
+        context="Data Science · Nashville, United States",
         source_url=(
             "https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240/"
             "?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287396889959711793152%2Curn%3Ali%3A"
             "activity%3A7396882073308938240%29"
+        ),
+    ),
+    MemberStory(
+        quote=(
+            "The final project was the real challenge, where we applied everything we "
+            "learned to build an end-to-end data pipeline in Google Cloud... I must admit, "
+            "this was really hard. But the feeling of accomplishment and learning made it "
+            "all worthwhile. And I would do it again!"
+        ),
+        name="Nevenka Lukic",
+        photo_static_path="core/testimonials/nevenka-lukic.jpg",
+        context="Data Engineer/Technical Writer · Málaga, Spain",
+        source_url=(
+            "https://www.linkedin.com/posts/nevenka-lukic_data-engineering-zoomcamp-final-"
+            "project-activity-7181985646033461248-Lc1O"
         ),
     ),
     MemberStory(
@@ -161,10 +176,24 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
         ),
         name="Alexander Daniel Rios",
         photo_static_path="core/testimonials/alexander-daniel-rios.jpg",
-        context="DS & ML Engineer · Buenos Aires",
+        context="DS & ML Engineer · Buenos Aires, Argentina",
         source_url=(
             "https://www.linkedin.com/posts/alexander-daniel-rios_llmzoomcamp-ai-llm-"
             "activity-7391098999820406784-ByF1"
+        ),
+    ),
+    MemberStory(
+        quote=(
+            "I've just completed Module 1 of the LLM Zoomcamp by DataTalksClub, focusing on "
+            "building an Agentic Retrieval-Augmented Generation (RAG) system from the ground "
+            "up."
+        ),
+        name="Jocelyn Dumlao",
+        photo_static_path="core/testimonials/jocelyn-dumlao.jpg",
+        context="Data Scientist, Kaggle GrandMaster · Davao, Philippines",
+        source_url=(
+            "https://www.linkedin.com/posts/jocelyn-dumlao-168921a8_github-datatalksclubllm-"
+            "zoomcamp-llm-activity-7474320002528223232-sqj2"
         ),
     ),
     MemberStory(
@@ -175,10 +204,24 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
         ),
         name="Zachary Keller",
         photo_static_path="core/testimonials/zachary-keller.jpg",
-        context="Data & Analytics · Columbus",
+        context="Data & Analytics · Columbus, United States",
         source_url=(
             "https://www.linkedin.com/posts/zrkeller_course-report-datatalksclub-ml-zoomcamp-"
             "activity-7013629465083707392-RbZV"
+        ),
+    ),
+    MemberStory(
+        quote=(
+            "I'm following the excellent free LLM Zoomcamp 2026 by DataTalksClub and Alexey "
+            "Grigorev. If you're interested in GenAI, RAG, and LLM engineering, I highly "
+            "recommend checking it out."
+        ),
+        name="Hanaa Hammad",
+        photo_static_path="core/testimonials/hanaa-hammad.jpg",
+        context="Senior Data Engineer · Egypt",
+        source_url=(
+            "https://www.linkedin.com/posts/hanaahammad_github-datatalksclubllm-zoomcamp-llm-"
+            "activity-7484266330909609984-JT-G"
         ),
     ),
 )
