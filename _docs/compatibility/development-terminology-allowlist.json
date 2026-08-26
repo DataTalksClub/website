@@ -35,6 +35,14 @@
       "expected_count": 4
     },
     {
+      "path": "_docs/audits/2026-08-26-database-rotation-deployment-handoff.md",
+      "sha256": "40a5a748027ea500027b6303bf39ee660f9bd39eeeede137faef64d2e1bced53",
+      "class": "frozen_historical",
+      "reason": "Timestamped issue #191 database-rotation incident handoff names the exact unrenamed AWS identifiers (website-sandbox, phone-aws-sandbox-role, and sibling aws-infra worktree paths) involved in the incident.",
+      "follow_up": "none; immutable evidence",
+      "expected_count": 5
+    },
+    {
       "path": "_docs/compatibility/faq-fragment-contracts.jsonl",
       "sha256": "489ca0db5fd87406d27841748a0dfb8d9ec43bfb2a029ee054335871f625e37c",
       "class": "captured_compatibility",
@@ -459,6 +467,22 @@
       "reason": "The validator retains the exact live #25 title so the captured matrix rejects title drift.",
       "follow_up": "#94; recapture the readiness matrix after the development-network terminology migration.",
       "expected_count": 1
+    },
+    {
+      "path": "_docs/specs/open-decisions.md",
+      "pattern": "aws-infra/sandbox/datamailer/variables\\.tf",
+      "class": "legacy_physical_identifier",
+      "reason": "Decision 9 names the exact unrenamed Terraform path in the sibling aws-infra repository that the Cognito pool reuse depends on.",
+      "follow_up": "#94",
+      "expected_count": 1
+    },
+    {
+      "path": "_docs/specs/open-decisions.md",
+      "pattern": "(?:NAT-backed sandbox|provisioned sandbox VPC)",
+      "class": "compatibility_note",
+      "reason": "Decision 14 uses \"sandbox\" as ordinary English for a possible future, separately costed AWS network tier, not a reference to this project's former development-environment name.",
+      "follow_up": "#94",
+      "expected_count": 2
     }
   ]
 }

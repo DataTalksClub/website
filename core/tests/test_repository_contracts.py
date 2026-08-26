@@ -129,7 +129,7 @@ class RepositoryContractTests(SimpleTestCase):
         self.assertIn("Worker --> Relay", index)
         self.assertNotIn("Worker --> SES", index)
         self.assertIn("Email provider and semantics (resolved by #21)", decisions)
-        self.assertIn("Decision still required in #22", decisions)
+        self.assertIn("Email purpose catalog (resolved by #22)", decisions)
         self.assertIn("logical `EmailDelivery` intent", platform)
         self.assertIn("calls Relay only after commit", platform)
         self.assertIn("redacted status projection", normalized_platform)
