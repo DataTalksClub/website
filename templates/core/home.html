@@ -431,7 +431,101 @@
 
       /* The drawing itself — `.graph-svg` and the legend's edge key — is a
          shared primitive in the partial: /wiki/graph draws the same ring
-         around its own hub. */
+         around its own hub.  The homepage explorer recentres that ring on
+         a clicked neighbour instead of leaving the page. */
+
+      .home-graph-toolbar {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 0.85rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .home-graph-tool {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.28rem 0.8rem;
+      }
+
+      .home-graph-tool:hover,
+      a.home-graph-tool:hover {
+        background: var(--lavender);
+        text-decoration: none;
+      }
+
+      .home-graph-status {
+        color: var(--muted);
+        font-size: 0.82rem;
+        margin: 0 0 0.75rem;
+      }
+
+      .home-graph-more {
+        margin-top: 0.75rem;
+      }
+
+      .home-graph-more summary {
+        color: var(--indigo);
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .home-graph-more-list {
+        display: grid;
+        gap: 0.35rem;
+        list-style: none;
+        margin: 0.65rem 0 0;
+        padding: 0;
+      }
+
+      .home-graph-more-item {
+        background: var(--lavender);
+        border: 1.5px solid var(--indigo-soft);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.28rem 0.7rem;
+        text-align: left;
+        width: 100%;
+      }
+
+      .home-graph-more-item span {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .graph-svg-node.graph-svg-type-podcast:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--gold);
+      }
+
+      .graph-svg-node.graph-svg-type-person:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--bubble);
+      }
+
+      .graph-svg-node.graph-svg-type-book:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--sand);
+      }
+
+      .graph-svg-node.graph-svg-type-guide:not(.graph-svg-hub) .graph-svg-shape,
+      .graph-svg-node.graph-svg-type-how_to:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--mint);
+      }
+
+      .graph-svg-node.graph-svg-type-comparison:not(.graph-svg-hub) .graph-svg-shape,
+      .graph-svg-node.graph-svg-type-roadmap:not(.graph-svg-hub) .graph-svg-shape,
+      .graph-svg-node.graph-svg-type-transition:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--lavender-deep);
+      }
 
       /* --- closing band ------------------------------------------------- */
 
@@ -979,14 +1073,29 @@
             <div>
               <h2 id="wiki-heading">The wiki, as a graph</h2>
               <p>
-                {{ counts.wiki }} member-written topics wired to each other — start anywhere and
-                follow the edges into guides, comparisons, roadmaps and podcast episodes.
+                {{ counts.wiki }} member-written topics wired to each other — click a node to
+                explore its neighbours. Open a page only when you choose to.
               </p>
             </div>
             <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
           </div>
           <div class="wiki-grid">
-            <div class="graph-frame">
+            <div
+              class="graph-frame home-graph-explorer"
+              data-home-graph
+              data-graph-url="{% url 'wiki-graph-json' %}"
+              data-start-id="wiki:{{ wiki_graph.hub.slug }}"
+            >
+              <div class="home-graph-toolbar" aria-label="Graph controls">
+                <button class="home-graph-tool" type="button" data-home-graph-back hidden>Back</button>
+                <button class="home-graph-tool" type="button" data-home-graph-random>Random topic</button>
+                <a class="home-graph-tool" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
+                <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
+              </div>
+              <p class="home-graph-status" data-home-graph-status aria-live="polite">
+                Exploring {{ wiki_graph.hub.title }}. Click a neighbour to move there.
+              </p>
+              <div data-home-graph-fallback>
               {% for layout in wiki_graph.layouts %}
                 <svg
                   class="graph-svg graph-svg-{{ layout.kind }}"
@@ -1023,6 +1132,9 @@
                   </a>
                 </svg>
               {% endfor %}
+              </div>
+              <div data-home-graph-live hidden></div>
+              <details class="home-graph-more" data-home-graph-more hidden></details>
               <p class="graph-legend">
                 <span class="legend-key">
                   <span>
@@ -1031,14 +1143,14 @@
                   </span>
                   <span>
                     <span class="legend-swatch legend-page"></span>
-                    wiki page
+                    connected page
                   </span>
                   <span>
                     <span class="legend-swatch-line"></span>
                     connection
                   </span>
                 </span>
-                <span>{{ wiki_graph.spokes|length }} of {{ wiki_graph.connections }} {{ wiki_graph.hub.title }} connections drawn · {{ counts.wiki }} topics in the wiki</span>
+                <span><span data-home-graph-count>{{ wiki_graph.spokes|length }} of {{ wiki_graph.connections }} {{ wiki_graph.hub.title }} connections drawn</span> · {{ counts.wiki }} topics in the wiki</span>
               </p>
             </div>
             <div class="topic-list">
@@ -1070,6 +1182,7 @@
       </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
+    <script src="{% static 'core/home_graph.js' %}"></script>
     <script>
       (function () {
         var scroller = document.getElementById('catalog-scroller');
