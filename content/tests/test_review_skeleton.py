@@ -162,6 +162,55 @@ class PublicProjectionTests(TestCase):
         current_response = self.client.get(current_book["public_path"])
         self.assertNotContains(current_response, "Questions and answers")
 
+    def test_a_markdown_summary_renders_as_real_markup_not_literal_syntax(self) -> None:
+        """A book summary is source Markdown, not plain text (issue: raw Markdown).
+
+        The record's own summary carries a bold heading and a bullet list written
+        in Markdown.  Before the fix the page printed the source characters
+        literally; it must now print the emphasis and the list they describe.
+        """
+
+        book = self.projection["books_by_slug"][
+            "20250908-machine-learning-algorithms-in-depth"
+        ]
+        self.assertIn("**Algorithms You'll Explore**", book["summary"])
+        self.assertIn("* Monte Carlo Stock Price Simulation", book["summary"])
+
+        response = self.client.get(book["public_path"])
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+
+        self.assertContains(response, "<strong>Algorithms You'll Explore</strong>")
+        self.assertContains(response, "<li>Monte Carlo Stock Price Simulation</li>")
+        self.assertNotIn("**Algorithms You'll Explore**", body)
+        self.assertNotIn("* Monte Carlo Stock Price Simulation", body)
+
+    def test_the_book_detail_page_drops_the_redundant_promotional_flyer(self) -> None:
+        """The "Book of the Week" flyer image duplicated the page's own heading,
+
+        byline and cover credit, so it was removed from the visible body (issue:
+        redundant promotional image).  The author's own person-chip portrait is a
+        different image and stays; the Open Graph/Twitter share metadata, which
+        legitimately reuses the flyer image, must still carry it.
+        """
+
+        book = self.projection["books_by_slug"][
+            "20250908-machine-learning-algorithms-in-depth"
+        ]
+        self.assertTrue(book["media_available"])
+        self.assertTrue(book["image_path"])
+
+        response = self.client.get(book["public_path"])
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+
+        self.assertNotIn(f'src="{book["image_path"]}"', body)
+        self.assertNotIn("book-cover", body)
+        self.assertNotIn(f'alt="Artwork for {book["title"]}"', body)
+        self.assertIn(book["image_path"], body)
+        self.assertContains(response, 'property="og:image"')
+        self.assertContains(response, 'name="twitter:image"')
+
     def test_every_selected_detail_is_safe_and_canonical(self) -> None:
         for collection in ("articles", "podcasts", "books", "people", "events", "wiki"):
             for record in self.projection[collection]:

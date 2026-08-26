@@ -98,41 +98,10 @@
         padding-top: 1.6rem;
       }
 
-      /* The artwork is a wide banner rather than the book's own cover, so it
-         keeps the whole picture instead of cropping to a shape; a tall one is
-         bounded instead, on the plate the letterboxing then shows.  The plate
-         is the card surface, so it stays off the ground it sits on and a
-         letterboxed picture still reads as a framed one. */
-      .book-cover {
-        width: 100%;
-      }
-
-      .book-cover img {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        display: block;
-        height: auto;
-        max-height: 22rem;
-        object-fit: contain;
-        width: 100%;
-      }
-
-      /* Said out loud rather than left as a gap, the way the article page says
-         it: a book whose artwork is missing says so, in its place. */
-      .book-cover-missing {
-        border: 2px dashed var(--line-soft);
-        border-radius: 0.9rem;
-        display: block;
-        padding: 1.1rem 1.25rem;
-        text-align: center;
-        width: 100%;
-      }
-
-      /* The book's own description, in the shared prose primitive at the width
-         the design gives long copy.  It is one imported block that keeps its
-         source line breaks, so `.prose-paragraph` carries it. */
+      /* The book's own summary, in the shared prose primitive at the width the
+         design gives long copy.  A plain-text summary keeps its source line
+         breaks (`.prose-paragraph`); a summary written in Markdown renders as
+         the real headings, emphasis and lists it names (`.prose-embed`). */
       .book-summary {
         margin-top: 1.5rem;
         max-width: 44rem;
@@ -211,10 +180,6 @@
           padding-top: 1.25rem;
         }
 
-        .book-cover img {
-          max-height: 14rem;
-        }
-
         .book-links {
           display: grid;
         }
@@ -291,26 +256,31 @@
           </div>
         </section>
         {% comment %}
-          The seam sits where the title block ends: the artwork belongs to the
-          book rather than to its dateline, so it opens the reading band instead
-          of closing the warm hero, and the description and the ways to get the
-          book follow it on the ground every other page reads on.
+          The seam sits where the title block ends: the summary and the ways to
+          get the book follow it on the ground every other page reads on.  The
+          "Book of the Week" promotional flyer that used to open this band
+          (title, cover and author name/avatar) was removed as a duplicate of the
+          real heading, byline and links already on this page.
         {% endcomment %}
         <section class="band band-lavender book-read" aria-label="About the book">
           <div class="shell book-shell">
-            {% if record.media_available %}
-              <figure class="book-cover">
-                <img
-                  src="{{ record.image_path }}"
-                  alt="Artwork for {{ record.title }}"
-                  decoding="async"
-                >
-              </figure>
-            {% else %}
-              <span class="book-cover-missing mono-note">Artwork unavailable.</span>
-            {% endif %}
             <div class="prose book-summary">
-              <p class="prose-paragraph">{{ record.summary }}</p>
+              {% comment %}
+                The summary is source Markdown, not plain text: `**bold**` and a
+                `* ` list are real emphasis and a real list here, rendered through
+                the same Markdown-then-shared-sanitizer path an article body uses
+                (content.article_content.render_body_markdown).  A summary that is
+                more than one plain paragraph reports itself as a block, so it is
+                drawn as the markup it already is rather than re-wrapped in a
+                paragraph the source never wrote.
+              {% endcomment %}
+              {% if summary_is_block %}
+                <div class="prose-embed">{{ summary_html|safe }}</div>
+              {% elif summary_html %}
+                <p>{{ summary_html|safe }}</p>
+              {% else %}
+                <p class="prose-paragraph">{{ record.summary }}</p>
+              {% endif %}
             </div>
             {% if record.links %}
               <div class="book-links">
