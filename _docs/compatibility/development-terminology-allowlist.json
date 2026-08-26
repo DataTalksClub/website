@@ -35,14 +35,6 @@
       "expected_count": 4
     },
     {
-      "path": "_docs/audits/2026-08-26-database-rotation-deployment-handoff.md",
-      "sha256": "40a5a748027ea500027b6303bf39ee660f9bd39eeeede137faef64d2e1bced53",
-      "class": "frozen_historical",
-      "reason": "Timestamped issue #191 database-rotation incident handoff names the exact unrenamed AWS identifiers (website-sandbox, phone-aws-sandbox-role, and sibling aws-infra worktree paths) involved in the incident.",
-      "follow_up": "none; immutable evidence",
-      "expected_count": 5
-    },
-    {
       "path": "_docs/compatibility/faq-fragment-contracts.jsonl",
       "sha256": "489ca0db5fd87406d27841748a0dfb8d9ec43bfb2a029ee054335871f625e37c",
       "class": "captured_compatibility",
