@@ -694,10 +694,97 @@ class DtcContentAdapterTests(SimpleTestCase):
 
         cases.append(("unsafe-svg", unsafe_svg, "unsafe_svg"))
 
+        def podcast_slug_too_long(root: Path) -> None:
+            path = root / "podcasts" / "analytics-engineer-skills-tools.yaml"
+            value = _load_yaml(path)
+            slug = "a" * (adapter_module._PODCAST_SLUG_MAX_LENGTH + 1)
+            value["slug"] = slug
+            value["legacy_path"] = f"/podcast/{slug}.html"
+            _write_yaml(path, value)
+            path.rename(path.with_name(f"{slug}.yaml"))
+
+        cases.append(("podcast-slug-too-long", podcast_slug_too_long, "podcast_slug_too_long"))
+
+        def book_slug_too_long(root: Path) -> None:
+            path = root / "books" / "20201214-ml-bookcamp.yaml"
+            value = _load_yaml(path)
+            slug = "b" * (adapter_module._BOOK_SLUG_MAX_LENGTH + 1)
+            value["slug"] = slug
+            value["legacy_path"] = f"/books/{slug}.html"
+            _write_yaml(path, value)
+            path.rename(path.with_name(f"{slug}.yaml"))
+
+        cases.append(("book-slug-too-long", book_slug_too_long, "book_slug_too_long"))
+
+        def book_title_too_long(root: Path) -> None:
+            path = root / "books" / "20201214-ml-bookcamp.yaml"
+            value = _load_yaml(path)
+            value["title"] = "c" * (adapter_module._BOOK_TITLE_MAX_LENGTH + 1)
+            _write_yaml(path, value)
+
+        cases.append(("book-title-too-long", book_title_too_long, "book_title_too_long"))
+
         for name, mutate, expected in cases:
             with self.subTest(name=name), fixture_checkout() as root:
                 mutate(root)
                 self.assertEqual(_diagnostic(root)[0], expected)
+
+    def test_slug_and_title_at_length_limit_still_pass(self) -> None:
+        podcast_slug = "a" * adapter_module._PODCAST_SLUG_MAX_LENGTH
+        book_slug = "b" * adapter_module._BOOK_SLUG_MAX_LENGTH
+        book_title = "c" * adapter_module._BOOK_TITLE_MAX_LENGTH
+        podcast_public_path = f"/podcast/{podcast_slug}.html"
+        book_public_path = f"/books/{book_slug}.html"
+
+        with fixture_checkout() as root:
+            podcast_path = root / "podcasts" / "analytics-engineer-skills-tools.yaml"
+            podcast_value = _load_yaml(podcast_path)
+            podcast_value["slug"] = podcast_slug
+            podcast_value["legacy_path"] = podcast_public_path
+            _write_yaml(podcast_path, podcast_value)
+            podcast_path.rename(podcast_path.with_name(f"{podcast_slug}.yaml"))
+
+            transcript_path = (
+                root / "podcasts" / "transcripts" / "analytics-engineer-skills-tools.yaml"
+            )
+            transcript_value = _load_yaml(transcript_path)
+            transcript_value["podcast"] = podcast_slug
+            _write_yaml(transcript_path, transcript_value)
+
+            book_path = root / "books" / "20201214-ml-bookcamp.yaml"
+            book_value = _load_yaml(book_path)
+            book_value["slug"] = book_slug
+            book_value["legacy_path"] = book_public_path
+            book_value["title"] = book_title
+            _write_yaml(book_path, book_value)
+            book_path.rename(book_path.with_name(f"{book_slug}.yaml"))
+
+            # These synthetic slugs are not part of the real adopted-path set the
+            # production public projection exposes, so the routes are marked
+            # adopted here purely to isolate the length guard from the unrelated
+            # legacy-route contract check.
+            original_checked_contracts = adapter_module._checked_contracts
+
+            def patched_checked_contracts():
+                index, digest, adopted, approved = original_checked_contracts()
+                return index, digest, adopted | {podcast_public_path, book_public_path}, approved
+
+            with patch.object(
+                adapter_module,
+                "_checked_contracts",
+                side_effect=patched_checked_contracts,
+            ):
+                bundle = adapt_dtc_content_checkout(root, commit_sha=FIXTURE_COMMIT)
+
+        self.assertEqual(bundle.counts["podcasts"], 2)
+        self.assertEqual(bundle.counts["books"], 1)
+        documents = {
+            (document.content_kind, document.stable_key): document for document in bundle.documents
+        }
+        self.assertEqual(
+            documents[("podcast", podcast_slug)].exact_public_path, podcast_public_path
+        )
+        self.assertEqual(documents[("book", book_slug)].exact_public_path, book_public_path)
 
     def test_paths_assets_limits_and_media_tampering_fail_closed(self) -> None:
         with fixture_checkout() as root:

@@ -59,6 +59,17 @@ from .media import validate_media_batch
 
 _ARTICLE_NAME = re.compile(r"^(?P<date>\d{4}-\d{2}-\d{2})-(?P<slug>[a-z0-9][a-z0-9-]*)\.md$")
 _SLUG = re.compile(r"^_?[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
+# Bounds are chosen from the observed distribution of shipped
+# `content/public_projection/{books,podcasts}.json` slugs and book titles: the
+# longest legitimate book slug/title is well under 70 characters and the
+# longest legitimate podcast slug is well under 100 characters, while the one
+# known offending record (a 138-character book slug and 143-character book
+# title) sits far past either bound. These limits are a forward-looking guard
+# against a future import silently accepting another slug/title that long;
+# they intentionally leave the already-synced outlier record untouched.
+_BOOK_SLUG_MAX_LENGTH = 80
+_BOOK_TITLE_MAX_LENGTH = 80
+_PODCAST_SLUG_MAX_LENGTH = 110
 _LIQUID_TAG = re.compile(r"{%\s*(.*?)\s*%}")
 _INCLUDE = re.compile(r"^include\s+(?P<name>[A-Za-z0-9_./-]+)(?:\s+(?P<args>.*))?$")
 _MARKDOWN_URL = re.compile(r"!?\[[^\]]*\]\((?P<url>[^\s)]+)(?:\s+[^)]*)?\)")
@@ -1376,6 +1387,8 @@ def adapt_dtc_content_checkout(
         slug = _required_text(metadata, "slug", path=source_path)
         if _SLUG.fullmatch(slug) is None or path.name != f"{slug}.yaml":
             _fail("podcast_slug_filename_mismatch", source_path)
+        if len(slug) > _PODCAST_SLUG_MAX_LENGTH:
+            _fail("podcast_slug_too_long", source_path)
         if slug in episode_metadata:
             _fail("duplicate_podcast_slug", source_path)
         episode_metadata[slug] = metadata
@@ -1561,10 +1574,14 @@ def adapt_dtc_content_checkout(
         slug = _required_text(metadata, "slug", path=source_path)
         if _SLUG.fullmatch(slug) is None or path.name != f"{slug}.yaml":
             _fail("book_slug_filename_mismatch", source_path)
+        if len(slug) > _BOOK_SLUG_MAX_LENGTH:
+            _fail("book_slug_too_long", source_path)
         if slug in book_slugs:
             _fail("duplicate_book_slug", source_path)
         book_slugs.add(slug)
         title = _required_text(metadata, "title", path=source_path)
+        if len(title) > _BOOK_TITLE_MAX_LENGTH:
+            _fail("book_title_too_long", source_path)
         public_path = _required_text(metadata, "legacy_path", path=source_path)
         if public_path != f"/books/{slug}.html":
             _fail("book_legacy_path_mismatch", source_path)
