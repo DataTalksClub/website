@@ -1494,6 +1494,43 @@ unavailable, or either service cannot be proven terminal, stop and escalate—do
 drift repair. Attach only non-secret run/checkpoint/cluster/service/task/SHA/digest evidence to the
 incident and route any controller change through a groomed issue and independent acceptance.
 
+## Database credentials
+
+Development does **not** use RDS-managed weekly master-password rotation.
+`website-sandbox` keeps one static password in `website-sandbox/database-url`.
+Tasks inject `DATABASE_URL` at process start. The ready path is `/health/ready`.
+
+Network isolation is the control, not password expiry:
+
+- `PubliclyAccessible` is false;
+- database subnets have no internet route;
+- PostgreSQL ingress is only the website task security group.
+
+Terraform sets `manage_master_user_password = false` and never stores the
+password. Do not print it or write it to Git, Terraform, logs, or issues.
+
+If a leak ever requires a new password, an authorized operator updates RDS and
+`website-sandbox/database-url` together, then force-refreshes web and worker.
+Do not re-enable RDS-managed rotation: that is what caused the #160/#191
+outages.
+
+### Verification
+
+`aws rds describe-db-instances` for `website-sandbox` must show
+`PubliclyAccessible=false` and no `MasterUserSecret`. `/health/ready` must be
+200 with `configuration`, `database`, and `migrations` all `ok` on the live
+release triplet.
+
+### Failure attribution
+
+1. Confirm `/health/ready` 503 `database unavailable` versus `/health/live` still
+   serving the previous release.
+2. Confirm the instance is not public and still has no `MasterUserSecret`.
+3. If RDS events show `Reset master credentials`, rotation was re-enabled;
+   turn it off again and keep the application secret in sync.
+4. Re-enable automatic deployment only after `/health/ready` is 200 on the
+   intended release triplet.
+
 ## Evidence
 
 Retain the independent `development-published-image-<sha>-attempt-<attempt>` JSON,

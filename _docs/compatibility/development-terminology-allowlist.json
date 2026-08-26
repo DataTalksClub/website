@@ -204,11 +204,11 @@
     },
     {
       "path": "core/tests/test_deployment_workflow.py",
-      "sha256": "bb4c94f14766a8773fcb1481373d6e15b947c6a0e24f0db5d0d051bda608c7ad",
+      "sha256": "26078a354ed06bb410dd69b6bb8c5fdee40a08b686d1b7417b4f386a865a7130",
       "class": "legacy_contract_test",
-      "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, exact physical values, and the issue-141 dependency advisory remediation.",
+      "reason": "Workflow tests exercise removed inputs, frozen Gate-B records, exact physical values, the issue-141 dependency advisory remediation, and the #191 static-credential runbook contract.",
       "follow_up": "#94",
-      "expected_count": 28
+      "expected_count": 29
     },
     {
       "path": "content/public_projection/podcasts.json",
@@ -424,9 +424,17 @@
       "path": "_docs/runbooks/development-release.md",
       "pattern": "(?:sandbox/website|website-sandbox|datamailer-sandbox|phone-aws-sandbox|phone-sandbox|github-sandbox|environments/sandbox|--env sandbox|environment: sandbox|Environment=sandbox|`sandbox`)",
       "class": "legacy_physical_identifier",
-      "reason": "Canonical runbook documents exact live physical identifiers and the legacy GitHub environment.",
+      "reason": "Canonical runbook documents exact live physical identifiers, the legacy GitHub environment, and the #191 static-credential database boundary.",
       "follow_up": "#94",
-      "expected_count": 88
+      "expected_count": 92
+    },
+    {
+      "path": "_docs/specs/open-decisions.md",
+      "pattern": "(?:aws-infra/sandbox|NAT-backed sandbox|provisioned sandbox VPC)",
+      "class": "legacy_physical_identifier",
+      "reason": "Owner decisions name the unchanged aws-infra path and retained physical development topology without introducing environment terminology.",
+      "follow_up": "#94",
+      "expected_count": 3
     },
     {
       "path": "_docs/specs/08-aws-development-terraform.md",
@@ -451,6 +459,14 @@
       "reason": "The accepted roadmap retains its historical milestone title while current implementation uses development terminology.",
       "follow_up": "#94",
       "expected_count": 1
+    },
+    {
+      "path": "_docs/audits/2026-08-26-database-rotation-deployment-handoff.md",
+      "pattern": "(?:website-sandbox|phone-aws-sandbox|issue-145-sandbox-oidc)",
+      "class": "captured_compatibility",
+      "reason": "Point-in-time #191 outage handoff names the live RDS namespace, operator role, application secret, and an unrelated aws-infra worktree path.",
+      "follow_up": "#94",
+      "expected_count": 5
     },
     {
       "path": "_docs/audits/2026-08-14-milestone-0-readiness.md",
