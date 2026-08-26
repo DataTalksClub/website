@@ -112,6 +112,12 @@ class MemberStory:
 
     ``source_url`` links the person's name back to the original public post the
     quote was taken from, so the attribution is checkable rather than asserted.
+
+    ``photo_static_path`` is a `static` template-tag path to the person's own
+    portrait (e.g. ``"core/testimonials/tim-claytor.jpg"``), supplied by the site
+    owner rather than pulled from the checked editorial people catalogue -- these
+    three are not `people` catalogue records. When absent the card falls back to
+    the plain decorative avatar mark.
     """
 
     quote: str
@@ -121,6 +127,7 @@ class MemberStory:
     after: str | None = None
     elapsed: str | None = None
     source_url: str | None = None
+    photo_static_path: str | None = None
 
 
 # REAL, SOURCED TESTIMONIALS (issue #179).  These three quotes are taken verbatim from
@@ -138,8 +145,13 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
     MemberStory(
         quote="The DE zoom camp gave me skills that helped me land my first tech job.",
         name="Tim Claytor",
-        context="DE Zoomcamp",
-        source_url="https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240",
+        photo_static_path="core/testimonials/tim-claytor.jpg",
+        context="Data Science · Nashville",
+        source_url=(
+            "https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240/"
+            "?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287396889959711793152%2Curn%3Ali%3A"
+            "activity%3A7396882073308938240%29"
+        ),
     ),
     MemberStory(
         quote=(
@@ -148,7 +160,8 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
             "orchestration, and vector search optimization."
         ),
         name="Alexander Daniel Rios",
-        context="Argentina · LLM Zoomcamp",
+        photo_static_path="core/testimonials/alexander-daniel-rios.jpg",
+        context="DS & ML Engineer · Buenos Aires",
         source_url=(
             "https://www.linkedin.com/posts/alexander-daniel-rios_llmzoomcamp-ai-llm-"
             "activity-7391098999820406784-ByF1"
@@ -161,7 +174,8 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
             "accessibility that opens the doors to folks from all different backgrounds."
         ),
         name="Zachary Keller",
-        context="ML Zoomcamp",
+        photo_static_path="core/testimonials/zachary-keller.jpg",
+        context="Data & Analytics · Columbus",
         source_url=(
             "https://www.linkedin.com/posts/zrkeller_course-report-datatalksclub-ml-zoomcamp-"
             "activity-7013629465083707392-RbZV"

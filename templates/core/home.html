@@ -905,7 +905,11 @@
                   <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
                   <figcaption class="story-person">
                     <span class="story-identity">
-                      <span class="avatar" aria-hidden="true"></span>
+                      {% if story.photo_static_path %}
+                        <img class="avatar" src="{% static story.photo_static_path %}" alt="" loading="lazy">
+                      {% else %}
+                        <span class="avatar" aria-hidden="true"></span>
+                      {% endif %}
                       <span>
                         <strong>
                           {% if story.source_url %}
