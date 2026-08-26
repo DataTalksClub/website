@@ -250,7 +250,7 @@ class ArchiveRowSurfaceTests(TestCase):
 
         self.assertIn(".stretched-card-link .archive-title a::after", styles)
         self.assertIn(".stretched-card-link .person-chip a", styles)
-        self.assertIn(".podcast-card {", styles)
+        self.assertIn(".podcast-card:not(.latest-card) {", styles)
         for declaration in ("background: transparent;", "border: 0;", "box-shadow: none;"):
             with self.subTest(declaration=declaration):
                 self.assertIn(declaration, styles)
