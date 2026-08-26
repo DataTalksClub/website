@@ -111,6 +111,12 @@ Rules for editing:
            read on the lavender band of a light page and on the navy of a dark
            one, and this pale periwinkle is what the homepage has always drawn. */
         --graph-edge: #b9bfd8;
+        /* The wiki graph's podcast-type node fill.  Aliases --gold in light
+           mode, but --gold is deliberately pinned to the same flat value in
+           both themes for the small RSS platform dot it otherwise serves --
+           this node's own label text uses --ink, which does flip per theme,
+           so it needs its own token to keep 4.5:1 contrast in dark mode. */
+        --graph-podcast: var(--gold);
         /* Syntax roles are semantic rather than language-specific.  The
            highlighter uses these names for Python, shell, SQL, YAML, JSON,
            JavaScript, markup and the other source languages the content
@@ -174,6 +180,11 @@ Rules for editing:
            extended-token table of _docs/design/design-5a.md.  Without them a
            status pill kept its light surface while its text flipped to the dark
            ink, which is unreadable; --clay and --gold hold in both themes. */
+        /* --gold stays flat across themes for the RSS platform dot, so the
+           podcast graph node needs its own dark value: a dark, desaturated
+           amber in the same hue family, giving 7.1:1 contrast against dark
+           mode's --ink label text (see the --graph-podcast aliases above). */
+        --graph-podcast: #5c4b26;
         --lavender-deep: #2d3565;
         --sand: #2a2740;
         --olive: #cbb98a;
