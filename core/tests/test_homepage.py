@@ -496,3 +496,18 @@ class HomepageWikiGraphTests(TestCase):
             f"{escape(graph.hub.title)} connections drawn",
             body,
         )
+
+    def test_graph_explorer_loads_the_public_graph_and_keeps_a_no_js_fallback(self) -> None:
+        from core.home_content import wiki_graph
+
+        graph = wiki_graph()
+        body = self.client.get(reverse("home")).content.decode()
+        self.assertIn("data-home-graph", body)
+        self.assertIn(f'data-graph-url="{reverse("wiki-graph-json")}"', body)
+        self.assertIn(f'data-start-id="wiki:{graph.hub.slug}"', body)
+        self.assertIn('src="/static/core/home_graph.js"', body)
+        self.assertIn("Click a neighbour to move there.", body)
+        self.assertIn("data-home-graph-fallback", body)
+        self.assertIn("data-home-graph-live hidden", body)
+        self.assertIn("data-home-graph-random", body)
+        self.assertIn(f'href="{graph.hub.public_path}"', body)
