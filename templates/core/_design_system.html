@@ -111,6 +111,15 @@ Rules for editing:
            read on the lavender band of a light page and on the navy of a dark
            one, and this pale periwinkle is what the homepage has always drawn. */
         --graph-edge: #b9bfd8;
+        /* The podcast-type ring node's fill (home.html's
+           .graph-svg-type-podcast).  Aliases --gold in light mode, but gets
+           its own dark-mode value below: --gold is deliberately held flat
+           across themes for the RSS platform dot, which carries no text of
+           its own (design-5a.md).  A ring node does — `.graph-svg-node text`
+           always inks itself with --ink, which flips to a near-white in dark
+           mode — so pairing that text with --gold's still-light dark-mode
+           value read as a washed-out, unreadable pill. */
+        --graph-podcast: var(--gold);
         /* Syntax roles are semantic rather than language-specific.  The
            highlighter uses these names for Python, shell, SQL, YAML, JSON,
            JavaScript, markup and the other source languages the content
@@ -180,6 +189,11 @@ Rules for editing:
         --green-ship: #9bc9ad;
         --bubble: #3c4372;
         --on-bubble: #e8e5dd;
+        /* A dark, desaturated take on the light-mode gold (#e2c67a) that
+           --graph-podcast aliases above — same amber hue, low enough
+           lightness that the node text (--ink, near-white here) clears AA
+           (7.1:1) instead of the 1.4:1 a flat --gold gave it. */
+        --graph-podcast: #5c4b26;
         --code-comment: #a4a9bd;
         --code-keyword: #c4b5fd;
         --code-string: #9bd3ac;
@@ -935,7 +949,7 @@ Rules for editing:
       }
 
       .band-lavender {
-        background: var(--cream);
+        background: var(--lavender);
       }
 
       .band-mint {
@@ -1200,6 +1214,7 @@ Rules for editing:
         border-radius: 999px;
         flex: none;
         height: 2.6rem;
+        object-fit: cover;
         width: 2.6rem;
       }
 
@@ -1363,6 +1378,37 @@ Rules for editing:
         .scroller-button {
           transition: none;
         }
+      }
+
+      /* --- member stories scroller ---------------------------------------- */
+
+      /* The "people who were exactly where you are" strip reuses the catalogue
+         scroller's shape -- grid-auto-flow column, scroll-snap, a hidden native
+         scrollbar, and the shared `.scroller-button`/`.scroller-controls` arrows
+         -- rather than a second bespoke carousel. It differs only in its column
+         math: the cards read one-up on narrow and tablet screens (the same
+         density `.card-grid-3` showed before 62rem) and three-up at 62rem and
+         wider (the same density `.card-grid-3` showed there), so converting the
+         static grid to a carousel does not change how many cards are visible at
+         a glance, only how the rest are reached. */
+      .stories-scroller {
+        display: grid;
+        gap: 1.25rem;
+        grid-auto-columns: 100%;
+        grid-auto-flow: column;
+        overflow-x: auto;
+        padding: 0.4rem 0.4rem 0.6rem;
+        margin-inline: -0.4rem;
+        scrollbar-width: none;
+        scroll-snap-type: x proximity;
+      }
+
+      .stories-scroller::-webkit-scrollbar {
+        display: none;
+      }
+
+      .stories-scroller > * {
+        scroll-snap-align: start;
       }
 
       /* --- announcement / impersonation --------------------------------- */
@@ -1801,16 +1847,9 @@ Rules for editing:
         padding-inline: 0.9rem;
       }
 
-      /* The elided range names nothing a reader can go to, so it carries no
-         pill surface at all — a quiet mark, not a sand-coloured rounded
-         square dropped between the round page-number circles. */
       .pagination-gap {
-        background: none;
-        border: 0;
-        color: var(--muted);
         justify-content: center;
         min-width: 1.75rem;
-        padding-inline: 0;
       }
 
       /* The little state dot, on a status pill or beside a band heading. */
@@ -2701,6 +2740,7 @@ Rules for editing:
         fill: var(--lavender);
         stroke: var(--indigo);
         stroke-width: 2;
+        transition: fill 0.15s ease, stroke-width 0.15s ease;
       }
 
       .graph-svg-node text {
@@ -2720,6 +2760,16 @@ Rules for editing:
 
       .graph-svg-node:hover .graph-svg-shape {
         stroke-width: 3.5;
+      }
+
+      /* Some nodes are coloured by content type (`.graph-svg-type-*`, added
+         on the homepage explorer only — see home.html); those keep their
+         own fill on hover so it isn't clobbered.  A plain node — including
+         the untyped `/wiki/graph` nodes, which never carry a type class —
+         brightens instead. */
+      .graph-svg-node:not(.graph-svg-hub):not(.graph-svg-type-podcast):not(.graph-svg-type-person):not(.graph-svg-type-book):not(.graph-svg-type-guide):not(.graph-svg-type-how_to):not(.graph-svg-type-comparison):not(.graph-svg-type-roadmap):not(.graph-svg-type-transition):hover
+        .graph-svg-shape {
+        fill: var(--lavender-deep);
       }
 
       /* SVG links get the page's focus outline where engines draw it, and a
@@ -3259,21 +3309,6 @@ Rules for editing:
         margin-top: 0.75rem;
       }
 
-      /* A source body's own markup fragment can carry a table markdown
-         rendered from a block the content projection did not classify as a
-         dedicated table block, so it never reached `.prose-scroll`'s named,
-         keyboard-reachable region (2026-08-26 design-consistency audit found
-         this overflowing the viewport on a real article). This at least
-         keeps it from breaking the page's width; giving it the same
-         focusable region as `.prose-scroll` needs the source block
-         classified as a table at the content-pipeline level, which is a
-         separate follow-up. */
-      .prose-embed table {
-        display: block;
-        max-width: 100%;
-        overflow-x: auto;
-      }
-
       .prose figcaption,
       .prose-caption {
         color: var(--muted);
@@ -3356,6 +3391,11 @@ Rules for editing:
         .catalog-scroller {
           grid-auto-columns: minmax(min(17rem, 82%), 1fr);
         }
+
+        /* Member stories get the same peek treatment as the catalogue. */
+        .stories-scroller {
+          grid-auto-columns: minmax(min(17rem, 82%), 1fr);
+        }
       }
 
       @media (min-width: 40rem) {
@@ -3375,6 +3415,12 @@ Rules for editing:
 
         .card-grid-3 {
           grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        /* Member stories show three cards at a time here, the same density
+           `.card-grid-3` showed as a static grid before the carousel. */
+        .stories-scroller {
+          grid-auto-columns: calc((100% - 2 * 1.25rem) / 3);
         }
       }
 

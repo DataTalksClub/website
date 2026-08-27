@@ -102,53 +102,120 @@ class CatalogCourse:
 
 @dataclass(frozen=True, slots=True)
 class MemberStory:
-    """One "people who were exactly where you are" card."""
+    """One "people who were exactly where you are" card.
 
-    before: str
-    after: str
+    ``before``, ``after``, and ``elapsed`` are optional: not every real testimonial
+    states a clean role transition or an elapsed time, and the template must not
+    invent one. When ``before``/``after`` are absent the transition chip pair is
+    skipped entirely (never a lone "after" chip); when ``elapsed`` is absent the
+    elapsed pill is skipped.
+
+    ``source_url`` links the person's name back to the original public post the
+    quote was taken from, so the attribution is checkable rather than asserted.
+
+    ``photo_static_path`` is a `static` template-tag path to the person's own
+    portrait (e.g. ``"core/testimonials/tim-claytor.jpg"``), supplied by the site
+    owner rather than pulled from the checked editorial people catalogue -- these
+    three are not `people` catalogue records. When absent the card falls back to
+    the plain decorative avatar mark.
+    """
+
     quote: str
     name: str
     context: str
-    elapsed: str
+    before: str | None = None
+    after: str | None = None
+    elapsed: str | None = None
+    source_url: str | None = None
+    photo_static_path: str | None = None
 
 
-# PLACEHOLDER COPY.  These three quotes come from the #179 mockup, not from named members
-# who have agreed to be quoted.  Replace them with real, attributable stories (or drop the
-# entries, which hides the section) before this page is served from datatalks.club.
+# REAL, SOURCED TESTIMONIALS (issue #179).  These six quotes are taken verbatim from
+# public posts by named members (e.g. LinkedIn) and independently verified via direct
+# link, replacing the earlier mockup placeholder copy.  None of them states a
+# before/after role transition or an elapsed time, so those fields are intentionally
+# left unset rather than invented — see MemberStory above for how the template handles
+# that.  The order alternates man/woman/man/woman/man/woman.
+#
+# IMPORTANT: these individuals have NOT been contacted for homepage-specific consent.
+# They posted this content publicly elsewhere, but that is not the same as agreeing to
+# be quoted on datatalks.club's homepage. Do not ship this to production until that
+# consent step happens.
 MEMBER_STORIES: tuple[MemberStory, ...] = (
     MemberStory(
-        before="QA analyst",
-        after="Data engineer",
         quote=(
-            "I finished the pipeline homework, put it on GitHub, and used it as my whole "
-            "portfolio. Three interviews later I had the job — and my current stack is the "
-            "one from the course."
+            "The final project was the real challenge, where we applied everything we learned "
+            "to build an end-to-end data pipeline. This was really hard. But the feeling of "
+            "accomplishment made it all worthwhile. I would do it again!"
         ),
-        name="Tolu A.",
-        context="Lagos · DE Zoomcamp",
-        elapsed="11 months",
+        name="Nevenka Lukic",
+        photo_static_path="core/testimonials/nevenka-lukic.jpg",
+        context="Data Engineer · Spain",
+        source_url=(
+            "https://www.linkedin.com/posts/nevenka-lukic_data-engineering-zoomcamp-final-"
+            "project-activity-7181985646033461248-Lc1O"
+        ),
     ),
     MemberStory(
-        before="Excel reports",
-        after="ML in prod",
         quote=(
-            "Deploying a model terrified me. The MLOps homework made me do it eight times, "
-            "and the Slack caught every mistake before my team ever saw it."
+            "This course gave me hands-on experience in building LLM-powered applications, "
+            "including prompt engineering, retrieval-augmented generation (RAG), pipeline "
+            "orchestration, and vector search optimization."
         ),
-        name="Marta S.",
-        context="Kraków · MLOps Zoomcamp",
-        elapsed="7 months",
+        name="Alexander Daniel Rios",
+        photo_static_path="core/testimonials/alexander-daniel-rios.jpg",
+        context="DS & ML Engineer · Argentina",
+        source_url=(
+            "https://www.linkedin.com/posts/alexander-daniel-rios_llmzoomcamp-ai-llm-"
+            "activity-7391098999820406784-ByF1"
+        ),
     ),
     MemberStory(
-        before="Backend dev",
-        after="Shipping agents",
         quote=(
-            "I built an agent that survives restarts, and now I run the AI features at my "
-            "company. Two years ago I was the person asking what RAG meant."
+            "This course project strengthened my understanding of modern LLM applications, "
+            "vector databases, prompt engineering, and production-ready AI workflows. A big "
+            "thanks to the DataTalksClub community for providing such an excellent learning "
+            "experience."
         ),
-        name="Nikhil R.",
-        context="Bengaluru · LLM Zoomcamp",
-        elapsed="2 years",
+        name="Jocelyn Dumlao",
+        photo_static_path="core/testimonials/jocelyn-dumlao.jpg",
+        context="Data Scientist · Philippines",
+        source_url="https://www.linkedin.com/feed/update/urn:li:activity:7486622652921430016/",
+    ),
+    MemberStory(
+        quote=(
+            "No other course I've taken or explored took such a comprehensive approach to "
+            "what it means to develop ML models, all while maintaining a level of "
+            "accessibility that opens the doors to folks from all different backgrounds."
+        ),
+        name="Zachary Keller",
+        photo_static_path="core/testimonials/zachary-keller.jpg",
+        context="Data & Analytics · United States",
+        source_url=(
+            "https://www.linkedin.com/posts/zrkeller_course-report-datatalksclub-ml-zoomcamp-"
+            "activity-7013629465083707392-RbZV"
+        ),
+    ),
+    MemberStory(
+        quote=(
+            "The LLM Zoomcamp 2026 by DataTalksClub is an excellent course. If you're interested "
+            "in GenAI, RAG, and LLM engineering, I highly recommend checking it out."
+        ),
+        name="Hanaa Hammad",
+        photo_static_path="core/testimonials/hanaa-hammad.jpg",
+        context="Senior Data Engineer · Egypt",
+        source_url="https://www.linkedin.com/feed/update/urn:li:activity:7489957731135651840/",
+    ),
+    MemberStory(
+        quote="The Data Engineering Zoomcamp gave me skills that helped me land my first tech job.",
+        name="Tim Claytor",
+        photo_static_path="core/testimonials/tim-claytor.jpg",
+        context="Data Science · United States",
+        source_url=(
+            "https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240/"
+            "?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287396889959711793152%2Curn%3Ali%3A"
+            "activity%3A7396882073308938240%29"
+        ),
     ),
 )
 

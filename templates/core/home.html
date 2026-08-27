@@ -431,7 +431,196 @@
 
       /* The drawing itself — `.graph-svg` and the legend's edge key — is a
          shared primitive in the partial: /wiki/graph draws the same ring
-         around its own hub. */
+         around its own hub.  The homepage explorer recentres that ring on
+         a clicked neighbour instead of leaving the page. */
+
+      .home-graph-toolbar {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 0.85rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .home-graph-tool {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        padding: 0.28rem 0.8rem;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+
+      .home-graph-tool:hover,
+      a.home-graph-tool:hover {
+        background: var(--lavender);
+        text-decoration: none;
+      }
+
+      .home-graph-tool:active {
+        transform: translateY(1px);
+      }
+
+      /* Toggled per hub (e.g. "Open wiki page" when the current hub has no
+         page of its own): kept in the flex flow with `visibility` rather than
+         `hidden`/`display: none`, so the toolbar's row count — and therefore
+         the frame's height — never changes just because a different node was
+         clicked. */
+      .home-graph-tool.is-hidden-reserved {
+        pointer-events: none;
+        visibility: hidden;
+      }
+
+      .home-graph-status {
+        color: var(--muted);
+        font-size: 0.82rem;
+        margin: 0 0 0.75rem;
+      }
+
+      /* Always in flow once the JS-driven explorer takes over (see
+         home_graph.js), whether or not the current hub has extra neighbours
+         to list: an empty `<summary>` reserves the same row height a real
+         one would take, so re-centring on a hub with 8 or fewer connections
+         never shrinks the frame relative to one with more. */
+      .home-graph-more {
+        margin-top: 0.75rem;
+      }
+
+      .home-graph-more summary {
+        color: var(--indigo);
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      .home-graph-more.is-empty summary {
+        cursor: default;
+        pointer-events: none;
+        visibility: hidden;
+      }
+
+      .home-graph-more-list {
+        display: grid;
+        gap: 0.35rem;
+        list-style: none;
+        margin: 0.65rem 0 0;
+        padding: 0;
+      }
+
+      .home-graph-more-item {
+        background: var(--lavender);
+        border: 1.5px solid var(--indigo-soft);
+        border-radius: 999px;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.28rem 0.7rem;
+        text-align: left;
+        transition: background 0.15s ease, transform 0.15s ease;
+        width: 100%;
+      }
+
+      .home-graph-more-item:hover {
+        background: var(--lavender-deep);
+      }
+
+      .home-graph-more-item:active {
+        transform: translateY(1px);
+      }
+
+      .home-graph-more-item span {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .graph-svg-node.graph-svg-type-podcast:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--graph-podcast);
+      }
+
+      .graph-svg-node.graph-svg-type-person:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--bubble);
+      }
+
+      .graph-svg-node.graph-svg-type-book:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--sand);
+      }
+
+      .graph-svg-node.graph-svg-type-guide:not(.graph-svg-hub) .graph-svg-shape,
+      .graph-svg-node.graph-svg-type-how_to:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--mint);
+      }
+
+      .graph-svg-node.graph-svg-type-comparison:not(.graph-svg-hub) .graph-svg-shape,
+      .graph-svg-node.graph-svg-type-roadmap:not(.graph-svg-hub) .graph-svg-shape,
+      .graph-svg-node.graph-svg-type-transition:not(.graph-svg-hub) .graph-svg-shape {
+        fill: var(--lavender-deep);
+      }
+
+      /* Re-centring the ring (a clicked neighbour, "Random topic", or Back)
+         swaps `[data-home-graph-live]`'s markup outright — the ring's fixed
+         slots come from core/graph_layout.py and never move — but the swap
+         itself crossfades instead of snapping: the outgoing ring fades with
+         the clicked node held in place (`.is-leaving` / `.is-chosen`), then
+         the incoming ring fades and scales in with a slight per-node stagger
+         (`.is-entering`, `--i`).  home_graph.js drives the class timing;
+         prefers-reduced-motion skips its delay, and the page's global motion
+         kill switch (`_design_system.html`) neutralises these transitions
+         outright for anyone who has asked for that. */
+
+      [data-home-graph-live] .graph-svg-node {
+        transform-box: fill-box;
+        transform-origin: center;
+        transition: opacity 0.18s ease, transform 0.18s ease;
+        transition-delay: calc(var(--i, 0) * 25ms);
+      }
+
+      [data-home-graph-live] .graph-svg-hub {
+        transition-delay: 0s;
+        /* Only the JS-driven hub is a no-op to click (home_graph.js's
+           bindDrawing intercepts and ignores it) — the SSR fallback's hub
+           and /wiki/graph's hub are ordinary working links, so their cursor
+           stays the default pointer. */
+        cursor: default;
+      }
+
+      [data-home-graph-live] .graph-svg-edge {
+        transition: opacity 0.18s ease;
+        transition-delay: calc(var(--i, 0) * 25ms);
+      }
+
+      [data-home-graph-live].is-leaving .graph-svg-node:not(.graph-svg-hub),
+      [data-home-graph-live].is-leaving .graph-svg-edge {
+        opacity: 0;
+        transition: opacity 0.12s ease;
+      }
+
+      [data-home-graph-live].is-leaving .graph-svg-node.is-chosen {
+        opacity: 1;
+      }
+
+      [data-home-graph-live].is-leaving .graph-svg-node.is-chosen .graph-svg-shape {
+        stroke: var(--indigo);
+        stroke-width: 3.5;
+      }
+
+      [data-home-graph-live].is-entering .graph-svg-node:not(.graph-svg-hub) {
+        opacity: 0;
+        transform: scale(0.94);
+      }
+
+      [data-home-graph-live].is-entering .graph-svg-hub {
+        transform: scale(0.97);
+      }
+
+      [data-home-graph-live].is-entering .graph-svg-edge {
+        opacity: 0;
+      }
 
       /* --- closing band ------------------------------------------------- */
 
@@ -560,10 +749,6 @@
           color: var(--muted);
           font-style: normal;
           padding: 0;
-        }
-
-        .story-person .story-context {
-          display: none;
         }
 
         /* The featured card is the only card with a wider gutter than the rest; on a
@@ -699,28 +884,74 @@
           <div class="shell">
             <div class="band-head">
               <div>
-                <h2 id="stories-heading">People who were exactly where you are</h2>
-                <p>Same courses, same Slack, no shortcuts. Here's what changed and how long it took.</p>
+                <h2 id="stories-heading">What people say</h2>
+              </div>
+              <div class="scroller-controls">
+                <button
+                  class="scroller-button"
+                  type="button"
+                  data-scroll="-1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories left"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M15 5l-7 7 7 7"/>
+                  </svg>
+                </button>
+                <button
+                  class="scroller-button"
+                  type="button"
+                  data-scroll="1"
+                  data-scroll-target="stories-scroller"
+                  aria-label="Scroll member stories right"
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M9 5l7 7-7 7"/>
+                  </svg>
+                </button>
               </div>
             </div>
-            <div class="card-grid card-grid-3">
+            <div
+              class="stories-scroller"
+              id="stories-scroller"
+              role="group"
+              aria-label="Member stories"
+              tabindex="0"
+            >
               {% for story in member_stories %}
                 <figure class="card">
-                  <div class="story-transition">
-                    <span class="chip chip-plain">{{ story.before }}</span>
-                    <span aria-hidden="true">→</span>
-                    <span class="chip chip-plain chip-green">{{ story.after }}</span>
-                  </div>
+                  {% if story.before and story.after %}
+                    <div class="story-transition">
+                      <span class="chip chip-plain">{{ story.before }}</span>
+                      <span aria-hidden="true">→</span>
+                      <span class="chip chip-plain chip-green">{{ story.after }}</span>
+                    </div>
+                  {% endif %}
                   <blockquote class="story-quote">“{{ story.quote }}”</blockquote>
                   <figcaption class="story-person">
                     <span class="story-identity">
-                      <span class="avatar" aria-hidden="true"></span>
+                      {% if story.photo_static_path %}
+                        <img class="avatar" src="{% static story.photo_static_path %}" alt="" loading="lazy">
+                      {% else %}
+                        <span class="avatar" aria-hidden="true"></span>
+                      {% endif %}
                       <span>
-                        <strong>{{ story.name }}</strong>
+                        <strong>
+                          {% if story.source_url %}
+                            <a href="{{ story.source_url }}" target="_blank" rel="noopener noreferrer">
+                              {{ story.name }}
+                              <span class="sr-only"> (opens in a new tab)</span>
+                            </a>
+                          {% else %}
+                            {{ story.name }}
+                          {% endif %}
+                        </strong>
                         <span class="story-context">{{ story.context }}</span>
                       </span>
                     </span>
-                    <span class="story-elapsed">{{ story.elapsed }}</span>
+                    {% if story.elapsed %}
+                      <span class="story-elapsed">{{ story.elapsed }}</span>
+                    {% endif %}
                   </figcaption>
                 </figure>
               {% endfor %}
@@ -733,11 +964,7 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="courses-heading">Pick what you want to build first</h2>
-              <p>
-                {{ course_family_word|capfirst }} free zoomcamps, community-created: practical homework,
-                projects, public leaderboards and peer review.
-              </p>
+              <h2 id="courses-heading">Active courses</h2>
             </div>
             <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
           </div>
@@ -774,39 +1001,11 @@
               </p>
             </aside>
           </div>
-          <div class="band-head band-head-secondary">
-            <div>
-              <h3>The rest of the catalog</h3>
-              <p>Every finished cohort keeps its materials public, and the next one is open to register for.</p>
-            </div>
-            <div class="scroller-controls">
-              <button
-                class="scroller-button"
-                type="button"
-                data-scroll="-1"
-                aria-label="Scroll catalogue left"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M15 5l-7 7 7 7"/>
-                </svg>
-              </button>
-              <button
-                class="scroller-button"
-                type="button"
-                data-scroll="1"
-                aria-label="Scroll catalogue right"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M9 5l7 7-7 7"/>
-                </svg>
-              </button>
-            </div>
-          </div>
           <div
             class="catalog-scroller"
             id="catalog-scroller"
             role="group"
-            aria-label="The rest of the catalogue"
+            aria-label="Course catalogue"
             tabindex="0"
           >
             {% for course in catalog_courses %}
@@ -819,6 +1018,30 @@
                 <a class="band-link course-link" href="{{ course.public_path }}">View course →</a>
               </article>
             {% endfor %}
+          </div>
+          <div class="scroller-controls catalog-scroller-controls" aria-label="Course catalogue controls">
+            <button
+              class="scroller-button"
+              type="button"
+              data-scroll="-1"
+              data-scroll-target="catalog-scroller"
+              aria-label="Scroll catalogue left"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M15 5l-7 7 7 7"/>
+              </svg>
+            </button>
+            <button
+              class="scroller-button"
+              type="button"
+              data-scroll="1"
+              data-scroll-target="catalog-scroller"
+              aria-label="Scroll catalogue right"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
           </div>
         </div>
       </section>
@@ -850,17 +1073,7 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="events-heading">Something to attend this week</h2>
-              <p>
-                Free, live, recorded. Subscribe to
-                <a
-                  class="band-link"
-                  href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >our Google calendar<span class="sr-only"> (opens in a new tab)</span></a>
-                and stop tracking it.
-              </p>
+              <h2 id="events-heading">Events</h2>
             </div>
           </div>
           {% if upcoming_events %}
@@ -977,16 +1190,30 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="wiki-heading">The wiki, as a graph</h2>
+              <h2 id="wiki-heading">Community knowledgebase</h2>
               <p>
-                {{ counts.wiki }} member-written topics wired to each other — start anywhere and
-                follow the edges into guides, comparisons, roadmaps and podcast episodes.
+                {{ counts.wiki }} member-written topics wired to each other — click a node to
+                explore its neighbours. Open a page only when you choose to.
               </p>
             </div>
-            <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
           </div>
           <div class="wiki-grid">
-            <div class="graph-frame">
+            <div
+              class="graph-frame home-graph-explorer"
+              data-home-graph
+              data-graph-url="{% url 'wiki-graph-json' %}"
+              data-start-id="wiki:{{ wiki_graph.hub.slug }}"
+            >
+              <div class="home-graph-toolbar" aria-label="Graph controls">
+                <button class="home-graph-tool" type="button" data-home-graph-back hidden>Back</button>
+                <button class="home-graph-tool" type="button" data-home-graph-random>Random topic</button>
+                <a class="home-graph-tool" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
+                <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
+              </div>
+              <p class="home-graph-status" data-home-graph-status aria-live="polite">
+                Exploring {{ wiki_graph.hub.title }}. Click a neighbour to move there.
+              </p>
+              <div data-home-graph-fallback>
               {% for layout in wiki_graph.layouts %}
                 <svg
                   class="graph-svg graph-svg-{{ layout.kind }}"
@@ -1023,6 +1250,9 @@
                   </a>
                 </svg>
               {% endfor %}
+              </div>
+              <div data-home-graph-live hidden></div>
+              <details class="home-graph-more" data-home-graph-more hidden></details>
               <p class="graph-legend">
                 <span class="legend-key">
                   <span>
@@ -1031,14 +1261,14 @@
                   </span>
                   <span>
                     <span class="legend-swatch legend-page"></span>
-                    wiki page
+                    connected page
                   </span>
                   <span>
                     <span class="legend-swatch-line"></span>
                     connection
                   </span>
                 </span>
-                <span>{{ wiki_graph.spokes|length }} of {{ wiki_graph.connections }} {{ wiki_graph.hub.title }} connections drawn · {{ counts.wiki }} topics in the wiki</span>
+                <span><span data-home-graph-count>{{ wiki_graph.spokes|length }} of {{ wiki_graph.connections }} {{ wiki_graph.hub.title }} connections drawn</span> · {{ counts.wiki }} topics in the wiki</span>
               </p>
             </div>
             <div class="topic-list">
@@ -1050,6 +1280,9 @@
               {% endfor %}
             </div>
           </div>
+          <p class="band-more wiki-browse-link">
+            <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
+          </p>
         </div>
       </section>
 
@@ -1070,17 +1303,21 @@
       </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
+    <script src="{% static 'core/home_graph.js' %}"></script>
     <script>
       (function () {
-        var scroller = document.getElementById('catalog-scroller');
-        if (!scroller) {
-          return;
-        }
+        // Both horizontal strips (the course catalogue and member stories) share
+        // this one handler: each button names its own scroller by id, so a new
+        // carousel only has to reuse the markup, not add a new script.
         Array.prototype.forEach.call(
           document.querySelectorAll('[data-scroll]'),
           function (button) {
+            var scroller = document.getElementById(button.getAttribute('data-scroll-target'));
+            if (!scroller) {
+              return;
+            }
             button.addEventListener('click', function () {
-              var card = scroller.querySelector('.course-card');
+              var card = scroller.firstElementChild;
               var step = card ? card.getBoundingClientRect().width + 20 : 320;
               var calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
               scroller.scrollBy({

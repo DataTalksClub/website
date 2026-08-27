@@ -37,7 +37,7 @@ from events.models import EventQnaSession
 from events.services import public_registration_total
 
 from . import wiki_content
-from .article_content import article_view
+from .article_content import article_view, render_body_markdown
 from .article_faq import ArticleFaq, article_faq
 from .faq_data import faq_courses
 from .pagination import (
@@ -802,6 +802,14 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
     book = public_projection()["books_by_slug"].get(slug)
     if book is None:
         raise Http404
+    # The book's own summary is source Markdown, not plain text — it used to be
+    # printed literally (asterisks and all).  It goes through the same
+    # Markdown-then-shared-sanitizer path an article body uses
+    # (content.article_content.render_body_markdown), so a source list becomes a
+    # real `<ul>` and `**bold**` becomes `<strong>` without trusting the source.
+    summary_html, summary_is_block = (
+        render_body_markdown(book["summary"]) if book["summary"] else ("", False)
+    )
     return _render(
         request,
         "public/book_detail.html",
@@ -810,6 +818,8 @@ def book_detail(request: HttpRequest, slug: str) -> HttpResponse:
         description=book["description"],
         context={
             "record": book,
+            "summary_html": summary_html,
+            "summary_is_block": summary_is_block,
             "og_type": "book",
             "og_image_url": _canonical(book["image_path"]) if book["image_path"] else "",
             "structured_data": _json_ld(
@@ -978,7 +988,7 @@ def wiki_graph(request: HttpRequest) -> HttpResponse:
         request,
         "public/wiki_graph.html",
         path="/wiki/graph",
-        title="Knowledge Graph — DataTalks.Club Wiki",
+        title="Podcast Graph — DataTalks.Club Wiki",
         description=(
             "Explore wiki topics, typed content pages, people, podcasts, and books across the "
             "DataTalks.Club podcast archive."

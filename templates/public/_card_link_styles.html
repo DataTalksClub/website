@@ -32,14 +32,18 @@
         z-index: 1;
       }
 
-      .stretched-card-link:not(.podcast-card):hover {
+      .stretched-card-link:not(.podcast-card):hover,
+      .stretched-card-link.latest-card.podcast-card:hover {
         box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
       }
 
-      /* Podcast records are archive rows, not filled status boxes: the blue
-         mono eyebrow carries the season/episode metadata, while the row's own
-         dashed rule keeps the list rhythm. */
-      .podcast-card {
+      /* Podcast archive rows (the podcast index, a person's profile) are
+         rows, not filled status boxes: the blue mono eyebrow carries the
+         season/episode metadata, while the row's own dashed rule keeps the
+         list rhythm.  The homepage's "Latest podcast episode" widget is not
+         one of those rows — it is a `.latest-card` beside "Latest article",
+         which keeps its card frame — so it is carved out of the reset. */
+      .podcast-card:not(.latest-card) {
         background: transparent;
         border: 0;
         border-radius: 0;

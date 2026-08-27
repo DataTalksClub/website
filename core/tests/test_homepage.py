@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.html import escape
 
 from core import views as core_views
+from core.home_content import MEMBER_STORIES
 from courses.models.cohort import Cohort
 from courses.views.course import course_view
 from courses.views.course_aliases import legacy_course_redirect
@@ -23,6 +24,25 @@ ADOPTED_COURSE_DETAIL_TEMPLATE = (REPO_ROOT / "courses/templates/courses/course.
 
 
 class MainHomepageRoutingTests(TestCase):
+    def test_member_stories_keep_titles_country_only_and_requested_order(self) -> None:
+        self.assertEqual(
+            [(story.name, story.context) for story in MEMBER_STORIES],
+            [
+                ("Nevenka Lukic", "Data Engineer · Spain"),
+                ("Alexander Daniel Rios", "DS & ML Engineer · Argentina"),
+                ("Jocelyn Dumlao", "Data Scientist · Philippines"),
+                ("Zachary Keller", "Data & Analytics · United States"),
+                ("Hanaa Hammad", "Senior Data Engineer · Egypt"),
+                ("Tim Claytor", "Data Science · United States"),
+            ],
+        )
+
+        response = self.client.get(reverse("home"))
+        for name, context in [(story.name, story.context) for story in MEMBER_STORIES]:
+            with self.subTest(name=name):
+                self.assertContains(response, name)
+                self.assertContains(response, escape(context))
+
     def test_root_uses_the_shared_course_platform_shell(self) -> None:
         self.assertEqual(reverse("home"), "/")
         self.assertIs(resolve("/").func, core_views.home)
@@ -115,7 +135,7 @@ class MainHomepageRoutingTests(TestCase):
                 "Start with the foundations. Finish with a project you can present.",
             )
             self.assertContains(rendered, "AI Dev Tools Zoomcamp")
-            self.assertContains(rendered, "The wiki, as a graph")
+            self.assertContains(rendered, "Community knowledgebase")
 
     def test_homepage_navigation_is_local_and_complete(self) -> None:
         response = self.client.get(reverse("home"))
@@ -496,3 +516,18 @@ class HomepageWikiGraphTests(TestCase):
             f"{escape(graph.hub.title)} connections drawn",
             body,
         )
+
+    def test_graph_explorer_loads_the_public_graph_and_keeps_a_no_js_fallback(self) -> None:
+        from core.home_content import wiki_graph
+
+        graph = wiki_graph()
+        body = self.client.get(reverse("home")).content.decode()
+        self.assertIn("data-home-graph", body)
+        self.assertIn(f'data-graph-url="{reverse("wiki-graph-json")}"', body)
+        self.assertIn(f'data-start-id="wiki:{graph.hub.slug}"', body)
+        self.assertIn('src="/static/core/home_graph.js"', body)
+        self.assertIn("Click a neighbour to move there.", body)
+        self.assertIn("data-home-graph-fallback", body)
+        self.assertIn("data-home-graph-live hidden", body)
+        self.assertIn("data-home-graph-random", body)
+        self.assertIn(f'href="{graph.hub.public_path}"', body)

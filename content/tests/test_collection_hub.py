@@ -111,7 +111,7 @@ class CollectionHubRecordTests(TestCase):
         articles = public_projection()["articles"]
         body = "".join(catalogue_page_bodies(self.client, "/blog"))
 
-        self.assertIn(f"{len(articles)} articles", body)
+        self.assertIn(f"blog · {len(articles)} articles", body)
         self.assertEqual(body.count('class="list-row archive-row record-row"'), len(articles))
         for article in articles:
             title = escape(article["title"])
@@ -137,7 +137,7 @@ class CollectionHubRecordTests(TestCase):
         # The kicker counts the collection, not the page: it says the same number
         # on every page of the archive.
         for page_body in pages:
-            self.assertIn(f"{len(books)} in the archive", page_body)
+            self.assertIn(f"books · {len(books)} in the archive", page_body)
         self.assertEqual(body.count('class="list-row archive-row record-row"'), len(books))
         # Every page but the last is exactly one full page of records.
         for page_body in pages[:-1]:
@@ -282,7 +282,7 @@ class BooksArchiveContractTests(TestCase):
                 )
                 self.assertIn('<code class="mono-code">#book-of-the-week</code>', body)
                 self.assertIn('<h2 id="collection-list-heading">Archive</h2>', body)
-                self.assertIn(f"{len(books)} in the archive", body)
+                self.assertIn(f"books · {len(books)} in the archive", body)
                 # The introduction is not merely present: every piece of it is
                 # above the records, on every page of the archive.  The Slack
                 # search starts at the explainer, because the site navigation
@@ -414,7 +414,7 @@ class CollectionHubPaginationTests(TestCase):
 
         self.assertEqual(second.status_code, 200)
         self.assertIn("<title>Articles — Page 2 — DataTalks.Club</title>", body)
-        self.assertIn(f"{len(articles)} articles", body)
+        self.assertIn(f"blog · {len(articles)} articles", body)
         self.assertIn('<h1 id="collection-heading">Latest Articles</h1>', body)
         self.assertIn('<h2 id="collection-list-heading">All articles</h2>', body)
         self.assertIn('aria-label="Article pages"', body)

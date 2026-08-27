@@ -9,18 +9,11 @@
   <p class="mono-label mono-label-indigo">Account</p>
   <h1 id="auth-heading">Sign In</h1>
   {% if development_owner_login_enabled or providers %}
-    <p class="auth-lede">Choose your preferred sign-in method</p>
+    <p class="auth-lede">Choose your preferred login method</p>
   {% endif %}
 {% endblock %}
 
 {% block auth_content %}
-  {% if providers or development_owner_login_enabled %}
-    <div class="band-head">
-      <div>
-        <h2>Choose how you sign in</h2>
-      </div>
-    </div>
-  {% endif %}
   {% if providers %}
     <div class="card auth-panel">
       <h2>Continue with a social account</h2>
@@ -71,7 +64,7 @@
           </label>
           {% accessible_widget development_owner_form.password %}
         </div>
-        <div class="entrance-actions">
+        <div>
           <button
             class="cta cta-primary"
             type="submit"

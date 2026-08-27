@@ -41,6 +41,12 @@
        * lives in the partial above; these are this page's own compositions.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       .podcast-hero h1 {
         font-size: clamp(2.1rem, 4.9vw, 3.4rem);
         letter-spacing: -0.03em;
@@ -73,6 +79,11 @@
          and blue inside the bordered card. */
       .episode-row > .archive-card {
         border: 2px solid var(--line);
+        border-radius: 0.9rem;
+      }
+
+      .episode-row .play-disc {
+        margin-top: 0.9rem;
       }
 
       .episode-row .archive-body > .mono-label {

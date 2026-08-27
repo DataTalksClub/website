@@ -160,7 +160,7 @@ def _public_rendered_states(
         PublicRenderedState("public.faq-anchor", "faq-anchor", faq["question"]),
         PublicRenderedState("public.wiki-results", "wiki-results", "results for"),
         PublicRenderedState("public.wiki-zero-results", "wiki-zero", "0 results"),
-        PublicRenderedState("public.wiki-graph", "wiki-graph", "Knowledge graph"),
+        PublicRenderedState("public.wiki-graph", "wiki-graph", "Podcast Graph"),
         PublicRenderedState("public.wiki-special-pages", "wiki-special", "Special pages"),
         PublicRenderedState("public.missing-media", "missing-media", "unavailable"),
         PublicRenderedState("public.empty-state", "wiki-zero", "0 results"),

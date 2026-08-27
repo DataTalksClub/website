@@ -41,6 +41,12 @@
        * partial above.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       /* --- hero --------------------------------------------------------- */
 
       /* The breadcrumb links carry the system's 2.75rem target height, so the
@@ -99,8 +105,7 @@
 
       /* The facts remain a semantic dl, but the detail page gives the shared
          spec primitive a stronger sense of place: one quiet card in the hero,
-         every fact reading on the same neutral surface so the strip stays one
-         uniform dashed-bounded row rather than mixed treatments. */
+         with dates highlighted and the workload facts easy to scan. */
       .course-specs {
         background: var(--card);
         border: 2px solid var(--line);
@@ -125,6 +130,14 @@
 
       .course-specs .spec:first-child {
         border-left: 0;
+      }
+
+      .course-specs .spec-date {
+        background: var(--lavender);
+      }
+
+      .course-specs .spec-date dt {
+        color: var(--indigo);
       }
 
       .course-specs .spec strong {

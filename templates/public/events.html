@@ -37,6 +37,12 @@
        * .filter-pill, .mono-note); what follows is only this page's layout.
        * ------------------------------------------------------------------ */
 
+      /* --page follows the cool ground, since that is what the tail below the
+         last band continues. */
+      :root {
+        --page: var(--lavender);
+      }
+
       /* The export runs the hero straight into the first row, so the two bands
          give up most of the padding that meets at their shared dashed rule. */
       .events-hero {
@@ -229,17 +235,13 @@
 
       <section class="band band-lavender events-list" aria-labelledby="events-view-heading">
         <div class="shell shell-reading">
-          <div class="band-head">
-            <div>
-              <h2 id="events-view-heading">
-                {% if is_past_events %}
-                  Past events
-                {% else %}
-                  Upcoming events
-                {% endif %}
-              </h2>
-            </div>
-          </div>
+          <h2 id="events-view-heading" class="sr-only">
+            {% if is_past_events %}
+              Past events
+            {% else %}
+              Upcoming events
+            {% endif %}
+          </h2>
           <div class="row-list event-rows" data-event-view="{{ event_mode }}">
             {% for group in timeline_groups %}
               {% for event in group.events %}
