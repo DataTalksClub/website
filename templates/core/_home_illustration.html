@@ -5,28 +5,43 @@ Homepage illustrations for design 5a.  The artwork comes from DataTalksClub/webs
 converted to trimmed transparent WebP in core/static/core/illustrations/.
 
 The hero uses the large supplied scene.  The climb cards use the issue's reworked
-step 1 drawing and its step 2 and step 3 drawings; the step exports vary in natural
-size, and the stylesheet boxes them to one shape.
+step 1 drawing and its step 2 and step 3 drawings.  Each light file has a paired
+dark-theme regeneration on the same normalized canvas; the theme toggle selects
+the pair without changing the layout slot.
 
-Only the outer page background is transparent, which lets one file sit on the cream
-hero band and on a lavender card without a visible plate.
+The light files use a transparent outer canvas; the dark artwork was generated on
+native dark surfaces and its outer canvas is transparent for seamless placement
+on the page rather than appearing as a light-mode cutout or a dark rectangle.
 
 Decorative only — the surrounding copy carries the meaning — so every image has an
 empty alt attribute.
 {% endcomment %}
 {% if variant == "hero" %}
   {% static "core/illustrations/home-hero.webp" as doodle_src %}
+  {% static "core/illustrations/home-hero-dark.webp" as doodle_dark_src %}
 {% elif variant == "learning" %}
   {% static "core/illustrations/home-step-2.webp" as doodle_src %}
+  {% static "core/illustrations/home-step-2-dark.webp" as doodle_dark_src %}
 {% elif variant == "shipping" %}
   {% static "core/illustrations/home-step-3.webp" as doodle_src %}
+  {% static "core/illustrations/home-step-3-dark.webp" as doodle_dark_src %}
 {% else %}
   {% static "core/illustrations/home-stuck.webp" as doodle_src %}
+  {% static "core/illustrations/home-stuck-dark.webp" as doodle_dark_src %}
 {% endif %}
-<img
-  class="doodle doodle-{{ variant }}"
-  src="{{ doodle_src }}"
-  alt=""
-  decoding="async"
-  {% if variant != "hero" %}loading="lazy"{% endif %}
->
+<span class="doodle-variants">
+  <img
+    class="doodle doodle-light doodle-{{ variant }}"
+    src="{{ doodle_src }}"
+    alt=""
+    decoding="async"
+    loading="eager"
+  >
+  <img
+    class="doodle doodle-dark doodle-{{ variant }}"
+    src="{{ doodle_dark_src }}"
+    alt=""
+    decoding="async"
+    loading="eager"
+  >
+</span>

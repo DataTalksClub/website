@@ -564,14 +564,24 @@ Rules for editing:
         width: 100%;
       }
 
-      /* The artwork was painted for the cream page: its lavender wash and white
-         paper read as a glowing plate on the dark ground.  The mockup darkens its
-         artwork by remapping SVG fills, which nothing can do to a fixed WebP, so
-         dark mode dims and slightly desaturates the whole drawing instead — same
-         artwork, lamp turned down — keeping the ink lines and green shirts legible
-         while the wash settles into the ground. */
-      body.dark-mode .doodle {
-        filter: brightness(0.78) saturate(0.72);
+      /* Both theme files are present so a toggle is instant, but they must share
+         one layout slot.  `display: contents` keeps the wrapper transparent to
+         the card/hero layout; the inactive image is removed from layout rather
+         than merely hidden, so it cannot create a second image or shift content. */
+      .doodle-variants {
+        display: contents;
+      }
+
+      .doodle-dark {
+        display: none;
+      }
+
+      body.dark-mode .doodle-light {
+        display: none;
+      }
+
+      body.dark-mode .doodle-dark {
+        display: block;
       }
 
       .masthead-actions {
