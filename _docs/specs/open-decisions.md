@@ -4,15 +4,29 @@ Status: owner review required
 
 The specs use the recommendations below so implementation can be concrete. Approving the specification index approves these defaults unless an item is changed explicitly.
 
-## 1. GitHub-backed editing (resolved by #12)
+## 1. GitHub-backed editing (resolved by #12 and #226)
 
-Resolved: MVP Studio validates, previews, syncs, activates, rolls back, diagnoses, and opens GitHub edits.
-It never creates commits, branches, or pull requests — GitHub content stays read-only from the
-website's side, the same pattern already proven in the sibling AI Shipping Labs Django site
-(webhook push → clone → parse → upsert, no write-back). The staged prepare/ready/activate/rollback
-pipeline already built in `content/services.py` is more elaborate than that sibling's direct
-sync-and-upsert; whether to keep that extra staging is a separate, non-blocking implementation
-question, not part of this decision. Tracked in #226.
+Resolved: MVP Studio validates, syncs, diagnoses, and opens GitHub edits. It never creates commits,
+branches, or pull requests — GitHub content stays read-only from the website's side.
+
+Owner decision in #226 (2026-08-27): follow the sibling AI Shipping Labs workflow exactly for
+content synchronization: source lock → immutable checkout → parse/dispatch → direct upsert →
+source-scoped soft-delete or draft transition for records no longer present → `SyncLog` and source
+status. Existing draft/unpublished state is the pre-publication boundary; drafts remain outside
+public queries. Ordinary synchronization does not create a separate `ContentRelease` candidate or
+require a site-wide `prepare → ready → activate → rollback` step.
+
+This explicitly rejects the staged release graph currently present in `content/services.py`,
+accepting its additional complexity is not warranted for this product. The chosen model retains
+source locks, commit provenance, parser/route validation, source ownership, public draft filtering,
+redacted audit/diagnostic output, and safe handling of parse failures. Direct sync does not provide
+one atomic snapshot across every content type; partial-sync visibility and recovery must be made
+observable through sync status and addressed by the implementation follow-up.
+
+#226 changes the product direction only; it does not implement or migrate the application. #38
+must be re-groomed against this decision before engineering, including reconciliation of the
+content, architecture, and Studio specification sections that still describe release activation
+and rollback.
 
 ## 2. Course-platform adoption (resolved by #13)
 
@@ -156,9 +170,9 @@ and no fail-closed default pending individual approval.
 Recipients control what they receive through an account-settings preference center rather than a
 pre-launch approval process. Retention uses one unified policy across every purpose instead of a
 bespoke retention class per purpose (see #12). Newsletter/marketing sends are in scope and subject
-to the same preference-center opt-out and unified retention policy as every other purpose. An
-email-preference toggle mechanism already exists for course purposes; extending it to event/Slack/
-newsletter purposes is tracked in #227.
+to the preference and audience rules resolved in #227. An email-preference toggle mechanism already
+exists for course purposes; #227 extends the same mechanism for event and marketing/newsletter
+preferences while keeping one-time Slack access outside recurring opt-out categories.
 
 ## 12. Privacy retention (resolved by #23)
 
@@ -245,6 +259,11 @@ organization, work status, professional role, and seniority. Normalized email, t
 campaign/cohort, course comment, privacy-notice evidence, and optional marketing-consent evidence
 remain separate registration-owned values; profile edits affect only future registrations.
 
+The #227 onboarding decision governs email order: a new account receives email verification first,
+then one one-time Slack join-link message after successful verification, with the current link also
+available in the authenticated member area. Legacy/imported contacts bypass this sequence. Slack is
+not a recurring preference category and is not automatically sent again.
+
 ## 20. CloudFront cache, WAF, and cost plan
 
 Resolved MVP default: positively cache only explicitly classified anonymous public `GET`/`HEAD`
@@ -260,3 +279,42 @@ eligibility check accepts the candidate; otherwise compare pay-as-you-go with Bu
 the cheaper sufficient option. Retain pay-as-you-go when flat-plan lifecycle cannot be reproduced
 through accepted automation. Premium, targeted/advanced bot control, fraud/account-takeover,
 CAPTCHA, challenge, and real-time logging require a separate owner-approved issue.
+
+## 21. Email preference, subscription, and onboarding semantics (resolved by #227)
+
+Resolved by the product owner on 2026-08-27:
+
+- Event email is optional and applies only to a recipient with a registration for the relevant
+  event. Turning it off suppresses every event message, including verification, confirmation,
+  cancellation, reschedule, reminder, and other event-lifecycle mail. Event preference is separate
+  from newsletter/marketing preference.
+- Marketing/newsletter is a separate optional category. New member/account signup defaults it on;
+  an unverified new account is not a newsletter recipient. The recipient can unsubscribe later.
+- Slack access is a one-time requested-service message, not a recurring preference category. New
+  signup sends email verification first, then one Slack join-link email after successful
+  verification; the same link is available in the authenticated member area. It is not sent again
+  automatically. Legacy/imported contacts bypass this sequence.
+- Optional newsletter delivery targets verified contacts plus the explicit legacy/imported audience,
+  which is treated as assumed verified for this purpose. An identifiable logged-in interaction or
+  a recipient-specific newsletter-link interaction may move a legacy contact from `legacy` to
+  `verified`; that transition is not a delivery prerequisite and does not send another email. A
+  bare anonymous visit cannot identify a contact and does not change status.
+- Mailchimp is authoritative for legacy marketing subscription state. The subscribed and
+  unsubscribed lists are imported through separate idempotent operations that turn the marketing
+  preference on or off, respectively. A contact absent from both lists keeps the current platform
+  preference. The supported input lists are assumed clean and mutually exclusive; conflict
+  precedence is out of scope.
+- A visible body/footer unsubscribe link opens the website preference page, where the recipient
+  unticks unwanted categories and submits. A supported email-header one-click action may disable
+  only the category represented by that message, immediately and idempotently, without changing
+  unrelated preferences. Non-optional verification and one-time Slack mail do not expose an
+  optional unsubscribe control.
+- Newsletter attribution and preference links use opaque, recipient- and purpose-scoped,
+  expiring, replay-safe tokens. Raw email addresses never appear in URLs or logs. A newsletter
+  token identifies the recipient for the legacy status transition; it is not an additional
+  verification gate, and no persistent cookie is required.
+
+These rules supersede the older #227 acceptance wording that required a Slack toggle, treated all
+event lifecycle mail as mandatory, required explicit marketing opt-in at account signup, or made
+legacy email verification a prerequisite for newsletter delivery. #227 remains an implementation
+issue; no application or provider mutation is implied by this decision.

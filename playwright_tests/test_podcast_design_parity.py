@@ -148,18 +148,23 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
         }"""
     )
     assert focus["focused"] is True, focus
-    # Episode and related artwork carry useful alternative text.  The shared
-    # person-chip portrait is deliberately decorative because the adjacent name
-    # is the accessible credit.
+    # A player-present episode renders no redundant artwork of its own: the
+    # player already fills that visual slot (issue #234).  Related-episode
+    # artwork elsewhere on the page still carries useful alternative text, and
+    # the shared person-chip portrait is deliberately decorative because the
+    # adjacent name is the accessible credit.
     artwork_alt = f"Artwork for {episode['title']}"
     image_data = page.locator("main img").evaluate_all(
         "(nodes) => nodes.map((n) => ({alt: n.alt, className: n.className}))"
     )
     alts = [image["alt"] for image in image_data]
-    assert alts.count(artwork_alt) == 1, alts
+    assert alts.count(artwork_alt) == 0, alts
     assert all(
         image["alt"] or image["className"] == "person-chip-portrait" for image in image_data
     ), image_data
+    # Transcript is not the default tab (Show Notes is); activate it to reach
+    # its heading, the same way a keyboard or pointer user would.
+    page.get_by_role("tab", name="Transcript").click()
     expect(page.locator("#transcript-heading")).to_be_visible()
 
 

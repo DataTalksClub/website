@@ -114,6 +114,9 @@ class ProjectViewTestCase(ProjectViewTestBase):
         response = self.authenticated_project_response()
 
         self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["has_submission"])
+        self.assertContains(response, ">Submitted<")
+        self.assertNotContains(response, "Not submitted")
         self.assertContains(response, "Last saved at:")
         self.assertContains(response, "Update submission")
         self.assert_save_submission_copy(response)
