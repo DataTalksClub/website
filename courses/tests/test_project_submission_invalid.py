@@ -42,6 +42,10 @@ class ProjectSubmissionFaqUrlViewTestCase(ProjectSubmissionViewTestBase):
             "FAQ contribution must be a DataTalksClub/faq issue or pull request URL",
         )
         self.assertEqual(self.project_submission_count(), 0)
+        self.assertFalse(response.context["has_submission"])
+        self.assertContains(response, "Not submitted")
+        self.assertNotContains(response, ">Submitted<")
+        self.assertContains(response, "Status: Not saved yet")
 
     @mock.patch("requests.head")
     @mock.patch("requests.get")

@@ -32,6 +32,7 @@ def project_build_context(request, course: Cohort, project: Project) -> dict:
         "course_family": course.course,
         "project": project,
         "submission": user_details.submission,
+        "has_submission": user_details.submission is not None,
         "is_authenticated": is_authenticated,
         "disabled": not accepting_submissions,
         "accepting_submissions": accepting_submissions,

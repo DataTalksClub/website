@@ -65,7 +65,7 @@
 {% block hero_eyebrow %}
   <p class="mono-label mono-label-indigo">The brief</p>
   {% if is_authenticated %}
-    {% if submission %}
+    {% if has_submission %}
       <span class="status-pill status-pill-live">Submitted</span>
     {% else %}
       <span class="status-pill status-pill-wait">Not submitted</span>
@@ -139,7 +139,7 @@
       {% include "core/_callout.html" with tone="attention" role="alert" message=error %}
     {% endfor %}
     {% if disabled %}
-      {% if submission %}
+      {% if has_submission %}
         {% if project.state == 'PR' %}
           {% if course.course %}
             {% url 'projects_eval' course.course.slug course.identifier project.slug as project_eval_url %}
@@ -165,7 +165,7 @@
 {% endblock %}
 
 {% block submission_content %}
-  {% if accepting_submissions or submission %}
+  {% if accepting_submissions or has_submission %}
     <div class="submission-target">
       <div class="band-head">
         <div>
@@ -244,7 +244,7 @@
         {% endif %}
         </div>
         <p class="submission-status project-note">
-          {% if submission %}
+          {% if has_submission %}
             Last saved at: {{ submission.submitted_at|user_datetime:request }}
           {% else %}
             Status: Not saved yet
@@ -256,7 +256,7 @@
         {% if accepting_submissions %}
           <div class="submission-form-actions cmp-form-actions project-form-actions">
             {% if is_authenticated %}
-              {% if not submission %}
+              {% if not has_submission %}
                 {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Save submission" variant="primary" compact=True %}
               {% else %}
                 {% include "core/_button.html" with tag="button" type="submit" id="submit-button" label="Update submission" variant="primary" compact=True %}
