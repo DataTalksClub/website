@@ -58,18 +58,28 @@ MVP has no capacity or waitlist. The schema and services must not imply unlimite
 
 There is one row per `(event, normalized_email)`. Cancellation transitions the row; re-registration reactivates and increments its version. Database constraints, not only form checks, enforce uniqueness.
 
+Event email is an optional preference category and is separate from newsletter/marketing
+preference. It is evaluated for every event message and only applies to a recipient with an active
+registration for that event. Turning it off suppresses verification, confirmation, cancellation,
+reschedule, reminder, and other event-lifecycle messages. The existing newsletter-consent field is
+not an event-mail preference and event registration does not infer marketing subscription.
+
 ### Lifecycle
 
 `pending_verification -> confirmed -> cancelled`, with `expired`, `attended`, and `no_show` where applicable.
 
 1. An anonymous visitor submits the registration form.
 2. The service validates the event window, normalizes email, applies rate limits, and atomically
-   creates/reactivates a pending registration, one logical verification `EmailDelivery` intent, and
-   its durable job.
+   creates/reactivates a pending registration. If the event preference permits delivery, it also
+   creates one logical verification `EmailDelivery` intent and its durable job; if the preference
+   suppresses event mail, no Relay job is created and the pending registration remains pending until
+   another supported verification path is used.
 3. The response is deliberately uniform whether the address was new, pending, confirmed, or rate-limited in a non-user-actionable way.
 4. A high-entropy, hashed, registration/version-scoped link verifies ownership and confirms the registration.
 5. Confirmation atomically creates its logical confirmation delivery intent, durable job, and
-   calendar invitation idempotently.
+   calendar invitation idempotently when event mail is enabled for that recipient. Calendar
+   invitation delivery is therefore also suppressed when the recipient has opted out of event
+   email.
 6. A separate high-entropy management link opens a GET confirmation screen; cancellation itself requires POST and rotates the registration version.
 
 Verification and management tokens are never stored in plaintext, written to logs, placed in analytics, or exposed through Studio/API responses.
@@ -98,15 +108,24 @@ The target Relay-backed purpose catalog includes:
 
 Course/cohort message idempotency keys include cohort and relevant enrollment/assignment/submission versions so repeated jobs cannot send the same logical message twice.
 
-The development `courses` sender/purpose is the only currently approved live path. Every other
-purpose above fails closed until #22 approves its owner, audience, Relay sender/reply-to,
-template/context, idempotency/version inputs, and retention class.
+The #22 purpose decision authorizes the catalog structurally; each purpose still requires its
+approved Relay routing, immutable template version, idempotency inputs, and recipient preference
+check before submission. Unknown purposes, senders, broad recipients, and incomplete routing fail
+closed.
 
 Existing Datamailer audits and external identifiers are imported only as send-disabled, read-only
 migration/history/reconciliation evidence. Datamailer receives no new website send, and its
 compatibility surfaces cannot dispatch, requeue, or become a rollback sender.
 
-Marketing campaigns and newsletters are out of MVP scope. Marketing consent remains separate even if an external mailing service consumes it later.
+Marketing/newsletter delivery is in MVP scope as a distinct optional purpose. New member/account
+signup defaults the marketing preference on, but unverified new accounts are not newsletter
+recipients. The recipient can unsubscribe at any time.
+
+For legacy/imported contacts, Mailchimp is authoritative for the marketing preference. Importing
+the subscribed list turns the matched marketing preference on; importing the unsubscribed list turns
+it off. The operations are separate and idempotent, affect no other preference or verification
+state, and preserve the current platform preference when a contact is absent from both lists. The
+supported lists are assumed clean and mutually exclusive; overlap precedence is out of scope.
 
 ## Slack-access transactional delivery
 
@@ -116,13 +135,15 @@ runtime secret channel. It is never stored in `MemberProfile`, `SlackAccessGrant
 context or retained rendered bodies, audits, logs, metrics, URLs, OpenAPI examples, screenshots, or
 issue evidence. Domain rows carry only a non-secret `invite_version`.
 
-The first valid member-profile completion atomically creates or confirms one access grant, one
-unique delivery intent keyed by account, completion schema version, and invite version, and its
-durable job. After commit, the leased job resolves the current secret at send time and submits only
-the permitted scalar context to Relay for the verified account email. Relay validates and renders
-the immutable template version without returning or requiring the website to retain a
-secret-bearing body. Worker/Relay/secret failure leaves profile completion and eligibility
-committed. Live submission for this purpose remains disabled until #22 approves it.
+For a new account, successful email verification atomically creates or confirms one access grant,
+one unique delivery intent keyed by account and invite version, and its durable job. After commit,
+the leased job resolves the current secret at send time and submits only the permitted scalar
+context to Relay for the verified account email. Relay validates and renders the immutable template
+version without returning or requiring the website to retain a secret-bearing body. Worker/Relay/
+secret failure leaves account verification and Slack eligibility committed. The one-time join link
+is also available at the authenticated private member surface. Slack access is not a recurring
+preference category, is not controlled by event or marketing opt-out, and is not sent again
+automatically. Legacy/imported contacts bypass this verification-to-Slack sequence.
 
 A safe Relay-owned bootstrap template may seed this purpose. Relay remains the canonical template
 and rendering owner throughout; the website stores only the immutable template key/version and
@@ -140,6 +161,28 @@ already used external Slack membership.
 MVP has no member-facing email-resend action because the reveal page remains available. An
 authorized staff resend is a separate audited logical delivery with confirmation, reason,
 idempotency key, and rate limits. It never discloses the raw join URL through Studio/admin API.
+
+## Email preference and recipient semantics
+
+The existing account-settings preference mechanism is the canonical preference center; no parallel
+toggle system is introduced. It exposes the optional event and marketing/newsletter categories and
+continues to expose existing course categories. Slack access, account verification, and password
+recovery are non-optional one-time or security messages and do not receive an optional unsubscribe
+toggle.
+
+A visible unsubscribe link in a message body or footer opens the website preference page. The
+recipient can untick the categories they no longer want and submit; the initial GET does not mutate
+preference state. A supported Gmail/email-header one-click action may disable the category
+represented by that message immediately, idempotently, and without changing unrelated categories.
+
+Optional marketing/newsletter delivery is sent only to verified contacts plus the explicit
+legacy/imported audience, which is treated as assumed verified for newsletter delivery. A new
+account must complete email verification before it enters that audience. An identifiable logged-in
+interaction or a recipient-specific newsletter link may move a legacy contact from `legacy` to
+`verified`; this is not a delivery gate and does not trigger another email. A bare anonymous visit
+does not identify a contact and cannot change status. Newsletter attribution and preference links
+use opaque, recipient- and purpose-scoped, expiring, replay-safe tokens; raw email addresses are
+never placed in URLs or logs.
 
 ## Relay-owned email templates
 
@@ -255,15 +298,28 @@ Both interfaces can:
 
 ## Acceptance criteria
 
-- Registration replay, refresh, and concurrency create one logical row and one delivery per purpose/version.
+- Registration replay, refresh, and concurrency create one logical row and at most one logical
+  delivery per purpose/version; suppressed preferences create no Relay submission.
 - Verification/cancellation tokens are hashed, scoped, expiring, revocable, redacted, and link-scanner safe.
-- Event reschedule/cancellation produces correct calendar sequence and idempotent messages.
+- Event messages are sent only to active registrants whose event preference allows them; opting out
+  suppresses verification, confirmation, cancellation, reschedule, reminder, and other event mail.
+- Event reschedule/cancellation produces correct calendar sequence and idempotent messages when
+  event mail is enabled.
 - Worker and provider failures produce the specified durable states without losing business data.
 - Business state, one logical delivery intent, and one durable job commit atomically; only a leased
   after-commit job calls Relay, and uncertainty is never automatically resent.
 - Course reminders and event messages share one auditable delivery model.
-- Slack profile completion commits one durable secret-free logical delivery; reveal, send, retry,
-  rotation, resend, suppression, outage, quarantine, and deletion never leak or retain the join URL.
+- New-account email verification precedes one durable secret-free Slack-link delivery, and the
+  authenticated member area exposes the link; legacy/imported contacts bypass this sequence. Reveal,
+  send, retry, rotation, resend, suppression, outage, quarantine, and deletion never leak or retain
+  the join URL, and automatic duplicate Slack sends do not occur.
+- The existing preference center exposes event and marketing/newsletter categories, enforces them
+  before Relay submission, and does not create a recurring Slack toggle. Body unsubscribe links open
+  the category preference page; supported email-header one-click actions disable only their category.
+- New account marketing preference defaults on after signup, while newsletter delivery excludes
+  unverified new accounts. Mailchimp subscribed/unsubscribed imports independently turn the legacy
+  marketing preference on/off; absence preserves the current platform preference, and list overlap
+  is outside the supported input contract.
 - Public event catalog/detail caching cannot store a registration, management, provider, profile,
   Slack, or credentialed response.
 - Public Event links, canonical/OG/JSON-LD, breadcrumbs, registration/calendar builders, feeds, and
@@ -271,8 +327,8 @@ Both interfaces can:
   identity and a retained public redirect source.
 - Every event/email management action has Studio/admin API parity and negative authorization tests.
 - New website code has no direct Amazon SES or Datamailer send path, no canonical mutable template
-  store, and no provider-attempt/event stack; only approved development `courses` delivery may
-  progress while #22 purposes fail closed.
+  store, and no provider-attempt/event stack; every supported purpose uses approved Relay routing,
+  preference checks, recipient rules, and development allowlisting before it can progress.
 
 ## Aggregate-only historical registration overlay
 
