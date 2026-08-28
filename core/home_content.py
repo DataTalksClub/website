@@ -143,26 +143,14 @@ class MemberStory:
 # consent step happens.
 MEMBER_STORIES: tuple[MemberStory, ...] = (
     MemberStory(
-        quote="The Data Engineering Zoomcamp gave me skills that helped me land my first tech job.",
-        name="Tim Claytor",
-        photo_static_path="core/testimonials/tim-claytor.jpg",
-        context="Data Science · Nashville, United States",
-        source_url=(
-            "https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240/"
-            "?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287396889959711793152%2Curn%3Ali%3A"
-            "activity%3A7396882073308938240%29"
-        ),
-    ),
-    MemberStory(
         quote=(
-            "The final project was the real challenge, where we applied everything we "
-            "learned to build an end-to-end data pipeline in Google Cloud... I must admit, "
-            "this was really hard. But the feeling of accomplishment and learning made it "
-            "all worthwhile. And I would do it again!"
+            "The final project was the real challenge, where we applied everything we learned "
+            "to build an end-to-end data pipeline. This was really hard. But the feeling of "
+            "accomplishment made it all worthwhile. I would do it again!"
         ),
         name="Nevenka Lukic",
         photo_static_path="core/testimonials/nevenka-lukic.jpg",
-        context="Data Engineer/Technical Writer · Málaga, Spain",
+        context="Data Engineer · Spain",
         source_url=(
             "https://www.linkedin.com/posts/nevenka-lukic_data-engineering-zoomcamp-final-"
             "project-activity-7181985646033461248-Lc1O"
@@ -176,7 +164,7 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
         ),
         name="Alexander Daniel Rios",
         photo_static_path="core/testimonials/alexander-daniel-rios.jpg",
-        context="DS & ML Engineer · Buenos Aires, Argentina",
+        context="DS & ML Engineer · Argentina",
         source_url=(
             "https://www.linkedin.com/posts/alexander-daniel-rios_llmzoomcamp-ai-llm-"
             "activity-7391098999820406784-ByF1"
@@ -184,17 +172,15 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
     ),
     MemberStory(
         quote=(
-            "I've just completed Module 1 of the LLM Zoomcamp by DataTalksClub, focusing on "
-            "building an Agentic Retrieval-Augmented Generation (RAG) system from the ground "
-            "up."
+            "This course project strengthened my understanding of modern LLM applications, "
+            "vector databases, prompt engineering, and production-ready AI workflows. A big "
+            "thanks to the DataTalksClub community for providing such an excellent learning "
+            "experience."
         ),
         name="Jocelyn Dumlao",
         photo_static_path="core/testimonials/jocelyn-dumlao.jpg",
-        context="Data Scientist, Kaggle GrandMaster · Davao, Philippines",
-        source_url=(
-            "https://www.linkedin.com/posts/jocelyn-dumlao-168921a8_github-datatalksclubllm-"
-            "zoomcamp-llm-activity-7474320002528223232-sqj2"
-        ),
+        context="Data Scientist · Philippines",
+        source_url="https://www.linkedin.com/feed/update/urn:li:activity:7486622652921430016/",
     ),
     MemberStory(
         quote=(
@@ -204,7 +190,7 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
         ),
         name="Zachary Keller",
         photo_static_path="core/testimonials/zachary-keller.jpg",
-        context="Data & Analytics · Columbus, United States",
+        context="Data & Analytics · United States",
         source_url=(
             "https://www.linkedin.com/posts/zrkeller_course-report-datatalksclub-ml-zoomcamp-"
             "activity-7013629465083707392-RbZV"
@@ -212,16 +198,23 @@ MEMBER_STORIES: tuple[MemberStory, ...] = (
     ),
     MemberStory(
         quote=(
-            "I'm following the excellent free LLM Zoomcamp 2026 by DataTalksClub and Alexey "
-            "Grigorev. If you're interested in GenAI, RAG, and LLM engineering, I highly "
-            "recommend checking it out."
+            "The LLM Zoomcamp 2026 by DataTalksClub is an excellent course. If you're interested "
+            "in GenAI, RAG, and LLM engineering, I highly recommend checking it out."
         ),
         name="Hanaa Hammad",
         photo_static_path="core/testimonials/hanaa-hammad.jpg",
         context="Senior Data Engineer · Egypt",
+        source_url="https://www.linkedin.com/feed/update/urn:li:activity:7489957731135651840/",
+    ),
+    MemberStory(
+        quote="The Data Engineering Zoomcamp gave me skills that helped me land my first tech job.",
+        name="Tim Claytor",
+        photo_static_path="core/testimonials/tim-claytor.jpg",
+        context="Data Science · United States",
         source_url=(
-            "https://www.linkedin.com/posts/hanaahammad_github-datatalksclubllm-zoomcamp-llm-"
-            "activity-7484266330909609984-JT-G"
+            "https://www.linkedin.com/feed/update/urn:li:activity:7396882073308938240/"
+            "?dashCommentUrn=urn%3Ali%3Afsd_comment%3A%287396889959711793152%2Curn%3Ali%3A"
+            "activity%3A7396882073308938240%29"
         ),
     ),
 )

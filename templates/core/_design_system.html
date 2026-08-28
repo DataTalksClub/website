@@ -153,7 +153,7 @@ Rules for editing:
       body.dark-mode {
         --cream: #13162a;
         --lavender: #232a52;
-        --mint: #17301f;
+        --mint: #19382c;
         --card: #1b1f3a;
         --ink: #eaeaf7;
         --body-text: #aeb2d2;
@@ -163,14 +163,14 @@ Rules for editing:
            clears every band (5.90 lavender, 6.08 mint, 6.89 card, 7.64 cream); the
            stylesheet had simply drifted from it.  See issue #185. */
         --muted: #a4a9bd;
-        --line: #6a72ab;
-        --line-soft: rgba(169, 176, 242, 0.34);
-        --green: #2b8146;
-        --green-bright: #2b8146;
-        --green-deep: #93c7a5;
-        --green-text: #93c7a5;
-        --indigo: #a9b0f2;
-        --indigo-soft: #3c4372;
+        --line: #7079b4;
+        --line-soft: rgba(174, 181, 244, 0.36);
+        --green: #2f6d59;
+        --green-bright: #3a795e;
+        --green-deep: #9bc9ad;
+        --green-text: #9bc9ad;
+        --indigo: #b0b7f5;
+        --indigo-soft: #3e4778;
         --shadow: rgba(6, 8, 22, 0.65);
         --shadow-soft: rgba(6, 8, 22, 0.65);
         --focus: #eaeaf7;
@@ -186,7 +186,7 @@ Rules for editing:
         --lavender-deep: #2d3565;
         --sand: #2a2740;
         --olive: #cbb98a;
-        --green-ship: #93c7a5;
+        --green-ship: #9bc9ad;
         --bubble: #3c4372;
         --on-bubble: #e8e5dd;
         /* A dark, desaturated take on the light-mode gold (#e2c67a) that
@@ -578,14 +578,24 @@ Rules for editing:
         width: 100%;
       }
 
-      /* The artwork was painted for the cream page: its lavender wash and white
-         paper read as a glowing plate on the dark ground.  The mockup darkens its
-         artwork by remapping SVG fills, which nothing can do to a fixed WebP, so
-         dark mode dims and slightly desaturates the whole drawing instead — same
-         artwork, lamp turned down — keeping the ink lines and green shirts legible
-         while the wash settles into the ground. */
-      body.dark-mode .doodle {
-        filter: brightness(0.78) saturate(0.72);
+      /* Both theme files are present so a toggle is instant, but they must share
+         one layout slot.  `display: contents` keeps the wrapper transparent to
+         the card/hero layout; the inactive image is removed from layout rather
+         than merely hidden, so it cannot create a second image or shift content. */
+      .doodle-variants {
+        display: contents;
+      }
+
+      .doodle-dark {
+        display: none;
+      }
+
+      body.dark-mode .doodle-light {
+        display: none;
+      }
+
+      body.dark-mode .doodle-dark {
+        display: block;
       }
 
       .masthead-actions {

@@ -751,10 +751,6 @@
           padding: 0;
         }
 
-        .story-person .story-context {
-          display: none;
-        }
-
         /* The featured card is the only card with a wider gutter than the rest; on a
            narrow screen that reads as a mistake, so it takes the shared card inset. */
         .featured {
@@ -888,8 +884,7 @@
           <div class="shell">
             <div class="band-head">
               <div>
-                <h2 id="stories-heading">People who were exactly where you are</h2>
-                <p>Same courses, same Slack, no shortcuts. Here's what changed and how long it took.</p>
+                <h2 id="stories-heading">What people say</h2>
               </div>
               <div class="scroller-controls">
                 <button
@@ -969,11 +964,7 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="courses-heading">Pick what you want to build first</h2>
-              <p>
-                {{ course_family_word|capfirst }} free zoomcamps, community-created: practical homework,
-                projects, public leaderboards and peer review.
-              </p>
+              <h2 id="courses-heading">Active courses</h2>
             </div>
             <a class="band-link" href="{% url 'course_list' %}">all courses →</a>
           </div>
@@ -1010,41 +1001,11 @@
               </p>
             </aside>
           </div>
-          <div class="band-head band-head-secondary">
-            <div>
-              <h3>The rest of the catalog</h3>
-              <p>Every finished cohort keeps its materials public, and the next one is open to register for.</p>
-            </div>
-            <div class="scroller-controls">
-              <button
-                class="scroller-button"
-                type="button"
-                data-scroll="-1"
-                data-scroll-target="catalog-scroller"
-                aria-label="Scroll catalogue left"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M15 5l-7 7 7 7"/>
-                </svg>
-              </button>
-              <button
-                class="scroller-button"
-                type="button"
-                data-scroll="1"
-                data-scroll-target="catalog-scroller"
-                aria-label="Scroll catalogue right"
-              >
-                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                  <path d="M9 5l7 7-7 7"/>
-                </svg>
-              </button>
-            </div>
-          </div>
           <div
             class="catalog-scroller"
             id="catalog-scroller"
             role="group"
-            aria-label="The rest of the catalogue"
+            aria-label="Course catalogue"
             tabindex="0"
           >
             {% for course in catalog_courses %}
@@ -1057,6 +1018,30 @@
                 <a class="band-link course-link" href="{{ course.public_path }}">View course →</a>
               </article>
             {% endfor %}
+          </div>
+          <div class="scroller-controls catalog-scroller-controls" aria-label="Course catalogue controls">
+            <button
+              class="scroller-button"
+              type="button"
+              data-scroll="-1"
+              data-scroll-target="catalog-scroller"
+              aria-label="Scroll catalogue left"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M15 5l-7 7 7 7"/>
+              </svg>
+            </button>
+            <button
+              class="scroller-button"
+              type="button"
+              data-scroll="1"
+              data-scroll-target="catalog-scroller"
+              aria-label="Scroll catalogue right"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M9 5l7 7-7 7"/>
+              </svg>
+            </button>
           </div>
         </div>
       </section>
@@ -1088,17 +1073,7 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="events-heading">Something to attend this week</h2>
-              <p>
-                Free, live, recorded. Subscribe to
-                <a
-                  class="band-link"
-                  href="https://calendar.google.com/calendar/?cid=ZjhxaWRqbnEwamhzY3A4ODA5azFlZ2hzNjBAZ3JvdXAuY2FsZW5kYXIuZ29vZ2xlLmNvbQ"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >our Google calendar<span class="sr-only"> (opens in a new tab)</span></a>
-                and stop tracking it.
-              </p>
+              <h2 id="events-heading">Events</h2>
             </div>
           </div>
           {% if upcoming_events %}
@@ -1215,13 +1190,12 @@
         <div class="shell">
           <div class="band-head">
             <div>
-              <h2 id="wiki-heading">The wiki, as a graph</h2>
+              <h2 id="wiki-heading">Community knowledgebase</h2>
               <p>
                 {{ counts.wiki }} member-written topics wired to each other — click a node to
                 explore its neighbours. Open a page only when you choose to.
               </p>
             </div>
-            <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
           </div>
           <div class="wiki-grid">
             <div
@@ -1306,6 +1280,9 @@
               {% endfor %}
             </div>
           </div>
+          <p class="band-more wiki-browse-link">
+            <a class="band-link" href="{% url 'wiki-home' %}">browse {{ counts.wiki }} topics A–Z →</a>
+          </p>
         </div>
       </section>
 
