@@ -575,8 +575,10 @@ def test_homework_breadcrumb_target_spacing_ignores_closed_account_menu(
           };
         })"""
     )
-    assert len(geometry) == 2, geometry
-    first, second = geometry
+    # The shared submission document names the full ancestor trail: courses,
+    # course family, and course edition.  The homework itself is the current page.
+    assert len(geometry) == 3, geometry
+    first, second, *_ = geometry
     # Design 5a replaced the adopted shell's compact crumb row (issue #128's
     # remediation asserted links no taller than 24px plus compensating spacing):
     # every breadcrumb ancestor now carries the system's 2.75rem (44px) target

@@ -170,9 +170,7 @@ class PublicProjectionTests(TestCase):
         literally; it must now print the emphasis and the list they describe.
         """
 
-        book = self.projection["books_by_slug"][
-            "20250908-machine-learning-algorithms-in-depth"
-        ]
+        book = self.projection["books_by_slug"]["20250908-machine-learning-algorithms-in-depth"]
         self.assertIn("**Algorithms You'll Explore**", book["summary"])
         self.assertIn("* Monte Carlo Stock Price Simulation", book["summary"])
 
@@ -194,9 +192,7 @@ class PublicProjectionTests(TestCase):
         legitimately reuses the flyer image, must still carry it.
         """
 
-        book = self.projection["books_by_slug"][
-            "20250908-machine-learning-algorithms-in-depth"
-        ]
+        book = self.projection["books_by_slug"]["20250908-machine-learning-algorithms-in-depth"]
         self.assertTrue(book["media_available"])
         self.assertTrue(book["image_path"])
 

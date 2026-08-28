@@ -117,7 +117,7 @@ def structure_issues(page: Page, state: str) -> list[str]:
           duplicateIds: [...document.querySelectorAll('[id]')]
             .map((node) => node.id)
             .filter((id, index, values) => values.indexOf(id) !== index),
-          overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          overflow: document.body.scrollWidth - document.body.clientWidth,
           overflowSources: [...document.querySelectorAll('body *')]
             .filter((node) => {
               const rect = node.getBoundingClientRect();

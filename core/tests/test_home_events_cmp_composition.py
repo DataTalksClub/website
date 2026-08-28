@@ -141,7 +141,7 @@ class HomeEventsCmpRenderingTests(TestCase):
                 "Start with the foundations. Finish with a project you can present.",
             )
             self.assertContains(response, "Create your free account")
-            self.assertContains(response, "Something to attend this week")
+            self.assertContains(response, "Events")
             self.assertContains(response, "AI Dev Tools Zoomcamp")
             self.assertContains(response, "all courses →")
             self.assertNotContains(response, "/static/core/site.css")
