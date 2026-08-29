@@ -30,12 +30,16 @@ Start the site against that database:
 ```bash
 DTC_ENVIRONMENT=local \
 DTC_SQLITE_PATH=.tmp/design-review/issue-237.sqlite3 \
-DJANGO_SETTINGS_MODULE=website.settings.local_review \
+DJANGO_SETTINGS_MODULE=website.settings.design_review \
 uv run python manage.py runserver 0.0.0.0:8000
 ```
 
-The `local_review` settings disable outbound network and provider/email side
-effects. For anonymous pages, open the manifest path directly under
+The opt-in `design_review` settings inherit every `local_review` outbound-network,
+provider, email, job, and arbitrary-mutation denial. They additionally set
+`DEBUG=False`, so missing routes render the production application 404 instead of
+Django's technical URL-pattern page, and allow only the four bounded synthetic
+interactions documented below. Ordinary `website.settings.local_review` does not
+enable those interactions. For anonymous pages, open the manifest path directly under
 `http://localhost:8000`. For an authenticated render, create the browser context
 with the appropriate state, for example:
 
@@ -117,24 +121,24 @@ patterns where an integer ID comes from the manifest.
 | `/courses/data-reliability-zoomcamp/archive-preview` | Anonymous; hidden but direct-link reachable and empty | Tests supported sparse/empty curriculum without leaking it into `/courses`. | `legacy-hidden-empty`. |
 | `/courses/streaming-systems-lab` | Anonymous; two cohorts | Tests current family page and upcoming-versus-active edition hierarchy. | `native-family`. |
 | `/courses/streaming-systems-lab/autumn-2026` | Anonymous then active learner | Tests dense ordered flow, long title, interleaved projects, progress, and responsive reflow. | `native-active-anonymous` and `native-active-enrolled`. |
-| `/courses/register/streaming-systems-lab-spring-2027/` | Anonymous | Tests normal registration preview and long marketing copy. | `native-registration`. Submit blank/invalid fields for multi-error summary and focus. |
+| `/courses/register/streaming-systems-lab-spring-2027/` | Anonymous | Tests normal registration preview and long marketing copy. | `native-registration`. Submit the blank form for its multi-error summary and focus. Nonblank review POSTs remain 403. |
 | Same registration route | Active learner | Tests already-registered state without a second identity. | `native-already-registered`. |
 | `/courses/register/streaming-systems-lab-closed-preview/` | Anonymous; expected 404 | Tests safe denial for inactive campaigns. | `native-registration-closed`. |
 | Native module 03 route from manifest | Active learner; seven units and mixed read state | Tests dense rail, current location, terminal homework, target size, and mobile reshape. | `native-module-dense`. |
 | Rich native unit route from manifest | Active learner | Tests long title, prose/table/code/Mermaid overflow, rail current state, and previous/next destinations. | `native-unit-rich`. |
 | Empty native unit route from manifest | Anonymous | Tests meaningful empty fallback and anonymous read-only rail. | `native-unit-empty`. |
-| Unit read endpoint (`.../<unit>/read`) | Anonymous POST then active-learner POST | Anonymous must redirect to login; learner toggles `is_read=0/1`, rejects any other value with 400. | Use the unit paths above; browser state `active-learner`. This is an interaction, not a GET manifest row. |
-| Legacy dashboard route from manifest | Active learner then observer | Contrasts busy deadlines/score/progress with authenticated unenrolled empty state. | `legacy-dashboard`, `legacy-dashboard-unenrolled`. |
-| Open/scored/closed homework routes | Active learner or observer | Tests not-started, editable submission, submitted/scored feedback, closed state, long question, optional fields, and action clarity. | `legacy-homework-open`, `legacy-homework-scored`, `legacy-homework-closed`. Submit the open form empty for validation summary/preserved values; do not complete a network-side-effect path. |
+| Exact unit read endpoint `/courses/streaming-systems-lab/autumn-2026/modules/module-03/unit-04/read` | Anonymous POST then active-learner POST | Anonymous reaches the login redirect; learner toggles `is_read=0/1`; the bounded `issue-237-invalid` value reaches the view's 400. | Browser state `active-learner`. No other module/unit mutation is allowlisted. |
+| Legacy dashboard routes from manifest | Active learner on active 2026, then observer on hidden empty archive-preview | Contrasts a genuinely busy cohort dashboard with a separate cohort having zero enrollments, assignments, submissions, and progress. | `legacy-dashboard`, `legacy-dashboard-unenrolled`. Actor identity does not change aggregate dashboard data; the separate empty cohort creates the contrast. |
+| Open/scored/closed homework routes | Active learner or observer | Tests not-started, editable submission, submitted/scored feedback, closed state, long question, optional fields, and action clarity. | `legacy-homework-open`, `legacy-homework-scored`, `legacy-homework-closed`. On the exact open route, the blank review POST is forced through the existing invalid-hours validation and atomic rollback, rendering the callout without a submission, answer, enrollment, job, mail, or provider effect. |
 | Scored homework `/stats` | Anonymous | Tests dense statistic sections and question rows. | `legacy-homework-stats`. |
 | Peer-reviewing and collecting project routes | Active learner | Tests existing submission versus open submission form and state comprehension. | `legacy-project-peer-review`, `legacy-project-collecting`. |
 | Project `/eval` | Peer reviewer | Tests assigned/completed review grouping and closed/open labels. | `legacy-peer-review`. |
 | Legacy leaderboard | Active learner | Tests populated ranking, privacy-hidden row, long display name, pagination geometry, and self-state. | `legacy-leaderboard`. |
 | Leaderboard score detail | Active learner | Tests score breakdown hierarchy and complaint destination. | `legacy-score-breakdown`. |
-| Leaderboard report form | Peer reviewer | Tests authenticated form, errors, focus, and return destination. | `legacy-complaint`; submit blank to render validation without creating report evidence. |
-| `/courses/wrapped/2026/` | Anonymous | Visible aggregate with two courses and leaderboard. | `wrapped-aggregate`. |
+| Leaderboard report form | Peer reviewer | Tests authenticated form, errors, focus, and return destination. | `legacy-complaint`; only the exact deterministic manifest enrollment path accepts a blank validation POST. Every other real or nonexistent enrollment ID and every nonblank payload remains 403. |
+| `/courses/wrapped/2026/` | Anonymous | Visible aggregate with two named courses, enrollment counts, ranked learners, and total scores. | `wrapped-aggregate`; JSON uses the tested `title`/`slug`/`enrollment_count` and `rank`/`total_score` schemas. |
 | `/courses/wrapped/2025/` | Anonymous | Supported hidden/absent no-data page. | `wrapped-no-data`. |
-| Wrapped individual routes from manifest | Anonymous | Contrasts shareable learner summary with a valid user who has no activity. | `wrapped-individual`, `wrapped-individual-empty`. |
+| Wrapped individual routes from manifest | Anonymous | Contrasts a shareable learner summary with visible course, score, enrollment link, rank, and hours against a valid user with no activity. | `wrapped-individual`, `wrapped-individual-empty`; course JSON uses `title`/`slug`/`score`/`enrollment_id`. |
 
 ## Public content, utility, and authentication matrix
 
@@ -165,7 +169,7 @@ events, or editorial documents in the review database.
 | `/terms` | Anonymous long legal prose | Tests reading measure, deep headings, lists, and 200% reflow. | Checked legal content. |
 | `/accounts/login/` | Normal, keyboard focus, invalid synthetic credentials | Tests provider/action hierarchy, error alert, preserved privacy, and return intent. | Seed local placeholder providers if buttons are required: `uv run python manage.py seed_local_social_providers`; enter only `invalid@example.invalid` and a synthetic invalid password. |
 | `/accounts/signup/` | Normal social signup entry | Tests distinction from login, provider targets, terms copy, and narrow layout. | Same local provider seed; do not follow placeholder providers. |
-| `/__issue_237_missing__` | 404 | Tests application error shell and recovery navigation. | No seed. Expected 404. |
+| `/__issue_237_missing__` | 404 | Tests the production application error shell, recovery navigation, and mobile reflow without technical URL-pattern output. | No seed. Expected 404 under `website.settings.design_review` (`DEBUG=False`). |
 
 ## Review interactions and state limits
 
@@ -174,9 +178,16 @@ events, or editorial documents in the review database.
   `example.invalid` emails internally, but the redacted manifest never exposes them.
 - Do not follow external links. The local-review middleware and browser test network
   guard must remain enabled.
-- Form error states may be produced with blank or clearly synthetic invalid values.
-  Do not submit a successful path that queues mail or a durable provider job merely
-  for visual evidence.
+- Only four POST contracts are enabled, all on exact synthetic routes: blank
+  registration, blank open-homework validation preview, the one deterministic
+  manifest enrollment's blank leaderboard complaint, and the one unit read toggle.
+  Blank form values may include a CSRF token; every
+  nonblank registration/homework/complaint payload is denied before the view. The
+  homework preview injects a review-only invalid hours sentinel so the real atomic
+  validation path rolls back. Do not submit any other successful course form.
+- The interaction tests assert unchanged counts for registrations, submissions,
+  answers, complaints, enrollments, and durable jobs across all three blank previews.
+  Provider routes, arbitrary course mutations, and Studio mutations remain 403.
 - The current `Cohort` model derives public lifecycle grouping from dates,
   `registration_url`, and `finished`; it does not yet expose the full draft → archived
   enum proposed by specification 04. The fixture therefore covers only states the
@@ -197,16 +208,25 @@ Run the deterministic graph and route contract:
 
 ```bash
 uv run --frozen pytest test_support/tests/test_design_review_data.py -q
+uv run --frozen pytest test_support/tests/test_design_review_interactions.py -q
 uv run ruff check \
+  review_import/middleware.py \
+  website/settings/design_review.py \
   test_support/design_review_data.py \
   test_support/tests/test_design_review_data.py \
+  test_support/tests/test_design_review_interactions.py \
   scripts/build_synthetic_design_review_db.py
 uv run ruff format --check \
+  review_import/middleware.py \
+  website/settings/design_review.py \
   test_support/design_review_data.py \
   test_support/tests/test_design_review_data.py \
+  test_support/tests/test_design_review_interactions.py \
   scripts/build_synthetic_design_review_db.py
 ```
 
-The test asserts the distinct `legacy`/`modules` cohort counts, read-state data,
-all redacted manifest routes and expected statuses, absence of email/session values
-from the manifest, and continued exclusion of `/` and `/events`.
+The tests assert the distinct `legacy`/`modules` cohort counts, genuinely different
+busy/empty dashboards, one-h1 rich unit, visible Wrapped labels/numbers, read-state
+data, all redacted manifest routes and statuses, production-style 404, bounded POST
+effects and denials, absence of email/session values from the manifest, and continued
+exclusion of `/` and `/events`.

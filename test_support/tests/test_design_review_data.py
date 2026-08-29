@@ -27,12 +27,38 @@ def test_issue_237_review_data_builds_distinct_course_contracts_and_routes() -> 
         persona.key: get_user_model().objects.get(username=persona.username)
         for persona in review_data.personas
     }
+    responses = {}
     for surface in review_data.surfaces:
         client = Client()
         if surface.actor != "anonymous":
             client.force_login(users[surface.actor])
         response = client.get(surface.path, follow=False)
         assert response.status_code == surface.expected_status, surface
+        responses[surface.key] = response
+
+    busy_dashboard = responses["legacy-dashboard"]
+    empty_dashboard = responses["legacy-dashboard-unenrolled"]
+    assert busy_dashboard.context["total_enrollments"] > 0
+    assert busy_dashboard.context["homework_stats"]
+    assert empty_dashboard.context["total_enrollments"] == 0
+    assert empty_dashboard.context["homework_stats"] == []
+    assert busy_dashboard.content != empty_dashboard.content
+
+    rich_unit = responses["native-unit-rich"]
+    assert rich_unit.content.count(b"<h1") == 1
+    assert b"Choosing boundaries for reliable replay and recovery" in rich_unit.content
+
+    aggregate_wrapped = responses["wrapped-aggregate"]
+    assert b"Data Reliability Zoomcamp 2026" in aggregate_wrapped.content
+    assert b"9 participants" in aggregate_wrapped.content
+    assert b"Avery Quartz" in aggregate_wrapped.content
+    assert b"71" in aggregate_wrapped.content
+
+    individual_wrapped = responses["wrapped-individual"]
+    assert b"Data Reliability Zoomcamp 2026" in individual_wrapped.content
+    assert b"34 points" in individual_wrapped.content
+    assert b"#2" in individual_wrapped.content
+    assert b"19.5" in individual_wrapped.content
 
 
 def test_issue_237_review_manifest_contains_no_email_or_session_value() -> None:

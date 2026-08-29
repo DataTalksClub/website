@@ -9,7 +9,7 @@ database below ``.tmp``; no production or imported snapshot is an input.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -34,10 +34,8 @@ from courses.models import (
     Unit,
     UnitReadState,
 )
+from test_support.design_review_identity import FROZEN_AT, SEED
 from test_support.factories import FactoryContext, create_current_scenario
-
-FROZEN_AT = datetime(2026, 8, 29, 10, 0, tzinfo=UTC)
-SEED = "issue-237-design-review-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,13 +159,13 @@ def _unit_markdown(module_number: int, unit_number: int, *, long: bool = False) 
     title = "Choosing boundaries for reliable replay and recovery"
     if long:
         title += " when throughput, ownership, and delayed side effects all compete"
-    return f"""# {title}
+    return f"""## {title}
 
 This synthetic lesson uses a credible engineering narrative without copying course
 material. It explains how a team can make failure visible, keep retries bounded, and
 verify that a recovery procedure produces the same result twice.
 
-## Working example
+### Working example
 
 | Signal | Healthy | Investigate |
 | --- | ---: | ---: |
@@ -562,37 +560,58 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         marketing_markdown="Registration is intentionally closed in this review state.",
     )
 
+    legacy_enrollment = scenario["adopted_courses.enrollment"].value
     wrapped = scenario["adopted_courses.wrapped_statistics"].value
     wrapped.year = 2026
     wrapped.total_participants = 12
     wrapped.total_enrollments = 17
     wrapped.course_stats = [
-        {"course": "Data Reliability Zoomcamp", "count": 9},
-        {"course": "Streaming Systems Lab", "count": 8},
+        {
+            "title": "Data Reliability Zoomcamp 2026",
+            "slug": legacy.slug,
+            "enrollment_count": 9,
+        },
+        {
+            "title": "Streaming Systems Lab — Autumn 2026",
+            "slug": native.slug,
+            "enrollment_count": 8,
+        },
     ]
     wrapped.leaderboard = [
         {
             "display_name": "Avery Quartz",
-            "points": 71,
+            "rank": 1,
             "student_id": learner.id,
+            "total_score": 71,
         },
         {
             "display_name": "Synthetic Peer Reviewer",
-            "points": 64,
+            "rank": 2,
             "student_id": reviewer.id,
+            "total_score": 64,
         },
     ]
     wrapped.save()
     user_wrapped = scenario["adopted_courses.user_wrapped_statistics"].value
     user_wrapped.total_points = 34
     user_wrapped.courses = [
-        {"course": "Data Reliability Zoomcamp", "points": 34},
+        {
+            "title": "Data Reliability Zoomcamp 2026",
+            "slug": legacy.slug,
+            "score": 34,
+            "enrollment_id": legacy_enrollment.id,
+        },
     ]
     user_wrapped.rank = 2
     user_wrapped.display_name = "Avery Quartz"
+    user_wrapped.total_hours = 19.5
+    user_wrapped.homework_count = 2
+    user_wrapped.project_count = 1
+    user_wrapped.peer_reviews_given = 1
+    user_wrapped.learning_in_public_count = 3
+    user_wrapped.faq_contributions_count = 1
+    user_wrapped.certificates_earned = 0
     user_wrapped.save()
-
-    legacy_enrollment = scenario["adopted_courses.enrollment"].value
 
     surfaces = (
         ReviewSurface(
@@ -724,9 +743,9 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         ),
         ReviewSurface(
             "legacy-dashboard-unenrolled",
-            _route("dashboard", legacy),
+            _route("dashboard", empty_legacy),
             "observer",
-            "authenticated but unenrolled empty progress",
+            "empty hidden cohort with no enrollment, assignment, or progress data",
             "adopted legacy curriculum",
         ),
         ReviewSurface(

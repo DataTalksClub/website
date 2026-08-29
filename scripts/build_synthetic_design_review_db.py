@@ -99,7 +99,7 @@ def run(argv: list[str] | None = None) -> int:
         {
             "DTC_ENVIRONMENT": "local",
             "DTC_SQLITE_PATH": str(database.relative_to(PROJECT_ROOT)),
-            "DJANGO_SETTINGS_MODULE": "website.settings.local_review",
+            "DJANGO_SETTINGS_MODULE": "website.settings.design_review",
         }
     )
     if str(PROJECT_ROOT) not in sys.path:
