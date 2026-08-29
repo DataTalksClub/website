@@ -147,18 +147,18 @@
             </div>
           </div>
           <nav class="row-list" aria-label="Wiki exploration">
-            <a class="list-row explore-row" href="{% url 'wiki-graph' %}">
+            <a class="list-row explore-row interactive-card interactive-lift" href="{% url 'wiki-graph' %}">
               <strong>Graph</strong>
               <span>Explore topic, episode, people, and book connections.</span>
             </a>
             {% comment %}
               Empty `?q=` is the existing search mode. `/wiki/search` is an editorial page.
             {% endcomment %}
-            <a class="list-row explore-row" href="{% url 'wiki-home' %}?q=">
+            <a class="list-row explore-row interactive-card interactive-lift" href="{% url 'wiki-home' %}?q=">
               <strong>Search</strong>
               <span>Find wiki pages, guides, summaries, people, and books.</span>
             </a>
-            <a class="list-row explore-row" href="{% url 'wiki-special' %}">
+            <a class="list-row explore-row interactive-card interactive-lift" href="{% url 'wiki-special' %}">
               <strong>Special pages</strong>
               <span>Browse guides, comparisons, roadmaps, how-tos, and transitions.</span>
             </a>

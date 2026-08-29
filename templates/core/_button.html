@@ -7,7 +7,7 @@
 {% endcomment %}
 {% if tag == "button" %}
   <button
-    class="cta cta-{{ variant|default:'secondary' }}{% if compact %} cta-compact{% endif %}{% if classes %} {{ classes }}{% endif %}"
+    class="cta cta-{{ variant|default:'secondary' }}{% if compact %} cta-compact{% endif %} interactive-lift{% if classes %} {{ classes }}{% endif %}"
     {% if type %}type="{{ type }}"{% endif %}
     {% if id %}id="{{ id }}"{% endif %}
     {% if name %}name="{{ name }}"{% endif %}
@@ -20,7 +20,7 @@
   >{{ label }}</button>
 {% else %}
   <a
-    class="cta cta-{{ variant|default:'secondary' }}{% if compact %} cta-compact{% endif %}{% if classes %} {{ classes }}{% endif %}"
+    class="cta cta-{{ variant|default:'secondary' }}{% if compact %} cta-compact{% endif %} interactive-lift{% if classes %} {{ classes }}{% endif %}"
     href="{{ href }}"
     {% if target %}target="{{ target }}"{% endif %}
     {% if rel %}rel="{{ rel }}"{% endif %}

@@ -93,7 +93,7 @@ class SlackPageTests(TestCase):
         self.assertIn('<h2 id="slack-help-heading">Having trouble joining?</h2>', self.body)
         self.assertRegex(
             self.body,
-            r'<a\s+class="cta cta-primary"\s+href="'
+            r'<a\s+class="cta cta-primary interactive-lift"\s+href="'
             + re.escape(str(self.page["troubleshooting_url"]))
             + r'"\s+target="_blank"\s+rel="noreferrer"\s*>\s*Contact the community team',
         )

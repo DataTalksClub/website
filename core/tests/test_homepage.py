@@ -98,13 +98,22 @@ class MainHomepageRoutingTests(TestCase):
     def test_single_destination_cards_stretch_their_existing_semantic_links(self) -> None:
         body = self.client.get(reverse("home")).content.decode()
 
-        self.assertIn('class="card course-card stretched-card-link"', body)
-        self.assertIn('class="card latest-card stretched-card-link podcast-card"', body)
+        self.assertIn(
+            'class="card course-card stretched-card-link interactive-card interactive-lift"',
+            body,
+        )
+        self.assertIn(
+            "card latest-card stretched-card-link podcast-card interactive-card interactive-lift",
+            body,
+        )
         self.assertIn(
             '<p class="mono-label mono-label-indigo podcast-meta">',
             body,
         )
-        self.assertIn('class="card latest-card stretched-card-link">', body)
+        self.assertIn(
+            'class="card latest-card stretched-card-link interactive-card interactive-lift">',
+            body,
+        )
         self.assertIn(".stretched-card-link .latest-item h3 a::after", body)
         self.assertIn(".stretched-card-link .course-link::after", body)
 

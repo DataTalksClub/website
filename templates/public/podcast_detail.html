@@ -625,7 +625,7 @@
               <div class="listen-row" role="group" aria-labelledby="platform-links-heading">
                 {% for link in episode.listener_platform_links %}
                   <a
-                    class="pill-button"
+                    class="pill-button interactive-lift"
                     href="{{ link.url }}"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -821,14 +821,14 @@
             <h2 id="episode-navigation-heading">More episodes</h2>
             <nav class="episode-navigation" aria-label="Episode navigation">
               {% if previous_episode %}
-                <a href="{{ previous_episode.public_path }}" class="previous-episode">
+                <a href="{{ previous_episode.public_path }}" class="previous-episode interactive-card interactive-lift">
                   <span class="mono-label">← Previous episode</span>
                   <strong>{{ previous_episode.title }}</strong>
                   <span class="mono-note">{{ previous_episode.season_episode }}</span>
                 </a>
               {% endif %}
               {% if next_episode %}
-                <a href="{{ next_episode.public_path }}" class="next-episode">
+                <a href="{{ next_episode.public_path }}" class="next-episode interactive-card interactive-lift">
                   <span class="mono-label">Next episode →</span>
                   <strong>{{ next_episode.title }}</strong>
                   <span class="mono-note">{{ next_episode.season_episode }}</span>
@@ -850,7 +850,7 @@
             </div>
             <div class="card-grid card-grid-3">
               {% for related in related_episodes %}
-                <article class="card related-episode-card">
+                <article class="card related-episode-card stretched-card-link interactive-card interactive-lift">
                   {% if related.media_available %}
                     <img
                       class="related-artwork"

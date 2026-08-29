@@ -201,7 +201,7 @@
                 <div class="event-links" role="group" aria-label="Event links">
                   {% for link in event.links %}
                     <a
-                      class="cta cta-compact cta-secondary"
+                      class="cta cta-compact cta-secondary interactive-lift"
                       href="{{ link.url }}"
                       target="_blank"
                       rel="noopener noreferrer"
@@ -211,12 +211,12 @@
                     </a>
                   {% endfor %}
                   {% if qna_url %}
-                    <a class="cta cta-compact cta-secondary" href="{{ qna_url }}">Event Q&amp;A</a>
+                    <a class="cta cta-compact cta-secondary interactive-lift" href="{{ qna_url }}">Event Q&amp;A</a>
                   {% endif %}
                 </div>
               {% elif qna_url %}
                 <div class="event-links" role="group" aria-label="Event links">
-                  <a class="cta cta-compact cta-secondary" href="{{ qna_url }}">Event Q&amp;A</a>
+                  <a class="cta cta-compact cta-secondary interactive-lift" href="{{ qna_url }}">Event Q&amp;A</a>
                 </div>
               {% endif %}
             </header>

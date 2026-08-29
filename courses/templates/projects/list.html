@@ -88,10 +88,10 @@
       </p>
     {% endif %}
     <div class="project-toolbar">
-      <a class="cta cta-compact cta-secondary" href="{% url 'list_all_project_submissions' course.course.slug course.identifier %}">
+      <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'list_all_project_submissions' course.course.slug course.identifier %}">
         All Projects
       </a>
-      <a class="cta cta-compact cta-secondary" href="{% url 'course' course.course.slug course.identifier %}">
+      <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'course' course.course.slug course.identifier %}">
         Back to Course
       </a>
     </div>
@@ -154,7 +154,7 @@
                       <input type="hidden" name="action" value="remove">
                       <button
                         type="submit"
-                        class="cta cta-compact cta-secondary project-vote-button is-voted"
+                        class="cta cta-compact cta-secondary project-vote-button is-voted interactive-lift"
                         aria-label="Remove vote"
                         title="Remove vote"
                       ><span class="project-vote-label">Voted</span></button>
@@ -162,7 +162,7 @@
                       <input type="hidden" name="action" value="vote">
                       <button
                         type="submit"
-                        class="cta cta-compact cta-secondary project-vote-button"
+                        class="cta cta-compact cta-secondary project-vote-button interactive-lift"
                         aria-label="Vote"
                         title="{% if submission.vote_limit_reached %}Limit reached{% elif submission.own %}Your project{% else %}Vote{% endif %}"
                         {% if submission.vote_limit_reached or submission.own %}disabled{% endif %}
@@ -175,7 +175,7 @@
                 {% if is_authenticated and project.state == 'PR' %}
                   {% if submission.to_evaluate %}
                     <a
-                      class="cta cta-compact cta-primary"
+                      class="cta cta-compact cta-primary interactive-lift"
                       href="{% url 'projects_eval_submit' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug review_id=submission.review.id %}"
                       title="Review: {{ submission.review.get_state_display }}"
                       aria-label="Review: {{ submission.review.get_state_display }}"
@@ -192,7 +192,7 @@
                     <button
                       type="button"
                       onclick="confirmEvaluation('{% url 'projects_eval_add' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug submission_id=submission.id %}')"
-                      class="cta cta-compact cta-secondary"
+                      class="cta cta-compact cta-secondary interactive-lift"
                       title="Add to evaluation"
                       aria-label="Add to evaluation"
                     >Review</button>
@@ -219,7 +219,7 @@
   {% endif %}
   {% if project.state == 'CO' %}
     <div class="project-toolbar">
-      <a class="cta cta-compact cta-secondary" href="{% url 'project_statistics' course.course.slug course.identifier project.slug %}">
+      <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'project_statistics' course.course.slug course.identifier project.slug %}">
         Project statistics
       </a>
     </div>

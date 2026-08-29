@@ -139,7 +139,12 @@ class EventTimelineRouteTests(TestCase):
         self.assertContains(past_page, 'data-event-view="past"')
         self.assertContains(past_page, 'aria-label="Past event pages"')
         self.assertEqual(
-            len(re.findall(r'<article class="card event-card">', past_page.content.decode())),
+            len(
+                re.findall(
+                    r'<article class="card event-card interactive-card interactive-lift">',
+                    past_page.content.decode(),
+                )
+            ),
             min(PUBLIC_PAGE_SIZE, len(groups.recent)),
         )
         # The pages escape the titles they draw, so the needle has to be the
@@ -268,8 +273,14 @@ class PastEventPaginationTests(TestCase):
         self.assertEqual(second.count(f'<time datetime="{key}">'), 2)
         # The split does not change how many events each page carries, and no event
         # is duplicated across the boundary or lost at it.
-        self.assertEqual(first.count('<article class="card event-card">'), PUBLIC_PAGE_SIZE)
-        self.assertEqual(second.count('<article class="card event-card">'), 5)
+        self.assertEqual(
+            first.count('<article class="card event-card interactive-card interactive-lift">'),
+            PUBLIC_PAGE_SIZE,
+        )
+        self.assertEqual(
+            second.count('<article class="card event-card interactive-card interactive-lift">'),
+            5,
+        )
         titles = re.findall(r"Composed past event \d\d", first + second)
         self.assertEqual(len(titles), len(set(titles)))
         self.assertEqual(len(titles), len(recent))
@@ -540,7 +551,10 @@ class EventIndexDesignSystemTests(TestCase):
             self.assertIn('<div class="when">', body)
             self.assertIn('<span class="when-day">', body)
             self.assertIn('<span class="when-time">', body)
-            self.assertIn('<article class="card event-card">', body)
+            self.assertIn(
+                '<article class="card event-card interactive-card interactive-lift">',
+                body,
+            )
         # The kind pill states the event type in words, and only the surface changes:
         # lavender for an upcoming session, mint for a podcast, sand for anything past.
         self.assertRegex(
@@ -556,15 +570,23 @@ class EventIndexDesignSystemTests(TestCase):
         past = self.client.get("/events/past").content.decode()
 
         self.assertIn(
-            '<a class="filter-pill" href="/events" aria-current="page">Upcoming events</a>',
+            '<a class="filter-pill interactive-lift" href="/events" '
+            'aria-current="page">Upcoming events</a>',
             upcoming,
         )
-        self.assertIn('<a class="filter-pill" href="/events/past">Past events</a>', upcoming)
         self.assertIn(
-            '<a class="filter-pill" href="/events/past" aria-current="page">Past events</a>',
+            '<a class="filter-pill interactive-lift" href="/events/past">Past events</a>',
+            upcoming,
+        )
+        self.assertIn(
+            '<a class="filter-pill interactive-lift" href="/events/past" '
+            'aria-current="page">Past events</a>',
             past,
         )
-        self.assertIn('<a class="filter-pill" href="/events">Upcoming events</a>', past)
+        self.assertIn(
+            '<a class="filter-pill interactive-lift" href="/events">Upcoming events</a>',
+            past,
+        )
 
 
 class EventKindsExplainerTests(TestCase):

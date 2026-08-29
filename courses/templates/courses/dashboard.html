@@ -19,8 +19,6 @@
        * what courses/views/dashboard_context.py already supplied.
        * ------------------------------------------------------------------ */
 
-      {% include "public/_card_link_styles.html" %}
-
       :root {
         --page: var(--lavender);
       }
@@ -244,7 +242,7 @@
           </p>
           {% if course.first_homework_scored %}
             <div class="dashboard-actions">
-              <a class="cta cta-compact cta-secondary" href="{% url 'leaderboard' course.course.slug course.identifier %}">
+              <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'leaderboard' course.course.slug course.identifier %}">
                 View Leaderboard
               </a>
             </div>
@@ -299,7 +297,7 @@
                 {% endif %}
               </dl>
             </div>
-            <div class="card dashboard-card stretched-card-link">
+            <div class="card dashboard-card stretched-card-link interactive-card interactive-lift">
               <h3>Project outcomes</h3>
               <dl class="row-list fact-rows">
                 <div class="list-row">

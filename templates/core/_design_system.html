@@ -1088,6 +1088,91 @@ Rules for editing:
         color: var(--body-text);
       }
 
+      /* --- interaction -------------------------------------------------- *
+       *
+       * Visual controls and whole-card links share one small piece of motion.
+       * Applying the class is deliberate: a plain article/card is information,
+       * not an invitation to click, and must not move just because it happens to
+       * use the same surface tokens.  `interactive-card` adds only the link cue;
+       * it is paired with `interactive-lift` on whole-card destinations.
+       */
+      .interactive-lift {
+        transition: box-shadow 0.14s ease, translate 0.14s ease;
+      }
+
+      .interactive-card {
+        position: relative;
+      }
+
+      .interactive-card::before {
+        bottom: var(--interactive-card-bottom, 0.85rem);
+        color: var(--indigo);
+        content: "→";
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1;
+        opacity: 0;
+        pointer-events: none;
+        position: absolute;
+        right: var(--interactive-card-right, 0.9rem);
+        translate: -0.25rem 0;
+        transition: opacity 0.14s ease, translate 0.14s ease;
+        z-index: 2;
+      }
+
+      .interactive-card:focus-visible::before,
+      .interactive-card:has(
+        > a:focus-visible,
+        h3 a:focus-visible,
+        .archive-title a:focus-visible,
+        .course-link:focus-visible,
+        .dashboard-card-link a:focus-visible
+      )::before {
+        opacity: 1;
+        translate: none;
+      }
+
+      /* The arrow is the card-level affordance.  A title does not also change
+         decoration, while ordinary links outside these cards keep their normal
+         underline contract. */
+      .interactive-card :is(h2, h3, .archive-title) a,
+      .interactive-card :is(h2, h3, .archive-title) a:hover {
+        text-decoration: none;
+      }
+
+      @media (hover: hover) and (pointer: fine) {
+        .interactive-lift:not(:disabled):hover {
+          translate: -2px -2px;
+        }
+
+        .interactive-card:hover::before {
+          opacity: 1;
+          translate: none;
+        }
+      }
+
+      .interactive-lift:focus-visible,
+      .interactive-card.interactive-lift:has(
+        > a:focus-visible,
+        h3 a:focus-visible,
+        .archive-title a:focus-visible,
+        .course-link:focus-visible,
+        .dashboard-card-link a:focus-visible
+      ) {
+        translate: -2px -2px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .interactive-lift {
+          transition: none;
+          translate: none !important;
+        }
+
+        .interactive-card::before {
+          transition: none;
+        }
+      }
+
       /* --- cards -------------------------------------------------------- */
 
       .card {
@@ -1105,6 +1190,45 @@ Rules for editing:
       .card-grid {
         display: grid;
         gap: 1.25rem;
+      }
+
+      /* A whole-card destination keeps one semantic anchor.  Its hit area is
+         stretched across the surface; independent person links remain above
+         that overlay and retain their own destination. */
+      .stretched-card-link {
+        position: relative;
+      }
+
+      .stretched-card-link .archive-title a::after,
+      .stretched-card-link .latest-item h3 a::after,
+      .stretched-card-link .course-link::after,
+      .stretched-card-link .dashboard-card-link a::after,
+      .stretched-card-link.related-episode-card h3 a::after {
+        content: "";
+        inset: 0;
+        position: absolute;
+      }
+
+      .stretched-card-link .person-chip a {
+        position: relative;
+        z-index: 3;
+      }
+
+      /* Podcast archive rows use their dashed list rhythm rather than a filled
+         status box.  The homepage latest-episode card remains a framed card. */
+      .podcast-card:not(.latest-card) {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .podcast-meta {
+        color: var(--indigo);
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
       }
 
       /* The event card, drawn by the events index and by the homepage's three-up
@@ -1136,7 +1260,7 @@ Rules for editing:
       }
 
       .event-card h3 a:hover {
-        text-decoration: underline;
+        text-decoration: none;
       }
 
       .event-card h3 a::after {
@@ -1151,9 +1275,8 @@ Rules for editing:
         z-index: 1;
       }
 
-      .event-card:hover {
-        box-shadow: 0.35rem 0.35rem 0 var(--shadow-soft);
-      }
+      /* Event-card movement and its bottom-right link cue come from the shared
+         explicit interaction classes used by every whole-card destination. */
 
       /* Enough of the event to know whether it is for you, clamped so a long
          description cannot make one card taller than the screen. */
@@ -2055,8 +2178,7 @@ Rules for editing:
       }
 
       .archive-title a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+        text-decoration: none;
       }
 
       /* Two pills at most: what the record is, and — where a list mixes past and

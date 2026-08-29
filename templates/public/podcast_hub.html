@@ -34,7 +34,6 @@
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
-      {% include "public/_card_link_styles.html" %}
 
       /* ------------------------------------------------------------------ *
        * Podcast index rules.  Everything visual that another page could want
@@ -162,7 +161,7 @@
               {% for link in podcast_platform_links %}
                 {% if link.provider != "spotify_for_creators" %}
                   <a
-                    class="pill-button"
+                    class="pill-button interactive-lift"
                     data-podcast-platform="{{ link.provider }}"
                     href="{{ link.url }}"
                     target="_blank"
@@ -224,12 +223,12 @@
           <nav id="podcast-seasons" class="season-groups" aria-label="Podcast seasons">
             <div class="season-row podcast-season-adjacent">
               {% if newer_season %}
-                <a class="filter-pill pagination-target" href="{{ newer_path }}">
+                <a class="filter-pill pagination-target interactive-lift" href="{{ newer_path }}">
                   Newer season — Season {{ newer_season.number }}
                 </a>
               {% endif %}
               {% if older_season %}
-                <a class="filter-pill pagination-target" href="{{ older_path }}">
+                <a class="filter-pill pagination-target interactive-lift" href="{{ older_path }}">
                   Older season — Season {{ older_season.number }}
                 </a>
               {% endif %}
@@ -238,12 +237,12 @@
               {% for season_link in season_links %}
                 {% if season_link.number == season.number %}
                   <span
-                    class="filter-pill pagination-target podcast-season-current"
+                    class="filter-pill pagination-target podcast-season-current interactive-lift"
                     aria-current="page"
                     aria-label="Season {{ season_link.number }}, current season"
                   >Season {{ season_link.number }}</span>
                 {% else %}
-                  <a class="filter-pill pagination-target" href="{{ season_link.path }}">
+                  <a class="filter-pill pagination-target interactive-lift" href="{{ season_link.path }}">
                     Season {{ season_link.number }}
                   </a>
                 {% endif %}

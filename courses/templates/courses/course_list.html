@@ -139,8 +139,7 @@
       }
 
       .active-card h3 a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+        text-decoration: none;
       }
 
       .course-card[role="link"],
@@ -207,8 +206,7 @@
       }
 
       .course-card h3 a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
+        text-decoration: none;
       }
 
       .course-card-foot {
@@ -348,7 +346,7 @@
                 progress, and your {{ wrapped_year }} leaderboard rank.
               </p>
             </div>
-            <a class="cta cta-secondary cta-compact courses-wrapped-action" href="{% url 'wrapped' wrapped_year %}">
+            <a class="cta cta-secondary cta-compact courses-wrapped-action interactive-lift" href="{% url 'wrapped' wrapped_year %}">
               View your {{ wrapped_year }} wrapped →
             </a>
           </div>
@@ -371,7 +369,7 @@
                     {% endcomment %}
                     {% url 'course_family' card.family.slug as family_url %}
                     {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
-                    <article class="card active-card"
+                    <article class="card active-card interactive-card interactive-lift"
                              role="link"
                              tabindex="0"
                              onclick="if (!event.target.closest('a, button')) window.location.href='{{ edition_url }}'"
@@ -430,7 +428,7 @@
               {% for card in open_registration_course_cards %}
                   {% url 'course_family' card.family.slug as family_url %}
                   {% url 'course' card.family.slug card.cohort.identifier as edition_url %}
-                  <article class="card course-card"
+                  <article class="card course-card interactive-card interactive-lift"
                            role="link"
                            tabindex="0"
                            onclick="if (!event.target.closest('a, button')) window.location.href='{{ family_url }}'"
@@ -453,9 +451,9 @@
                         <span class="course-card-registered">{{ card.cohort.index_registered }} registered</span>
                       {% endif %}
                       {% if card.cohort.registration_campaign and not card.cohort.is_enrolled and not card.cohort.is_registered %}
-                        <a class="cta cta-primary cta-compact" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
+                        <a class="cta cta-primary cta-compact interactive-lift" href="{% url 'registration_campaign' card.cohort.registration_campaign.slug %}">Register</a>
                       {% elif card.cohort.home_registration_open and not card.cohort.is_enrolled %}
-                        <a class="cta cta-primary cta-compact" href="{{ card.cohort.registration_url }}">Register</a>
+                        <a class="cta cta-primary cta-compact interactive-lift" href="{{ card.cohort.registration_url }}">Register</a>
                       {% endif %}
                     </div>
                   </article>
