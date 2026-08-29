@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+from pathlib import Path
+
 from django.test import TestCase, override_settings
 from django.urls import resolve, reverse
 
@@ -20,6 +23,8 @@ class MediaKitPageTests(TestCase):
         self.assertContains(response, "Previous and Current Sponsors")
         self.assertContains(response, "alexey@datatalks.club")
         self.assertNotContains(response, "valeriia@datatalks.club")
+        self.assertContains(response, "<h1>Media kit</h1>", html=True)
+        self.assertNotContains(response, "core/mediakit/logo.svg")
         self.assertContains(response, 'class="media-kit shell-breakout"')
         self.assertTemplateUsed(response, "core/content_page.html")
         self.assertTemplateUsed(response, "core/mediakit.html")
@@ -62,20 +67,36 @@ class MediaKitPageTests(TestCase):
                 body = self.client.get(f"/sitemaps/{section}.xml").content.decode()
                 self.assertNotIn("https://datatalks.club/mediakit/", body)
 
-    def test_recovered_images_are_local_and_external_examples_are_safe(self) -> None:
+    def test_showcase_images_open_their_full_size_local_assets(self) -> None:
         response = self.client.get("/mediakit/")
+        body = response.content.decode()
+        image_links = re.findall(
+            r'<a class="media-kit-image-link" href="([^"]+)"[^>]*>'
+            r'<img[^>]+src="([^"]+)"',
+            body,
+        )
 
         self.assertContains(response, "/static/core/mediakit/newsletter-primary.png")
         self.assertContains(response, "/static/core/mediakit/workshop-community.png")
-        self.assertContains(response, "/static/core/mediakit/logo.svg")
         self.assertContains(response, 'class="media-kit-image-link"', count=13)
+        self.assertEqual(len(image_links), 13)
+        for href, src in image_links:
+            with self.subTest(src=src):
+                self.assertEqual(href, src)
+                self.assertTrue(src.startswith("/static/core/mediakit/"))
+
+    def test_internal_links_are_root_relative_and_borders_use_neutral_tokens(self) -> None:
+        response = self.client.get("/mediakit/")
+        body = response.content.decode().split("<body", maxsplit=1)[1]
+        template = Path("templates/core/mediakit.html").read_text()
+
+        self.assertNotIn('href="https://datatalks.club/', body)
+        self.assertContains(response, 'href="/podcast/building-production-search-systems.html"')
         self.assertContains(
             response,
-            'aria-label="Open the Primary Slot live newsletter example"',
+            'href="/blog/open-source-free-ai-agent-evaluation-tools.html"',
         )
-        self.assertContains(
-            response,
-            'aria-label="Open the Workshop course sponsorship example"',
+        self.assertIsNone(
+            re.search(r"border(?:-color)?\s*:[^;]*(?:indigo|green|clay|gold)", template)
         )
-        self.assertContains(response, 'aria-label="Open the LinkedIn post example"')
         self.assertContains(response, 'target="_blank" rel="noopener noreferrer"')

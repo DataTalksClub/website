@@ -104,8 +104,10 @@ COURSE_PACKAGES = (
         "metric": "5K–10K views",
         "features": (
             "Logo placement on the course page throughout the cohort",
-            "Mention in the course launch stream and official Telegram channel",
+            "Mention in the course launch stream",
+            "Encouragement for students to try your product",
             "Optional demo video (up to 10 min, open-source only)",
+            "Shout-out from the official Telegram channel",
             "Post-launch analytics on course reach and video performance",
         ),
         "example_url": (
@@ -126,10 +128,14 @@ COURSE_PACKAGES = (
         ),
         "metric": "5K–10K views",
         "features": (
+            "Logo placement on the course page",
+            "Mention in the course launch stream",
             "Live-streamed workshop, part of the course curriculum",
             "Dedicated homework assignment (3 questions)",
+            "Encouragement for students to use your tool in their projects",
             "Optional raffle or giveaway for participants",
             "Permanent availability on GitHub and YouTube",
+            "Post-event analytics on views and engagement",
         ),
         "example_url": (
             "https://github.com/DataTalksClub/data-engineering-zoomcamp/blob/main/"
@@ -148,9 +154,12 @@ COURSE_PACKAGES = (
         ),
         "metric": "10K–50K total views",
         "features": (
+            "Logo and mention in the launch stream",
             "Full module (5–10 lessons) featuring your tool",
-            "Homework and office hours with course participants",
+            "Homework assignment (6–7 questions) based on your product",
+            "Office hours with course participants",
             "Evergreen visibility on GitHub and YouTube",
+            "Post-launch analytics on module reach and engagement",
             "For open-source tools only",
         ),
         "example_url": (
@@ -162,44 +171,110 @@ COURSE_PACKAGES = (
 )
 
 TESTIMONIALS = (
-    (
-        "Adrian Brudaru",
-        "dltHub",
-        "Collaborating with DataTalks.Club for the Data Engineering Zoomcamp on data "
-        "ingestion went way better than we thought. The workshop got over 10,000 views "
-        "on YouTube, and the number of people trying out dlt doubled.",
-    ),
-    (
-        "Tim Liu",
-        "BentoML",
-        "We sponsored Module 7 of Machine Learning Zoomcamp. Over 165 students attempted "
-        "the homework, and many used BentoML in their midterm and final projects.",
-    ),
-    (
-        "Henrik Skogström",
-        "Head of Growth, Valohai",
-        "This was one of the most fruitful collaborations in terms of lead acquisition. "
-        "We are looking forward to working with Alexey further on.",
-    ),
-    (
-        "Kevin Kho",
-        "ex-Prefect, now Figue",
-        "Compare this to MLOps Zoomcamp where we had around 300–400 homework submissions. "
-        "Sponsoring the initiative feels more like it goes to a good cause in comparison "
-        "to conferences.",
-    ),
-    (
-        "Daniel Jeffries",
-        "Managing Director, AI Infrastructure Alliance",
-        "DataTalks.Club stands as one of the strongest AIIA communities, with a wide "
-        "range of seasoned and aspiring data enthusiasts.",
-    ),
-    (
-        "Nathan Jefferson",
-        "ex-Topcoder, Founder of IMBALANCE",
-        "The outcome was the lowest candidate acquisition cost we've seen across all "
-        "channels this year.",
-    ),
+    {
+        "author": "Adrian Brudaru",
+        "role": "dltHub",
+        "url": "https://www.linkedin.com/in/data-team",
+        "quote": (
+            "Collaborating with DataTalks.Club for the Data Engineering Zoomcamp on "
+            "data ingestion went way better than we thought. We didn't just hit our "
+            "target audience; we attracted a mix of beginners and experts from diverse "
+            "backgrounds.\n\nThe workshop got over 10,000 views on YouTube. Plus, the "
+            "participants really put the word out, doing a lot of the marketing legwork "
+            "for us. Just last week, we were featured in two podcasts, and the number "
+            "of people trying out dlt doubled. Our Slack community also saw a 25% "
+            "increase in a month, largely thanks to the workshop.\n\nWe will continue "
+            "working with DataTalks.Club. They're focused on providing value to the "
+            "professionals and sponsors alike. This workshop wasn't just another "
+            "content we did - it changed the game regarding dlt's exposure to our data "
+            "audience. Besides addressing the professionals who took the course, DTC "
+            "put dlt on the radars of other SaaS vendors who started integrating dlt "
+            "into their products.\n\nThe real win for us wasn't just the numbers. The "
+            "workshop enabled us to get our tool in the hands of various types of "
+            "professionals, giving us invaluable feedback."
+        ),
+    },
+    {
+        "author": "Kevin Kho",
+        "role": "ex-Prefect, now Figue",
+        "url": "https://www.linkedin.com/in/kvnkho/",
+        "quote": (
+            "At Prefect, we sponsored multiple conferences such as PyCon and KubeCon. "
+            "At startup price, you pay $10k-$15k USD to have a booth for 2-3 days. We "
+            "got around 200-300 people stop by the booth, a lot of which are existing "
+            "users. We maybe got 4-5 real new users.\n\nCompare this to MLOps Zoomcamp "
+            "where we had around 300-400 homework submissions. There are also a lot of "
+            "people who just watch the courses without doing the homework. Some of "
+            "these people are in brand name institutions too. I've seen people from "
+            "Micron, IBM, Accenture taking the course to name a few.\n\nBeyond MLOps "
+            "Zoomcamp, the DataTalks.Club Slack channel is very big on democratizing "
+            "high quality information to people trying to break into industry. The "
+            "Slack is very welcoming and people really help each other. They also "
+            "support open source technologies with the Open Source Spotlight and the "
+            "Podcast. Sponsoring the initiative feels more like it goes to a good cause "
+            "in comparison to conferences."
+        ),
+    },
+    {
+        "author": "Tim Liu",
+        "role": "BentoML",
+        "url": "https://www.linkedin.com/in/timliu9/",
+        "quote": (
+            "We sponsored Module 7 of Machine Learning Zoomcamp, which covers "
+            "production-ready machine learning using BentoML. Over 165 students "
+            "attempted the homework, and many used BentoML in their midterm and final "
+            "projects. Some units in the module had over 1,000 views, and we also "
+            "noticed a lot of positive social media posts about BentoML.\n\nCompared to "
+            "other sponsorship opportunities we evaluated, ML Zoomcamp aligned more "
+            "with BentoML's developer-focused approach. It's been great to provide "
+            "value to the open-source community and support developers in serving their "
+            "models at scale.\n\nOverall, we're satisfied with our decision to support ML "
+            "Zoomcamp and DataTalks.Club and we're grateful for the opportunity to help "
+            "so many students learn and use BentoML."
+        ),
+    },
+    {
+        "author": "Daniel Jeffries",
+        "role": "Managing Director, AI Infrastructure Alliance",
+        "url": "https://www.linkedin.com/in/danjeffries/",
+        "quote": (
+            "AI Infrastructure Alliance (AIIA) is a collection of MLOps businesses and "
+            "communities of data scientists and data engineers that helps bring clarity "
+            "to MLOps through education and research.\n\nDataTalks.Club stands as one "
+            "of the strongest AIIA communities, with a wide range of seasoned and "
+            "aspiring data enthusiasts.\n\nDataTalks.Club continually delivers "
+            "excellent content and consistently drives highly engaged people to AIIA "
+            "events and research."
+        ),
+    },
+    {
+        "author": "Henrik Skogström",
+        "role": "Head of Growth, Valohai",
+        "url": "https://www.linkedin.com/in/skogstrom/",
+        "quote": (
+            "The Valohai team was looking to connect with more data scientists and ML "
+            "pioneers. That is when we came across DataTalks.Club community.\n\nThanks "
+            "to Alexey, who was really easy to talk to and very fast to respond, our "
+            "ebook has found the right audience through the newsletter and Alexey's "
+            "personal recommendations on LinkedIn.\n\nThis was one of the most fruitful "
+            "collaborations in terms of lead acquisition. We are looking forward to "
+            "working with Alexey further on."
+        ),
+    },
+    {
+        "author": "Nathan Jefferson",
+        "role": "ex-Topcoder, Founder of IMBALANCE",
+        "url": "https://www.linkedin.com/in/nathanjefferson/",
+        "quote": (
+            "When we kicked off a project which required some talented Data Scientists "
+            "to come and help one of our clients, NASA, the challenge was speed. We were "
+            "in a rush and we needed quick access to an engaged community. We found "
+            "DataTalks.Club, collaborated with Alexey to create content through 3 "
+            "channels: the community Slack, email newsletter and his personal LI feed."
+            "\n\nOutcome: the lowest candidate acquisition cost we've seen across all "
+            "channels this year.\n\nThanks, Alexey. Can't wait to work with you again."
+        ),
+    },
 )
 
 
