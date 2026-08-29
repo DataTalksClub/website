@@ -519,15 +519,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "With over 4 years of industry experience as a Machine Learning Engineer, I have demonstrated success driving impactful projects spanning Multimodal LLMs, Generative AI, and Computer Vision domains. My passion lies in translating applied research into cutting-edge AI solutions, leveraging a diverse skill set across ML and Engineering to build and deploy high-quality products."
-      },
-      {
-        "kind": "paragraph",
-        "text": "I hold a Master's degree from Carnegie Mellon University, where my focus was on research in Multimodal Deep Learning and Text Information Extraction."
-      },
-      {
-        "kind": "paragraph",
-        "text": "Check out our research on assistive technologies for the visually impaired: https://aiguidedog.wordpress.com/"
+        "text": "Aishwarya Jadhav is a Machine Learning Engineer at Waymo, where she works on gesture understanding and pedestrian semantics. She previously worked at Tesla Autopilot AI on multimodal LLMs and video understanding, and at Morgan Stanley on large-scale recommendation systems. She holds a master's degree in Computer Science from Carnegie Mellon University, focused on multimodal deep learning and text information extraction, and works on assistive technology research for people with visual impairments."
       }
     ],
     "image_path": "/images/authors/aishwaryajadhav.jpg",
@@ -1208,7 +1200,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "Alexey Grigorev is the founder of DataTalks.Club"
+        "text": "Alexey Grigorev is the founder of DataTalks.Club and creator of the Zoomcamp series. He is a software and machine learning engineer with more than 10 years of engineering experience, including over six years in machine learning. He has deployed large-scale ML systems at OLX Group and Simplaex, authored technical books including Machine Learning Bookcamp, and is a Kaggle Master with a first-place finish in the NIPS'17 Criteo Challenge."
       }
     ],
     "image_path": "/images/authors/alexeygrigorev.jpg",
@@ -1756,7 +1748,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "Anahita is a Data scientist-engineer with a strong background in the knowledge graph, semantic web, digitalization, and mechanical engineering. Currently the Senior Knowledge Graph-Data Scientist Consultant at brox IT-Solutions"
+        "text": "Anahita Pakiman is a Senior Knowledge Graph and Data Scientist Consultant at brox IT-Solutions. Originally from Iran, she studied mechanical engineering and applied mechanics, worked in automotive crash-simulation analysis, and pursued doctoral research in Applied AI focused on crash-simulation knowledge graphs."
       }
     ],
     "image_path": "/images/authors/anahitapakiman.jpg",
@@ -2195,6 +2187,10 @@
       {
         "kind": "paragraph",
         "text": "Andrey Cheptsov is the founder and CEO of dstack, an open-source alternative to Kubernetes and Slurm, built to simplify the orchestration of AI infrastructure. Before dstack, Andrey worked at JetBrains for over a decade helping different teams make the best developer tools."
+      },
+      {
+        "kind": "paragraph",
+        "text": "He holds an Executive MBA from the Technical University of Munich and works at the intersection of AI infrastructure and developer tools."
       }
     ],
     "image_path": "/images/authors/andreycheptsov.jpg",
@@ -8012,6 +8008,10 @@
       {
         "kind": "paragraph",
         "text": "Engineering Manager at Personio, currently working on Identity and Access Management. Main technical interests include building microservices for data intensive applications, MLOps for NLP, as well as Deep Learning research."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Ivan Bilan is a Senior Engineering Manager at Personio, leading teams in Identity and Access Management. Previously, he was a Data Science and Engineering Manager at TrustYou, where he led NLP and infrastructure groups. He holds an MS in Computational Linguistics from LMU Munich."
       }
     ],
     "image_path": "/images/authors/ivanbilan.jpg",
@@ -8073,6 +8073,10 @@
       {
         "kind": "paragraph",
         "text": "Ivan is a business intelligence analyst with 10+ years of experience in digital marketing, statistical modeling, forecasting and visualization, database programming, data analysis, econometrics, machine learning, and finance."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Ivan Brigida is the creator of PythonInvest.com and a retail investor. He also runs the Stock Market Analytics Zoomcamp, a practical course on algorithmic trading strategies with machine learning."
       }
     ],
     "image_path": "/images/authors/ivanbrigida.jpg",
@@ -8145,6 +8149,10 @@
       {
         "kind": "paragraph",
         "text": "Ivan Potapov is a Research Engineer at Zalando, specializing in search. He has taught workshops on data engineering, AI agents, and LLM alignment, helping practitioners bridge software engineering with applied machine learning."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Ivan Potapov builds search retrieval and ranking systems at Zalando and teaches data engineering, AI agents, and LLM alignment. His recent work explores long-running agents and context engineering, including memory, state, and retrieval."
       }
     ],
     "image_path": "/images/authors/ivanpotapov.jpg",
@@ -11134,6 +11142,14 @@
       {
         "kind": "paragraph",
         "text": "Lior has experience of over 12 years in building data teams, leveraging data for growth, and a lot of pains and learnings which brought him to write his book and advocate for a change in the way companies use data."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Lior Barak is an independent data strategy consultant and former hands-on practitioner who helps organizations in technology, finance, and healthcare build sustainable, high-impact data practices."
+      },
+      {
+        "kind": "paragraph",
+        "text": "He created the Data Ecosystem Vision Board and Data Product Lifecycle Manager, and writes Cooking Data."
       }
     ],
     "image_path": "/images/authors/liorbarak.jpg",
@@ -14951,6 +14967,10 @@
       {
         "kind": "paragraph",
         "text": "Orell graduated in 2018 with a degree in Electrical Engineering, where he focused on simulation algorithms. He then began a PhD, but when COVID arrived, he decided to leave academia and look for new challenges. After that, he joined a government-funded startup program to explore how to turn scientific research into real products. Although that project didn’t go as planned, it taught him what he loves most: applying rigorous simulation methods to solve practical problems."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Orell Garten is a freelance IT consultant and software engineer based in Leipzig, Germany. He began his career building high-precision simulation pipelines at TU Dresden and Ruhr-Universität Bochum, then joined a government-backed startup program to validate research prototypes after pausing his PhD during COVID."
       }
     ],
     "image_path": "/images/authors/orellgarten.jpg",
@@ -15285,6 +15305,10 @@
       {
         "kind": "paragraph",
         "text": "He is the Founder of Decoding ML, an educational channel on production-grade ML that provides posts, articles, and open-source courses to help others build real-world ML systems."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Paul Iusztin is the author of LLM Engineer's Handbook and lead instructor of the Agentic AI Engineering course. He is a founding AI engineer at a San Francisco startup and teaches end-to-end AI engineering from data collection through deployment, monitoring, and evaluation."
       }
     ],
     "image_path": "/images/authors/pauliusztin.jpg",
@@ -15796,7 +15820,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "I am a urban data scientist dedicated to creating liveable cities through the innovative use of data. With a background in geography, and a masters in urban data science, I blend qualitative and quantitative analysis to tackle urban challenges. I strive to integrate data driven techniques with urban design to foster sustainable and equitable urban environments."
+        "text": "Rachel Lim is an urban data scientist with a background in geography and a master's degree in urban data science. She combines qualitative and quantitative analysis with urban design to support sustainable and equitable cities."
       }
     ],
     "image_path": "/images/authors/rachellim.jpg",
@@ -16260,6 +16284,10 @@
       {
         "kind": "paragraph",
         "text": "Extensive research on evaluating cell lines as tumor models using genomic profiles, including two first-author papers published in Nature Communications (PMID: 23839242, PMID: 28489074), and a third first-author paper published in Cell Reports Methods (https://www.sciencedirect.com/science/article/pii/S2667237521000849)."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Rileen Sinha is a senior computational biologist and cancer data scientist applying AI and machine learning to genomics and translational medicine. He has contributed to large-scale consortia including TCGA and CPTAC and leads interdisciplinary projects connecting wet-lab and computational research."
       }
     ],
     "image_path": "/images/authors/rileensinha.jpg",
@@ -16756,7 +16784,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "Ruslan is a Data Scientist living in Berlin who has tried lots of healthy (and not so healthy) things to stay focused and productive. From getting depression just by looking at Data science studying roadmap to landing a job as a DS, he found some set of techniques, protocols and concepts about our brain, body and mind that might be helpful to others in Data community."
+        "text": "Ruslan Shchuchkin is a Gen AI Engineer at Finanzguru, building production systems with LLMs and generative AI. He transitioned from customer success into data through a data-focused master's program and later worked as a data scientist at OLX Group and Smart Steel Technologies on experimentation, recommendation systems, and NLP pipelines."
       }
     ],
     "image_path": "/images/authors/ruslanshchuchkin.jpg",
@@ -18336,7 +18364,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "Sofya Yulpatova is the Founder and CEO of Fit Tails, a PetTech startup developing an activity and health tracker for pets. With a background in computer science and product management, she blends technical skill with hands-on experience in building digital products. Before founding Fit Tails, she managed product and project delivery at FixParts, an international automotive parts distributor. Sofya is also an alumna of the Sales and Marketing Programme at the Stockholm School of Economics in Riga."
+        "text": "Sofya Yulpatova is the Founder and CEO of Fit Tails, a PetTech startup developing an activity and health tracker for pets. With a background in computer science, machine learning, and product management, she previously managed product and delivery operations at FixParts. She studied at the University of Latvia and completed the Sales and Marketing Programme at the Stockholm School of Economics in Riga."
       }
     ],
     "image_path": "/images/authors/sofyayulpatova.jpg",
@@ -18957,7 +18985,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "Tatiana Gabruseva is a Сomputer Vision/DL Engineer and Kaggle Competitions Master. She currently works as a Senior ML Engineer at Cork University Hospital."
+        "text": "Tatiana Gabruseva is a Staff Software Engineer in Machine Learning at LinkedIn, where she leads applied R&D on recommendation systems, multimodal alignment, and AI benchmarking. Before joining LinkedIn, she developed AI-based decision-support systems at Cork University Maternity Hospital. She is a Kaggle Competitions Master, won first prize in the Sound Demixing Challenge 2023, and holds a PhD in Applied Physics."
       }
     ],
     "image_path": "/images/authors/tatianagabruseva.jpg",
@@ -19753,6 +19781,10 @@
       {
         "kind": "paragraph",
         "text": "Vadim Smolyakov is a Machine Learning Engineer working on Copilot AI in the Business and Industry Copilot (BIC) team at Microsoft. He is a former PhD student in AI at MIT CSAIL with research interests in Bayesian inference and deep learning. Prior to joining Microsoft, Vadim developed machine learning solutions in e-commerce space. In his current role, he is interested in developing Gen AI products at scale and leading diverse teams."
+      },
+      {
+        "kind": "paragraph",
+        "text": "Vadim Smolyakov is the author of Machine Learning Algorithms in Depth. His current focus includes generative AI agents, reinforcement learning, knowledge sharing, and the societal impact of intelligent systems."
       }
     ],
     "image_path": "/images/authors/vadimsmolyakov.jpg",
@@ -20693,15 +20725,7 @@
     "blocks": [
       {
         "kind": "paragraph",
-        "text": "From full-time stay-at-home mom to Head of Data & Cloud, my journey has been one of clear goals, continuous learning, and resilience."
-      },
-      {
-        "kind": "paragraph",
-        "text": "As a Data Generalist turned Data Leader, my expertise spans machine learning, NLP, data engineering, and AWS cloud architecture, and now extends to helping organizations build impactful Data & AI strategies that drive real business value."
-      },
-      {
-        "kind": "paragraph",
-        "text": "I’m passionate about coaching and mentoring, especially supporting women returning to work or entrepreneur journey. My leadership style combines technical depth, strategic vision, and empathy, empowering teams to grow and perform at their best."
+        "text": "Xia He-Bleinagel is Head of Data and Cloud at NOW GmbH, a German federal organization advancing zero-emission mobility and sustainable technology. After taking time off to raise her children, she returned to data and cloud engineering, grew into a leadership role, and focuses on building inclusive teams and supporting women in technology."
       }
     ],
     "image_path": "/images/authors/xiahebleinagel.jpg",

@@ -35,6 +35,11 @@ from content.event_description_bridge import (  # noqa: E402
     apply_bridge_to_events,
     bridge_manifest_binding,
 )
+from content.event_speaker_bio_normalization import (  # noqa: E402
+    EventSpeakerBioNormalizationError,
+    apply_event_speaker_bio_normalization,
+    normalization_manifest_binding,
+)
 from content.podcast_routes import podcast_canonical_path  # noqa: E402
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
@@ -2719,6 +2724,10 @@ def build(args: argparse.Namespace) -> None:
             for guest in podcast["guests"]
         ]
     events = _events(legacy_main_root, people_by_slug)
+    try:
+        apply_event_speaker_bio_normalization(events, people)
+    except EventSpeakerBioNormalizationError as exc:
+        raise ProjectionBuildError("event speaker-bio normalization failed") from exc
     podcast_paths: dict[str, str] = {}
     for podcast in podcasts:
         for alias in {podcast["slug"], podcast["slug"].removesuffix(".md").lstrip("_")}:
@@ -2868,6 +2877,7 @@ def build(args: argparse.Namespace) -> None:
             "event_record_schema_version": EVENT_RECORD_SCHEMA_VERSION,
             "event_identity_manifest": _event_identity_manifest_binding(),
             "event_description_bridge": bridge_manifest_binding(),
+            "event_speaker_bio_normalization": normalization_manifest_binding(),
             "conference_links_outside_slice": "omitted",
             "people_source": "438 public _people profiles; underscore-prefixed source excluded",
             "unresolved_podcast_guest_keys": unresolved_podcast_guests,

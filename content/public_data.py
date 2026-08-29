@@ -29,6 +29,7 @@ from .event_description_bridge import (
     load_event_description_bridge,
     validate_projected_event,
 )
+from .event_speaker_bio_normalization import normalization_manifest_binding
 from .podcast_routes import podcast_canonical_path
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
@@ -643,6 +644,17 @@ def _checked_public_projection() -> dict[str, Any]:
     identities_by_id = {str(item.id): item for item in identity_manifest.events}
     if projection_rules.get("event_description_bridge") != expected_bridge_binding:
         raise ImproperlyConfigured("Public event description bridge binding mismatch.")
+    try:
+        expected_event_speaker_bio_binding = normalization_manifest_binding()
+    except Exception as exc:
+        raise ImproperlyConfigured(
+            "Public event speaker-bio normalization plan is invalid."
+        ) from exc
+    if (
+        projection_rules.get("event_speaker_bio_normalization")
+        != expected_event_speaker_bio_binding
+    ):
+        raise ImproperlyConfigured("Public event speaker-bio normalization binding mismatch.")
     if (
         manifest.get("runtime_contract", {}).get("event_description_source")
         != "committed_safe_bridge_only"

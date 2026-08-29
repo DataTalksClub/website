@@ -10,7 +10,7 @@ from functools import lru_cache
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 from bleach import Cleaner  # type: ignore[import-untyped]
 
@@ -18,7 +18,13 @@ from .event_description_link_policy import (
     EXPECTED_LINK_DECISION_COUNTS,
     EventDescriptionLinkPolicyError,
     classify_rendered_url,
+    classify_source_url,
     projection_routes_and_fragments,
+)
+from .event_speaker_bio_normalization import (
+    NORMALIZATION_SCHEMA_VERSION,
+    load_normalization_plan,
+    normalize_description_html,
 )
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
@@ -211,6 +217,24 @@ def _reviewed_route_registry() -> tuple[set[str], dict[str, set[str]]]:
 
 def _validate_rendered_link(href: str, attributes: dict[str, str]) -> None:
     public_paths, fragments = _reviewed_route_registry()
+    if href.startswith("/") and not href.startswith("//"):
+        try:
+            decision, canonical = classify_source_url(
+                f"https://datatalks.club{href}",
+                public_paths=public_paths,
+                fragments=fragments,
+            )
+            parsed = urlsplit(canonical)
+            canonical_root = urlunsplit(("", "", parsed.path or "/", parsed.query, parsed.fragment))
+        except EventDescriptionLinkPolicyError as exc:
+            raise EventDescriptionBridgeError(
+                "event description internal link violates reviewed policy"
+            ) from exc
+        if decision != "internal_rewritten" or canonical_root != href:
+            raise EventDescriptionBridgeError("event description internal link is not canonical")
+        if set(attributes) != {"class", "href"}:
+            raise EventDescriptionBridgeError("event description internal link is not canonical")
+        return
     try:
         decision = classify_rendered_url(
             href,
@@ -575,10 +599,75 @@ def validate_projected_event(event: dict[str, Any], bridge: dict[str, Any]) -> N
         raise EventDescriptionBridgeError("event description record body shape mismatch")
     if any(_is_luma_link(link.get("url")) for link in event.get("links", [])):
         raise EventDescriptionBridgeError("event description record contains a Luma link")
+    expected_provenance = (
+        {
+            "bridge_schema_version": BRIDGE_SCHEMA_VERSION,
+            "bridge_content_sha256": bridge["content_sha256"],
+            "entry_sha256": entry["entry_sha256"],
+            "source_identity_sha256": entry["source_identity_sha256"],
+            "source_description_sha256": entry["source_description_sha256"],
+            "matching_policy_version": MATCHING_POLICY_VERSION,
+            "markdown_policy_version": MARKDOWN_POLICY_VERSION,
+            "link_policy_version": LINK_POLICY_VERSION,
+        }
+        if entry is not None
+        else {}
+    )
+    normalization_keys = {
+        "normalization_schema_version",
+        "normalization_content_sha256",
+        "normalization_original_description_sha256",
+        "removed_speaker_bio",
+        "removed_platform_boilerplate",
+        "normalized_internal_links",
+    }
+
+    def normalized_provenance() -> tuple[dict[str, Any], str, str]:
+        if entry is None or not isinstance(provenance, dict):
+            raise EventDescriptionBridgeError("event description normalization source mismatch")
+        try:
+            plan = load_normalization_plan()
+        except Exception as exc:
+            raise EventDescriptionBridgeError(
+                "event description normalization plan is unavailable"
+            ) from exc
+        row = next(
+            (item for item in plan["events"] if item["identity_id"] == event.get("identity_id")),
+            None,
+        )
+        if row is None or row["slug"] != event.get("slug"):
+            raise EventDescriptionBridgeError("event description normalization identity mismatch")
+        original_html = entry["description_html"]
+        original_digest = hashlib.sha256(original_html.encode()).hexdigest()
+        if original_digest != row["before_description_sha256"]:
+            raise EventDescriptionBridgeError("event description normalization source drift")
+        result = normalize_description_html(original_html)
+        expected = {
+            **expected_provenance,
+            "normalization_schema_version": NORMALIZATION_SCHEMA_VERSION,
+            "normalization_content_sha256": plan["content_sha256"],
+            "normalization_original_description_sha256": original_digest,
+            "removed_speaker_bio": result.removed_speaker_bio,
+            "removed_platform_boilerplate": result.removed_platform_boilerplate,
+            "normalized_internal_links": result.normalized_internal_links,
+        }
+        return expected, result.html, result.text
+
     if not description_html:
-        if description_text or provenance is not None or entry is not None:
-            raise EventDescriptionBridgeError("event description empty-record mismatch")
+        if (
+            description_text
+            or entry is None
+            or not isinstance(provenance, dict)
+            or set(provenance) != set(expected_provenance) | normalization_keys
+        ):
+            if description_text or provenance is not None or entry is not None:
+                raise EventDescriptionBridgeError("event description empty-record mismatch")
+            return
+        expected_normalized, normalized_html, normalized_text = normalized_provenance()
+        if normalized_html or normalized_text or provenance != expected_normalized:
+            raise EventDescriptionBridgeError("event description normalized-empty mismatch")
         return
+
     validate_description_html(description_html)
     if (
         description_text != description_plain_text(description_html)
@@ -587,19 +676,20 @@ def validate_projected_event(event: dict[str, Any], bridge: dict[str, Any]) -> N
         or entry is None
     ):
         raise EventDescriptionBridgeError("event description populated-record mismatch")
-    expected_provenance = {
-        "bridge_schema_version": BRIDGE_SCHEMA_VERSION,
-        "bridge_content_sha256": bridge["content_sha256"],
-        "entry_sha256": entry["entry_sha256"],
-        "source_identity_sha256": entry["source_identity_sha256"],
-        "source_description_sha256": entry["source_description_sha256"],
-        "matching_policy_version": MATCHING_POLICY_VERSION,
-        "markdown_policy_version": MARKDOWN_POLICY_VERSION,
-        "link_policy_version": LINK_POLICY_VERSION,
-    }
+    if set(provenance) == set(expected_provenance):
+        if (
+            description_html != entry["description_html"]
+            or description_text != entry["description_text"]
+            or provenance != expected_provenance
+        ):
+            raise EventDescriptionBridgeError("event description record bridge mismatch")
+        return
+    if set(provenance) != set(expected_provenance) | normalization_keys:
+        raise EventDescriptionBridgeError("event description provenance shape mismatch")
+    expected_normalized, normalized_html, normalized_text = normalized_provenance()
     if (
-        description_html != entry["description_html"]
-        or description_text != entry["description_text"]
-        or provenance != expected_provenance
+        description_html != normalized_html
+        or description_text != normalized_text
+        or provenance != expected_normalized
     ):
-        raise EventDescriptionBridgeError("event description record bridge mismatch")
+        raise EventDescriptionBridgeError("event description normalized record mismatch")
