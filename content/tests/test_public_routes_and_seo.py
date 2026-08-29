@@ -463,7 +463,7 @@ class PublicRouteAndSeoTests(TestCase):
                 for value in blocked:
                     self.assertNotIn(value, body)
 
-    def test_docs_details_expose_only_the_explicit_edit_action(self) -> None:
+    def test_docs_details_do_not_expose_repository_utility_actions(self) -> None:
         page = docs_page("/docs/courses/ai-dev-tools-zoomcamp/getting-started/")
         self.assertIsNotNone(page)
         assert page is not None
@@ -471,7 +471,8 @@ class PublicRouteAndSeoTests(TestCase):
         response = self.client.get(page["public_path"])
 
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, f'href="{page["edit_url"]}"', count=1)
+        self.assertNotContains(response, f'href="{page["edit_url"]}"')
+        self.assertNotContains(response, "Search documentation on GitHub")
         self.assertNotContains(response, "Checked source")
         self.assertNotContains(response, "View source on GitHub")
         self.assertNotContains(response, "This page is maintained on")

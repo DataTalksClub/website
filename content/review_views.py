@@ -17,9 +17,17 @@ from django.views.decorators.http import require_GET, require_safe
 
 from courses.models.cohort import Cohort
 
+from .docs_presentation import (
+    docs_body_without_primary_heading,
+    docs_context_items,
+    docs_context_root,
+    docs_curriculum,
+    docs_home_areas,
+    docs_home_course_groups,
+    docs_local_sequence,
+)
 from .docs_projection import (
     DOCS_ROOT_PATH,
-    DOCS_SEARCH_URL,
     docs_asset_path,
     docs_breadcrumbs,
     docs_children,
@@ -78,6 +86,8 @@ def docs_home(request: HttpRequest) -> HttpResponse:
         raise Http404("Documentation home is unavailable.")
     rendered, headings = render_docs_markdown(document)
     navigation = docs_navigation_tree()
+    heading_id, rendered_body = docs_body_without_primary_heading(rendered)
+    course_families, course_support = docs_home_course_groups(navigation)
     return _render(
         request,
         "review/docs_home.html",
@@ -87,10 +97,16 @@ def docs_home(request: HttpRequest) -> HttpResponse:
         or "Guides for DataTalks.Club courses and community learning.",
         context={
             "docs": document,
-            "docs_html": rendered,
+            "docs_heading_id": heading_id,
+            "docs_heading_title": headings[0]["title"] if headings else document["title"],
+            "docs_html": rendered_body,
             "docs_headings": headings,
             "docs_navigation": navigation.root.children,
-            "docs_search_url": DOCS_SEARCH_URL,
+            "docs_courses_root": navigation.by_path.get("/docs/courses/"),
+            "docs_course_families": course_families,
+            "docs_course_support": course_support,
+            "docs_areas": docs_home_areas(navigation),
+            "primary_navigation_current": "docs-home",
         },
     )
 
@@ -99,17 +115,30 @@ def _docs_detail_context(
     document: dict[str, Any], rendered: str, headings: tuple[dict[str, Any], ...]
 ) -> dict[str, Any]:
     previous, following = docs_sequential_navigation(document)
+    public_path = str(document["public_path"])
+    navigation = docs_navigation_tree()
+    heading_id, rendered_body = docs_body_without_primary_heading(rendered)
+    context_root = docs_context_root(navigation, public_path)
+    local_previous, local_following = docs_local_sequence(navigation, public_path)
     return {
         "docs": document,
-        "docs_html": rendered,
+        "docs_heading_id": heading_id,
+        "docs_heading_title": headings[0]["title"] if headings else document["title"],
+        "docs_html": rendered_body,
         "docs_headings": headings,
         "docs_breadcrumbs": docs_breadcrumbs(document),
-        "docs_children": docs_children(document.get("public_path")),
-        "docs_navigation": docs_navigation_tree().root.children,
+        "docs_children": docs_children(public_path),
+        "docs_context_root": context_root,
+        "docs_context_items": docs_context_items(navigation, public_path),
+        "docs_curriculum": docs_curriculum(rendered_body)
+        if public_path.endswith("/curriculum/")
+        else None,
         "docs_parent": docs_parent(document),
         "docs_previous": previous,
         "docs_next": following,
-        "docs_search_url": DOCS_SEARCH_URL,
+        "docs_local_previous": local_previous,
+        "docs_local_next": local_following,
+        "primary_navigation_current": "docs-home",
     }
 
 

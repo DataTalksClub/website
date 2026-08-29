@@ -36,7 +36,6 @@ BODIES_BELOW_THE_SEAM: dict[str, str] = {
     "templates/public/podcast_hub.html": '<div class="row-list" data-podcast-season=',
     "templates/public/text_page.html": '<div class="prose prose-reading text-page-body">',
     "templates/public/wiki_detail.html": '<div class="prose wiki-prose">',
-    "templates/review/docs_detail.html": '<div class="docs-layout">',
     "templates/review/faq_home.html": '<div class="row-list faq-rows">',
     "templates/review/registration_preview.html": 'aria-labelledby="registration-state-heading"',
     "templates/core/content_page.html": "{% block page_content %}",
@@ -169,6 +168,13 @@ class BandGroundTests(SimpleTestCase):
         source = course.read_text(encoding="utf-8")
         self.assertIn('{% extends "core/content_page.html" %}', source)
         self.assertIn("{% block page_content %}", source)
+
+    def test_docs_use_the_shared_content_page_band(self) -> None:
+        for name in ("docs_home.html", "docs_detail.html"):
+            with self.subTest(template=name):
+                source = (REPOSITORY_ROOT / "templates/review" / name).read_text()
+                self.assertIn('{% extends "core/content_page.html" %}', source)
+                self.assertIn("{% block page_content %}", source)
 
     def test_the_homepage_keeps_its_own_alternation(self) -> None:
         # Guards the exception itself: the homepage is drawn from its own mockup and
