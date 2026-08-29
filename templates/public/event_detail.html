@@ -50,7 +50,7 @@
       /* ------------------------------------------------------------------ *
        * Event page rules.  Every visual part is a shared primitive
        * (.status-pill, .when, .mono-note, .cta, .row-list/.list-row,
-       * .prose/.prose-reading, .breadcrumbs); what follows is only how this
+       * .prose/.prose-reading); what follows is only how this
        * page arranges them.
        * ------------------------------------------------------------------ */
 
@@ -59,11 +59,6 @@
          part of the page lines up with the prose. */
       .event-shell {
         max-width: calc(var(--measure) + 2.5rem);
-      }
-
-      .event-hero .breadcrumbs {
-        margin-bottom: 0.35rem;
-        margin-top: -0.85rem;
       }
 
       .event-head {
@@ -126,12 +121,7 @@
       }
 
       @media (max-width: 47.99rem) {
-        /* Narrow: the trail keeps its own line above a tighter head, and the
-           actions become full-width blocks instead of a squeezed row. */
-        .event-hero .breadcrumbs {
-          margin-top: -0.5rem;
-        }
-
+        /* Narrow: actions become full-width blocks instead of a squeezed row. */
         .event-head {
           gap: 0.7rem;
         }
@@ -163,16 +153,6 @@
     {% include "core/_site_shell_head.html" %}
     <main id="main-content" tabindex="-1">
       <section class="band band-cream event-hero" aria-labelledby="event-heading">
-        <nav class="shell event-shell breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            <li>
-              <a href="{% url 'events' %}">Events</a>
-            </li>
-            <li aria-current="page">
-              {{ event.title }}
-            </li>
-          </ol>
-        </nav>
         <div class="shell event-shell">
           <article>
             <header class="event-head">
@@ -214,7 +194,7 @@
                   class="mono-note event-registered"
                   data-registration-total-revision="{{ registration_total.revision }}"
                 >
-                  {{ registration_total.count }} registered
+                  {{ registration_total.count }} {{ registration_total_label }}
                 </p>
               {% endif %}
               {% if event.links %}

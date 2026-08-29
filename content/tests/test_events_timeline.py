@@ -673,8 +673,7 @@ class EventDetailDesignSystemTests(TestCase):
         event = event_groups().upcoming[0]
         body = self.detail(event)
 
-        self.assertIn('<nav class="shell event-shell breadcrumbs" aria-label="Breadcrumb">', body)
-        self.assertIn('<a href="/events">Events</a>', body)
+        self.assertNotIn('<nav class="shell event-shell breadcrumbs"', body)
         # The dateline is one <time> around both the date and the clock: the machine
         # value carries a clock, so the accessible text has to name the zone, and the
         # zone only exists in display_clock.

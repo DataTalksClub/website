@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "luma": {
+    "adapter": "historical-aggregate-v1",
+    "capture_completed_at": "2026-08-29T20:46:15.172888+00:00",
+    "event_total": 166,
+    "excluded_registration_total": 51,
+    "registration_total": 51873,
+    "row_total": 51924,
+    "status_policy": "historical-status-v1",
+    "status_totals": {
+      "approved": 51873,
+      "declined": 51
+    },
+    "tree_sha256": "5362e8c2a0640d94dc112880ee8de058afbe2db754c599894032bafe247530e3",
+    "activation_state": "mapping_review_required"
+  },
+  "eventbrite": {
+    "adapter": "historical-aggregate-v1",
+    "event_total": 209,
+    "registration_total": 24001,
+    "row_total": 24001,
+    "source_archive_sha256": "5cc493c7e9a142d09f5a524d28df486f4fa33ce832210ea0d325025b939744df",
+    "prepared_archive_sha256": "f05376a0225e36079e393dd6c2c15b3bff60659c375e7bdffe97cf9e40abfffa",
+    "status_policy": "historical-status-v1",
+    "status_totals": {
+      "attending": 24001
+    },
+    "unsupported_xlsx_total": 1,
+    "activation_state": "mapping_review_required"
+  }
+}
