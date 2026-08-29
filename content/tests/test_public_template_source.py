@@ -165,3 +165,8 @@ class PublicTemplateSourceTests(SimpleTestCase):
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", rendered)
         self.assertIn('href="https://example.com/guide"', rendered)
         self.assertIn("<br>next line &gt; and &amp;", rendered)
+
+        internal = str(public_text("Read [the guide](/blog/guide.html?from=book#start)."))
+        self.assertIn('href="/blog/guide.html?from=book#start"', internal)
+        self.assertNotIn("target=", internal)
+        self.assertNotIn("opens in a new tab", internal)

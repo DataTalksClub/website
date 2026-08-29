@@ -35,10 +35,10 @@ frame.
 Deliberate omissions, because the record has no such field: an updated date, a
 category or tag, and a series.  A heading is still projected as plain text, so
 markup written inside a heading is shown as words; the identifier the heading
-carries is a linkable anchor and stays exactly as projected.  Fifty survey
-charts are drawn by a script this site does not ship, so their blocks carry the
-chart's own title and the page says the chart is unavailable rather than leaving
-a hole in the argument.
+carries is a linkable anchor and stays exactly as projected.  Survey charts are
+drawn by a script this site does not ship. Four charts used by the sponsorship
+article have reviewed local SVG bridges; any chart without one keeps its title
+and an explicit unavailable state rather than leaving a hole in the argument.
 """
 
 from __future__ import annotations
@@ -356,7 +356,16 @@ def prose_sections(blocks: Any) -> tuple[ProseSection, ...]:
             continue
         if kind == "chart":
             sections.append(
-                ProseSection(kind="chart", text=text, caption=str(block.get("caption") or ""))
+                ProseSection(
+                    kind="chart",
+                    text=text,
+                    src=_image_source(block) if block.get("src") else "",
+                    alt=str(block.get("alt") or ""),
+                    caption=str(block.get("caption") or ""),
+                    title=str(block.get("title") or ""),
+                    width=_dimension(block.get("width")),
+                    height=_dimension(block.get("height")),
+                )
             )
             continue
         if not text and not html:

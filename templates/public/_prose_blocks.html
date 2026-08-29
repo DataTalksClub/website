@@ -129,20 +129,30 @@
   {% elif section.kind == "separator" %}
     <hr>
   {% elif section.kind == "chart" %}
-    {% comment %}
-      Said out loud rather than left as a gap: these survey charts are drawn by a
-      script this site does not ship, so the page names the chart the article
-      argued from instead of showing nothing where it stood.
-    {% endcomment %}
-    <figure class="prose-unavailable">
-      <p class="mono-note">Chart unavailable.</p>
-      {% if section.text %}
-        <figcaption>{{ section.text }}</figcaption>
-      {% endif %}
-      {% if section.caption %}
-        <p class="prose-caption">{{ section.caption }}</p>
-      {% endif %}
-    </figure>
+    {% if section.src %}
+      <figure class="prose-chart">
+        <img
+          src="{{ section.src }}"
+          alt="{{ section.alt }}"
+          {% if section.title %}title="{{ section.title }}"{% endif %}
+          {% if section.width %}width="{{ section.width }}"{% endif %}
+          {% if section.height %}height="{{ section.height }}"{% endif %}
+          loading="lazy"
+          decoding="async"
+        >
+        {% if section.caption %}<figcaption>{{ section.caption }}</figcaption>{% endif %}
+      </figure>
+    {% else %}
+      {% comment %}
+        Said out loud rather than left as a gap: an unbridged survey chart needs
+        a script this site does not ship, so it keeps its named fallback.
+      {% endcomment %}
+      <figure class="prose-unavailable">
+        <p class="mono-note">Chart unavailable.</p>
+        {% if section.text %}<figcaption>{{ section.text }}</figcaption>{% endif %}
+        {% if section.caption %}<p class="prose-caption">{{ section.caption }}</p>{% endif %}
+      </figure>
+    {% endif %}
   {% elif section.block_level %}
     <div class="prose-embed">{{ section.html|safe }}</div>
   {% elif section.html %}

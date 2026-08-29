@@ -86362,7 +86362,7 @@
       "search": "algorithms",
       "title": "algorithms",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=algorithms"
     },
     {
       "count": 1,
@@ -86371,7 +86371,7 @@
       "search": "astronomy",
       "title": "astronomy",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=astronomy"
     },
     {
       "count": 1,
@@ -86380,7 +86380,7 @@
       "search": "aws",
       "title": "aws",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=aws"
     },
     {
       "count": 1,
@@ -86389,7 +86389,7 @@
       "search": "bayesian statistics",
       "title": "bayesian statistics",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=bayesian%20statistics"
     },
     {
       "count": 1,
@@ -86398,7 +86398,7 @@
       "search": "big data analytics",
       "title": "big data analytics",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=big%20data%20analytics"
     },
     {
       "count": 1,
@@ -86407,7 +86407,7 @@
       "search": "biohacking",
       "title": "biohacking",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=biohacking"
     },
     {
       "count": 1,
@@ -86416,7 +86416,7 @@
       "search": "bootstrapping",
       "title": "bootstrapping",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=bootstrapping"
     },
     {
       "count": 1,
@@ -86425,7 +86425,7 @@
       "search": "career break",
       "title": "career break",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=career%20break"
     },
     {
       "count": 1,
@@ -86434,7 +86434,7 @@
       "search": "career strategy",
       "title": "career strategy",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=career%20strategy"
     },
     {
       "count": 1,
@@ -86443,7 +86443,7 @@
       "search": "cloud",
       "title": "cloud",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=cloud"
     },
     {
       "count": 1,
@@ -86452,7 +86452,7 @@
       "search": "data",
       "title": "data",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=data"
     },
     {
       "count": 1,
@@ -86461,7 +86461,7 @@
       "search": "data compliance",
       "title": "data compliance",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=data%20compliance"
     },
     {
       "count": 1,
@@ -86470,7 +86470,7 @@
       "search": "data journalism",
       "title": "data journalism",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=data%20journalism"
     },
     {
       "count": 1,
@@ -86479,7 +86479,7 @@
       "search": "data maturity",
       "title": "data maturity",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=data%20maturity"
     },
     {
       "count": 1,
@@ -86488,7 +86488,7 @@
       "search": "data structures",
       "title": "data structures",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=data%20structures"
     },
     {
       "count": 1,
@@ -86497,7 +86497,7 @@
       "search": "data visualization",
       "title": "data visualization",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=data%20visualization"
     },
     {
       "count": 1,
@@ -86506,7 +86506,7 @@
       "search": "decision optimization",
       "title": "decision optimization",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=decision%20optimization"
     },
     {
       "count": 1,
@@ -86515,7 +86515,7 @@
       "search": "design thinking",
       "title": "design thinking",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=design%20thinking"
     },
     {
       "count": 1,
@@ -86524,7 +86524,7 @@
       "search": "diversity",
       "title": "diversity",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=diversity"
     },
     {
       "count": 1,
@@ -86533,7 +86533,7 @@
       "search": "early-stage startups",
       "title": "early-stage startups",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=early-stage%20startups"
     },
     {
       "count": 2,
@@ -86542,7 +86542,7 @@
       "search": "education",
       "title": "education",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=education"
     },
     {
       "count": 1,
@@ -86551,7 +86551,7 @@
       "search": "feature engineering",
       "title": "feature engineering",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=feature%20engineering"
     },
     {
       "count": 1,
@@ -86560,7 +86560,7 @@
       "search": "federated learning",
       "title": "federated learning",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=federated%20learning"
     },
     {
       "count": 1,
@@ -86569,7 +86569,7 @@
       "search": "fintech",
       "title": "fintech",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=fintech"
     },
     {
       "count": 1,
@@ -86578,7 +86578,7 @@
       "search": "fraud detection",
       "title": "fraud detection",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=fraud%20detection"
     },
     {
       "count": 1,
@@ -86587,7 +86587,7 @@
       "search": "fundraising",
       "title": "fundraising",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=fundraising"
     },
     {
       "count": 1,
@@ -86596,7 +86596,7 @@
       "search": "indie hacking",
       "title": "indie hacking",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=indie%20hacking"
     },
     {
       "count": 1,
@@ -86605,7 +86605,7 @@
       "search": "industrial data",
       "title": "industrial data",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=industrial%20data"
     },
     {
       "count": 1,
@@ -86614,7 +86614,7 @@
       "search": "investing",
       "title": "investing",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=investing"
     },
     {
       "count": 2,
@@ -86623,7 +86623,7 @@
       "search": "monetization",
       "title": "monetization",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=monetization"
     },
     {
       "count": 1,
@@ -86632,7 +86632,7 @@
       "search": "nonprofit",
       "title": "nonprofit",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=nonprofit"
     },
     {
       "count": 1,
@@ -86641,7 +86641,7 @@
       "search": "open science",
       "title": "open science",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=open%20science"
     },
     {
       "count": 3,
@@ -86650,7 +86650,7 @@
       "search": "personal brand",
       "title": "personal brand",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=personal%20brand"
     },
     {
       "count": 1,
@@ -86659,7 +86659,7 @@
       "search": "Personal Branding",
       "title": "Personal Branding",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=Personal%20Branding"
     },
     {
       "count": 1,
@@ -86668,7 +86668,7 @@
       "search": "physics",
       "title": "physics",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=physics"
     },
     {
       "count": 1,
@@ -86677,7 +86677,7 @@
       "search": "probabilistic programming",
       "title": "probabilistic programming",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=probabilistic%20programming"
     },
     {
       "count": 1,
@@ -86686,7 +86686,7 @@
       "search": "productivity",
       "title": "productivity",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=productivity"
     },
     {
       "count": 1,
@@ -86695,7 +86695,7 @@
       "search": "public policy",
       "title": "public policy",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=public%20policy"
     },
     {
       "count": 1,
@@ -86704,7 +86704,7 @@
       "search": "public speaking",
       "title": "public speaking",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=public%20speaking"
     },
     {
       "count": 12,
@@ -86713,7 +86713,7 @@
       "search": "python",
       "title": "python",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=python"
     },
     {
       "count": 1,
@@ -86722,7 +86722,7 @@
       "search": "remote sensing",
       "title": "remote sensing",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=remote%20sensing"
     },
     {
       "count": 3,
@@ -86731,7 +86731,7 @@
       "search": "Remote Work",
       "title": "Remote Work",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=Remote%20Work"
     },
     {
       "count": 1,
@@ -86740,7 +86740,7 @@
       "search": "self-learning",
       "title": "self-learning",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=self-learning"
     },
     {
       "count": 1,
@@ -86749,7 +86749,7 @@
       "search": "side projects",
       "title": "side projects",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=side%20projects"
     },
     {
       "count": 2,
@@ -86758,7 +86758,7 @@
       "search": "spark",
       "title": "spark",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=spark"
     },
     {
       "count": 1,
@@ -86767,7 +86767,7 @@
       "search": "sql",
       "title": "sql",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=sql"
     },
     {
       "count": 1,
@@ -86776,7 +86776,7 @@
       "search": "synthetic tabular data",
       "title": "synthetic tabular data",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=synthetic%20tabular%20data"
     },
     {
       "count": 1,
@@ -86785,7 +86785,7 @@
       "search": "time series",
       "title": "time series",
       "type": "topic",
-      "url": "/wiki/search"
+      "url": "/wiki/search?q=time%20series"
     },
     {
       "collection": "wiki",

@@ -1,3 +1,4 @@
+{% load public %}
 {% comment %}
   Typed text blocks, rendered into the design 5a `.prose` primitive.  A wiki page's
   body was the first (issue #179); a person's profile bio is the same shape and
@@ -19,8 +20,20 @@
       <h3 id="{{ block.id }}">{{ block.text }}</h3>
     {% endif %}
   {% elif block.kind == "list_item" %}
-    <p class="prose-item">{{ block.text }}</p>
+    <p class="prose-item">
+      {% if block.markdown %}
+        {{ block.markdown|public_text }}
+      {% else %}
+        {{ block.text }}
+      {% endif %}
+    </p>
   {% else %}
-    <p class="prose-paragraph">{{ block.text }}</p>
+    <p class="prose-paragraph">
+      {% if block.markdown %}
+        {{ block.markdown|public_text }}
+      {% else %}
+        {{ block.text }}
+      {% endif %}
+    </p>
   {% endif %}
 {% endfor %}

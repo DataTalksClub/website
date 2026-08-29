@@ -8465,6 +8465,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "For tool choice and usage frequency, use the original survey data on the main DataTalks.Club site. [The AI tools personal productivity survey](/blog/ai-tools-for-personal-productivity.html) is based on 300 respondents. In that survey, respondents reported daily use concentrated in coding, research, and drafting. Here, the non-cannibalizing focus is how professionals integrate those workflows in practice.",
         "text": "For tool choice and usage frequency, use the original survey data on the main DataTalks.Club site. The AI tools personal productivity survey is based on 300 respondents. In that survey, respondents reported daily use concentrated in coding, research, and drafting. Here, the non-cannibalizing focus is how professionals integrate those workflows in practice."
       },
       {
@@ -11070,6 +11071,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) remains the setup reference for Docker Compose. Local Airflow matters when a learner needs runnable DAGs, visible task handoffs, logs, and the first operating surface around a data pipeline. [[cite:data-engineering-tools-modern-data-stack@31:12=>Modern Data Engineering Tools]] [[cite:data-engineering-career-path-and-skills@57:36=>Data Engineering Career Path]] [[cite:scaling-data-engineering-teams-self-service-platforms@17:56=>Scaling Data Engineering Teams]]",
         "text": "DataTalks.Club's lightweight local Airflow with Docker Compose tutorial remains the setup reference for Docker Compose. Local Airflow matters when a learner needs runnable DAGs, visible task handoffs, logs, and the first operating surface around a data pipeline. Modern Data Engineering Tools Data Engineering Career Path Scaling Data Engineering Teams"
       },
       {
@@ -11206,6 +11208,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) sets up local Airflow for development or portfolio work. The portfolio still has to be about the pipeline.",
         "text": "DataTalks.Club's lightweight local Airflow with Docker Compose tutorial sets up local Airflow for development or portfolio work. The portfolio still has to be about the pipeline."
       },
       {
@@ -27174,6 +27177,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "Follow DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) when you need a local Airflow project a reviewer can start and rerun. They can also break it and look at the results.",
         "text": "Follow DataTalks.Club's lightweight local Airflow with Docker Compose tutorial when you need a local Airflow project a reviewer can start and rerun. They can also break it and look at the results."
       },
       {
@@ -27470,6 +27474,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "[[Data Engineering Certification]] compares course, bootcamp, cloud, and vendor credentials. The same project rule applies to course catalogs such as [Data Engineering Zoomcamp](/blog/data-engineering-zoomcamp.html), which the DataTalks.Club podcast frames as free project-based learning. [[cite:datatalksclub-scaling-and-free-courses=>Inside Scaling DataTalks.Club]] Finish with a pipeline you can explain, not only a completed syllabus.",
         "text": "Data Engineering Certification compares course, bootcamp, cloud, and vendor credentials. The same project rule applies to course catalogs such as Data Engineering Zoomcamp, which the DataTalks.Club podcast frames as free project-based learning. Inside Scaling DataTalks.Club Finish with a pipeline you can explain, not only a completed syllabus."
       },
       {
@@ -30391,6 +30396,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "If it teaches [[Apache Airflow]], keep orchestration thin. Point the DAG at real Python, SQL, dbt, or Spark work. DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) can help once the pipeline has enough substance to rerun and break.",
         "text": "If it teaches Apache Airflow, keep orchestration thin. Point the DAG at real Python, SQL, dbt, or Spark work. DataTalks.Club's lightweight local Airflow with Docker Compose tutorial can help once the pipeline has enough substance to rerun and break."
       },
       {
@@ -32126,6 +32132,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "If the project uses Airflow, the DAG should have real dependencies, checks, and rerun behavior. The local setup can follow DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) once the pipeline is already meaningful. Use the same threshold for certificate projects. Add Docker and Airflow when they make the project reproducible and operable, not when they're only course keywords. [[Data Engineering Certification]] covers the credential-specific resume and payment decision.",
         "text": "If the project uses Airflow, the DAG should have real dependencies, checks, and rerun behavior. The local setup can follow DataTalks.Club's lightweight local Airflow with Docker Compose tutorial once the pipeline is already meaningful. Use the same threshold for certificate projects. Add Docker and Airflow when they make the project reproducible and operable, not when they're only course keywords. Data Engineering Certification covers the credential-specific resume and payment decision."
       },
       {
@@ -35818,6 +35825,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "Follow DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) when a local reviewer should look at the Airflow UI. The same walkthrough should show task logs, rerun behavior, and reproducibility through Docker. Keep the DAG thin by calling code that lives outside the scheduler. For example, call a Python module or dbt command instead of hiding transformation code in the DAG. [[cite:data-engineering-career-path-and-skills@57:36=>Data Engineering Career Path and Skills]] A Twitter pipeline capstone combines Docker with a project that can be explained and run. [[cite:get-data-analytics-and-data-engineering-job=>Get a Data Analytics and Data Engineering Job]]",
         "text": "Follow DataTalks.Club's lightweight local Airflow with Docker Compose tutorial when a local reviewer should look at the Airflow UI. The same walkthrough should show task logs, rerun behavior, and reproducibility through Docker. Keep the DAG thin by calling code that lives outside the scheduler. For example, call a Python module or dbt command instead of hiding transformation code in the DAG. Data Engineering Career Path and Skills A Twitter pipeline capstone combines Docker with a project that can be explained and run. Get a Data Analytics and Data Engineering Job"
       },
       {
@@ -36298,6 +36306,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "For a local Airflow project, DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) keeps the scheduler, UI, and metadata database visible. It also keeps the DAG folder and logs visible.",
         "text": "For a local Airflow project, DataTalks.Club's lightweight local Airflow with Docker Compose tutorial keeps the scheduler, UI, and metadata database visible. It also keeps the DAG folder and logs visible."
       },
       {
@@ -41090,6 +41099,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "The boundaries move by company size and maturity. The role overview in [[podcast:data-team-roles=>Data Team Roles Explained]] separates the team flow. DataTalks.Club's companion [Data Team Roles Explained write-up](/blog/data-roles.html) is the canonical role-by-role reference for that breakdown. Product managers stay close to users, analysts quantify problems and KPIs, and data scientists predict and evaluate. Data engineers prepare usable data, while machine learning engineers help scale model-backed services.",
         "text": "The boundaries move by company size and maturity. The role overview in Data Team Roles Explained separates the team flow. DataTalks.Club's companion Data Team Roles Explained write-up is the canonical role-by-role reference for that breakdown. Product managers stay close to users, analysts quantify problems and KPIs, and data scientists predict and evaluate. Data engineers prepare usable data, while machine learning engineers help scale model-backed services."
       },
       {
@@ -50890,6 +50900,7 @@
     "blocks": [
       {
         "kind": "paragraph",
+        "markdown": "DataOps is the operating discipline for reliable data delivery. Teams use it to review and test changes to pipelines, analytics workflows, and data products. They also use it to release, observe, and recover those changes. For the authoritative plain-language definition, see the [DataTalks.Club DataOps definition article](/blog/what-dataops-exactly.html).",
         "text": "DataOps is the operating discipline for reliable data delivery. Teams use it to review and test changes to pipelines, analytics workflows, and data products. They also use it to release, observe, and recover those changes. For the authoritative plain-language definition, see the DataTalks.Club DataOps definition article."
       },
       {
@@ -51792,6 +51803,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "Keep validation logic in the tool that fits the check, but make the orchestrator show the state clearly. The responder can then see whether the pipeline is waiting on late data, blocked by quality, quarantined for review, or ready for a safe backfill. The [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) shows a small Docker Compose setup.",
         "text": "Keep validation logic in the tool that fits the check, but make the orchestrator show the state clearly. The responder can then see whether the pipeline is waiting on late data, blocked by quality, quarantined for review, or ready for a safe backfill. The lightweight local Airflow with Docker Compose tutorial shows a small Docker Compose setup."
       },
       {
@@ -53221,6 +53233,7 @@
     "blocks": [
       {
         "kind": "paragraph",
+        "markdown": "Compare the roles by splitting data-path building from data-change operations. For the broader plain-language definition, see the DataTalks.Club page [DataOps Compared with Data Engineering and Data Science](/blog/dataops-similarities-and-differences-with-data-engineering-and-data-science.html). The narrow split is practical. Data engineering changes the data path, while DataOps makes those changes safer to review and run. DataOps also makes them easier to observe and recover.",
         "text": "Compare the roles by splitting data-path building from data-change operations. For the broader plain-language definition, see the DataTalks.Club page DataOps Compared with Data Engineering and Data Science. The narrow split is practical. Data engineering changes the data path, while DataOps makes those changes safer to review and run. DataOps also makes them easier to observe and recover."
       },
       {
@@ -66740,6 +66753,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "Hiring also includes offer negotiation, onboarding, and retention. For a recruiter's walkthrough of that end-to-end funnel, see DataTalks.Club's [The Hiring Process for Data Professionals](/blog/hiring-process-for-data-professionals.html).",
         "text": "Hiring also includes offer negotiation, onboarding, and retention. For a recruiter's walkthrough of that end-to-end funnel, see DataTalks.Club's The Hiring Process for Data Professionals."
       },
       {
@@ -67327,6 +67341,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "For a local learning or portfolio setup, follow DataTalks.Club's [lightweight local Airflow with Docker Compose tutorial](/blog/how-to-setup-lightweight-local-version-for-airflow.html) to run the scheduler, UI, and metadata database. Use that setup when the local environment helps someone look at the dependency graph, task logs, rerun path, and data checks. It's not a substitute for source, staging, modeled, and serving layers. It's the place where those steps become visible together.",
         "text": "For a local learning or portfolio setup, follow DataTalks.Club's lightweight local Airflow with Docker Compose tutorial to run the scheduler, UI, and metadata database. Use that setup when the local environment helps someone look at the dependency graph, task logs, rerun path, and data checks. It's not a substitute for source, staging, modeled, and serving layers. It's the place where those steps become visible together."
       },
       {
@@ -75761,6 +75776,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "They're product infrastructure, not a shopping list, so start from the workflow you want to improve. Add only the tools needed to make that workflow reliable. Teams actually adopt a mix of managed APIs, self-hosting, integration frameworks, and observability. For a snapshot, see the community survey on [how professionals use LLM tools and frameworks](/blog/how-do-professionals-use-llm-tools-and-frameworks.html).",
         "text": "They're product infrastructure, not a shopping list, so start from the workflow you want to improve. Add only the tools needed to make that workflow reliable. Teams actually adopt a mix of managed APIs, self-hosting, integration frameworks, and observability. For a snapshot, see the community survey on how professionals use LLM tools and frameworks."
       },
       {
@@ -90203,6 +90219,7 @@
     "blocks": [
       {
         "kind": "paragraph",
+        "markdown": "MLOps is the operating discipline for machine learning systems after experimentation. It starts when a team has to reproduce training, approve a model artifact, and deploy it. After release, the team has to monitor behavior, decide when to retrain or roll back, and keep ownership visible. For a plain-language overview, DataTalks.Club's [MLOps in 10 Minutes](/blog/mlops-10-minutes.html) covers the same lifecycle.",
         "text": "MLOps is the operating discipline for machine learning systems after experimentation. It starts when a team has to reproduce training, approve a model artifact, and deploy it. After release, the team has to monitor behavior, decide when to retrain or roll back, and keep ownership visible. For a plain-language overview, DataTalks.Club's MLOps in 10 Minutes covers the same lifecycle."
       },
       {
@@ -93593,6 +93610,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "For workflow and monitoring across both disciplines, use DataTalks.Club's [overview of DevOps and MLOps](/blog/devops-and-mlops-same-thing.html) as the starting point. For team models and maturity models, start there too. The comparison hinges on where [[machine-learning-vs-software-engineering=>software-delivery risk ends and model-behavior risk begins]].",
         "text": "For workflow and monitoring across both disciplines, use DataTalks.Club's overview of DevOps and MLOps as the starting point. For team models and maturity models, start there too. The comparison hinges on where software-delivery risk ends and model-behavior risk begins."
       },
       {
@@ -99716,6 +99734,7 @@
       },
       {
         "kind": "paragraph",
+        "markdown": "One lens centers small libraries, maintainability, and project boundaries. It covers scikit-learn governance and plugin strategy, plus maintainer transition, volunteer motivation, and CI costs. [[cite:open-source-ml-tools-strategy-and-business-models=>Open Source ML Tools]] It treats open source as an operating system for shared software, not only a publishing format. That view sits close to [[machine learning tools]], [[tools]], and project [governance](#governance-and-project-boundaries).",
         "text": "One lens centers small libraries, maintainability, and project boundaries. It covers scikit-learn governance and plugin strategy, plus maintainer transition, volunteer motivation, and CI costs. Open Source ML Tools It treats open source as an operating system for shared software, not only a publishing format. That view sits close to machine learning tools, tools, and project governance."
       },
       {

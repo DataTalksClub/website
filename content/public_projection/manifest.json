@@ -1,16 +1,16 @@
 {
   "artifacts": {
-    "articles.json": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9",
-    "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
+    "articles.json": "4ca8e4f3a1fcf3fe3c6434fdaf945f47e7969b6d6cf3cc03194c75b7a6318428",
+    "books.json": "c960306e3a2f6d6f312815826dc6d9b69858cefacd183b15215b37bfde37ec18",
     "courses.json": "8e4cc4864822ac885c360fb154e0a1f4bb402047bb66b80c5673c3233a1ecdb8",
-    "editorial_route_migration.json": "acdd10b1f6e71a0cc0fc59bc1276d9202c55be89ed4673072e10894635488563",
-    "events.json": "260eeeb2974a436b80621d87df30bfea743273b3d38a6dfe9532dfb7d99f00ec",
+    "editorial_route_migration.json": "c76a592dca293737198f22896b886571d6a5c8b83e345bc7cc756bfd5e0a3874",
+    "events.json": "0a112d29487e6539e96760f254270ad5336564dcd3aa531a9d9f668b5b74a25d",
     "media.json": "72788d42f6b4742733f6155571d2b1ba347612011f3cdcdae834d59fc5f0e784",
-    "people.json": "d7ed9887cceb0323f656a8c6a575281905b338353cb99dfb90f47a029f7a1a4e",
+    "people.json": "0a8df71b53143a8c07b5d910f9cd595ed9c5d6bc13b9f4244f2761e6693c018c",
     "podcast_platforms.json": "16a1eff26191e2aef48b8df939bed7d2ae134677d06bbfba55a6fd2842526dda",
-    "podcasts.json": "0b7d3067d3ebec2d501a50bc90186eef0581789aef2ede9bd7fe2d9cc0a9a8ee",
-    "wiki.json": "dd2ad8974744c341b405b9e173c30b6b8f8c95cf71057c21a12aef8d5efaf6a7",
-    "wiki_graph.json": "474a2f7bf4d39e1cce0c8e957678a6bbd13e478dd8e44e1cb39d4c0abc0e6b87",
+    "podcasts.json": "9fd85ce176d550d28d31eb5650f7b9bef19f9e5727c2516a46c1df2d1943c2da",
+    "wiki.json": "b2525b45a61aed28d035cd996852ffda17ae35f20325b33b66222dbcd102120b",
+    "wiki_graph.json": "f6ec4fb29e71dd179cdaa79526bfb4174ad25ee4991dfcba7f2fe3c5b0e99a13",
     "wiki_search.json": "74d6373df63386aead5108e5addd5ecf2a83a885e891338ca72022e6bdcd3fef"
   },
   "counts": {
@@ -78,6 +78,34 @@
     },
     "event_record_schema_version": 2,
     "event_source_timezone": "Europe/Berlin",
+    "event_speaker_bio_normalization": {
+      "content_sha256": "71e9daacdc2225ee3d9853e40b5b78b09ee6d20f96edacd0403d0ab843005aba",
+      "counts": {
+        "conflicts": 2,
+        "described_events": 159,
+        "events": 421,
+        "internal_links_normalized": 154,
+        "people_changed": 17,
+        "people_with_bio_candidates": 107,
+        "platform_boilerplate_blocks": 136,
+        "platform_boilerplate_events": 136,
+        "speaker_bio_events": 155,
+        "undescribed_events": 262
+      },
+      "path": "_docs/migrations/event-speaker-bio-normalization.json",
+      "schema": {
+        "description": "Deterministic event description and linked person bio normalization plan.",
+        "path": "_docs/migrations/event-speaker-bio-normalization.json"
+      },
+      "schema_version": 1,
+      "source": {
+        "bridge_content_sha256": "64c54ffa59b4cb57538ec3bba1c1a0577481523323db9f76edd55cf0ca2340e3",
+        "bridge_schema_version": 1,
+        "event_count": 421,
+        "people_repository": "DataTalksClub/datatalksclub.github.io",
+        "people_revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5"
+      }
+    },
     "media": "signature-checked local allowlist with per-asset provenance",
     "people_source": "438 public _people profiles; underscore-prefixed source excluded",
     "unresolved_podcast_guest_keys": [
@@ -130,7 +158,7 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "853f8ef0b835ad220a6b682eb0a7d8e0e27b3e89c482a2f90d80b21f73241441",
+  "tree_sha256": "32355b77705da685c2d7fc65cdfda8ad7cfcc48f1aa76b391fec3e364dffb2bc",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

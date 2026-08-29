@@ -8,7 +8,7 @@
       "article_source_path": "articles/2025-09-23-ai-dev-tools-zoomcamp.md",
       "article_source_sha256": "afbb979e31ede1922f093a6d14472dd08cf0fe83f48132adb778dbaf21e31e7a",
       "block_index": 125,
-      "blocks_sha256": "c21b5bc4b15cae2f98efb512e83262208393f34fddb1375187193a730d13f5e8",
+      "blocks_sha256": "87c5b33b064e87108ca9009b99123fdd08fce5dc29c43baa8da2e35af3ec1d68",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/ai-dev-tools-zoomcamp.html",
       "questions": [
@@ -141,7 +141,7 @@
       "article_source_path": "articles/2023-11-18-data-engineering-zoomcamp.md",
       "article_source_sha256": "60f49491acb9f3eb26f54595f2ceee71c642278509019211b098316feacfd36a",
       "block_index": 133,
-      "blocks_sha256": "df01dd8753fc0aa8396acdb34ef570dbbde723726b3e0a4be6854983bbc62267",
+      "blocks_sha256": "4f36de050c2cea2be944ebb9c0a7b1d7a5d182ef7670999f23a78f9a14ac5d4a",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/data-engineering-zoomcamp.html",
       "questions": [
@@ -239,7 +239,7 @@
       "article_source_path": "articles/2025-08-16-free-machine-learning-courses.md",
       "article_source_sha256": "4a2accf412a0f0b53d43cbef3a41e10655b4dbfc774fd8cc137ff820e3731301",
       "block_index": 216,
-      "blocks_sha256": "1d8f2e7596b34935dccc20344385e143bfc04e578745dd248899b9fab10bc324",
+      "blocks_sha256": "7af1e0dad2f8aef7835136d5e873a3f2b91a084c715538f342de7c31c6b8daf7",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/free-machine-learning-courses.html",
       "questions": [
@@ -292,7 +292,7 @@
       "article_source_path": "articles/2024-04-11-guide-to-free-online-courses-at-datatalks-club.md",
       "article_source_sha256": "3a12f0a6a0cd67d162b319d1bce4981f7f1655bc99869d34f78e13303f6f5684",
       "block_index": 101,
-      "blocks_sha256": "824a29cc20ac5ba95b4662e7961139e38b3332d02dfa37567cddcb7ebb7309ad",
+      "blocks_sha256": "d60ff2cb9c1644236c47f90097a2fcb3963efe7884eb6e18ce417bd0be3b4296",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/guide-to-free-online-courses-at-datatalks-club.html",
       "questions": [
@@ -350,7 +350,7 @@
       "article_source_path": "articles/2024-11-11-llm-zoomcamp.md",
       "article_source_sha256": "cbd70fd5cdb34c942c23b40216f78c777a849e723a930ff1ffcfc8aec17296a8",
       "block_index": 86,
-      "blocks_sha256": "bc9adff32787d07163d20598ffd2e9381461d096e6d8b886162ebbd64c2e06bd",
+      "blocks_sha256": "9b66acb46d3c31a18ee08225aa9c6f07690580e67f8cb3971e6bf46928d0b694",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/llm-zoomcamp.html",
       "questions": [
@@ -493,7 +493,7 @@
       "article_source_path": "articles/2023-08-17-machine-learning-zoomcamp.md",
       "article_source_sha256": "dff47f21ffc57424f9f9c3fe7bc6af46f3351c23edde8336026e55d4239e68c2",
       "block_index": 144,
-      "blocks_sha256": "7e7d7374d8499ccf0f058b28a8d4250049a46f2ad4ec1976213c2dde8560a7ee",
+      "blocks_sha256": "10a2b7f9dcb7e8273006cd1d3968de451f29556181e4a91bc10bbbfc87ccee32",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/machine-learning-zoomcamp.html",
       "questions": [
@@ -606,7 +606,7 @@
       "article_source_path": "articles/2024-03-07-mlops-zoomcamp.md",
       "article_source_sha256": "7cbd7b4e5d99bc92dd11dde48f4b68cf7b49c2873c6535406ce4dacf576bdd45",
       "block_index": 86,
-      "blocks_sha256": "e1bdf3974db0a5148063d1aa19215f700a0b033a5a43af31cd31a97b33dc7770",
+      "blocks_sha256": "ee077c3623c7e88d894d6a15052bcbe8b8584f94cf8dce71b74648bfc666e65b",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/mlops-zoomcamp.html",
       "questions": [
@@ -787,7 +787,7 @@
       "article_source_path": "articles/2020-12-23-slack-communities.md",
       "article_source_sha256": "da28b0e9b65005342aedf79fca6a7616a98ab38acd9e92e0d08c4c28982f3c7f",
       "block_index": 119,
-      "blocks_sha256": "4164fa350b470714cf3c6ac7f397172ab788dbb19932a1dd5682a5a3082dc8f3",
+      "blocks_sha256": "53378e4f2bcd1e857ddf4cf2c87a5ec833bf9b055a80ec0d54a72d9c20be56e0",
       "heading_id": "frequently-searched-questions",
       "public_path": "/blog/slack-communities.html",
       "questions": [
@@ -875,7 +875,7 @@
       "article_source_path": "articles/2026-07-28-sponsor-datatalks-club.md",
       "article_source_sha256": "13a24719cf8a21caa2026f7fa15e35bc57679491adbb37539e404e484da1d16c",
       "block_index": 131,
-      "blocks_sha256": "2d156401ba40dcf5482577f4f111d44d9a08d665885dd613e0f9843c485a9d86",
+      "blocks_sha256": "5ab10e2601af70fab8eeb98e596b1d889d4235453cfb1a7be524425ea32fe792",
       "heading_id": "frequently-asked-questions",
       "public_path": "/blog/sponsor-datatalks-club.html",
       "questions": [
@@ -930,7 +930,7 @@
       "source_sha256": "570b29149f0b4e5f46df806b14de694192bddd0620bf8dcd6f955beece18e465"
     }
   ],
-  "content_sha256": "074d6be4f419211cba3e2f6b386cf86d3cce9c259b9c129412e16d3873c83a76",
+  "content_sha256": "3c925e6bc49b51b32d76ead3a9f8900510e5553722400411659ba2474cda8a86",
   "counts": {
     "articles": 10,
     "questions": 159
@@ -938,7 +938,7 @@
   "projection": {
     "article_count": 55,
     "path": "content/public_projection/articles.json",
-    "sha256": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9"
+    "sha256": "4ca8e4f3a1fcf3fe3c6434fdaf945f47e7969b6d6cf3cc03194c75b7a6318428"
   },
   "schema_version": 1,
   "source": {
