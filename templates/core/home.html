@@ -283,6 +283,18 @@
         margin-top: auto;
       }
 
+      /* Keep the supporting catalogue visually separate from the featured
+         course instead of letting two heavy card outlines touch. */
+      .catalog-scroller {
+        margin-inline: 0;
+        margin-top: 1.25rem;
+        padding-inline: 0;
+      }
+
+      .catalog-scroller-controls {
+        margin-top: 0.75rem;
+      }
+
       /* --- promises ----------------------------------------------------- */
 
       .promise-grid {
@@ -834,6 +846,15 @@
           gap: 1.75rem;
         }
       }
+
+      @media (min-width: 75rem) {
+        /* A desktop shell presents four complete catalogue choices. The fifth
+           starts beyond the viewport and remains reachable with the controls,
+           avoiding a card that looks accidentally amputated at the shell edge. */
+        .catalog-scroller {
+          grid-auto-columns: calc((100% - 3 * 1.25rem) / 4);
+        }
+      }
     </style>
   </head>
   {% url 'update_timezone_preference' as timezone_update_url %}
@@ -859,7 +880,7 @@
             </p>
             <div class="hero-actions">
               <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
-              <a class="cta cta-secondary interactive-lift" href="{% url 'slack' %}">Join the community</a>
+              <a class="cta cta-secondary interactive-lift" href="{% url 'account_signup' %}">Join the community</a>
             </div>
           </div>
           <div class="hero-figure">
@@ -1041,7 +1062,7 @@
                 </div>
                 <h3>{{ course.title }}</h3>
                 <p class="course-cohort">{{ course.cohort_label }}</p>
-                <a class="band-link course-link" href="{{ course.public_path }}">View course →</a>
+                <a class="band-link course-link" href="{{ course.public_path }}">View course</a>
               </article>
             {% endfor %}
           </div>

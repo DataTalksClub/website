@@ -413,6 +413,11 @@ Markup shapes below are the contract; the CSS lives in the partial.
   pins it to the card foot (see `.course-link`, `.story-person`).
 - **`.card-grid`** + **`.card-grid-2` / `.card-grid-3`** — the band's card
   columns; they collapse to one column on narrow screens.
+- **`.interactive-card.interactive-lift`** — the shared whole-card link
+  treatment. Hover and keyboard focus lift the surface by two pixels and reveal
+  a fixed bottom-right `→` by opacity only. The arrow never travels, bounces or
+  competes with the card motion; reduced-motion removes the surface lift while
+  preserving the keyboard-visible cue.
 - **`.event-card`** — the card for one event, drawn by the events index and by
   the homepage's three-up band. The whole card is the link: the title is the one
   real anchor and its `::after` covers the card, so the accessibility tree holds
@@ -493,9 +498,12 @@ Markup shapes below are the contract; the CSS lives in the partial.
 
 - **`.catalog-scroller`** — a scroll-snap column grid that hides its
   scrollbar; stays a carousel at every width (narrower auto-columns on phones
-  so the next card peeks in). Pair with `.scroller-controls` /
+  so the next card peeks in; the homepage fits four complete equal columns from
+  75rem and keeps later cards entirely off-canvas). Pair with `.scroller-controls` /
   `.scroller-button` arrows (hidden without JavaScript via `html.js`), keep
-  `tabindex="0"`, `role="group"` and an `aria-label` on the strip.
+  `tabindex="0"`, `role="group"` and an `aria-label` on the strip. Catalogue
+  and member-story strips establish their own positioning context so visually
+  hidden labels in off-screen cards cannot widen the document viewport.
 
 ### Illustrations
 

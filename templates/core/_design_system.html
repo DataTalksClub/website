@@ -1115,8 +1115,7 @@ Rules for editing:
         pointer-events: none;
         position: absolute;
         right: var(--interactive-card-right, 0.9rem);
-        translate: -0.25rem 0;
-        transition: opacity 0.14s ease, translate 0.14s ease;
+        transition: opacity 0.14s ease;
         z-index: 2;
       }
 
@@ -1129,7 +1128,6 @@ Rules for editing:
         .dashboard-card-link a:focus-visible
       )::before {
         opacity: 1;
-        translate: none;
       }
 
       /* The arrow is the card-level affordance.  A title does not also change
@@ -1147,7 +1145,6 @@ Rules for editing:
 
         .interactive-card:hover::before {
           opacity: 1;
-          translate: none;
         }
       }
 
@@ -1440,6 +1437,7 @@ Rules for editing:
         overflow-x: auto;
         padding: 0.4rem 0.4rem 0.6rem;
         margin-inline: -0.4rem;
+        position: relative;
         scrollbar-width: none;
         scroll-snap-type: x proximity;
       }
@@ -1522,6 +1520,7 @@ Rules for editing:
         overflow-x: auto;
         padding: 0.4rem 0.4rem 0.6rem;
         margin-inline: -0.4rem;
+        position: relative;
         scrollbar-width: none;
         scroll-snap-type: x proximity;
       }

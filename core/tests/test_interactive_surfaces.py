@@ -87,6 +87,9 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
         self.assertIn('content: "→";', styles)
         self.assertIn("bottom: var(--interactive-card-bottom", styles)
         self.assertIn("right: var(--interactive-card-right", styles)
+        cue_rule = styles.split(".interactive-card::before {", 1)[1].split("}", 1)[0]
+        self.assertIn("transition: opacity 0.14s ease;", cue_rule)
+        self.assertNotIn("translate:", cue_rule)
         self.assertIn("@media (hover: hover) and (pointer: fine)", styles)
         self.assertIn(".interactive-lift:focus-visible", styles)
         self.assertIn(":has(\n        > a:focus-visible", styles)
