@@ -54,6 +54,7 @@ from .podcast_content import (
     podcast_platform_links,
     season_episodes,
 )
+from .podcast_routes import podcast_legacy_path, podcast_public_id
 from .public_data import (
     PROJECTION_ROOT,
     event_date_groups,
@@ -794,6 +795,61 @@ def podcast_detail(request: HttpRequest, slug: str) -> HttpResponse:
     episode = projection["podcasts_by_slug"].get(slug)
     if episode is None:
         raise Http404
+    return _render_podcast_detail(request, episode, projection=projection)
+
+
+def _podcast_by_public_id(projection: dict, episode_id: str) -> dict:
+    matches = [
+        episode
+        for episode in projection["podcasts"]
+        if podcast_public_id(
+            season=episode["season"],
+            episode=episode["episode"],
+        )
+        == episode_id
+    ]
+    if len(matches) != 1:
+        raise Http404
+    return matches[0]
+
+
+@csrf_exempt
+def podcast_detail_by_id(
+    request: HttpRequest,
+    episode_id: str,
+    slug: str,
+) -> HttpResponse:
+    """Resolve an episode by stable ID and treat its title slug as cosmetic."""
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    projection = public_projection()
+    episode = _podcast_by_public_id(projection, episode_id)
+    if request.path_info != episode["public_path"]:
+        return permanent_public_redirect(request, target=episode["public_path"])
+    return _render_podcast_detail(request, episode, projection=projection)
+
+
+@csrf_exempt
+def podcast_detail_by_id_without_slug(request: HttpRequest, episode_id: str) -> HttpResponse:
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    episode = _podcast_by_public_id(public_projection(), episode_id)
+    return permanent_public_redirect(request, target=episode["public_path"])
+
+
+@csrf_exempt
+def podcast_legacy_detail(request: HttpRequest, slug: str) -> HttpResponse:
+    """Render established HTML finals and redirect episodes moved to stable-ID routes."""
+
+    if request.method not in {"GET", "HEAD"}:
+        return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    projection = public_projection()
+    episode = projection["podcasts_by_slug"].get(slug)
+    if episode is None:
+        raise Http404
+    if episode["public_path"] != podcast_legacy_path(slug):
+        return permanent_public_redirect(request, target=episode["public_path"])
     return _render_podcast_detail(request, episode, projection=projection)
 
 

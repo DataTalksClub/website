@@ -51,7 +51,7 @@
       "speaker": "aleksandrkim",
       "speaker_name": "Aleksandr Kim",
       "recording_url": "https://www.youtube.com/watch?v=PosCx_4fwt0",
-      "episode_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html"
+      "episode_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production"
     },
     {
       "source": "main",
@@ -129,7 +129,7 @@
   "podcast": {
     "source": "main",
     "source_path": "_podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.md",
-    "public_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
+    "public_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
     "title": "How to Build AI That Actually Ships in Production",
     "season": 24,
     "episode": 6,

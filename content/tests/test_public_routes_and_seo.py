@@ -11,7 +11,11 @@ from django.conf import settings
 from django.test import TestCase
 
 from content.docs_projection import docs_page
-from content.podcast_routes import PODCAST_ROUTE_MIGRATION_PATH, podcast_legacy_path
+from content.podcast_routes import (
+    PODCAST_AI_PRODUCTION_PATH,
+    PODCAST_ROUTE_MIGRATION_PATH,
+    podcast_legacy_path,
+)
 from content.public_data import public_paths, public_projection
 from content.review_projection import review_projection
 from content.sitemap_contract import EXPECTED_SITEMAP_LOCATIONS
@@ -164,7 +168,7 @@ class PublicRouteAndSeoTests(TestCase):
         self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
         self.assertEqual(
             {path for path in canonical_paths if not path.endswith(".html")},
-            {PODCAST_ROUTE_MIGRATION_PATH},
+            {PODCAST_ROUTE_MIGRATION_PATH, PODCAST_AI_PRODUCTION_PATH},
         )
         self.assertEqual(
             set(alias_map),

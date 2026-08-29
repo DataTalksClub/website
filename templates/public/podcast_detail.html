@@ -113,6 +113,10 @@
         width: 100%;
       }
 
+      .episode-player + .episode-player {
+        margin-top: 1rem;
+      }
+
       /* Spotify's compact episode player has a fixed content height, while its
          width remains fluid with the reading column. */
       .episode-video[data-video-provider="spotify"] {
@@ -597,13 +601,29 @@
               </div>
             </div>
           {% endif %}
-          {% if episode.platform_links %}
+          {% if episode.video and episode.spotify.is_creator_embed %}
+            <div
+              class="player-frame episode-player episode-video episode-audio"
+              data-video-provider="spotify"
+              data-video-id="{{ episode.spotify.media_id }}"
+            >
+              <iframe
+                id="podcast-audio-player"
+                src="{{ episode.spotify.embed_url }}"
+                title="Listen to {{ episode.title }} on Spotify"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen
+              ></iframe>
+            </div>
+          {% endif %}
+          {% if episode.listener_platform_links %}
             <div class="episode-listen">
               <h2 id="platform-links-heading" class="mono-label">
                 Listen to or watch on your favorite platform
               </h2>
               <div class="listen-row" role="group" aria-labelledby="platform-links-heading">
-                {% for link in episode.platform_links %}
+                {% for link in episode.listener_platform_links %}
                   <a
                     class="pill-button"
                     href="{{ link.url }}"

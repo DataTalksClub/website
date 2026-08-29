@@ -143,6 +143,12 @@ class SpotifyEmbed:
     def provider_label(self) -> str:
         return "Spotify"
 
+    @property
+    def is_creator_embed(self) -> bool:
+        """Identify the legacy Anchor player without exposing its outbound link."""
+
+        return self.embed_url.startswith("https://creators.spotify.com/")
+
 
 @dataclass(frozen=True, slots=True)
 class TranscriptEntry:
@@ -195,6 +201,14 @@ class Episode:
         """Return the preferred validated player, with Spotify as the fallback."""
 
         return self.video or self.spotify
+
+    @property
+    def listener_platform_links(self) -> tuple[PlatformLink, ...]:
+        """Return useful listener destinations, excluding the creator dashboard."""
+
+        return tuple(
+            link for link in self.platform_links if link.provider != "spotify_for_creators"
+        )
 
 
 def _required_text(record: dict[str, Any], field: str) -> str:
@@ -689,7 +703,7 @@ def listening_platform_phrase(episodes: tuple[Episode, ...]) -> str:
     if not episodes:
         return ""
     shared = set.intersection(
-        *({link.label for link in episode.platform_links} for episode in episodes)
+        *({link.label for link in episode.listener_platform_links} for episode in episodes)
     )
     labels = [
         PLATFORM_LABELS[key][0] for key in PLATFORM_ORDER if PLATFORM_LABELS[key][0] in shared
