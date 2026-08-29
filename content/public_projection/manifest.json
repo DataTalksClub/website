@@ -3,10 +3,10 @@
     "articles.json": "4ca8e4f3a1fcf3fe3c6434fdaf945f47e7969b6d6cf3cc03194c75b7a6318428",
     "books.json": "c960306e3a2f6d6f312815826dc6d9b69858cefacd183b15215b37bfde37ec18",
     "courses.json": "8e4cc4864822ac885c360fb154e0a1f4bb402047bb66b80c5673c3233a1ecdb8",
-    "editorial_route_migration.json": "c76a592dca293737198f22896b886571d6a5c8b83e345bc7cc756bfd5e0a3874",
-    "events.json": "0a112d29487e6539e96760f254270ad5336564dcd3aa531a9d9f668b5b74a25d",
+    "editorial_route_migration.json": "bb37ccdb0e13002d86d638385a9c65b7e9ae1bab9433d4a9cc952b59b5cacec0",
+    "events.json": "333c53c88445d9cbc6d91c26f9043a6998645346a84fdd3b2782ec0a989d7fc6",
     "media.json": "72788d42f6b4742733f6155571d2b1ba347612011f3cdcdae834d59fc5f0e784",
-    "people.json": "0a8df71b53143a8c07b5d910f9cd595ed9c5d6bc13b9f4244f2761e6693c018c",
+    "people.json": "46ca78bad0821cf825b5cdca3ea8d9fcb62490ae26b37864e5de30fe98e07c85",
     "podcast_platforms.json": "16a1eff26191e2aef48b8df939bed7d2ae134677d06bbfba55a6fd2842526dda",
     "podcasts.json": "9fd85ce176d550d28d31eb5650f7b9bef19f9e5727c2516a46c1df2d1943c2da",
     "wiki.json": "b2525b45a61aed28d035cd996852ffda17ae35f20325b33b66222dbcd102120b",
@@ -69,17 +69,17 @@
     },
     "event_identity_manifest": {
       "counts": {
-        "aliases": 421,
+        "aliases": 1684,
         "events": 421
       },
       "path": "events/event_identity_manifest.json",
-      "schema_version": 1,
-      "sha256": "26c2fd6589ff8acd132ebef0b31d15a81dc43901e1ba0b2e4437e72aeab5d91e"
+      "schema_version": 2,
+      "sha256": "1fd4ff474199cae9ce97a75ac8061aa4c8388edf66a1cb960377e0494559b6f5"
     },
     "event_record_schema_version": 2,
     "event_source_timezone": "Europe/Berlin",
     "event_speaker_bio_normalization": {
-      "content_sha256": "71e9daacdc2225ee3d9853e40b5b78b09ee6d20f96edacd0403d0ab843005aba",
+      "content_sha256": "24a489ac8d7f932edb7b38f1c48cbc6be5b7662b41efa2db46fd3b8f0051528a",
       "counts": {
         "conflicts": 2,
         "described_events": 159,
@@ -158,7 +158,7 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "32355b77705da685c2d7fc65cdfda8ad7cfcc48f1aa76b391fec3e364dffb2bc",
+  "tree_sha256": "cff8135eeab60d629164db983f74d8e1554ee22c4805d897c581beccae0a22a4",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

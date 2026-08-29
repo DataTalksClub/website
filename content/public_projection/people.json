@@ -1335,7 +1335,7 @@
       },
       {
         "label": "How to Work with AI Coding Agents: Spec-Driven Development, Context and Loop Engineering, Workflows",
-        "public_path": "/events/01411816-6a32-44e8-976f-f54d9ec5a44b/how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows",
+        "public_path": "/events/01411816-6a32-44e8-976f-f54d9ec5a44b/how-to-work-with-ai-coding-agents-spec-driven-development",
         "role": "speaker"
       },
       {
@@ -1345,7 +1345,7 @@
       },
       {
         "label": "Monitoring LLM Applications: Traces, Feedback, and Production Quality",
-        "public_path": "/events/12ace87f-0944-4916-86bc-d5bca3ef4ac7/monitoring-llm-applications-traces-feedback-and-production-quality",
+        "public_path": "/events/12ace87f-0944-4916-86bc-d5bca3ef4ac7/monitoring-llm-applications-traces-feedback-and-production",
         "role": "speaker"
       },
       {
@@ -1355,7 +1355,7 @@
       },
       {
         "label": "RAG and Agents Evaluation: Measuring Retrieval and LLM Answer Quality",
-        "public_path": "/events/6a0e36b5-2ab1-4762-9369-51ea629fa559/rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality",
+        "public_path": "/events/6a0e36b5-2ab1-4762-9369-51ea629fa559/rag-and-agents-evaluation-measuring-retrieval-and-llm-answer",
         "role": "speaker"
       },
       {
@@ -1395,7 +1395,7 @@
       },
       {
         "label": "Docker for Data Engineering: Postgres, Docker Compose, and Real-World Workflows",
-        "public_path": "/events/bfcecb7a-55b5-466d-902d-1cea5fa705f9/docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows",
+        "public_path": "/events/bfcecb7a-55b5-466d-902d-1cea5fa705f9/docker-for-data-engineering-postgres-docker-compose-and-real",
         "role": "speaker"
       },
       {
@@ -1460,7 +1460,7 @@
       },
       {
         "label": "From RAG to Agents: Making Smart AI Assistants (LLM Zoomcamp bonus module)",
-        "public_path": "/events/ef329733-a849-4dbf-a492-3cdc6f242be2/from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module",
+        "public_path": "/events/ef329733-a849-4dbf-a492-3cdc6f242be2/from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp",
         "role": "speaker"
       },
       {
@@ -1897,7 +1897,7 @@
     "relationships": [
       {
         "label": "Hypothesis Testing: Bayesian or Frequentist? Two ways of looking at the same coin",
-        "public_path": "/events/ef3915a7-345e-4f67-b555-ec12fa71fb4b/hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin",
+        "public_path": "/events/ef3915a7-345e-4f67-b555-ec12fa71fb4b/hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking",
         "role": "speaker"
       }
     ],
@@ -2952,7 +2952,7 @@
     "relationships": [
       {
         "label": "The Trade-off Between Simplicity And Optimality In Problem-solving",
-        "public_path": "/events/dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f/the-trade-off-between-simplicity-and-optimality-in-problem-solving",
+        "public_path": "/events/dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f/the-trade-off-between-simplicity-and-optimality-in-problem",
         "role": "speaker"
       }
     ],
@@ -4747,7 +4747,7 @@
     "relationships": [
       {
         "label": "Maximizing Confidence in Your Data Model Changes with dbt and PipeRider",
-        "public_path": "/events/8901894e-8a92-4e54-98a1-b72ec0126478/maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider",
+        "public_path": "/events/8901894e-8a92-4e54-98a1-b72ec0126478/maximizing-confidence-in-your-data-model-changes-with-dbt-and",
         "role": "speaker"
       }
     ],
@@ -6407,7 +6407,7 @@
     "relationships": [
       {
         "label": "From Human-in-the-Loop to Agent-in-the-Loop: A Practical Transition Guide",
-        "public_path": "/events/badc48d1-9a91-4cc7-8bdf-6c1a46718bbb/from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide",
+        "public_path": "/events/badc48d1-9a91-4cc7-8bdf-6c1a46718bbb/from-human-in-the-loop-to-agent-in-the-loop-a-practical",
         "role": "speaker"
       }
     ],
@@ -6509,7 +6509,7 @@
       },
       {
         "label": "Building an ML System for Southeast Asia’s Largest Hospital Group",
-        "public_path": "/events/6f7dad4e-f987-4a95-b9be-f02736022b9d/building-an-ml-system-for-southeast-asia-s-largest-hospital-group",
+        "public_path": "/events/6f7dad4e-f987-4a95-b9be-f02736022b9d/building-an-ml-system-for-southeast-asia-s-largest-hospital",
         "role": "speaker"
       },
       {
@@ -7469,7 +7469,7 @@
     "relationships": [
       {
         "label": "From REST to reasoning: ingest, index, and query with dlt and Cognee",
-        "public_path": "/events/0b316918-dc06-4143-8d57-522c3777d138/from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee",
+        "public_path": "/events/0b316918-dc06-4143-8d57-522c3777d138/from-rest-to-reasoning-ingest-index-and-query-with-dlt-and",
         "role": "speaker"
       }
     ],
@@ -8127,7 +8127,7 @@
       },
       {
         "label": "Economics and Automation Workshop: Building a Data Pipeline for Economic Insights",
-        "public_path": "/events/e4534a7d-3882-48e6-8e15-c5f72248e1cf/economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights",
+        "public_path": "/events/e4534a7d-3882-48e6-8e15-c5f72248e1cf/economics-and-automation-workshop-building-a-data-pipeline-for",
         "role": "speaker"
       },
       {
@@ -8292,7 +8292,7 @@
     "relationships": [
       {
         "label": "A Framework for Feature Engineering and Machine Learning Pipelines",
-        "public_path": "/events/3b9d5a07-4573-44c4-b79f-f2bfdb728c02/a-framework-for-feature-engineering-and-machine-learning-pipelines",
+        "public_path": "/events/3b9d5a07-4573-44c4-b79f-f2bfdb728c02/a-framework-for-feature-engineering-and-machine-learning",
         "role": "speaker"
       }
     ],
@@ -8376,7 +8376,7 @@
     "relationships": [
       {
         "label": "Tracking and personalizing AI agents with Snowplow and the Vercel AI SDK",
-        "public_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
+        "public_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the",
         "role": "speaker"
       }
     ],
@@ -9305,7 +9305,7 @@
     "relationships": [
       {
         "label": "Tracking and personalizing AI agents with Snowplow and the Vercel AI SDK",
-        "public_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
+        "public_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the",
         "role": "speaker"
       }
     ],
@@ -9397,7 +9397,7 @@
     "relationships": [
       {
         "label": "How to Evaluate MCP-powered AI Agents Beyond Accuracy using Agent GPA",
-        "public_path": "/events/48b46145-c10e-49ff-8eb0-796e4a6287bd/how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa",
+        "public_path": "/events/48b46145-c10e-49ff-8eb0-796e4a6287bd/how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using",
         "role": "speaker"
       }
     ],
@@ -13441,7 +13441,7 @@
     "relationships": [
       {
         "label": "n8n: From Fundamentals to Building Intelligent Automation Pipeline",
-        "public_path": "/events/53b2efe4-e10a-4c7f-a994-3c96722f9e12/n8n-from-fundamentals-to-building-intelligent-automation-pipeline",
+        "public_path": "/events/53b2efe4-e10a-4c7f-a994-3c96722f9e12/n8n-from-fundamentals-to-building-intelligent-automation",
         "role": "speaker"
       }
     ],
@@ -14274,7 +14274,7 @@
     "relationships": [
       {
         "label": "The Agentic Shift in Data Engineering: From Pipeline Builders to Architects of Controlled Chaos",
-        "public_path": "/events/9f488454-7d58-4191-a5db-8bbda819ee76/the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos",
+        "public_path": "/events/9f488454-7d58-4191-a5db-8bbda819ee76/the-agentic-shift-in-data-engineering-from-pipeline-builders",
         "role": "speaker"
       }
     ],
@@ -16866,7 +16866,7 @@
     "relationships": [
       {
         "label": "Building Scalable End-to-End Deep Learning Pipelines in the Cloud",
-        "public_path": "/events/f7620ed1-8f88-4a79-9935-8dabb7459d1e/building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud",
+        "public_path": "/events/f7620ed1-8f88-4a79-9935-8dabb7459d1e/building-scalable-end-to-end-deep-learning-pipelines-in-the",
         "role": "speaker"
       }
     ],

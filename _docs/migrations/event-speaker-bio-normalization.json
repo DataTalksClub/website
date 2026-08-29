@@ -17,7 +17,7 @@
       ]
     }
   ],
-  "content_sha256": "71e9daacdc2225ee3d9853e40b5b78b09ee6d20f96edacd0403d0ab843005aba",
+  "content_sha256": "24a489ac8d7f932edb7b38f1c48cbc6be5b7662b41efa2db46fd3b8f0051528a",
   "counts": {
     "conflicts": 2,
     "described_events": 159,
@@ -79,7 +79,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows"
+      "slug": "how-to-work-with-ai-coding-agents-spec-driven-development"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -89,7 +89,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "translating-ml-predictions-into-better-real-world-results-with-decision-optimization"
+      "slug": "translating-ml-predictions-into-better-real-world-results-with"
     },
     {
       "before_description_sha256": "d3545bda94392f26194d38423eed306c63763ee31bf647d7c8896979ecac8d41",
@@ -209,7 +209,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee"
+      "slug": "from-rest-to-reasoning-ingest-index-and-query-with-dlt-and"
     },
     {
       "before_description_sha256": "12ac93feff6422dcf13f4ce041877c61fb6bb9000fd347555d863b0e584739d1",
@@ -349,7 +349,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "monitoring-llm-applications-traces-feedback-and-production-quality"
+      "slug": "monitoring-llm-applications-traces-feedback-and-production"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -599,7 +599,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk"
+      "slug": "tracking-and-personalizing-ai-agents-with-snowplow-and-the"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1009,7 +1009,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "a-framework-for-feature-engineering-and-machine-learning-pipelines"
+      "slug": "a-framework-for-feature-engineering-and-machine-learning"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1079,7 +1079,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "from-a-research-scientist-at-amazon-to-a-machine-learning-ai-consultant"
+      "slug": "from-a-research-scientist-at-amazon-to-a-machine-learning-ai"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1169,7 +1169,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa"
+      "slug": "how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1319,7 +1319,7 @@
       "outcome": "normalized_speaker_bio",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": true,
-      "slug": "n8n-from-fundamentals-to-building-intelligent-automation-pipeline"
+      "slug": "n8n-from-fundamentals-to-building-intelligent-automation"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1599,7 +1599,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products"
+      "slug": "ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1719,7 +1719,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality"
+      "slug": "rag-and-agents-evaluation-measuring-retrieval-and-llm-answer"
     },
     {
       "before_description_sha256": "6f152f9fddec748500c1535242a29efba48a05739087fcffcdf092bcde9098bf",
@@ -1759,7 +1759,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "the-journey-of-a-data-generalist-from-bioinformatics-to-freelancing"
+      "slug": "the-journey-of-a-data-generalist-from-bioinformatics-to"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -1809,7 +1809,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "building-an-ml-system-for-southeast-asia-s-largest-hospital-group"
+      "slug": "building-an-ml-system-for-southeast-asia-s-largest-hospital"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -2029,7 +2029,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "searching-beyond-the-surface-navigating-challenges-and-innovations-in-search-technologies"
+      "slug": "searching-beyond-the-surface-navigating-challenges-and"
     },
     {
       "before_description_sha256": "3c49509ba88fbb25ad34e6ae079506ed814b963a54d5ca564dba37ea37124f3d",
@@ -2059,7 +2059,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "from-medicine-to-machine-learning-how-public-learning-turned-into-a-career"
+      "slug": "from-medicine-to-machine-learning-how-public-learning-turned"
     },
     {
       "before_description_sha256": "de9a7bd4501f9f20e12f74a70b2a5ff5aa53641083829025c9e52a00cd28b7dc",
@@ -2319,7 +2319,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider"
+      "slug": "maximizing-confidence-in-your-data-model-changes-with-dbt-and"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -2539,7 +2539,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "foundations-of-analytics-engineer-role-skills-scope-and-modern-practices"
+      "slug": "foundations-of-analytics-engineer-role-skills-scope-and-modern"
     },
     {
       "before_description_sha256": "85c5efffa3a8a797e9a0ed20229abf52fd2e6f37cf7d11f52761947985a3526b",
@@ -2749,7 +2749,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos"
+      "slug": "the-agentic-shift-in-data-engineering-from-pipeline-builders"
     },
     {
       "before_description_sha256": "3affcbca01f29fb0f6006a92c1e2361cd1efb5ec1c8579f3c60f222c6eaae741",
@@ -2879,7 +2879,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "the-entrepreneurship-journey-from-freelancing-to-starting-a-company"
+      "slug": "the-entrepreneurship-journey-from-freelancing-to-starting-a"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -3169,7 +3169,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
+      "slug": "data-engineer-career-in-2026-roles-specializations-and-what"
     },
     {
       "before_description_sha256": "a74cbeda82d41fcdaac46b30e1b9ebaee7484b566ce406cc2fd18ac93ece47ab",
@@ -3209,7 +3209,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide"
+      "slug": "from-human-in-the-loop-to-agent-in-the-loop-a-practical"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -3229,7 +3229,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows"
+      "slug": "docker-for-data-engineering-postgres-docker-compose-and-real"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -3849,7 +3849,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "from-semiconductors-to-machine-learning-a-career-in-data-and-teaching"
+      "slug": "from-semiconductors-to-machine-learning-a-career-in-data-and"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -3859,7 +3859,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "the-trade-off-between-simplicity-and-optimality-in-problem-solving"
+      "slug": "the-trade-off-between-simplicity-and-optimality-in-problem"
     },
     {
       "before_description_sha256": "a653485dc1a02cf70bd24c5277f47d3c12cde9f76260328607cc3dc26fedd507",
@@ -3899,7 +3899,7 @@
       "outcome": "normalized_speaker_bio",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": true,
-      "slug": "economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights"
+      "slug": "economics-and-automation-workshop-building-a-data-pipeline-for"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -4039,7 +4039,7 @@
       "outcome": "normalized_speaker_bio_and_platform_boilerplate",
       "platform_boilerplate_blocks": 1,
       "remove_speaker_bio": true,
-      "slug": "from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module"
+      "slug": "from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
@@ -4049,7 +4049,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin"
+      "slug": "hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking"
     },
     {
       "before_description_sha256": "e3dac74f0ea2dee2859aed3686693c64808976795f3ff0cbd0578062c8e9b86d",
@@ -4129,7 +4129,7 @@
       "outcome": "processed_no_description",
       "platform_boilerplate_blocks": 0,
       "remove_speaker_bio": false,
-      "slug": "building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud"
+      "slug": "building-scalable-end-to-end-deep-learning-pipelines-in-the"
     },
     {
       "before_description_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",

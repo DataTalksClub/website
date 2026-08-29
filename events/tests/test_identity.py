@@ -359,6 +359,21 @@ class EventIdentityRouteTests(TestCase):
                 self.assertEqual(head.status_code, 301)
                 self.assertEqual(head.headers["Location"], f"{self.path}?{query}")
 
+    def test_long_event_slug_uses_short_canonical_and_stale_slug_redirects(self) -> None:
+        event = Event.objects.get(public_id=356)
+        canonical = "/events/356/how-to-work-with-ai-coding-agents-spec-driven-development"
+
+        self.assertEqual(canonical_detail_path(event.id), canonical)
+        response = self.client.get(
+            "/events/356/how-to-work-with-ai-coding-agents-spec-driven-development-"
+            "context-and-loop-engineering-workflows",
+            follow=False,
+        )
+
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], canonical)
+        self.assertEqual(self.client.get(canonical).status_code, 200)
+
     def test_noncanonical_id_case_slash_and_unknown_forms_are_exact_404s(self) -> None:
         public_id = self.event.public_id
         assert public_id is not None

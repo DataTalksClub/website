@@ -16,7 +16,8 @@ not introduce registration, email, or provider mutations.
 - UUID and immutable internal identity used by relations, services, audit, Studio, and admin API;
 - separate stable, unique, positive numeric public ID, allocated collision-safely once, never reused
   or renumbered, and exposed by management only as read-only public metadata;
-- stable public slug with explicit aliases for approved renames;
+- cosmetic title-derived public slug capped at 64 characters, with explicit aliases for approved
+  renames;
 - title, summary, sanitized body, event type, image, and visibility;
 - timezone-aware start/end plus the event's IANA timezone;
 - registration open/close timestamps;

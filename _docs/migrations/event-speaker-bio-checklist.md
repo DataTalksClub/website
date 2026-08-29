@@ -34,21 +34,21 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `c29ee12b-7423-4f1d-bd80-6138d67534a5` — FAQ Assistant in Practice: End-To-End Flow (`faq-assistant-in-practice-end-to-end-flow`) — normalized speaker bio; removed platform boilerplate
 - [x] `4a3b03c4-ea24-4598-b2c6-ab57efee88b7` — Engineering AI-Powered Data Products (`engineering-ai-powered-data-products`) — normalized speaker bio; removed platform boilerplate
 - [x] `9bbdb164-3a71-49a6-9f2d-9ba02dd84096` — Build and Ship an AI-Assisted Full-Stack App (`build-and-ship-an-ai-assisted-full-stack-app`) — normalized speaker bio; removed platform boilerplate
-- [x] `01411816-6a32-44e8-976f-f54d9ec5a44b` — How to Work with AI Coding Agents: Spec-Driven Development, Context and Loop Engineering, Workflows (`how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows`) — normalized speaker bio; removed platform boilerplate
-- [x] `22b7fe1b-7ec9-4f76-9f40-709744a3fd5f` — Tracking and personalizing AI agents with Snowplow and the Vercel AI SDK (`tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk`) — normalized speaker bio; removed platform boilerplate
+- [x] `01411816-6a32-44e8-976f-f54d9ec5a44b` — How to Work with AI Coding Agents: Spec-Driven Development, Context and Loop Engineering, Workflows (`how-to-work-with-ai-coding-agents-spec-driven-development`) — normalized speaker bio; removed platform boilerplate
+- [x] `22b7fe1b-7ec9-4f76-9f40-709744a3fd5f` — Tracking and personalizing AI agents with Snowplow and the Vercel AI SDK (`tracking-and-personalizing-ai-agents-with-snowplow-and-the`) — normalized speaker bio; removed platform boilerplate
 - [x] `018ac4d8-358f-43b9-b9f5-77b874da95e9` — Engineering Your Own AI Assistant (`engineering-your-own-ai-assistant`) — normalized speaker bio; removed platform boilerplate
 - [x] `35a5e640-79de-4102-8140-631641941ebf` — Ingesting Agent Traces with dlthub (`ingesting-agent-traces-with-dlthub`) — normalized speaker bio; removed platform boilerplate
 - [x] `a3dd5c8b-8580-46e3-a0b4-93a24ad52bd4` — Thriving in the AI Era with Human Skills (`thriving-in-the-ai-era-with-human-skills`) — normalized speaker bio; removed platform boilerplate
 - [x] `0ff1c183-0b4a-425d-8327-67043a67c660` — Building a Career in AI: From Real Estate to AI Engineering (`building-a-career-in-ai-from-real-estate-to-ai-engineering`) — normalized speaker bio; removed platform boilerplate
-- [x] `9f488454-7d58-4191-a5db-8bbda819ee76` — The Agentic Shift in Data Engineering: From Pipeline Builders to Architects of Controlled Chaos (`the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos`) — normalized speaker bio; removed platform boilerplate
+- [x] `9f488454-7d58-4191-a5db-8bbda819ee76` — The Agentic Shift in Data Engineering: From Pipeline Builders to Architects of Controlled Chaos (`the-agentic-shift-in-data-engineering-from-pipeline-builders`) — normalized speaker bio; removed platform boilerplate
 - [x] `274dd72c-0269-4e81-9dd2-b15571b1d5f1` — How to Build AI That Actually Ships in Production (`how-to-build-ai-that-actually-ships-in-production`) — normalized speaker bio; removed platform boilerplate
 - [x] `ba7ed77b-8fe4-448a-9fbf-2e0cf5423095` — Building an AI Stock Research Agent (`building-an-ai-stock-research-agent`) — normalized speaker bio; removed platform boilerplate
 - [x] `ae2d76af-6812-41ff-8111-8bf7cfb2419f` — LLM Zoomcamp 2026 Course Launch (`llm-zoomcamp-2026-course-launch`) — normalized speaker bio; removed platform boilerplate
 - [x] `7e0186f2-2b31-463b-b85a-f14840a77889` — AI Adoption in Enterprise Beyond Writing Code (`ai-adoption-in-enterprise-beyond-writing-code`) — normalized speaker bio; removed platform boilerplate
-- [x] `12ace87f-0944-4916-86bc-d5bca3ef4ac7` — Monitoring LLM Applications: Traces, Feedback, and Production Quality (`monitoring-llm-applications-traces-feedback-and-production-quality`) — normalized speaker bio; removed platform boilerplate
+- [x] `12ace87f-0944-4916-86bc-d5bca3ef4ac7` — Monitoring LLM Applications: Traces, Feedback, and Production Quality (`monitoring-llm-applications-traces-feedback-and-production`) — normalized speaker bio; removed platform boilerplate
 - [x] `d5fdb8e3-6aea-4581-8af4-7c563990403b` — LLM Zoomcamp 2026 Pre-Course Live Q&A (`llm-zoomcamp-2026-pre-course-live-q-a`) — normalized speaker bio; removed platform boilerplate
 - [x] `94e5ba5b-532a-4e96-b6ba-aa09f5c8aaa6` — From GenAI Pilots to Production (`from-genai-pilots-to-production`) — normalized speaker bio; removed platform boilerplate
-- [x] `6a0e36b5-2ab1-4762-9369-51ea629fa559` — RAG and Agents Evaluation: Measuring Retrieval and LLM Answer Quality (`rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality`) — normalized speaker bio; removed platform boilerplate
+- [x] `6a0e36b5-2ab1-4762-9369-51ea629fa559` — RAG and Agents Evaluation: Measuring Retrieval and LLM Answer Quality (`rag-and-agents-evaluation-measuring-retrieval-and-llm-answer`) — normalized speaker bio; removed platform boilerplate
 - [x] `837b570a-006d-4b17-a4e6-1d9f11ba3847` — From RAG to AI Agents: Function Calling and Tool Use (`from-rag-to-ai-agents-function-calling-and-tool-use`) — normalized speaker bio; removed platform boilerplate
 - [x] `02f56c20-03fd-4a19-85a0-43c41472226c` — Vector Databases: Embeddings, Semantic Search, and Hybrid Retrieval (`vector-databases-embeddings-semantic-search-and-hybrid-retrieval`) — normalized speaker bio; removed platform boilerplate
 - [x] `13586ae5-ba32-4b0d-be70-ed7f531bc359` — From Notebook to Production: Building End-to-End AI Systems (`from-notebook-to-production-building-end-to-end-ai-systems`) — normalized speaker bio; removed platform boilerplate
@@ -56,9 +56,9 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `259b8b21-1b67-41de-8fe4-4842893d87ad` — Evaluating AI Coding Agents with TeamCity and SWE-bench (`evaluating-ai-coding-agents-with-teamcity-and-swe-bench`) — normalized speaker bio; removed platform boilerplate
 - [x] `d09f0eff-6129-4443-a99c-c242a7df3957` — Competitions: Beyond the Kaggle Leaderboard (`competitions-beyond-the-kaggle-leaderboard`) — normalized speaker bio; removed platform boilerplate
 - [x] `02564603-7c30-40ec-aa87-4973bfa3b82e` — Starting a Data Conference: The Data Makers Fest Story (`starting-a-data-conference-the-data-makers-fest-story`) — normalized speaker bio; removed platform boilerplate
-- [x] `48b46145-c10e-49ff-8eb0-796e4a6287bd` — How to Evaluate MCP-powered AI Agents Beyond Accuracy using Agent GPA (`how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa`) — normalized speaker bio; removed platform boilerplate
+- [x] `48b46145-c10e-49ff-8eb0-796e4a6287bd` — How to Evaluate MCP-powered AI Agents Beyond Accuracy using Agent GPA (`how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using`) — normalized speaker bio; removed platform boilerplate
 - [x] `915ae816-b046-4dd9-a3d4-9795e80505f5` — Understanding the AI Engineer Role (`understanding-the-ai-engineer-role`) — normalized speaker bio; removed platform boilerplate
-- [x] `b9fe3200-e1cb-4adf-847e-757a9299a890` — Data Engineer Career in 2026: Roles, Specializations, and What Companies Look for (`data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for`) — normalized speaker bio; removed platform boilerplate
+- [x] `b9fe3200-e1cb-4adf-847e-757a9299a890` — Data Engineer Career in 2026: Roles, Specializations, and What Companies Look for (`data-engineer-career-in-2026-roles-specializations-and-what`) — normalized speaker bio; removed platform boilerplate
 - [x] `5ef985df-5294-4f0c-9541-1a353a37b550` — Inside the AI Engineer Role: Tools, Skills, and Career Path (`inside-the-ai-engineer-role-tools-skills-and-career-path`) — normalized speaker bio; removed platform boilerplate
 - [x] `6611c7da-6f69-4644-b720-1e8b2084634c` — Context Engineering for Agentic Hybrid Applications (`context-engineering-for-agentic-hybrid-applications`) — normalized speaker bio; removed platform boilerplate
 - [x] `41119afd-43a1-4a8f-a7ac-3f41e90b93ce` — Stream Processing with PyFlink (`stream-processing-with-pyflink`) — normalized speaker bio; removed platform boilerplate
@@ -67,17 +67,17 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `d21434d7-8868-4e82-86a4-6caf8ff76114` — From APIs to Warehouses: AI-Assisted Data Ingestion with dlt (`from-apis-to-warehouses-ai-assisted-data-ingestion-with-dlt`) — normalized speaker bio; removed platform boilerplate
 - [x] `c6de65db-0b65-44ba-8161-c2795ff98448` — The Future of AI Agents (`the-future-of-ai-agents`) — normalized speaker bio; removed platform boilerplate
 - [x] `2bd1fbf2-4f3a-45bb-ad21-5a42d3bc00e4` — Analytics Engineering with dbt Workshop (`analytics-engineering-with-dbt-workshop`) — normalized speaker bio; removed platform boilerplate
-- [x] `62e86105-c494-423f-ad4a-311513bac936` — AI Engineering: Skill Stack, Agents, LLMOps, and How to Ship AI Products (`ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products`) — normalized speaker bio; removed platform boilerplate
+- [x] `62e86105-c494-423f-ad4a-311513bac936` — AI Engineering: Skill Stack, Agents, LLMOps, and How to Ship AI Products (`ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai`) — normalized speaker bio; removed platform boilerplate
 - [x] `cf281d17-e650-4a9f-a018-974c209b19b9` — Fact-Checking with Wikidata (`fact-checking-with-wikidata`) — normalized speaker bio; removed platform boilerplate
 - [x] `ab53f5eb-947f-49d0-a672-27de68b262c1` — Data Engineering Zoomcamp 2026 Course Launch (`data-engineering-zoomcamp-2026-course-launch`) — normalized speaker bio; removed platform boilerplate
-- [x] `954a60fa-fd0c-4c13-9634-540f429aa525` — Foundations of Analytics Engineer Role: Skills, Scope, and Modern Practices (`foundations-of-analytics-engineer-role-skills-scope-and-modern-practices`) — normalized speaker bio; removed platform boilerplate
-- [x] `badc48d1-9a91-4cc7-8bdf-6c1a46718bbb` — From Human-in-the-Loop to Agent-in-the-Loop: A Practical Transition Guide (`from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide`) — normalized speaker bio; removed platform boilerplate
+- [x] `954a60fa-fd0c-4c13-9634-540f429aa525` — Foundations of Analytics Engineer Role: Skills, Scope, and Modern Practices (`foundations-of-analytics-engineer-role-skills-scope-and-modern`) — normalized speaker bio; removed platform boilerplate
+- [x] `badc48d1-9a91-4cc7-8bdf-6c1a46718bbb` — From Human-in-the-Loop to Agent-in-the-Loop: A Practical Transition Guide (`from-human-in-the-loop-to-agent-in-the-loop-a-practical`) — normalized speaker bio; removed platform boilerplate
 - [x] `7486e611-1780-4d96-98a6-bbe4cffda858` — Durable Agentic Workflows with Temporal.io (`durable-agentic-workflows-with-temporal-io`) — normalized speaker bio; removed platform boilerplate
 - [x] `2c496e6c-0645-443c-aca8-f5501161c7e1` — Data Engineering Zoomcamp 2026 Pre-Course Live Q&A (`data-engineering-zoomcamp-2026-pre-course-live-q-a`) — normalized speaker bio; removed platform boilerplate
 - [x] `e7ef41e0-3151-4c7f-8c0a-6e170c18ffed` — Automated Prompt Optimization with Evidently AI (`automated-prompt-optimization-with-evidently-ai`) — normalized speaker bio; removed platform boilerplate
-- [x] `bfcecb7a-55b5-466d-902d-1cea5fa705f9` — Docker for Data Engineering: Postgres, Docker Compose, and Real-World Workflows (`docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows`) — normalized speaker bio; removed platform boilerplate
+- [x] `bfcecb7a-55b5-466d-902d-1cea5fa705f9` — Docker for Data Engineering: Postgres, Docker Compose, and Real-World Workflows (`docker-for-data-engineering-postgres-docker-compose-and-real`) — normalized speaker bio; removed platform boilerplate
 - [x] `92977e08-3895-4136-9445-c1cb016fa972` — Building Pet Health Tech: ML, Sensors, and Dog Behavior Data (`building-pet-health-tech-ml-sensors-and-dog-behavior-data`) — normalized speaker bio; removed platform boilerplate
-- [x] `53b2efe4-e10a-4c7f-a994-3c96722f9e12` — n8n: From Fundamentals to Building Intelligent Automation Pipeline (`n8n-from-fundamentals-to-building-intelligent-automation-pipeline`) — normalized speaker bio; removed platform boilerplate
+- [x] `53b2efe4-e10a-4c7f-a994-3c96722f9e12` — n8n: From Fundamentals to Building Intelligent Automation Pipeline (`n8n-from-fundamentals-to-building-intelligent-automation`) — normalized speaker bio; removed platform boilerplate
 - [x] `dc810c8a-284e-4dc4-9c14-47350aa0ad5b` — Combining Quantum and AI for Accelerating CFD Simulations - Part 1 (`combining-quantum-and-ai-for-accelerating-cfd-simulations-part-1`) — normalized speaker bio; removed platform boilerplate
 - [x] `95f8b803-c797-4e8c-b365-2fa7e8c18fc9` — AI Dev Tools Zoomcamp 2025 Course Launch (`ai-dev-tools-zoomcamp-2025-course-launch`) — normalized speaker bio; removed platform boilerplate
 - [x] `314f153f-9d46-4f41-8abc-1f79231ce0b9` — Reinventing a Career in Tech (`reinventing-a-career-in-tech`) — normalized speaker bio; removed platform boilerplate
@@ -92,13 +92,13 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `caada84b-9e4c-450f-9051-729667774a37` — Deploying ML Models with Kubernetes (`deploying-ml-models-with-kubernetes`) — normalized speaker bio; removed platform boilerplate
 - [x] `1bc68db2-e87e-42ea-89c3-2d60222e769e` — Lessons from Applied AI: Tesla, Waymo, and Beyond (`lessons-from-applied-ai-tesla-waymo-and-beyond`) — normalized speaker bio; removed platform boilerplate
 - [x] `58f1b089-4588-4a54-ad80-8ad0a0f48a0c` — Building reliable AI products in the era of Gen AI and Agents (`building-reliable-ai-products-in-the-era-of-gen-ai-and-agents`) — normalized speaker bio; removed platform boilerplate
-- [x] `dded3102-ec39-4db1-8dfb-449c7c0a683c` — From Semiconductors to Machine Learning: A Career in Data and Teaching (`from-semiconductors-to-machine-learning-a-career-in-data-and-teaching`) — normalized speaker bio; removed platform boilerplate
+- [x] `dded3102-ec39-4db1-8dfb-449c7c0a683c` — From Semiconductors to Machine Learning: A Career in Data and Teaching (`from-semiconductors-to-machine-learning-a-career-in-data-and`) — normalized speaker bio; removed platform boilerplate
 - [x] `0b5d68f0-c370-48d9-a4dd-1ff484f25e51` — Lessons from Two Decades of AI (`lessons-from-two-decades-of-ai`) — normalized speaker bio; removed platform boilerplate
 - [x] `5aaeb674-1c5c-4107-bc6c-51924fff34bc` — ML Zoomcamp 2025 Course Launch (`ml-zoomcamp-2025-course-launch`) — normalized speaker bio; removed platform boilerplate
 - [x] `831d038d-9cf4-4ac6-890d-544326d36c4d` — From Algorithms to Agents: Lessons from Building Copilot (`from-algorithms-to-agents-lessons-from-building-copilot`) — normalized speaker bio; removed platform boilerplate
 - [x] `a44b35af-4e5e-455d-8273-fc3755db6d96` — From Astronomy to Applied ML (`from-astronomy-to-applied-ml`) — normalized speaker bio; removed platform boilerplate
 - [x] `fbc6a848-660c-423d-ba10-32e204449242` — ML Zoomcamp 2025 Pre-Course Live Q&A (`ml-zoomcamp-2025-pre-course-live-q-a`) — normalized speaker bio; removed platform boilerplate
-- [x] `7de912b8-9357-4bfd-bdca-da4df0a29b19` — From Medicine to Machine Learning: How Public Learning Turned into a Career (`from-medicine-to-machine-learning-how-public-learning-turned-into-a-career`) — normalized speaker bio; removed platform boilerplate
+- [x] `7de912b8-9357-4bfd-bdca-da4df0a29b19` — From Medicine to Machine Learning: How Public Learning Turned into a Career (`from-medicine-to-machine-learning-how-public-learning-turned`) — normalized speaker bio; removed platform boilerplate
 - [x] `0f676484-e3a8-4ae1-9ff6-4d718b7c1ad1` — Deploying ML Models with AWS Lambda (Serverless) (`deploying-ml-models-with-aws-lambda-serverless`) — normalized speaker bio; removed platform boilerplate
 - [x] `51d58b66-2a5b-49a7-8b5f-1112a45b9682` — Build an AI Coding Agent (`build-an-ai-coding-agent`) — normalized speaker bio; removed platform boilerplate
 - [x] `0087f889-218f-44e4-857f-6334f71797f6` — Deploying ML Models with FastAPI and uv (`deploying-ml-models-with-fastapi-and-uv`) — normalized speaker bio; removed platform boilerplate
@@ -106,9 +106,9 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `f0e947a6-0b70-4f85-b3dc-05b805aab106` — Introduction to Vibe Coding: Build a Game with AI (`introduction-to-vibe-coding-build-a-game-with-ai`) — normalized speaker bio; removed platform boilerplate
 - [x] `50378675-ed71-493f-826d-a8ea2521ef5c` — Mindful Data Strategy: From Pipelines to Business Impact (`mindful-data-strategy-from-pipelines-to-business-impact`) — normalized speaker bio; removed platform boilerplate
 - [x] `ff394f45-1bf4-41cd-88fb-4b86cf490110` — DataTalks.Club Summer 2025 AI Hackathon Launch (`datatalks-club-summer-2025-ai-hackathon-launch`) — normalized speaker bio; removed platform boilerplate
-- [x] `ef329733-a849-4dbf-a492-3cdc6f242be2` — From RAG to Agents: Making Smart AI Assistants (LLM Zoomcamp bonus module) (`from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module`) — normalized speaker bio; removed platform boilerplate
+- [x] `ef329733-a849-4dbf-a492-3cdc6f242be2` — From RAG to Agents: Making Smart AI Assistants (LLM Zoomcamp bonus module) (`from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp`) — normalized speaker bio; removed platform boilerplate
 - [x] `43d4ed1f-b590-4860-9e47-a58377a941ec` — From Simulation Algorithms to Production-Grade Data Systems (`from-simulation-algorithms-to-production-grade-data-systems`) — normalized speaker bio; removed platform boilerplate
-- [x] `0b316918-dc06-4143-8d57-522c3777d138` — From REST to reasoning: ingest, index, and query with dlt and Cognee (`from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee`) — normalized speaker bio; removed platform boilerplate
+- [x] `0b316918-dc06-4143-8d57-522c3777d138` — From REST to reasoning: ingest, index, and query with dlt and Cognee (`from-rest-to-reasoning-ingest-index-and-query-with-dlt-and`) — normalized speaker bio; removed platform boilerplate
 - [x] `321c674d-21e9-4a9c-83c8-fb3bac3a9025` — Open-Source LLM Zoomcamp 2025 Pre-Course Live Q&A (`open-source-llm-zoomcamp-2025-pre-course-live-q-a`) — normalized speaker bio; removed platform boilerplate
 - [x] `d0f6154d-c61f-44bb-a26c-ff6e92d5b73c` — MLOps Zoomcamp Competition - Bot or Not? (`mlops-zoomcamp-competition-bot-or-not`) — normalized speaker bio; removed platform boilerplate
 - [x] `9b899d5d-1ceb-473d-a911-7c5bb285d8bb` — LLM Zoomcamp Course Launch (`llm-zoomcamp-course-launch`) — normalized speaker bio; removed platform boilerplate
@@ -134,7 +134,7 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `d942055f-530d-4aa8-8476-d08485876a4e` — Linguistics and Fairness (`linguistics-and-fairness`) — normalized speaker bio; removed platform boilerplate
 - [x] `5cd1b4ad-e1b0-48ce-bbe1-d607227ac402` — Elevating RAG Systems (`elevating-rag-systems`) — normalized speaker bio; removed platform boilerplate
 - [x] `81a267ee-10a4-401d-ba37-bf5731972ef6` — Career choices, transitions and promotions in and out of tech (`career-choices-transitions-and-promotions-in-and-out-of-tech`) — normalized speaker bio; removed platform boilerplate
-- [x] `e4534a7d-3882-48e6-8e15-c5f72248e1cf` — Economics and Automation Workshop: Building a Data Pipeline for Economic Insights (`economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights`) — normalized speaker bio; removed platform boilerplate
+- [x] `e4534a7d-3882-48e6-8e15-c5f72248e1cf` — Economics and Automation Workshop: Building a Data Pipeline for Economic Insights (`economics-and-automation-workshop-building-a-data-pipeline-for`) — normalized speaker bio; removed platform boilerplate
 - [x] `9fe2f12d-7551-4890-9d86-27f2e4b3e79d` — Career advice, learning, and featuring women in ML and AI (`career-advice-learning-and-featuring-women-in-ml-and-ai`) — normalized speaker bio; removed platform boilerplate
 - [x] `ce036b54-7806-4e1c-b760-e3c05f6e9842` — AI in Industry: Trust, Return on Investment and Future (`ai-in-industry-trust-return-on-investment-and-future`) — normalized speaker bio; removed platform boilerplate
 - [x] `6a405250-00ba-49ee-ab8f-a14a232a0592` — Large Hadron Collider and Mentorship (`large-hadron-collider-and-mentorship`) — normalized speaker bio; removed platform boilerplate
@@ -180,16 +180,16 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `dfe3869b-0e8c-44f4-8446-d282baca52dd` — Stock Market Analysis with Python and Machine Learning (`stock-market-analysis-with-python-and-machine-learning`) — normalized speaker bio; removed platform boilerplate
 - [x] `dc0b3b6e-8309-4700-9f96-ed15d3762e41` — How to Boost Your Impact as A Data Professional (`how-to-boost-your-impact-as-a-data-professional`) — normalized speaker bio; removed platform boilerplate
 - [x] `356477e4-cfe5-4336-81a9-e316d6c3fa18` — Terraform: Reshaping the Data Engineering Experience (`terraform-reshaping-the-data-engineering-experience`) — normalized speaker bio; removed platform boilerplate
-- [x] `7bf1bde8-2938-4fde-a6c1-6e45fb6ddb12` — Searching Beyond the Surface: Navigating Challenges and Innovations in Search Technologies (`searching-beyond-the-surface-navigating-challenges-and-innovations-in-search-technologies`) — normalized speaker bio; removed platform boilerplate
-- [x] `a5327a03-d786-44fa-9384-95bfae57b71e` — The Entrepreneurship Journey: From Freelancing to Starting a Company (`the-entrepreneurship-journey-from-freelancing-to-starting-a-company`) — normalized speaker bio; removed platform boilerplate
+- [x] `7bf1bde8-2938-4fde-a6c1-6e45fb6ddb12` — Searching Beyond the Surface: Navigating Challenges and Innovations in Search Technologies (`searching-beyond-the-surface-navigating-challenges-and`) — normalized speaker bio; removed platform boilerplate
+- [x] `a5327a03-d786-44fa-9384-95bfae57b71e` — The Entrepreneurship Journey: From Freelancing to Starting a Company (`the-entrepreneurship-journey-from-freelancing-to-starting-a`) — normalized speaker bio; removed platform boilerplate
 - [x] `3d0c2350-1b8f-4fda-8e41-f85a1f625fca` — Prompt Engineering 101 (`prompt-engineering-101`) — normalized speaker bio; removed platform boilerplate
 - [x] `7ea5a779-099b-4ec6-b668-b8670121aca6` — Large Language Models Agents (`large-language-models-agents`) — normalized speaker bio; removed platform boilerplate
 - [x] `66a231ea-3d93-4476-b48b-f30c560a561d` — Become a Data Freelancer (`become-a-data-freelancer`) — normalized speaker bio; removed platform boilerplate
 - [x] `8b43806a-63a0-4066-89e7-072ccb63569b` — AI for Digital Health (`ai-for-digital-health`) — processed/no description
 - [x] `0124dfa9-10fb-4f57-963a-f25659e762ef` — Cracking the Code: Machine Learning Made Understandable (`cracking-the-code-machine-learning-made-understandable`) — normalized speaker bio; removed platform boilerplate
 - [x] `119fe6db-660c-476e-8f90-f8cb65977013` — The Unwritten Rules for Success in Machine Learning (`the-unwritten-rules-for-success-in-machine-learning`) — processed/no description
-- [x] `dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f` — The Trade-off Between Simplicity And Optimality In Problem-solving (`the-trade-off-between-simplicity-and-optimality-in-problem-solving`) — processed/no description
-- [x] `4284fd9d-9ddc-4cb0-bbc9-46b0464f6441` — From a Research Scientist at Amazon to a Machine learning/AI Consultant (`from-a-research-scientist-at-amazon-to-a-machine-learning-ai-consultant`) — normalized speaker bio; removed platform boilerplate
+- [x] `dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f` — The Trade-off Between Simplicity And Optimality In Problem-solving (`the-trade-off-between-simplicity-and-optimality-in-problem`) — processed/no description
+- [x] `4284fd9d-9ddc-4cb0-bbc9-46b0464f6441` — From a Research Scientist at Amazon to a Machine learning/AI Consultant (`from-a-research-scientist-at-amazon-to-a-machine-learning-ai`) — normalized speaker bio; removed platform boilerplate
 - [x] `7d9e8cc5-3bf9-44cd-afbf-8f03c9fad3b3` — Machine Learning with Ray: Supercharge Your GPU Clusters (`machine-learning-with-ray-supercharge-your-gpu-clusters`) — processed/no description
 - [x] `dd916918-ea4e-4212-98ca-83c752da07b5` — From Marketing to Product Owner in Search (`from-marketing-to-product-owner-in-search`) — normalized speaker bio; removed platform boilerplate
 - [x] `32b171d4-4668-4da2-bf98-6089d5b03111` — Collaborative Data Science in Business (`collaborative-data-science-in-business`) — processed/no description
@@ -233,13 +233,13 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `f680914e-ed33-463b-9db2-26e8750fc51c` — SE4ML - Software Engineering for Machine Learning (`se4ml-software-engineering-for-machine-learning`) — processed/no description
 - [x] `db29db2b-7018-49f5-8479-7247d4311a33` — Starting a Consultancy in the Data Space (`starting-a-consultancy-in-the-data-space`) — processed/no description
 - [x] `29b42c98-fa8c-4ad2-945c-8ac03309980d` — Biohacking for Data Scientists and ML Engineers (`biohacking-for-data-scientists-and-ml-engineers`) — processed/no description
-- [x] `8901894e-8a92-4e54-98a1-b72ec0126478` — Maximizing Confidence in Your Data Model Changes with dbt and PipeRider (`maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider`) — processed/no description
+- [x] `8901894e-8a92-4e54-98a1-b72ec0126478` — Maximizing Confidence in Your Data Model Changes with dbt and PipeRider (`maximizing-confidence-in-your-data-model-changes-with-dbt-and`) — processed/no description
 - [x] `12865b42-ea59-4a84-99a8-cdf0846a2d01` — GitOps for ML: Converting Notebooks to Reproducible Pipelines (`gitops-for-ml-converting-notebooks-to-reproducible-pipelines`) — processed/no description
 - [x] `c27a4e22-6c1c-4002-933a-00b2c827dd3f` — Analytics for a Better World (`analytics-for-a-better-world`) — processed/no description
 - [x] `b65e4cd2-7d08-42c3-bb9d-447e4ecfba63` — Accelerating the Adoption of AI through Diversity (`accelerating-the-adoption-of-ai-through-diversity`) — processed/no description
 - [x] `3082ee21-83d3-443c-828f-70d40d60b9f8` — Staff AI Engineer (`staff-ai-engineer`) — processed/no description
 - [x] `7938afd1-ab7e-4b4b-8f75-af7785cdf81f` — Navigating Career Changes in Machine Learning (`navigating-career-changes-in-machine-learning`) — processed/no description
-- [x] `6be73992-6f40-4223-812e-e5fdc991cb99` — The Journey of a Data Generalist: From Bioinformatics to Freelancing (`the-journey-of-a-data-generalist-from-bioinformatics-to-freelancing`) — processed/no description
+- [x] `6be73992-6f40-4223-812e-e5fdc991cb99` — The Journey of a Data Generalist: From Bioinformatics to Freelancing (`the-journey-of-a-data-generalist-from-bioinformatics-to`) — processed/no description
 - [x] `cf0ca15e-2768-4dd6-a9ff-f5e4f95c7716` — Practical Learning-to-Rank: Deep, Fast, Precise (`practical-learning-to-rank-deep-fast-precise`) — processed/no description
 - [x] `a617fee8-0b46-45b8-988b-db2a93df0ef2` — Preparing for a Data Science Interview (`preparing-for-a-data-science-interview`) — processed/no description
 - [x] `825634ee-2d58-4b21-9eb8-d58148f718d0` — Indie Hacking (`indie-hacking`) — processed/no description
@@ -331,7 +331,7 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `d0f3089a-236b-45d0-acfc-fdce9b64b823` — AI in Fashion - Size & Fit (`ai-in-fashion-size-fit`) — processed/no description
 - [x] `9c878d94-5ae5-4d5b-bc09-408a5911a12d` — AI-Powered Computer Vision Applications in Media Industry (`ai-powered-computer-vision-applications-in-media-industry`) — processed/no description
 - [x] `fd64d509-d4a8-4a9c-bede-fa7028759f42` — Product Management for Machine Learning (`product-management-for-machine-learning`) — processed/no description
-- [x] `ef3915a7-345e-4f67-b555-ec12fa71fb4b` — Hypothesis Testing: Bayesian or Frequentist? Two ways of looking at the same coin (`hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin`) — processed/no description
+- [x] `ef3915a7-345e-4f67-b555-ec12fa71fb4b` — Hypothesis Testing: Bayesian or Frequentist? Two ways of looking at the same coin (`hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking`) — processed/no description
 - [x] `3d448130-ac4a-4356-a95a-2b5481ee742a` — Moving from Academia to Industry (`moving-from-academia-to-industry`) — processed/no description
 - [x] `8a1f6307-c78b-4f2e-9bfd-e3076627e363` — Paradoxes in Data Science (`paradoxes-in-data-science`) — processed/no description
 - [x] `cfdc3a27-8243-4c38-a163-7468d835e658` — Advancing Big Data Analytics: Post-Doctoral Research (`advancing-big-data-analytics-post-doctoral-research`) — processed/no description
@@ -386,7 +386,7 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `7182e635-0d19-4225-ad9a-5c6cf7e83988` — What Data Scientists Don’t Mention in Their LinkedIn Profiles (`what-data-scientists-don-t-mention-in-their-linkedin-profiles`) — processed/no description
 - [x] `29bd513a-cad9-44c1-97a0-a869a1abb09e` — Productionizing ML Systems without Fear nor Heroism (`productionizing-ml-systems-without-fear-nor-heroism`) — processed/no description
 - [x] `d818e9b8-91cf-4d1f-b686-5aaf2cb3414e` — Becoming a Data-led Professional (`becoming-a-data-led-professional`) — processed/no description
-- [x] `3b9d5a07-4573-44c4-b79f-f2bfdb728c02` — A Framework for Feature Engineering and Machine Learning Pipelines (`a-framework-for-feature-engineering-and-machine-learning-pipelines`) — processed/no description
+- [x] `3b9d5a07-4573-44c4-b79f-f2bfdb728c02` — A Framework for Feature Engineering and Machine Learning Pipelines (`a-framework-for-feature-engineering-and-machine-learning`) — processed/no description
 - [x] `547e725e-56b0-4a70-88e6-67017a384829` — How to Market Yourself (without Being a Celebrity) (`how-to-market-yourself-without-being-a-celebrity`) — processed/no description
 - [x] `ebad6857-4f77-4feb-93a7-24b93e3b5825` — Hands-on AI Observability (`hands-on-ai-observability`) — processed/no description
 - [x] `4b7bd224-d881-4110-806d-d3c5475a8895` — From Physics to Machine Learning (`from-physics-to-machine-learning`) — processed/no description
@@ -406,7 +406,7 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `f73d6fb2-8561-4a7d-83d3-71df7ebd1501` — DataOps 101 (`dataops-101`) — processed/no description
 - [x] `f2323016-9342-45a2-b3eb-748a3556d6c5` — Active and Self-Supervised Learning for Data Selection (`active-and-self-supervised-learning-for-data-selection`) — processed/no description
 - [x] `8a5cedd5-55a7-4ce2-9438-ada51473ef8c` — The Essentials of Public Speaking for Career in Data Science (`the-essentials-of-public-speaking-for-career-in-data-science`) — processed/no description
-- [x] `f7620ed1-8f88-4a79-9935-8dabb7459d1e` — Building Scalable End-to-End Deep Learning Pipelines in the Cloud (`building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud`) — processed/no description
+- [x] `f7620ed1-8f88-4a79-9935-8dabb7459d1e` — Building Scalable End-to-End Deep Learning Pipelines in the Cloud (`building-scalable-end-to-end-deep-learning-pipelines-in-the`) — processed/no description
 - [x] `018bc733-98cc-404e-9af6-8c98e0312020` — Continuous Integration for Machine Learning (`continuous-integration-for-machine-learning`) — processed/no description
 - [x] `2bf4bdfe-d3dd-4411-ba5d-eb5b9be94b24` — Machine Learning Design Patterns (`machine-learning-design-patterns`) — processed/no description
 - [x] `b939b48a-7c84-40c3-bd4d-ab1bd104b749` — Putting Data Science in Production (`putting-data-science-in-production`) — processed/no description
@@ -417,12 +417,12 @@ Canonical projection at checklist creation: `content/public_projection/events.js
 - [x] `248ecd47-f092-4047-92d0-717cd244c7b2` — Personal Branding (`personal-branding`) — processed/no description
 - [x] `e8d074cf-294b-4239-ae9f-a22df2a82760` — The ABC’s of Data Science (`the-abc-s-of-data-science`) — processed/no description
 - [x] `91b53bf3-d9b5-44ba-8d0b-57c20e875801` — DataTalks.Club Conference: Career in Data (`datatalks-club-conference-career-in-data`) — processed/no description
-- [x] `0180ab1b-d476-4df4-90b4-1297b79c36f8` — Translating ML Predictions Into Better Real-World Results with Decision Optimization (`translating-ml-predictions-into-better-real-world-results-with-decision-optimization`) — processed/no description
+- [x] `0180ab1b-d476-4df4-90b4-1297b79c36f8` — Translating ML Predictions Into Better Real-World Results with Decision Optimization (`translating-ml-predictions-into-better-real-world-results-with`) — processed/no description
 - [x] `c9b262b3-1510-42ad-ba68-9ad0fefe066c` — How Your Machine Learning Project Will Fail (`how-your-machine-learning-project-will-fail`) — processed/no description
 - [x] `12f1ab28-45d3-4c6b-b364-989ce1f8048f` — Dangers of Dirty Data (`dangers-of-dirty-data`) — processed/no description
 - [x] `8b962779-35e1-4c8c-8e54-18ca2fa26b77` — Building Data-Intensive Teams (`building-data-intensive-teams`) — processed/no description
 - [x] `ed9032f4-68c6-4de9-9089-c98880a50300` — DataTalks.Club Conference: Product and Process (`datatalks-club-conference-product-and-process`) — processed/no description
-- [x] `6f7dad4e-f987-4a95-b9be-f02736022b9d` — Building an ML System for Southeast Asia’s Largest Hospital Group (`building-an-ml-system-for-southeast-asia-s-largest-hospital-group`) — processed/no description
+- [x] `6f7dad4e-f987-4a95-b9be-f02736022b9d` — Building an ML System for Southeast Asia’s Largest Hospital Group (`building-an-ml-system-for-southeast-asia-s-largest-hospital`) — processed/no description
 - [x] `c351a373-aca3-4016-ab47-e4db4e5db7bc` — Build Your AI Machine Vision System by Yourself (`build-your-ai-machine-vision-system-by-yourself`) — processed/no description
 - [x] `634148a2-3f80-40f1-b51f-34a448e5495c` — How to use AI in Consumer Food Product Innovation (`how-to-use-ai-in-consumer-food-product-innovation`) — processed/no description
 - [x] `288d0ab2-061e-499f-bf81-3199aa18343f` — Industrial Applications of Reinforcement Learning (`industrial-applications-of-reinforcement-learning`) — processed/no description
