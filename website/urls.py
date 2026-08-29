@@ -6,6 +6,7 @@ from accounts import api as account_api
 from accounts.views.continuity import explicit_reauthentication
 from cadmin.legacy_urls import legacy_course_list_redirect
 from content import public_views, review_views
+from core import mediakit as mediakit_views
 from core import views as core_views
 from courses import urls as course_urls
 from courses.views import course_aliases, course_list
@@ -35,6 +36,13 @@ urlpatterns = [
     ),
     path("", core_views.home, name="home"),
     path("sponsors", core_views.sponsors, name="sponsors"),
+    path("mediakit/", mediakit_views.media_kit, name="media-kit"),
+    path(
+        "mediakit",
+        public_views.permanent_public_redirect,
+        {"target": "/mediakit/"},
+        name="media-kit-slash-redirect",
+    ),
     path("", include("content.public_urls")),
     path("unified/", core_views.home, name="unified-home"),
     path("docs/", review_views.docs_home, name="docs-home"),

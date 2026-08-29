@@ -1,0 +1,143 @@
+{% extends "core/content_page.html" %}
+{% load static %}
+
+{% block document_title %}DataTalks.Club Media Kit | Partner With The World's Data Community{% endblock %}
+
+{% block metadata %}
+  {{ block.super }}
+  <meta name="description" content="Reach 120K+ data professionals through DataTalks.Club. Explore sponsorship packages for newsletters, courses, workshops, and community partnerships.">
+  <meta name="robots" content="noindex,nofollow">
+  <meta property="og:title" content="DataTalks.Club Media Kit | Partner With The World's Data Community">
+  <meta property="og:description" content="Reach 120K+ data professionals through DataTalks.Club sponsorships.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://datatalks.club{% static 'core/mediakit/og-image.jpg' %}">
+{% endblock %}
+
+{% block page_styles %}
+  .media-kit { --mk-blue: #3169b1; --mk-navy: #14213a; --mk-border: #d8dfeb; color: var(--ink); }
+  .media-kit a { color: #1f579f; }
+  .media-kit-hero { max-width: 52rem; text-align: center; margin: 0 auto; }
+  .media-kit-kicker { display: inline-block; padding: .35rem .8rem; border-radius: 999px; background: #dce9fa; color: #234f87; font-size: .78rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+  .media-kit-hero h1 { font-size: clamp(2.4rem, 6vw, 4.9rem); line-height: .98; margin: .8rem 0 1.2rem; letter-spacing: -.045em; }
+  .media-kit-hero p { font-size: clamp(1rem, 2vw, 1.22rem); line-height: 1.65; margin: 0 auto; max-width: 46rem; }
+  .media-kit-jumps { display: flex; flex-wrap: wrap; justify-content: center; gap: .55rem; margin: 2rem auto 0; }
+  .media-kit-jumps a { border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); border-radius: 999px; padding: .52rem .9rem; background: #fff; color: var(--ink); font-weight: 800; text-decoration: none; }
+  .media-kit-jumps a:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); }
+  .media-kit-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; margin: 0 0 4rem; }
+  .media-kit-stat, .media-kit-card, .media-kit-audience-card, .media-kit-quote { border: 1px solid var(--mk-border); border-radius: 1rem; background: rgba(255,255,255,.82); box-shadow: 0 3px 0 rgba(20,33,58,.06); }
+  .media-kit-stat { padding: 1.2rem .7rem; text-align: center; }
+  .media-kit-stat strong { display: block; color: var(--mk-blue); font-size: clamp(1.7rem, 4vw, 2.45rem); line-height: 1; }
+  .media-kit-stat span { display: block; margin-top: .45rem; color: var(--muted-ink); font-size: .84rem; font-weight: 700; }
+  .media-kit-section { scroll-margin-top: 6rem; margin: 0 0 4.5rem; }
+  .media-kit-section-heading { max-width: 46rem; margin: 0 auto 2rem; text-align: center; }
+  .media-kit-section-heading h2 { font-size: clamp(2rem, 4vw, 3.25rem); margin: .6rem 0 .65rem; letter-spacing: -.025em; }
+  .media-kit-section-heading p { color: var(--muted-ink); font-size: 1.08rem; line-height: 1.6; }
+  .media-kit-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .media-kit-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .media-kit-card { overflow: hidden; padding: 1.25rem; display: flex; flex-direction: column; }
+  .media-kit-card img { width: 100%; height: 9rem; object-fit: cover; object-position: top; border-radius: .7rem; border: 1px solid var(--mk-border); margin: .8rem 0 1rem; }
+  .media-kit-card h3 { font-size: 1.28rem; margin: 0; }
+  .media-kit-card p { color: var(--muted-ink); line-height: 1.55; }
+  .media-kit-card ul { padding-left: 1.15rem; margin: .25rem 0 1rem; color: var(--muted-ink); line-height: 1.48; }
+  .media-kit-card li + li { margin-top: .35rem; }
+  .media-kit-card .media-kit-example { margin-top: auto; font-weight: 800; }
+  .media-kit-card-top { display: flex; justify-content: space-between; gap: .7rem; align-items: start; }
+  .media-kit-price { flex: 0 0 auto; background: var(--mk-blue); color: #fff; padding: .4rem .7rem; border-radius: .65rem; font-size: 1.02rem; font-weight: 900; }
+  .media-kit-extra { display: block; color: var(--muted-ink); font-size: .72rem; text-align: right; margin-top: .25rem; }
+  .media-kit-metric { color: var(--mk-blue); font-size: 1.25rem; font-weight: 900; }
+  .media-kit-note { margin: 1rem auto 0; max-width: 48rem; border-left: .35rem solid var(--mk-blue); border-radius: .5rem; padding: .8rem 1rem; background: #e7effa; line-height: 1.55; }
+  .media-kit-audience { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+  .media-kit-audience-card { padding: 1rem 1.1rem; }
+  .media-kit-audience-card h3 { margin: 0 0 .8rem; }
+  .media-kit-bar { display: grid; grid-template-columns: minmax(6.5rem, 1fr) 3fr auto; align-items: center; gap: .5rem; font-size: .8rem; margin-top: .6rem; }
+  .media-kit-bar i { height: .55rem; background: #d9e7f7; border-radius: 999px; overflow: hidden; }
+  .media-kit-bar i::after { content: ""; display: block; height: 100%; width: var(--value); background: var(--mk-blue); border-radius: inherit; }
+  .media-kit-topics, .media-kit-sponsor-list { display: flex; flex-wrap: wrap; justify-content: center; gap: .55rem; }
+  .media-kit-topics span, .media-kit-sponsor-list span { padding: .48rem .72rem; background: #fff; border: 1px solid var(--mk-border); border-radius: 999px; font-weight: 700; font-size: .84rem; }
+  .media-kit-wide-card { border: 1px solid var(--mk-border); background: #fff; border-radius: 1rem; padding: clamp(1.2rem, 3vw, 2rem); }
+  .media-kit-wide-card h3 { margin-top: 0; }
+  .media-kit-offer-image { width: 100%; max-height: 22rem; object-fit: cover; object-position: top; border-radius: .8rem; border: 1px solid var(--mk-border); }
+  .media-kit-testimonials { columns: 2; column-gap: 1rem; }
+  .media-kit-quote { break-inside: avoid; padding: 1.2rem; margin: 0 0 1rem; }
+  .media-kit-quote blockquote { margin: 0 0 1rem; color: var(--muted-ink); line-height: 1.6; }
+  .media-kit-quote figcaption { font-weight: 900; }
+  .media-kit-contact { background: var(--mk-navy); color: #fff; border-radius: 1.2rem; padding: clamp(1.5rem, 5vw, 3.5rem); text-align: center; }
+  .media-kit-contact h2 { color: #fff; font-size: clamp(2rem, 4vw, 3rem); margin-top: 0; }
+  .media-kit-contact p { color: #c9d4e8; }
+  .media-kit-contacts { margin: 1.5rem auto 0; max-width: 34rem; }
+  .media-kit-contacts a { display: block; border: 1px solid #6b7b96; border-radius: .9rem; padding: 1.2rem; color: #fff; text-decoration: none; background: rgba(255,255,255,.07); }
+  .media-kit-contacts strong { display: block; font-size: 1.1rem; }
+  .media-kit-contacts span { color: #b7c8e5; }
+  @media (max-width: 52rem) {
+    .media-kit-stats, .media-kit-grid, .media-kit-audience { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .media-kit-grid.two { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 36rem) {
+    .media-kit-stats, .media-kit-grid, .media-kit-audience, .media-kit-contacts { grid-template-columns: 1fr; }
+    .media-kit-testimonials { columns: 1; }
+    .media-kit-card img { height: 11rem; }
+  }
+{% endblock %}
+
+{% block page_header %}
+  <div class="shell-breakout">
+    <div class="media-kit media-kit-hero">
+      <span class="media-kit-kicker">Partner with the world's data community</span>
+      <h1>DataTalks.Club<br>Media Kit</h1>
+      <p>DataTalks.Club is one of the largest global online data communities. We organize free courses, events, and other community activities for AI engineers, ML engineers, data engineers, and data scientists worldwide.</p>
+      <nav class="media-kit-jumps" aria-label="Media kit sections">
+        <a href="#audience">Audience</a><a href="#packages">Sponsorships</a><a href="#sponsors">Partners</a><a href="#contact">Contact</a>
+      </nav>
+    </div>
+  </div>
+{% endblock %}
+
+{% block page_content %}
+<div class="media-kit shell-breakout">
+  <div class="media-kit-stats" aria-label="Community reach">
+    <div class="media-kit-stat"><strong>95K</strong><span>Slack Members</span></div>
+    <div class="media-kit-stat"><strong>120K+</strong><span>Newsletter Subscribers</span></div>
+    <div class="media-kit-stat"><strong>79.1K</strong><span>YouTube Subscribers</span></div>
+    <div class="media-kit-stat"><strong>42K</strong><span>Social Followers</span></div>
+  </div>
+
+  <section class="media-kit-section" id="audience">
+    <div class="media-kit-section-heading"><span class="media-kit-kicker">Community insights</span><h2>Audience Snapshot</h2><p>Highly engaged data professionals from around the world, across diverse roles, industries, and experience levels.</p></div>
+    <div class="media-kit-audience">
+      <article class="media-kit-audience-card"><h3>Job Function</h3><div class="media-kit-bar"><span>Data Engineering</span><i style="--value:84%"></i><b>21.2%</b></div><div class="media-kit-bar"><span>Students</span><i style="--value:56%"></i><b>14.1%</b></div><div class="media-kit-bar"><span>AI Engineering</span><i style="--value:53%"></i><b>13.3%</b></div><div class="media-kit-bar"><span>Analytics</span><i style="--value:49%"></i><b>12.4%</b></div></article>
+      <article class="media-kit-audience-card"><h3>Geography</h3><div class="media-kit-bar"><span>North America</span><i style="--value:93%"></i><b>37.2%</b></div><div class="media-kit-bar"><span>Europe</span><i style="--value:63%"></i><b>25.1%</b></div><div class="media-kit-bar"><span>Asia-Pacific</span><i style="--value:61%"></i><b>24.5%</b></div><div class="media-kit-bar"><span>Africa</span><i style="--value:17%"></i><b>6.8%</b></div></article>
+      <article class="media-kit-audience-card"><h3>Career Level</h3><div class="media-kit-bar"><span>Mid-level</span><i style="--value:100%"></i><b>53.2%</b></div><div class="media-kit-bar"><span>Students</span><i style="--value:24%"></i><b>12.8%</b></div><div class="media-kit-bar"><span>Senior</span><i style="--value:16%"></i><b>8.4%</b></div><div class="media-kit-bar"><span>Entry-level</span><i style="--value:15%"></i><b>7.9%</b></div></article>
+      <article class="media-kit-audience-card"><h3>Industry</h3><div class="media-kit-bar"><span>Technology</span><i style="--value:100%"></i><b>40.6%</b></div><div class="media-kit-bar"><span>Finance</span><i style="--value:23%"></i><b>9.4%</b></div><div class="media-kit-bar"><span>Education</span><i style="--value:22%"></i><b>9.1%</b></div><div class="media-kit-bar"><span>Healthcare</span><i style="--value:20%"></i><b>8.1%</b></div></article>
+      <article class="media-kit-audience-card"><h3>Company Size</h3><div class="media-kit-bar"><span>1000+</span><i style="--value:100%"></i><b>29.9%</b></div><div class="media-kit-bar"><span>201–1000</span><i style="--value:60%"></i><b>17.8%</b></div><div class="media-kit-bar"><span>Freelance</span><i style="--value:49%"></i><b>14.8%</b></div><div class="media-kit-bar"><span>51–200</span><i style="--value:41%"></i><b>12.4%</b></div></article>
+      <article class="media-kit-audience-card"><h3>Topics of Interest</h3><div class="media-kit-topics"><span>Machine Learning</span><span>AI</span><span>MLOps</span><span>Data Engineering</span><span>Data Science</span><span>Data Analytics</span><span>Career Growth</span><span>Leadership</span></div></article>
+    </div>
+    <div class="media-kit-section-heading" style="margin-top:2.5rem"><h2>Why people join DataTalks.Club</h2><p>Members come to learn, meet peers, and move their careers forward.</p></div>
+    <div class="media-kit-grid"><article class="media-kit-audience-card"><h3>Hands-on learning</h3><p>Learn by using data tools in free courses, workshops, and projects.</p></article><article class="media-kit-audience-card"><h3>Professional connections</h3><p>Meet peers and build lasting relationships across the global community.</p></article><article class="media-kit-audience-card"><h3>Career support</h3><p>Get practical career advice and help from people working across data roles.</p></article></div>
+  </section>
+
+  <section class="media-kit-section" id="packages">
+    <div class="media-kit-section-heading"><span class="media-kit-kicker">Partnership options</span><h2>Sponsorship Formats</h2><p>Our packages are designed for authentic brand integration. Mix and match to create a custom partnership.</p></div>
+
+    <section class="media-kit-section" id="newsletter"><div class="media-kit-section-heading"><h2>Newsletter</h2><p>Reach 120K+ data professionals directly in their inbox.</p></div><div class="media-kit-grid">
+      {% for package in newsletter_packages %}<article class="media-kit-card"><div class="media-kit-card-top"><h3>{{ package.title }}</h3><span class="media-kit-price">{{ package.price }}</span></div><p>{{ package.description }}</p><img src="{{ package.image_url }}" alt="{{ package.title }} newsletter placement example"><ul>{% for feature in package.features %}<li>{{ feature }}</li>{% endfor %}</ul><p class="media-kit-metric">{{ package.metric }}</p><a class="media-kit-example" href="{{ package.url }}" target="_blank" rel="noopener noreferrer">Open the live newsletter ↗</a></article>{% endfor %}
+    </div><p class="media-kit-note">Every placement includes a content template we refine together, plus a detailed analytics report (opens, clicks, CTR) after the ad runs.</p></section>
+
+    <section class="media-kit-section" id="workshop"><div class="media-kit-section-heading"><h2>Workshop</h2><p>Live hands-on sessions for our 79.1K YouTube subscribers.</p></div><article class="media-kit-wide-card"><div class="media-kit-card-top"><div><h3>Stand-Alone Workshop</h3><p>We host a live, hands-on code-along on our YouTube channel to demonstrate your tool. This format suits complex, developer-focused products because participants see the product in a practical setting.</p></div><div><span class="media-kit-price">€5,000</span><small class="media-kit-extra">+€5,000 if done by us</small></div></div><img class="media-kit-offer-image" src="{% static 'core/mediakit/workshop-community.png' %}" alt="Community workshop example"><div class="media-kit-grid two"><div><p class="media-kit-metric">2,000–7,000 views per workshop · ~100 joining live</p><a href="https://www.youtube.com/watch?v=v_jbmhVWBvM" target="_blank" rel="noopener noreferrer">Watch this workshop ↗</a></div><ul><li>We host and moderate the live session with your instructor</li><li>Promotion across Luma, Slack, social media, and the website</li><li>Lead collection through Luma for attendees who opt in</li><li>The recording stays on YouTube and can be reused freely</li><li>Optional dry-run rehearsal before going live</li></ul></div></article><p class="media-kit-note"><strong>How pricing works:</strong> €5,000 when your team prepares the materials and provides the instructor; €10,000 when Alexey prepares and leads the session end to end.</p></section>
+
+    <section class="media-kit-section" id="courses"><div class="media-kit-section-heading"><h2>Courses</h2><p>Zoomcamp course sponsorships — 60K+ learners yearly.</p></div><div class="media-kit-wide-card" style="margin-bottom:1rem"><h3>Our Zoomcamp courses</h3><div class="media-kit-topics"><a href="https://github.com/DataTalksClub/data-engineering-zoomcamp" target="_blank" rel="noopener noreferrer">Data Engineering · 20K+ learners · January</a><a href="https://github.com/DataTalksClub/mlops-zoomcamp" target="_blank" rel="noopener noreferrer">MLOps · 10K+ learners · May</a><a href="https://github.com/DataTalksClub/llm-zoomcamp" target="_blank" rel="noopener noreferrer">LLM · 10K+ learners · June</a><a href="https://github.com/DataTalksClub/machine-learning-zoomcamp" target="_blank" rel="noopener noreferrer">Machine Learning · 10K+ learners · September</a><a href="https://github.com/DataTalksClub/ai-dev-tools-zoomcamp" target="_blank" rel="noopener noreferrer">AI Dev Tools · 10K+ learners · November</a></div></div><div class="media-kit-grid">{% for package in course_packages %}<article class="media-kit-card"><div class="media-kit-card-top"><h3>{{ package.title }}</h3><div><span class="media-kit-price">{{ package.price }}</span>{% if package.extra %}<small class="media-kit-extra">{{ package.extra }}</small>{% endif %}</div></div><p>{{ package.description }}</p><img src="{{ package.image_url }}" alt="{{ package.title }} course sponsorship example"><ul>{% for feature in package.features %}<li>{{ feature }}</li>{% endfor %}</ul><p class="media-kit-metric">{{ package.metric }}</p></article>{% endfor %}</div><p class="media-kit-note">Your team creates the course materials and records the videos. If you'd like Alexey to do both, add €5,000. All materials remain permanently available on GitHub and YouTube.</p></section>
+
+    <section class="media-kit-section" id="podcast"><div class="media-kit-section-heading"><h2>Podcast & Guest Post</h2><p>Evergreen editorial formats for data and AI practitioners.</p></div><div class="media-kit-grid two"><article class="media-kit-card"><div class="media-kit-card-top"><h3>Podcast Episode</h3><span class="media-kit-price">€1,500</span></div><p>A focused conversation with Alexey for data, ML, AI, and software engineering practitioners, published on YouTube and podcast platforms.</p><img src="{% static 'core/mediakit/podcast.jpg' %}" alt="Podcast episode example"><ul><li>Topic planning aligned with community interests</li><li>Promotion through our newsletter and social channels</li><li>Evergreen episode page with sponsor link</li></ul><p class="media-kit-metric">1,000+ listens per episode</p></article><article class="media-kit-card"><div class="media-kit-card-top"><h3>Guest Post</h3><span class="media-kit-price">€1,500</span></div><p>A practical article for the DataTalks.Club audience, written around a topic that helps data and AI practitioners solve real problems.</p><img src="{% static 'core/mediakit/guest-post.jpg' %}" alt="Guest post example"><ul><li>Editorial planning and topic review</li><li>Promotion through our newsletter and social channels</li><li>Evergreen article page with sponsor link</li></ul><p class="media-kit-metric">60K–100K monthly website visits</p></article></div></section>
+
+    <section class="media-kit-section" id="in-person-events"><div class="media-kit-section-heading"><h2>In-Person Events</h2><p>Berlin meetups and hands-on workshops with the local data community.</p></div><div class="media-kit-grid two"><article class="media-kit-card"><div class="media-kit-card-top"><h3>Co-Hosted Meetup</h3><a class="media-kit-price" href="#contact">Contact Alexey</a></div><p>An in-person community evening with practical talks, Q&A, and networking, organized together with your team.</p><img src="{% static 'core/mediakit/meetup-in-person.jpg' %}" alt="Co-hosted meetup example"><ul><li>Agenda, speakers, panel/Q&A, and networking</li><li>Promotion through Meetup and community channels</li><li>Registration, attendee communication, and check-in support</li></ul></article><article class="media-kit-card"><div class="media-kit-card-top"><h3>In-Person Workshop</h3><div><span class="media-kit-price">€5,000</span><small class="media-kit-extra">+€5,000 if done by us</small></div></div><p>A hands-on session where participants learn a concrete skill, build something, and connect the lesson to your product or topic.</p><img src="{% static 'core/mediakit/in-person-workshop.jpg' %}" alt="In-person workshop example"><ul><li>Practical exercises built around a learning outcome</li><li>Instructor-led guidance and Q&A</li><li>Promotion and attendee communication</li></ul></article></div><p class="media-kit-note">~9,000 Berlin Meetup members, with 100+ people attending in person.</p></section>
+
+    <section class="media-kit-section" id="social"><div class="media-kit-section-heading"><h2>Alexey's Social Media</h2><p>Personal recommendations from the founder.</p></div><article class="media-kit-wide-card"><div class="media-kit-card-top"><div><h3>LinkedIn + X</h3><p>The €1,200 package includes promotion on both Alexey Grigorev's LinkedIn and X accounts.</p></div><span class="media-kit-price">€1,200</span></div><div class="media-kit-grid two"><div><img class="media-kit-offer-image" src="{% static 'core/mediakit/alexey-linkedin.png' %}" alt="LinkedIn post example"><p class="media-kit-metric">67K followers · 10K–45K impressions</p></div><div><img class="media-kit-offer-image" src="{% static 'core/mediakit/alexey-twitter.png' %}" alt="X post example"><p class="media-kit-metric">29K followers · 2K–10K impressions</p></div></div><p>Available options include product or event videos, posts with custom media and recommendations, giveaways, and custom ideas.</p></article></section>
+    <section class="media-kit-section"><div class="media-kit-wide-card"><h3>Other Ideas</h3><p>We're always open to exploring new ideas and creating customized solutions:</p><div class="media-kit-topics"><span>Swag giveaways</span><span>Hackathons & competitions</span><span>Course design help</span><span>Roundtable discussions</span><span>Sponsored lunches & breakfasts</span></div><p><a href="#contact"><strong>Discuss your custom idea →</strong></a></p></div></section>
+  </section>
+
+  <section class="media-kit-section" id="sponsors"><div class="media-kit-section-heading"><h2>Previous and Current Sponsors</h2><p>Leading companies in data, ML, and AI trust DataTalks.Club to reach the global data community.</p></div><div class="media-kit-sponsor-list">{% for sponsor in archived_sponsors %}<span>{{ sponsor }}</span>{% endfor %}</div><h3 style="text-align:center;margin:2.5rem 0 1rem">What Sponsors Say</h3><div class="media-kit-testimonials">{% for author, role, quote in testimonials %}<figure class="media-kit-quote"><blockquote>“{{ quote }}”</blockquote><figcaption>{{ author }}<br><small>{{ role }}</small></figcaption></figure>{% endfor %}</div></section>
+
+  <section class="media-kit-section"><div class="media-kit-section-heading"><span class="media-kit-kicker">Community voices</span><h2>What Community Members Say</h2></div><div class="media-kit-grid"><figure class="media-kit-quote"><blockquote>“It's a very active and engaging community for people of all levels. Love the content and the quality of the materials.”</blockquote><figcaption>DataTalks.Club community member</figcaption></figure><figure class="media-kit-quote"><blockquote>“This community is lighting a lot of members' paths. Thank you for everything, DTC team.”</blockquote><figcaption>DataTalks.Club community member</figcaption></figure><figure class="media-kit-quote"><blockquote>“Alexey and the team have created one of the best learning resources out there.”</blockquote><figcaption>DataTalks.Club community member</figcaption></figure></div></section>
+
+  <section class="media-kit-contact" id="contact"><h2>Contact Us</h2><p>Ready to partner with us? Get in touch to discuss sponsorship opportunities.</p><div class="media-kit-contacts"><a href="mailto:alexey@datatalks.club"><strong>Alexey Grigorev</strong><span>Founder & Community Lead<br>alexey@datatalks.club</span></a></div><p>We're always open to exploring new ideas and creating customized solutions.</p></section>
+</div>
+{% endblock %}
