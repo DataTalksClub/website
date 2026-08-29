@@ -34,6 +34,7 @@ urlpatterns = [
         name="section-sitemap",
     ),
     path("", core_views.home, name="home"),
+    path("sponsors", core_views.sponsors, name="sponsors"),
     path("", include("content.public_urls")),
     path("unified/", core_views.home, name="unified-home"),
     path("docs/", review_views.docs_home, name="docs-home"),

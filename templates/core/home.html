@@ -291,6 +291,33 @@
         gap: 1rem;
       }
 
+      .sponsor-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .sponsor-card {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        min-height: 8rem;
+        padding: 1.4rem;
+      }
+
+      .sponsor-card img {
+        display: block;
+        max-height: 3.6rem;
+        max-width: min(100%, 11rem);
+        object-fit: contain;
+      }
+
+      @media (min-width: 52rem) {
+        .sponsor-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+      }
+
       .promise {
         display: grid;
         gap: 0.15rem;
@@ -1291,6 +1318,29 @@
           </p>
         </div>
       </section>
+
+      {% if sponsors %}
+        <section class="band band-cream" aria-labelledby="sponsors-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="sponsors-heading">Supported by</h2>
+                <p>Organizations that help us keep practical learning free and open.</p>
+              </div>
+            </div>
+            <div class="sponsor-grid">
+              {% for sponsor in sponsors %}
+                <a class="card sponsor-card" href="{% url 'sponsors' %}#{{ sponsor.name|slugify }}">
+                  <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">
+                </a>
+              {% endfor %}
+            </div>
+            <p class="band-more">
+              <a class="band-link" href="{% url 'sponsors' %}">meet our sponsors →</a>
+            </p>
+          </div>
+        </section>
+      {% endif %}
 
       <section class="band band-ink" aria-labelledby="closing-heading">
         <div class="shell closing">

@@ -30,6 +30,7 @@ from core.home_content import (
     wiki_graph,
     wiki_topics,
 )
+from core.sponsor_history import PAST_SUPPORTERS, featured_supporters
 
 DEVELOPMENT_ROBOTS_BODY = "User-agent: *\nDisallow: /\n"
 PRODUCTION_ROBOTS_BODY = (
@@ -99,6 +100,20 @@ def home(request: HttpRequest):
             "wiki_topics": wiki_topics(),
             "wiki_graph": wiki_graph(),
             "counts": projection["manifest"]["counts"],
+            "sponsors": featured_supporters(),
+        },
+    )
+
+
+@require_safe
+def sponsors(request: HttpRequest) -> HttpResponse:
+    return render(
+        request,
+        "core/sponsors.html",
+        {
+            "canonical_url": "https://datatalks.club/sponsors",
+            "sponsors": featured_supporters(),
+            "past_supporters": PAST_SUPPORTERS,
         },
     )
 

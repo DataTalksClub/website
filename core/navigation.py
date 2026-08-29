@@ -60,6 +60,7 @@ NAVIGATION_TARGETS: tuple[tuple[str, str], ...] = (
     ("books", "Books"),
     ("docs-home", "Docs"),
     ("faq-home", "FAQ"),
+    ("sponsors", "Sponsors"),
     ("slack", "Slack"),
 )
 NAVIGATION_TARGET_ALLOWLIST = frozenset(target for target, _label in NAVIGATION_TARGETS)
@@ -72,6 +73,7 @@ NAVIGATION_TARGET_CURRENT_KEYS = {
     "books": "books",
     "docs-home": "docs",
     "faq-home": "faq",
+    "sponsors": "sponsors",
     "slack": "slack",
 }
 DEFAULT_PRIMARY_NAVIGATION: tuple[tuple[str, str, str, int, bool], ...] = (
@@ -83,7 +85,8 @@ DEFAULT_PRIMARY_NAVIGATION: tuple[tuple[str, str, str, int, bool], ...] = (
     ("books", "Books", "books", 6, True),
     ("docs", "Docs", "docs-home", 7, True),
     ("faq", "FAQ", "faq-home", 8, True),
-    ("slack", "Slack", "slack", 9, True),
+    ("sponsors", "Sponsors", "sponsors", 9, True),
+    ("slack", "Slack", "slack", 10, True),
 )
 _WRITE_REDACTED = (
     "authorization",
