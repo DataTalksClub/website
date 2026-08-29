@@ -115,6 +115,7 @@ def social_login_view(request):
     context = {
         "providers": providers,
         "safe_next": safe_next,
+        "account_signup_url": reverse("account_signup"),
         "development_owner_form": form,
         "development_owner_login_enabled": local_login_enabled,
         "login_error": login_error,
