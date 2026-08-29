@@ -369,7 +369,7 @@ class SponsorPublicSurfaceTests(TestCase):
             self.assertContains(home, f'alt="{name}"')
         self.assertContains(home, f'href="{reverse("sponsors")}"')
         self.assertEqual(directory.status_code, 200)
-        self.assertContains(directory, "Our sponsors")
+        self.assertContains(directory, "Our Sponsors")
         self.assertNotContains(directory, "Our supporters")
         self.assertContains(directory, "Weights &amp; Biases")
         self.assertContains(directory, "/static/core/sponsors/dlthub.png")
