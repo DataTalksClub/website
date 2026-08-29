@@ -67,4 +67,15 @@ class MediaKitPageTests(TestCase):
 
         self.assertContains(response, "/static/core/mediakit/newsletter-primary.png")
         self.assertContains(response, "/static/core/mediakit/workshop-community.png")
+        self.assertContains(response, "/static/core/mediakit/logo.svg")
+        self.assertContains(response, 'class="media-kit-image-link"', count=13)
+        self.assertContains(
+            response,
+            'aria-label="Open the Primary Slot live newsletter example"',
+        )
+        self.assertContains(
+            response,
+            'aria-label="Open the Workshop course sponsorship example"',
+        )
+        self.assertContains(response, 'aria-label="Open the LinkedIn post example"')
         self.assertContains(response, 'target="_blank" rel="noopener noreferrer"')

@@ -108,6 +108,12 @@ COURSE_PACKAGES = (
             "Optional demo video (up to 10 min, open-source only)",
             "Post-launch analytics on course reach and video performance",
         ),
+        "example_url": (
+            "https://github.com/DataTalksClub/machine-learning-zoomcamp/blob/"
+            "e787517e9c9555fc873d1be262193bfaecc0d9d2/08-deep-learning/"
+            "01b-saturn-cloud.md"
+        ),
+        "example_label": "See it in the course",
     },
     {
         "title": "Workshop",
@@ -125,6 +131,11 @@ COURSE_PACKAGES = (
             "Optional raffle or giveaway for participants",
             "Permanent availability on GitHub and YouTube",
         ),
+        "example_url": (
+            "https://github.com/DataTalksClub/data-engineering-zoomcamp/blob/main/"
+            "cohorts/2024/workshops/dlt.md"
+        ),
+        "example_label": "See the dlt workshop",
     },
     {
         "title": "Full Module",
@@ -142,6 +153,11 @@ COURSE_PACKAGES = (
             "Evergreen visibility on GitHub and YouTube",
             "For open-source tools only",
         ),
+        "example_url": (
+            "https://github.com/DataTalksClub/data-engineering-zoomcamp/tree/main/"
+            "cohorts/2024/02-workflow-orchestration"
+        ),
+        "example_label": "See the module",
     },
 )
 
