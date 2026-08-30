@@ -106,7 +106,7 @@ def docs_home(request: HttpRequest) -> HttpResponse:
             "docs_course_families": course_families,
             "docs_course_support": course_support,
             "docs_areas": docs_home_areas(navigation),
-            "primary_navigation_current": "docs-home",
+            "primary_navigation_current": "docs",
         },
     )
 
@@ -138,7 +138,7 @@ def _docs_detail_context(
         "docs_next": following,
         "docs_local_previous": local_previous,
         "docs_local_next": local_following,
-        "primary_navigation_current": "docs-home",
+        "primary_navigation_current": "docs",
     }
 
 
