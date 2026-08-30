@@ -238,7 +238,7 @@ def test_public_zero_one_plural_and_omitted_states_are_private_and_responsive(
 
     for event, expected, state in zip(
         events,
-        ("0 registered", "1 registered", "12 registered", None),
+        ("0 registered", "1 came", "12 came", None),
         ("zero", "one", "plural", "omitted"),
         strict=True,
     ):

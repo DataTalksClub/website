@@ -126,7 +126,10 @@ def test_episode_play_control_is_a_labelled_keyboard_destination(
     page.goto(f"{live_server.url}{episode['public_path']}", wait_until="networkidle")
     _settle_analytics_preferences(page)
 
-    player = page.locator(".episode-video")
+    # A video episode can also carry the separate Spotify audio embed. Target
+    # the preferred YouTube player by provider instead of counting both media
+    # frames as the same control.
+    player = page.locator('.episode-video[data-video-provider="youtube"]')
     expect(player).to_have_count(1)
     expect(player).to_have_attribute("data-video-id", episode["video"]["id"])
     iframe = page.locator("#podcast-video-player")

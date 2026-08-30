@@ -137,7 +137,7 @@ def _public_rendered_states(
     )
 
     return (
-        PublicRenderedState("public.home", "home", "Something to attend this week"),
+        PublicRenderedState("public.home", "home", "Events"),
         PublicRenderedState("public.blog-hub", "blog", "Latest Articles"),
         PublicRenderedState("public.podcast-hub", "podcast", "Podcast"),
         PublicRenderedState("public.books-hub", "books", "Book of the Week"),
@@ -1354,7 +1354,7 @@ def test_named_chromium_blink_accessibility_tree_contracts(
             "public.home",
             "home",
             ("banner", "navigation", "main", "contentinfo", "heading"),
-            ("Something to attend this week",),
+            ("Events",),
         ),
         (
             "public.podcast-transcript-media",

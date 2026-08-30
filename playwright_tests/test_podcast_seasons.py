@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
+from content.podcast_routes import podcast_legacy_path
 from content.public_data import ordered_podcasts, podcast_seasons
 from playwright_tests.accessibility_support import assert_accessible_page
 
@@ -424,7 +425,8 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     episode = ordered_podcasts()[0]
     final_path = episode["public_path"]
     detail_query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
-    for alias in (final_path.removesuffix(".html"), f"{final_path.removesuffix('.html')}/"):
+    legacy_stem = podcast_legacy_path(episode["slug"]).removesuffix(".html")
+    for alias in (legacy_stem, f"{legacy_stem}/"):
         redirected = page.request.get(
             f"{origin}{alias}?{detail_query}",
             max_redirects=0,
@@ -450,9 +452,16 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
 
     competing_path = f"/podcast/s{episode['season']:02d}e{episode['episode']:02d}/competing-title"
     competing = page.request.get(f"{origin}{competing_path}", max_redirects=0)
-    assert competing.status == 404
-    assert "location" not in competing.headers
-    assert "canonical" not in competing.text().casefold()
+    assert competing.status == 301
+    assert competing.headers["location"] == final_path
+
+    unknown = page.request.get(
+        f"{origin}/podcast/s99e99/competing-title",
+        max_redirects=0,
+    )
+    assert unknown.status == 404
+    assert "location" not in unknown.headers
+    assert "canonical" not in unknown.text().casefold()
 
     # A parameter this catalogue does not select on rides along instead of being
     # refused (`content.public_query`, issue #174 follow-up): `page` is not a
