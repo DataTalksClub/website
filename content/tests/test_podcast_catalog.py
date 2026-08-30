@@ -184,6 +184,8 @@ class PodcastPageCompositionTests(SimpleTestCase):
             ("https://external.example/guest", ""),
             ("/people/safe-guest.html?tab=bio", ""),
             ("/people/safe-guest.html#bio", ""),
+            ("/people/safe-guest.html/extra", ""),
+            ("/podcast/safe-guest.html", ""),
             ("/people/../admin", ""),
             ("/people/%2e%2e/admin", ""),
             ("/people/safe-guest.html\x00", ""),
@@ -496,6 +498,77 @@ class PodcastEpisodeParityTests(TestCase):
         if next_episode is not None:
             self.assertIn(next_episode.season_episode, body)
 
+    def test_checked_detail_and_adjacent_destinations_render_with_internal_resource(self) -> None:
+        projection = public_projection()
+        record = projection["podcasts_by_slug"][
+            "practical-devrel-demofirst-education-and-open-source"
+        ]
+        previous, following, _ = episode_navigation(
+            record,
+            projection["podcasts"],
+            people_by_slug=projection["people_by_slug"],
+        )
+        self.assertIsNotNone(previous)
+        self.assertIsNotNone(following)
+        assert previous is not None and following is not None
+
+        response = self.client.get(record["public_path"])
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, previous.public_path)
+        self.assertContains(response, following.public_path)
+        for destination in (previous.public_path, following.public_path):
+            with self.subTest(destination=destination):
+                self.assertEqual(self.client.get(destination).status_code, 200)
+
+        internal_resource_record = projection["podcasts_by_slug"][
+            "data-freelancing-career-strategy-market-demand-and-client-acquisition"
+        ]
+        view = episode_view(
+            internal_resource_record,
+            people_by_slug=projection["people_by_slug"],
+            resource_podcast_records=projection["podcasts"],
+        )
+        self.assertIn(
+            "/podcast/becoming-data-freelancer.html",
+            [resource.url for resource in view.resources],
+        )
+        resource_response = self.client.get(internal_resource_record["public_path"])
+        self.assertContains(
+            resource_response,
+            'href="/podcast/becoming-data-freelancer.html"',
+        )
+        self.assertNotContains(
+            resource_response,
+            'href="/podcast/s16e09-become-data-freelancer.html"',
+        )
+        self.assertEqual(self.client.get("/podcast/becoming-data-freelancer.html").status_code, 200)
+
+    def test_resource_urls_keep_external_schemes_and_noncanonical_paths_rejected(self) -> None:
+        projection, record = self.representative()
+        for unsafe in (
+            "http://example.invalid/resource",
+            "javascript:alert(1)",
+            "//example.invalid/resource",
+            "/podcast/../admin.html",
+            "/podcast/episode.html?next=/admin",
+            "/podcast/not-in-catalog.html",
+            "/blog/episode.html",
+        ):
+            with (
+                self.subTest(unsafe=unsafe),
+                self.assertRaisesRegex(
+                    ImproperlyConfigured,
+                    "https address|canonical internal podcast path",
+                ),
+            ):
+                episode_view(
+                    {
+                        **record,
+                        "resources": [{"title": "Unsafe", "url": unsafe}],
+                    },
+                    resource_podcast_records=projection["podcasts"],
+                )
+
     def test_related_episode_cards_show_the_guest_instead_of_the_description(self) -> None:
         projection, record = self.representative()
         _, _, related_episodes = episode_navigation(
@@ -560,6 +633,8 @@ class PodcastEpisodeParityTests(TestCase):
             "//external.example/guest",
             "/people/safe-guest.html?tab=bio",
             "/people/safe-guest.html#bio",
+            "/people/safe-guest.html/extra",
+            "/podcast/safe-guest.html",
             "/people/../admin",
             "/people/safe-guest.html\x00",
         )

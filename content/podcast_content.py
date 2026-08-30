@@ -242,6 +242,57 @@ def _safe_external_url(value: Any, *, field: str, https_only: bool = False) -> s
     return value
 
 
+def _safe_resource_url(
+    value: Any,
+    *,
+    podcast_records: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
+) -> str:
+    """Validate an HTTPS resource or a canonical root-relative podcast path."""
+
+    if isinstance(value, str):
+        candidate = value.strip()
+        parsed = urlsplit(candidate)
+        if (
+            parsed.scheme == ""
+            and parsed.netloc == ""
+            and parsed.query == ""
+            and parsed.fragment == ""
+            and re.fullmatch(r"/podcast/[a-z0-9][a-z0-9-]*\.html", parsed.path)
+            and not any(character in candidate for character in "\x00\r\n")
+        ):
+            if podcast_records is None:
+                return candidate
+            canonical_matches = [
+                podcast_public_path(record)
+                for record in podcast_records
+                if podcast_public_path(record) == candidate
+            ]
+            if len(canonical_matches) == 1:
+                return canonical_matches[0]
+            legacy = re.fullmatch(
+                r"/podcast/s(?P<season>\d+)e(?P<episode>\d+)-"
+                r"[a-z0-9][a-z0-9-]*\.html",
+                candidate,
+            )
+            if (
+                legacy is not None
+                and int(legacy.group("season")) >= 1
+                and int(legacy.group("episode")) >= 1
+            ):
+                numbered_matches = [
+                    podcast_public_path(record)
+                    for record in podcast_records
+                    if record.get("season") == int(legacy.group("season"))
+                    and record.get("episode") == int(legacy.group("episode"))
+                ]
+                if len(numbered_matches) == 1:
+                    return numbered_matches[0]
+            raise ImproperlyConfigured(
+                "Public podcast resource must be a canonical internal podcast path."
+            )
+    return _safe_external_url(value, field="resource", https_only=True)
+
+
 def _person_summary(person: dict[str, Any]) -> str:
     summary = person.get("summary")
     if isinstance(summary, str) and summary.strip():
@@ -255,6 +306,20 @@ def _person_summary(person: dict[str, Any]) -> str:
         and block.get("text", "").strip()
     ]
     return " ".join(paragraphs)
+
+
+def _safe_guest_public_path(value: Any) -> str:
+    """Return one canonical profile path without query or fragment state."""
+
+    public_path = safe_public_graph_url(value)
+    if not public_path:
+        return ""
+    parsed = urlsplit(public_path)
+    if parsed.query or parsed.fragment:
+        return ""
+    if re.fullmatch(r"/people/[a-z0-9][a-z0-9-]*\.html", parsed.path) is None:
+        return ""
+    return public_path
 
 
 def _person_links(person: dict[str, Any]) -> tuple[ExternalLink, ...]:
@@ -293,10 +358,10 @@ def _guests(
         name = profile.get("name")
         if not isinstance(name, str) or not name.strip():
             raise ImproperlyConfigured("Public podcast guest must have a name.")
-        public_path = safe_public_graph_url(profile.get("public_path", ""))
+        public_path = _safe_guest_public_path(profile.get("public_path", ""))
         person = people_by_slug.get(key) if people_by_slug and key else None
         if person is not None:
-            person_path = safe_public_graph_url(person.get("public_path", ""))
+            person_path = _safe_guest_public_path(person.get("public_path", ""))
             if public_path and person_path != public_path:
                 raise ImproperlyConfigured("Public podcast guest profile path does not match.")
             public_path = person_path
@@ -520,7 +585,11 @@ def _spotify_embed(record: dict[str, Any]) -> SpotifyEmbed | None:
     return None
 
 
-def _resources(record: dict[str, Any]) -> tuple[EpisodeResource, ...]:
+def _resources(
+    record: dict[str, Any],
+    *,
+    podcast_records: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
+) -> tuple[EpisodeResource, ...]:
     raw_resources = record.get("resources", ()) or ()
     if not isinstance(raw_resources, (list, tuple)):
         raise ImproperlyConfigured("Public podcast resources must be a list.")
@@ -534,7 +603,10 @@ def _resources(record: dict[str, Any]) -> tuple[EpisodeResource, ...]:
         prepared.append(
             EpisodeResource(
                 title=title.strip(),
-                url=_safe_external_url(resource.get("url"), field="resource", https_only=True),
+                url=_safe_resource_url(
+                    resource.get("url"),
+                    podcast_records=podcast_records,
+                ),
             )
         )
     return tuple(prepared)
@@ -618,6 +690,7 @@ def episode_view(
     record: dict[str, Any],
     *,
     people_by_slug: dict[str, dict[str, Any]] | None = None,
+    resource_podcast_records: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
 ) -> Episode:
     """Return one catalogue record as the value both podcast templates render."""
 
@@ -640,7 +713,7 @@ def episode_view(
         platform_links=_platform_links(record),
         watch_url=watch_url,
         watch_label=watch_label,
-        resources=_resources(record),
+        resources=_resources(record, podcast_records=resource_podcast_records),
         video=_video_embed(record),
         spotify=_spotify_embed(record),
         transcript=transcript,
@@ -682,12 +755,27 @@ def episode_navigation(
     related = tuple(item for item in season_records if item.get("slug") != current_slug)[:3]
 
     def compose(item: dict[str, Any] | None) -> Episode | None:
-        return episode_view(item, people_by_slug=people_by_slug) if item is not None else None
+        return (
+            episode_view(
+                item,
+                people_by_slug=people_by_slug,
+                resource_podcast_records=records,
+            )
+            if item is not None
+            else None
+        )
 
     return (
         compose(previous),
         compose(following),
-        tuple(episode_view(item, people_by_slug=people_by_slug) for item in related),
+        tuple(
+            episode_view(
+                item,
+                people_by_slug=people_by_slug,
+                resource_podcast_records=records,
+            )
+            for item in related
+        ),
     )
 
 
@@ -720,4 +808,8 @@ def season_episodes(records: tuple[dict[str, Any], ...]) -> tuple[Episode, ...]:
 
     if not records:
         raise ImproperlyConfigured("Public podcast season must not be empty.")
+    # Season hubs do not render show-note resources, and this tuple contains only
+    # one season, so it cannot resolve a legacy resource that names another season.
+    # Detail/navigation composition receives the complete catalogue and performs
+    # canonical resource normalization there.
     return tuple(episode_view(record) for record in records)

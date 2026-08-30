@@ -762,7 +762,11 @@ def _render_podcast_detail(
         description=episode["description"],
         context={
             "record": episode,
-            "episode": episode_view(episode, people_by_slug=projection["people_by_slug"]),
+            "episode": episode_view(
+                episode,
+                people_by_slug=projection["people_by_slug"],
+                resource_podcast_records=projection["podcasts"],
+            ),
             "previous_episode": previous_episode,
             "next_episode": next_episode,
             "related_episodes": related_episodes,
