@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login
 from django.core.cache import cache
 from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
 from accounts.development_owner import DEVELOPMENT_OWNER_PRINCIPAL
 from accounts.forms import DevelopmentOwnerLoginForm
@@ -115,7 +115,7 @@ def social_login_view(request):
     context = {
         "providers": providers,
         "safe_next": safe_next,
-        "account_signup_url": reverse("account_signup"),
+        "account_signup_url": reverse_lazy("account_signup"),
         "development_owner_form": form,
         "development_owner_login_enabled": local_login_enabled,
         "login_error": login_error,
