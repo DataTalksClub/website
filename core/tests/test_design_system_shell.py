@@ -118,6 +118,7 @@ EXPECTED_NAVIGATION = (
     ("Books", "books"),
     ("Docs", "docs-home"),
     ("FAQ", "faq-home"),
+    ("Sponsors", "sponsors"),
     ("Slack", "slack"),
 )
 
@@ -258,8 +259,8 @@ class DesignFiveAShellTests(TestCase):
                 expected = [*destinations, ("Log in", login)]
                 self.assertEqual([(label, href) for label, href, _ in entries], expected)
 
-    def test_signed_in_panels_offer_the_nine_destinations_and_no_login(self) -> None:
-        """The account menu owns auth once signed in; the panel goes back to nine."""
+    def test_signed_in_panels_offer_the_ten_destinations_and_no_login(self) -> None:
+        """The account menu owns auth once signed in; the panel goes back to ten."""
 
         user = get_user_model().objects.create_user(
             username="shell-reader@example.invalid",
