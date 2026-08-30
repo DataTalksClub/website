@@ -105,7 +105,7 @@ class StudioSiteNavigationTests(TestCase):
                 "key": "home",
                 "label": "Home",
                 "target": "home",
-                "position": 10,
+                "position": 11,
                 "visible": True,
             }
         )
