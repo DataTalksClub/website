@@ -161,8 +161,7 @@
 
 {% block page_content %}
       <section aria-label="Module content">
-        <div class="module-layout">
-          {% include "courses/_module_rail.html" %}
+        <div class="module-layout shell-breakout">
           <div class="module-main">
             <section class="module-section" aria-labelledby="lessons-heading">
               <div class="module-section-heading">
@@ -200,7 +199,7 @@
               </div>
             </section>
           </div>
-
+          {% include "courses/_module_rail.html" %}
         </div>
       </section>
 {% endblock %}

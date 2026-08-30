@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from django.urls import reverse
 
 from courses.tests.dashboard_view_base import DashboardViewTestBase
@@ -36,3 +38,16 @@ class DashboardViewTestCase(DashboardViewTestBase):
         self.assertEqual(response.context["course"], self.course)
         self.assertEqual(response.context["total_enrollments"], 6)
         self.assertEqual(response.context["project_passing_score"], 70)
+
+    def test_dense_tables_use_bounded_breakout_and_conditional_overflow_cues(self):
+        body = (Path(__file__).resolve().parents[1] / "templates/courses/dashboard.html").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('class="stats-scroll stats-scroll-wide shell-breakout"', body)
+        self.assertEqual(body.count('class="stats-scroll stats-scroll-wide shell-breakout"'), 2)
+        self.assertIn('class="stats-table stats-table-wide"', body)
+        self.assertIn('id="homework-statistics-overflow" class="stats-overflow-cue" hidden', body)
+        self.assertIn("frame.scrollWidth > frame.clientWidth + 1", body)
+        self.assertIn('frame.setAttribute("tabindex", "0")', body)
+        self.assertIn('frame.removeAttribute("tabindex")', body)

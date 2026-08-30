@@ -3244,7 +3244,7 @@ Rules for editing:
         font-size: 0.78rem;
         font-weight: 800;
         justify-content: center;
-        min-height: 2.15rem;
+        min-height: 2.75rem;
         padding: 0.35rem 0.7rem;
         position: absolute;
         right: 0.65rem;
@@ -3255,12 +3255,6 @@ Rules for editing:
         z-index: 1;
       }
 
-      .code-block-copy:not(:focus-visible) {
-        opacity: 0;
-      }
-
-      .code-block:hover .code-block-copy,
-      .code-block:focus-within .code-block-copy,
       .code-block-copy.is-copied,
       .code-block-copy.is-error {
         opacity: 1;
@@ -3285,12 +3279,6 @@ Rules for editing:
       .code-block-copy[aria-busy="true"] {
         color: var(--muted);
         cursor: wait;
-      }
-
-      @media (hover: none) {
-        .code-block-copy {
-          opacity: 1;
-        }
       }
 
       /* An illustration never outgrows the reading column.  The element carries

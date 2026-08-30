@@ -117,8 +117,7 @@
 
 {% block page_content %}
       <section aria-label="Unit content">
-        <div class="module-layout">
-          {% include "courses/_module_rail.html" %}
+        <div class="module-layout shell-breakout">
           <div class="module-main unit-main">
             {% if video_embed_url %}
               <div class="unit-video" aria-label="Video lesson">
@@ -167,6 +166,7 @@
               </div>
             </nav>
           </div>
+          {% include "courses/_module_rail.html" %}
         </div>
       </section>
 {% endblock %}

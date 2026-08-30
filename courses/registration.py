@@ -116,11 +116,18 @@ ALLOWED_MARKDOWN_TAGS = [
     "p",
     "pre",
     "strong",
+    "table",
+    "tbody",
+    "td",
+    "th",
+    "thead",
+    "tr",
     "ul",
 ]
 ALLOWED_MARKDOWN_ATTRIBUTES = {
     "a": ["href", "title", "rel", "target"],
-    "div": ["class"],
+    "div": ["aria-label", "class", "role", "tabindex"],
+    "th": ["scope"],
 }
 
 
@@ -133,8 +140,46 @@ class _CourseMarkdownRenderer(mistune.HTMLRenderer):
             return f'<div class="mermaid">{html.escape(code)}</div>\n'
         return super().block_code(code, info)
 
+    def heading(self, text: str, level: int, **attrs: object) -> str:
+        """Keep the page title as the unit surface's only level-one heading."""
 
-_COURSE_MARKDOWN = mistune.create_markdown(renderer=_CourseMarkdownRenderer())
+        return super().heading(text, max(2, level), **attrs)
+
+
+def _render_course_table(_renderer: mistune.BaseRenderer, text: str) -> str:
+    return (
+        '<div class="prose-scroll" role="region" aria-label="Lesson data table" '
+        'tabindex="0"><table>\n'
+        f"{text}</table></div>\n"
+    )
+
+
+def _render_course_table_cell(
+    _renderer: mistune.BaseRenderer,
+    text: str,
+    align: str | None = None,
+    head: bool = False,
+) -> str:
+    del align
+    if head:
+        return f'  <th scope="col">{text}</th>\n'
+    return f"  <td>{text}</td>\n"
+
+
+def _course_tables(markdown: mistune.Markdown) -> None:
+    """Install semantic, keyboard-scrollable Markdown tables."""
+
+    from mistune.plugins.table import table
+
+    table(markdown)
+    if markdown.renderer:
+        markdown.renderer.register("table", _render_course_table)
+        markdown.renderer.register("table_cell", _render_course_table_cell)
+
+
+_COURSE_MARKDOWN = mistune.create_markdown(
+    renderer=_CourseMarkdownRenderer(), plugins=[_course_tables]
+)
 
 
 def region_for_country(country):
