@@ -163,6 +163,31 @@
         min-width: 0;
       }
 
+      .docs-tree-branch > summary {
+        align-items: center;
+        color: var(--muted);
+        cursor: pointer;
+        display: flex;
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 700;
+        min-height: 2.75rem;
+        padding: 0.35rem 0.5rem;
+      }
+
+      .docs-tree-branch > summary:hover {
+        color: var(--indigo);
+      }
+
+      .docs-tree-branch > summary:focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .docs-tree-disclosure > summary {
+        display: none;
+      }
+
       .docs-tree-link {
         align-items: center;
         border-inline-start: 0.25rem solid transparent;
@@ -210,6 +235,12 @@
         display: grid;
         gap: 1.5rem;
         margin-bottom: 1.5rem;
+      }
+
+      .docs-onward {
+        border-top: 2px dashed var(--line-soft);
+        margin-top: 2.5rem;
+        padding-top: 2.5rem;
       }
 
       .docs-local h3 {
@@ -318,6 +349,31 @@
           display: grid;
           margin-top: 1.5rem;
         }
+
+        .docs-tree-disclosure > summary {
+          align-items: center;
+          cursor: pointer;
+          display: flex;
+          font-family: var(--font-mono);
+          font-size: 0.82rem;
+          font-weight: 800;
+          min-height: 2.75rem;
+          padding: 0.25rem 0;
+        }
+
+        .docs-tree-disclosure > summary:focus-visible {
+          outline: 3px solid var(--focus);
+          outline-offset: 2px;
+        }
+
+        .docs-tree-disclosure[open] > summary {
+          border-bottom: 2px dashed var(--line-soft);
+          margin-bottom: 0.65rem;
+        }
+
+        .docs-tree-label {
+          display: none;
+        }
       }
     </style>
   </head>
@@ -369,8 +425,11 @@
             {% endcomment %}
             <aside class="docs-aside">
               <nav class="docs-tree-panel" aria-label="Documentation sections">
-                <span class="mono-label mono-label-indigo docs-tree-label">Documentation sections</span>
-                {% include "review/_docs_navigation_tree.html" with docs_items=docs_navigation docs_current_path=docs.public_path only %}
+                <details class="docs-tree-disclosure" open>
+                  <summary>Documentation sections</summary>
+                  <span class="mono-label mono-label-indigo docs-tree-label">Documentation sections</span>
+                  {% include "review/_docs_navigation_tree.html" with docs_items=docs_navigation docs_current_path=docs.public_path docs_open_paths=docs_open_paths only %}
+                </details>
               </nav>
             </aside>
             <div class="docs-main">
@@ -393,68 +452,62 @@
                   aria-label="Edit this page on GitHub (opens in a new tab)"
                 >Edit this page on GitHub <span aria-hidden="true">↗</span></a>
               </div>
+              <section class="docs-onward" aria-labelledby="docs-onward-heading">
+                <div class="band-head">
+                  <div>
+                    <h2 id="docs-onward-heading">Where to next</h2>
+                  </div>
+                </div>
+                {% if docs_children or docs_headings|length > 1 %}
+                  <div class="docs-local">
+                    {% if docs_headings|length > 1 %}
+                      <nav aria-labelledby="docs-headings-heading">
+                        <h3 id="docs-headings-heading">On this page</h3>
+                        <ul class="docs-local-list">
+                          {% for heading in docs_headings %}
+                            {% if heading.level > 1 %}
+                              <li><a href="#{{ heading.id }}">{{ heading.title }}</a></li>
+                            {% endif %}
+                          {% endfor %}
+                        </ul>
+                      </nav>
+                    {% endif %}
+                    {% if docs_children %}
+                      <nav aria-labelledby="docs-children-heading">
+                        <h3 id="docs-children-heading">In this section</h3>
+                        <ul class="docs-local-list">
+                          {% for item in docs_children %}
+                            <li><a href="{{ item.public_path }}">{{ item.title }}</a></li>
+                          {% endfor %}
+                        </ul>
+                      </nav>
+                    {% endif %}
+                  </div>
+                {% endif %}
+                <nav class="docs-context" aria-label="Document context">
+                  <a class="docs-context-link docs-context-parent" href="{{ docs_parent.public_path }}">
+                    <span class="mono-label docs-context-label">Parent</span>
+                    <span class="docs-context-title">{{ docs_parent.title }}</span>
+                  </a>
+                  {% if docs_previous %}
+                    <a class="docs-context-link" href="{{ docs_previous.public_path }}">
+                      <span class="mono-label docs-context-label">Previous</span>
+                      <span class="docs-context-title">{{ docs_previous.title }}</span>
+                    </a>
+                  {% endif %}
+                  {% if docs_next %}
+                    <a class="docs-context-link" href="{{ docs_next.public_path }}">
+                      <span class="mono-label docs-context-label">Next</span>
+                      <span class="docs-context-title">{{ docs_next.title }}</span>
+                    </a>
+                  {% endif %}
+                </nav>
+              </section>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="band band-lavender" aria-labelledby="docs-onward-heading">
-        <div class="shell">
-          <div class="band-head">
-            <div>
-              <h2 id="docs-onward-heading">Where to next</h2>
-            </div>
-          </div>
-          {% if docs_children or docs_headings|length > 1 %}
-            <div class="docs-local">
-              {% if docs_headings|length > 1 %}
-                <nav aria-labelledby="docs-headings-heading">
-                  <h3 id="docs-headings-heading">On this page</h3>
-                  <ul class="docs-local-list">
-                    {% for heading in docs_headings %}
-                      {% if heading.level > 1 %}
-                        <li>
-                          <a href="#{{ heading.id }}">{{ heading.title }}</a>
-                        </li>
-                      {% endif %}
-                    {% endfor %}
-                  </ul>
-                </nav>
-              {% endif %}
-              {% if docs_children %}
-                <nav aria-labelledby="docs-children-heading">
-                  <h3 id="docs-children-heading">In this section</h3>
-                  <ul class="docs-local-list">
-                    {% for item in docs_children %}
-                      <li>
-                        <a href="{{ item.public_path }}">{{ item.title }}</a>
-                      </li>
-                    {% endfor %}
-                  </ul>
-                </nav>
-              {% endif %}
-            </div>
-          {% endif %}
-          <nav class="docs-context" aria-label="Document context">
-            <a class="docs-context-link docs-context-parent" href="{{ docs_parent.public_path }}">
-              <span class="mono-label docs-context-label">Parent</span>
-              <span class="docs-context-title">{{ docs_parent.title }}</span>
-            </a>
-            {% if docs_previous %}
-              <a class="docs-context-link" href="{{ docs_previous.public_path }}">
-                <span class="mono-label docs-context-label">Previous</span>
-                <span class="docs-context-title">{{ docs_previous.title }}</span>
-              </a>
-            {% endif %}
-            {% if docs_next %}
-              <a class="docs-context-link" href="{{ docs_next.public_path }}">
-                <span class="mono-label docs-context-label">Next</span>
-                <span class="docs-context-title">{{ docs_next.title }}</span>
-              </a>
-            {% endif %}
-          </nav>
-        </div>
-      </section>
     </main>
     {% include "core/_site_shell_foot.html" %}
   </body>

@@ -211,6 +211,13 @@ class DocsProjectionTests(TestCase):
         self.assertEqual(breadcrumb.count('aria-current="page"'), 1)
         self.assertEqual(tree.count('aria-current="page"'), 1)
         self.assertIn(f'href="{path}"', tree)
+        self.assertIn('<details class="docs-tree-disclosure" open>', tree)
+        self.assertIn("<summary>Documentation sections</summary>", tree)
+        self.assertIn('class="docs-tree-branch"', tree)
+        self.assertIn("Show sections in", tree)
+
+        body = html.split('<article class="prose prose-reading docs-body">', 1)[1]
+        self.assertLess(body.index("</article>"), body.index('id="docs-onward-heading"'))
 
     def test_search_and_edit_actions_are_exact_external_links(self) -> None:
         for path in (DOCS_ROOT_PATH, "/docs/general/guidelines/ai-usage/"):

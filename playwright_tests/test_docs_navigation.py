@@ -62,8 +62,14 @@ def test_complete_docs_tree_and_detail_context_without_javascript(
             "href", f"https://datatalks.club{middle.public_path}"
         )
         detail_tree = page.get_by_role("navigation", name="Documentation sections")
-        expect(detail_tree.get_by_role("link")).to_have_count(105)
+        detail_links = detail_tree.locator("a.docs-tree-link")
+        expect(detail_links).to_have_count(105)
+        assert detail_links.evaluate_all(
+            "links => links.map(link => link.getAttribute('href'))"
+        ) == [item.public_path for item in documents]
+        assert detail_tree.get_by_role("link").count() < len(documents)
         expect(detail_tree.locator('a[aria-current="page"]')).to_have_count(1)
+        expect(detail_tree.locator('a[aria-current="page"]')).to_be_visible()
         expect(detail_tree.locator('a[aria-current="page"]')).to_have_attribute(
             "href", middle.public_path
         )

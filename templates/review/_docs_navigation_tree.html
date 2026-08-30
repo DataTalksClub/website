@@ -16,7 +16,14 @@
         <span>{{ item.title }}</span>
       </a>
       {% if item.children %}
-        {% include "review/_docs_navigation_tree.html" with docs_items=item.children docs_current_path=docs_current_path only %}
+        {% if docs_current_path %}
+          <details class="docs-tree-branch"{% if item.public_path in docs_open_paths %} open{% endif %}>
+            <summary>Show sections in {{ item.title }}</summary>
+            {% include "review/_docs_navigation_tree.html" with docs_items=item.children docs_current_path=docs_current_path docs_open_paths=docs_open_paths only %}
+          </details>
+        {% else %}
+          {% include "review/_docs_navigation_tree.html" with docs_items=item.children only %}
+        {% endif %}
       {% endif %}
     </li>
   {% endfor %}

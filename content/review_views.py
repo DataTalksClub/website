@@ -99,13 +99,18 @@ def _docs_detail_context(
     document: dict[str, Any], rendered: str, headings: tuple[dict[str, Any], ...]
 ) -> dict[str, Any]:
     previous, following = docs_sequential_navigation(document)
+    breadcrumbs = docs_breadcrumbs(document)
     return {
         "docs": document,
         "docs_html": rendered,
         "docs_headings": headings,
-        "docs_breadcrumbs": docs_breadcrumbs(document),
+        "docs_breadcrumbs": breadcrumbs,
         "docs_children": docs_children(document.get("public_path")),
         "docs_navigation": docs_navigation_tree().root.children,
+        "docs_open_paths": tuple(
+            crumb["public_path"] for crumb in breadcrumbs if crumb["public_path"] != DOCS_ROOT_PATH
+        )
+        + (str(document["public_path"]),),
         "docs_parent": docs_parent(document),
         "docs_previous": previous,
         "docs_next": following,
