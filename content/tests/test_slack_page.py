@@ -65,16 +65,17 @@ class SlackPageTests(TestCase):
             r'href="' + re.escape(reverse("slack")) + r'"\s+aria-current="page"\s+>Slack</a>',
         )
 
-    def test_the_hero_keeps_the_projected_title_and_lede(self) -> None:
+    def test_the_hero_truthfully_describes_the_available_slack_help(self) -> None:
         # The heading and the standfirst are the shared text page's own slots, so
         # they carry its identifier and its `.prose-lede` face (issue #179).
         self.assertRegex(
             self.body,
-            r'<h1 id="text-page-heading">\s*' + re.escape(self.page["title"]) + r"\s*</h1>",
+            r'<h1 id="text-page-heading">\s*DataTalks\.Club on Slack\s*</h1>',
         )
         self.assertRegex(
             self.body,
-            r'<p class="prose-lede">\s*' + re.escape(self.page["lead"]) + r"\s*</p>",
+            r'<p class="prose-lede">\s*See where DataTalks\.Club members talk, and contact '
+            r"the community team if you need help with the next step\.\s*</p>",
         )
         self.assertEqual(self.body.count("<h1"), 1)
 
@@ -90,7 +91,11 @@ class SlackPageTests(TestCase):
         self.assertEqual(self.body.count('class="chip chip-plain channel"'), len(channels))
 
     def test_the_page_keeps_its_one_action_as_a_call_to_action(self) -> None:
-        self.assertIn('<h2 id="slack-help-heading">Having trouble joining?</h2>', self.body)
+        self.assertIn('<h2 id="slack-help-heading">Need help with Slack?</h2>', self.body)
+        self.assertIn(
+            "Contact the community team and they will reply with the appropriate next step.",
+            self.body,
+        )
         self.assertRegex(
             self.body,
             r'<a\s+class="cta cta-primary interactive-lift"\s+href="'
@@ -98,3 +103,7 @@ class SlackPageTests(TestCase):
             + r'"\s+target="_blank"\s+rel="noreferrer"\s*>\s*Contact the community team',
         )
         self.assertIn('<span class="sr-only">(opens in a new tab)</span>', self.body)
+        self.assertLess(
+            self.body.index("Contact the community team"),
+            self.body.index('id="slack-channels-heading"'),
+        )

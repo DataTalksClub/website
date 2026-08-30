@@ -43,9 +43,7 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
         for path, source in self.template_sources():
             for match in re.finditer(r'class="([^"]+)"', source):
                 classes = set(match.group(1).split())
-                has_lift = bool(
-                    re.search(r"(?:^|\s)interactive-lift(?:$|\s|\{)", match.group(1))
-                )
+                has_lift = bool(re.search(r"(?:^|\s)interactive-lift(?:$|\s|\{)", match.group(1)))
                 if classes & CONTROL_CLASSES and not has_lift:
                     relative = path.relative_to(REPOSITORY_ROOT)
                     missing.append(f"{relative}: {match.group(1)}")
@@ -99,9 +97,9 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
 
     def test_informational_cards_are_not_marked_as_interactive(self) -> None:
         homepage = (REPOSITORY_ROOT / "templates/core/home.html").read_text(encoding="utf-8")
-        dashboard = (
-            REPOSITORY_ROOT / "courses/templates/courses/dashboard.html"
-        ).read_text(encoding="utf-8")
+        dashboard = (REPOSITORY_ROOT / "courses/templates/courses/dashboard.html").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn('class="card climb-card"', homepage)
         self.assertIn('class="card dashboard-card"', dashboard)
@@ -118,9 +116,7 @@ class InteractiveSurfaceContractTests(SimpleTestCase):
                 "previous-episode interactive-card interactive-lift",
                 "next-episode interactive-card interactive-lift",
             ),
-            "templates/public/wiki_hub.html": (
-                "explore-row interactive-card interactive-lift",
-            ),
+            "templates/public/wiki_hub.html": ("explore-row interactive-card interactive-lift",),
             "courses/templates/courses/course_list.html": (
                 "active-card interactive-card interactive-lift",
                 "course-card interactive-card interactive-lift",

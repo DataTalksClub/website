@@ -103,6 +103,11 @@ class ModulePageTests(TestCase):
                 ),
             )
 
+        body = response.content.decode()
+        self.assertIn('class="module-layout shell-breakout"', body)
+        self.assertLess(body.index('class="module-main"'), body.index('class="module-sidebar'))
+        self.assertNotIn("Shared module navigation contract", body)
+
     def test_module_and_unit_links_keep_numeric_source_slugs(self):
         module_url = reverse(
             "module",

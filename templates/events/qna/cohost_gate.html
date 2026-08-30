@@ -1,23 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex,nofollow">
-    <title>Co-host access · {{ event.title }}</title>
-  </head>
-  <body>
-    <main class="qna-shell">
-      <p><a href="/events/{{ event.public_id }}/{{ event.slug }}/qna/">{{ event.title }}</a></p>
+{% extends "events/qna/_base.html" %}
+{% block qna_title %}Co-host access · {{ event.title }}{% endblock %}
+{% block qna_body_class %}qna-cohost-page{% endblock %}
+{% block qna_content %}
+      <p class="qna-kicker"><a href="/events/{{ event.public_id }}/{{ event.slug }}/qna/">{{ event.title }}</a></p>
       <h1>Enter co-host passcode</h1>
       <p>Ask the event operator for the separate passcode for this link.</p>
-      {% if error %}<p role="alert">{{ error }}</p>{% endif %}
-      <form method="post">
-        {% csrf_token %}
-        <label for="passcode">Passcode</label>
-        <input id="passcode" name="passcode" autocomplete="one-time-code" required>
-        <button type="submit">Continue</button>
-      </form>
-    </main>
-  </body>
-</html>
+      <section class="qna-card" aria-label="Co-host verification">
+        {% if error %}<p class="qna-error qna-error-callout" role="alert">{{ error }}</p>{% endif %}
+        <form method="post">
+          {% csrf_token %}
+          <label for="passcode">Passcode</label>
+          <input id="passcode" name="passcode" autocomplete="one-time-code" required>
+          <button type="submit">Continue</button>
+        </form>
+      </section>
+{% endblock %}

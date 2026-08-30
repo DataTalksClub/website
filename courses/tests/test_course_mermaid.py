@@ -9,6 +9,24 @@ from courses.registration import markdown_has_mermaid, render_markdown
 
 
 class CourseMermaidMarkdownTests(SimpleTestCase):
+    def test_authored_h1_is_normalized_below_the_unit_page_title(self):
+        rendered = render_markdown("# Authored title\n\n## Section")
+
+        self.assertNotIn("<h1>", rendered)
+        self.assertIn("<h2>Authored title</h2>", rendered)
+        self.assertIn("<h2>Section</h2>", rendered)
+
+    def test_markdown_table_is_semantic_and_keyboard_scrollable(self):
+        rendered = render_markdown("| Signal | Owner |\n| --- | --- |\n| Lag | Platform |")
+
+        self.assertIn(
+            '<div class="prose-scroll" role="region" aria-label="Lesson data table" tabindex="0">',
+            rendered,
+        )
+        self.assertIn("<table>", rendered)
+        self.assertIn('<th scope="col">Signal</th>', rendered)
+        self.assertIn("<td>Platform</td>", rendered)
+
     def test_mermaid_fence_is_an_escaped_diagram_div(self):
         rendered = render_markdown(
             '```mermaid\nflowchart LR\n    A["<script>alert(1)</script>"] --> B\n```'
@@ -30,14 +48,14 @@ class CourseMermaidRuntimeTests(SimpleTestCase):
     repository_root = Path(__file__).resolve().parents[2]
 
     def test_runtime_is_csp_safe_and_theme_aware(self):
-        runtime = (
-            self.repository_root / "courses/static/courses/mermaid_render.js"
-        ).read_text(encoding="utf-8")
+        runtime = (self.repository_root / "courses/static/courses/mermaid_render.js").read_text(
+            encoding="utf-8"
+        )
 
         for marker in (
             "import(moduleUrl.href)",
-            "querySelectorAll(\"div.mermaid\")",
-            "securityLevel: \"strict\"",
+            'querySelectorAll("div.mermaid")',
+            'securityLevel: "strict"',
             "themeVariables",
             "dark-mode",
             "MutationObserver",
@@ -49,9 +67,9 @@ class CourseMermaidRuntimeTests(SimpleTestCase):
         self.assertNotIn("new Function", runtime)
 
     def test_mermaid_template_uses_local_module_and_overflow_rules(self):
-        template = (
-            self.repository_root / "courses/templates/courses/_mermaid.html"
-        ).read_text(encoding="utf-8")
+        template = (self.repository_root / "courses/templates/courses/_mermaid.html").read_text(
+            encoding="utf-8"
+        )
 
         self.assertIn("courses/mermaid_render.js", template)
         self.assertIn("overflow-x: auto", template)

@@ -48,7 +48,7 @@ class PublicUnitPageTests(TestCase):
             source_checksum="b" * 64,
             content_markdown=(
                 "## Welcome\n\nBuild an **agent** with `Python`.\n\n"
-                "```python\nprint(\"hello, agent\")\n```"
+                '```python\nprint("hello, agent")\n```'
             ),
         )
         self.middle_unit = Unit.objects.create(
@@ -105,7 +105,13 @@ class PublicUnitPageTests(TestCase):
             html=True,
         )
         self.assertContains(response, 'class="band band-lavender content-page-content')
-        self.assertContains(response, 'class="module-layout"')
+        self.assertContains(response, 'class="module-layout shell-breakout"')
+        body = response.content.decode()
+        self.assertLess(
+            body.index('class="module-main unit-main"'),
+            body.index('class="module-sidebar'),
+        )
+        self.assertEqual(body.count("<h1"), 1)
 
     def test_middle_unit_links_to_previous_and_next_units_with_buttons(self):
         response = self.client.get(self.unit_url(self.middle_unit))

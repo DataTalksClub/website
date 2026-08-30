@@ -103,6 +103,11 @@
         overscroll-behavior-inline: contain;
       }
 
+      .stats-scroll-wide {
+        --breakout-width: min(var(--shell), calc(100vw - 2rem));
+        max-width: none;
+      }
+
       .stats-scroll:focus-visible {
         outline-offset: -3px;
       }
@@ -112,6 +117,17 @@
         font-size: 0.92rem;
         text-align: left;
         width: 100%;
+      }
+
+      .stats-table-wide {
+        min-width: 64rem;
+      }
+
+      .stats-overflow-cue {
+        color: var(--body-text);
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        margin-top: 0.65rem;
       }
 
       .stats-table th,
@@ -341,12 +357,12 @@
             </div>
           </div>
           <div
-            class="stats-scroll"
-            tabindex="0"
+            class="stats-scroll stats-scroll-wide shell-breakout"
             role="region"
             aria-labelledby="homework-statistics-heading"
+            aria-describedby="homework-statistics-overflow"
           >
-            <table class="stats-table">
+            <table class="stats-table stats-table-wide">
                 <thead>
                   <tr>
                     <th scope="col">Homework</th>
@@ -403,6 +419,9 @@
                 </tbody>
             </table>
           </div>
+          <p id="homework-statistics-overflow" class="stats-overflow-cue" hidden>
+            More columns are available. Scroll the table horizontally.
+          </p>
         </section>
       {% endif %}
 
@@ -421,9 +440,9 @@
           </div>
           <div
             class="stats-scroll"
-            tabindex="0"
             role="region"
             aria-labelledby="assignment-difficulty-heading"
+            aria-describedby="assignment-difficulty-overflow"
           >
             <table class="stats-table">
                 <thead>
@@ -450,6 +469,9 @@
                 </tbody>
             </table>
           </div>
+          <p id="assignment-difficulty-overflow" class="stats-overflow-cue" hidden>
+            More columns are available. Scroll the table horizontally.
+          </p>
         </section>
       {% endif %}
 
@@ -466,10 +488,10 @@
             </div>
           </div>
           <div
-            class="stats-scroll"
-            tabindex="0"
+            class="stats-scroll stats-scroll-wide shell-breakout"
             role="region"
             aria-labelledby="question-difficulty-heading"
+            aria-describedby="question-difficulty-overflow"
           >
             <table class="stats-table">
                 <thead>
@@ -506,6 +528,9 @@
                 </tbody>
             </table>
           </div>
+          <p id="question-difficulty-overflow" class="stats-overflow-cue" hidden>
+            More columns are available. Scroll the table horizontally.
+          </p>
         </section>
       {% endif %}
 
@@ -577,4 +602,37 @@
           </p>
         </section>
       {% endif %}
+{% endblock %}
+
+{% block page_scripts %}
+  <script>
+    (function () {
+      var frames = Array.prototype.slice.call(document.querySelectorAll(".stats-scroll"));
+
+      function update(frame) {
+        var overflowing = frame.scrollWidth > frame.clientWidth + 1;
+        var cueId = frame.getAttribute("aria-describedby");
+        var cue = cueId ? document.getElementById(cueId) : null;
+        frame.classList.toggle("is-overflowing", overflowing);
+        if (overflowing) {
+          frame.setAttribute("tabindex", "0");
+        } else {
+          frame.removeAttribute("tabindex");
+        }
+        if (cue) cue.hidden = !overflowing;
+      }
+
+      function updateAll() {
+        frames.forEach(update);
+      }
+
+      updateAll();
+      if ("ResizeObserver" in window) {
+        var observer = new ResizeObserver(updateAll);
+        frames.forEach(function (frame) { observer.observe(frame); });
+      } else {
+        window.addEventListener("resize", updateAll);
+      }
+    })();
+  </script>
 {% endblock %}

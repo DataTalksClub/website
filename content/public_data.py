@@ -173,9 +173,7 @@ def safe_public_graph_url(value: Any) -> str:
         segment == ".." for segment in decoded.split("/")
     ):
         return ""
-    if any(
-        ord(character) < 0x20 or ord(character) == 0x7F for character in decoded_fragment
-    ):
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in decoded_fragment):
         return ""
     return value
 

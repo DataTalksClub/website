@@ -137,10 +137,7 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertIn("Visible text", str(blocks))
 
     def test_wiki_body_preserves_local_links_without_widening_plain_bios(self) -> None:
-        source = (
-            "Read [the guide]"
-            "(https://www.datatalks.club/blog/guide.html?from=wiki#setup)."
-        )
+        source = "Read [the guide](https://www.datatalks.club/blog/guide.html?from=wiki#setup)."
 
         self.assertEqual(
             builder._body_blocks(source, preserve_links=True),
@@ -160,12 +157,7 @@ class PublicProjectionBuilderTests(SimpleTestCase):
     def test_wiki_graph_localizes_host_variants_and_preserves_url_suffixes(self) -> None:
         payload = {
             "nodes": [
-                {
-                    "url": (
-                        "http://www.datatalks.club/podcast/episode.html"
-                        "?from=graph#transcript"
-                    )
-                },
+                {"url": ("http://www.datatalks.club/podcast/episode.html?from=graph#transcript")},
                 {"url": "/wiki/topic/?from=search#section"},
             ]
         }
@@ -323,7 +315,7 @@ class PublicProjectionBuilderTests(SimpleTestCase):
             [
                 {
                     "name": "Reader",
-                "text": "How do I start? Read [the archive](/books.html#archive).",
+                    "text": "How do I start? Read [the archive](/books.html#archive).",
                     "replies": [
                         {"name": "Author", "text": "Begin with chapter one."},
                         {"name": "Reader", "text": ""},

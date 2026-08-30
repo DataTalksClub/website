@@ -129,9 +129,7 @@ def test_homepage_cards_keep_the_viewport_aligned_and_use_the_static_cue(
             assert round(first_four[-1]["x"] + first_four[-1]["width"]) == round(
                 scroller_box["x"] + scroller_box["width"]
             )
-            assert cards.nth(4).bounding_box()["x"] > (
-                scroller_box["x"] + scroller_box["width"]
-            )
+            assert cards.nth(4).bounding_box()["x"] > (scroller_box["x"] + scroller_box["width"])
         else:
             second_box = cards.nth(1).bounding_box()
             scroller_right = scroller_box["x"] + scroller_box["width"]

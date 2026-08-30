@@ -65,8 +65,7 @@ class PrepareEventRegistrationSourcesTests(SimpleTestCase):
     def test_flattens_eventbrite_wrapper_for_the_existing_adapter(self) -> None:
         source = self.root / "source.zip"
         csv_payload = (
-            "Order #,Order Date,Attendee #,Attendee Status\n"
-            "order,2026-01-01,attendee,Attending\n"
+            "Order #,Order Date,Attendee #,Attendee Status\norder,2026-01-01,attendee,Attending\n"
         )
         with ZipFile(source, "w") as archive:
             archive.writestr("eventbrite/csv/123.csv", csv_payload)

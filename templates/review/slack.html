@@ -20,6 +20,23 @@
 {% endblock %}
 
 {% block content %}
+  <section class="slack-access" aria-labelledby="slack-help-heading">
+    <h2 id="slack-help-heading">Need help with Slack?</h2>
+    <p>
+      Contact the community team and they will reply with the appropriate next step.
+    </p>
+    <p>
+      <a
+        class="cta cta-primary interactive-lift"
+        href="{{ slack.troubleshooting_url }}"
+        target="_blank"
+        rel="noreferrer"
+      >
+        Contact the community team
+        <span class="sr-only">(opens in a new tab)</span>
+      </a>
+    </p>
+  </section>
   <h2 id="slack-channels-heading">Find your conversation</h2>
   <ul class="channel-list">
     {% for channel in slack.channels %}
@@ -28,19 +45,9 @@
       </li>
     {% endfor %}
   </ul>
-  <h2 id="slack-help-heading">Having trouble joining?</h2>
 {% endblock %}
 
 {% block actions %}
-  <a
-    class="cta cta-primary interactive-lift"
-    href="{{ slack.troubleshooting_url }}"
-    target="_blank"
-    rel="noreferrer"
-  >
-    Contact the community team
-    <span class="sr-only">(opens in a new tab)</span>
-  </a>
 {% endblock %}
 
 {% block page_styles %}
@@ -57,6 +64,19 @@
         gap: 0.5rem;
         list-style: none;
         padding-left: 0;
+      }
+
+      .slack-access {
+        background: var(--card);
+        border: 2px solid var(--line);
+        border-radius: 0.9rem;
+        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
+        margin-bottom: 2rem;
+        padding: 1.25rem;
+      }
+
+      .slack-access > :first-child {
+        margin-top: 0;
       }
 
       /* The chips sit on one baseline: the row's gap spaces them, not the

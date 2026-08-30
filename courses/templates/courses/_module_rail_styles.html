@@ -2,6 +2,7 @@
         align-items: start;
         display: grid;
         gap: 2rem;
+        grid-template-areas: "rail main";
         grid-template-columns: minmax(17rem, 21rem) minmax(0, 1fr);
       }
 
@@ -11,8 +12,13 @@
       }
 
       .module-sidebar {
+        grid-area: rail;
         position: sticky;
         top: 1rem;
+      }
+
+      .module-main {
+        grid-area: main;
       }
 
       .module-sidebar .card {
@@ -101,7 +107,7 @@
       }
 
       .read-state-form .cta {
-        min-height: 2.5rem;
+        min-height: 2.75rem;
         width: 100%;
       }
 
@@ -127,6 +133,9 @@
 
       @media (max-width: 52rem) {
         .module-layout {
+          grid-template-areas:
+            "main"
+            "rail";
           grid-template-columns: 1fr;
         }
 

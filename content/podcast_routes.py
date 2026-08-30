@@ -5,9 +5,7 @@ from __future__ import annotations
 PODCAST_ROUTE_MIGRATION_SLUG = "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
 PODCAST_ROUTE_MIGRATION_PATH = "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"
 PODCAST_AI_PRODUCTION_SLUG = "s24e06-how-to-build-ai-that-actually-ships-in-production"
-PODCAST_AI_PRODUCTION_PATH = (
-    "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production"
-)
+PODCAST_AI_PRODUCTION_PATH = "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production"
 
 PODCAST_STABLE_ROUTES = {
     PODCAST_ROUTE_MIGRATION_SLUG: PODCAST_ROUTE_MIGRATION_PATH,
