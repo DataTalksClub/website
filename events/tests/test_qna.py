@@ -141,6 +141,42 @@ class EventQnaHttpTests(TestCase):
         self.assertIn("private", unchanged["Cache-Control"])
         self.assertIn("no-store", unchanged["Cache-Control"])
 
+    def test_participant_and_cohost_gate_share_the_distraction_free_shell(self) -> None:
+        participant = self.client.get(self.page_url)
+        self.assertTemplateUsed(participant, "events/qna/_base.html")
+        self.assertContains(participant, 'class="qna-skip-link"')
+        self.assertContains(participant, 'data-qna-mode="participant"')
+        self.assertContains(participant, 'id="qna-sort"')
+
+        invite = services.create_cohost(
+            self.event.id,
+            name="review-host",
+            passcode="bounded-review-42",
+            actor_ref="test:qna-shell",
+        )
+        gate_url = reverse(
+            "public-event-qna-cohost",
+            kwargs={
+                "event_id": self.event.public_id,
+                "slug": self.slug,
+                "name": "review-host",
+            },
+        )
+        self.assertEqual(gate_url, invite["join_url"])
+        gate = self.client.get(gate_url)
+        self.assertTemplateUsed(gate, "events/qna/_base.html")
+        self.assertContains(gate, 'class="qna-card"')
+        self.assertContains(gate, 'autocomplete="one-time-code"')
+
+        denied = self.client.post(gate_url, {"passcode": "wrong"})
+        self.assertEqual(denied.status_code, 403)
+        self.assertTemplateUsed(denied, "events/qna/_base.html")
+        self.assertContains(
+            denied,
+            'class="qna-error qna-error-callout"',
+            status_code=403,
+        )
+
     def test_archived_public_session_is_gone_but_idempotent_provisioning_remains(self) -> None:
         services.transition_session(self.event.id, EventQnaSession.State.ARCHIVED)
         response = Client().get(self.page_url)

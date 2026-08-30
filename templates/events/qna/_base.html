@@ -1,0 +1,18 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex,nofollow">
+    <title>{% block qna_title %}Event Q&amp;A{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'events/qna/qna.css' %}">
+  </head>
+  <body class="qna-page {% block qna_body_class %}{% endblock %}">
+    <a class="qna-skip-link" href="#main-content">Skip to Q&amp;A</a>
+    <main id="main-content" class="qna-shell" {% block qna_main_attributes %}{% endblock %}>
+      {% block qna_content %}{% endblock %}
+    </main>
+    {% block qna_scripts %}{% endblock %}
+  </body>
+</html>

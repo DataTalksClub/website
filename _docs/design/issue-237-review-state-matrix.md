@@ -100,6 +100,7 @@ deterministic factory, ORM relationships, and existing assignment workflows.
 | Assignments | Scored, open-unsubmitted, closed-unsubmitted, collecting-submissions, peer-reviewing, and completed states with short and long copy. |
 | Registration | Open preview, already-registered actor, multi-error interaction, and inactive-campaign 404 safe denial. |
 | Wrapped | Visible aggregate, individual activity, individual no-activity, and absent/hidden aggregate states. |
+| Individual-event Q&A | Open participant room attached to checked event identity 364, with three synthetic questions (named, anonymous, and pinned) plus a co-host passcode gate. No `/events` listing data or projection content is added or changed. |
 
 Course instructor relations are not invented: the current database course/cohort
 models do not own a teaching-team relation. Public editorial instructor/person
@@ -124,11 +125,11 @@ patterns where an integer ID comes from the manifest.
 | `/courses/register/streaming-systems-lab-spring-2027/` | Anonymous | Tests normal registration preview and long marketing copy. | `native-registration`. Submit the blank form for its multi-error summary and focus. Nonblank review POSTs remain 403. |
 | Same registration route | Active learner | Tests already-registered state without a second identity. | `native-already-registered`. |
 | `/courses/register/streaming-systems-lab-closed-preview/` | Anonymous; expected 404 | Tests safe denial for inactive campaigns. | `native-registration-closed`. |
-| Native module 03 route from manifest | Active learner; seven units and mixed read state | Tests dense rail, current location, terminal homework, target size, and mobile reshape. | `native-module-dense`. |
-| Rich native unit route from manifest | Active learner | Tests long title, prose/table/code/Mermaid overflow, rail current state, and previous/next destinations. | `native-unit-rich`. |
+| Native module 03 route from manifest | Active learner; seven units and mixed read state | Tests dense rail, current location, terminal homework, target size, balanced desktop width, and mobile reshape. | `native-module-dense`. The main-first DOM stays intact; the grid alone places the rail left on desktop and both module grids use the bounded shared `shell-breakout`. |
+| Rich native unit route from manifest | Active learner | Tests long title, readable prose/table/code/Mermaid width, rail current state, and previous/next destinations. | `native-unit-rich`; the 1440px breakout gives the main lesson and Mermaid room while the 390px source order remains content then rail. |
 | Empty native unit route from manifest | Anonymous | Tests meaningful empty fallback and anonymous read-only rail. | `native-unit-empty`. |
 | Exact unit read endpoint `/courses/streaming-systems-lab/autumn-2026/modules/module-03/unit-04/read` | Anonymous POST then active-learner POST | Anonymous reaches the login redirect; learner toggles `is_read=0/1`; the bounded `issue-237-invalid` value reaches the view's 400. | Browser state `active-learner`. No other module/unit mutation is allowlisted. |
-| Legacy dashboard routes from manifest | Active learner on active 2026, then observer on hidden empty archive-preview | Contrasts a genuinely busy cohort dashboard with a separate cohort having zero enrollments, assignments, submissions, and progress. | `legacy-dashboard`, `legacy-dashboard-unenrolled`. Actor identity does not change aggregate dashboard data; the separate empty cohort creates the contrast. |
+| Legacy dashboard routes from manifest | Active learner on active 2026, then observer on hidden empty archive-preview | Contrasts a genuinely busy cohort dashboard with a separate cohort having zero enrollments, assignments, submissions, and progress. | `legacy-dashboard`, `legacy-dashboard-unenrolled`. Homework statistics and Question difficulty use bounded wide frames: cues/tab stops appear only on real overflow (both at 390px) and remain absent when each fits at 1440px. |
 | Open/scored/closed homework routes | Active learner or observer | Tests not-started, editable submission, submitted/scored feedback, closed state, long question, optional fields, and action clarity. | `legacy-homework-open`, `legacy-homework-scored`, `legacy-homework-closed`. On the exact open route, the blank review POST is forced through the existing invalid-hours validation and atomic rollback, rendering the callout without a submission, answer, enrollment, job, mail, or provider effect. |
 | Scored homework `/stats` | Anonymous | Tests dense statistic sections and question rows. | `legacy-homework-stats`. |
 | Peer-reviewing and collecting project routes | Active learner | Tests existing submission versus open submission form and state comprehension. | `legacy-project-peer-review`, `legacy-project-collecting`. |
@@ -163,9 +164,11 @@ events, or editorial documents in the review database.
 | `/wiki/graph` | Dense interactive graph | Tests wide content, focus, overflow, contrast, and reduced motion. | Checked graph projection. |
 | `/wiki/special-pages` | Dense utility list | Tests grouped metadata and narrow wrapping. | Checked public projection. |
 | `/wiki/a-a-testing` | Detail | Tests article-like wiki prose and local navigation. | Checked public projection. |
-| `/docs/` and `/docs/activities/` | Hub and nested detail | Tests trail/current location, navigation depth, code/prose, and long links. | Checked review projection. |
-| `/faq/` and `/faq/ai-dev-tools-zoomcamp.html#4487db3924` | Hub and anchored course question | Tests scanning, anchor arrival/focus context, and long answer prose. | Checked review projection. |
-| `/slack` | Anonymous normal state | Tests focused call to action, explanatory copy, and destination semantics. | Checked review projection. |
+| `/docs/` and `/docs/courses/ai-dev-tools-zoomcamp/getting-started/` | Hub and nested detail | Tests trail/current location, all 105 retained destinations, current-branch disclosure, code/prose, next context, and long links. | Checked review projection. On detail, unrelated descendants start collapsed while the current branch and current link remain visible; the mobile tree has one `Documentation sections` disclosure. |
+| `/faq/` and `/faq/data-engineering-zoomcamp.html` | Hub and code-rich course FAQ | Tests scanning, disclosure focus, long answer prose, and a visible 44px code-copy control. | Checked review projection. Open a question containing a code sample before measuring/focusing its copy control. |
+| `/slack` | Anonymous normal state | Tests honest community/contact hierarchy, explanatory next step, channel preview, and destination semantics. | H1 `DataTalks.Club on Slack`; the only checked destination remains the exact projected `Contact the community team` troubleshooting URL, presented before channels. No direct join/access promise or invented destination is rendered. |
+| Individual-event Q&A participant route from manifest | Anonymous; open, populated room | Tests distraction-free event context, valid canonical detail destination, ask form, sort, named/anonymous questions, votes, realtime polling, dark mode, reduced motion, and 44px controls. | `event-qna-participant`; synthetic Q&A rows attach to projection-backed event 364 (`/events/364/ai-dev-tools-zoomcamp-2026-pre-course-live-q-a`), whose detail is asserted 200. This does not alter or review `/events`. |
+| Individual-event Q&A co-host route from manifest | Anonymous; passcode gate | Tests the shared Q&A shell, passcode input, error callout, responsive form, and focus. | `event-qna-cohost-gate` for GET. The `design_review` mutation guard intentionally keeps every Q&A POST at 403. Use the isolated test command below to render the real wrong-passcode 403 without weakening that guard. |
 | `/terms` | Anonymous long legal prose | Tests reading measure, deep headings, lists, and 200% reflow. | Checked legal content. |
 | `/accounts/login/` | Normal, keyboard focus, invalid synthetic credentials | Tests provider/action hierarchy, error alert, preserved privacy, and return intent. | Seed local placeholder providers if buttons are required: `uv run python manage.py seed_local_social_providers`; enter only `invalid@example.invalid` and a synthetic invalid password. |
 | `/accounts/signup/` | Normal social signup entry | Tests distinction from login, provider targets, terms copy, and narrow layout. | Same local provider seed; do not follow placeholder providers. |
@@ -185,6 +188,16 @@ events, or editorial documents in the review database.
   nonblank registration/homework/complaint payload is denied before the view. The
   homework preview injects a review-only invalid hours sentinel so the real atomic
   validation path rolls back. Do not submit any other successful course form.
+- Individual-event Q&A is GET-only under `website.settings.design_review`. Its
+  participant, co-host gate, and real invalid-passcode error renders are exercised by
+  `playwright_tests/test_issue_237_qna_review.py` in the isolated test database;
+  its event-context links have a 44px visible hit area and resolve to the canonical
+  projection-backed event detail. Because transactional browser cases flush migration
+  data, test support restores the complete checked 421-event identity map directly
+  before rendering; it does not run the product importer, create provisioning jobs,
+  add aliases, or alter the file-backed event projection/list;
+  provider/network behavior remains test-disabled and the generated evidence stays
+  under `.tmp/adversarial-design-review/iteration-0/qna/`.
 - The interaction tests assert unchanged counts for registrations, submissions,
   answers, complaints, enrollments, and durable jobs across all three blank previews.
   Provider routes, arbitrary course mutations, and Studio mutations remain 403.
@@ -209,6 +222,9 @@ Run the deterministic graph and route contract:
 ```bash
 uv run --frozen pytest test_support/tests/test_design_review_data.py -q
 uv run --frozen pytest test_support/tests/test_design_review_interactions.py -q
+DJANGO_ALLOW_ASYNC_UNSAFE=true uv run --frozen pytest \
+  playwright_tests/test_docs_navigation.py \
+  playwright_tests/test_issue_237_qna_review.py -q
 uv run ruff check \
   review_import/middleware.py \
   website/settings/design_review.py \

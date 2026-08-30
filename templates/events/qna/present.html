@@ -1,23 +1,17 @@
+{% extends "events/qna/_base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex,nofollow">
-    <title>Present Q&amp;A · {{ event.title }}</title>
-    <link rel="stylesheet" href="{% static 'events/qna/qna.css' %}">
-  </head>
-  <body class="qna-page qna-present-page">
-    <main id="main-content" class="qna-shell" data-qna-mode="presentation">
+{% block qna_title %}Present Q&amp;A · {{ event.title }}{% endblock %}
+{% block qna_body_class %}qna-present-page{% endblock %}
+{% block qna_main_attributes %}data-qna-mode="presentation"{% endblock %}
+{% block qna_content %}
       <p class="qna-kicker">Live Q&amp;A · {{ event.title }}</p>
       <h1>Questions</h1>
       <p id="qna-banner" class="qna-banner" role="status">{{ session.state|capfirst }}</p>
       <ol id="qna-list" class="qna-list qna-presentation-list"></ol>
       <p id="qna-empty" class="qna-muted">No questions yet.</p>
-    </main>
+{% endblock %}
+{% block qna_scripts %}
     {{ qna_config|json_script:"qna-config" }}
     <script src="{% static 'events/qna/qna.js' %}"></script>
     <script src="{% static 'events/qna/present.js' %}"></script>
-  </body>
-</html>
+{% endblock %}

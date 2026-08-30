@@ -34,8 +34,65 @@ from courses.models import (
     Unit,
     UnitReadState,
 )
+from events.identity import load_identity_manifest
+from events.models import (
+    Event,
+    EventQnaCohostInvite,
+    EventQnaQuestion,
+    EventQnaSession,
+)
+from events.qna.services import event_qna_path
 from test_support.design_review_identity import FROZEN_AT, SEED
 from test_support.factories import FactoryContext, create_current_scenario
+
+QNA_REVIEW_EVENT_PUBLIC_ID = 364
+
+
+def ensure_checked_event_identity_snapshot() -> Event:
+    """Restore the complete checked identity map after transactional test flushes.
+
+    The product importer also provisions one durable Q&A job per identity. Rendered
+    review tests need only the normal public-route mapping, so test support inserts
+    missing checked identity rows directly and leaves jobs, aliases, and projection
+    files untouched.
+    """
+
+    manifest = load_identity_manifest()
+    existing = {event.id: event for event in Event.objects.all()}
+    existing_public_ids = {
+        event.public_id: event.id for event in existing.values() if event.public_id is not None
+    }
+    missing: list[Event] = []
+    for item in manifest.events:
+        current = existing.get(item.id)
+        if current is not None:
+            if (
+                current.public_id != item.public_id
+                or current.source_repository != item.source.repository
+                or current.source_revision != item.source.revision
+                or current.source_key != item.source.source_key
+            ):
+                raise RuntimeError("checked public event identity mapping conflicts with test DB")
+            continue
+        if item.public_id in existing_public_ids:
+            raise RuntimeError("checked public event ID conflicts with test DB")
+        missing.append(
+            Event(
+                id=item.id,
+                public_id=item.public_id,
+                title=item.title,
+                slug=item.slug,
+                source_repository=item.source.repository,
+                source_revision=item.source.revision,
+                source_key=item.source.source_key,
+                source_path=item.source_path,
+                source_checksum=item.source_checksum,
+                lifecycle=Event.Lifecycle.PUBLISHED,
+            )
+        )
+    if missing:
+        Event.objects.bulk_create(missing)
+    return Event.objects.get(public_id=QNA_REVIEW_EVENT_PUBLIC_ID)
 
 
 @dataclass(frozen=True, slots=True)
@@ -145,8 +202,8 @@ def _project(
         slug=key,
         title=title,
         description=(
-            "Design, document, and defend a production-ready system using fully "
-            "synthetic workloads and observable acceptance criteria."
+            "Design, document, and defend a production-ready system using bounded "
+            "replay workloads and observable acceptance criteria."
         ),
         submission_due_date=FROZEN_AT + timedelta(days=days),
         peer_review_due_date=FROZEN_AT + timedelta(days=days + 7),
@@ -155,15 +212,78 @@ def _project(
     )
 
 
+def _seed_event_qna(context: FactoryContext) -> tuple[str, str]:
+    """Create one deterministic, individual-event Q&A review surface."""
+
+    # The title link in every Q&A shell points back to the canonical event detail.
+    # Attach the synthetic interaction state to a checked projection identity so
+    # that destination remains real without adding to or altering the event list.
+    event = ensure_checked_event_identity_snapshot()
+    session = EventQnaSession.objects.create(
+        id=context.logical_uuid("design-review-event-qna", "qna-clinic"),
+        event=event,
+        state=EventQnaSession.State.OPEN,
+        allow_names=True,
+        require_names=False,
+        state_changed_at=FROZEN_AT,
+        q_total=3,
+        revision=2,
+    )
+    questions = (
+        (
+            "retry-budget",
+            "How do you choose a retry budget when upstream latency changes throughout the day?",
+            "Mina Okafor",
+            True,
+        ),
+        (
+            "recovery-signals",
+            "Which signals distinguish a slow recovery from a stalled recovery?",
+            "Jon Bell",
+            False,
+        ),
+        (
+            "schema-migration",
+            "Can the replay boundary be moved safely after a schema migration?",
+            "",
+            False,
+        ),
+    )
+    for position, (key, text, author_name, pinned) in enumerate(questions):
+        question = EventQnaQuestion.objects.create(
+            question_id=context.physical_key("design-review-qna-question", key, length=26),
+            session=session,
+            text=text,
+            author_name=author_name,
+            participant_digest=context.physical_key(
+                "design-review-qna-participant", key, length=64
+            ),
+            score=1,
+            pinned=pinned,
+        )
+        EventQnaQuestion.objects.filter(pk=question.pk).update(
+            created_at=FROZEN_AT + timedelta(minutes=position)
+        )
+    EventQnaCohostInvite.objects.create(
+        invite_id=context.physical_key("design-review-qna-invite", "review-host", length=26),
+        session=session,
+        name="review-host",
+        passcode_digest="!synthetic-review-passcode-disabled",
+        created_by_ref="review:issue-237",
+    )
+    public_path = f"{event_qna_path(event)}/"
+    return public_path, f"{event_qna_path(event)}/cohost/review-host/"
+
+
 def _unit_markdown(module_number: int, unit_number: int, *, long: bool = False) -> str:
     title = "Choosing boundaries for reliable replay and recovery"
     if long:
         title += " when throughput, ownership, and delayed side effects all compete"
     return f"""## {title}
 
-This synthetic lesson uses a credible engineering narrative without copying course
-material. It explains how a team can make failure visible, keep retries bounded, and
-verify that a recovery procedure produces the same result twice.
+Reliable replay begins with a clear ownership boundary. This lesson explains how a
+team can make failure visible, keep retries bounded, and verify that a recovery
+procedure produces the same result twice.
 
 ### Working example
 
@@ -184,7 +304,7 @@ flowchart LR
 
 > A useful recovery plan is specific enough that another learner can run it.
 
-Continue with the [next synthetic lesson](../module-{module_number:02d}/unit-{unit_number + 1:02d}).
+Continue with the [next lesson](../module-{module_number:02d}/unit-{unit_number + 1:02d}).
 """
 
 
@@ -336,6 +456,7 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
         bundle="adopted_courses",
         state="minimal_valid",
     ).by_factory()
+    qna_public_path, qna_cohost_path = _seed_event_qna(context)
 
     legacy = scenario["adopted_courses.course"].value
     learner = scenario["adopted_courses.enrollment"].value.student
@@ -845,6 +966,20 @@ def seed_design_review_data(*, execution_namespace: str = "local-review") -> Des
             "anonymous",
             "learner with no activity",
             "adopted platform",
+        ),
+        ReviewSurface(
+            "event-qna-participant",
+            qna_public_path,
+            "anonymous",
+            "open Q&A with named, anonymous, pinned, and populated questions",
+            "website-native individual-event Q&A",
+        ),
+        ReviewSurface(
+            "event-qna-cohost-gate",
+            qna_cohost_path,
+            "anonymous",
+            "co-host passcode entry",
+            "website-native individual-event Q&A",
         ),
     )
     return DesignReviewData(

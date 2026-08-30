@@ -1,15 +1,8 @@
+{% extends "events/qna/_base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="robots" content="noindex,nofollow">
-    <title>Q&amp;A · {{ event.title }}</title>
-    <link rel="stylesheet" href="{% static 'events/qna/qna.css' %}">
-  </head>
-  <body class="qna-page">
-    <main id="main-content" class="qna-shell" data-qna-mode="participant">
+{% block qna_title %}Q&amp;A · {{ event.title }}{% endblock %}
+{% block qna_main_attributes %}data-qna-mode="participant"{% endblock %}
+{% block qna_content %}
       <p class="qna-kicker"><a href="/events/{{ event.public_id }}/{{ event.slug }}">{{ event.title }}</a></p>
       <h1>Event Q&amp;A</h1>
       <p id="qna-banner" class="qna-banner" role="status">{{ session.state|capfirst }}{% if session.state != 'open' %}: questions are closed{% endif %}</p>
@@ -40,9 +33,9 @@
         <ol id="qna-list" class="qna-list"></ol>
         <p id="qna-empty" class="qna-muted">No questions yet.</p>
       </section>
-    </main>
+{% endblock %}
+{% block qna_scripts %}
     {{ qna_config|json_script:"qna-config" }}
     <script src="{% static 'events/qna/qna.js' %}"></script>
     <script src="{% static 'events/qna/room.js' %}"></script>
-  </body>
-</html>
+{% endblock %}

@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 
 from courses.models import Cohort, CurriculumFormat, UnitReadState
+from events.models import EventQnaSession
 from test_support.design_review_data import seed_design_review_data
 
 pytestmark = pytest.mark.django_db(transaction=True)
@@ -16,6 +17,8 @@ def test_issue_237_review_data_builds_distinct_course_contracts_and_routes() -> 
     assert Cohort.objects.filter(curriculum_format=CurriculumFormat.LEGACY).count() == 3
     assert Cohort.objects.filter(curriculum_format=CurriculumFormat.MODULES).count() == 2
     assert UnitReadState.objects.count() > 0
+    qna_session = EventQnaSession.objects.get(event__public_id=364)
+    assert qna_session.provisioning_job_id is None
     assert {persona.key for persona in review_data.personas} == {
         "active-learner",
         "graduate",
@@ -59,6 +62,19 @@ def test_issue_237_review_data_builds_distinct_course_contracts_and_routes() -> 
     assert b"34 points" in individual_wrapped.content
     assert b"#2" in individual_wrapped.content
     assert b"19.5" in individual_wrapped.content
+
+    qna_participant = responses["event-qna-participant"]
+    assert b"AI Dev Tools Zoomcamp 2026 Pre-Course Live Q&amp;A" in qna_participant.content
+    assert b"Event Q&amp;A" in qna_participant.content
+    assert b'id="qna-sort"' in qna_participant.content
+    event_detail = Client().get(
+        f"/events/{qna_session.event.public_id}/{qna_session.event.slug}", follow=False
+    )
+    assert event_detail.status_code == 200
+
+    qna_cohost = responses["event-qna-cohost-gate"]
+    assert b"Enter co-host passcode" in qna_cohost.content
+    assert b'autocomplete="one-time-code"' in qna_cohost.content
 
 
 def test_issue_237_review_manifest_contains_no_email_or_session_value() -> None:
