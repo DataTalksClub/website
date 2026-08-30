@@ -1,514 +1,202 @@
+{% extends "core/content_page.html" %}
 {% load seo %}
-<!DOCTYPE html>
-<html lang="en" class="no-js">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script>
-      document.documentElement.classList.remove("no-js");
-      document.documentElement.classList.add("js");
-    </script>
-    <title>{{ seo_title }}</title>
-    {% canonical_link canonical_url %}
-    <meta name="description" content="{{ seo_description }}">
-    <meta property="og:type" content="article">
-    <meta property="og:site_name" content="DataTalks.Club">
-    <meta property="og:title" content="{{ seo_title }}">
-    <meta property="og:description" content="{{ seo_description }}">
-    <meta property="og:url" content="{{ canonical_url }}">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:site" content="@DataTalksClub">
-    <meta name="twitter:title" content="{{ seo_title }}">
-    <meta name="twitter:description" content="{{ seo_description }}">
-    <style>
-      /* ------------------------------------------------------------------ *
-       * Docs page, design 5a (issue #179).  A documentation page is read end
-       * to end beside the tree it belongs to: the trail back, the complete
-       * source-backed section tree, the page's own body in the shared
-       * `.prose` primitive, and then the ways onward.  Like every rebuilt
-       * page it carries its whole stylesheet inline and links no external
-       * CSS, which is why the old `core/docs_navigation.css` is gone from the
-       * head.
-       * ------------------------------------------------------------------ */
 
-      {% include "core/_design_system.html" %}
+{% block document_title %}
+  {{ seo_title }}
+{% endblock %}
 
-      /* ------------------------------------------------------------------ *
-       * Docs page rules.
-       * ------------------------------------------------------------------ */
+{% block metadata %}
+  {% canonical_link canonical_url %}
+  <meta name="description" content="{{ seo_description }}">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="DataTalks.Club">
+  <meta property="og:title" content="{{ seo_title }}">
+  <meta property="og:description" content="{{ seo_description }}">
+  <meta property="og:url" content="{{ canonical_url }}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:site" content="@DataTalksClub">
+  <meta name="twitter:title" content="{{ seo_title }}">
+  <meta name="twitter:description" content="{{ seo_description }}">
+{% endblock %}
 
-      /* --page follows the cool ground, since that is what the tail below the
-         last band continues. */
-      :root {
-        --page: var(--lavender);
-      }
+{% block page_styles %}
+  {% include "review/_docs_styles.html" %}
+{% endblock %}
 
-      /* The warm band holds nothing but the trail, so it keeps only the space a
-         trail needs; the reading band below it takes the room the hero's own
-         bottom padding would otherwise have left. */
-      .docs-hero {
-        padding-block: 1.5rem;
-      }
+{% block header_band_class %}
+  docs-detail-band
+{% endblock %}
 
-      .docs-hero .breadcrumbs {
-        margin-bottom: 0;
-        margin-top: 0;
-      }
-
-      .docs-read {
-        padding-top: 1.6rem;
-      }
-
-      /* Body and tree side by side from 64rem; below that the reader meets
-         the page before its index, which is the order the docs pages have
-         always used.  The columns are ordered rather than reordered in the
-         source so the tree keeps its place in the markup the navigation
-         partial expects. */
-      .docs-layout {
-        display: grid;
-        gap: 2rem;
-        min-width: 0;
-      }
-
-      .docs-aside {
-        min-width: 0;
-        order: 2;
-      }
-
-      .docs-main {
-        min-width: 0;
-        order: 1;
-      }
-
-      /* The documentation body renders through the shared reading primitive.
-         Only the measure is this page's own: a docs body carries screenshots,
-         code and long link lists that the 38rem reading column would crowd,
-         and the design system says to override `--measure` on the element
-         rather than to fork `.prose-reading`. */
-      .docs-body {
-        --measure: 46rem;
-      }
-
-      /* The body opens with the source's own h1 — the title the documentation
-         gives itself, and the page's only h1 — so the page heading is sized
-         here rather than in a hero block the source does not supply.  Nothing
-         above it in the markup is a heading, which is what keeps the tree and
-         the trail from landing ahead of the page's own title. */
-      .docs-body h1 {
-        font-size: clamp(1.9rem, 4.2vw, 2.75rem);
-        letter-spacing: -0.025em;
-        line-height: 1.1;
-        scroll-margin-top: 1.5rem;
-      }
-
-      /* A screenshot keeps its own size instead of being stretched: the source
-         marks several at a fraction of the column, and the system's full-width
-         `.prose img` would blow every one of them up. */
-      .docs-body img {
-        max-width: 100%;
-        width: auto;
-      }
-
-      /* The two GitHub actions, as the system's round bordered control.  They
-         wrap rather than run off a phone, so the pill's own `nowrap` is
-         released for this pair of long labels. */
-      .docs-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.6rem;
-        margin-top: 2rem;
-      }
-
-      .docs-actions .pill-button {
-        text-align: center;
-        white-space: normal;
-      }
-
-      /* ---- the source-backed section tree ------------------------------- *
-       * Structure and links are exactly what `review/_docs_navigation_tree`
-       * generates (issue #176); everything below is only its 5a skin.  The
-       * panel's own label is a mono eyebrow rather than a heading, so the
-       * page's first heading is still the body's h1.
-       * ------------------------------------------------------------------ */
-
-      .docs-tree-panel {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.9rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        min-width: 0;
-        padding: 1rem;
-      }
-
-      .docs-tree-label {
-        display: block;
-        margin-bottom: 0.6rem;
-      }
-
-      .docs-tree-list {
-        list-style: none;
-        margin: 0;
-        min-width: 0;
-        padding: 0;
-      }
-
-      /* Each nested level hangs off the system's dashed rule. */
-      .docs-tree-list .docs-tree-list {
-        border-inline-start: 2px dashed var(--line-soft);
-        margin-inline-start: 0.75rem;
-        padding-inline-start: 0.7rem;
-      }
-
-      .docs-tree-item {
-        min-width: 0;
-      }
-
-      .docs-tree-branch > summary {
-        align-items: center;
-        color: var(--muted);
-        cursor: pointer;
-        display: flex;
-        font-family: var(--font-mono);
-        font-size: 0.72rem;
-        font-weight: 700;
-        min-height: 2.75rem;
-        padding: 0.35rem 0.5rem;
-      }
-
-      .docs-tree-branch > summary:hover {
-        color: var(--indigo);
-      }
-
-      .docs-tree-branch > summary:focus-visible {
-        outline: 3px solid var(--focus);
-        outline-offset: 2px;
-      }
-
-      .docs-tree-disclosure > summary {
-        display: none;
-      }
-
-      .docs-tree-link {
-        align-items: center;
-        border-inline-start: 0.25rem solid transparent;
-        border-radius: 0.5rem;
-        color: var(--body-text);
-        display: flex;
-        font-size: 0.95rem;
-        gap: 0.5rem;
-        line-height: 1.35;
-        min-height: 2.75rem;
-        min-width: 0;
-        overflow-wrap: anywhere;
-        padding: 0.4rem 0.5rem;
-        text-decoration: none;
-      }
-
-      .docs-tree-link:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      /* The page the reader is on: the deep-lavender surface the system's
-         "open" status pill already pairs with ink text in both themes, plus an
-         indigo edge.  Never colour alone — the link also carries
-         `aria-current="page"` from the navigation partial. */
-      .docs-tree-link-current {
-        background: var(--lavender-deep);
-        border-inline-start-color: var(--indigo);
-        color: var(--ink);
-        font-weight: 800;
-      }
-
-      .docs-tree-marker {
-        border-block-end: 2px solid var(--indigo);
-        border-inline-end: 2px solid var(--indigo);
-        flex: 0 0 0.4rem;
-        height: 0.4rem;
-        transform: rotate(-45deg);
-        width: 0.4rem;
-      }
-
-      /* ---- the ways onward ---------------------------------------------- */
-
-      .docs-local {
-        display: grid;
-        gap: 1.5rem;
-        margin-bottom: 1.5rem;
-      }
-
-      .docs-onward {
-        border-top: 2px dashed var(--line-soft);
-        margin-top: 2.5rem;
-        padding-top: 2.5rem;
-      }
-
-      .docs-local h3 {
-        font-size: 1.05rem;
-        margin-bottom: 0.4rem;
-      }
-
-      /* A page's headings run to a dozen or more, so the list flows into
-         columns across the band rather than becoming one tall thin stack. */
-      .docs-local-list li {
-        break-inside: avoid;
-      }
-
-      .docs-local-list a {
-        align-items: center;
-        color: var(--indigo);
-        display: inline-flex;
-        min-height: 2.75rem;
-        overflow-wrap: anywhere;
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .docs-context {
-        display: grid;
-        gap: 0.75rem;
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .docs-context-link {
-        background: var(--card);
-        border: 2px solid var(--line);
-        border-radius: 0.7rem;
-        box-shadow: 0.3rem 0.3rem 0 var(--shadow-soft);
-        color: var(--ink);
-        display: block;
-        min-height: 2.75rem;
-        min-width: 0;
-        overflow-wrap: anywhere;
-        padding: 0.7rem 0.9rem;
-        text-decoration: none;
-      }
-
-      .docs-context-link:hover .docs-context-title {
-        text-decoration: underline;
-        text-underline-offset: 0.2em;
-      }
-
-      .docs-context-label {
-        display: block;
-      }
-
-      .docs-context-title {
-        display: block;
-        font-weight: 700;
-        margin-top: 0.15rem;
-      }
-
-      @media (min-width: 40rem) {
-        .docs-local-list {
-          column-gap: 1.75rem;
-          columns: 2;
-        }
-
-        .docs-context {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
-
-        /* The page above is one step, not one of a pair: it takes the row. */
-        .docs-context-parent {
-          grid-column: 1 / -1;
-        }
-      }
-
-      @media (min-width: 62rem) {
-        .docs-local-list {
-          columns: 3;
-        }
-      }
-
-      @media (min-width: 64rem) {
-        .docs-layout {
-          align-items: start;
-          grid-template-columns: minmax(15rem, 18rem) minmax(0, 1fr);
-        }
-
-        .docs-aside {
-          order: 1;
-          position: sticky;
-          top: 1rem;
-        }
-
-        .docs-main {
-          order: 2;
-        }
-      }
-
-      /* Narrow: the actions stop being a row of two and become a stack, so
-         neither long label is squeezed to half a phone. */
-      @media (max-width: 47.99rem) {
-        .docs-read {
-          padding-top: 1.25rem;
-        }
-
-        .docs-actions {
-          display: grid;
-          margin-top: 1.5rem;
-        }
-
-        .docs-tree-disclosure > summary {
-          align-items: center;
-          cursor: pointer;
-          display: flex;
-          font-family: var(--font-mono);
-          font-size: 0.82rem;
-          font-weight: 800;
-          min-height: 2.75rem;
-          padding: 0.25rem 0;
-        }
-
-        .docs-tree-disclosure > summary:focus-visible {
-          outline: 3px solid var(--focus);
-          outline-offset: 2px;
-        }
-
-        .docs-tree-disclosure[open] > summary {
-          border-bottom: 2px dashed var(--line-soft);
-          margin-bottom: 0.65rem;
-        }
-
-        .docs-tree-label {
-          display: none;
-        }
-      }
-    </style>
-  </head>
-  {% url 'update_timezone_preference' as timezone_update_url %}
-  <body
-    class="{{ DARK_MODE|yesno:'dark dark-mode,' }}"
-    data-dark-mode="{{ DARK_MODE|yesno:'true,false' }}"
-    data-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
-    data-toggle-url="{% url 'toggle_dark_mode' %}"
-    {% if user.is_authenticated %}
-      data-account-id="{{ user.pk }}"
-      data-preferred-timezone="{{ user.preferred_timezone|default:'' }}"
-      data-timezone-update-url="{{ timezone_update_url }}"
+{% block page_header %}
+  <div class="docs-detail-header">
+    <nav class="breadcrumbs docs-breadcrumbs" aria-label="Breadcrumb">
+      <ol>
+        {% for crumb in docs_breadcrumbs %}
+          <li>
+            <a href="{{ crumb.public_path }}">{{ crumb.title }}</a>
+          </li>
+        {% endfor %}
+        <li aria-current="page">
+          {{ docs.title }}
+        </li>
+      </ol>
+    </nav>
+    <p class="mono-label mono-label-indigo">{{ docs_context_root.title }}</p>
+    <h1 id="{{ docs_heading_id }}">{{ docs_heading_title }}</h1>
+    {% if docs.description %}
+      <p class="docs-detail-subtitle">{{ docs.description }}</p>
     {% endif %}
-  >
-    {% include "core/_site_shell_head.html" %}
-    <main id="main-content" tabindex="-1">
-      <section class="band band-cream docs-hero">
-        <nav class="shell breadcrumbs" aria-label="Breadcrumb">
-          <ol>
-            {% for crumb in docs_breadcrumbs %}
-              <li>
-                <a href="{{ crumb.public_path }}">{{ crumb.title }}</a>
-              </li>
-            {% endfor %}
-            <li aria-current="page">
-              {{ docs.title }}
-            </li>
-          </ol>
-        </nav>
-      </section>
+  </div>
+{% endblock %}
 
-      {% comment %}
-        The trail is all this page's title block can be — the documentation
-        writes its own h1 into the body — so the warm band is the trail alone,
-        and the seam falls where the reading starts.  Tree, body and actions are
-        the page's content, so they take the cool ground.
-      {% endcomment %}
-      <section class="band band-lavender docs-read">
-        <div class="shell">
-          <div class="docs-layout">
-            {% comment %}
-              The tree is the source-backed navigation built in issue #176: every
-              link it draws, and the order it draws them in, comes from the
-              projection's own parent relationships.  This page restyles it and
-              changes nothing about what it generates.  Its label is a mono
-              eyebrow rather than a heading so the body's own h1 below stays the
-              first heading on the page.
-            {% endcomment %}
-            <aside class="docs-aside">
-              <nav class="docs-tree-panel" aria-label="Documentation sections">
-                <details class="docs-tree-disclosure" open>
-                  <summary>Documentation sections</summary>
-                  <span class="mono-label mono-label-indigo docs-tree-label">Documentation sections</span>
-                  {% include "review/_docs_navigation_tree.html" with docs_items=docs_navigation docs_current_path=docs.public_path docs_open_paths=docs_open_paths only %}
-                </details>
-              </nav>
-            </aside>
-            <div class="docs-main">
-              <article class="prose prose-reading docs-body">
-                {{ docs_html|safe }}
-              </article>
-              <div class="docs-actions" aria-label="Documentation actions">
-                <a
-                  class="pill-button"
-                  href="{{ docs_search_url }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Search documentation on GitHub (opens in a new tab)"
-                >Search documentation on GitHub <span aria-hidden="true">↗</span></a>
-                <a
-                  class="pill-button"
-                  href="{{ docs.edit_url }}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Edit this page on GitHub (opens in a new tab)"
-                >Edit this page on GitHub <span aria-hidden="true">↗</span></a>
-              </div>
-              <section class="docs-onward" aria-labelledby="docs-onward-heading">
-                <div class="band-head">
-                  <div>
-                    <h2 id="docs-onward-heading">Where to next</h2>
-                  </div>
-                </div>
-                {% if docs_children or docs_headings|length > 1 %}
-                  <div class="docs-local">
-                    {% if docs_headings|length > 1 %}
-                      <nav aria-labelledby="docs-headings-heading">
-                        <h3 id="docs-headings-heading">On this page</h3>
-                        <ul class="docs-local-list">
-                          {% for heading in docs_headings %}
-                            {% if heading.level > 1 %}
-                              <li><a href="#{{ heading.id }}">{{ heading.title }}</a></li>
-                            {% endif %}
-                          {% endfor %}
-                        </ul>
-                      </nav>
-                    {% endif %}
-                    {% if docs_children %}
-                      <nav aria-labelledby="docs-children-heading">
-                        <h3 id="docs-children-heading">In this section</h3>
-                        <ul class="docs-local-list">
-                          {% for item in docs_children %}
-                            <li><a href="{{ item.public_path }}">{{ item.title }}</a></li>
-                          {% endfor %}
-                        </ul>
-                      </nav>
-                    {% endif %}
-                  </div>
+{% block page_content %}
+  <div class="docs-detail-layout">
+    <nav class="docs-local-nav" aria-label="{{ docs_context_root.title }} guide">
+      <details class="docs-local-disclosure">
+        <summary class="docs-local-summary" aria-current="page">
+          <span class="mono-label mono-label-indigo docs-local-label">In this guide</span>
+          <span class="docs-local-current">
+            <span class="docs-tree-marker" aria-hidden="true"></span>
+            <span>{{ docs.title }}</span>
+          </span>
+          <span class="docs-local-toggle" aria-hidden="true"></span>
+        </summary>
+        <ul class="docs-local-list">
+          {% for item in docs_context_items %}
+            <li class="docs-local-item">
+              <a
+                class="docs-tree-link
+                {% if item.public_path == docs.public_path %}
+                  docs-tree-link-current
                 {% endif %}
-                <nav class="docs-context" aria-label="Document context">
-                  <a class="docs-context-link docs-context-parent" href="{{ docs_parent.public_path }}">
-                    <span class="mono-label docs-context-label">Parent</span>
-                    <span class="docs-context-title">{{ docs_parent.title }}</span>
-                  </a>
-                  {% if docs_previous %}
-                    <a class="docs-context-link" href="{{ docs_previous.public_path }}">
-                      <span class="mono-label docs-context-label">Previous</span>
-                      <span class="docs-context-title">{{ docs_previous.title }}</span>
-                    </a>
-                  {% endif %}
-                  {% if docs_next %}
-                    <a class="docs-context-link" href="{{ docs_next.public_path }}">
-                      <span class="mono-label docs-context-label">Next</span>
-                      <span class="docs-context-title">{{ docs_next.title }}</span>
-                    </a>
-                  {% endif %}
-                </nav>
-              </section>
-            </div>
-          </div>
-        </div>
-      </section>
+                "
+                href="{{ item.public_path }}"
+                {% if item.public_path == docs.public_path %}
+                  aria-current="page"
+                {% endif %}
+              >
+                <span class="docs-tree-marker" aria-hidden="true"></span>
+                <span>{{ item.title }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      </details>
+    </nav>
 
-    </main>
-    {% include "core/_site_shell_foot.html" %}
-  </body>
-</html>
+    <div class="docs-main">
+      {% if docs_headings|length > 2 and not docs_curriculum %}
+        <details class="docs-on-page">
+          <summary>On this page</summary>
+          <ul class="docs-on-page-list">
+            {% for heading in docs_headings %}
+              {% if heading.level > 1 %}
+                <li>
+                  <a href="#{{ heading.id }}">{{ heading.title }}</a>
+                </li>
+              {% endif %}
+            {% endfor %}
+          </ul>
+        </details>
+      {% endif %}
+
+      <article class="prose prose-reading docs-body">
+        {% if docs_curriculum %}
+          <div class="docs-curriculum-intro">
+            {{ docs_curriculum.intro_html|safe }}
+          </div>
+          <section aria-labelledby="modules">
+            <h2 id="modules">{{ docs_curriculum.modules_heading_html|safe }}</h2>
+            <ol class="docs-curriculum-list">
+              {% for item in docs_curriculum.items %}
+                <li class="docs-curriculum-item">
+                  {% if item.destination %}
+                    <a
+                      class="docs-curriculum-card interactive-card interactive-lift"
+                      href="{{ item.destination }}"
+                      aria-label="{{ item.title_text }}"
+                    >
+                      <div class="docs-curriculum-head">
+                        <span class="docs-curriculum-marker" aria-hidden="true">{{ item.marker }}</span>
+                        <div class="docs-curriculum-title">
+                          {{ item.title_html|safe }}
+                        </div>
+                      </div>
+                      <div class="docs-curriculum-details">
+                        {{ item.details_html|safe }}
+                      </div>
+                    </a>
+                  {% else %}
+                    <div class="docs-curriculum-card docs-curriculum-card-static">
+                      <div class="docs-curriculum-head">
+                        <span class="docs-curriculum-marker" aria-hidden="true">{{ item.marker }}</span>
+                        <div class="docs-curriculum-title">
+                          {{ item.title_html|safe }}
+                        </div>
+                      </div>
+                      <div class="docs-curriculum-details">
+                        {{ item.details_html|safe }}
+                      </div>
+                    </div>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ol>
+          </section>
+          <div class="docs-curriculum-remainder">
+            {{ docs_curriculum.remainder_html|safe }}
+          </div>
+        {% else %}
+          {{ docs_html|safe }}
+        {% endif %}
+      </article>
+
+      {% if docs_children %}
+        <section class="docs-follow-on" aria-labelledby="docs-children-heading">
+          <h2 id="docs-children-heading">In this guide</h2>
+          <nav class="docs-child-list" aria-label="Pages in {{ docs.title }}">
+            {% for item in docs_children %}
+              <a class="docs-child-link" href="{{ item.public_path }}">
+                <span>
+                  <span class="docs-row-title">{{ item.title }}</span>
+                  {% if item.description %}
+                    <span class="docs-row-meta">{{ item.description }}</span>
+                  {% endif %}
+                </span>
+                <span class="docs-arrow" aria-hidden="true">→</span>
+              </a>
+            {% endfor %}
+          </nav>
+        </section>
+      {% endif %}
+
+      <nav class="docs-context" aria-label="Document context">
+        <a
+          class="docs-context-link docs-context-parent interactive-card interactive-lift"
+          href="{{ docs_parent.public_path }}"
+        >
+          <span class="mono-label docs-context-label">Up one level</span>
+          <span class="docs-context-title">{{ docs_parent.title }}</span>
+        </a>
+        {% if docs_local_previous %}
+          <a
+            class="docs-context-link interactive-card interactive-lift"
+            href="{{ docs_local_previous.public_path }}"
+          >
+            <span class="mono-label docs-context-label">Previous</span>
+            <span class="docs-context-title">{{ docs_local_previous.title }}</span>
+          </a>
+        {% endif %}
+        {% if docs_local_next %}
+          <a
+            class="docs-context-link interactive-card interactive-lift"
+            href="{{ docs_local_next.public_path }}"
+          >
+            <span class="mono-label docs-context-label">Next</span>
+            <span class="docs-context-title">{{ docs_local_next.title }}</span>
+          </a>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
+{% endblock %}

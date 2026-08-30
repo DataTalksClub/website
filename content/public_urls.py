@@ -51,17 +51,40 @@ urlpatterns = [
         name="podcast-ai-adoption",
     ),
     path(
+        "podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
+        public_views.podcast_detail_by_id,
+        {
+            "episode_id": "s24e06",
+            "slug": "how-to-build-ai-that-actually-ships-in-production",
+        },
+        name="podcast-ai-production",
+    ),
+    re_path(
+        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)/(?P<slug>[-a-zA-Z0-9_]+)$",
+        public_views.podcast_detail_by_id,
+        name="public-podcast-by-id",
+    ),
+    re_path(
+        r"^podcast/(?P<episode_id>s[0-9]+e[0-9]+)$",
+        public_views.podcast_detail_by_id_without_slug,
+        name="public-podcast-by-id-without-slug",
+    ),
+    path(
         "podcast/<path:slug>/",
         public_views.permanent_detail_redirect,
         {"collection": "podcast"},
     ),
     path(
         "podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
-        public_views.podcast_detail,
+        public_views.podcast_legacy_detail,
         {"slug": "s24e06-how-to-build-ai-that-actually-ships-in-production"},
-        name="podcast-ai-production",
+        name="podcast-ai-production-legacy",
     ),
-    path("podcast/<path:slug>.html", public_views.podcast_detail, name="public-podcast"),
+    path(
+        "podcast/<path:slug>.html",
+        public_views.podcast_legacy_detail,
+        name="public-podcast",
+    ),
     path(
         "podcast/<path:slug>",
         public_views.permanent_detail_redirect,

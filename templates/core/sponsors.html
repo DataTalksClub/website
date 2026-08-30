@@ -1,0 +1,87 @@
+{% extends "core/content_page.html" %}
+
+{% block document_title %}Sponsors — DataTalks.Club{% endblock %}
+
+{% block metadata %}
+  {{ block.super }}
+  <meta name="description" content="Meet the organizations that support DataTalks.Club and help keep practical learning free.">
+{% endblock %}
+
+{% block page_styles %}
+  .sponsor-section + .sponsor-section {
+    border-top: 2px solid color-mix(in srgb, var(--line) 55%, transparent);
+    margin-top: clamp(2.5rem, 7vw, 5rem);
+    padding-top: clamp(2.5rem, 7vw, 5rem);
+  }
+  .sponsor-section-heading { max-width: 46rem; margin-bottom: 1.5rem; }
+  .sponsor-section-heading h2 { font-size: clamp(1.55rem, 4vw, 2.35rem); margin: 0 0 0.65rem; }
+  .sponsor-section-heading p, .featured-supporter p { color: var(--muted); }
+  .sponsor-section-heading p { margin: 0; }
+  .featured-supporters { display: grid; gap: 1rem; list-style: none; margin: 0; padding: 0; }
+  .featured-supporter {
+    align-items: center;
+    background: #fff;
+    border: 2px solid var(--line);
+    border-radius: 0.9rem;
+    display: grid;
+    gap: 1.25rem;
+    padding: clamp(1.25rem, 4vw, 2rem);
+    scroll-margin-top: 6rem;
+  }
+  .featured-supporter-logo { align-items: center; display: flex; min-height: 5rem; }
+  .featured-supporter img {
+    display: block;
+    max-height: 3.8rem;
+    max-width: min(100%, 12rem);
+    object-fit: contain;
+  }
+  .featured-supporter h2 { font-size: clamp(1.35rem, 3vw, 1.75rem); margin: 0 0 0.5rem; }
+  .featured-supporter p { margin: 0 0 0.8rem; }
+  .past-supporters { display: flex; flex-wrap: wrap; gap: 0.55rem; list-style: none; margin: 0; padding: 0; }
+  .past-supporters li {
+    background: color-mix(in srgb, var(--paper) 75%, transparent);
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    font-weight: 700;
+    padding: 0.5rem 0.85rem;
+  }
+  @media (min-width: 44rem) {
+    .featured-supporter { grid-template-columns: minmax(9rem, 0.75fr) minmax(0, 2fr); }
+  }
+{% endblock %}
+
+{% block page_header %}
+  <h1>Our Sponsors</h1>
+  <p>These organizations help DataTalks.Club keep courses, events, and community learning free and open to everyone.</p>
+{% endblock %}
+
+{% block page_content %}
+  <section class="sponsor-section" aria-label="Current sponsors">
+    <ul class="featured-supporters">
+      {% for sponsor in sponsors %}
+        <li class="featured-supporter" id="{{ sponsor.name|slugify }}">
+          <div class="featured-supporter-logo">
+            <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">
+          </div>
+          <div>
+            <h2>{{ sponsor.name }}</h2>
+            <p>{{ sponsor.description }}</p>
+            <a href="{{ sponsor.url }}" target="_blank" rel="sponsored noopener noreferrer">
+              Visit {{ sponsor.name }}<span class="sr-only"> (opens in a new tab)</span>
+            </a>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="sponsor-section" aria-labelledby="past-supporters-heading">
+    <div class="sponsor-section-heading">
+      <h2 id="past-supporters-heading">With thanks to every supporter</h2>
+      <p>We are grateful to all the companies and organizations that have supported DataTalks.Club over the years.</p>
+    </div>
+    <ul class="past-supporters">
+      {% for supporter in past_supporters %}<li>{{ supporter }}</li>{% endfor %}
+    </ul>
+  </section>
+{% endblock %}

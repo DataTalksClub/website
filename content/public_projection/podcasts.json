@@ -12751,7 +12751,7 @@
     "resources": [
       {
         "title": "Previous podcast episode",
-        "url": "https://datatalks.club/podcast/s16e09-become-data-freelancer.html"
+        "url": "/podcast/s16e09-become-data-freelancer.html"
       },
       {
         "title": "Linkedin",
@@ -79809,7 +79809,7 @@
       },
       {
         "title": "From Data Science to DataOps",
-        "url": "https://datatalks.club/podcast/s11e03-from-data-science-to-dataops.html"
+        "url": "/podcast/s11e03-from-data-science-to-dataops.html"
       }
     ],
     "season": 12,
@@ -117499,7 +117499,7 @@
       },
       {
         "title": "Interview with Alicja about recruiting data scientists",
-        "url": "https://datatalks.club/podcast/s07e02-recruiting-data-professionals.html"
+        "url": "/podcast/s07e02-recruiting-data-professionals.html"
       },
       {
         "title": "Webinar \"Getting a Data Engineering Job\" with Jeff Katz",
@@ -177821,7 +177821,7 @@
       "source_path": "podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.yaml",
       "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/podcasts/s24e06-how-to-build-ai-that-actually-ships-in-production.yaml"
     },
-    "public_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
+    "public_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
     "published": "",
     "resources": [
       {

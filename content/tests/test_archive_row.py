@@ -22,7 +22,6 @@ from core.templatetags.accessibility import counted
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 ROW_TEMPLATE = "public/_archive_row.html"
 DESIGN_SYSTEM = REPOSITORY_ROOT / "templates/core/_design_system.html"
-CARD_LINK_STYLES = REPOSITORY_ROOT / "templates/public/_card_link_styles.html"
 # Every template that draws the row, and the two event surfaces that deliberately
 # do not (see the partial's own comment for why).
 SURFACES = (
@@ -100,7 +99,10 @@ class ArchiveRowSlotTests(SimpleTestCase):
         self.assertIn("<span>August 11</span>", body)
         self.assertIn("<span>2025</span>", body)
         self.assertIn('<time datetime="2025-08-11">', body)
-        self.assertIn('class="card archive-card stretched-card-link"', body)
+        self.assertIn(
+            'class="card archive-card stretched-card-link interactive-card interactive-lift"',
+            body,
+        )
         self.assertIn('<p class="mono-label">guest</p>', body)
         self.assertIn(
             '<span class="status-pill status-pill-mint">2 questions</span>',
@@ -140,7 +142,10 @@ class ArchiveRowSlotTests(SimpleTestCase):
             row_credits=[{"name": "Alexey Grigorev", "public_path": "/people/x.html"}],
         )
 
-        self.assertIn('class="card archive-card stretched-card-link podcast-card"', body)
+        self.assertIn(
+            "card archive-card stretched-card-link podcast-card interactive-card interactive-lift",
+            body,
+        )
         self.assertIn(
             '<p class="mono-label mono-label-indigo podcast-meta">Season 24 · Episode 6</p>',
             body,
@@ -244,14 +249,16 @@ class ArchiveRowSurfaceTests(TestCase):
                 self.assertNotIn(".event-summary {", source)
                 self.assertNotIn(".event-card .kind", source)
 
-    def test_public_card_link_styles_keep_the_shared_design_system_owned_by_sagan(self) -> None:
-        styles = CARD_LINK_STYLES.read_text(encoding="utf-8")
+    def test_card_link_and_interaction_primitives_live_in_the_design_system(self) -> None:
         design_system = DESIGN_SYSTEM.read_text(encoding="utf-8")
 
-        self.assertIn(".stretched-card-link .archive-title a::after", styles)
-        self.assertIn(".stretched-card-link .person-chip a", styles)
-        self.assertIn(".podcast-card:not(.latest-card) {", styles)
+        self.assertIn(".stretched-card-link .archive-title a::after", design_system)
+        self.assertIn(".stretched-card-link .person-chip a", design_system)
+        self.assertIn(".podcast-card:not(.latest-card) {", design_system)
         for declaration in ("background: transparent;", "border: 0;", "box-shadow: none;"):
             with self.subTest(declaration=declaration):
-                self.assertIn(declaration, styles)
-        self.assertNotIn("stretched-card-link", design_system)
+                self.assertIn(declaration, design_system)
+        self.assertIn(".interactive-lift {", design_system)
+        self.assertIn(".interactive-card::before {", design_system)
+        self.assertIn('content: "→";', design_system)
+        self.assertIn("@media (prefers-reduced-motion: reduce)", design_system)

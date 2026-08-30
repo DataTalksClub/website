@@ -2161,7 +2161,7 @@
       {
         "name": "Yi Huei",
         "replies": [],
-        "text": "ps. I just start to read this book \" [Data Storytelling with Altair and AI](https://datatalks.club/books/20240902-data-storytelling-with-altair-and-ai.html)\"--truly amazing!"
+        "text": "ps. I just start to read this book \" [Data Storytelling with Altair and AI](/books/20240902-data-storytelling-with-altair-and-ai.html)\"--truly amazing!"
       },
       {
         "name": "Yi Huei",
@@ -5486,7 +5486,7 @@
           },
           {
             "name": "Alexey Grigorev",
-            "text": "We have invited authors of books on these topics in the past, you can check them in the archives \n[https://datatalks.club/books.html](https://datatalks.club/books.html)\nAnd for most of the books we also have the answers from the authors there"
+            "text": "We have invited authors of books on these topics in the past, you can check them in the archives \n[https://datatalks.club/books.html](/books.html)\nAnd for most of the books we also have the answers from the authors there"
           }
         ],
         "text": "hi everyone, I wanted to ask recommendations on books about Data Engineering, ML engineering and data infrastructure. I would deeply appreciate if you could give me a top 3 choices please. I want to specialize as a DS in the engineering behind data and ML."
@@ -6285,7 +6285,7 @@
             "text": "it's mostly hands on learning"
           }
         ],
-        "text": "Hi Tomaz Bratanic\nThank you for introducing [Graph Algorithms for Data Science](https://datatalks.club/books/20220926-graph-algorithms-for-data-science.html) , I would be very interested in reading recommendation and fraud detection chapters from your book.\n- one general question, what would be the difference that you are covering in your book and GNN (graph neural network) and graph CNN? \n- and what are the applications for each of those can be applied?\nThank you very much,"
+        "text": "Hi Tomaz Bratanic\nThank you for introducing [Graph Algorithms for Data Science](/books/20220926-graph-algorithms-for-data-science.html) , I would be very interested in reading recommendation and fraud detection chapters from your book.\n- one general question, what would be the difference that you are covering in your book and GNN (graph neural network) and graph CNN? \n- and what are the applications for each of those can be applied?\nThank you very much,"
       },
       {
         "name": "Julius",
@@ -7363,7 +7363,7 @@
             "text": "Thanks so much for the reply Joseph Reis and Matthew Housley..\nLove airflow, used it as a managed service mostly.\nStarted testing out Prefect..\nAny serverless orchestrators or serverless frameworks suggested? And your thoughts on these compared to deployments.."
           }
         ],
-        "text": "Hi Joseph Reis and [Matthew](https://datatalks.club/people/matthewhousley.html),\nThanks for creating the book.\nI wanted to ask when building data ingestion pipelines and or data ingestion patterns, what design principles can be utilised when creating pipelines and design patterns?\nI also wanted to ask, if there are frameworks to help choose between open source pipeline orchestrators on the basis of their deployment, maintenance vs managed services.  Will the book cover those?\nFinally. What is the role of the data quality framework in data engineering? Also any tips on best practices for ELT and ETL? And which one is better for modern data warehouses such as snowflake or  Big query?"
+        "text": "Hi Joseph Reis and [Matthew](/people/matthewhousley.html),\nThanks for creating the book.\nI wanted to ask when building data ingestion pipelines and or data ingestion patterns, what design principles can be utilised when creating pipelines and design patterns?\nI also wanted to ask, if there are frameworks to help choose between open source pipeline orchestrators on the basis of their deployment, maintenance vs managed services.  Will the book cover those?\nFinally. What is the role of the data quality framework in data engineering? Also any tips on best practices for ELT and ETL? And which one is better for modern data warehouses such as snowflake or  Big query?"
       },
       {
         "name": "Matthew Housley",
@@ -14195,11 +14195,11 @@
         "replies": [
           {
             "name": "Alexey Grigorev",
-            "text": "They are! \nThis is how it looks for previous books - [https://datatalks.club/books/20210517-grokking-deep-reinforcement-learning.html](https://datatalks.club/books/20210517-grokking-deep-reinforcement-learning.html)"
+            "text": "They are! \nThis is how it looks for previous books - [https://datatalks.club/books/20210517-grokking-deep-reinforcement-learning.html](/books/20210517-grokking-deep-reinforcement-learning.html)"
           },
           {
             "name": "Doink",
-            "text": "[https://datatalks.club/books/20211011-mastering-transformers.html](https://datatalks.club/books/20211011-mastering-transformers.html) here I didn't see anything hence asked."
+            "text": "[https://datatalks.club/books/20211011-mastering-transformers.html](/books/20211011-mastering-transformers.html) here I didn't see anything hence asked."
           },
           {
             "name": "Alexey Grigorev",
@@ -19252,7 +19252,7 @@
           },
           {
             "name": "Alexey Grigorev",
-            "text": "Doug Turnbull maybe Kim Falk knows? I've heard he's answering questions in August [here](https://datatalks.club/books/20210802-practical-recommender-systems.html)."
+            "text": "Doug Turnbull maybe Kim Falk knows? I've heard he's answering questions in August [here](/books/20210802-practical-recommender-systems.html)."
           }
         ],
         "text": "Hey Doug Turnbull, What is the difference between a search engine and a recommender system?"
@@ -24295,7 +24295,7 @@
       {
         "name": "Alexey Grigorev",
         "replies": [],
-        "text": "Hello, everyone!\nThe book of this week is [The Practitioner's Guide to Graph Data](https://datatalks.club/books/20210405-the-practitioners-guide-to-graph-data.html) by Denise Gosnell\n&gt; Graph data closes the gap between the way humans and computers view the world. While computers rely on static rows and columns of data, people navigate and reason about life through relationships. This practical guide demonstrates how graph data brings these two approaches together. By working with concepts from graph theory, database schema, distributed systems, and data analysis, you’ll arrive at a unique intersection known as graph thinking.\n- Ask as many questions as you'd like (one question - one thread, please)\n- The book authors answer questions from Monday till Thursday\n- On Friday, the authors decide who wins free copies of their book"
+        "text": "Hello, everyone!\nThe book of this week is [The Practitioner's Guide to Graph Data](/books/20210405-the-practitioners-guide-to-graph-data.html) by Denise Gosnell\n&gt; Graph data closes the gap between the way humans and computers view the world. While computers rely on static rows and columns of data, people navigate and reason about life through relationships. This practical guide demonstrates how graph data brings these two approaches together. By working with concepts from graph theory, database schema, distributed systems, and data analysis, you’ll arrive at a unique intersection known as graph thinking.\n- Ask as many questions as you'd like (one question - one thread, please)\n- The book authors answer questions from Monday till Thursday\n- On Friday, the authors decide who wins free copies of their book"
       },
       {
         "name": "Alexey Grigorev",

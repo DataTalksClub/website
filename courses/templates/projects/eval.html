@@ -58,12 +58,12 @@
     </p>
     <div class="project-toolbar">
       {% if user.is_staff %}
-    <a class="cta cta-compact cta-secondary" href="{% url 'project_submissions' course.course.slug course.identifier project.slug %}">
+    <a class="cta cta-compact cta-secondary interactive-lift" href="{% url 'project_submissions' course.course.slug course.identifier project.slug %}">
           All submissions
         </a>
       {% endif %}
       <a
-        class="cta cta-compact cta-secondary"
+        class="cta cta-compact cta-secondary interactive-lift"
         href="{% url 'project_list' course_slug=course.course.slug cohort_year=course.identifier project_slug=project.slug %}"
       >See all projects</a>
     </div>

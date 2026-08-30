@@ -21,6 +21,7 @@ from content.podcast_content import (
     season_episodes,
 )
 from content.podcast_routes import (
+    PODCAST_AI_PRODUCTION_PATH,
     PODCAST_ROUTE_MIGRATION_PATH,
     podcast_legacy_path,
 )
@@ -835,7 +836,7 @@ class PodcastSeasonNavigationTests(TestCase):
             types = {item.get("@type") for item in json.loads(payload_match.group(1))["@graph"]}
             self.assertIn("PodcastEpisode", types)
 
-    def test_detail_routes_keep_html_finals_and_reject_competing_season_paths(self) -> None:
+    def test_detail_routes_keep_html_finals_except_stable_id_migrations(self) -> None:
         projection = public_projection()
         podcasts = projection["podcasts"]
         migration = projection["editorial_route_migration"]
@@ -852,7 +853,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertTrue(all(path.startswith("/podcast/") for path in podcast_finals))
         self.assertEqual(
             {path for path in podcast_finals if not path.endswith(".html")},
-            {PODCAST_ROUTE_MIGRATION_PATH},
+            {PODCAST_ROUTE_MIGRATION_PATH, PODCAST_AI_PRODUCTION_PATH},
         )
         self.assertEqual(len(podcast_aliases), 410)
         self.assertEqual({item["final_path"] for item in podcast_aliases}, podcast_finals)
@@ -909,9 +910,8 @@ class PodcastSeasonNavigationTests(TestCase):
         )
         for method in ("GET", "HEAD"):
             response = self.client.generic(method, competing_path, follow=False)
-            self.assertEqual(response.status_code, 404)
-            self.assertNotIn("Location", response.headers)
-            self.assertNotContains(response, 'rel="canonical"', status_code=404)
+            self.assertEqual(response.status_code, 301)
+            self.assertEqual(response.headers["Location"], canonical)
         self.assertEqual(self.client.post(competing_path).status_code, 405)
 
     def test_latest_middle_and_oldest_emit_exact_seo_and_navigation(self) -> None:
@@ -1160,7 +1160,9 @@ class PodcastSeasonNavigationTests(TestCase):
                     self.assertEqual(response.status_code, 301)
                     self.assertEqual(response.headers["Location"], f"/podcast?{query}")
 
-    def test_catalogue_renders_episode_numbers_descriptions_dates_and_guests(self) -> None:
+    def test_catalogue_renders_episode_numbers_descriptions_and_guests_without_dates(
+        self,
+    ) -> None:
         latest = self.client.get("/podcast")
         self.assertContains(latest, "Season 24 · Episode 6")
 
@@ -1168,7 +1170,7 @@ class PodcastSeasonNavigationTests(TestCase):
         episode = public_projection()["podcasts_by_slug"]["data-team-roles"]
         self.assertTrue(episode["description"])
         self.assertContains(oldest, str(conditional_escape(episode["description"])))
-        self.assertContains(oldest, 'datetime="2021-02-23"')
+        self.assertNotContains(oldest, 'datetime="2021-02-23"')
         for guest in episode["guest_profiles"]:
             if guest["public_path"]:
                 self.assertContains(oldest, f'href="{guest["public_path"]}"')
@@ -1207,17 +1209,23 @@ class PodcastSeasonNavigationTests(TestCase):
                     self.assertNotIn(leak, body)
 
     def test_index_rows_use_the_shared_play_disc_and_row_list(self) -> None:
-        season = podcast_seasons()[0]
-        body = self.client.get("/podcast").content.decode()
+        season = next(
+            season
+            for season in podcast_seasons()
+            if any(episode["published"] for episode in season.episodes)
+        )
+        body = self.client.get(f"/podcast?season={season.number}").content.decode()
 
         self.assertEqual(body.count('class="row-list"'), 1)
         self.assertEqual(body.count('class="play-disc"'), len(season.episodes))
-        # An episode row is the site's shared archive row with the play disc as
-        # its leading mark, and an episode with no publication date gives its
-        # rail back to the card rather than leaving an empty column.
-        undated = [episode for episode in season.episodes if not episode["published"]]
+        # The hub deliberately omits the optional date rail, including for a
+        # season with dated episodes, so every card gets the full row width.
         self.assertEqual(body.count('class="list-row archive-row'), len(season.episodes))
-        self.assertEqual(body.count("archive-row archive-row-undated"), len(undated))
+        self.assertEqual(
+            body.count("archive-row archive-row-undated"),
+            len(season.episodes),
+        )
+        self.assertNotIn('class="mono-note archive-date date-rail"', body)
         self.assertNotIn(f"podcast · season {season.number}", body)
         # The catalogue has no duration and no global episode number; the design's
         # "58 min" and "#214" therefore have no stand-in on the page.
@@ -1241,10 +1249,14 @@ class PodcastSeasonNavigationTests(TestCase):
             ("apple", "Apple Podcasts"),
             ("spotify", "Spotify"),
             ("youtube", "YouTube"),
-            ("spotify_for_creators", "Spotify for Creators"),
         ):
             self.assertContains(response, f'href="{episode["links"][platform]}"')
             self.assertContains(response, label)
+        self.assertNotContains(
+            response,
+            f'href="{episode["links"]["spotify_for_creators"]}"',
+        )
+        self.assertNotContains(response, "Spotify for Creators")
         for guest in episode["guest_profiles"]:
             self.assertContains(response, escape(guest["name"]))
             self.assertContains(response, f'href="{guest["public_path"]}"')

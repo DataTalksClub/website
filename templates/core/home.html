@@ -37,7 +37,6 @@
        * ------------------------------------------------------------------ */
 
       {% include "core/_design_system.html" %}
-      {% include "public/_card_link_styles.html" %}
 
       /* ------------------------------------------------------------------ *
        * Homepage-specific rules.  Shared primitives live in the partial
@@ -284,11 +283,50 @@
         margin-top: auto;
       }
 
+      /* Keep the supporting catalogue visually separate from the featured
+         course instead of letting two heavy card outlines touch. */
+      .catalog-scroller {
+        margin-inline: 0;
+        margin-top: 1.25rem;
+        padding-inline: 0;
+      }
+
+      .catalog-scroller-controls {
+        margin-top: 0.75rem;
+      }
+
       /* --- promises ----------------------------------------------------- */
 
       .promise-grid {
         display: grid;
         gap: 1rem;
+      }
+
+      .sponsor-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .sponsor-card {
+        align-items: center;
+        display: flex;
+        justify-content: center;
+        min-height: 8rem;
+        padding: 1.4rem;
+      }
+
+      .sponsor-card img {
+        display: block;
+        max-height: 3.6rem;
+        max-width: min(100%, 11rem);
+        object-fit: contain;
+      }
+
+      @media (min-width: 52rem) {
+        .sponsor-grid {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
       }
 
       .promise {
@@ -413,7 +451,7 @@
       }
 
       .latest-item h3 a:hover {
-        text-decoration: underline;
+        text-decoration: none;
       }
 
       .latest-meta {
@@ -808,6 +846,15 @@
           gap: 1.75rem;
         }
       }
+
+      @media (min-width: 75rem) {
+        /* A desktop shell presents four complete catalogue choices. The fifth
+           starts beyond the viewport and remains reachable with the controls,
+           avoiding a card that looks accidentally amputated at the shell edge. */
+        .catalog-scroller {
+          grid-auto-columns: calc((100% - 3 * 1.25rem) / 4);
+        }
+      }
     </style>
   </head>
   {% url 'update_timezone_preference' as timezone_update_url %}
@@ -832,8 +879,8 @@
               Free, hands-on courses in data and AI, with a clear path, practical work, and a community to help you get unstuck.
             </p>
             <div class="hero-actions">
-              <a class="cta cta-primary" href="{% url 'course_list' %}">Explore free courses</a>
-              <a class="cta cta-secondary" href="{% url 'slack' %}">Join the community</a>
+              <a class="cta cta-primary interactive-lift" href="{% url 'course_list' %}">Explore free courses</a>
+              <a class="cta cta-secondary interactive-lift" href="{% url 'account_signup' %}">Join the community</a>
             </div>
           </div>
           <div class="hero-figure">
@@ -888,7 +935,7 @@
               </div>
               <div class="scroller-controls">
                 <button
-                  class="scroller-button"
+                  class="scroller-button interactive-lift"
                   type="button"
                   data-scroll="-1"
                   data-scroll-target="stories-scroller"
@@ -899,7 +946,7 @@
                   </svg>
                 </button>
                 <button
-                  class="scroller-button"
+                  class="scroller-button interactive-lift"
                   type="button"
                   data-scroll="1"
                   data-scroll-target="stories-scroller"
@@ -982,7 +1029,7 @@
                 {{ featured_catalog_entry.project_count }} projects · certificate of completion
               </p>
               <div class="featured-actions">
-                <a class="cta cta-primary" href="{{ featured_cohort_path }}">
+                <a class="cta cta-primary interactive-lift" href="{{ featured_cohort_path }}">
                   View the syllabus
                 </a>
               </div>
@@ -1009,19 +1056,19 @@
             tabindex="0"
           >
             {% for course in catalog_courses %}
-              <article class="card course-card stretched-card-link">
+              <article class="card course-card stretched-card-link interactive-card interactive-lift">
                 <div class="featured-badges">
                   <span class="chip">{{ course.label }}</span>
                 </div>
                 <h3>{{ course.title }}</h3>
                 <p class="course-cohort">{{ course.cohort_label }}</p>
-                <a class="band-link course-link" href="{{ course.public_path }}">View course →</a>
+                <a class="band-link course-link" href="{{ course.public_path }}">View course</a>
               </article>
             {% endfor %}
           </div>
           <div class="scroller-controls catalog-scroller-controls" aria-label="Course catalogue controls">
             <button
-              class="scroller-button"
+              class="scroller-button interactive-lift"
               type="button"
               data-scroll="-1"
               data-scroll-target="catalog-scroller"
@@ -1032,7 +1079,7 @@
               </svg>
             </button>
             <button
-              class="scroller-button"
+              class="scroller-button interactive-lift"
               type="button"
               data-scroll="1"
               data-scroll-target="catalog-scroller"
@@ -1085,7 +1132,7 @@
                   whether it is for you, and the speakers as chips.  No "Event
                   details" link — the card is the link.
                 {% endcomment %}
-                <article class="card event-card">
+                <article class="card event-card interactive-card interactive-lift">
                   <div class="event-top">
                     {% include "public/_event_kind.html" with tip_id=event.identity_id|default:forloop.counter0 %}
                     <time class="mono-note" datetime="{{ event.starts_at }}">{{ event.home_time }}</time>
@@ -1133,7 +1180,7 @@
               <div class="band-head">
                 <h3>Latest podcast episode</h3>
               </div>
-              <div class="card latest-card stretched-card-link podcast-card">
+              <div class="card latest-card stretched-card-link podcast-card interactive-card interactive-lift">
                 <div class="latest-item">
                   <span class="latest-icon latest-icon-play" aria-hidden="true">
                     <svg viewBox="0 0 24 24" focusable="false">
@@ -1165,7 +1212,7 @@
               <div class="band-head">
                 <h3>Latest article</h3>
               </div>
-              <div class="card latest-card stretched-card-link">
+              <div class="card latest-card stretched-card-link interactive-card interactive-lift">
                 <div class="latest-item">
                   <span class="latest-icon latest-icon-green" aria-hidden="true">{{ article_minutes }}m</span>
                   <div>
@@ -1205,9 +1252,9 @@
               data-start-id="wiki:{{ wiki_graph.hub.slug }}"
             >
               <div class="home-graph-toolbar" aria-label="Graph controls">
-                <button class="home-graph-tool" type="button" data-home-graph-back hidden>Back</button>
-                <button class="home-graph-tool" type="button" data-home-graph-random>Random topic</button>
-                <a class="home-graph-tool" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
+                <button class="home-graph-tool interactive-lift" type="button" data-home-graph-back hidden>Back</button>
+                <button class="home-graph-tool interactive-lift" type="button" data-home-graph-random>Random topic</button>
+                <a class="home-graph-tool interactive-lift" data-home-graph-open href="{{ wiki_graph.hub.public_path }}">Open wiki page →</a>
                 <a class="band-link" href="{% url 'wiki-graph' %}">full graph →</a>
               </div>
               <p class="home-graph-status" data-home-graph-status aria-live="polite">
@@ -1279,7 +1326,7 @@
             </div>
             <div class="topic-list">
               {% for topic in wiki_topics %}
-                <a class="topic" href="{{ topic.public_path }}">
+                <a class="topic interactive-card interactive-lift" href="{{ topic.public_path }}">
                   <strong>{{ topic.title }}</strong>
                   <span>{{ topic.summary }}</span>
                 </a>
@@ -1291,6 +1338,29 @@
           </p>
         </div>
       </section>
+
+      {% if sponsors %}
+        <section class="band band-cream" aria-labelledby="sponsors-heading">
+          <div class="shell">
+            <div class="band-head">
+              <div>
+                <h2 id="sponsors-heading">Our Sponsors</h2>
+                <p>Organizations that help us keep practical learning free and open.</p>
+              </div>
+            </div>
+            <div class="sponsor-grid">
+              {% for sponsor in sponsors %}
+                <a class="card sponsor-card interactive-card interactive-lift" href="{% url 'sponsors' %}#{{ sponsor.name|slugify }}">
+                  <img src="{{ sponsor.logo_url }}" alt="{{ sponsor.name }}">
+                </a>
+              {% endfor %}
+            </div>
+            <p class="band-more">
+              <a class="band-link" href="{% url 'sponsors' %}">meet our sponsors →</a>
+            </p>
+          </div>
+        </section>
+      {% endif %}
 
       <section class="band band-ink" aria-labelledby="closing-heading">
         <div class="shell closing">
@@ -1304,7 +1374,7 @@
               whenever you want it.
             </p>
           </div>
-          <a class="cta cta-primary" href="{% url 'account_signup' %}">Create your free account</a>
+          <a class="cta cta-primary interactive-lift" href="{% url 'account_signup' %}">Create your free account</a>
         </div>
       </section>
     </main>

@@ -12546,7 +12546,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
+      "final_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
       "query_policy": "preserve_raw",
       "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
       "source_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production",
@@ -12554,7 +12554,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
+      "final_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
       "query_policy": "preserve_raw",
       "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
       "source_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production/",
@@ -12737,7 +12737,7 @@
       "status_code": 301
     }
   ],
-  "content_sha256": "ff96d8f2ca0c94059e5f0ef73088ceee28b72faed86dcf8b02da7ca424252a75",
+  "content_sha256": "a96bfcf0632380c2e168c04c93cc2cadf31912e4ca04e7b8a919b9b525346268",
   "counts": {
     "aliases": 1592,
     "finals": 796
@@ -22937,7 +22937,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
+      "final_path": "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
       "record_key": "s24e06-how-to-build-ai-that-actually-ships-in-production",
       "source": {
         "checksum": "62554e94b5d8ab04ab7f7b060ffec0fa6ff7c61e53a2b929f7f6db1b3df25c90",
@@ -23097,10 +23097,10 @@
     "projection_schema_version": 1,
     "projection_selection_mode": "preferred",
     "source_artifacts": {
-      "articles.json": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9",
-      "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
-      "people.json": "2eead505ef53d723f5387b9a10bee1952a29a16fd536af945e9a4ed58c929eb2",
-      "podcasts.json": "723cbac24b2b175390227984fdade52612b86606b85bb94ed3aba29439431d54"
+      "articles.json": "4ca8e4f3a1fcf3fe3c6434fdaf945f47e7969b6d6cf3cc03194c75b7a6318428",
+      "books.json": "c960306e3a2f6d6f312815826dc6d9b69858cefacd183b15215b37bfde37ec18",
+      "people.json": "46ca78bad0821cf825b5cdca3ea8d9fcb62490ae26b37864e5de30fe98e07c85",
+      "podcasts.json": "9fd85ce176d550d28d31eb5650f7b9bef19f9e5727c2516a46c1df2d1943c2da"
     },
     "source_revisions": [
       {

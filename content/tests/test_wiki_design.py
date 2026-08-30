@@ -625,7 +625,9 @@ class WikiSpecialPagesTests(TestCase):
 
         self.assertIn('aria-label="Special page categories"', body)
         self.assertIn(
-            f'<a class="filter-pill" href="{reverse("wiki-special")}" aria-current=', body
+            f'<a class="filter-pill interactive-lift" href="{reverse("wiki-special")}" '
+            "aria-current=",
+            body,
         )
         for slug in WIKI_SPECIAL_CATEGORIES:
             with self.subTest(slug=slug):
@@ -636,7 +638,7 @@ class WikiSpecialPagesTests(TestCase):
             reverse("wiki-special-category", kwargs={"category": "guides"})
         ).content.decode()
         self.assertIn(
-            '<a class="filter-pill" href="/wiki/special-pages/guides"'
+            '<a class="filter-pill interactive-lift" href="/wiki/special-pages/guides"'
             ' aria-current="page">Guides</a>',
             category,
         )

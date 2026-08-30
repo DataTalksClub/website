@@ -6,6 +6,7 @@ import html
 import re
 
 _SLUG_PARTS = re.compile(r"[^a-z0-9]+")
+MAX_EVENT_SLUG_LENGTH = 64
 
 
 def event_title_slug(title: str) -> str:
@@ -22,6 +23,11 @@ def event_title_slug(title: str) -> str:
     if not value or "\x00" in value:
         raise ValueError("event title is empty or unsafe")
     slug = _SLUG_PARTS.sub("-", value).strip("-")
-    if not slug or len(slug) > 255:
+    if len(slug) > MAX_EVENT_SLUG_LENGTH:
+        shortened = slug[:MAX_EVENT_SLUG_LENGTH].rstrip("-")
+        # Prefer a complete title word. A single exceptionally long word still gets a
+        # deterministic hard cut so every generated slug respects the URL budget.
+        slug = shortened.rsplit("-", 1)[0] if "-" in shortened else shortened
+    if not slug:
         raise ValueError("event title cannot produce a safe slug")
     return slug

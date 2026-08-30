@@ -37,15 +37,80 @@ class PodcastPlatformDataTests(TestCase):
         )
         self.assertNotIn("Anchor", {link.label for link in platforms})
 
-    def test_podcast_hub_renders_each_platform_from_the_projection(self) -> None:
+    def test_podcast_hub_renders_listener_platforms_with_decorative_icons(self) -> None:
+        response = self.client.get("/podcast")
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        listener_links = [
+            link
+            for link in podcast_platform_links(public_projection()["podcast_platforms"])
+            if link.provider != "spotify_for_creators"
+        ]
+        for link in listener_links:
+            link_start = body.index(f'data-podcast-platform="{link.provider}"')
+            link_markup = body[link_start : body.index("</a>", link_start)]
+            self.assertIn(f'href="{link.url}"', link_markup)
+            self.assertIn('target="_blank"', link_markup)
+            self.assertIn('rel="noopener noreferrer"', link_markup)
+            self.assertIn(link.label, link_markup)
+            self.assertIn(
+                '<span class="sr-only"> (opens in a new tab)</span>',
+                link_markup,
+            )
+        for link in listener_links:
+            self.assertContains(
+                response,
+                f'class="podcast-platform-icon" data-podcast-platform-icon="{link.provider}" '
+                'viewBox="0 0 24 24" aria-hidden="true" focusable="false"',
+            )
+
+    def test_podcast_hub_omits_spotify_for_creators(self) -> None:
         response = self.client.get("/podcast")
 
         self.assertEqual(response.status_code, 200)
-        for link in podcast_platform_links(public_projection()["podcast_platforms"]):
-            self.assertContains(response, f'data-podcast-platform="{link.provider}"')
-            self.assertContains(response, f'href="{link.url}"')
-            self.assertContains(response, link.label)
-            self.assertContains(response, 'rel="noopener noreferrer"')
+        self.assertNotContains(response, 'data-podcast-platform="spotify_for_creators"')
+        self.assertNotContains(response, "Spotify for Creators")
+        self.assertNotContains(
+            response,
+            "https://creators.spotify.com/pod/profile/datatalksclub/",
+        )
+
+    def test_episode_keeps_youtube_and_restores_creator_audio_without_creator_pill(
+        self,
+    ) -> None:
+        episode = public_projection()["podcasts_by_slug"][
+            "s24e06-how-to-build-ai-that-actually-ships-in-production"
+        ]
+        response = self.client.get(episode["public_path"])
+        body = response.content.decode()
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="podcast-video-player"')
+        self.assertContains(
+            response,
+            'src="https://www.youtube-nocookie.com/embed/PosCx_4fwt0?enablejsapi=1&amp;rel=0"',
+        )
+        creator_embed = (
+            "https://creators.spotify.com/pod/profile/datatalksclub/embed/episodes/"
+            "How-to-Build-AI-that-actually-Ships-in-Production---Aleksandr-Kim-e3l6hme"
+        )
+        self.assertContains(response, 'id="podcast-audio-player"')
+        self.assertContains(response, f'src="{creator_embed}"')
+        self.assertNotContains(response, "Spotify for Creators")
+        self.assertNotContains(
+            response,
+            'href="https://creators.spotify.com/pod/profile/datatalksclub/episodes/',
+        )
+        for provider in ("apple", "spotify", "youtube"):
+            link_start = body.index(f'href="{episode["links"][provider]}"')
+            link_markup = body[link_start : body.index("</a>", link_start)]
+            self.assertIn('target="_blank"', link_markup)
+            self.assertIn('rel="noopener noreferrer"', link_markup)
+            self.assertIn(
+                '<span class="sr-only"> (opens in a new tab)</span>',
+                link_markup,
+            )
 
     def test_platform_artifact_is_manifest_bound_and_provider_keys_cannot_drift(self) -> None:
         root = Path(__file__).resolve().parents[1] / "public_projection"

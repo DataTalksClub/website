@@ -46,8 +46,9 @@ The baseline inventory covers:
 The sole public Event detail canonical is
 `/events/<positive-public-id>/<current-title-slug>`. `public-id` is one plain base-10 integer matching
 `[1-9][0-9]*`; it has no sign, prefix, or leading zero. It is stable, immutable, unique, and never
-reused or renumbered. The current title-derived slug is cosmetic and never selects the Event. Event
-UUID remains the immutable internal identity and the only management-route lookup key.
+reused or renumbered. The current title-derived slug is cosmetic, contains at most 64 characters,
+and is shortened at a whole-word boundary when possible; it never selects the Event. Event UUID
+remains the immutable internal identity and the only management-route lookup key.
 
 Exact numeric-only and known numeric/stale-slug `GET`/`HEAD` requests redirect permanently in one
 hop to the numeric/current-slug canonical with the raw query preserved. The accepted lowercase

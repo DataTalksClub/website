@@ -147,7 +147,10 @@ class SiteNavigationCommandTests(TestCase):
         self.assertEqual(first.menu["entries"], replay.menu["entries"])
         self.assertEqual(first.menu["entries"][0]["label"], "Events & news")
         self.assertEqual(SiteNavigationMenu.objects.count(), 1)
-        self.assertEqual(SiteNavigationEntry.objects.count(), 9)
+        self.assertEqual(
+            SiteNavigationEntry.objects.count(),
+            len(DEFAULT_PRIMARY_NAVIGATION),
+        )
         self.assertEqual(SiteNavigationRevision.objects.count(), 1)
         self.assertEqual(
             AuditEvent.objects.filter(action="core.site_navigation.updated").count(),
@@ -283,7 +286,7 @@ class PublicNavigationTests(TestCase):
                     "key": "home",
                     "label": "Home",
                     "target": "home",
-                    "position": 10,
+                    "position": 11,
                     "visible": True,
                 },
             ]
@@ -306,7 +309,10 @@ class PublicNavigationTests(TestCase):
         self.assertContains(response, ">Events</a>")
         self.assertContains(response, ">Slack</a>")
         context = site_context(RequestFactory().get("/"))
-        self.assertEqual(len(context["primary_navigation"]), 9)
+        self.assertEqual(
+            len(context["primary_navigation"]),
+            len(DEFAULT_PRIMARY_NAVIGATION),
+        )
 
 
 class SiteNavigationConcurrencyTests(TransactionTestCase):

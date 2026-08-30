@@ -48,7 +48,7 @@
       </span>
       <form method="post" action="{% url 'stop_impersonating' %}">
         {% csrf_token %}
-        <button type="submit" class="impersonation-return-button">Return to admin account</button>
+        <button type="submit" class="impersonation-return-button interactive-lift">Return to admin account</button>
       </form>
     </div>
   </div>
@@ -91,7 +91,7 @@
     </a>
     <div class="site-navigation">
       <button
-        class="site-navigation-toggle"
+        class="site-navigation-toggle interactive-lift"
         type="button"
         aria-expanded="false"
         aria-controls="site-navigation-links"
@@ -136,7 +136,7 @@
     <div class="masthead-actions">
       <button
         id="dark-mode-toggle"
-        class="pill-button"
+        class="pill-button interactive-lift"
         type="button"
         aria-pressed="{{ DARK_MODE|yesno:'true,false' }}"
       >
@@ -152,7 +152,7 @@
         {% endcomment %}
         <details class="account-nav user-menu">
           <summary
-            class="user-menu-toggle"
+            class="user-menu-toggle interactive-lift"
             title="Account menu"
             aria-label="Account menu"
           >Account</summary>
@@ -188,7 +188,7 @@
         {% endcomment %}
         <a class="nav-link nav-auth" href="{{ account_login_url }}">Log in</a>
         {% if account_signup_url %}
-          <a class="signup-button" href="{{ account_signup_url }}">Sign up free</a>
+          <a class="signup-button interactive-lift" href="{{ account_signup_url }}">Sign up free</a>
         {% endif %}
       {% endif %}
     </div>

@@ -621,6 +621,12 @@ def public_events_hub_sponsors(*, using: str = "default") -> tuple[JsonObject, .
         return ()
 
 
+def public_sponsors(*, using: str = "default") -> tuple[JsonObject, ...]:
+    """Return the public directory shared by the homepage and sponsor page."""
+
+    return public_events_hub_sponsors(using=using)
+
+
 def _idempotency_scope(capability_key: str, actor_ref: str) -> str:
     scope = f"{capability_key}:{actor_ref}"
     if len(scope) > 128:

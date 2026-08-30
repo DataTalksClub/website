@@ -107,6 +107,7 @@
         gap: 0.25rem;
         justify-items: start;
         min-width: 0;
+        padding-right: 2.5rem;
       }
 
       .event-speakers {
@@ -213,14 +214,14 @@
           <div class="events-controls">
             <nav class="filter-pills" aria-label="Event views">
               {% if is_past_events %}
-                <a class="filter-pill" href="{{ upcoming_path }}">Upcoming events</a>
+                <a class="filter-pill interactive-lift" href="{{ upcoming_path }}">Upcoming events</a>
               {% else %}
-                <a class="filter-pill" href="{{ upcoming_path }}" aria-current="page">Upcoming events</a>
+                <a class="filter-pill interactive-lift" href="{{ upcoming_path }}" aria-current="page">Upcoming events</a>
               {% endif %}
               {% if is_past_events %}
-                <a class="filter-pill" href="{{ past_path }}" aria-current="page">Past events</a>
+                <a class="filter-pill interactive-lift" href="{{ past_path }}" aria-current="page">Past events</a>
               {% else %}
-                <a class="filter-pill" href="{{ past_path }}">Past events</a>
+                <a class="filter-pill interactive-lift" href="{{ past_path }}">Past events</a>
               {% endif %}
             </nav>
             <a
@@ -259,7 +260,7 @@
                       {{ event.display_clock }}
                     </span>
                   </div>
-                  <article class="card event-card">
+                  <article class="card event-card interactive-card interactive-lift">
                     <div class="event-body">
                       {% include "public/_event_kind.html" with tip_id=event.public_id|default:forloop.counter0 %}
                       <h3>

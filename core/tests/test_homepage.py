@@ -58,6 +58,12 @@ class MainHomepageRoutingTests(TestCase):
         )
         self.assertContains(response, "Explore free courses")
         self.assertContains(response, "Join the community")
+        self.assertContains(
+            response,
+            '<a class="cta cta-secondary interactive-lift" '
+            f'href="{reverse("account_signup")}">Join the community</a>',
+            html=True,
+        )
         self.assertContains(response, "From “What does that mean?” to “Let me show you.”")
         self.assertContains(response, "I don’t know where to start")
         self.assertContains(response, "I’m connecting the pieces")
@@ -98,15 +104,26 @@ class MainHomepageRoutingTests(TestCase):
     def test_single_destination_cards_stretch_their_existing_semantic_links(self) -> None:
         body = self.client.get(reverse("home")).content.decode()
 
-        self.assertIn('class="card course-card stretched-card-link"', body)
-        self.assertIn('class="card latest-card stretched-card-link podcast-card"', body)
+        self.assertIn(
+            'class="card course-card stretched-card-link interactive-card interactive-lift"',
+            body,
+        )
+        self.assertIn(
+            "card latest-card stretched-card-link podcast-card interactive-card interactive-lift",
+            body,
+        )
         self.assertIn(
             '<p class="mono-label mono-label-indigo podcast-meta">',
             body,
         )
-        self.assertIn('class="card latest-card stretched-card-link">', body)
+        self.assertIn(
+            'class="card latest-card stretched-card-link interactive-card interactive-lift">',
+            body,
+        )
         self.assertIn(".stretched-card-link .latest-item h3 a::after", body)
         self.assertIn(".stretched-card-link .course-link::after", body)
+        self.assertIn(">View course</a>", body)
+        self.assertNotIn(">View course →</a>", body)
 
     def test_homepage_leaks_no_unrendered_template_syntax(self) -> None:
         """A multi-line {# #} comment is not a comment, and reaches the reader as copy."""

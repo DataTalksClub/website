@@ -30,7 +30,7 @@
       {% if pagination.previous_url %}
         <li>
           <a
-            class="filter-pill pagination-step"
+            class="filter-pill pagination-step interactive-lift"
             href="{{ pagination.previous_url }}"
             rel="prev"
             aria-label="Previous page — page {{ pagination.previous_page_number }}"
@@ -43,13 +43,13 @@
             <span class="status-pill pagination-gap" aria-hidden="true">&hellip;</span>
           {% elif control.is_current %}
             <span
-              class="filter-pill pagination-number"
+              class="filter-pill pagination-number interactive-lift"
               aria-current="page"
               aria-label="{{ control.accessible_label }}"
             >{{ control.page_number }}</span>
           {% else %}
             <a
-              class="filter-pill pagination-number"
+              class="filter-pill pagination-number interactive-lift"
               href="{{ control.url }}"
               aria-label="{{ control.accessible_label }}"
             >{{ control.page_number }}</a>
@@ -59,7 +59,7 @@
       {% if pagination.next_url %}
         <li>
           <a
-            class="filter-pill pagination-step"
+            class="filter-pill pagination-step interactive-lift"
             href="{{ pagination.next_url }}"
             rel="next"
             aria-label="Next page — page {{ pagination.next_page_number }}"

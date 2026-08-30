@@ -23,7 +23,7 @@ REQUIRED_SOURCE_REVISIONS = {
 }
 REQUIRED_PUBLIC_PATHS = {
     "/blog/ai-dev-tools-zoomcamp.html",
-    "/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.html",
+    "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
     "/people/aleksandrkim.html",
     "/books/20250922-how-software-fails.html",
     "/docs/courses/ai-dev-tools-zoomcamp/getting-started/",

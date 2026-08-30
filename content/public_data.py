@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlsplit
+from urllib.parse import parse_qs, unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 from django.core.exceptions import ImproperlyConfigured
@@ -29,6 +30,7 @@ from .event_description_bridge import (
     load_event_description_bridge,
     validate_projected_event,
 )
+from .event_speaker_bio_normalization import normalization_manifest_binding
 from .podcast_routes import podcast_canonical_path
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
@@ -120,9 +122,10 @@ def safe_public_graph_url(value: Any) -> str:
     """Return a safe root-relative graph destination, or an empty destination.
 
     Empty URLs are valid for projected nodes that have no public page.  Every
-    non-empty value must remain a path on this site; protocol-relative, absolute,
-    credential-bearing, query/fragment, control-character and traversal values
-    are rejected before a projection or template can expose them as ``href``.
+    non-empty value must remain a path on this site. The graph's search nodes may
+    carry one bounded ``q`` parameter and page links may carry a safe fragment;
+    protocol-relative, absolute, credential-bearing, control-character and
+    traversal values are rejected before a template can expose them as ``href``.
     """
 
     if value in (None, ""):
@@ -137,7 +140,20 @@ def safe_public_graph_url(value: Any) -> str:
         parsed = urlsplit(value)
     except ValueError:
         return ""
-    if parsed.scheme or parsed.netloc or parsed.query or parsed.fragment or parsed.path != value:
+    if parsed.scheme or parsed.netloc or not parsed.path.startswith("/"):
+        return ""
+    if parsed.query:
+        try:
+            query = parse_qs(parsed.query, keep_blank_values=True, max_num_fields=2)
+        except ValueError:
+            return ""
+        if parsed.path != "/wiki/search" or set(query) != {"q"} or len(query["q"]) != 1:
+            return ""
+        if len(query["q"][0]) > 200 or any(
+            ord(character) < 0x20 or ord(character) == 0x7F for character in query["q"][0]
+        ):
+            return ""
+    if parsed.fragment and re.fullmatch(r"[A-Za-z0-9._~%-]+", parsed.fragment) is None:
         return ""
     for index, character in enumerate(value):
         if character != "%":
@@ -149,10 +165,15 @@ def safe_public_graph_url(value: Any) -> str:
         ):
             return ""
     try:
-        decoded = unquote(value, errors="strict")
+        decoded = unquote(parsed.path, errors="strict")
+        decoded_fragment = unquote(parsed.fragment, errors="strict")
     except UnicodeDecodeError:
         return ""
-    if any(segment == ".." for segment in decoded.split("/")):
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in decoded) or any(
+        segment == ".." for segment in decoded.split("/")
+    ):
+        return ""
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in decoded_fragment):
         return ""
     return value
 
@@ -643,6 +664,17 @@ def _checked_public_projection() -> dict[str, Any]:
     identities_by_id = {str(item.id): item for item in identity_manifest.events}
     if projection_rules.get("event_description_bridge") != expected_bridge_binding:
         raise ImproperlyConfigured("Public event description bridge binding mismatch.")
+    try:
+        expected_event_speaker_bio_binding = normalization_manifest_binding()
+    except Exception as exc:
+        raise ImproperlyConfigured(
+            "Public event speaker-bio normalization plan is invalid."
+        ) from exc
+    if (
+        projection_rules.get("event_speaker_bio_normalization")
+        != expected_event_speaker_bio_binding
+    ):
+        raise ImproperlyConfigured("Public event speaker-bio normalization binding mismatch.")
     if (
         manifest.get("runtime_contract", {}).get("event_description_source")
         != "committed_safe_bridge_only"

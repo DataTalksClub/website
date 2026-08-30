@@ -153,16 +153,16 @@
           <p class="cohort-lede">{{ cohort.description }}</p>
           <div class="cohort-actions">
             <a
-              class="cta cta-primary"
+              class="cta cta-primary interactive-lift"
               href="{% url 'course-registration-preview-ai-dev-tools-2026' %}"
             >Registration</a>
             <a
-              class="cta cta-secondary cta-lift"
+              class="cta cta-secondary cta-lift interactive-lift"
               href="{% url 'docs-ai-dev-tools-getting-started' %}"
             >Getting started</a>
             {% if legacy_course %}
               <a
-                class="cta cta-secondary"
+                class="cta cta-secondary interactive-lift"
                 href="{% url 'courses:course' course_slug=legacy_course.slug %}"
               >Open the existing course workspace</a>
             {% endif %}

@@ -86,6 +86,12 @@ class LoginPageConfigurationTests(TestCase):
         self.assertNotContains(response, "Back to courses")
         self.assertNotContains(response, "Sign-in is temporarily unavailable")
 
+    def test_create_account_link_targets_signup_and_preserves_next(self) -> None:
+        with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=True):
+            response = self.client.get("/accounts/login/?next=%2F")
+
+        self.assertContains(response, 'href="/accounts/signup/?next=/"')
+
     def test_empty_auth_configuration_has_no_misleading_course_fallback(self) -> None:
         with override_settings(DEVELOPMENT_OWNER_LOGIN_ENABLED=False):
             for next_path in ("/books", "/accounts/signup/"):

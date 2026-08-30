@@ -10,10 +10,16 @@ from unittest.mock import patch
 from django.core.exceptions import ImproperlyConfigured
 from django.test import TestCase
 
+from content.docs_presentation import (
+    docs_body_without_primary_heading,
+    docs_context_items,
+    docs_curriculum,
+    docs_home_areas,
+    docs_home_course_groups,
+)
 from content.docs_projection import (
     DOCS_PROJECTION_PATH,
     DOCS_ROOT_PATH,
-    DOCS_SEARCH_URL,
     DOCS_SOURCE_REVISION,
     _prepare_markdown,
     build_docs_navigation,
@@ -65,10 +71,10 @@ class DocsProjectionTests(TestCase):
         self.assertContains(detail, 'id="star-the-github-repository"')
         self.assertContains(detail, 'href="/docs/courses/zoomcamp-logistics/joining/"')
         self.assertNotContains(detail, "3f23e006ffdaa498bbc69697408853b6f5eb37dc")
-        self.assertContains(detail, DOCS_SEARCH_URL)
         projected_detail = docs_page(detail_path)
         self.assertIsNotNone(projected_detail)
-        self.assertContains(detail, (projected_detail or {})["edit_url"])
+        self.assertNotContains(detail, (projected_detail or {})["edit_url"])
+        self.assertNotContains(detail, "Search documentation on GitHub")
 
     def test_tree_is_complete_ordered_and_stable_across_source_reordering(self) -> None:
         pages = docs_projection()["pages"]
@@ -133,31 +139,31 @@ class DocsProjectionTests(TestCase):
             ):
                 build_docs_navigation(tuple(fixture))
 
-    def test_landing_contains_every_document_once_in_the_complete_tree(self) -> None:
+    def test_landing_uses_bounded_source_backed_entry_groups(self) -> None:
         response = self.client.get(DOCS_ROOT_PATH)
         self.assertEqual(response.status_code, 200)
-        navigation = response.context["docs_navigation"]
-
-        def flatten(items):
-            for item in items:
-                yield item
-                yield from flatten(item.children)
-
-        rendered_items = tuple(flatten(navigation))
-        self.assertEqual(len(rendered_items), 105)
-        self.assertEqual(
-            {item.public_path for item in rendered_items},
-            {
-                page["public_path"]
-                for page in docs_projection()["pages"]
-                if page["public_path"] != DOCS_ROOT_PATH
-            },
-        )
         html = response.content.decode("utf-8")
-        tree_html = html.split('<nav class="docs-home-tree"', 1)[1].split("</nav>", 1)[0]
-        for item in rendered_items:
+        tree = docs_navigation_tree()
+        families, support = docs_home_course_groups(tree)
+        areas = docs_home_areas(tree)
+        self.assertEqual(len(families), 6)
+        self.assertEqual(len(support), 3)
+        self.assertEqual([item.title for item in areas], ["General", "Activities"])
+        for item in (*families, *support, *areas):
             with self.subTest(public_path=item.public_path):
-                self.assertEqual(tree_html.count(f'href="{item.public_path}"'), 1)
+                self.assertIn(f'href="{item.public_path}"', html)
+        self.assertIn('href="/docs/activities/workshops/"', html)
+        self.assertLess(html.count('href="/docs/'), 30)
+
+    def test_every_document_remains_reachable_by_hierarchical_drill_down(self) -> None:
+        tree = docs_navigation_tree()
+        home_destinations = {item.public_path for item in tree.root.children}
+        for item in tree.documents:
+            current = item
+            while current.page.get("parent_path") not in (None, DOCS_ROOT_PATH):
+                current = tree.by_path[str(current.page["parent_path"])]
+            with self.subTest(public_path=item.public_path):
+                self.assertIn(current.public_path, home_destinations)
 
     def test_root_only_projection_has_explicit_empty_state_without_empty_nav(self) -> None:
         root = deepcopy(docs_page(DOCS_ROOT_PATH) or {})
@@ -202,36 +208,80 @@ class DocsProjectionTests(TestCase):
     def test_detail_marks_current_once_in_each_navigation_landmark(self) -> None:
         path = "/docs/courses/ai-dev-tools-zoomcamp/getting-started/"
         response = self.client.get(path)
-        # The design 5a page carries its whole stylesheet inline (issue #179), and
-        # that stylesheet names both landmarks in its own comments and selectors,
-        # so the landmarks are read from the document below the head.
         html = response.content.decode("utf-8").split("</head>", 1)[1]
         breadcrumb = html.split('aria-label="Breadcrumb"', 1)[1].split("</nav>", 1)[0]
-        tree = html.split('aria-label="Documentation sections"', 1)[1].split("</nav>", 1)[0]
+        tree = html.split('aria-label="AI Dev Tools Zoomcamp guide"', 1)[1].split("</nav>", 1)[0]
         self.assertEqual(breadcrumb.count('aria-current="page"'), 1)
-        self.assertEqual(tree.count('aria-current="page"'), 1)
+        self.assertEqual(tree.count('aria-current="page"'), 2)
+        self.assertIn('class="docs-local-summary" aria-current="page"', tree)
         self.assertIn(f'href="{path}"', tree)
-        self.assertIn('<details class="docs-tree-disclosure" open>', tree)
-        self.assertIn("<summary>Documentation sections</summary>", tree)
-        self.assertIn('class="docs-tree-branch"', tree)
-        self.assertIn("Show sections in", tree)
 
-        body = html.split('<article class="prose prose-reading docs-body">', 1)[1]
-        self.assertLess(body.index("</article>"), body.index('id="docs-onward-heading"'))
-
-    def test_search_and_edit_actions_are_exact_external_links(self) -> None:
+    def test_public_docs_do_not_render_repository_utility_actions(self) -> None:
         for path in (DOCS_ROOT_PATH, "/docs/general/guidelines/ai-usage/"):
             page = docs_page(path)
             if page is None:
                 self.fail(f"projected Docs page is missing: {path}")
             response = self.client.get(path)
-            self.assertContains(response, f'href="{DOCS_SEARCH_URL}"')
-            self.assertContains(response, f'href="{page["edit_url"]}"')
-            actions = response.content.decode("utf-8").split('class="docs-actions"', 1)[1]
-            actions = actions.split("</div>", 1)[0]
-            self.assertEqual(actions.count('target="_blank"'), 2)
-            self.assertEqual(actions.count('rel="noopener noreferrer"'), 2)
+            self.assertNotContains(response, "Search documentation on GitHub")
+            self.assertNotContains(response, f'href="{page["edit_url"]}"')
             self.assertNotContains(response, DOCS_SOURCE_REVISION)
+
+    def test_representative_detail_navigation_is_local_and_bounded(self) -> None:
+        tree = docs_navigation_tree()
+        scenarios = {
+            "/docs/courses/ml-zoomcamp/curriculum/": ("Machine Learning Zoomcamp", 8),
+            "/docs/general/guidelines/ai-usage/": ("Community Guidelines", 6),
+        }
+        for path, (title, count) in scenarios.items():
+            with self.subTest(path=path):
+                items = docs_context_items(tree, path)
+                self.assertEqual(items[0].title, title)
+                self.assertEqual(len(items), count)
+                response = self.client.get(path)
+                body = response.content.decode("utf-8").split("</head>", 1)[1]
+                self.assertEqual(body.count('class="docs-tree-link'), count)
+                local = body.split(f'aria-label="{title} guide"', 1)[1].split("</nav>", 1)[0]
+                self.assertEqual(local.count('aria-current="page"'), 2)
+                self.assertIn('class="docs-local-summary" aria-current="page"', local)
+                self.assertNotContains(response, 'aria-label="Documentation sections"')
+
+    def test_curriculum_presentation_preserves_the_source_learning_flow(self) -> None:
+        page = docs_page("/docs/courses/ml-zoomcamp/curriculum/")
+        self.assertIsNotNone(page)
+        rendered, _headings = render_docs_markdown(page or {})
+        heading_id, body = docs_body_without_primary_heading(rendered)
+        curriculum = docs_curriculum(body)
+        self.assertEqual(heading_id, "curriculum")
+        self.assertIsNotNone(curriculum)
+        assert curriculum is not None
+        self.assertEqual(len(curriculum.items), 12)
+        self.assertEqual(curriculum.items[0].marker, "01")
+        self.assertEqual(curriculum.items[6].marker, "07")
+        self.assertEqual(curriculum.items[-1].marker, "Project")
+        self.assertIn("Module 1: Introduction", curriculum.items[0].title_html)
+        self.assertEqual(curriculum.items[0].title_text, "Module 1: Introduction")
+        self.assertEqual(
+            curriculum.items[0].destination,
+            "https://github.com/DataTalksClub/machine-learning-zoomcamp/tree/main/01-intro",
+        )
+        self.assertIsNone(curriculum.items[6].destination)
+        self.assertEqual(
+            len(tuple(item for item in curriculum.items if item.destination)),
+            10,
+        )
+        self.assertIn("Setup, basic Python", curriculum.items[0].details_html)
+        self.assertIn('id="learning-philosophy"', curriculum.remainder_html)
+
+        response = self.client.get(str((page or {})["public_path"]))
+        body_html = response.content.decode("utf-8").split("</head>", 1)[1]
+        self.assertEqual(body_html.count('class="docs-curriculum-item"'), 12)
+        self.assertContains(
+            response,
+            'href="https://github.com/DataTalksClub/machine-learning-zoomcamp/tree/main/01-intro"',
+            count=1,
+        )
+        for anchor in ("curriculum", "modules", "learning-philosophy", "pace", "cohort-changes"):
+            self.assertContains(response, f'id="{anchor}"', count=1)
 
     def test_route_alias_unknown_search_and_query_behavior_remain_bounded(self) -> None:
         alias = self.client.get("/docs", query_params={"source": "test"})

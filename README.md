@@ -20,6 +20,23 @@ make run
 
 The local site is served at `http://localhost:8000`. Local development uses the gitignored `.tmp/local.sqlite3` database by default. Set `DTC_SQLITE_PATH` to use another SQLite file; relative paths resolve from the repository root. The deployed development hostname is `web.dtcdev.click` and is always marked `noindex, nofollow`.
 
+### Local administrator
+
+Seed the shared local-only administrator and placeholder social providers after
+migrating the database:
+
+```bash
+uv run python scripts/create_local_admin.py
+```
+
+Log in with `admin@aishippinglabs.com` / `admin123`. These intentionally weak,
+checked-in credentials are only for local testing. The script refuses to run
+outside the local runtime or against a non-SQLite database, and each run restores
+the documented password and administrator privileges. It also enables the Google,
+GitHub, and Slack buttons on the local sign-in and sign-up pages using inert
+placeholder OAuth credentials. The buttons are for visual testing and intentionally
+cannot complete authentication with the external providers.
+
 ### Local course data
 
 A freshly migrated database has no courses, while the homepage renders its course

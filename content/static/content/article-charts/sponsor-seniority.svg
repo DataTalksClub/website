@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title desc">
+  <title id="title">Seniority</title>
+  <desc id="desc">Senior individual contributors 40.6%, entry-level 35.6%, team leads 10.1%, directors and above 3.7%, students 3%, and other 7%.</desc>
+  <text x="320" y="32" text-anchor="middle" fill="#17213f" font-family="Alegreya Sans, sans-serif" font-size="24" font-weight="700">Seniority</text>
+  <g stroke="#fff" stroke-width="2">
+    <path fill="#3366cc" d="M320 220 L320 75 A145 145 0 0 1 400.747 340.436 Z"/>
+    <path fill="#dc3912" d="M320 220 L400.747 340.436 A145 145 0 0 1 175.412 209.078 Z"/>
+    <path fill="#ff9900" d="M320 220 L175.412 209.078 A145 145 0 0 1 210.038 125.484 Z"/>
+    <path fill="#109618" d="M320 220 L210.038 125.484 A145 145 0 0 1 234.771 102.693 Z"/>
+    <path fill="#990099" d="M320 220 L234.771 102.693 A145 145 0 0 1 258.262 88.8 Z"/>
+    <path fill="#0099c6" d="M320 220 L258.262 88.8 A145 145 0 0 1 320 75 Z"/>
+  </g>
+</svg>

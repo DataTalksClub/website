@@ -128,15 +128,15 @@
           </p>
           <nav class="filter-pills special-categories" aria-label="Special page categories">
             {% if category == 'all' %}
-              <a class="filter-pill" href="{% url 'wiki-special' %}" aria-current="page">All</a>
+              <a class="filter-pill interactive-lift" href="{% url 'wiki-special' %}" aria-current="page">All</a>
             {% else %}
-              <a class="filter-pill" href="{% url 'wiki-special' %}">All</a>
+              <a class="filter-pill interactive-lift" href="{% url 'wiki-special' %}">All</a>
             {% endif %}
             {% for slug, tag in categories.items %}
               {% if slug == category %}
-                <a class="filter-pill" href="{% url 'wiki-special-category' slug %}" aria-current="page">{{ slug|title }}</a>
+                <a class="filter-pill interactive-lift" href="{% url 'wiki-special-category' slug %}" aria-current="page">{{ slug|title }}</a>
               {% else %}
-                <a class="filter-pill" href="{% url 'wiki-special-category' slug %}">{{ slug|title }}</a>
+                <a class="filter-pill interactive-lift" href="{% url 'wiki-special-category' slug %}">{{ slug|title }}</a>
               {% endif %}
             {% endfor %}
           </nav>

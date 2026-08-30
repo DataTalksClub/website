@@ -6,6 +6,7 @@ from unittest import mock
 
 from django.db import DatabaseError, OperationalError, close_old_connections, connections
 from django.test import TestCase, TransactionTestCase
+from django.urls import reverse
 
 from core.idempotency import IdempotencyConflict
 from core.models import AuditEvent, RevisionConflict, Sponsor, SponsorRevision
@@ -18,6 +19,7 @@ from core.sponsors import (
     get_sponsor,
     list_sponsors,
     public_events_hub_sponsors,
+    public_sponsors,
     reactivate_sponsor,
     resolve_public_sponsors,
     update_sponsor,
@@ -340,6 +342,52 @@ class SponsorServiceTests(TestCase):
         self.assertEqual(page["total_count"], 1)
         self.assertEqual(first["key"], "beta")
         self.assertEqual(len(items), 1)
+
+
+class SponsorPublicSurfaceTests(TestCase):
+    def setUp(self) -> None:
+        _create(
+            _payload(
+                lifecycle="active",
+                name="Open Data Partner",
+                tagline="Keeping community learning free",
+            )
+        )
+
+    def test_homepage_and_directory_share_the_public_sponsor_source(self) -> None:
+        self.assertEqual(
+            [sponsor["name"] for sponsor in public_sponsors()],
+            ["Open Data Partner"],
+        )
+
+        home = self.client.get(reverse("home"))
+        directory = self.client.get(reverse("sponsors"))
+
+        self.assertEqual(home.status_code, 200)
+        self.assertContains(home, 'id="sponsors-heading"')
+        for name in ("dltHub", "Astronomer", "Kestra", "Snowplow"):
+            self.assertContains(home, f'alt="{name}"')
+        self.assertContains(home, f'href="{reverse("sponsors")}"')
+        self.assertEqual(directory.status_code, 200)
+        self.assertContains(directory, "Our Sponsors")
+        self.assertNotContains(directory, "Our supporters")
+        self.assertContains(directory, "Weights &amp; Biases")
+        self.assertContains(directory, "/static/core/sponsors/dlthub.png")
+        self.assertContains(directory, "production-minded data ingestion")
+        self.assertContains(directory, "LLM Zoomcamp")
+        self.assertNotContains(directory, "Community partners")
+        self.assertContains(directory, "With thanks to every supporter")
+        self.assertNotContains(directory, 'href="/mediakit/')
+        self.assertContains(
+            directory,
+            '<link rel="canonical" href="https://datatalks.club/sponsors">',
+        )
+
+    def test_top_navigation_links_to_sponsor_directory(self) -> None:
+        response = self.client.get(reverse("home"))
+
+        self.assertContains(response, ">Sponsors</a>")
+        self.assertContains(response, f'href="{reverse("sponsors")}"')
 
 
 class SponsorConcurrencyTests(TransactionTestCase):

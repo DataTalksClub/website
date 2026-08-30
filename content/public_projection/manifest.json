@@ -1,17 +1,17 @@
 {
   "artifacts": {
-    "articles.json": "97dffb1cbc1846b7cf527b9c97bdb9dd8d26e513c764a6b2b63ffb34c09260c9",
-    "books.json": "f30f6cff78a8de735826a33e04c933239b113dcd24bc0ff077158893f3255ec4",
+    "articles.json": "4ca8e4f3a1fcf3fe3c6434fdaf945f47e7969b6d6cf3cc03194c75b7a6318428",
+    "books.json": "c960306e3a2f6d6f312815826dc6d9b69858cefacd183b15215b37bfde37ec18",
     "courses.json": "8e4cc4864822ac885c360fb154e0a1f4bb402047bb66b80c5673c3233a1ecdb8",
-    "editorial_route_migration.json": "6b667292b95fa852ced13fb01365e3e1b13d0c403b4a541a8933c397a8c70933",
-    "events.json": "260eeeb2974a436b80621d87df30bfea743273b3d38a6dfe9532dfb7d99f00ec",
+    "editorial_route_migration.json": "bb37ccdb0e13002d86d638385a9c65b7e9ae1bab9433d4a9cc952b59b5cacec0",
+    "events.json": "333c53c88445d9cbc6d91c26f9043a6998645346a84fdd3b2782ec0a989d7fc6",
     "media.json": "72788d42f6b4742733f6155571d2b1ba347612011f3cdcdae834d59fc5f0e784",
-    "people.json": "2eead505ef53d723f5387b9a10bee1952a29a16fd536af945e9a4ed58c929eb2",
+    "people.json": "46ca78bad0821cf825b5cdca3ea8d9fcb62490ae26b37864e5de30fe98e07c85",
     "podcast_platforms.json": "16a1eff26191e2aef48b8df939bed7d2ae134677d06bbfba55a6fd2842526dda",
-    "podcasts.json": "723cbac24b2b175390227984fdade52612b86606b85bb94ed3aba29439431d54",
-    "wiki.json": "325742bd47f62a805b5f6a2c87333be1861018145cb440545c6c1ec114f6c17d",
-    "wiki_graph.json": "da1471627fcdb4fb364bb17ddde078a505d170d2a6e6c5861d96dbcbe7fcb179",
-    "wiki_search.json": "ca67b78201578e82d930d0cda357ce33d255ad8480998db5109d014f21174d96"
+    "podcasts.json": "9fd85ce176d550d28d31eb5650f7b9bef19f9e5727c2516a46c1df2d1943c2da",
+    "wiki.json": "b2525b45a61aed28d035cd996852ffda17ae35f20325b33b66222dbcd102120b",
+    "wiki_graph.json": "f6ec4fb29e71dd179cdaa79526bfb4174ad25ee4991dfcba7f2fe3c5b0e99a13",
+    "wiki_search.json": "74d6373df63386aead5108e5addd5ecf2a83a885e891338ca72022e6bdcd3fef"
   },
   "counts": {
     "articles": 55,
@@ -69,15 +69,43 @@
     },
     "event_identity_manifest": {
       "counts": {
-        "aliases": 421,
+        "aliases": 1684,
         "events": 421
       },
       "path": "events/event_identity_manifest.json",
-      "schema_version": 1,
-      "sha256": "26c2fd6589ff8acd132ebef0b31d15a81dc43901e1ba0b2e4437e72aeab5d91e"
+      "schema_version": 2,
+      "sha256": "1fd4ff474199cae9ce97a75ac8061aa4c8388edf66a1cb960377e0494559b6f5"
     },
     "event_record_schema_version": 2,
     "event_source_timezone": "Europe/Berlin",
+    "event_speaker_bio_normalization": {
+      "content_sha256": "24a489ac8d7f932edb7b38f1c48cbc6be5b7662b41efa2db46fd3b8f0051528a",
+      "counts": {
+        "conflicts": 2,
+        "described_events": 159,
+        "events": 421,
+        "internal_links_normalized": 154,
+        "people_changed": 17,
+        "people_with_bio_candidates": 107,
+        "platform_boilerplate_blocks": 136,
+        "platform_boilerplate_events": 136,
+        "speaker_bio_events": 155,
+        "undescribed_events": 262
+      },
+      "path": "_docs/migrations/event-speaker-bio-normalization.json",
+      "schema": {
+        "description": "Deterministic event description and linked person bio normalization plan.",
+        "path": "_docs/migrations/event-speaker-bio-normalization.json"
+      },
+      "schema_version": 1,
+      "source": {
+        "bridge_content_sha256": "64c54ffa59b4cb57538ec3bba1c1a0577481523323db9f76edd55cf0ca2340e3",
+        "bridge_schema_version": 1,
+        "event_count": 421,
+        "people_repository": "DataTalksClub/datatalksclub.github.io",
+        "people_revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5"
+      }
+    },
     "media": "signature-checked local allowlist with per-asset provenance",
     "people_source": "438 public _people profiles; underscore-prefixed source excluded",
     "unresolved_podcast_guest_keys": [
@@ -130,7 +158,7 @@
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "56e3d79cadf5994c7eddf614d75ab2cdca3fea07771cb3930f674e6ddcf8a9c0",
+  "tree_sha256": "cff8135eeab60d629164db983f74d8e1554ee22c4805d897c581beccae0a22a4",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }

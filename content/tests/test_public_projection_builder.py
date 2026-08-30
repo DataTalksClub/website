@@ -60,6 +60,23 @@ class PublicProjectionBuilderTests(SimpleTestCase):
                 {"title": "Second", "url": "https://example.test/second"},
             ],
         )
+        self.assertEqual(
+            builder._podcast_resources(
+                [
+                    {
+                        "title": "Related episode",
+                        "url": "https://www.datatalks.club/podcast/example.html?from=notes#topic",
+                    }
+                ],
+                source_name="episode.yaml",
+            ),
+            [
+                {
+                    "title": "Related episode",
+                    "url": "/podcast/example.html?from=notes#topic",
+                }
+            ],
+        )
         with self.assertRaisesRegex(builder.ProjectionBuildError, "unsafe public URL"):
             builder._podcast_resources(
                 [{"title": "Unsafe", "url": "javascript:alert(1)"}],
@@ -118,6 +135,48 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertNotIn("<script", str(blocks))
         self.assertNotIn("secret", str(blocks))
         self.assertIn("Visible text", str(blocks))
+
+    def test_wiki_body_preserves_local_links_without_widening_plain_bios(self) -> None:
+        source = "Read [the guide](https://www.datatalks.club/blog/guide.html?from=wiki#setup)."
+
+        self.assertEqual(
+            builder._body_blocks(source, preserve_links=True),
+            [
+                {
+                    "kind": "paragraph",
+                    "text": "Read the guide.",
+                    "markdown": "Read [the guide](/blog/guide.html?from=wiki#setup).",
+                }
+            ],
+        )
+        self.assertEqual(
+            builder._body_blocks(source),
+            [{"kind": "paragraph", "text": "Read the guide."}],
+        )
+
+    def test_wiki_graph_localizes_host_variants_and_preserves_url_suffixes(self) -> None:
+        payload = {
+            "nodes": [
+                {"url": ("http://www.datatalks.club/podcast/episode.html?from=graph#transcript")},
+                {"url": "/wiki/topic/?from=search#section"},
+            ]
+        }
+
+        localized = builder._canonicalize_wiki_document_urls(
+            payload,
+            {"episode": "/podcast/s24e01/episode"},
+            {},
+            {},
+        )
+
+        self.assertEqual(
+            localized["nodes"][0]["url"],
+            "/podcast/s24e01/episode?from=graph#transcript",
+        )
+        self.assertEqual(
+            localized["nodes"][1]["url"],
+            "/wiki/topic?from=search#section",
+        )
 
     def test_target_attribute_grammar_is_narrow_and_preserves_link_content(self) -> None:
         self.assertEqual(
@@ -181,12 +240,68 @@ class PublicProjectionBuilderTests(SimpleTestCase):
             "label",
         )
 
+    def test_editorial_links_to_our_pages_stay_on_the_active_host(self) -> None:
+        source = (
+            "[Survey](https://datatalks.club/blog/survey.html?year=2026#roles) "
+            "[Home](http://www.datatalks.club) "
+            '<a class="cta" href="https://DATATALKS.CLUB/events/42#video">Event</a> '
+            "![Image](https://datatalks.club/images/chart.png) "
+            "[CDN](https://static.datatalks.club/chart.svg) "
+            "[External](https://example.com/path)"
+        )
+
+        localized = builder._localize_editorial_links(source)
+
+        self.assertIn("[Survey](/blog/survey.html?year=2026#roles)", localized)
+        self.assertIn("[Home](/)", localized)
+        self.assertIn('href="/events/42#video"', localized)
+        self.assertIn("![Image](https://datatalks.club/images/chart.png)", localized)
+        self.assertIn("https://static.datatalks.club/chart.svg", localized)
+        self.assertIn("https://example.com/path", localized)
+        self.assertEqual(
+            builder._localize_internal_url("https://datatalks.club:invalid/blog/post"),
+            "https://datatalks.club:invalid/blog/post",
+        )
+
+    def test_reviewed_sponsor_canvases_bridge_to_local_accessible_images(self) -> None:
+        block = builder._article_chart_block(
+            {
+                "data-title": "Roles",
+                "data-type": "pie",
+            },
+            (
+                "Data engineering 28.5%, data science and ML 26.8%, analytics 16.8%, "
+                "software development 13.1%, management and consulting 7.0%, other 7.8%."
+            ),
+            {},
+        )
+
+        self.assertEqual(block["kind"], "chart")
+        self.assertEqual(block["src"], "/static/content/article-charts/sponsor-roles.svg")
+        self.assertEqual(block["alt"], "Pie chart of DataTalks.Club community roles")
+        self.assertEqual((block["width"], block["height"]), (640, 400))
+
+        unknown = builder._article_chart_block(
+            {"data-title": "A different chart"}, "Its source caption.", {}
+        )
+        self.assertEqual(
+            unknown,
+            {
+                "kind": "chart",
+                "text": "A different chart",
+                "caption": "Its source caption.",
+            },
+        )
+
     def test_book_archive_normalizes_ordered_threads_and_empty_replies(self) -> None:
         archive = builder._book_archive(
             [
                 {
                     "name": "Reader",
-                    "text": "How do I start?",
+                    "text": (
+                        "How do I start? Read [the archive]"
+                        "(https://datatalks.club/books.html#archive)."
+                    ),
                     "replies": [
                         {"name": "Author", "text": "Begin with chapter one."},
                         {"name": "Reader", "text": ""},
@@ -200,7 +315,7 @@ class PublicProjectionBuilderTests(SimpleTestCase):
             [
                 {
                     "name": "Reader",
-                    "text": "How do I start?",
+                    "text": "How do I start? Read [the archive](/books.html#archive).",
                     "replies": [
                         {"name": "Author", "text": "Begin with chapter one."},
                         {"name": "Reader", "text": ""},
@@ -312,7 +427,10 @@ class PublicProjectionBuilderTests(SimpleTestCase):
                 for item in manifest["finals"]
                 if not item["final_path"].endswith(".html")
             },
-            {"/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"},
+            {
+                "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
+                "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
+            },
         )
         self.assertTrue(
             all(not item["source_path"].endswith(".html") for item in manifest["aliases"])

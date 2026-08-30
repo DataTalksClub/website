@@ -75,7 +75,7 @@ class SharedSubmissionPrimitiveTests(SimpleTestCase):
         )
 
         self.assertIn('class="callout callout-info callout-quiet"', rendered)
-        self.assertIn('class="cta cta-primary cta-compact"', rendered)
+        self.assertIn('class="cta cta-primary cta-compact interactive-lift"', rendered)
         self.assertNotIn("cta-primary cta-compact callout-quiet", rendered)
 
     def test_subtle_button_and_quiet_callout_are_token_driven(self) -> None:
@@ -101,8 +101,11 @@ class SubmissionTemplateStructureTests(SimpleTestCase):
     def test_course_catalogue_actions_use_design_tokens_without_the_old_ink_cta(self) -> None:
         source = read_template("courses/templates/courses/course_list.html")
 
-        self.assertIn('class="cta cta-secondary cta-compact courses-wrapped-action"', source)
-        self.assertIn('class="cta cta-primary cta-compact"', source)
+        self.assertIn(
+            'class="cta cta-secondary cta-compact courses-wrapped-action interactive-lift"',
+            source,
+        )
+        self.assertIn('class="cta cta-primary cta-compact interactive-lift"', source)
         self.assertIn(">Register</a>", source)
         self.assertNotIn("Continue course", source)
         self.assertNotIn("Open course", source)

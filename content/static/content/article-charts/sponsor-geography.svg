@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title desc">
+  <title id="title">Geography</title>
+  <desc id="desc">North America 37.2%, Europe 25.1%, Asia-Pacific 24.5%, Africa 6.8%, South America 3.8%, and Middle East and other 2.6%.</desc>
+  <text x="320" y="32" text-anchor="middle" fill="#17213f" font-family="Alegreya Sans, sans-serif" font-size="24" font-weight="700">Geography</text>
+  <g stroke="#fff" stroke-width="2">
+    <path fill="#3366cc" d="M320 220 L320 75 A145 145 0 0 1 424.445 320.58 Z"/>
+    <path fill="#dc3912" d="M320 220 L424.445 320.58 A145 145 0 0 1 218.766 323.811 Z"/>
+    <path fill="#ff9900" d="M320 220 L218.766 323.811 A145 145 0 0 1 213.061 122.077 Z"/>
+    <path fill="#109618" d="M320 220 L213.061 122.077 A145 145 0 0 1 263.251 86.566 Z"/>
+    <path fill="#990099" d="M320 220 L263.251 86.566 A145 145 0 0 1 296.418 76.931 Z"/>
+    <path fill="#0099c6" d="M320 220 L296.418 76.931 A145 145 0 0 1 320 75 Z"/>
+  </g>
+</svg>

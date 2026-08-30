@@ -343,7 +343,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/01411816-6a32-44e8-976f-f54d9ec5a44b/how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows"
+          "source_path": "/events/01411816-6a32-44e8-976f-f54d9ec5a44b/how-to-work-with-ai-coding-agents-spec-driven-development"
         },
         {
           "kind": "legacy_uuid",
@@ -351,10 +351,10 @@
           "source_path": "/events/01411816-6a32-44e8-976f-f54d9ec5a44b"
         }
       ],
-      "canonical_path": "/events/356/how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows",
+      "canonical_path": "/events/356/how-to-work-with-ai-coding-agents-spec-driven-development",
       "id": "01411816-6a32-44e8-976f-f54d9ec5a44b",
       "public_id": 356,
-      "slug": "how-to-work-with-ai-coding-agents-spec-driven-development-context-and-loop-engineering-workflows",
+      "slug": "how-to-work-with-ai-coding-agents-spec-driven-development",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -379,7 +379,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk"
+          "source_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f/tracking-and-personalizing-ai-agents-with-snowplow-and-the"
         },
         {
           "kind": "legacy_uuid",
@@ -387,10 +387,10 @@
           "source_path": "/events/22b7fe1b-7ec9-4f76-9f40-709744a3fd5f"
         }
       ],
-      "canonical_path": "/events/355/tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
+      "canonical_path": "/events/355/tracking-and-personalizing-ai-agents-with-snowplow-and-the",
       "id": "22b7fe1b-7ec9-4f76-9f40-709744a3fd5f",
       "public_id": 355,
-      "slug": "tracking-and-personalizing-ai-agents-with-snowplow-and-the-vercel-ai-sdk",
+      "slug": "tracking-and-personalizing-ai-agents-with-snowplow-and-the",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -559,7 +559,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/9f488454-7d58-4191-a5db-8bbda819ee76/the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos"
+          "source_path": "/events/9f488454-7d58-4191-a5db-8bbda819ee76/the-agentic-shift-in-data-engineering-from-pipeline-builders"
         },
         {
           "kind": "legacy_uuid",
@@ -567,10 +567,10 @@
           "source_path": "/events/9f488454-7d58-4191-a5db-8bbda819ee76"
         }
       ],
-      "canonical_path": "/events/350/the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos",
+      "canonical_path": "/events/350/the-agentic-shift-in-data-engineering-from-pipeline-builders",
       "id": "9f488454-7d58-4191-a5db-8bbda819ee76",
       "public_id": 350,
-      "slug": "the-agentic-shift-in-data-engineering-from-pipeline-builders-to-architects-of-controlled-chaos",
+      "slug": "the-agentic-shift-in-data-engineering-from-pipeline-builders",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -739,7 +739,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/12ace87f-0944-4916-86bc-d5bca3ef4ac7/monitoring-llm-applications-traces-feedback-and-production-quality"
+          "source_path": "/events/12ace87f-0944-4916-86bc-d5bca3ef4ac7/monitoring-llm-applications-traces-feedback-and-production"
         },
         {
           "kind": "legacy_uuid",
@@ -747,10 +747,10 @@
           "source_path": "/events/12ace87f-0944-4916-86bc-d5bca3ef4ac7"
         }
       ],
-      "canonical_path": "/events/345/monitoring-llm-applications-traces-feedback-and-production-quality",
+      "canonical_path": "/events/345/monitoring-llm-applications-traces-feedback-and-production",
       "id": "12ace87f-0944-4916-86bc-d5bca3ef4ac7",
       "public_id": 345,
-      "slug": "monitoring-llm-applications-traces-feedback-and-production-quality",
+      "slug": "monitoring-llm-applications-traces-feedback-and-production",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -847,7 +847,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/6a0e36b5-2ab1-4762-9369-51ea629fa559/rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality"
+          "source_path": "/events/6a0e36b5-2ab1-4762-9369-51ea629fa559/rag-and-agents-evaluation-measuring-retrieval-and-llm-answer"
         },
         {
           "kind": "legacy_uuid",
@@ -855,10 +855,10 @@
           "source_path": "/events/6a0e36b5-2ab1-4762-9369-51ea629fa559"
         }
       ],
-      "canonical_path": "/events/342/rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality",
+      "canonical_path": "/events/342/rag-and-agents-evaluation-measuring-retrieval-and-llm-answer",
       "id": "6a0e36b5-2ab1-4762-9369-51ea629fa559",
       "public_id": 342,
-      "slug": "rag-and-agents-evaluation-measuring-retrieval-and-llm-answer-quality",
+      "slug": "rag-and-agents-evaluation-measuring-retrieval-and-llm-answer",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -1135,7 +1135,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/48b46145-c10e-49ff-8eb0-796e4a6287bd/how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa"
+          "source_path": "/events/48b46145-c10e-49ff-8eb0-796e4a6287bd/how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using"
         },
         {
           "kind": "legacy_uuid",
@@ -1143,10 +1143,10 @@
           "source_path": "/events/48b46145-c10e-49ff-8eb0-796e4a6287bd"
         }
       ],
-      "canonical_path": "/events/334/how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa",
+      "canonical_path": "/events/334/how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using",
       "id": "48b46145-c10e-49ff-8eb0-796e4a6287bd",
       "public_id": 334,
-      "slug": "how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using-agent-gpa",
+      "slug": "how-to-evaluate-mcp-powered-ai-agents-beyond-accuracy-using",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -1207,7 +1207,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/b9fe3200-e1cb-4adf-847e-757a9299a890/data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
+          "source_path": "/events/b9fe3200-e1cb-4adf-847e-757a9299a890/data-engineer-career-in-2026-roles-specializations-and-what"
         },
         {
           "kind": "legacy_uuid",
@@ -1215,10 +1215,10 @@
           "source_path": "/events/b9fe3200-e1cb-4adf-847e-757a9299a890"
         }
       ],
-      "canonical_path": "/events/332/data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for",
+      "canonical_path": "/events/332/data-engineer-career-in-2026-roles-specializations-and-what",
       "id": "b9fe3200-e1cb-4adf-847e-757a9299a890",
       "public_id": 332,
-      "slug": "data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for",
+      "slug": "data-engineer-career-in-2026-roles-specializations-and-what",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -1531,7 +1531,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/62e86105-c494-423f-ad4a-311513bac936/ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products"
+          "source_path": "/events/62e86105-c494-423f-ad4a-311513bac936/ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai"
         },
         {
           "kind": "legacy_uuid",
@@ -1539,10 +1539,10 @@
           "source_path": "/events/62e86105-c494-423f-ad4a-311513bac936"
         }
       ],
-      "canonical_path": "/events/323/ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products",
+      "canonical_path": "/events/323/ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai",
       "id": "62e86105-c494-423f-ad4a-311513bac936",
       "public_id": 323,
-      "slug": "ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai-products",
+      "slug": "ai-engineering-skill-stack-agents-llmops-and-how-to-ship-ai",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -1639,7 +1639,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/954a60fa-fd0c-4c13-9634-540f429aa525/foundations-of-analytics-engineer-role-skills-scope-and-modern-practices"
+          "source_path": "/events/954a60fa-fd0c-4c13-9634-540f429aa525/foundations-of-analytics-engineer-role-skills-scope-and-modern"
         },
         {
           "kind": "legacy_uuid",
@@ -1647,10 +1647,10 @@
           "source_path": "/events/954a60fa-fd0c-4c13-9634-540f429aa525"
         }
       ],
-      "canonical_path": "/events/320/foundations-of-analytics-engineer-role-skills-scope-and-modern-practices",
+      "canonical_path": "/events/320/foundations-of-analytics-engineer-role-skills-scope-and-modern",
       "id": "954a60fa-fd0c-4c13-9634-540f429aa525",
       "public_id": 320,
-      "slug": "foundations-of-analytics-engineer-role-skills-scope-and-modern-practices",
+      "slug": "foundations-of-analytics-engineer-role-skills-scope-and-modern",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -1675,7 +1675,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/badc48d1-9a91-4cc7-8bdf-6c1a46718bbb/from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide"
+          "source_path": "/events/badc48d1-9a91-4cc7-8bdf-6c1a46718bbb/from-human-in-the-loop-to-agent-in-the-loop-a-practical"
         },
         {
           "kind": "legacy_uuid",
@@ -1683,10 +1683,10 @@
           "source_path": "/events/badc48d1-9a91-4cc7-8bdf-6c1a46718bbb"
         }
       ],
-      "canonical_path": "/events/319/from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide",
+      "canonical_path": "/events/319/from-human-in-the-loop-to-agent-in-the-loop-a-practical",
       "id": "badc48d1-9a91-4cc7-8bdf-6c1a46718bbb",
       "public_id": 319,
-      "slug": "from-human-in-the-loop-to-agent-in-the-loop-a-practical-transition-guide",
+      "slug": "from-human-in-the-loop-to-agent-in-the-loop-a-practical",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -1819,7 +1819,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/bfcecb7a-55b5-466d-902d-1cea5fa705f9/docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows"
+          "source_path": "/events/bfcecb7a-55b5-466d-902d-1cea5fa705f9/docker-for-data-engineering-postgres-docker-compose-and-real"
         },
         {
           "kind": "legacy_uuid",
@@ -1827,10 +1827,10 @@
           "source_path": "/events/bfcecb7a-55b5-466d-902d-1cea5fa705f9"
         }
       ],
-      "canonical_path": "/events/315/docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows",
+      "canonical_path": "/events/315/docker-for-data-engineering-postgres-docker-compose-and-real",
       "id": "bfcecb7a-55b5-466d-902d-1cea5fa705f9",
       "public_id": 315,
-      "slug": "docker-for-data-engineering-postgres-docker-compose-and-real-world-workflows",
+      "slug": "docker-for-data-engineering-postgres-docker-compose-and-real",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -1891,7 +1891,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/53b2efe4-e10a-4c7f-a994-3c96722f9e12/n8n-from-fundamentals-to-building-intelligent-automation-pipeline"
+          "source_path": "/events/53b2efe4-e10a-4c7f-a994-3c96722f9e12/n8n-from-fundamentals-to-building-intelligent-automation"
         },
         {
           "kind": "legacy_uuid",
@@ -1899,10 +1899,10 @@
           "source_path": "/events/53b2efe4-e10a-4c7f-a994-3c96722f9e12"
         }
       ],
-      "canonical_path": "/events/313/n8n-from-fundamentals-to-building-intelligent-automation-pipeline",
+      "canonical_path": "/events/313/n8n-from-fundamentals-to-building-intelligent-automation",
       "id": "53b2efe4-e10a-4c7f-a994-3c96722f9e12",
       "public_id": 313,
-      "slug": "n8n-from-fundamentals-to-building-intelligent-automation-pipeline",
+      "slug": "n8n-from-fundamentals-to-building-intelligent-automation",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -2431,7 +2431,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/dded3102-ec39-4db1-8dfb-449c7c0a683c/from-semiconductors-to-machine-learning-a-career-in-data-and-teaching"
+          "source_path": "/events/dded3102-ec39-4db1-8dfb-449c7c0a683c/from-semiconductors-to-machine-learning-a-career-in-data-and"
         },
         {
           "kind": "legacy_uuid",
@@ -2439,10 +2439,10 @@
           "source_path": "/events/dded3102-ec39-4db1-8dfb-449c7c0a683c"
         }
       ],
-      "canonical_path": "/events/298/from-semiconductors-to-machine-learning-a-career-in-data-and-teaching",
+      "canonical_path": "/events/298/from-semiconductors-to-machine-learning-a-career-in-data-and",
       "id": "dded3102-ec39-4db1-8dfb-449c7c0a683c",
       "public_id": 298,
-      "slug": "from-semiconductors-to-machine-learning-a-career-in-data-and-teaching",
+      "slug": "from-semiconductors-to-machine-learning-a-career-in-data-and",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -2647,7 +2647,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/7de912b8-9357-4bfd-bdca-da4df0a29b19/from-medicine-to-machine-learning-how-public-learning-turned-into-a-career"
+          "source_path": "/events/7de912b8-9357-4bfd-bdca-da4df0a29b19/from-medicine-to-machine-learning-how-public-learning-turned"
         },
         {
           "kind": "legacy_uuid",
@@ -2655,10 +2655,10 @@
           "source_path": "/events/7de912b8-9357-4bfd-bdca-da4df0a29b19"
         }
       ],
-      "canonical_path": "/events/292/from-medicine-to-machine-learning-how-public-learning-turned-into-a-career",
+      "canonical_path": "/events/292/from-medicine-to-machine-learning-how-public-learning-turned",
       "id": "7de912b8-9357-4bfd-bdca-da4df0a29b19",
       "public_id": 292,
-      "slug": "from-medicine-to-machine-learning-how-public-learning-turned-into-a-career",
+      "slug": "from-medicine-to-machine-learning-how-public-learning-turned",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -2935,7 +2935,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/ef329733-a849-4dbf-a492-3cdc6f242be2/from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module"
+          "source_path": "/events/ef329733-a849-4dbf-a492-3cdc6f242be2/from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp"
         },
         {
           "kind": "legacy_uuid",
@@ -2943,10 +2943,10 @@
           "source_path": "/events/ef329733-a849-4dbf-a492-3cdc6f242be2"
         }
       ],
-      "canonical_path": "/events/284/from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module",
+      "canonical_path": "/events/284/from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp",
       "id": "ef329733-a849-4dbf-a492-3cdc6f242be2",
       "public_id": 284,
-      "slug": "from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp-bonus-module",
+      "slug": "from-rag-to-agents-making-smart-ai-assistants-llm-zoomcamp",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -3007,7 +3007,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/0b316918-dc06-4143-8d57-522c3777d138/from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee"
+          "source_path": "/events/0b316918-dc06-4143-8d57-522c3777d138/from-rest-to-reasoning-ingest-index-and-query-with-dlt-and"
         },
         {
           "kind": "legacy_uuid",
@@ -3015,10 +3015,10 @@
           "source_path": "/events/0b316918-dc06-4143-8d57-522c3777d138"
         }
       ],
-      "canonical_path": "/events/282/from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee",
+      "canonical_path": "/events/282/from-rest-to-reasoning-ingest-index-and-query-with-dlt-and",
       "id": "0b316918-dc06-4143-8d57-522c3777d138",
       "public_id": 282,
-      "slug": "from-rest-to-reasoning-ingest-index-and-query-with-dlt-and-cognee",
+      "slug": "from-rest-to-reasoning-ingest-index-and-query-with-dlt-and",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -3943,7 +3943,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/e4534a7d-3882-48e6-8e15-c5f72248e1cf/economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights"
+          "source_path": "/events/e4534a7d-3882-48e6-8e15-c5f72248e1cf/economics-and-automation-workshop-building-a-data-pipeline-for"
         },
         {
           "kind": "legacy_uuid",
@@ -3951,10 +3951,10 @@
           "source_path": "/events/e4534a7d-3882-48e6-8e15-c5f72248e1cf"
         }
       ],
-      "canonical_path": "/events/256/economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights",
+      "canonical_path": "/events/256/economics-and-automation-workshop-building-a-data-pipeline-for",
       "id": "e4534a7d-3882-48e6-8e15-c5f72248e1cf",
       "public_id": 256,
-      "slug": "economics-and-automation-workshop-building-a-data-pipeline-for-economic-insights",
+      "slug": "economics-and-automation-workshop-building-a-data-pipeline-for",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -5599,7 +5599,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/7bf1bde8-2938-4fde-a6c1-6e45fb6ddb12/searching-beyond-the-surface-navigating-challenges-and-innovations-in-search-technologies"
+          "source_path": "/events/7bf1bde8-2938-4fde-a6c1-6e45fb6ddb12/searching-beyond-the-surface-navigating-challenges-and"
         },
         {
           "kind": "legacy_uuid",
@@ -5607,10 +5607,10 @@
           "source_path": "/events/7bf1bde8-2938-4fde-a6c1-6e45fb6ddb12"
         }
       ],
-      "canonical_path": "/events/210/searching-beyond-the-surface-navigating-challenges-and-innovations-in-search-technologies",
+      "canonical_path": "/events/210/searching-beyond-the-surface-navigating-challenges-and",
       "id": "7bf1bde8-2938-4fde-a6c1-6e45fb6ddb12",
       "public_id": 210,
-      "slug": "searching-beyond-the-surface-navigating-challenges-and-innovations-in-search-technologies",
+      "slug": "searching-beyond-the-surface-navigating-challenges-and",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -5635,7 +5635,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/a5327a03-d786-44fa-9384-95bfae57b71e/the-entrepreneurship-journey-from-freelancing-to-starting-a-company"
+          "source_path": "/events/a5327a03-d786-44fa-9384-95bfae57b71e/the-entrepreneurship-journey-from-freelancing-to-starting-a"
         },
         {
           "kind": "legacy_uuid",
@@ -5643,10 +5643,10 @@
           "source_path": "/events/a5327a03-d786-44fa-9384-95bfae57b71e"
         }
       ],
-      "canonical_path": "/events/209/the-entrepreneurship-journey-from-freelancing-to-starting-a-company",
+      "canonical_path": "/events/209/the-entrepreneurship-journey-from-freelancing-to-starting-a",
       "id": "a5327a03-d786-44fa-9384-95bfae57b71e",
       "public_id": 209,
-      "slug": "the-entrepreneurship-journey-from-freelancing-to-starting-a-company",
+      "slug": "the-entrepreneurship-journey-from-freelancing-to-starting-a",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -5887,7 +5887,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f/the-trade-off-between-simplicity-and-optimality-in-problem-solving"
+          "source_path": "/events/dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f/the-trade-off-between-simplicity-and-optimality-in-problem"
         },
         {
           "kind": "legacy_uuid",
@@ -5895,10 +5895,10 @@
           "source_path": "/events/dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f"
         }
       ],
-      "canonical_path": "/events/202/the-trade-off-between-simplicity-and-optimality-in-problem-solving",
+      "canonical_path": "/events/202/the-trade-off-between-simplicity-and-optimality-in-problem",
       "id": "dfa2be55-d3aa-45b5-a8a2-98cab47d8d2f",
       "public_id": 202,
-      "slug": "the-trade-off-between-simplicity-and-optimality-in-problem-solving",
+      "slug": "the-trade-off-between-simplicity-and-optimality-in-problem",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -5923,7 +5923,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/4284fd9d-9ddc-4cb0-bbc9-46b0464f6441/from-a-research-scientist-at-amazon-to-a-machine-learning-ai-consultant"
+          "source_path": "/events/4284fd9d-9ddc-4cb0-bbc9-46b0464f6441/from-a-research-scientist-at-amazon-to-a-machine-learning-ai"
         },
         {
           "kind": "legacy_uuid",
@@ -5931,10 +5931,10 @@
           "source_path": "/events/4284fd9d-9ddc-4cb0-bbc9-46b0464f6441"
         }
       ],
-      "canonical_path": "/events/201/from-a-research-scientist-at-amazon-to-a-machine-learning-ai-consultant",
+      "canonical_path": "/events/201/from-a-research-scientist-at-amazon-to-a-machine-learning-ai",
       "id": "4284fd9d-9ddc-4cb0-bbc9-46b0464f6441",
       "public_id": 201,
-      "slug": "from-a-research-scientist-at-amazon-to-a-machine-learning-ai-consultant",
+      "slug": "from-a-research-scientist-at-amazon-to-a-machine-learning-ai",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -7507,7 +7507,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/8901894e-8a92-4e54-98a1-b72ec0126478/maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider"
+          "source_path": "/events/8901894e-8a92-4e54-98a1-b72ec0126478/maximizing-confidence-in-your-data-model-changes-with-dbt-and"
         },
         {
           "kind": "legacy_uuid",
@@ -7515,10 +7515,10 @@
           "source_path": "/events/8901894e-8a92-4e54-98a1-b72ec0126478"
         }
       ],
-      "canonical_path": "/events/157/maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider",
+      "canonical_path": "/events/157/maximizing-confidence-in-your-data-model-changes-with-dbt-and",
       "id": "8901894e-8a92-4e54-98a1-b72ec0126478",
       "public_id": 157,
-      "slug": "maximizing-confidence-in-your-data-model-changes-with-dbt-and-piperider",
+      "slug": "maximizing-confidence-in-your-data-model-changes-with-dbt-and",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -7723,7 +7723,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/6be73992-6f40-4223-812e-e5fdc991cb99/the-journey-of-a-data-generalist-from-bioinformatics-to-freelancing"
+          "source_path": "/events/6be73992-6f40-4223-812e-e5fdc991cb99/the-journey-of-a-data-generalist-from-bioinformatics-to"
         },
         {
           "kind": "legacy_uuid",
@@ -7731,10 +7731,10 @@
           "source_path": "/events/6be73992-6f40-4223-812e-e5fdc991cb99"
         }
       ],
-      "canonical_path": "/events/151/the-journey-of-a-data-generalist-from-bioinformatics-to-freelancing",
+      "canonical_path": "/events/151/the-journey-of-a-data-generalist-from-bioinformatics-to",
       "id": "6be73992-6f40-4223-812e-e5fdc991cb99",
       "public_id": 151,
-      "slug": "the-journey-of-a-data-generalist-from-bioinformatics-to-freelancing",
+      "slug": "the-journey-of-a-data-generalist-from-bioinformatics-to",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -11035,7 +11035,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/ef3915a7-345e-4f67-b555-ec12fa71fb4b/hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin"
+          "source_path": "/events/ef3915a7-345e-4f67-b555-ec12fa71fb4b/hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking"
         },
         {
           "kind": "legacy_uuid",
@@ -11043,10 +11043,10 @@
           "source_path": "/events/ef3915a7-345e-4f67-b555-ec12fa71fb4b"
         }
       ],
-      "canonical_path": "/events/69/hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin",
+      "canonical_path": "/events/69/hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking",
       "id": "ef3915a7-345e-4f67-b555-ec12fa71fb4b",
       "public_id": 69,
-      "slug": "hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking-at-the-same-coin",
+      "slug": "hypothesis-testing-bayesian-or-frequentist-two-ways-of-looking",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -13015,7 +13015,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/3b9d5a07-4573-44c4-b79f-f2bfdb728c02/a-framework-for-feature-engineering-and-machine-learning-pipelines"
+          "source_path": "/events/3b9d5a07-4573-44c4-b79f-f2bfdb728c02/a-framework-for-feature-engineering-and-machine-learning"
         },
         {
           "kind": "legacy_uuid",
@@ -13023,10 +13023,10 @@
           "source_path": "/events/3b9d5a07-4573-44c4-b79f-f2bfdb728c02"
         }
       ],
-      "canonical_path": "/events/38/a-framework-for-feature-engineering-and-machine-learning-pipelines",
+      "canonical_path": "/events/38/a-framework-for-feature-engineering-and-machine-learning",
       "id": "3b9d5a07-4573-44c4-b79f-f2bfdb728c02",
       "public_id": 38,
-      "slug": "a-framework-for-feature-engineering-and-machine-learning-pipelines",
+      "slug": "a-framework-for-feature-engineering-and-machine-learning",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -13735,7 +13735,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/f7620ed1-8f88-4a79-9935-8dabb7459d1e/building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud"
+          "source_path": "/events/f7620ed1-8f88-4a79-9935-8dabb7459d1e/building-scalable-end-to-end-deep-learning-pipelines-in-the"
         },
         {
           "kind": "legacy_uuid",
@@ -13743,10 +13743,10 @@
           "source_path": "/events/f7620ed1-8f88-4a79-9935-8dabb7459d1e"
         }
       ],
-      "canonical_path": "/events/28/building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud",
+      "canonical_path": "/events/28/building-scalable-end-to-end-deep-learning-pipelines-in-the",
       "id": "f7620ed1-8f88-4a79-9935-8dabb7459d1e",
       "public_id": 28,
-      "slug": "building-scalable-end-to-end-deep-learning-pipelines-in-the-cloud",
+      "slug": "building-scalable-end-to-end-deep-learning-pipelines-in-the",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -14131,7 +14131,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/0180ab1b-d476-4df4-90b4-1297b79c36f8/translating-ml-predictions-into-better-real-world-results-with-decision-optimization"
+          "source_path": "/events/0180ab1b-d476-4df4-90b4-1297b79c36f8/translating-ml-predictions-into-better-real-world-results-with"
         },
         {
           "kind": "legacy_uuid",
@@ -14139,10 +14139,10 @@
           "source_path": "/events/0180ab1b-d476-4df4-90b4-1297b79c36f8"
         }
       ],
-      "canonical_path": "/events/384/translating-ml-predictions-into-better-real-world-results-with-decision-optimization",
+      "canonical_path": "/events/384/translating-ml-predictions-into-better-real-world-results-with",
       "id": "0180ab1b-d476-4df4-90b4-1297b79c36f8",
       "public_id": 384,
-      "slug": "translating-ml-predictions-into-better-real-world-results-with-decision-optimization",
+      "slug": "translating-ml-predictions-into-better-real-world-results-with",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
@@ -14311,7 +14311,7 @@
         {
           "kind": "legacy_uuid",
           "reason": "Formerly canonical UUID/current-title-slug public Event URL.",
-          "source_path": "/events/6f7dad4e-f987-4a95-b9be-f02736022b9d/building-an-ml-system-for-southeast-asia-s-largest-hospital-group"
+          "source_path": "/events/6f7dad4e-f987-4a95-b9be-f02736022b9d/building-an-ml-system-for-southeast-asia-s-largest-hospital"
         },
         {
           "kind": "legacy_uuid",
@@ -14319,10 +14319,10 @@
           "source_path": "/events/6f7dad4e-f987-4a95-b9be-f02736022b9d"
         }
       ],
-      "canonical_path": "/events/13/building-an-ml-system-for-southeast-asia-s-largest-hospital-group",
+      "canonical_path": "/events/13/building-an-ml-system-for-southeast-asia-s-largest-hospital",
       "id": "6f7dad4e-f987-4a95-b9be-f02736022b9d",
       "public_id": 13,
-      "slug": "building-an-ml-system-for-southeast-asia-s-largest-hospital-group",
+      "slug": "building-an-ml-system-for-southeast-asia-s-largest-hospital",
       "source": {
         "repository": "DataTalksClub/datatalksclub.github.io",
         "revision": "ee43d3fa0929faf691178d79f19528e6f15a83e5",

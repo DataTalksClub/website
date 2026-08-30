@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title desc">
+  <title id="title">Roles</title>
+  <desc id="desc">Data engineering 28.5%, data science and machine learning 26.8%, analytics 16.8%, software development 13.1%, management and consulting 7%, and other 7.8%.</desc>
+  <text x="320" y="32" text-anchor="middle" fill="#17213f" font-family="Alegreya Sans, sans-serif" font-size="24" font-weight="700">Roles</text>
+  <g stroke="#fff" stroke-width="2">
+    <path fill="#3366cc" d="M320 220 L320 75 A145 145 0 0 1 461.508 251.631 Z"/>
+    <path fill="#dc3912" d="M320 220 L461.508 251.631 A145 145 0 0 1 272.601 357.034 Z"/>
+    <path fill="#ff9900" d="M320 220 L272.601 357.034 A145 145 0 0 1 177.4 246.275 Z"/>
+    <path fill="#109618" d="M320 220 L177.4 246.275 A145 145 0 0 1 203.773 133.304 Z"/>
+    <path fill="#990099" d="M320 220 L203.773 133.304 A145 145 0 0 1 251.748 92.068 Z"/>
+    <path fill="#0099c6" d="M320 220 L251.748 92.068 A145 145 0 0 1 320 75 Z"/>
+  </g>
+</svg>

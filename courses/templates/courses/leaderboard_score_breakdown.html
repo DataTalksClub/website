@@ -241,13 +241,13 @@
           {% if public_profile %}
             <div class="record-links">
               {% if public_profile.github_url %}
-                <a class="pill-button" href="{{ public_profile.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+                <a class="pill-button interactive-lift" href="{{ public_profile.github_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
               {% endif %}
               {% if public_profile.linkedin_url %}
-                <a class="pill-button" href="{{ public_profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                <a class="pill-button interactive-lift" href="{{ public_profile.linkedin_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
               {% endif %}
               {% if public_profile.personal_website_url %}
-                <a class="pill-button" href="{{ public_profile.personal_website_url }}" target="_blank" rel="noopener noreferrer">Website</a>
+                <a class="pill-button interactive-lift" href="{{ public_profile.personal_website_url }}" target="_blank" rel="noopener noreferrer">Website</a>
               {% endif %}
             </div>
           {% endif %}
@@ -269,7 +269,7 @@
             {% url 'leaderboard' enrollment.course.course.slug enrollment.course.identifier as leaderboard_url %}
             {% include "core/_button.html" with href=leaderboard_url label="Back to Leaderboard" variant="secondary" compact=True %}
             <button
-              class="leaderboard-flag-button cta cta-compact cta-secondary"
+              class="leaderboard-flag-button cta cta-compact cta-secondary interactive-lift"
               type="button"
               data-flag-url="{% url 'leaderboard_complaint' course_slug=enrollment.course.course.slug cohort_year=enrollment.course.identifier enrollment_id=enrollment.id %}"
               data-flag-name="{{ enrollment.display_name }}"
@@ -429,7 +429,7 @@
         </div>
         <div class="flag-dialog-actions">
           {% include "core/_button.html" with tag="button" type="submit" label="Submit flag" variant="primary" compact=True %}
-          <button type="button" class="cta cta-compact cta-secondary" data-flag-close>Cancel</button>
+          <button type="button" class="cta cta-compact cta-secondary interactive-lift" data-flag-close>Cancel</button>
         </div>
       </form>
     </dialog>

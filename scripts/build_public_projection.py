@@ -35,6 +35,11 @@ from content.event_description_bridge import (  # noqa: E402
     apply_bridge_to_events,
     bridge_manifest_binding,
 )
+from content.event_speaker_bio_normalization import (  # noqa: E402
+    EventSpeakerBioNormalizationError,
+    apply_event_speaker_bio_normalization,
+    normalization_manifest_binding,
+)
 from content.podcast_routes import podcast_canonical_path  # noqa: E402
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
@@ -343,11 +348,13 @@ def _book_archive(value: Any, *, source_name: str) -> list[dict[str, Any]]:
                         field="book archive reply name",
                         maximum=500,
                     ),
-                    "text": _string(
-                        reply.get("text"),
-                        field="book archive reply text",
-                        maximum=20_000,
-                        optional=True,
+                    "text": _localize_editorial_links(
+                        _string(
+                            reply.get("text"),
+                            field="book archive reply text",
+                            maximum=20_000,
+                            optional=True,
+                        )
                     ),
                 }
             )
@@ -358,11 +365,13 @@ def _book_archive(value: Any, *, source_name: str) -> list[dict[str, Any]]:
                     field="book archive participant",
                     maximum=500,
                 ),
-                "text": _string(
-                    thread.get("text"),
-                    field="book archive question",
-                    maximum=20_000,
-                    optional=True,
+                "text": _localize_editorial_links(
+                    _string(
+                        thread.get("text"),
+                        field="book archive question",
+                        maximum=20_000,
+                        optional=True,
+                    )
                 ),
                 "replies": replies,
             }
@@ -496,6 +505,7 @@ def _podcast_resources(value: Any, *, source_name: str) -> list[dict[str, str]]:
             # the source order for resources that meet the public contract and omit the unsafe
             # destination rather than manufacturing an HTTPS upgrade in the projection.
             continue
+        url = _localize_internal_url(url)
         resources.append(
             {
                 "title": _string(
@@ -574,16 +584,21 @@ def _plain_inline(value: str) -> str:
     return value
 
 
-def _body_blocks(body: str) -> list[dict[str, Any]]:
+def _body_blocks(body: str, *, preserve_links: bool = False) -> list[dict[str, Any]]:
     blocks: list[dict[str, Any]] = []
     paragraph: list[str] = []
     used_ids: dict[str, int] = {}
 
     def flush() -> None:
-        text = _plain_inline(" ".join(paragraph))
+        source = " ".join(paragraph)
         paragraph.clear()
+        segment = _localize_editorial_links(source) if preserve_links else source
+        text = _plain_inline(segment)
         if text:
-            blocks.append({"kind": "paragraph", "text": text})
+            block = {"kind": "paragraph", "text": text}
+            if preserve_links and MARKDOWN_LINK.search(segment):
+                block["markdown"] = segment
+            blocks.append(block)
 
     for raw_line in body.splitlines():
         line = raw_line.strip()
@@ -611,9 +626,13 @@ def _body_blocks(body: str) -> list[dict[str, Any]]:
             continue
         if line.startswith(("- ", "* ", "+ ")):
             flush()
-            text = _plain_inline(line[2:])
+            segment = _localize_editorial_links(line[2:]) if preserve_links else line[2:]
+            text = _plain_inline(segment)
             if text:
-                blocks.append({"kind": "list_item", "text": text})
+                block = {"kind": "list_item", "text": text}
+                if preserve_links and MARKDOWN_LINK.search(segment):
+                    block["markdown"] = segment
+                blocks.append(block)
             continue
         paragraph.append(line)
     flush()
@@ -705,6 +724,94 @@ EXPECTED_ARTICLE_CODE_BLOCKS = 90
 # title and the page says the chart is unavailable rather than dropping it.
 EXPECTED_ARTICLE_CHARTS = 50
 
+# The legacy sponsor article drew these four survey pies at runtime with
+# Chart.js from a public CDN.  Keep the source canvas as the authority, but
+# bridge its reviewed title/data/caption tuple to a deterministic local SVG so
+# the migrated article does not depend on JavaScript or a third-party asset.
+SPONSOR_CHART_ASSET_BRIDGE = {
+    (
+        "Roles",
+        "Data engineering 28.5%, data science and ML 26.8%, analytics 16.8%, "
+        "software development 13.1%, management and consulting 7.0%, other 7.8%.",
+    ): {
+        "src": "/static/content/article-charts/sponsor-roles.svg",
+        "alt": "Pie chart of DataTalks.Club community roles",
+    },
+    (
+        "Seniority",
+        "Senior individual contributors 40.6%, entry-level 35.6%, team leads 10.1%, "
+        "directors and above 3.7%, students 3.0%, other 7.0%.",
+    ): {
+        "src": "/static/content/article-charts/sponsor-seniority.svg",
+        "alt": "Pie chart of DataTalks.Club community seniority",
+    },
+    (
+        "Geography",
+        "North America 37.2%, Europe 25.1%, Asia-Pacific 24.5%, Africa 6.8%, "
+        "South America 3.8%, Middle East and other 2.6%. Members come from more "
+        "than 65 countries.",
+    ): {
+        "src": "/static/content/article-charts/sponsor-geography.svg",
+        "alt": "Pie chart of the DataTalks.Club community by region",
+    },
+    (
+        "Industries",
+        "Technology 40.6%, finance 9.4%, education 9.1%, healthcare 8.1%, retail "
+        "7.4%, other 25.4%.",
+    ): {
+        "src": "/static/content/article-charts/sponsor-industries.svg",
+        "alt": "Pie chart of industries represented in the DataTalks.Club community",
+    },
+}
+
+ARTICLE_INTERNAL_MARKDOWN_LINK = re.compile(
+    r"(?P<prefix>(?<!\!)\[[^\]\n]*\]\([ \t]*<?)"
+    r"(?P<url>https?://(?:www\.)?datatalks\.club(?::(?:80|443))?"
+    r"(?P<path>/[^\s<>)]*|[?#][^\s<>)]*|))"
+    r"(?P<suffix>>?)",
+    re.IGNORECASE,
+)
+ARTICLE_INTERNAL_HTML_LINK = re.compile(
+    r"(?P<prefix><a\b[^>]*?\bhref[ \t]*=[ \t]*[\"'])"
+    r"(?P<url>https?://(?:www\.)?datatalks\.club(?::(?:80|443))?"
+    r"(?P<path>/[^\"']*|[?#][^\"']*|))",
+    re.IGNORECASE,
+)
+
+
+def _localize_editorial_links(value: str) -> str:
+    """Keep links to our own pages on the active deployment host.
+
+    Only anchor destinations are rewritten.  Images, CDN hosts, plain text and
+    external destinations stay byte-for-byte unchanged; query strings and
+    fragments are carried by the parsed path rather than reconstructed.
+    """
+
+    def replace(match: re.Match[str]) -> str:
+        localized = _localize_internal_url(match.group("url"))
+        return f'{match.group("prefix")}{localized}{match.groupdict().get("suffix", "")}'
+
+    value = ARTICLE_INTERNAL_MARKDOWN_LINK.sub(replace, value)
+    return ARTICLE_INTERNAL_HTML_LINK.sub(replace, value)
+
+
+def _localize_internal_url(value: str) -> str:
+    """Return one canonical site URL as a root-relative deployment URL."""
+
+    parsed = urlsplit(value)
+    hostname = (parsed.hostname or "").casefold().removeprefix("www.")
+    try:
+        port = parsed.port
+    except ValueError:
+        return value
+    if (
+        parsed.scheme.casefold() not in {"http", "https"}
+        or hostname != "datatalks.club"
+        or port not in {None, 80, 443}
+    ):
+        return value
+    return urlunsplit(("", "", parsed.path or "/", parsed.query, parsed.fragment))
+
 
 def _html_attributes(value: str) -> dict[str, str]:
     """Return one HTML start tag's quoted attributes, lower-cased by name."""
@@ -767,6 +874,7 @@ def _article_segment(value: str) -> str:
     value = LIQUID.sub("", value)
     value = ARTICLE_HTML_COMMENT.sub("", value)
     value = strip_target_attributes_from_links(value)
+    value = _localize_editorial_links(value)
     # The accepted articles attach Kramdown's `{:target="_blank"}` to 270 links.
     # The plain-text projection keeps that token and the runtime strips it under a
     # provenance allowlist (content/public_data.py); the source segment this field
@@ -1023,6 +1131,17 @@ def _article_chart_block(
     counters["charts"] = counters.get("charts", 0) + 1
     title = attributes.get("data-title", "").strip()
     caption_text = _plain_inline(_article_segment(caption))
+    bridged = SPONSOR_CHART_ASSET_BRIDGE.get((title, caption_text))
+    if bridged is not None:
+        return {
+            "kind": "chart",
+            "src": bridged["src"],
+            "alt": bridged["alt"],
+            "title": title,
+            "caption": caption_text,
+            "width": 640,
+            "height": 400,
+        }
     block: dict[str, Any] = {"kind": "chart", "text": title or caption_text}
     if caption_text and caption_text != block["text"]:
         block["caption"] = caption_text
@@ -1905,26 +2024,38 @@ def _canonicalize_wiki_document_urls(
         url = record.get("url")
         if isinstance(url, str) and url.startswith("/wiki/"):
             parsed = urlsplit(url)
-            record["url"] = (
-                f"{parsed.path.rstrip('/')}{'#' + parsed.fragment if parsed.fragment else ''}"
+            record["url"] = urlunsplit(
+                ("", "", parsed.path.rstrip("/"), parsed.query, parsed.fragment)
             )
         elif isinstance(url, str) and url.startswith("/search/"):
             parsed = urlsplit(url)
             suffix = parsed.path.removeprefix("/search/").rstrip("/")
-            record["url"] = "/wiki/search" + (f"/{suffix}" if suffix else "")
-        elif isinstance(url, str) and url.startswith("https://datatalks.club/"):
-            parsed = urlsplit(url)
+            path = "/wiki/search" + (f"/{suffix}" if suffix else "")
+            record["url"] = urlunsplit(("", "", path, parsed.query, parsed.fragment))
+        elif isinstance(url, str) and _localize_internal_url(url) != url:
+            parsed = urlsplit(_localize_internal_url(url))
+            canonical = ""
+            recognized = False
             if parsed.path.startswith("/podcast/"):
+                recognized = True
                 key = parsed.path.removeprefix("/podcast/").removesuffix(".html")
-                record["url"] = podcast_paths.get(key, "")
+                canonical = podcast_paths.get(key, "")
             elif parsed.path.startswith("/books/"):
+                recognized = True
                 key = parsed.path.removeprefix("/books/").removesuffix(".html")
-                record["url"] = book_paths.get(key, "")
+                canonical = book_paths.get(key, "")
             elif parsed.path.startswith("/people/"):
+                recognized = True
                 key = parsed.path.removeprefix("/people/").removesuffix(".html")
-                record["url"] = people_paths.get(key, "")
-                if not record["url"]:
+                canonical = people_paths.get(key, "")
+                if not canonical:
                     record["interaction"] = "unprojected_public_person"
+            if canonical:
+                record["url"] = urlunsplit(
+                    ("", "", canonical, parsed.query, parsed.fragment)
+                )
+            elif recognized:
+                record["url"] = ""
     return result
 
 
@@ -2059,7 +2190,7 @@ def _wiki(
         slug = path.stem
         title = _title_from_record(metadata, slug)
         tags = _safe_key_list(metadata.get("tags"), field="wiki tag")
-        blocks = _body_blocks(body)
+        blocks = _body_blocks(body, preserve_links=True)
         fragments = expected_fragments.get(slug, {})
         rendered_fragments: set[str] = set()
         for block in blocks:
@@ -2719,6 +2850,10 @@ def build(args: argparse.Namespace) -> None:
             for guest in podcast["guests"]
         ]
     events = _events(legacy_main_root, people_by_slug)
+    try:
+        apply_event_speaker_bio_normalization(events, people)
+    except EventSpeakerBioNormalizationError as exc:
+        raise ProjectionBuildError("event speaker-bio normalization failed") from exc
     podcast_paths: dict[str, str] = {}
     for podcast in podcasts:
         for alias in {podcast["slug"], podcast["slug"].removesuffix(".md").lstrip("_")}:
@@ -2868,6 +3003,7 @@ def build(args: argparse.Namespace) -> None:
             "event_record_schema_version": EVENT_RECORD_SCHEMA_VERSION,
             "event_identity_manifest": _event_identity_manifest_binding(),
             "event_description_bridge": bridge_manifest_binding(),
+            "event_speaker_bio_normalization": normalization_manifest_binding(),
             "conference_links_outside_slice": "omitted",
             "people_source": "438 public _people profiles; underscore-prefixed source excluded",
             "unresolved_podcast_guest_keys": unresolved_podcast_guests,

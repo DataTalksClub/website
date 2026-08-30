@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 
-from content.public_data import public_projection
+from content.public_data import event_groups, public_projection
 from core.models import AuditEvent
 from core.services import ServiceContext
 from events.importers import source_reference_digest
@@ -353,6 +353,15 @@ class HistoricalRegistrationTotalTests(TestCase):
         response = self.client.get(self.event["public_path"])
         self.assertNotContains(response, "registered")
         self.assertEqual(DurableJob.objects.count(), 2)
+
+    def test_past_event_labels_the_registration_count_as_came(self) -> None:
+        self.event = event_groups().recent[-1]
+        self._map_validate_activate(("approved", "approved"))
+
+        response = self.client.get(self.event["public_path"])
+
+        self.assertContains(response, "2 came")
+        self.assertNotContains(response, "2 registered")
 
     def test_mapping_revision_invalidates_active_pointer_and_public_revision(self) -> None:
         run, mapping, _registry = self._map_validate_activate(("approved",))
