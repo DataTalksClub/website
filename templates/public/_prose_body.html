@@ -20,8 +20,8 @@
       <h3 id="{{ block.id }}">{{ block.text }}</h3>
     {% endif %}
   {% elif block.kind == "list_item" %}
-    <p class="prose-item">{% if block.markdown %}{{ block.markdown|public_text }}{% else %}{{ block.text }}{% endif %}</p>
+    <p class="prose-item">{{ block.markdown|default:block.text|public_text }}</p>
   {% else %}
-    <p class="prose-paragraph">{% if block.markdown %}{{ block.markdown|public_text }}{% else %}{{ block.text }}{% endif %}</p>
+    <p class="prose-paragraph">{{ block.markdown|default:block.text|public_text }}</p>
   {% endif %}
 {% endfor %}

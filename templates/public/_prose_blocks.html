@@ -134,13 +134,21 @@
         <img
           src="{{ section.src }}"
           alt="{{ section.alt }}"
-          {% if section.title %}title="{{ section.title }}"{% endif %}
-          {% if section.width %}width="{{ section.width }}"{% endif %}
-          {% if section.height %}height="{{ section.height }}"{% endif %}
+          {% if section.title %}
+            title="{{ section.title }}"
+          {% endif %}
+          {% if section.width %}
+            width="{{ section.width }}"
+          {% endif %}
+          {% if section.height %}
+            height="{{ section.height }}"
+          {% endif %}
           loading="lazy"
           decoding="async"
         >
-        {% if section.caption %}<figcaption>{{ section.caption }}</figcaption>{% endif %}
+        {% if section.caption %}
+          <figcaption>{{ section.caption }}</figcaption>
+        {% endif %}
       </figure>
     {% else %}
       {% comment %}
@@ -149,8 +157,12 @@
       {% endcomment %}
       <figure class="prose-unavailable">
         <p class="mono-note">Chart unavailable.</p>
-        {% if section.text %}<figcaption>{{ section.text }}</figcaption>{% endif %}
-        {% if section.caption %}<p class="prose-caption">{{ section.caption }}</p>{% endif %}
+        {% if section.text %}
+          <figcaption>{{ section.text }}</figcaption>
+        {% endif %}
+        {% if section.caption %}
+          <p class="prose-caption">{{ section.caption }}</p>
+        {% endif %}
       </figure>
     {% endif %}
   {% elif section.block_level %}
