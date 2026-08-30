@@ -122,6 +122,7 @@ _EMAIL_PREFERENCES_CONSOLE_RE = re.compile(
 )
 _OFFLINE_ROUTE_BYTES: dict[str, tuple[bytes, str]] = {}
 _YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com"
+_SPOTIFY_EMBED_ORIGIN = "https://creators.spotify.com"
 _LIVE_SERVER_READY_TIMEOUT_SECONDS = 10.0
 _LIVE_SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10.0
 
@@ -748,6 +749,16 @@ def context(
             # Episode pages render a validated provider iframe.  Keep every core
             # browser scenario offline while allowing the iframe contract itself
             # to load, just as episode-specific tests do with their page route.
+            route.fulfill(status=200, content_type="text/html", body="")
+            return
+        if (
+            authorization is None
+            and f"{parsed.scheme}://{parsed.netloc}" == _SPOTIFY_EMBED_ORIGIN
+            and parsed.path.startswith("/pod/profile/datatalksclub/embed/episodes/")
+        ):
+            # The accepted podcast projection now uses Spotify's creator embed
+            # host. Keep core browser tests offline while exercising the iframe
+            # itself, under the same exact-origin boundary as YouTube above.
             route.fulfill(status=200, content_type="text/html", body="")
             return
         origin = f"{parsed.scheme}://{parsed.netloc}"
