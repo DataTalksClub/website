@@ -405,7 +405,10 @@ class CollectionHubPaginationTests(TestCase):
         self.assertIn('aria-label="Previous page — page 1"', markup)
         self.assertIn('aria-label="Next page — page 3"', markup)
         # The current page is a marker, not a link a reader can follow to itself.
-        self.assertIn('class="filter-pill pagination-number"\n              aria-current', markup)
+        self.assertIn(
+            'class="filter-pill pagination-number interactive-lift"\n              aria-current',
+            markup,
+        )
 
     def test_the_blog_index_pages_and_keeps_its_own_words(self) -> None:
         articles = public_projection()["articles"]

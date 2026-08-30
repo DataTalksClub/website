@@ -420,8 +420,8 @@ class PublicPaginationRouteContractTests(TestCase):
         self.assertIn('<span aria-hidden="true">&rarr;</span>', markup)
         # The numbers are the shared drawn mark; the directions keep the stadium.
         # Page 6 of 12 offers 1, 4-8 and 12: seven numbers plus the two directions.
-        self.assertEqual(markup.count('class="filter-pill pagination-number"'), 7)
-        self.assertEqual(markup.count('class="filter-pill pagination-step"'), 2)
+        self.assertEqual(markup.count('class="filter-pill pagination-number interactive-lift"'), 7)
+        self.assertEqual(markup.count('class="filter-pill pagination-step interactive-lift"'), 2)
 
     def test_the_boundaries_omit_the_direction_that_leads_nowhere(self) -> None:
         first = pagination_markup(self.client.get("/books").content.decode())

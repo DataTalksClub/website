@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from typing import Any, cast
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse
@@ -115,7 +116,7 @@ def _issue_237_review_mutation(request: HttpRequest) -> bool:
         # and renders its existing validation callout without durable effects.
         post = request.POST.copy()
         post["time_spent_homework"] = "issue-237-invalid-hours"
-        request.POST = post
+        request.POST = cast(Any, post)
         return True
     complaint_path = getattr(settings, "ISSUE_237_SYNTHETIC_COMPLAINT_PATH", "")
     if complaint_path and path == complaint_path:

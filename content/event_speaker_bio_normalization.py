@@ -500,7 +500,11 @@ def apply_event_speaker_bio_normalization(
     internal_link_count = 0
     for event in events:
         identity_id = event.get("identity_id")
-        if identity_id not in plan_by_id or identity_id in seen_ids:
+        if (
+            not isinstance(identity_id, str)
+            or identity_id not in plan_by_id
+            or identity_id in seen_ids
+        ):
             raise EventSpeakerBioNormalizationError("event speaker-bio identity coverage mismatch")
         seen_ids.add(identity_id)
         item = plan_by_id[identity_id]
@@ -538,11 +542,15 @@ def apply_event_speaker_bio_normalization(
     seen_people: set[str] = set()
     for person in people:
         slug = person.get("slug")
+        if not isinstance(slug, str):
+            continue
         item = plan_people.get(slug)
         if item is None:
             continue
         seen_people.add(slug)
         blocks = person.get("blocks")
+        if not isinstance(blocks, list):
+            raise EventSpeakerBioNormalizationError("person bio source blocks drift")
         additions = [{"kind": "paragraph", "text": text.strip()} for text in item["blocks"]]
         if _blocks_digest(blocks) != item["source_blocks_sha256"]:
             expected_blocks = additions

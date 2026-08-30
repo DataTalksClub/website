@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 from django.contrib.auth import get_user_model
 from django.test import Client
@@ -81,8 +83,9 @@ def test_issue_237_review_manifest_contains_no_email_or_session_value() -> None:
     review_data = seed_design_review_data(execution_namespace="test-review-manifest")
     manifest = review_data.manifest()
     serialized = str(manifest)
+    surfaces = cast(list[dict[str, object]], manifest["surfaces"])
 
     assert "@" not in serialized
     assert "session" not in serialized.casefold()
-    assert all(surface["path"] != "/" for surface in manifest["surfaces"])
-    assert all(surface["path"] != "/events" for surface in manifest["surfaces"])
+    assert all(surface["path"] != "/" for surface in surfaces)
+    assert all(surface["path"] != "/events" for surface in surfaces)
