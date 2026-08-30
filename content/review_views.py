@@ -330,14 +330,22 @@ def slack(request: HttpRequest) -> HttpResponse:
     page = review_projection()["slack"]
     # Keep the rendered context canonical even while an older source projection is being
     # replaced.  The checked projection validator enforces the same path at load time.
-    page = {**page, "public_path": SLACK_PUBLIC_PATH}
+    page = {
+        **page,
+        "public_path": SLACK_PUBLIC_PATH,
+        "title": "DataTalks.Club on Slack",
+        "lead": (
+            "See where DataTalks.Club members talk, and contact the community team "
+            "if you need help with the next step."
+        ),
+    }
     context = projection_context("slack")
     context["slack"] = page
     return _render(
         request,
         "review/slack.html",
         path=page["public_path"],
-        title="Join our Slack — DataTalks.Club",
+        title="DataTalks.Club on Slack",
         description=page["lead"],
         context=context,
     )
