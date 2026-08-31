@@ -42,6 +42,10 @@ class PodcastPlatformDataTests(TestCase):
         body = response.content.decode()
 
         self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            '<div class="podcast-platforms" role="group" aria-label="Podcast platforms">',
+        )
         listener_links = [
             link
             for link in podcast_platform_links(public_projection()["podcast_platforms"])
@@ -64,6 +68,20 @@ class PodcastPlatformDataTests(TestCase):
                 f'class="podcast-platform-icon" data-podcast-platform-icon="{link.provider}" '
                 'viewBox="0 0 24 24" aria-hidden="true" focusable="false"',
             )
+
+    def test_platform_buttons_share_one_rendered_partial(self) -> None:
+        hub = (Path(__file__).resolve().parents[2] / "templates/public/podcast_hub.html").read_text(
+            encoding="utf-8"
+        )
+        detail = (
+            Path(__file__).resolve().parents[2] / "templates/public/podcast_detail.html"
+        ).read_text(encoding="utf-8")
+
+        include = '{% include "public/_podcast_platform_button.html" with link=link only %}'
+        self.assertIn(include, hub)
+        self.assertIn(include, detail)
+        self.assertNotIn("data-podcast-platform-icon=", hub)
+        self.assertNotIn("data-podcast-platform-icon=", detail)
 
     def test_podcast_hub_omits_spotify_for_creators(self) -> None:
         response = self.client.get("/podcast")
@@ -105,6 +123,13 @@ class PodcastPlatformDataTests(TestCase):
         for provider in ("apple", "spotify", "youtube"):
             link_start = body.index(f'href="{episode["links"][provider]}"')
             link_markup = body[link_start : body.index("</a>", link_start)]
+            self.assertIn(f'data-podcast-platform="{provider}"', link_markup)
+            self.assertIn(
+                f'class="podcast-platform-icon" data-podcast-platform-icon="{provider}" '
+                'viewBox="0 0 24 24" aria-hidden="true" focusable="false"',
+                link_markup,
+            )
+            self.assertNotIn('class="dot ', link_markup)
             self.assertIn('target="_blank"', link_markup)
             self.assertIn('rel="noopener noreferrer"', link_markup)
             self.assertIn(
