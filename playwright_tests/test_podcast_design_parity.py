@@ -69,6 +69,26 @@ def _assert_no_horizontal_overflow(page: Page) -> None:
     assert overflow["content"] <= overflow["viewport"], overflow
 
 
+def _assert_platform_buttons(page: Page, container: str) -> None:
+    platforms = {
+        "apple": "Apple Podcasts",
+        "spotify": "Spotify",
+        "youtube": "YouTube",
+    }
+    for provider, label in platforms.items():
+        button = page.locator(f'{container} a[data-podcast-platform="{provider}"]')
+        expect(button).to_have_count(1)
+        expect(button).to_have_attribute("target", "_blank")
+        expect(button).to_have_attribute("rel", "noopener noreferrer")
+        expect(button).to_have_accessible_name(f"{label} (opens in a new tab)")
+        expect(button).to_contain_text(label)
+        expect(button.locator(".sr-only")).to_have_text(" (opens in a new tab)")
+        icon = button.locator(f'svg[data-podcast-platform-icon="{provider}"]')
+        expect(icon).to_have_count(1)
+        expect(icon).to_have_attribute("aria-hidden", "true")
+        expect(icon).to_have_attribute("focusable", "false")
+
+
 @pytest.mark.parametrize(("viewport", "suffix"), VIEWPORTS)
 def test_index_and_episode_render_the_design_system_in_both_themes(
     page: Page,
@@ -95,6 +115,11 @@ def test_index_and_episode_render_the_design_system_in_both_themes(
         expect(page.locator("main h1")).to_have_count(1)
         expect(page.locator("body")).to_have_css("background-color", LIGHT_BACKGROUND)
         expect(page.locator("body")).not_to_contain_text("Traceback")
+        if path == "/podcast":
+            expect(page.get_by_role("group", name="Podcast platforms")).to_be_visible()
+        _assert_platform_buttons(
+            page, ".podcast-platforms" if path == "/podcast" else ".listen-row"
+        )
         _assert_no_horizontal_overflow(page)
         _shot(page, f"podcast-{label}-{suffix}-light.png")
 
