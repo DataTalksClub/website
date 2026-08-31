@@ -354,14 +354,14 @@ class HistoricalRegistrationTotalTests(TestCase):
         self.assertNotContains(response, "registered")
         self.assertEqual(DurableJob.objects.count(), 2)
 
-    def test_past_event_labels_the_registration_count_as_came(self) -> None:
+    def test_past_event_labels_the_registration_count_as_registered(self) -> None:
         self.event = event_groups().recent[-1]
         self._map_validate_activate(("approved", "approved"))
 
         response = self.client.get(self.event["public_path"])
 
-        self.assertContains(response, "2 came")
-        self.assertNotContains(response, "2 registered")
+        self.assertContains(response, "2 registered")
+        self.assertNotContains(response, "2 came")
 
     def test_mapping_revision_invalidates_active_pointer_and_public_revision(self) -> None:
         run, mapping, _registry = self._map_validate_activate(("approved",))

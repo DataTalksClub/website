@@ -5,6 +5,7 @@ import hashlib
 import io
 import json
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -16,7 +17,7 @@ from playwright.sync_api import Page, expect
 
 from accounts.studio_sessions import SESSION_REFERENCE_KEY
 from accounts.studio_test_support import make_studio_user
-from content.public_data import public_projection
+from content.public_data import event_groups, public_projection
 from events.models import (
     HistoricalEventMapping,
     HistoricalRegistrationAggregateRevision,
@@ -215,11 +216,21 @@ def mapping_card(page: Page, external_id: str):
 def test_public_zero_one_plural_and_omitted_states_are_private_and_responsive(
     page: Page,
     live_server,
+    monkeypatch,
     viewport: dict[str, int],
     suffix: str,
 ) -> None:
     page.set_viewport_size(viewport)
-    events = public_projection()["events"][:4]
+    event_times = sorted(
+        {datetime.fromisoformat(event["starts_at"]) for event in public_projection()["events"]},
+        reverse=True,
+    )
+    assert len(event_times) >= 2
+    synthetic_now = event_times[1] + (event_times[0] - event_times[1]) / 2
+    grouped = event_groups(now=synthetic_now)
+    assert grouped.upcoming and len(grouped.recent) >= 3
+    monkeypatch.setattr("content.public_views.event_groups", lambda: grouped)
+    events = (grouped.upcoming[0], *grouped.recent[:3])
     for event, count, complete in zip(
         events, (0, 1, 12, 0), (True, True, True, False), strict=True
     ):
@@ -238,8 +249,8 @@ def test_public_zero_one_plural_and_omitted_states_are_private_and_responsive(
 
     for event, expected, state in zip(
         events,
-        ("0 registered", "1 came", "12 came", None),
-        ("zero", "one", "plural", "omitted"),
+        ("0 registered", "1 registered", "12 registered", None),
+        ("upcoming-zero", "past-one", "past-plural", "past-omitted"),
         strict=True,
     ):
         response = page.goto(f"{live_server.url}{event['public_path']}")

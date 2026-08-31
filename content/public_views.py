@@ -422,7 +422,7 @@ def event_detail(request: HttpRequest, event_id: str, slug: str) -> HttpResponse
             "event": event,
             "event_state": event_state,
             "registration_total": registration_total,
-            "registration_total_label": "came" if event_state == "past" else "registered",
+            "registration_total_label": "registered",
             "qna_url": qna_url,
             "og_type": "event",
             "structured_data": _json_ld(
