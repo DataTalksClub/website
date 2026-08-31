@@ -126,12 +126,15 @@ class CurriculumImportCommand:
     commit_sha: str
     source_checksums: Mapping[str, str] | None = None
     manifest_checksum: str | None = None
+    preserve_existing_records: bool = False
 
     def __post_init__(self) -> None:
         if not isinstance(self.source, CourseRepositorySource):
             raise CurriculumImportError("invalid_source_graph")
         if not isinstance(self.source_uuid, UUID):
             raise CurriculumImportError("invalid_source_uuid")
+        if type(self.preserve_existing_records) is not bool:
+            raise CurriculumImportError("invalid_preservation_mode")
         validators = (
             (self.source_stable_id, SOURCE_STABLE_ID_PATTERN, "invalid_source_stable_id"),
             (self.repository_owner, REPOSITORY_COMPONENT_PATTERN, "invalid_repository_owner"),
@@ -362,16 +365,18 @@ class _CurriculumImporter:
                 "cohort_identifier_collision", source_path=source.source_path, pointer="/identifier"
             )
 
+        existing = cohort.pk is not None
         cohort.course = course
         cohort.slug = target_slug
         cohort.identifier = source.identifier
-        cohort.year = source.year or cohort.year
-        cohort.title = source.title or cohort.title
-        cohort.description = source.description or ""
+        if not (existing and self.command.preserve_existing_records):
+            cohort.year = source.year or cohort.year
+            cohort.title = source.title or cohort.title
+            cohort.description = source.description or ""
+            cohort.start_date = source.start_date
+            cohort.end_date = source.end_date
+            cohort.visible = bool(source.published)
         cohort.curriculum_format = source.format
-        cohort.start_date = source.start_date
-        cohort.end_date = source.end_date
-        cohort.visible = bool(source.published)
         for field, value in self._provenance(source, source.source_path, source.content_id).items():
             setattr(cohort, field, value)
         _validate_model(cohort)
@@ -414,7 +419,8 @@ class _CurriculumImporter:
             self._upsert_units(module, item.module)
             module_by_source_id[UUID(item.module.content_id)] = module
 
-        self._delete_stale_source_rows(cohort, incoming_module_ids, incoming_homework_ids)
+        if not self.command.preserve_existing_records:
+            self._delete_stale_source_rows(cohort, incoming_module_ids, incoming_homework_ids)
 
         for flow_position, item in enumerate(source.flow):
             if isinstance(item, ModuleFlowSource):
@@ -443,6 +449,14 @@ class _CurriculumImporter:
         source_id = UUID(source.content_id)
         homework = Homework.objects.filter(course=cohort, source_content_id=source_id).first()
         slug_match = Homework.objects.filter(course=cohort, slug=source.slug).first()
+        if slug_match is not None and slug_match.source_content_id not in {None, source_id}:
+            raise CurriculumImportError(
+                "homework_source_identity_conflict",
+                source_path=source.source_path,
+                pointer="/content_id",
+            )
+        if self.command.preserve_existing_records and homework is None and slug_match is not None:
+            homework = slug_match
         if homework is None:
             if slug_match is not None:
                 raise CurriculumImportError(
@@ -453,6 +467,29 @@ class _CurriculumImporter:
             raise CurriculumImportError(
                 "homework_slug_collision", source_path=source.source_path, pointer="/slug"
             )
+
+        if self.command.preserve_existing_records and homework.pk:
+            if homework.source_content_id not in {None, source_id}:
+                raise CurriculumImportError(
+                    "homework_source_identity_conflict",
+                    source_path=source.source_path,
+                    pointer="/content_id",
+                )
+            for field, value in self._provenance(
+                source, source.source_path, source.content_id
+            ).items():
+                setattr(homework, field, value)
+            _validate_model(homework)
+            homework.save(
+                update_fields=(
+                    "source_content_id",
+                    "source_path",
+                    "source_commit_sha",
+                    "source_checksum",
+                )
+            )
+            self.counts["homeworks"] += 1
+            return homework
 
         if homework.pk and Submission.objects.filter(homework=homework).exists():
             protected_before = (
@@ -613,9 +650,10 @@ class _CurriculumImporter:
 
     def _upsert_units(self, module: Module, source: ModuleSource) -> None:
         incoming_ids = {UUID(unit.content_id) for unit in source.units}
-        Unit.objects.filter(module=module, source_content_id__isnull=False).exclude(
-            source_content_id__in=incoming_ids
-        ).delete()
+        if not self.command.preserve_existing_records:
+            Unit.objects.filter(module=module, source_content_id__isnull=False).exclude(
+                source_content_id__in=incoming_ids
+            ).delete()
         self._stage_positions(Unit, module=module)
         for position, unit_source in enumerate(source.units):
             self._upsert_unit(module, unit_source, position)
