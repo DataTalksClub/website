@@ -14,7 +14,7 @@
     "selection_mode": "preferred",
     "required_finals": 796,
     "required_aliases": 1590,
-    "required_content_sha256": "1f9b75f165e22a9799522d6245b060a5da3b82ccd250c160659ded535d52e6bb"
+    "required_content_sha256": "bb76e63fd57494be65fc553eb5c9add344cf022ac85b3313d8b28facaba284aa"
   },
   "baseline": {
     "timezone": "UTC",

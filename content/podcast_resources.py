@@ -1,10 +1,11 @@
 """Safe, idempotent normalization for podcast show-note resources.
 
-The source repository stores resources as ``title``/``url`` pairs.  This module
-adds the presentation contract at the public projection boundary without
-mutating or rewriting the source record.  Internal episode links are resolved
-against the checked podcast catalogue so an unknown target can be omitted
-instead of becoming an invented URL.
+The source repository stores resources as ``title``/``url`` pairs.  The checked
+podcast model stores the normalized resource contract as well, so consumers do
+not need to rediscover whether a destination is internal or external.  This
+module validates both shapes without mutating the source record.  Internal
+episode links are resolved against the checked podcast catalogue so an unknown
+target can be omitted instead of becoming an invented URL.
 """
 
 from __future__ import annotations
@@ -20,6 +21,7 @@ from .podcast_routes import podcast_canonical_path, podcast_public_id
 PODCAST_RESOURCE_SCHEMA_VERSION = 1
 EXTERNAL_RESOURCE_TARGET = "_blank"
 EXTERNAL_RESOURCE_REL = "noopener noreferrer"
+PROJECTED_RESOURCE_FIELDS = frozenset({"is_external", "target", "rel"})
 
 _WHITESPACE = re.compile(r"\s+")
 _SAFE_SLUG = re.compile(r"[a-z0-9][a-z0-9_-]*\Z")
@@ -228,6 +230,9 @@ def normalize_podcast_resource(
 
     if not isinstance(value, Mapping):
         raise PodcastResourceError("podcast resource must be a mapping")
+    projected_fields = PROJECTED_RESOURCE_FIELDS.intersection(value)
+    if projected_fields and projected_fields != PROJECTED_RESOURCE_FIELDS:
+        raise PodcastResourceError("podcast resource metadata is incomplete")
     title_value = value.get("title")
     label_value = value.get("label")
     if title_value is None:
@@ -236,13 +241,21 @@ def normalize_podcast_resource(
         raise PodcastResourceError("podcast resource title and label disagree")
     title = normalize_resource_title(title_value)
     url, is_external = _resource_url(value.get("url"), records=records)
-    return NormalizedPodcastResource(
+    normalized = NormalizedPodcastResource(
         title=title,
         url=url,
         is_external=is_external,
         target=EXTERNAL_RESOURCE_TARGET if is_external else "",
         rel=EXTERNAL_RESOURCE_REL if is_external else "",
     )
+    if projected_fields:
+        if (
+            value.get("is_external") != normalized.is_external
+            or value.get("target") != normalized.target
+            or value.get("rel") != normalized.rel
+        ):
+            raise PodcastResourceError("podcast resource metadata disagrees with URL")
+    return normalized
 
 
 def normalize_podcast_resources(

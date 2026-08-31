@@ -76,6 +76,13 @@ class PodcastShowNotesContractTests(SimpleTestCase):
             )
         )
 
+        for record in self.records:
+            for resource in record.get("resources") or []:
+                self.assertEqual(
+                    set(resource),
+                    {"title", "url", "is_external", "target", "rel"},
+                )
+
         for resource in rows:
             data = resource.as_dict()
             self.assertEqual(
@@ -108,6 +115,30 @@ class PodcastShowNotesContractTests(SimpleTestCase):
         self.assertEqual(first, second)
         self.assertEqual(record, original)
         self.assertEqual(record["provenance"]["source_key"], record["slug"])
+
+        episode = episode_view(record, resource_podcast_records=self.records)
+        self.assertEqual(episode.links, episode.resources)
+
+    def test_projected_resource_metadata_must_agree_with_the_destination(self) -> None:
+        with self.assertRaisesRegex(PodcastResourceError, "metadata disagrees"):
+            normalize_podcast_resource(
+                {
+                    "title": "Website",
+                    "url": "https://example.com/",
+                    "is_external": False,
+                    "target": "",
+                    "rel": "",
+                }
+            )
+
+        with self.assertRaisesRegex(PodcastResourceError, "metadata is incomplete"):
+            normalize_podcast_resource(
+                {
+                    "title": "Website",
+                    "url": "https://example.com/",
+                    "is_external": True,
+                }
+            )
 
     def test_historical_internal_episode_paths_resolve_to_hierarchical_targets(self) -> None:
         cases = (

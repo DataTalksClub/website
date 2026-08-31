@@ -227,6 +227,18 @@ class Episode:
         return " and ".join(guest.name for guest in self.guests)
 
     @property
+    def links(self) -> tuple[EpisodeResource, ...]:
+        """Show-note links owned by the podcast model.
+
+        Listening destinations remain in ``platform_links``; this alias gives
+        callers an explicit model-level name for the structured links mentioned
+        in the episode's show notes while retaining the existing ``resources``
+        field for template compatibility.
+        """
+
+        return self.resources
+
+    @property
     def player(self) -> VideoEmbed | SpotifyEmbed | None:
         """Return the preferred validated player, with Spotify as the fallback."""
 

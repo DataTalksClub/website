@@ -32,18 +32,30 @@
     "published": "2025-10-27",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/hugobowne"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/hugo-bowne-anderson-045939a5/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/hugobowne"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://hugobowne.github.io/"
       }
@@ -1312,18 +1324,30 @@
     "published": "2025-10-27",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/sayalaruano/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/sayalaruano"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/sayalaruano"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://sayalaruano.github.io/"
       }
@@ -2454,7 +2478,10 @@
     "published": "2025-10-21",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/dashel-ruiz-perez-2b036172/"
       }
     ],
@@ -3566,7 +3593,10 @@
     "published": "2025-10-21",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/aishwaryajadhav8/"
       }
     ],
@@ -4810,7 +4840,10 @@
     "published": "2025-10-21",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/ranjitha-gurunath-kulkarni"
       }
     ],
@@ -5721,10 +5754,16 @@
     "published": "2025-10-21",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/abouzar-abbaspour/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.abouzar-abbaspour.com/"
       }
@@ -7038,7 +7077,10 @@
     "published": "2025-10-01",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/micheal-lanham-189693123/"
       }
     ],
@@ -8177,7 +8219,10 @@
     "published": "2025-09-30",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/egbodaniel/"
       }
     ],
@@ -9421,18 +9466,30 @@
     "published": "2025-08-22",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/PastorSotoB1"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/pastorsoto/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/sotoblanco"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://substack.com/@pastorsoto"
       }
@@ -10380,18 +10437,30 @@
     "published": "2025-08-18",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/liorbarak/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://cookingdata.substack.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Cooking Data newsletter",
         "url": "https://cookingdata.substack.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Product product lifecycle manager",
         "url": "https://app--data-product-lifecycle-manager-c81b10bb.base44.app/"
       }
@@ -11864,14 +11933,23 @@
     "published": "2025-08-05",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/ogarten/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/orgarten"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://orellgarten.com"
       }
@@ -12750,11 +12828,17 @@
     "published": "2025-07-28",
     "resources": [
       {
+        "is_external": false,
+        "rel": "",
+        "target": "",
         "title": "Previous podcast episode",
-        "url": "/podcast/s16e09-become-data-freelancer.html"
+        "url": "/podcast/s16e09/becoming-data-freelancer"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/visnadi/"
       }
     ],
@@ -13419,18 +13503,30 @@
     "published": "2025-05-26",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/wrussell1999/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/wrussell1999"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "GitHub",
         "url": "https://github.com/wrussell1999"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://wrussell.co.uk/"
       }
@@ -15245,7 +15341,10 @@
     "published": "2025-05-12",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/lgupta18/"
       }
     ],
@@ -16354,18 +16453,30 @@
     "published": "2025-04-30",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/eddarief"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/eddyzulkifly/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/eyzyly/eyzyly"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "ADPList",
         "url": "https://adplist.org/mentors/eddy-zulkifly"
       }
@@ -17340,14 +17451,23 @@
     "published": "2025-03-26",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/mikulskibartosz/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/mikulskibartosz"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://mikulskibartosz.name/blog/"
       }
@@ -18634,11 +18754,17 @@
     "published": "2025-03-15",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/radojkovic/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/baskervilski"
       }
     ],
@@ -20086,10 +20212,16 @@
     "published": "2025-03-14",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/data-team/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://adrian.brudaru.com/"
       }
@@ -20815,10 +20947,16 @@
     "published": "2025-02-26",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/1aguschin/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.aguschin.com/"
       }
@@ -21706,18 +21844,30 @@
     "published": "2025-02-26",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/andrey_cheptsov/"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/andrey-cheptsov/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "GitHub",
         "url": "https://github.com/dstackai/dstack/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://dstack.ai/"
       }
@@ -22593,10 +22743,16 @@
     "published": "2025-02-24",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/tamaraatanasoska/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "GitHub",
         "url": "https://github.com/TamaraAtanasoska"
       }
@@ -23652,6 +23808,9 @@
     "published": "2025-01-12",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/agita/"
       }
@@ -25724,6 +25883,9 @@
     "published": "2024-12-17",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/dr-anastasia-karavdina/"
       }
@@ -26599,18 +26761,30 @@
     "published": "2024-12-17",
     "resources": [
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/bellabf"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/isabella-frazeto/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "X",
         "url": "https://x.com/bisnotforbella"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "substack/newsletter",
         "url": "https://datalike.substack.com/"
       }
@@ -29664,6 +29838,9 @@
     "published": "2024-11-06",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Dynamic Datasets",
         "url": "https://datamall.lta.gov.sg/content/datamall/en/dynamic-data.html"
       }
@@ -30524,6 +30701,9 @@
     "published": "2024-10-10",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Eleven elevator",
         "url": "https://www.youtube.com/live/NMS2VnDveP8"
       }
@@ -31846,22 +32026,37 @@
     "published": "2024-07-15",
     "resources": [
       {
-        "title": "LinkedI",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/company/frontline100/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Ba Linh Le's LinkedIn",
         "url": "https://www.linkedin.com/in/ba-linh-le-/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Sabrina's LinkedIn",
         "url": "https://www.linkedin.com/in/sabina-firtala/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/frontline_100?mx=2"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.frontline100.com/"
       }
@@ -31910,10 +32105,16 @@
     "published": "2024-05-12",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/erum-afzal-64827b24/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/Erum55449739"
       }
@@ -32669,14 +32870,23 @@
     "published": "2024-05-06",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "probabl. YouTube channel",
         "url": "https://www.youtube.com/@UCIat2Cdg661wF5DQDWTQAmg"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Calmcode website",
         "url": "https://calmcode.io/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "probabl. website",
         "url": "https://probabl.ai/"
       }
@@ -33744,6 +33954,9 @@
     "published": "2024-04-28",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Biodiversity and Artificial Intelligence pdf",
         "url": "https://www.gpai.ai/projects/responsible-ai/environment/biodiversity-and-AI-opportunities-recommendations-for-action.pdf"
       }
@@ -33792,7 +34005,10 @@
     "published": "2024-04-07",
     "resources": [
       {
-        "title": "Github repo",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub repo",
         "url": "https://github.com/antahiap/ADPT-LRN-PHYS/tree/main"
       }
     ],
@@ -34678,18 +34894,30 @@
     "published": "2024-03-31",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/tereza-iofciu/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/terezaif"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "GitHub",
         "url": "https://github.com/terezaif"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.terezaiofciu.com/"
       }
@@ -35694,10 +35922,16 @@
     "published": "2024-03-25",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "VectorHub",
         "url": "https://superlinked.com/vectorhub/?utm_source=community&utm_medium=podcast&utm_campaign=datatalks"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Daniel's LinkedIn",
         "url": "https://www.linkedin.com/in/svonava/"
       }
@@ -36537,10 +36771,16 @@
     "published": "2024-03-17",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/reemmahmoud/recent-activity/all/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://topmate.io/reem_mahmoud"
       }
@@ -37353,30 +37593,51 @@
     "published": "2024-02-29",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Dev and AI hackathons",
         "url": "https://devpost.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Healthcare-focused challenges",
         "url": "https://grand-challenge.org/challenges/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Volunteering in projects (AI4Good)",
         "url": "https://www.fruitpunch.ai/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Volunteering in projects (AI4Good) 2",
         "url": "https://www.omdena.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/el_ateifSara"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Instagram",
         "url": "https://www.instagram.com/saraelateif/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/sara-el-ateif/"
       }
@@ -38501,22 +38762,37 @@
     "published": "2024-02-03",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/sarahmestiri/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://thrivingcareermoms.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Personal Website",
         "url": "https://www.sarahmestiri.com/"
       },
       {
-        "title": "Youtube channel",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "YouTube channel",
         "url": "https://www.youtube.com/@thrivingcareermoms444"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "O*Net Interest Profiler",
         "url": "https://www.mynextmove.org/explore/ip"
       }
@@ -39416,6 +39692,9 @@
     "published": "2024-01-29",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/radojkovic/"
       }
@@ -40369,10 +40648,16 @@
     "published": "2024-01-24",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Exploring Finance APIs",
         "url": "https://pythoninvest.com/long-read/exploring-finance-apis"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Python Invest Blog Articles",
         "url": "https://pythoninvest.com/blog"
       }
@@ -41278,10 +41563,16 @@
     "published": "2024-01-22",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book 1",
         "url": "https://bayesiancomputationbook.com/welcome.html"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book/Course",
         "url": "https://xcelab.net/rm/statistical-rethinking/"
       }
@@ -42349,38 +42640,65 @@
     "published": "2024-01-07",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/atitaarora/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/atitaarora"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/atarora"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Human-in-the-Loop Machine Learning",
         "url": "https://www.manning.com/books/human-in-the-loop-machine-learning"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Relevant Search",
         "url": "https://www.manning.com/books/relevant-search"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Let's learn about Vectors",
         "url": "https://hub.superlinked.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Langchain",
         "url": "https://python.langchain.com/docs/get_started/introduction"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Qdrant blog",
         "url": "https://blog.qdrant.tech/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "OpenSource Connections Blog",
         "url": "https://opensourceconnections.com/blog/"
       }
@@ -43334,18 +43652,30 @@
     "published": "2023-12-18",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Adrian's LinkedIn",
         "url": "https://www.linkedin.com/in/data-team/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/dlt_library"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/dlt-hub/dlt"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://dlthub.com/docs/intro"
       }
@@ -44344,6 +44674,9 @@
     "published": "2023-12-09",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The DataFreelancer website",
         "url": "https://thedatafreelancer.com/"
       }
@@ -45381,6 +45714,9 @@
     "published": "2023-12-03",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Maria's LinkedIn profile",
         "url": "https://www.linkedin.com/in/mariabruckert/"
       }
@@ -46271,30 +46607,51 @@
     "published": "2023-11-27",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/christoph-molnar/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://christophmolnar.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Interpretable Machine Learning",
         "url": "https://christophmolnar.com/books/interpretable-machine-learning/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Modeling Mindsets",
         "url": "https://christophmolnar.com/books/modeling-mindsets/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Introduction to Conformal Prediction with Python",
         "url": "https://christophmolnar.com/books/conformal-prediction/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Interpreting Machine Learning Models with SHAP",
         "url": "https://christophmolnar.com/books/shap/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Mindful Modeler Newsletter",
         "url": "https://mindfulmodeler.substack.com/"
       }
@@ -47416,6 +47773,9 @@
     "published": "2023-11-20",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Jack's LinkedIn profile",
         "url": "https://www.linkedin.com/in/jackblandin/"
       }
@@ -48396,18 +48756,30 @@
     "published": "2023-11-12",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Verena's website",
         "url": "https://www.verenaweber.de/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Mini sound bath",
         "url": "https://www.youtube.com/watch?v=g-lDrcSqcrQ"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Verena's Instagram for Sound bath",
         "url": "https://instagram.com/sound_and_peace?igshid=OGQ5ZDc2ODk2ZA%3D%3D&utm_source=qr"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn profile",
         "url": "https://www.linkedin.com/in/verena-weber-134178b9?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=ios_app"
       }
@@ -49592,14 +49964,23 @@
     "published": "2023-10-29",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/ioannis-mesionis/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/ioannismesionis"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://ioannismesionis.github.io/"
       }
@@ -50784,11 +51165,17 @@
     "published": "2023-10-23",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/elenistamatelou/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/stamatelou"
       }
     ],
@@ -52599,18 +52986,30 @@
     "published": "2023-10-07",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/aramirez1305/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/angelamaria__r"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/aramir62"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Previous podcast talk",
         "url": "https://twitter.com/i/spaces/1OwGWwZAZDnGQ?s=20"
       }
@@ -53633,6 +54032,9 @@
     "published": "2023-10-01",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Loiic LinkedIn",
         "url": "https://www.linkedin.com/in/loicmagnien/"
       }
@@ -54334,10 +54736,16 @@
     "published": "2023-09-25",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/company/marvelous-mlops/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://marvelousmlops.substack.com/"
       }
@@ -55387,22 +55795,37 @@
     "published": "2023-09-10",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The Book of Why",
         "url": "https://amzn.to/3OZpvBk"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Causal Inference and Discovery in Python",
         "url": "https://amzn.to/46Pperr"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book's GitHub repo",
         "url": "https://github.com/PacktPublishing/Causal-Inference-and-Discovery-in-Python"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The Battle of Giants: Causality vs NLP (PyData Berlin 2023)",
         "url": "https://www.youtube.com/watch?v=Bd1XtGZhnmw"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "New Frontiers in Causal NLP (papers repo)",
         "url": "https://bit.ly/3N0TFTL"
       }
@@ -56422,14 +56845,23 @@
     "published": "2023-08-28",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/jmssalas"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/jmssalas"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website & Newsletter",
         "url": "https://jmssalas.com"
       }
@@ -57578,15 +58010,24 @@
     "published": "2023-08-06",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/sandrakublik/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/sandra_kublik"
       },
       {
-        "title": "Youtube",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "YouTube",
         "url": "https://www.youtube.com/@sandra_kublik"
       }
     ],
@@ -58260,22 +58701,37 @@
     "published": "2023-07-29",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.titanml.co/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Beta docs",
         "url": "https://titanml.gitbook.io/iris-documentation/overview/guide-to-titanml"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Using llama2.0 in TitanML Blog",
         "url": "https://medium.com/@TitanML/the-easiest-way-to-fine-tune-and-inference-llama-2-0-8d8900a57d57"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Discord",
         "url": "https://discord.gg/83RmHTjZgf"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Meryem LinkedIn",
         "url": "https://www.linkedin.com/in/meryemarik/"
       }
@@ -59223,14 +59679,23 @@
     "published": "2023-07-23",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Understand who is engaging with your open source project article",
         "url": "https://www.crowd.dev/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Top 6 Books on Developer Community Building",
         "url": "https://www.crowd.dev/post/top-6-books-on-developer-community-building"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Which open source software metrics matter",
         "url": "https://www.bvp.com/atlas/measuring-the-engagement-of-an-open-source-software-community#Which-open-source-software-metrics-matter"
       }
@@ -60112,14 +60577,23 @@
     "published": "2023-07-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book (discount code: poddatatalks21)",
         "url": "https://www.manning.com/books/machine-learning-system-design?utm_source=AGMLBookcamp&utm_medium=affiliate&utm_campaign=book_babushkin_machine_4_25_23&utm_content=twitter"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Evidently",
         "url": "https://www.evidentlyai.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Article",
         "url": "https://medium.com/people-ai-engineering/design-documents-for-ml-models-bbcd30402ff7"
       }
@@ -60845,18 +61319,30 @@
     "published": "2023-07-08",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/polina-mosolova/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Neural Additive Models paper",
         "url": "https://proceedings.neurips.cc/paper/2021/file/251bd0442dfcc53b5a761e050f8022b8-Paper.pdf"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Neural Basis Model paper",
         "url": "https://arxiv.org/pdf/2205.14120.pdf"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Interpretable Feature Spaces paper",
         "url": "https://kdd.org/exploration_files/vol24issue1_1._Interpretable_Feature_Spaces_revised.pdf"
       }
@@ -61819,14 +62305,23 @@
     "published": "2023-07-02",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/simonstiebellehner/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/stiebels"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Medium",
         "url": "https://medium.com/@sistel"
       }
@@ -62765,14 +63260,23 @@
     "published": "2023-06-24",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/santona-tuli/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Upsolver website",
         "url": "https://www.upsolver.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Why we built a SQL-based solution to unify batch and stream workflows",
         "url": "https://wwwupsolver.com/blog/why-we-built-a-sql-based-solution-to-unify-batch-and-stream-workflows"
       }
@@ -63525,10 +64029,16 @@
     "published": "2023-06-17",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Vanishing Gradients",
         "url": "https://vanishinggradients.fireside.fm/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "MLOps and DevOps: Why Data Makes It Different",
         "url": "https://www.oreilly.com/radar/mlops-and-devops-why-data-makes-it-different/"
       }
@@ -64353,18 +64863,30 @@
     "published": "2023-06-10",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Lean Startup by Eric Ries",
         "url": "https://theleanstartup.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Lean Analytics",
         "url": "https://leananalyticsbook.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Designing Machine Learning Systems by Chip Huyen",
         "url": "https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Kafka Streaming with python by Khris Jenkins tutorial video",
         "url": "https://youtu.be/jItIQ-UvFI4"
       }
@@ -65411,38 +65933,65 @@
     "published": "2023-06-03",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/bartvandekerckhove/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/Bart_H_VDK"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/raito-io"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.raito.io/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Data Mesh Learning Slack",
         "url": "https://data-mesh-learning.slack.com/join/shared_invite/zt-1qs976pm9-ci7lU8CTmc4QD5y4uKYtAA#/shared-invite/email"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataQG Website",
         "url": "https://dataqg.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataQG Slack",
         "url": "https://dataqgcommunitygroup.slack.com/join/shared_invite/zt-12n0333gg-iTZAjbOBeUyAwWr8I~2qfg#/shared-invite/email"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DMBOK (Data Management Book of Knowledge)",
         "url": "https://www.dama.org/cpages/body-of-knowledge"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DMBOK Wheel describing the data governance activities",
         "url": "https://www.dama.org/cpages/dmbok-2-wheel-images"
       }
@@ -66339,18 +66888,30 @@
     "published": "2023-05-27",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/angelovboyan/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/thinking_code"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/boyanangelov"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://boyanangelov.com/"
       }
@@ -67244,10 +67805,16 @@
     "published": "2023-05-20",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/katharinejarmul/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/kjam"
       }
@@ -68372,6 +68939,9 @@
     "published": "2023-05-13",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book",
         "url": "https://www.manning.com/books/machine-learning-system-design?utm_source=AGMLBookcamp&utm_medium=affiliate&utm_campaign=book_babushkin_machine_4_25_23&utm_content=twitter"
       }
@@ -69121,26 +69691,44 @@
     "published": "2023-04-23",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Refinery's GitHub repo",
         "url": "https://github.com/code-kern-ai/refinery"
       },
       {
-        "title": "Bricks' Github repo",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Bricks' GitHub repo",
         "url": "https://github.com/code-kern-ai/bricks"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Bricks Open Source Spotlight demo",
         "url": "https://www.youtube.com/watch?v=r3rXzoLQy2U"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Refinery Open Source Spotlight demo",
         "url": "https://www.youtube.com/watch?v=LlMhN2f7YDg"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Discord",
         "url": "https://discord.com/invite/qf4rGCEphW"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Ker's Website",
         "url": "https://www.kern.ai"
       }
@@ -70118,6 +70706,9 @@
     "published": "2023-04-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Kaggle dataset",
         "url": "https://www.kaggle.com/datasets/paresh2047/uci-semcom"
       }
@@ -71590,15 +72181,24 @@
     "published": "2023-04-08",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/aaisha-muhammad/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/ZealousMushroom"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/AaishaMuhammad"
       }
     ],
@@ -72770,26 +73370,44 @@
     "published": "2023-04-01",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The secret sauce of data science management",
         "url": "https://www.youtube.com/watch?v=tbBfVHIh-38"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Lessons learned leading AI teams",
         "url": "https://blogs.intuit.com/2020/06/23/lessons-learned-leading-ai-teams/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "How to avoid conflicts and delays in the AI development process (Part I)",
         "url": "https://blogs.intuit.com/2020/12/08/how-to-avoid-conflicts-and-delays-in-the-ai-development-process-part-i/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "How to avoid conflicts and delays in the AI development process (Part II)",
         "url": "https://blogs.intuit.com/2021/01/06/how-to-avoid-conflicts-and-delays-in-the-ai-development-process-part-ii/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Leading AI teams deck",
         "url": "https://drive.google.com/drive/folders/1_CnqjugtsEbkIyOUKFHe48BeRttX0uJG"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Leading AI teams video",
         "url": "https://www.youtube.com/watch?app=desktop&v=tbBfVHIh-38"
       }
@@ -73812,22 +74430,37 @@
     "published": "2023-03-27",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Model Card",
         "url": "https://arxiv.org/abs/1810.03993"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Datasheets",
         "url": "https://arxiv.org/abs/1803.09010"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Factsheets",
         "url": "https://arxiv.org/abs/1808.07261"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Research Paper",
         "url": "https://www.cs.cmu.edu/~ckaestne/pdf/icse22_seai.pdf"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Arxiv version",
         "url": "https://arxiv.org/pdf/2110."
       }
@@ -74667,10 +75300,16 @@
     "published": "2023-03-19",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/alkrusz/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/alkrusz"
       }
@@ -75639,10 +76278,16 @@
     "published": "2023-03-11",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/ruslanshchuchkin/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/r_shchuchkin"
       }
@@ -77067,18 +77712,30 @@
     "published": "2023-03-04",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/parvathykrishnank/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/ABWInstitute"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "GitHub",
         "url": "https://github.com/Analytics-for-a-Better-World"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://analyticsbetterworld.org/"
       }
@@ -77870,18 +78527,30 @@
     "published": "2023-02-25",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Call for Speakers for the #datalift summit (Berlin, 14 to 16 June 2023)",
         "url": "https://eu1.hubs.ly/H02RXvX0"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Coded Bias documentary on Netflix",
         "url": "https://www.netflix.com/de/title/81328723#:~:text=This%20documentary%20investigates%20the%20bias,flaws%20in%20facial%20recognition%20technology"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book Weapons of Math Destruction by Cathy O'Neil",
         "url": "https://en.wikipedia.org/wiki/Weapons_of_Math_Destruction"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book Lean In by Sheryl Sandberg",
         "url": "https://en.wikipedia.org/wiki/Lean_In"
       }
@@ -78880,14 +79549,23 @@
     "published": "2023-02-18",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/tatigabru/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/tatigabru"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "GitHub",
         "url": "https://github.com/tatigabru"
       }
@@ -79772,44 +80450,74 @@
     "published": "2023-02-04",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Lex Fridman: science, philosophy, media, AI (especially earlier episodes)",
         "url": "https://www.youtube.com/lexfridman"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Andrej Karpathy, former Senior Director of AI at Tesla, who's now focused on teaching and sharing his knowledge",
         "url": "https://www.youtube.com/@AndrejKarpathy"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Beautifully done videos on engineering of things in the real world",
         "url": "https://www.youtube.com/@RealEngineering"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Chris' website",
         "url": "https://szafranek.net/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Zalando Tech Radar",
         "url": "https://opensource.zalando.com/tech-radar/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Modal Labs, new way of deploying code to the cloud, also useful for testing ML code on GPUs",
         "url": "https://modal.com"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Excellent Twitter account to follow to learn more about prompt engineering for ChatGPT",
         "url": "https://twitter.com/goodside"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Image prompts for Midjourney",
         "url": "https://twitter.com/GuyP"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Machine Learning Workflows in Production - Krzysztof Szafanek",
         "url": "https://www.youtube.com/watch?v=CO4Gqd95j6k"
       },
       {
+        "is_external": false,
+        "rel": "",
+        "target": "",
         "title": "From Data Science to DataOps",
-        "url": "/podcast/s11e03-from-data-science-to-dataops.html"
+        "url": "/podcast/s11e03/dataops-and-gitops-best-practices-for-data-teams"
       }
     ],
     "season": 12,
@@ -81988,18 +82696,30 @@
     "published": "2023-01-21",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://wintopy.io/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Pauline's Twitter",
         "url": "https://twitter.com/Pauline_Cx"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Pauline's LinkedIn",
         "url": "https://www.linkedin.com/in/paulineclavelloux/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Blog about Indiehacking",
         "url": "https://aboutstartup.io"
       }
@@ -83358,27 +84078,45 @@
     "published": "2023-01-14",
     "resources": [
       {
-        "title": "The Society of Research Software Engineering,  plus regional chapters",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "The Society of Research Software Engineering, plus regional chapters",
         "url": "https://society-rse.org/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The RSE Association of Australia and New Zealand",
         "url": "https://rse-aunz.github.io/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Research Software Engineers (RSEs) The people behind research software",
         "url": "https://de-rse.org/en/index.html"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The software sustainability institute",
         "url": "https://www.software.ac.uk/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The Carpentries (beginner git and programming courses)",
         "url": "https://carpentries.org/"
       },
       {
-        "title": "The Turing Way Book of  Reproducible Research",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "The Turing Way Book of Reproducible Research",
         "url": "https://the-turing-way.netlify.app/welcome"
       }
     ],
@@ -84472,6 +85210,9 @@
     "published": "2023-01-07",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Embetter & Bulk Demo",
         "url": "https://www.youtube.com/watch?v=L---nvDw9KU"
       }
@@ -85548,14 +86289,23 @@
     "published": "2022-12-17",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Discovering Data Discord server",
         "url": "https://bit.ly/discovering-data-discord"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Loris' LinkedIn",
         "url": "https://www.linkedin.com/in/lorismarini/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Loris' Twitter",
         "url": "https://twitter.com/LorisMarini"
       }
@@ -86470,10 +87220,16 @@
     "published": "2022-12-10",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Sadat's Meetup page",
         "url": "https://www.meetup.com/berlin-search-technology-meetup/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Meetup event \"Bias in AI: how to measure it and how to fix it event\"",
         "url": "https://www.meetup.com/data-driven-ai-berlin-meetup/events/289927565/"
       }
@@ -87820,6 +88576,9 @@
     "published": "2022-12-03",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn Account",
         "url": "https://www.linkedin.com/in/irinabrudaru/"
       }
@@ -89283,30 +90042,51 @@
     "published": "2022-11-26",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Data Journalism examples (FENCED OUT)",
         "url": "https://www.washingtonpost.com/graphics/world/border-barriers/europe-refugee-crisis-border-control/??noredirect=on"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Data Journalism examples (La tierra esclava)",
         "url": "https://latierraesclava.eldiario.es/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Small medium publication aiming at being Stack Overflow of Medium",
         "url": "https://medium.com/syntaxerrorpub"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Example of a self-published book on Data Visualization",
         "url": "https://www.amazon.com/Introduction-Data-Visualization-Storytelling-Scientist-ebook/dp/B07VYCR3Z6/ref=sr_1_4?crid=4JRJ48O7K8TK&keywords=joses+berengueres&qid=1668270728&sprefix=joses+beremguere%2Caps%2C273&sr=8-4"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "My novels (in Italian) La bambina e il Clown",
         "url": "https://www.amazon.it/Bambina-Clown-Angelica-Lo-Duca/dp/1500984515/ref=sr_1_9?__mk_it_IT=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=2KGK9GMN0FAHI&keywords=la+bambina+e+il+clown&qid=1668270769&sprefix=la+bambina+e+il+clown%2Caps%2C88&sr=8-9"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "My novels (in Italian) Il Violinista",
         "url": "https://www.amazon.it/Violinista-1-Angelica-Lo-Duca/dp/1501009672/ref=sr_1_1?__mk_it_IT=%C3%85M%C3%85%C5%BD%C3%95%C3%91&crid=12KTF9EF5UKIG&keywords=il+violinista+lo+duca&qid=1668270791&sprefix=il+violinista+lo+duca%2Caps%2C81&sr=8-1"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Course on Data Journalism",
         "url": "https://www.coursera.org/learn/visualization-for-data-journalism"
       }
@@ -90254,6 +91034,9 @@
     "published": "2022-11-19",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Nikola's LinkedIn account",
         "url": "https://www.linkedin.com/in/nikola-maksimovic-40188183/"
       }
@@ -91105,10 +91888,16 @@
     "published": "2022-11-11",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Data Science for Business Book",
         "url": "https://www.amazon.de/-/en/Foster-Provost/dp/1449361323/ref=sr_1_1?keywords=data+science+for+business&qid=1666404807&qu=eyJxc2MiOiIxLjg3IiwicXNhIjoiMS41MiIsInFzcCI6IjEuNDYifQ%3D%3D&sr=8-1"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Article on Data Science Products",
         "url": "https://www.linkedin.com/pulse/way-create-data-science-products-lessons-learnt-anna-hannemann-phd/"
       }
@@ -91969,6 +92758,9 @@
     "published": "2022-11-05",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Data Teams book",
         "url": "https://www.amazon.com/Data-Teams-Management-Successful-Data-Focused/dp/1484262271/"
       }
@@ -92700,14 +93492,23 @@
     "published": "2022-10-29",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Zingg Open-Source Spotlight demo",
         "url": "https://www.youtube.com/watch?v=zOabyZxN9b0"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Creative Selection: Inside Apple's Design Process During the Golden Age of Steve Jobs book",
         "url": "https://www.amazon.com/Creative-Selection-Inside-Apples-Process/dp/1250194466"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Zingg AI website",
         "url": "https://www.zingg.ai"
       }
@@ -93682,14 +94483,23 @@
     "published": "2022-10-22",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Terminal setup video, 19 minutes long",
         "url": "https://www.youtube.com/watch?v=D2PSsnqgBiw"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Command line videos, one and a half hour to become somewhat comfy with the terminal",
         "url": "https://www.youtube.com/playlist?list=PLIhvC56v63IKioClkSNDjW7iz-6TFvLwS"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Course from MIT talking about just that (command line, git, storing secrets)",
         "url": "https://missing.csail.mit.edu/"
       }
@@ -94499,6 +95309,9 @@
     "published": "2022-10-15",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Jobs at Gloss Genius",
         "url": "https://boards.greenhouse.io/glossgenius"
       }
@@ -95482,14 +96295,23 @@
     "published": "2022-10-07",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Alvaro's CV",
         "url": "https://www.dropbox.com/s/89hkt3ug0toqa2n/CV%20nou%20-%20angl%C3%A8s.pdf?dl=0"
       },
       {
-        "title": "Github profile",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub profile",
         "url": "https://github.com/ziritrion"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn profile",
         "url": "https://www.linkedin.com/in/alvaronavas/"
       }
@@ -96632,14 +97454,23 @@
     "published": "2022-10-02",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/supreet-kaur1995/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Databuzz page",
         "url": "https://www.linkedin.com/company/databuzz-club/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Medium Blog Page",
         "url": "https://medium.com/@supreetkaur_66831"
       }
@@ -97668,18 +98499,30 @@
     "published": "2022-09-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "David A. Bader",
         "url": "https://davidbader.net/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "NJIT Institute for Data Science",
         "url": "https://datascience.njit.edu/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Arkouda",
         "url": "https://github.com/Bears-R-Us/arkouda"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "NJIT Data Science YouTube Channel",
         "url": "https://www.youtube.com/c/NJITInstituteforDataScience"
       }
@@ -98609,22 +99452,37 @@
     "published": "2022-09-09",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "My personal blog",
         "url": "https://useml.net/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Comtura, my company",
         "url": "https://comtura.ai/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LI",
         "url": "https://www.linkedin.com/in/christiaan-swart-51a68967/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/swartchris8/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Workshop on Weak Supervision on Oct. 5 in Budapest",
         "url": "https://crunchconf.com/workshops/conference"
       }
@@ -99326,14 +100184,23 @@
     "published": "2022-09-02",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Free 30-day code from O'Reilly",
         "url": "https://learning.oreilly.com/get-learning/?code=DATATALKS22"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Data Mesh book",
         "url": "https://learning.oreilly.com/library/view/data-mesh/9781492092384/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/zhamak-dehghani"
       }
@@ -100071,18 +100938,30 @@
     "published": "2022-08-29",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Mehdi's YouTube channel",
         "url": "https://www.youtube.com/channel/UCiZxJB0xWfPBE2omVZeWPpQ"
       },
       {
-        "title": "Mehdi's Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Mehdi's LinkedIn",
         "url": "https://linkedin.com/in/mehd-io/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Mehdi's Medium Blog",
         "url": "https://medium.com/@mehdio"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Mehdi's data creators club",
         "url": "https://datacreators.club/"
       }
@@ -101027,26 +101906,44 @@
     "published": "2022-08-19",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Alexander's Twitter",
         "url": "https://twitter.com/hendorf"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Alexander's LinkedIn",
         "url": "https://www.linkedin.com/in/hendorf/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Königsweg",
         "url": "https://www.koenigsweg.com"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "PyData Südwest",
         "url": "https://www.meetup.com/pydata-suedwest/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "PyData Frankfurt",
         "url": "https://www.meetup.com/pydata-frankfurt/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "PyConDE & PyData Berlin",
         "url": "https://pycon.de"
       }
@@ -101796,22 +102693,37 @@
     "published": "2022-08-13",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Matt Turck",
         "url": "https://mattturck.com/data2021/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "AI Observability Platform",
         "url": "https://whylabs.ai/observability"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Danny's LinkedIn",
         "url": "https://www.linkedin.com/in/dleybz/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Whylabs' website",
         "url": "https://whylabs.ai/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "AI Infrastructure Alliance",
         "url": "https://ai-infrastructure.org/"
       }
@@ -102876,22 +103788,37 @@
     "published": "2022-08-06",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Decoding Data Science Job Descriptions (talk)",
         "url": "https://www.youtube.com/watch?v=WAs9vSNTza8"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Talk at ConnectForward",
         "url": "https://www.youtube.com/watch?v=WAs9vSNTza8"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Slides",
         "url": "https://www.slideshare.net/terezaif/decoding-data-science-job-descriptions-250687704"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Talk at DataLift",
         "url": "https://www.youtube.com/watch?v=pCtQ0szJiLA"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Slides",
         "url": "https://www.slideshare.net/terezaif/lessons-learned-from-hiring-and-retaining-data-practitioners"
       }
@@ -103899,34 +104826,58 @@
     "published": "2022-07-30",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Bi-weekly Ethics in AI Coffee Chat",
         "url": "https://www.meetup.com/coffee-ethics-ai/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Make a Social Impact with your Job",
         "url": "https://tinyurl.com/80khours"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Course in Data Ethics",
         "url": "https://ethics.fast.ai/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Data Science for Social Good Berlin",
         "url": "https://dssg-berlin.org/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "CorrelAid",
         "url": "https://correlaid.org/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataKind",
         "url": "https://www.datakind.org/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Christine's LinkedIn",
         "url": "https://www.linkedin.com/in/christinecepelak/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Christine's Twitter",
         "url": "https://twitter.com/CLcep"
       }
@@ -105045,10 +105996,16 @@
     "published": "2022-07-22",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Olga's LinkedIn",
         "url": "https://www.linkedin.com/in/olgaivina/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Olga's Twitter",
         "url": "https://twitter.com/olgaivina"
       }
@@ -106224,14 +107181,23 @@
     "published": "2022-07-15",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/willmcgugan"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Textualize website",
         "url": "https://www.textualize.io/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Textualize GitHub",
         "url": "https://github.com/textualize"
       }
@@ -107482,18 +108448,30 @@
     "published": "2022-07-08",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/cohenlisa/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/lisafeig"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Medium",
         "url": "https://medium.com/@lisa_cohen"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Lisa Cohen's YouTube videos",
         "url": "https://www.youtube.com/playlist?list=PLRhmnnfr2bX7-GAPHzvfUeIEt2iYCbI3w"
       }
@@ -108408,26 +109386,44 @@
     "published": "2022-07-02",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Hugging Face Course",
         "url": "https://hf.co/course"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Natural Language Processing in TensorFlow",
         "url": "https://www.coursera.org/learn/natural-language-processing-tensorflow"
       },
       {
-        "title": "Github ML Poetry",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub ML Poetry",
         "url": "https://github.com/merveenoyan/ML-poetry"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Tackling multiple tasks with a single visual language model",
         "url": "https://www.deepmind.com/blog/tackling-multiple-tasks-with-a-single-visual-language-model"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Hugging Face big science/TOpp",
         "url": "https://huggingface.co/bigscience/T0pp"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Pathways Language Model (PaLM) blog",
         "url": "https://ai.googleblog.com/2022/04/pathways-language-model-palm-scaling-to.html"
       }
@@ -109480,14 +110476,23 @@
     "published": "2022-06-25",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Mısra's YouTube channel",
         "url": "https://www.youtube.com/channel/UCpNUYWW0kiqyh0j5Qy3aU7w"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://twitter.com/misraturp"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Hands-on Data Science: Complete Your First Portfolio Project",
         "url": "https://www.soyouwanttobeadatascientist.com/hods"
       }
@@ -110525,10 +111530,16 @@
     "published": "2022-06-18",
     "resources": [
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/scale-vector"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Slack Community",
         "url": "https://join.slack.com/t/berlindatacol-szn7050/shared_invite/zt-19dp8msp0-pP4Av3_fVFBbsdrzPROEAg"
       }
@@ -111761,14 +112772,23 @@
     "published": "2022-06-10",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Getting a Data Engineering Job (webinar)",
         "url": "https://www.youtube.com/watch?v=yvEWG-S1F_M"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The Flask Mega-Tutorial Part I - Hello, World! blog",
         "url": "https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-i-hello-world"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Mode SQL Tutorial",
         "url": "https://mode.com/sql-tutorial/"
       }
@@ -112488,42 +113508,72 @@
     "published": "2022-06-04",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/daynan/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "We're looking for a Sr Data Engineer",
         "url": "https://boards.eu.greenhouse.io/karmanplus/jobs/4027128101?gh_jid=4027128101"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Minor Planet Center",
         "url": "https://minorplanetcenter.net/-"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "JPL Horizons has a nice set of APIs for accessing data related to small bodies (including asteroids)",
         "url": "https://ssd.jpl.nasa.gov/api.html"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "ESA has NEODyS",
         "url": "https://newton.spacedys.com/neodys"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "IRSA catalog that contains image and catalog data related to the WISE/NEOWISE data (and other infrared platforms)",
         "url": "https://irsa.ipac.caltech.edu/frontpage/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "NASA also has an archive of data collected from their various missions, including a node related to small bodies",
         "url": "https://pds-smallbodies.astro.umd.edu/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Sub-node directly related to asteroids",
         "url": "https://sbn.psi.edu/pds/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Size, Mass, and Density of Asteroids (SiMDA) is a nice catalog of observed asteroid attributes (and an indication of how small our sample size is!)",
         "url": "https://astro.kretlow.de/?SiMDA"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "The source survey data, several are useful for asteroids",
         "url": "https://outerspace.stsci.edu/display/PANSTARRS"
       }
@@ -113261,18 +114311,30 @@
     "published": "2022-05-28",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Juan's PyData talk on uplift modeling",
         "url": "https://youtube.com/watch?v=VWjsi-5yc3w"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Juan's website",
         "url": "https://juanitorduz.github.io"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Introduction to Algorithmic Marketing book",
         "url": "https://algorithmic-marketing.online"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Preventing churn like a bandit",
         "url": "https://www.youtube.com/watch?v=n1uqeBNUlRM"
       }
@@ -115351,14 +116413,23 @@
     "published": "2022-05-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Jigsaw Labs",
         "url": "https://www.jigsawlabs.io/free"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Teaching my mom to code",
         "url": "https://www.youtube.com/watch?v=OfWwfTXGjBM"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Getting a Data Engineering Job Webinar with Jeff Katz",
         "url": "https://www.eventbrite.de/e/getting-a-data-engineering-job-tickets-310270877547"
       }
@@ -116504,58 +117575,100 @@
     "published": "2022-05-07",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Ecosia's website",
         "url": "https://www.ecosia.org/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Ecosia's blog",
         "url": "https://blog.ecosia.org/ecosia-financial-reports-tree-planting-receipts/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "PyLadies Berlin",
         "url": "https://berlin.pyladies.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "PyLadies' Meetup",
         "url": "https://meetup.com/PyLadies-Berlin"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Code Academy",
         "url": "https://www.codecademy.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Freecodecamp",
         "url": "https://www.freecodecamp.org/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Coursera Machine Learning",
         "url": "https://www.coursera.org/learn/machine-learning"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "ML Bookcamp code",
         "url": "https://github.com/alexeygrigorev/mlbookcamp-code/tree/master/course-zoomcamp"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Google Summer code",
         "url": "https://summerofcode.withgoogle.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Outreachy website",
         "url": "https://www.outreachy.org/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Alumni Interview",
         "url": "https://railsgirlssummerofcode.org/blog/2020-03-17-alumni-interview-jessica"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Python pizza",
         "url": "https://python.pizza/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Pycon",
         "url": "https://pycon.it/en"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Pycon 2022",
         "url": "https://2022.pycon.de/"
       }
@@ -117494,14 +118607,23 @@
     "published": "2022-04-30",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Onfido is hiring",
         "url": "https://onfido.com/engineering-technology/"
       },
       {
+        "is_external": false,
+        "rel": "",
+        "target": "",
         "title": "Interview with Alicja about recruiting data scientists",
-        "url": "/podcast/s07e02-recruiting-data-professionals.html"
+        "url": "/podcast/s07e02/hiring-data-scientists-and-analysts"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Webinar \"Getting a Data Engineering Job\" with Jeff Katz",
         "url": "https://eventbrite.com/e/310270877547"
       }
@@ -118176,30 +119298,51 @@
     "published": "2022-04-23",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataOps Manifesto website",
         "url": "https://dataopsmanifesto.org/en/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataOps Cookbook",
         "url": "https://dataops.datakitchen.io/pf-cookbook"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Recipes for DataOps Success",
         "url": "https://dataops.datakitchen.io/pf-recipes-for-dataops-success"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataOps Certification Course",
         "url": "https://info.datakitchen.io/training-certification-dataops-fundamentals"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataOps Blog",
         "url": "https://datakitchen.io/blog/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataOps Maturity Model",
         "url": "https://datakitchen.io/dataops-maturity-model/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "DataOps Webinars",
         "url": "https://datakitchen.io/webinars/"
       }
@@ -119048,10 +120191,16 @@
     "published": "2022-04-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/stefanfreyrgudmundsson/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Job listings",
         "url": "https://sidekickhealth.bamboohr.com/jobs/"
       }
@@ -120074,10 +121223,16 @@
     "published": "2022-04-10",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/liesbeth-dingemans/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Medium posts on design, innovation, art and AI",
         "url": "https://medium.com/@liesbethmd"
       }
@@ -121914,18 +123069,30 @@
     "published": "2022-03-26",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "A Visual Introduction to Deep Learning by Meor Amer",
         "url": "https://gumroad.com/a/63231091"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "kDimensions website",
         "url": "https://kdimensions.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Book to learn about Figma",
         "url": "https://figmabook.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Jack Butcher's approach",
         "url": "https://www.youtube.com/watch?v=azhqc4K-GAE"
       }
@@ -122681,6 +123848,9 @@
     "published": "2022-03-19",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "BROKE teacher to FAANG engineer Twitter thread",
         "url": "https://twitter.com/thatjuanpablo/status/1475806246317875203"
       }
@@ -126558,6 +127728,9 @@
     "published": "2022-02-19",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Valerii's telegram channel (in Russian)",
         "url": "https://t.me/cryptovalerii"
       }
@@ -127808,6 +128981,9 @@
     "published": "2022-02-12",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Lindsay's LinkedIn",
         "url": "https://www.linkedin.com/in/lindsay-mcquade/"
       }
@@ -128683,6 +129859,9 @@
     "published": "2022-02-06",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Greg's LinkedIn",
         "url": "https://www.linkedin.com/in/greg-coquillo/"
       }
@@ -130293,6 +131472,9 @@
     "published": "2022-01-23",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Eugene interviews Alexey",
         "url": "https://eugeneyan.com/writing/informal-mentors-alexey-grigorev/"
       }
@@ -131765,18 +132947,30 @@
     "published": "2021-12-26",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "NLP Pandect",
         "url": "https://github.com/ivan-bilan/The-NLP-Pandect"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Engineering Manager Pandect",
         "url": "https://github.com/ivan-bilan/The-Engineering-Manager-Pandect"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Microservices Pandect",
         "url": "https://github.com/ivan-bilan/The-Microservices-Pandect"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Ivan's presentation about NLP",
         "url": "https://www.youtube.com/watch?v=VRur3xey31s"
       }
@@ -132724,18 +133918,30 @@
     "published": "2021-12-17",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Geo's LinkedIn",
         "url": "https://www.linkedin.com/in/geojolly/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Product School community",
         "url": "https://productschool.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Netflix CPO Medium blog",
         "url": "https://gibsonbiddle.medium.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Glovo is hiring",
         "url": "https://jobs.glovoapp.com/en/?d=4040726002"
       }
@@ -134610,6 +135816,9 @@
     "published": "2021-12-05",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Eleni's page at DIMA",
         "url": "https://www.user.tu-berlin.de/tzirita/"
       }
@@ -136268,6 +137477,9 @@
     "published": "2021-11-21",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Barbara's LinkedIn",
         "url": "https://www.linkedin.com/in/barbara-sobkowiak-1a4a9568"
       }
@@ -139273,10 +140485,16 @@
     "published": "2021-10-30",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Integrated ML and AI community",
         "url": "https://join.slack.com/t/integratedmlai/shared_invite/zt-r3hpj44k-gfhf1pzIt3jixrATyXCWnQ"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Thom's LinkedIn",
         "url": "https://www.linkedin.com/in/thomives/"
       }
@@ -140038,14 +141256,23 @@
     "published": "2021-10-23",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Emelie's talk",
         "url": "https://docs.google.com/presentation/d/1wW5KN5hRsfOyzCL-vPY3vIJz1eGwCl8eWHuJNv7KI58/edit#slide=id.gea794867e6_0_1133"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Linear vs Circular Projects, part 1",
         "url": "https://locallyoptimistic.com/post/linear-and-circular-projects-part-1/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Linear vs Circular Projects, part 2",
         "url": "https://locallyoptimistic.com/post/linear-and-circular-projects-part-2/"
       }
@@ -140763,10 +141990,16 @@
     "published": "2021-10-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "MLOpsRoundup newsletter",
         "url": "https://mlopsroundup.substack.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Rishabh's Twitter",
         "url": "https://twitter.com/rish_bhargava"
       }
@@ -143328,6 +144561,9 @@
     "published": "2021-09-25",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Marianna's LinkedIn",
         "url": "https://www.linkedin.com/in/marianna-diachuk-53ba60116/"
       }
@@ -144119,10 +145355,16 @@
     "published": "2021-09-19",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Adam's article about skills useful for data scientists",
         "url": "https://towardsdatascience.com/how-to-apply-your-hard-earned-data-science-skillset-812585e3cc06"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Adam's article about standing out",
         "url": "https://towardsdatascience.com/how-to-stand-out-as-a-great-data-scientist-in-2021-3b7a732114a9"
       }
@@ -144710,6 +145952,9 @@
     "published": "2021-09-11",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Why the Future of ETL Is Not ELT, But EL(T)",
         "url": "https://airbyte.io/blog/why-the-future-of-etl-is-not-elt-but-el"
       }
@@ -151329,14 +152574,23 @@
     "published": "2021-07-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "EvidentlyAI",
         "url": "https://evidentlyai.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Elena's LinkedIn",
         "url": "https://www.linkedin.com/in/elenasamuylova/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Elena's Twitter",
         "url": "https://twitter.com/elenasamuylova/"
       }
@@ -152469,10 +153723,16 @@
     "published": "2021-07-10",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Roksonala's Twitter",
         "url": "https://twitter.com/dead_flowers22"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Roksonala's LinkedIn",
         "url": "https://www.linkedin.com/in/roksolanadiachuk/"
       }
@@ -156991,10 +158251,16 @@
     "published": "2021-06-06",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Yury's course",
         "url": "https://mlcourse.ai/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Yury's Twitter",
         "url": "https://twitter.com/ykashnitsky"
       }
@@ -162853,15 +164119,24 @@
     "published": "2021-04-16",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "https://www.kaggle.com/andradaolteanu",
         "url": "https://www.kaggle.com/andradaolteanu"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "https://twitter.com/andradaolteanuu",
         "url": "https://twitter.com/andradaolteanuu"
       },
       {
-        "title": "https://www.linkedin.com/in/andrada-olteanu-3806a2132/",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://www.LinkedIn.com/in/andrada-olteanu-3806a2132/",
         "url": "https://www.linkedin.com/in/andrada-olteanu-3806a2132/"
       }
     ],
@@ -168773,18 +170048,30 @@
     "published": "2021-02-26",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Danny's profile on LinkedIn",
         "url": "https://linkedin.com/in/datawithdanny"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Danny's course",
         "url": "https://datawithdanny.com/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Conference trailer",
         "url": "https://www.linkedin.com/posts/datawithdanny_datascientist-data-activity-6767988552811847680-GzUK/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Technical debt paper",
         "url": "https://proceedings.neurips.cc/paper/2015/hash/86df7dcfd896fcaf2674f757a2463eba-Abstract.html"
       }
@@ -177825,11 +179112,17 @@
     "published": "",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://alexkimds.github.io/"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/aleksandrkim/"
       }
     ],
@@ -178791,18 +180084,30 @@
     "published": "",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/ivan-bilan/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Twitter",
         "url": "https://x.com/demiourgosua"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/ivan-bilan"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://github.com/ivan-bilan"
       }
@@ -179891,14 +181196,23 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/kozodoi/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/kozodoi"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website and blog",
         "url": "https://www.kozodoi.me/"
       }
@@ -181248,7 +182562,10 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/msemelman/"
       }
     ],
@@ -182639,7 +183956,10 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/tatigabru/"
       }
     ],
@@ -183349,7 +184669,10 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/kholkine/"
       }
     ],
@@ -184416,7 +185739,10 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/nasserq/"
       }
     ],
@@ -185600,10 +186926,16 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/slawomir-tulski-091611116/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Form for DE role Ebook",
         "url": "https://docs.google.com/forms/d/e/1FAIpQLSdSCLaBdTtuRlgV_nukKckumR60VOovECtlRIRI5DMUIk36EQ/viewform"
       }
@@ -187112,11 +188444,17 @@
     "published": "",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.swyx.io/create-luck"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/ruslanshchuchkin/"
       }
     ],
@@ -188624,11 +189962,17 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/revathy-ramalingam/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/RevathyRamalingam"
       }
     ],
@@ -189581,7 +190925,10 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/aditya-gautam-68233a30/"
       }
     ],
@@ -190666,10 +192013,16 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/jmperafan/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://juanalytics.com/"
       }
@@ -191794,10 +193147,16 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/pauliusztin/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.pauliusztin.ai/"
       }
@@ -192412,11 +193771,17 @@
     "published": "",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://www.fit-tails.com/"
       },
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/sofya-yulpatova/"
       }
     ],
@@ -193066,14 +194431,23 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/xia-he-bleinagel-51773585/"
       },
       {
-        "title": "Github",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "GitHub",
         "url": "https://github.com/Data-Think-2021"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://datathinker.de/"
       }
@@ -193682,10 +195056,16 @@
     "published": "",
     "resources": [
       {
-        "title": "Linkedin",
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
         "url": "https://www.linkedin.com/in/anusha-akkina-acma-cgma-56154547/"
       },
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Website",
         "url": "https://aurelytix.com/"
       }
@@ -194651,6 +196031,9 @@
     "published": "",
     "resources": [
       {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
         "title": "Jekaterina's LinkedIn",
         "url": "https://www.linkedin.com/in/jekaterina-kokatjuhha/"
       }

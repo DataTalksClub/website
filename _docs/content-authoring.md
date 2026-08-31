@@ -59,6 +59,22 @@ Both numeric fields must be native positive YAML integers; booleans, strings, fl
 zero, and negative values fail rather than being coerced. Links, resources, clips, and unknown
 legacy fields remain structured. Transcript segments must never be placed in this mapping.
 
+The `links` mapping is reserved for listening destinations such as YouTube, Apple Podcasts, and
+Spotify. Show-note links mentioned in an episode belong in the ordered `resources` front-matter
+list, so they can be imported without parsing prose:
+
+```yaml
+resources:
+- title: LinkedIn
+  url: https://www.linkedin.com/in/example/
+- title: Project website
+  url: https://example.com/
+```
+
+Every episode keeps this field in its front matter; use `resources: []` when there are no show-note
+links. The source stores only the editorial `title` and `url`; the website importer derives
+presentation-only fields such as internal-route resolution, external-target behavior, and `rel`.
+
 Exactly 19 description additions are declared in
 `editorial-overlays/2026-08-10-podcast-descriptions.yaml`, SHA-256
 `63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6`. Do not edit this historical

@@ -661,9 +661,9 @@
                 <p>Links and resources mentioned in this episode.</p>
               </div>
             </div>
-            {% if episode.resources %}
+            {% if episode.links %}
               <ul class="episode-resource-list" aria-label="Show notes resources">
-                {% for resource in episode.resources %}
+                {% for resource in episode.links %}
                   <li>
                     <a
                       href="{{ resource.url }}"
