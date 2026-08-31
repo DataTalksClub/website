@@ -312,6 +312,7 @@ class DesignSystemOwnershipTests(SimpleTestCase):
             "templates/public/collection_hub.html",
             "templates/public/podcast_hub.html",
         )
+        through_the_speaker = "templates/public/event_detail.html"
         for template in (
             "templates/core/home.html",
             "templates/public/book_detail.html",
@@ -327,9 +328,15 @@ class DesignSystemOwnershipTests(SimpleTestCase):
                     self.assertIn('{% include "public/_archive_row.html"', source)
                     self.assertIn("row_credits=", source)
                     continue
+                if template == through_the_speaker:
+                    self.assertIn('{% include "public/_event_speaker.html"', source)
+                    continue
                 self.assertIn('{% include "public/_person_chip.html"', source)
                 self.assertIn("|person_chip", source)
 
         row = (root / "templates/public/_archive_row.html").read_text(encoding="utf-8")
         self.assertIn('{% include "public/_person_chip.html"', row)
         self.assertIn("|person_chip", row)
+        speaker = (root / "templates/public/_event_speaker.html").read_text(encoding="utf-8")
+        self.assertIn('{% include "public/_person_chip.html"', speaker)
+        self.assertIn("|person_chip", speaker)

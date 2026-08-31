@@ -767,6 +767,24 @@ class EventDetailDesignSystemTests(TestCase):
             self.assertIn(escape(link["label"]), body)
         self.assertIn('<span class="sr-only"> (opens in a new tab)</span>', body)
 
+    def test_event_speakers_render_their_canonical_profile_bio(self) -> None:
+        event = next(
+            event
+            for event in public_projection()["events"]
+            if event["slug"] == "ai-dev-tools-zoomcamp-2026-course-launch"
+        )
+        speaker = event["speakers"][0]
+        bio = public_projection()["people_by_slug"][speaker["key"]]["blocks"][0]["text"]
+        body = self.detail(event)
+
+        self.assertIn('<h2 id="event-speakers-heading">Speakers</h2>', body)
+        self.assertIn('<article class="event-speaker">', body)
+        self.assertIn('<div class="prose event-speaker-bio">', body)
+        self.assertIn(escape(bio), body)
+        # The normalization lane removed the duplicate from the event description;
+        # the dedicated speaker region is now its one public rendering home.
+        self.assertNotIn("About the Speaker", body)
+
     def test_an_ampersand_in_an_event_title_is_escaped_in_the_heading(self) -> None:
         event = next(item for item in public_projection()["events"] if "&" in item["title"])
         self.assertNotEqual(escape(event["title"]), event["title"])
