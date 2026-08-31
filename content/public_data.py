@@ -31,6 +31,7 @@ from .event_description_bridge import (
     validate_projected_event,
 )
 from .event_speaker_bio_normalization import normalization_manifest_binding
+from .event_speakers import event_speaker_records
 from .podcast_routes import podcast_canonical_path
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
@@ -920,6 +921,19 @@ def _adapted_public_projection(
             ),
         }
         for person in source["people"]
+    )
+    people_by_slug = {person["slug"]: person for person in projection["people"]}
+    people_by_path = {person["public_path"]: person for person in projection["people"]}
+    projection["events"] = tuple(
+        {
+            **event,
+            "speakers": event_speaker_records(
+                event.get("speakers", ()),
+                people_by_slug=people_by_slug,
+                people_by_path=people_by_path,
+            ),
+        }
+        for event in projection["events"]
     )
     _apply_runtime_event_public_paths(projection, runtime_identities)
     # The adapters mutate copied article/people records; refresh their lookup indexes as well so

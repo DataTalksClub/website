@@ -110,14 +110,50 @@
         padding-top: 1.6rem;
       }
 
-      /* Speakers: one dashed row each, holding the shared person chip.  The
-         event record carries a name and a profile; the portrait comes from the
-         people records the chip joins to, and a speaker with no picture keeps
-         the system's stand-in disc. */
+      /* Speakers: one dashed row each, holding the shared person chip and the
+         canonical profile's prose biography.  A speaker with no picture keeps
+         the system's stand-in disc, and a profile with no prose gets the
+         explicit empty state in the shared speaker partial. */
       .speaker-row {
-        align-items: center;
+        align-items: stretch;
         display: flex;
         gap: 0.85rem;
+      }
+
+      .event-speaker {
+        display: grid;
+        gap: 1rem;
+        min-width: 0;
+        width: 100%;
+      }
+
+      .event-speaker-credit {
+        align-items: center;
+        display: flex;
+        min-height: 3rem;
+      }
+
+      .event-speaker-bio {
+        border-left: 2px solid var(--line-soft);
+        margin-left: 3.15rem;
+        max-width: 48rem;
+        padding-left: 1rem;
+      }
+
+      .event-speaker-bio > :first-child,
+      .event-speaker-bio-empty {
+        margin-top: 0;
+      }
+
+      .event-speaker-bio > :last-child,
+      .event-speaker-bio-empty {
+        margin-bottom: 0;
+      }
+
+      .event-speaker-bio-empty {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-left: 3.15rem;
       }
 
       @media (max-width: 47.99rem) {
@@ -134,6 +170,21 @@
 
         .event-read {
           padding-top: 1.25rem;
+        }
+
+        .event-speaker-bio {
+          border-left: 0;
+          border-top: 2px dashed var(--line-soft);
+          margin-left: 0;
+          max-width: none;
+          padding-left: 0;
+          padding-top: 0.9rem;
+        }
+
+        .event-speaker-bio-empty {
+          border-top: 2px dashed var(--line-soft);
+          margin-left: 0;
+          padding-top: 0.9rem;
         }
       }
     </style>
@@ -251,7 +302,7 @@
             <ul class="row-list speaker-rows">
               {% for speaker in event.speakers %}
                 <li class="list-row speaker-row">
-                  {% include "public/_person_chip.html" with person=speaker|person_chip %}
+                  {% include "public/_event_speaker.html" with speaker=speaker only %}
                 </li>
               {% endfor %}
             </ul>

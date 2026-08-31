@@ -1,0 +1,19 @@
+{% load people %}
+{% comment %}
+  One event speaker: the shared person chip followed by the biography owned by
+  that person's canonical profile.  Speaker biographies are text blocks rather
+  than trusted fragments, so the prose partial keeps the same escaping and
+  conservative Markdown-link handling used on the person page.
+{% endcomment %}
+<article class="event-speaker">
+  <div class="event-speaker-credit">
+    {% include "public/_person_chip.html" with person=speaker|person_chip only %}
+  </div>
+  {% if speaker.bio_blocks %}
+    <div class="prose event-speaker-bio">
+      {% include "public/_prose_body.html" with blocks=speaker.bio_blocks only %}
+    </div>
+  {% else %}
+    <p class="event-speaker-bio-empty">No biography is available for this speaker.</p>
+  {% endif %}
+</article>
