@@ -662,6 +662,13 @@ Rules for editing:
         width: 0.9rem;
       }
 
+      .podcast-platform-icon {
+        display: block;
+        flex: 0 0 auto;
+        height: 1.1rem;
+        width: 1.1rem;
+      }
+
       .signup-button {
         align-items: center;
         background: var(--green);
@@ -2889,12 +2896,39 @@ Rules for editing:
         stroke-width: 3.5;
       }
 
+      .graph-svg-node[href] {
+        cursor: pointer;
+      }
+
+      /* A graph record can name a real node without having a public page.  Keep
+         that node visible for context, but make its non-link state unmistakable
+         and do not give it the hover affordance used by navigable nodes. */
+      .graph-svg-node-unavailable {
+        cursor: default;
+      }
+
+      .graph-svg-node-unavailable .graph-svg-shape {
+        fill: var(--card);
+        stroke: var(--line-soft);
+        stroke-dasharray: 5 3;
+      }
+
+      .graph-svg-node-unavailable text {
+        fill: var(--muted);
+      }
+
+      .graph-svg-node-unavailable:hover .graph-svg-shape {
+        fill: var(--card);
+        stroke: var(--line-soft);
+        stroke-width: 2;
+      }
+
       /* Some nodes are coloured by content type (`.graph-svg-type-*`, added
          on the homepage explorer only — see home.html); those keep their
          own fill on hover so it isn't clobbered.  A plain node — including
          the untyped `/wiki/graph` nodes, which never carry a type class —
          brightens instead. */
-      .graph-svg-node:not(.graph-svg-hub):not(.graph-svg-type-podcast):not(.graph-svg-type-person):not(.graph-svg-type-book):not(.graph-svg-type-guide):not(.graph-svg-type-how_to):not(.graph-svg-type-comparison):not(.graph-svg-type-roadmap):not(.graph-svg-type-transition):hover
+      .graph-svg-node:not(.graph-svg-hub):not(.graph-svg-node-unavailable):not(.graph-svg-type-podcast):not(.graph-svg-type-person):not(.graph-svg-type-book):not(.graph-svg-type-guide):not(.graph-svg-type-how_to):not(.graph-svg-type-comparison):not(.graph-svg-type-roadmap):not(.graph-svg-type-transition):hover
         .graph-svg-shape {
         fill: var(--lavender-deep);
       }

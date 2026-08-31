@@ -1,10 +1,10 @@
 {% comment %}
   Episode-only knowledge graph extension (issue #217).
 
-  The SVG is a bounded visual summary.  The ordered list is the complete,
-  server-rendered contract and remains the useful surface with JavaScript off;
-  keeping the two surfaces in this partial makes their labels and destinations
-  visibly auditable together.
+  The SVG is a bounded visual summary.  Its node links are native server-rendered
+  links, so the visual and the complete ordered list remain useful with or without
+  JavaScript; keeping the two surfaces in this partial makes their labels and
+  destinations visibly auditable together.
 {% endcomment %}
 <section
   class="episode-knowledge-graph band-lavender band"
@@ -29,8 +29,8 @@
             <svg
               class="graph-svg graph-svg-{{ layout.kind }}"
               viewBox="0 0 {{ layout.width }} {{ layout.height }}"
-              aria-hidden="true"
-              focusable="false"
+              role="group"
+              aria-label="{{ episode_graph.title }} and {{ episode_graph.visual_count }} of its {{ episode_graph.unique_neighbors }} linked connections"
             >
               <g aria-hidden="true">
                 {% for edge in layout.edges %}
@@ -44,41 +44,99 @@
                 {% endfor %}
               </g>
               {% for node in layout.nodes %}
-                <g class="graph-svg-node">
+                {% if node.url %}
+                  <a
+                    class="graph-svg-node"
+                    href="{{ node.url }}"
+                    aria-label="Open {{ node.title }}"
+                    title="{{ node.title }}"
+                  >
+                    <rect
+                      class="graph-svg-shape"
+                      x="{{ node.left }}"
+                      y="{{ node.top }}"
+                      width="{{ node.width }}"
+                      height="{{ node.height }}"
+                      rx="{{ node.radius }}"
+                    />
+                    {% spaceless %}
+                      <text text-anchor="middle" font-size="{{ node.font_size }}">
+                        {% for line in node.lines %}
+                          <tspan x="{{ node.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                        {% endfor %}
+                      </text>
+                    {% endspaceless %}
+                  </a>
+                {% else %}
+                  <g
+                    class="graph-svg-node graph-svg-node-unavailable"
+                    role="img"
+                    aria-label="{{ node.title }} (destination unavailable)"
+                  >
+                    <rect
+                      class="graph-svg-shape"
+                      x="{{ node.left }}"
+                      y="{{ node.top }}"
+                      width="{{ node.width }}"
+                      height="{{ node.height }}"
+                      rx="{{ node.radius }}"
+                    />
+                    {% spaceless %}
+                      <text text-anchor="middle" font-size="{{ node.font_size }}">
+                        {% for line in node.lines %}
+                          <tspan x="{{ node.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                        {% endfor %}
+                      </text>
+                    {% endspaceless %}
+                  </g>
+                {% endif %}
+              {% endfor %}
+              {% if layout.hub.url %}
+                <a
+                  class="graph-svg-node graph-svg-hub"
+                  href="{{ layout.hub.url }}"
+                  aria-label="Open this podcast episode: {{ episode_graph.title }}"
+                  title="{{ episode_graph.title }}"
+                >
                   <rect
                     class="graph-svg-shape"
-                    x="{{ node.left }}"
-                    y="{{ node.top }}"
-                    width="{{ node.width }}"
-                    height="{{ node.height }}"
-                    rx="{{ node.radius }}"
+                    x="{{ layout.hub.left }}"
+                    y="{{ layout.hub.top }}"
+                    width="{{ layout.hub.width }}"
+                    height="{{ layout.hub.height }}"
+                    rx="{{ layout.hub.radius }}"
                   />
                   {% spaceless %}
-                    <text text-anchor="middle" font-size="{{ node.font_size }}">
-                      {% for line in node.lines %}
-                        <tspan x="{{ node.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                    <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">
+                      {% for line in layout.hub.lines %}
+                        <tspan x="{{ layout.hub.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
+                      {% endfor %}
+                    </text>
+                  {% endspaceless %}
+                </a>
+              {% else %}
+                <g
+                  class="graph-svg-node graph-svg-hub graph-svg-node-unavailable"
+                  role="img"
+                  aria-label="This podcast episode (destination unavailable)"
+                >
+                  <rect
+                    class="graph-svg-shape"
+                    x="{{ layout.hub.left }}"
+                    y="{{ layout.hub.top }}"
+                    width="{{ layout.hub.width }}"
+                    height="{{ layout.hub.height }}"
+                    rx="{{ layout.hub.radius }}"
+                  />
+                  {% spaceless %}
+                    <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">
+                      {% for line in layout.hub.lines %}
+                        <tspan x="{{ layout.hub.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
                       {% endfor %}
                     </text>
                   {% endspaceless %}
                 </g>
-              {% endfor %}
-              <g class="graph-svg-node graph-svg-hub">
-                <rect
-                  class="graph-svg-shape"
-                  x="{{ layout.hub.left }}"
-                  y="{{ layout.hub.top }}"
-                  width="{{ layout.hub.width }}"
-                  height="{{ layout.hub.height }}"
-                  rx="{{ layout.hub.radius }}"
-                />
-                {% spaceless %}
-                  <text text-anchor="middle" font-size="{{ layout.hub.font_size }}">
-                    {% for line in layout.hub.lines %}
-                      <tspan x="{{ layout.hub.x }}" y="{{ line.y }}">{{ line.text }}</tspan>
-                    {% endfor %}
-                  </text>
-                {% endspaceless %}
-              </g>
+              {% endif %}
             </svg>
           {% endfor %}
           <p id="episode-graph-visual-note" class="graph-legend">
@@ -115,10 +173,13 @@
                 {{ neighbour.label }}
               </a>
             {% else %}
-              <span>{{ neighbour.label }}</span>
+              <span class="graph-destination-unavailable">
+                {{ neighbour.label }}
+                <span class="sr-only"> (destination unavailable)</span>
+              </span>
             {% endif %}
             <p class="mono-note">
-              {{ neighbour.type }} · {{ neighbour.relation_kind }} · weight {{ neighbour.weight }}
+              {{ neighbour.type }} · {{ neighbour.relation_kind }} · weight {{ neighbour.weight }}{% if not neighbour.url %} · destination unavailable{% endif %}
             </p>
           </li>
         {% endfor %}

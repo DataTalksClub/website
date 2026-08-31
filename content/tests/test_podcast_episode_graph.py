@@ -9,16 +9,18 @@ from django.core.exceptions import ImproperlyConfigured
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase, TestCase
 
+from content.podcast_routes import podcast_public_id
 from content.public_data import _validate_wiki_graph, public_projection
 from content.wiki_content import episode_graph
 
 REPRESENTATIVE = (
     "s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
 )
-REPRESENTATIVE_PATH = (
-    "/podcast/s23e06-data-engineer-career-in-2026-roles-specializations-and-what-"
-    "companies-look-for.html"
+REPRESENTATIVE_GRAPH_PATH = (
+    "/podcast/s23e06/"
+    "s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
 )
+PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
 
 
 def _graph_node(
@@ -40,8 +42,8 @@ def _synthetic_projection(
     *,
     links: list[dict[str, Any]],
     nodes: list[dict[str, str]],
-    episode_path: str = "/podcast/episode.html",
-) -> tuple[dict[str, Any], dict[str, str]]:
+    episode_path: str = "/podcast/s01e01/episode",
+) -> tuple[dict[str, Any], dict[str, Any]]:
     episode = {"title": "Synthetic episode", "public_path": episode_path}
     return {"wiki_graph": {"nodes": nodes, "links": links}}, episode
 
@@ -55,11 +57,18 @@ class EpisodeGraphContractTests(SimpleTestCase):
 
         self.assertEqual(resolved.state, "available")
         self.assertEqual(resolved.hub_id, "podcast:" + REPRESENTATIVE)
-        self.assertEqual(resolved.url, REPRESENTATIVE_PATH)
+        self.assertEqual(resolved.url, REPRESENTATIVE_GRAPH_PATH)
         self.assertEqual(resolved.raw_links, 27)
         self.assertEqual(resolved.unique_neighbors, 23)
         self.assertEqual(resolved.visual_count, 8)
         self.assertEqual(len(resolved.layouts), 2)
+        podcast_urls = (resolved.url,) + tuple(
+            neighbour.url for neighbour in resolved.neighbors if neighbour.type == "podcast"
+        )
+        for url in podcast_urls:
+            with self.subTest(url=url):
+                self.assertRegex(url, PODCAST_GRAPH_PATH_PATTERN)
+                self.assertNotIn(".html", url)
         self.assertEqual(resolved.neighbors[0].label, "Slawomir Tulski")
         self.assertEqual(resolved.neighbors[0].type, "person")
         self.assertEqual(resolved.neighbors[0].weight, 9)
@@ -75,6 +84,143 @@ class EpisodeGraphContractTests(SimpleTestCase):
             [neighbour.label for neighbour in resolved.neighbors[3:]],
             sorted(neighbour.label for neighbour in resolved.neighbors[3:]),
         )
+
+    def test_visual_nodes_are_native_links_to_their_resolved_targets(self) -> None:
+        projection = public_projection()
+        episode = projection["podcasts_by_slug"][REPRESENTATIVE]
+        resolved = episode_graph(episode, projection=projection)
+        body = render_to_string(
+            "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
+        )
+
+        for layout in resolved.layouts:
+            with self.subTest(layout=layout.kind):
+                match = re.search(
+                    rf'<svg\s+class="graph-svg graph-svg-{layout.kind}".*?</svg>',
+                    body,
+                    re.DOTALL,
+                )
+                self.assertIsNotNone(match)
+                assert match is not None
+                svg = match.group(0)
+                self.assertIn('role="group"', svg)
+                self.assertNotIn('aria-hidden="true"', svg.split("\n", 8)[0])
+                self.assertEqual(
+                    len(re.findall(r'<a\s+class="graph-svg-node', svg)),
+                    resolved.visual_count + 1,
+                )
+                self.assertIn(
+                    f'href="{resolved.url}"',
+                    svg,
+                )
+                self.assertIn(
+                    f'aria-label="Open this podcast episode: {resolved.title}"',
+                    svg,
+                )
+                for neighbour in resolved.visual_neighbors:
+                    with self.subTest(node=neighbour.label):
+                        self.assertIn(f'href="{neighbour.url}"', svg)
+                        self.assertIn(f'aria-label="Open {neighbour.label}"', svg)
+
+        self.assertNotIn('href=""', body)
+        self.assertNotRegex(body, r'href="/podcast/[^" ]+\.html"')
+
+    def test_visual_nodes_without_destinations_remain_named_non_links(self) -> None:
+        nodes = [
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+            ),
+            _graph_node("wiki:safe", "Safe", "wiki", "/wiki/safe"),
+            _graph_node("wiki:missing", "Missing", "wiki"),
+            _graph_node("wiki:external", "External", "wiki", "https://example.com/out"),
+            _graph_node("wiki:protocol", "Protocol", "wiki", "//example.com/out"),
+            _graph_node("wiki:traversal", "Traversal", "wiki", "/wiki/%2e%2e/private"),
+            _graph_node("wiki:four", "Four", "wiki", "/wiki/four"),
+            _graph_node("wiki:five", "Five", "wiki", "/wiki/five"),
+            _graph_node("podcast:missing", "Missing podcast", "podcast"),
+        ]
+        links = [
+            {
+                "kind": "related",
+                "source": "podcast:episode",
+                "target": node["id"],
+                "weight": 1,
+            }
+            for node in nodes[1:]
+        ]
+        projection, episode = _synthetic_projection(nodes=nodes, links=links)
+        resolved = episode_graph(episode, projection=projection)
+        body = render_to_string(
+            "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
+        )
+
+        self.assertEqual(resolved.visual_count, 8)
+        self.assertIn('href="/wiki/safe"', body)
+        self.assertIn('class="graph-svg-node graph-svg-node-unavailable"', body)
+        self.assertIn('aria-label="Missing (destination unavailable)"', body)
+        self.assertIn('aria-label="Missing podcast (destination unavailable)"', body)
+        self.assertIn("destination unavailable", body)
+        self.assertNotIn("example.com/out", body)
+        self.assertNotIn("%2e%2e/private", body)
+        self.assertNotIn('href=""', body)
+
+    def test_podcast_targets_use_their_hierarchical_catalogue_paths(self) -> None:
+        target = {
+            "slug": "target-episode.md",
+            "season": 2,
+            "episode": 3,
+            "public_path": "/podcast/s02e03/target-episode.md",
+        }
+        nodes = [
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s99e99/stale-episode"
+            ),
+            _graph_node(
+                "podcast:target-episode",
+                "Target episode",
+                "podcast",
+                "/podcast/s02e03/target-episode.md",
+            ),
+            *(
+                _graph_node(f"wiki:{index}", f"Wiki {index}", "wiki", f"/wiki/{index}")
+                for index in range(1, 8)
+            ),
+        ]
+        links = [
+            {
+                "kind": "related",
+                "source": "podcast:episode",
+                "target": node["id"],
+                "weight": 1,
+            }
+            for node in nodes[1:]
+        ]
+        projection, episode = _synthetic_projection(
+            nodes=nodes,
+            links=links,
+            episode_path="/podcast/s01e01/episode",
+        )
+        episode.update({"slug": "episode", "season": 1, "episode": 1})
+        projection["podcasts_by_slug"] = {"episode": episode, "target-episode.md": target}
+
+        resolved = episode_graph(episode, projection=projection)
+        target_neighbour = next(
+            neighbour
+            for neighbour in resolved.neighbors
+            if neighbour.id == "podcast:target-episode"
+        )
+        expected_target = f"/podcast/{podcast_public_id(season=2, episode=3)}/target-episode.md"
+        self.assertEqual(resolved.url, "/podcast/s01e01/episode")
+        self.assertEqual(target_neighbour.url, expected_target)
+        self.assertNotIn(".html", resolved.url)
+        self.assertNotIn(".html", target_neighbour.url)
+        self.assertRegex(resolved.url, PODCAST_GRAPH_PATH_PATTERN)
+        self.assertRegex(target_neighbour.url, PODCAST_GRAPH_PATH_PATTERN)
+        body = render_to_string(
+            "public/_podcast_episode_knowledge_graph.html", {"episode_graph": resolved}
+        )
+        self.assertIn(f'href="{expected_target}"', body)
+        self.assertNotRegex(body, r'href="/podcast/[^" ]+\.html"')
 
     def test_narrow_visual_hub_stays_clear_of_all_eight_spokes(self) -> None:
         projection = public_projection()
@@ -97,7 +243,7 @@ class EpisodeGraphContractTests(SimpleTestCase):
 
     def test_resolution_is_deterministic_and_does_not_use_episode_title_as_identity(self) -> None:
         graph_nodes = [
-            _graph_node("podcast:other", "Synthetic episode", "podcast", "/podcast/other.html"),
+            _graph_node("podcast:other", "Synthetic episode", "podcast", "/podcast/s02e01/other"),
             _graph_node("wiki:z", "Zed", "wiki", "/wiki/zed"),
             _graph_node("wiki:a", "Alpha", "wiki", "/wiki/alpha"),
             _graph_node("wiki:b", "Beta", "wiki", "/wiki/beta"),
@@ -106,13 +252,15 @@ class EpisodeGraphContractTests(SimpleTestCase):
             {"kind": "z", "source": "podcast:other", "target": "wiki:z", "weight": 1},
         ]
         projection, episode = _synthetic_projection(
-            nodes=graph_nodes, links=graph_links, episode_path="/podcast/episode.html"
+            nodes=graph_nodes, links=graph_links, episode_path="/podcast/s01e01/episode"
         )
         # The graph has no node whose type and canonical path identify this episode.
         self.assertEqual(episode_graph(episode, projection=projection).state, "no_data")
 
         graph_nodes.append(
-            _graph_node("podcast:episode", "Synthetic episode", "podcast", "/podcast/episode.html")
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+            )
         )
         graph_links.extend(
             [
@@ -137,7 +285,9 @@ class EpisodeGraphContractTests(SimpleTestCase):
 
     def test_unsafe_and_missing_destinations_are_never_links(self) -> None:
         nodes = [
-            _graph_node("podcast:episode", "Synthetic episode", "podcast", "/podcast/episode.html"),
+            _graph_node(
+                "podcast:episode", "Synthetic episode", "podcast", "/podcast/s01e01/episode"
+            ),
             _graph_node("wiki:safe", "Safe", "wiki", "/wiki/safe"),
             _graph_node("wiki:none", "No destination", "wiki"),
             _graph_node("wiki:external", "External", "wiki", "https://example.com/out"),
@@ -175,7 +325,7 @@ class EpisodeGraphContractTests(SimpleTestCase):
                     "podcast:episode",
                     "Synthetic episode",
                     "podcast",
-                    "/podcast/episode.html",
+                    "/podcast/s01e01/episode",
                 )
             ],
             links=[
@@ -226,7 +376,7 @@ class EpisodeGraphPageTests(TestCase):
         self.assertEqual(response.headers["Cache-Control"], "max-age=0, must-revalidate")
         self.assertContains(
             response,
-            '<link rel="canonical" href="https://datatalks.club' + REPRESENTATIVE_PATH + '">',
+            '<link rel="canonical" href="https://datatalks.club' + episode["public_path"] + '">',
         )
         body = response.content.decode()
         match = re.search(

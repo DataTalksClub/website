@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Any
 
 import pytest
 from playwright.sync_api import Browser, Page, expect
 
+from content.podcast_routes import podcast_public_id
 from content.public_data import public_projection
 from playwright_tests.accessibility_support import assert_accessible_page
 
@@ -17,6 +19,14 @@ REPRESENTATIVE = (
     "s23e06-data-engineer-career-in-2026-roles-specializations-and-what-companies-look-for"
 )
 SCREENSHOTS = Path(".tmp/screenshots/issue-217")
+PODCAST_GRAPH_PATH_PATTERN = re.compile(r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*$")
+
+
+def _hierarchical_graph_path(episode: dict[str, Any]) -> str:
+    return (
+        f"/podcast/{podcast_public_id(season=episode['season'], episode=episode['episode'])}/"
+        f"{episode['slug']}"
+    )
 
 
 def _settle_analytics_preferences(page: Page) -> None:
@@ -68,6 +78,26 @@ def _assert_narrow_hub_clear(page: Page) -> None:
     assert intersections == [], intersections
 
 
+def _visible_graph(page: Page):
+    graph = page.locator(".episode-knowledge-graph")
+    wide = graph.locator(".graph-svg-wide")
+    if wide.is_visible():
+        return wide
+    return graph.locator(".graph-svg-narrow")
+
+
+def _assert_graph_hrefs_are_safe(graph) -> None:
+    hrefs = graph.locator("a.graph-svg-node").evaluate_all(
+        "nodes => nodes.map(node => node.getAttribute('href'))"
+    )
+    assert all(href and href.startswith("/") and not href.startswith("//") for href in hrefs)
+    podcast_hrefs = [href for href in hrefs if href.startswith("/podcast/")]
+    assert podcast_hrefs
+    for href in podcast_hrefs:
+        assert PODCAST_GRAPH_PATH_PATTERN.fullmatch(href), href
+        assert not href.endswith(".html"), href
+
+
 def _screenshot(page: Page, name: str) -> None:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.screenshot(path=SCREENSHOTS / name, full_page=True)
@@ -99,7 +129,15 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     expect(page.get_by_role("heading", name="Related knowledge graph", exact=True)).to_be_visible()
     expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
     expect(page.locator("#episode-graph-connections a")).to_have_count(23)
-    expect(page.locator(".episode-knowledge-graph svg[aria-hidden='true']")).to_have_count(2)
+    expect(page.locator(".episode-knowledge-graph svg[aria-hidden='true']")).to_have_count(0)
+    visual = _visible_graph(page)
+    expect(visual).to_have_attribute("role", "group")
+    expect(visual).to_have_attribute("aria-label", re.compile("linked connections"))
+    expect(visual.locator("a.graph-svg-node")).to_have_count(9)
+    expect(visual.locator("a.graph-svg-hub")).to_have_attribute(
+        "href", _hierarchical_graph_path(episode)
+    )
+    _assert_graph_hrefs_are_safe(visual)
     graph_links = page.locator("#episode-graph-connections")
     expect(graph_links.get_by_role("link", name=re.compile("Slawomir Tulski"))).to_have_attribute(
         "href", "/people/slawomirtulski.html"
@@ -114,6 +152,14 @@ def test_episode_graph_has_complete_links_and_a_bounded_visual_on_desktop(
     first_connection = page.locator("#episode-graph-connections a").first
     first_connection.focus()
     expect(first_connection).to_be_focused()
+    visual_spoke = visual.locator("a.graph-svg-node:not(.graph-svg-hub)").first
+    visual_target = visual_spoke.get_attribute("href")
+    assert visual_target and visual_target.startswith("/")
+    expect(visual_spoke).to_have_attribute("aria-label", re.compile(r"^Open "))
+    visual_spoke.click()
+    expect(page).to_have_url(f"{live_server.url}{visual_target}")
+    page.go_back(wait_until="networkidle")
+    expect(page).to_have_url(f"{live_server.url}{episode['public_path']}")
     _screenshot(page, "s23e06-desktop-1440x900.png")
     _graph_screenshot(page, "s23e06-desktop-1440x900-graph.png")
     _assert_no_horizontal_overflow(page)
@@ -134,9 +180,21 @@ def test_episode_graph_is_accessible_on_a_mobile_viewport(
     expect(page.get_by_role("heading", name="Related knowledge graph", exact=True)).to_be_visible()
     expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
     expect(page.locator("#episode-graph-connections a")).to_have_count(23)
+    visual = _visible_graph(page)
+    expect(visual.locator("a.graph-svg-node")).to_have_count(9)
+    _assert_graph_hrefs_are_safe(visual)
     connection = page.locator("#episode-graph-connections a").first
     connection.focus()
     expect(connection).to_be_focused()
+    visual_spoke = visual.locator("a.graph-svg-node:not(.graph-svg-hub)").first
+    visual_target = visual_spoke.get_attribute("href")
+    assert visual_target and visual_target.startswith("/")
+    visual_spoke.focus()
+    expect(visual_spoke).to_be_focused()
+    page.keyboard.press("Enter")
+    expect(page).to_have_url(f"{live_server.url}{visual_target}")
+    page.go_back(wait_until="networkidle")
+    expect(page).to_have_url(f"{live_server.url}{episode['public_path']}")
     _assert_narrow_hub_clear(page)
     _screenshot(page, "s23e06-mobile-390x844-light.png")
     _graph_screenshot(page, "s23e06-mobile-390x844-light-graph.png")
@@ -177,7 +235,10 @@ def test_episode_graph_has_a_native_fallback_without_javascript(
         expect(page.locator("#episode-graph-connections > li")).to_have_count(23)
         expect(page.locator("#episode-graph-connections a")).to_have_count(23)
         expect(page.locator("#podcast-video-player")).not_to_be_visible()
-        expect(page.locator(".episode-knowledge-graph svg[aria-hidden='true']")).to_have_count(2)
+        visual = _visible_graph(page)
+        expect(page.locator(".episode-knowledge-graph svg[aria-hidden='true']")).to_have_count(0)
+        expect(visual.locator("a.graph-svg-node")).to_have_count(9)
+        _assert_graph_hrefs_are_safe(visual)
         connection = page.locator("#episode-graph-connections a").first
         connection.focus()
         expect(connection).to_be_focused()

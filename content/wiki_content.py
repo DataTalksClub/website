@@ -18,6 +18,7 @@ follows for the homepage.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -34,7 +35,10 @@ from core.graph_layout import (
     ring_layouts,
 )
 
+from .podcast_routes import podcast_public_id
 from .public_data import public_projection, safe_public_graph_url
+
+_PODCAST_GRAPH_PATH = re.compile(r"/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*")
 
 # Every node type the graph carries, in the order /wiki/graph presents them: the
 # heading, the one-line description of what that group is, and the page that
@@ -212,7 +216,62 @@ class EpisodeGraph:
         return self.neighbors
 
 
-def _episode_graph_nodes(graph: dict[str, Any]) -> dict[str, dict[str, str]]:
+def _hierarchical_podcast_graph_path(record: dict[str, Any]) -> str:
+    """Build the graph-only destination for one validated podcast record.
+
+    The route owner supplies the stable episode identifier format.  The graph
+    still has to translate older projection node URLs at its boundary so a
+    graph link never reintroduces the retired flat ``.html`` spelling.
+    """
+
+    slug = record.get("slug")
+    season = record.get("season")
+    episode = record.get("episode")
+    if (
+        not isinstance(slug, str)
+        or re.fullmatch(r"[a-z0-9_][a-z0-9_.-]*", slug) is None
+        or isinstance(season, bool)
+        or not isinstance(season, int)
+        or season < 1
+        or isinstance(episode, bool)
+        or not isinstance(episode, int)
+        or episode < 1
+    ):
+        return ""
+    return safe_public_graph_url(
+        f"/podcast/{podcast_public_id(season=season, episode=episode)}/{slug}"
+    )
+
+
+def _podcast_graph_url(node: dict[str, str], *, podcast_records: dict[str, Any]) -> str:
+    """Return only a hierarchical, known podcast destination for a graph node."""
+
+    slug = node["id"].removeprefix("podcast:")
+    record = podcast_records.get(slug)
+    if not isinstance(record, dict):
+        # A few checked graph IDs normalize source slugs (for example by
+        # dropping a leading underscore or a filename suffix).  The checked
+        # source URL remains the unambiguous identity in that case; use it only
+        # to find the catalogue record, then emit the rebuilt route below.
+        source_url = node["source_url"]
+        record = next(
+            (
+                candidate
+                for candidate in podcast_records.values()
+                if isinstance(candidate, dict) and candidate.get("public_path") == source_url
+            ),
+            None,
+        )
+    if isinstance(record, dict):
+        return _hierarchical_podcast_graph_path(record)
+    # A pure graph fixture may not carry the catalogue index.  Preserve an
+    # already hierarchical source URL, but never pass an old flat URL through.
+    return node["url"] if _PODCAST_GRAPH_PATH.fullmatch(node["url"]) else ""
+
+
+def _episode_graph_nodes(
+    graph: dict[str, Any], *, podcast_records: dict[str, Any]
+) -> dict[str, dict[str, str]]:
     raw_nodes = graph.get("nodes")
     if not isinstance(raw_nodes, (list, tuple)):
         raise ImproperlyConfigured("The wiki graph node collection is invalid.")
@@ -236,13 +295,18 @@ def _episode_graph_nodes(graph: dict[str, Any]) -> dict[str, dict[str, str]]:
             or not node_type
         ):
             raise ImproperlyConfigured("The wiki graph contains an invalid node contract.")
-        nodes[node_id] = {
+        source_url = safe_public_graph_url(raw_node.get("url", ""))
+        node = {
             "id": node_id,
             "label": node_label,
             "title": node_title,
             "type": node_type,
-            "url": safe_public_graph_url(raw_node.get("url", "")),
+            "source_url": source_url,
+            "url": source_url,
         }
+        if node_type == "podcast":
+            node["url"] = _podcast_graph_url(node, podcast_records=podcast_records)
+        nodes[node_id] = node
     return nodes
 
 
@@ -280,9 +344,23 @@ def _episode_graph_links(
 
 def _episode_graph_shell(episode: dict[str, Any], *, state: str) -> EpisodeGraph:
     title = episode.get("title")
-    url = episode.get("public_path")
-    if not isinstance(title, str) or not title or not isinstance(url, str) or not url:
+    public_path = episode.get("public_path")
+    if (
+        not isinstance(title, str)
+        or not title
+        or not isinstance(public_path, str)
+        or not public_path
+        or safe_public_graph_url(public_path) != public_path
+    ):
         raise ImproperlyConfigured("The podcast episode identity is invalid.")
+    # ``public_path`` is the request/canonical identity owned by the route
+    # layer.  The graph has its own output boundary: if the catalogue record
+    # has enough stable identity to build the hierarchical route, use it;
+    # otherwise preserve only an already-hierarchical fixture path.  A flat
+    # podcast path is never exposed through this graph contract.
+    url = _hierarchical_podcast_graph_path(episode)
+    if not url and _PODCAST_GRAPH_PATH.fullmatch(public_path):
+        url = public_path
     return EpisodeGraph(
         state=state,
         title=title,
@@ -350,10 +428,21 @@ def episode_graph(
     if not isinstance(graph, dict):
         raise ImproperlyConfigured("The public projection has no wiki graph.")
     shell = _episode_graph_shell(episode, state="no_data")
-    nodes = _episode_graph_nodes(graph)
+    episode_public_path = episode["public_path"]
+    podcast_records = projection.get("podcasts_by_slug", {})
+    if not isinstance(podcast_records, dict):
+        podcast_records = {}
+    nodes = _episode_graph_nodes(graph, podcast_records=podcast_records)
     links = _episode_graph_links(graph, nodes)
+    episode_slug = episode.get("slug")
+    episode_node_id = (
+        f"podcast:{episode_slug}" if isinstance(episode_slug, str) and episode_slug else ""
+    )
     matches = tuple(
-        node for node in nodes.values() if node["type"] == "podcast" and node["url"] == shell.url
+        node
+        for node in nodes.values()
+        if node["type"] == "podcast"
+        and (node["id"] == episode_node_id or node["source_url"] == episode_public_path)
     )
     if not matches:
         return shell
