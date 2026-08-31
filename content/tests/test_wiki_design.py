@@ -670,9 +670,17 @@ class WikiPageTests(TestCase):
         self.record = public_projection()["wiki_by_slug"]["a-a-testing"]
         self.body = self.client.get(str(self.record["public_path"])).content.decode()
 
-    def test_the_page_keeps_its_kicker_title_summary_and_every_relation(self) -> None:
-        self.assertIn('<p class="mono-label mono-label-indigo">Wiki</p>', self.body)
-        self.assertIn(escape(str(self.record["title"])), self.body)
+    def test_the_page_keeps_one_wiki_context_label_title_and_every_relation(self) -> None:
+        # The breadcrumb supplies the page's Wiki context; repeating it as an
+        # eyebrow immediately above the title adds no information.
+        self.assertNotIn('<p class="mono-label mono-label-indigo">Wiki</p>', self.body)
+        self.assertIn(f'<a href="{reverse("wiki-home")}">Wiki</a>', self.body)
+        heading = f'<h1 id="wiki-page-heading">{escape(str(self.record["title"]))}</h1>'
+        self.assertEqual(self.body.count(heading), 1)
+        self.assertIn(
+            '<section class="band band-cream wiki-hero" aria-labelledby="wiki-page-heading">',
+            self.body,
+        )
         self.assertIn(escape(str(self.record["summary"])), self.body)
         self.assertIn('aria-label="Related concepts and sources"', self.body)
         for relation in self.record["relations"]:
