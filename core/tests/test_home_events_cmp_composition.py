@@ -138,7 +138,7 @@ class HomeEventsCmpRenderingTests(TestCase):
             self.assertContains(response, '<link rel="canonical" href="https://datatalks.club/">')
             self.assertContains(
                 response,
-                "Start with the foundations. Finish with a project you can present.",
+                "Learn the fundamentals. Build real projects. Share your work.",
             )
             self.assertContains(response, "Create your free account")
             self.assertContains(response, "Events")

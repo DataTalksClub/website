@@ -54,7 +54,7 @@ class MainHomepageRoutingTests(TestCase):
         self.assertContains(response, "DataTalks.Club")
         self.assertContains(
             response,
-            "Start with the foundations. Finish with a project you can present.",
+            "Learn the fundamentals. Build real projects. Share your work.",
         )
         self.assertContains(response, "Explore free courses")
         self.assertContains(response, "Join the community")
@@ -149,7 +149,7 @@ class MainHomepageRoutingTests(TestCase):
             self.assertEqual(rendered.status_code, 200)
             self.assertContains(
                 rendered,
-                "Start with the foundations. Finish with a project you can present.",
+                "Learn the fundamentals. Build real projects. Share your work.",
             )
             self.assertContains(rendered, "AI Dev Tools Zoomcamp")
             self.assertContains(rendered, "Community knowledgebase")

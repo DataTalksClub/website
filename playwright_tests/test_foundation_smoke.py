@@ -14,7 +14,7 @@ EVENT_DESCRIPTION_SCREENSHOTS = Path(".tmp/screenshots/issue-131")
 FEATURED_EVENT_TITLE = "AI Dev Tools Zoomcamp 2026 Course Launch"
 FEATURED_SPEAKER_PATH = "/people/alexeygrigorev.html"
 FEATURED_SPEAKER_NAME = "Alexey Grigorev"
-HOME_HEADING = "Start with the foundations. Finish with a project you can present."
+HOME_HEADING = "Learn the fundamentals. Build real projects. Share your work."
 CLIMB_HEADING = "From “What does that mean?” to “Let me show you.”"
 PODCAST_HEADING = "Conversations with people who ship data"
 # "Events" is the navigation label and the page title; the index leads with this headline.

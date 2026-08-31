@@ -2692,7 +2692,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 200,
                 noindex,
                 b"<title>DataTalks.Club \xe2\x80\x94 free courses for data and AI engineers</title>"
-                b"Start with the foundations. Finish with a project you can present."
+                b"Learn the fundamentals. Build real projects. Share your work."
                 b"Free, hands-on courses in data and AI, with a clear path, "
                 b"practical work, and a community to help you get unstuck."
                 + f"Version {VERSION_A}".encode()
@@ -2702,7 +2702,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"Start with the foundations. Finish with a project you can present."
+                b"Learn the fundamentals. Build real projects. Share your work."
                 b'<link rel="canonical" href="https://datatalks.club/">',
             ),
             Response(
@@ -2799,7 +2799,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                     noindex,
                     b"<title>DataTalks.Club \xe2\x80\x94 free courses for data "
                     b"and AI engineers</title>"
-                    b"Start with the foundations. Finish with a project you can present."
+                    b"Learn the fundamentals. Build real projects. Share your work."
                     b"Free, project-based courses where you learn to build and build to learn"
                     + f"Version {VERSION_A}".encode()
                     + b'<link rel="stylesheet" href="/static/core.fixture.css">',
@@ -2812,7 +2812,7 @@ class RemoteSmokeSafetyTests(SimpleTestCase):
                 Response(
                     200,
                     noindex,
-                    b"Start with the foundations. Finish with a project you can present."
+                    b"Learn the fundamentals. Build real projects. Share your work."
                     + f"Version {VERSION_A}".encode()
                     + b'<link rel="stylesheet" href="/static/courses.fixture.css">',
                 ),
@@ -2969,7 +2969,7 @@ class SmokeFailureTokenScreeningTests(SimpleTestCase):
             Response(
                 200,
                 noindex,
-                b"Start with the foundations. Finish with a project you can present."
+                b"Learn the fundamentals. Build real projects. Share your work."
                 b'<link rel="canonical" href="https://datatalks.club/">',
             ),
             Response(
