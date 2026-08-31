@@ -30,9 +30,9 @@ SOURCE_CI_RUN = "https://github.com/DataTalksClub/content/actions/runs/313653584
 # different artifact, and each move is a reviewed event: this pair was last
 # regenerated when the article bodies stopped being flattened to plain text and
 # started carrying their illustrations, tables, code samples and links.
-PROJECTION_MANIFEST_SHA256 = '6e09a551385da046530144f409bf185c75847f82773eced41e4f98d861e92ecd'
-PROJECTION_TREE_SHA256 = '9baae60493e2ee891192e7cf01b5d8e2d8a5f0a71e1c6189b4dfb1ba0aa4e540'
-PROJECTION_PODCASTS_SHA256 = 'f24454864a7c9fd7c66afa7aa533a5a853b70535cdcd33c86ca2e4ce6b0b3e34'
+PROJECTION_MANIFEST_SHA256 = "6e09a551385da046530144f409bf185c75847f82773eced41e4f98d861e92ecd"
+PROJECTION_TREE_SHA256 = "9baae60493e2ee891192e7cf01b5d8e2d8a5f0a71e1c6189b4dfb1ba0aa4e540"
+PROJECTION_PODCASTS_SHA256 = "f24454864a7c9fd7c66afa7aa533a5a853b70535cdcd33c86ca2e4ce6b0b3e34"
 ACCEPTED_BUNDLE_SHA256 = "3991adce88ff92aaeb5a6509f81826cf36b21440d3128fba9f75d5456b02a9f5"
 ACCEPTED_ADOPTED_SOURCE_SET_SHA256 = (
     "e42cd488f9431dd2770df505d58b14c54543c4134e2f560c325d37dbd94c9d71"
