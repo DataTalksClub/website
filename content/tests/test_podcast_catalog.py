@@ -22,6 +22,7 @@ from content.podcast_content import (
 )
 from content.podcast_routes import (
     PODCAST_AI_PRODUCTION_PATH,
+    PODCAST_GENAI_PILOTS_PATH,
     PODCAST_ROUTE_MIGRATION_PATH,
     podcast_legacy_path,
 )
@@ -287,7 +288,9 @@ class PodcastPageCompositionTests(SimpleTestCase):
         record["links"] = {"spotify": "https://open.spotify.com/episode/synthetic"}
         record["video"] = None
         record["transcript"] = [
+            {"header": "Unseekable context"},
             {"line": "Readable without a numeric seek point.", "time": "About noon"},
+            {"header": "Native seek point"},
             {"line": "A native listening fallback.", "sec": 42, "time": "0:42"},
         ]
 
@@ -295,7 +298,24 @@ class PodcastPageCompositionTests(SimpleTestCase):
 
         self.assertEqual(len(view.timestamp_entries), 1)
         self.assertEqual(view.timestamp_entries[0].fallback_url, record["links"]["spotify"])
-        self.assertEqual(view.transcript[0].fallback_url, "")
+        self.assertEqual(view.transcript[1].fallback_url, "")
+
+    def test_timestamp_topics_use_the_first_timed_line_in_each_source_section(self) -> None:
+        record = dict(ordered_podcasts()[0])
+        record["links"] = {"youtube": "https://www.youtube.com/watch?v=Video_1"}
+        record["video"] = {"provider": "youtube", "id": "Video_1"}
+        record["transcript"] = [
+            {"header": "A source-backed topic"},
+            {"line": "An opening paragraph without a marker."},
+            {"line": "The first paragraph with a marker.", "sec": 17, "time": "0:17"},
+        ]
+
+        view = episode_view(record)
+
+        self.assertEqual(len(view.timestamp_entries), 1)
+        self.assertEqual(view.timestamp_entries[0].label, "A source-backed topic")
+        self.assertEqual(view.timestamp_entries[0].time, "0:17")
+        self.assertEqual(view.timestamp_entries[0].seconds, 17)
 
     def test_spotify_creator_link_derives_a_safe_embed_without_inventing_an_id(self) -> None:
         target = public_projection()["podcasts_by_slug"][
@@ -375,7 +395,7 @@ class PodcastEpisodeParityTests(TestCase):
             [(resource.title, resource.url) for resource in view.resources],
             [
                 ("Website", "https://alexkimds.github.io/"),
-                ("Linkedin", "https://www.linkedin.com/in/aleksandrkim/"),
+                ("LinkedIn", "https://www.linkedin.com/in/aleksandrkim/"),
             ],
         )
         self.assertIsNotNone(view.video)
@@ -387,7 +407,11 @@ class PodcastEpisodeParityTests(TestCase):
             "https://www.youtube-nocookie.com/embed/PosCx_4fwt0?enablejsapi=1&rel=0",
         )
         self.assertEqual(len(view.transcript), len(record["transcript"]))
-        self.assertEqual(len(view.timestamp_entries), 146)
+        self.assertEqual(len(view.timestamp_entries), 10)
+        self.assertEqual(
+            view.timestamp_entries[0].label,
+            "AI Engineering Production and Scalability",
+        )
         self.assertEqual(
             view.timestamp_entries[0].fallback_url,
             "https://www.youtube.com/watch?v=PosCx_4fwt0&t=0",
@@ -485,6 +509,28 @@ class PodcastEpisodeParityTests(TestCase):
             assert match is not None
             self.assertNotIn("hidden", match.group(0))
 
+    def test_timestamps_are_topic_markers_separate_from_transcript_body(self) -> None:
+        projection, record = self.representative()
+        view = episode_view(record, people_by_slug=projection["people_by_slug"])
+        response = self.client.get(record["public_path"])
+        body = response.content.decode()
+
+        timestamp_text = " ".join(f"{entry.time} {entry.label}" for entry in view.timestamp_entries)
+        transcript_body = " ".join(entry.line for entry in view.transcript if entry.line)
+        self.assertNotEqual(timestamp_text, transcript_body)
+        self.assertNotIn(transcript_body, timestamp_text)
+        self.assertNotIn(view.transcript[2].line, timestamp_text)
+
+        timestamp_start = body.index('<section id="timestamps"')
+        timestamp_end = body.index("</section>", timestamp_start)
+        timestamp_markup = body[timestamp_start:timestamp_end]
+        self.assertEqual(
+            timestamp_markup.count('class="timestamp-row timestamp-index-row"'),
+            len(view.timestamp_entries),
+        )
+        self.assertNotIn(view.transcript[2].line, timestamp_markup)
+        self.assertIn(view.transcript[2].line, body[body.index('<section id="transcript"') :])
+
     def test_previous_and_next_episode_cards_show_their_season_and_episode(self) -> None:
         projection, record = self.representative()
         previous_episode, next_episode, _ = episode_navigation(
@@ -529,21 +575,20 @@ class PodcastEpisodeParityTests(TestCase):
             resource_podcast_records=projection["podcasts"],
         )
         self.assertIn(
-            "/podcast/becoming-data-freelancer.html",
+            "/podcast/s16e09/becoming-data-freelancer",
             [resource.url for resource in view.resources],
         )
         resource_response = self.client.get(internal_resource_record["public_path"])
         self.assertContains(
             resource_response,
-            'href="/podcast/becoming-data-freelancer.html"',
+            'href="/podcast/s16e09/becoming-data-freelancer"',
         )
         self.assertNotContains(
             resource_response,
             'href="/podcast/s16e09-become-data-freelancer.html"',
         )
-        self.assertEqual(self.client.get("/podcast/becoming-data-freelancer.html").status_code, 200)
 
-    def test_resource_urls_keep_external_schemes_and_noncanonical_paths_rejected(self) -> None:
+    def test_resource_urls_fail_closed_without_taking_down_the_episode_page(self) -> None:
         projection, record = self.representative()
         for unsafe in (
             "http://example.invalid/resource",
@@ -554,20 +599,15 @@ class PodcastEpisodeParityTests(TestCase):
             "/podcast/not-in-catalog.html",
             "/blog/episode.html",
         ):
-            with (
-                self.subTest(unsafe=unsafe),
-                self.assertRaisesRegex(
-                    ImproperlyConfigured,
-                    "https address|canonical internal podcast path",
-                ),
-            ):
-                episode_view(
+            with self.subTest(unsafe=unsafe):
+                view = episode_view(
                     {
                         **record,
                         "resources": [{"title": "Unsafe", "url": unsafe}],
                     },
                     resource_podcast_records=projection["podcasts"],
                 )
+                self.assertEqual(view.resources, ())
 
     def test_related_episode_cards_show_the_guest_instead_of_the_description(self) -> None:
         projection, record = self.representative()
@@ -820,7 +860,9 @@ class PodcastEpisodeParityTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Video unavailable.")
         self.assertContains(response, 'href="https://open.spotify.com/episode/synthetic"')
-        for heading_id in ("show-notes-heading", "timestamps-heading", "transcript-heading"):
+        self.assertContains(response, 'id="show-notes-heading"')
+        self.assertContains(response, "No show notes are available for this episode.")
+        for heading_id in ("timestamps-heading", "transcript-heading"):
             self.assertNotIn(f'id="{heading_id}"', body)
         self.assertNotIn('id="podcast-video-player"', body)
         self.assertNotIn('href="#"', body)
@@ -911,7 +953,7 @@ class PodcastSeasonNavigationTests(TestCase):
             types = {item.get("@type") for item in json.loads(payload_match.group(1))["@graph"]}
             self.assertIn("PodcastEpisode", types)
 
-    def test_detail_routes_keep_html_finals_except_stable_id_migrations(self) -> None:
+    def test_detail_routes_keep_html_finals_except_reviewed_hierarchical_migrations(self) -> None:
         projection = public_projection()
         podcasts = projection["podcasts"]
         migration = projection["editorial_route_migration"]
@@ -928,10 +970,17 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertTrue(all(path.startswith("/podcast/") for path in podcast_finals))
         self.assertEqual(
             {path for path in podcast_finals if not path.endswith(".html")},
-            {PODCAST_ROUTE_MIGRATION_PATH, PODCAST_AI_PRODUCTION_PATH},
+            {
+                PODCAST_GENAI_PILOTS_PATH,
+                PODCAST_ROUTE_MIGRATION_PATH,
+                PODCAST_AI_PRODUCTION_PATH,
+            },
         )
-        self.assertEqual(len(podcast_aliases), 410)
-        self.assertEqual({item["final_path"] for item in podcast_aliases}, podcast_finals)
+        self.assertEqual(len(podcast_aliases), 408)
+        self.assertEqual(
+            {item["final_path"] for item in podcast_aliases},
+            podcast_finals - {PODCAST_GENAI_PILOTS_PATH},
+        )
 
         episode = podcasts[0]
         final_path = episode["public_path"]

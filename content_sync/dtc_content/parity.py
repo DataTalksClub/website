@@ -9,6 +9,7 @@ from typing import Any, NoReturn
 from urllib.parse import quote
 
 from content.inventory import content_route_contracts
+from content.podcast_resources import normalize_podcast_resources
 from content.public_data import PROJECTION_ROOT, public_projection
 from content.services import PreparedDocument
 from scripts.build_public_projection import (
@@ -550,6 +551,22 @@ def verify_initial_projection_parity(
                         continue
                     provider = _canonical_podcast_platform_key(label)
                     expected_links[provider] = _canonical_podcast_platform_url(provider, value)
+                expected_resources = [
+                    resource.as_dict()
+                    for resource in normalize_podcast_resources(
+                        metadata.get("resources"),
+                        records=records,
+                        strict=False,
+                    )
+                ]
+                actual_resources = [
+                    resource.as_dict()
+                    for resource in normalize_podcast_resources(
+                        record.get("resources"),
+                        records=records,
+                        strict=False,
+                    )
+                ]
                 podcast_expectations: tuple[tuple[str, Any], ...] = (
                     (
                         "short",
@@ -570,6 +587,7 @@ def verify_initial_projection_parity(
                         ),
                     ),
                     ("links", expected_links),
+                    ("resources", expected_resources),
                     ("image_path", image_path),
                 )
                 for field, expected in podcast_expectations:
@@ -578,6 +596,8 @@ def verify_initial_projection_parity(
                         actual = projection_season
                     elif field == "episode":
                         actual = projection_episode
+                    elif field == "resources":
+                        actual = actual_resources
                     _expect(
                         actual,
                         expected,

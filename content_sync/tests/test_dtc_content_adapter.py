@@ -374,6 +374,12 @@ class DtcContentAdapterTests(SimpleTestCase):
         self.assertTrue(transcript.noindex)
         self.assertEqual(transcript.canonical_url, "")
         self.assertIn('"segments"', transcript.raw_structured_data)
+        self.assertNotIn('"segments"', episode.raw_structured_data)
+        self.assertIn(
+            '"resources":[{"title":"Example","url":"https://example.com/resource?utm_source=fixture"}]',
+            episode.raw_structured_data,
+        )
+        self.assertNotIn('"is_external"', episode.raw_structured_data)
         self.assertNotEqual(episode.edit_url, transcript.edit_url)
         self.assertFalse(
             any(

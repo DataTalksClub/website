@@ -40,7 +40,14 @@ from content.event_speaker_bio_normalization import (  # noqa: E402
     apply_event_speaker_bio_normalization,
     normalization_manifest_binding,
 )
-from content.podcast_routes import podcast_canonical_path  # noqa: E402
+from content.podcast_resources import (  # noqa: E402
+    PodcastResourceError,
+    normalize_podcast_resource,
+)
+from content.podcast_routes import (  # noqa: E402
+    PODCAST_HIERARCHICAL_ONLY_SLUGS,
+    podcast_canonical_path,
+)
 from content.public_text import strip_target_attributes_from_links  # noqa: E402
 from events.slugs import event_title_slug  # noqa: E402
 
@@ -136,7 +143,7 @@ EDITORIAL_ROUTE_COLLECTIONS = {
     "people": "/people",
 }
 EXPECTED_EDITORIAL_FINALS = sum(EXPECTED_COUNTS[name] for name in EDITORIAL_ROUTE_COLLECTIONS)
-EXPECTED_EDITORIAL_ALIASES = 2 * EXPECTED_EDITORIAL_FINALS
+EXPECTED_EDITORIAL_ALIASES = 2 * (EXPECTED_EDITORIAL_FINALS - len(PODCAST_HIERARCHICAL_ONLY_SLUGS))
 RECORDING_LINK_LABELS = frozenset({"Watch recording", "Listen to recording"})
 
 
@@ -488,34 +495,55 @@ def _podcast_platforms(path: Path) -> list[dict[str, str]]:
     return platforms
 
 
-def _podcast_resources(value: Any, *, source_name: str) -> list[dict[str, str]]:
-    """Validate the small, source-ordered resource shape episode pages can expose."""
+def _podcast_resources(
+    value: Any,
+    *,
+    source_name: str,
+    podcast_records: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Validate and normalize the source-ordered resource shape for episode pages."""
 
     if value is None:
         return []
     if not isinstance(value, list):
         raise ProjectionBuildError(f"podcast resources rejected: {source_name[:120]}")
-    resources: list[dict[str, str]] = []
+    resources: list[dict[str, Any]] = []
     for resource in value:
         if not isinstance(resource, dict) or set(resource) != {"title", "url"}:
             raise ProjectionBuildError(f"podcast resource rejected: {source_name[:120]}")
-        url = _safe_url(resource.get("url"), field="podcast resource", optional=False)
-        if not url.startswith("https://"):
-            # A small number of historical source records still carry HTTP-only links.  Keep
-            # the source order for resources that meet the public contract and omit the unsafe
-            # destination rather than manufacturing an HTTPS upgrade in the projection.
-            continue
-        url = _localize_internal_url(url)
-        resources.append(
-            {
-                "title": _string(
-                    resource.get("title"),
-                    field="podcast resource title",
-                    maximum=500,
-                ),
-                "url": url,
-            }
-        )
+        raw_url = _string(resource.get("url"), field="podcast resource", maximum=2_048)
+        if raw_url.startswith("/") and not raw_url.startswith("//"):
+            # Root-relative episode resources are valid source data and are resolved
+            # against the complete catalogue below.  They must never pass through
+            # as a legacy flat path.
+            url = raw_url
+        else:
+            url = _safe_url(resource.get("url"), field="podcast resource", optional=False)
+            url = _localize_internal_url(url)
+            if not url.startswith("https://") and not url.startswith("/podcast/"):
+                # A small number of historical source records still carry HTTP-only
+                # external links. Keep the source order for resources that meet the
+                # public contract and omit the unsafe destination rather than
+                # manufacturing an HTTPS upgrade in the projection. Known internal
+                # DataTalks links are localized above before this check.
+                continue
+        try:
+            normalized = normalize_podcast_resource(
+                {
+                    "title": _string(
+                        resource.get("title"),
+                        field="podcast resource title",
+                        maximum=500,
+                    ),
+                    "url": url,
+                },
+                records=podcast_records,
+            )
+        except PodcastResourceError as error:
+            raise ProjectionBuildError(
+                f"podcast resource rejected: {source_name[:120]}"
+            ) from error
+        resources.append(normalized.as_dict())
     return resources
 
 
@@ -1319,6 +1347,7 @@ def _main_records(
     articles: list[dict[str, Any]] = []
     podcasts: list[dict[str, Any]] = []
     books: list[dict[str, Any]] = []
+    podcast_resource_sources: list[tuple[dict[str, Any], Any, str]] = []
     selected_revision = PREFERRED_CONTENT_REVISION if mode == "preferred" else LEGACY_MAIN_REVISION
     selected_repository = CONTENT_REPOSITORY if mode == "preferred" else LEGACY_MAIN_REPOSITORY
     article_counters: dict[str, int] = {
@@ -1529,7 +1558,10 @@ def _main_records(
                 ),
                 "guests": _safe_key_list(raw.get("guests"), field="podcast guest"),
                 "links": podcast_links,
-                "resources": _podcast_resources(raw.get("resources"), source_name=path.name),
+                # Resource URLs are resolved after the complete episode catalogue is
+                # read, so historical internal links can be mapped by their checked
+                # season/episode identity without inventing a target.
+                "resources": [],
                 "video": _podcast_video(raw, podcast_links, source_name=path.name),
                 "transcript": transcript,
                 "transcript_provenance": transcript_provenance,
@@ -1544,6 +1576,14 @@ def _main_records(
                     checksum=_sha256_bytes(_read_bytes(source_file)),
                 ),
             }
+        )
+        podcast_resource_sources.append((podcasts[-1], raw.get("resources"), path.name))
+
+    for podcast, source_resources, source_name in podcast_resource_sources:
+        podcast["resources"] = _podcast_resources(
+            source_resources,
+            source_name=source_name,
+            podcast_records=podcasts,
         )
 
     for path in sorted((content_root / "books").glob("*.yaml")):
@@ -2388,6 +2428,8 @@ def _expected_editorial_routes(
                 "source": dict(record["provenance"]),
             }
             finals.append(final)
+            if collection == "podcasts" and record["slug"] in PODCAST_HIERARCHICAL_ONLY_SLUGS:
+                continue
             for source_path in (clean_path, f"{clean_path}/"):
                 aliases.append(
                     {

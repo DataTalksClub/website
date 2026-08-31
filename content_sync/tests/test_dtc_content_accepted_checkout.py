@@ -155,7 +155,7 @@ class AcceptedDtcContentCheckoutTests(SimpleTestCase):
             first.projection_parity.comparison_sha256,
             ACCEPTED_COMPARISON_SHA256,
         )
-        self.assertEqual(first.projection_parity.counts["unobserved_legacy_contracts"], 10)
+        self.assertEqual(first.projection_parity.counts["unobserved_legacy_contracts"], 13)
         self.assertEqual(
             first.projection_parity.counts["optional_unresolved_person_relations"],
             18,

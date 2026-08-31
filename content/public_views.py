@@ -54,7 +54,11 @@ from .podcast_content import (
     podcast_platform_links,
     season_episodes,
 )
-from .podcast_routes import podcast_legacy_path, podcast_public_id
+from .podcast_routes import (
+    PODCAST_HIERARCHICAL_ONLY_SLUGS,
+    podcast_legacy_path,
+    podcast_public_id,
+)
 from .public_data import (
     PROJECTION_ROOT,
     event_date_groups,
@@ -845,10 +849,12 @@ def podcast_detail_by_id_without_slug(request: HttpRequest, episode_id: str) -> 
 
 @csrf_exempt
 def podcast_legacy_detail(request: HttpRequest, slug: str) -> HttpResponse:
-    """Render established HTML finals and redirect episodes moved to stable-ID routes."""
+    """Render established HTML finals and redirect reviewed migration aliases."""
 
     if request.method not in {"GET", "HEAD"}:
         return _no_store(HttpResponseNotAllowed(("GET", "HEAD")))
+    if slug in PODCAST_HIERARCHICAL_ONLY_SLUGS:
+        raise Http404
     projection = public_projection()
     episode = projection["podcasts_by_slug"].get(slug)
     if episode is None:

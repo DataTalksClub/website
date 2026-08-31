@@ -28,6 +28,7 @@ from yaml.events import (
 
 from compatibility.contracts import PublicContract
 from content.inventory import content_route_contracts
+from content.podcast_routes import podcast_canonical_path
 from content.public_data import public_projection
 from content.services import PreparedDocument, sanitize_rendered_html
 
@@ -1393,9 +1394,12 @@ def adapt_dtc_content_checkout(
             _fail("duplicate_podcast_slug", source_path)
         episode_metadata[slug] = metadata
         title = _required_text(metadata, "title", path=source_path)
-        public_path = _required_text(metadata, "legacy_path", path=source_path)
-        if public_path != f"/podcast/{slug}.html":
+        legacy_path = _required_text(metadata, "legacy_path", path=source_path)
+        if legacy_path != f"/podcast/{slug}.html":
             _fail("podcast_legacy_path_mismatch", source_path)
+        # The source YAML keeps its historical `legacy_path` field for provenance, while
+        # the prepared public document follows the code-owned canonical route registry.
+        public_path = podcast_canonical_path(slug)
         guests = _required_list(metadata, "guests", path=source_path)
         for required_number in ("season", "episode"):
             value = metadata.get(required_number)

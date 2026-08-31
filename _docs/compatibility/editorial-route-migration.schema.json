@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://datatalks.club/schemas/editorial-route-migration-v1.json",
   "title": "DataTalks.Club exhaustive editorial route migration manifest",
-  "description": "Generated, digest-bound inventory of every established .html editorial final and every approved one-hop clean or slash alias.",
+  "description": "Generated, digest-bound inventory of every editorial final and every approved one-hop clean or slash alias.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -72,7 +72,7 @@
       "required": ["finals", "aliases"],
       "properties": {
         "finals": { "const": 796 },
-        "aliases": { "const": 1592 }
+        "aliases": { "const": 1590 }
       }
     },
     "finals": {
@@ -83,8 +83,8 @@
     },
     "aliases": {
       "type": "array",
-      "minItems": 1592,
-      "maxItems": 1592,
+      "minItems": 1590,
+      "maxItems": 1590,
       "items": { "$ref": "#/$defs/alias" }
     },
     "content_sha256": { "$ref": "#/$defs/sha256" }

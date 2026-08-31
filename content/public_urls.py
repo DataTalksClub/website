@@ -51,6 +51,15 @@ urlpatterns = [
         name="podcast-ai-adoption",
     ),
     path(
+        "podcast/s24e04/from-genai-pilots-to-production",
+        public_views.podcast_detail_by_id,
+        {
+            "episode_id": "s24e04",
+            "slug": "from-genai-pilots-to-production",
+        },
+        name="podcast-genai-pilots",
+    ),
+    path(
         "podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
         public_views.podcast_detail_by_id,
         {

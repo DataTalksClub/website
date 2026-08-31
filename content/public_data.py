@@ -32,7 +32,7 @@ from .event_description_bridge import (
 )
 from .event_speaker_bio_normalization import normalization_manifest_binding
 from .event_speakers import event_speaker_records
-from .podcast_routes import podcast_canonical_path
+from .podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
 from .public_text import strip_leaked_target_attributes, target_attribute_count
 
 PROJECTION_ROOT = Path(__file__).with_name("public_projection")
@@ -80,7 +80,7 @@ EDITORIAL_ROUTE_COLLECTIONS = {
     "people": "/people",
 }
 EXPECTED_EDITORIAL_FINALS = sum(EXPECTED_COUNTS[name] for name in EDITORIAL_ROUTE_COLLECTIONS)
-EXPECTED_EDITORIAL_ALIASES = 2 * EXPECTED_EDITORIAL_FINALS
+EXPECTED_EDITORIAL_ALIASES = 2 * (EXPECTED_EDITORIAL_FINALS - len(PODCAST_HIERARCHICAL_ONLY_SLUGS))
 EXPECTED_REVISIONS = {
     "preferred_content": "e29f56ce70bd997171a78a9f0facc9354797f421",
     "fallback_selection": "373bef2912342ece1d2a2d2a9395aa3417243283",
@@ -506,6 +506,8 @@ def _expected_editorial_routes(
                     "source": dict(record["provenance"]),
                 }
             )
+            if collection == "podcasts" and record["slug"] in PODCAST_HIERARCHICAL_ONLY_SLUGS:
+                continue
             for source_path in (clean_path, f"{clean_path}/"):
                 aliases.append(
                     {

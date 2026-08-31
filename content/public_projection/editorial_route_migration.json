@@ -12514,22 +12514,6 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e04-from-genai-pilots-to-production.html",
-      "query_policy": "preserve_raw",
-      "record_key": "s24e04-from-genai-pilots-to-production",
-      "source_path": "/podcast/s24e04-from-genai-pilots-to-production",
-      "status_code": 301
-    },
-    {
-      "collection": "podcasts",
-      "final_path": "/podcast/s24e04-from-genai-pilots-to-production.html",
-      "query_policy": "preserve_raw",
-      "record_key": "s24e04-from-genai-pilots-to-production",
-      "source_path": "/podcast/s24e04-from-genai-pilots-to-production/",
-      "status_code": 301
-    },
-    {
-      "collection": "podcasts",
       "final_path": "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
       "query_policy": "preserve_raw",
       "record_key": "s24e05-ai-adoption-in-enterprise-beyond-writing-code",
@@ -12737,9 +12721,9 @@
       "status_code": 301
     }
   ],
-  "content_sha256": "a96bfcf0632380c2e168c04c93cc2cadf31912e4ca04e7b8a919b9b525346268",
+  "content_sha256": "1f9b75f165e22a9799522d6245b060a5da3b82ccd250c160659ded535d52e6bb",
   "counts": {
-    "aliases": 1592,
+    "aliases": 1590,
     "finals": 796
   },
   "finals": [
@@ -22911,7 +22895,7 @@
     },
     {
       "collection": "podcasts",
-      "final_path": "/podcast/s24e04-from-genai-pilots-to-production.html",
+      "final_path": "/podcast/s24e04/from-genai-pilots-to-production",
       "record_key": "s24e04-from-genai-pilots-to-production",
       "source": {
         "checksum": "e02b6b0ea5584b2889cf1841ab75dbd66c6c8e6c64812b5e1e2f495d6b9494a9",
@@ -23099,8 +23083,8 @@
     "source_artifacts": {
       "articles.json": "4ca8e4f3a1fcf3fe3c6434fdaf945f47e7969b6d6cf3cc03194c75b7a6318428",
       "books.json": "c960306e3a2f6d6f312815826dc6d9b69858cefacd183b15215b37bfde37ec18",
-      "people.json": "46ca78bad0821cf825b5cdca3ea8d9fcb62490ae26b37864e5de30fe98e07c85",
-      "podcasts.json": "9fd85ce176d550d28d31eb5650f7b9bef19f9e5727c2516a46c1df2d1943c2da"
+      "people.json": "a4b6edaa67eb48c31f63f1bcd4a9278d0206dafaa4545d490dd8bbf5f7b391c8",
+      "podcasts.json": "a0fed7bd41779e470996c3960cb6fc180d29ec57b7498624efbf8d7e23c29aa1"
     },
     "source_revisions": [
       {
@@ -23115,7 +23099,7 @@
   },
   "schema": {
     "path": "_docs/compatibility/editorial-route-migration.schema.json",
-    "sha256": "db98b260ed6914afe1bdd9a338d123c4d0ea1bcf370655704acfdcfd9fc858ca"
+    "sha256": "86abd71db585a24f76a2fe336b8929a60e83eb0961769d36fcc2aa55eba749f0"
   },
   "schema_version": 1
 }

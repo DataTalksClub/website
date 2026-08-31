@@ -24,6 +24,11 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from django.core.exceptions import ImproperlyConfigured
 
+from .podcast_resources import (
+    PodcastResourceError,
+    normalize_podcast_resource,
+    normalize_podcast_resources,
+)
 from .public_data import podcast_public_path, safe_public_graph_url
 
 # Listening destinations, in the order the pages offer them, with the platform
@@ -85,10 +90,35 @@ class PlatformLink:
 
 @dataclass(frozen=True, slots=True)
 class EpisodeResource:
-    """One source-ordered show-note resource."""
+    """One source-ordered show-note resource with safe link semantics."""
 
     title: str
     url: str
+    is_external: bool = True
+    target: str = "_blank"
+    rel: str = "noopener noreferrer"
+
+    @property
+    def label(self) -> str:
+        """The accessible label used by the Show Notes renderer."""
+
+        return self.title
+
+
+@dataclass(frozen=True, slots=True)
+class TimestampEntry:
+    """One compact chapter marker derived from a source transcript section."""
+
+    label: str
+    seconds: int | float | None
+    time: str
+    fallback_url: str = ""
+
+    @property
+    def topic(self) -> str:
+        """A semantic alias for callers that describe chapters as topics."""
+
+        return self.label
 
 
 @dataclass(frozen=True, slots=True)
@@ -184,7 +214,7 @@ class Episode:
     video: VideoEmbed | None = None
     spotify: SpotifyEmbed | None = None
     transcript: tuple[TranscriptEntry, ...] = ()
-    timestamp_entries: tuple[TranscriptEntry, ...] = ()
+    timestamp_entries: tuple[TimestampEntry, ...] = ()
 
     @property
     def season_episode(self) -> str:
@@ -247,50 +277,15 @@ def _safe_resource_url(
     *,
     podcast_records: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
 ) -> str:
-    """Validate an HTTPS resource or a canonical root-relative podcast path."""
+    """Validate one resource URL for callers that need strict composition."""
 
-    if isinstance(value, str):
-        candidate = value.strip()
-        parsed = urlsplit(candidate)
-        if (
-            parsed.scheme == ""
-            and parsed.netloc == ""
-            and parsed.query == ""
-            and parsed.fragment == ""
-            and re.fullmatch(r"/podcast/[a-z0-9][a-z0-9-]*\.html", parsed.path)
-            and not any(character in candidate for character in "\x00\r\n")
-        ):
-            if podcast_records is None:
-                return candidate
-            canonical_matches = [
-                podcast_public_path(record)
-                for record in podcast_records
-                if podcast_public_path(record) == candidate
-            ]
-            if len(canonical_matches) == 1:
-                return canonical_matches[0]
-            legacy = re.fullmatch(
-                r"/podcast/s(?P<season>\d+)e(?P<episode>\d+)-"
-                r"[a-z0-9][a-z0-9-]*\.html",
-                candidate,
-            )
-            if (
-                legacy is not None
-                and int(legacy.group("season")) >= 1
-                and int(legacy.group("episode")) >= 1
-            ):
-                numbered_matches = [
-                    podcast_public_path(record)
-                    for record in podcast_records
-                    if record.get("season") == int(legacy.group("season"))
-                    and record.get("episode") == int(legacy.group("episode"))
-                ]
-                if len(numbered_matches) == 1:
-                    return numbered_matches[0]
-            raise ImproperlyConfigured(
-                "Public podcast resource must be a canonical internal podcast path."
-            )
-    return _safe_external_url(value, field="resource", https_only=True)
+    try:
+        return normalize_podcast_resource(
+            {"title": "Resource", "url": value},
+            records=podcast_records,
+        ).url
+    except PodcastResourceError as error:
+        raise ImproperlyConfigured("Public podcast resource URL is invalid.") from error
 
 
 def _person_summary(person: dict[str, Any]) -> str:
@@ -591,25 +586,21 @@ def _resources(
     podcast_records: tuple[dict[str, Any], ...] | list[dict[str, Any]] | None = None,
 ) -> tuple[EpisodeResource, ...]:
     raw_resources = record.get("resources", ()) or ()
-    if not isinstance(raw_resources, (list, tuple)):
-        raise ImproperlyConfigured("Public podcast resources must be a list.")
-    prepared: list[EpisodeResource] = []
-    for resource in raw_resources:
-        if not isinstance(resource, dict):
-            raise ImproperlyConfigured("Public podcast resource must be a mapping.")
-        title = resource.get("title")
-        if not isinstance(title, str) or not title.strip():
-            raise ImproperlyConfigured("Public podcast resource must have a title.")
-        prepared.append(
-            EpisodeResource(
-                title=title.strip(),
-                url=_safe_resource_url(
-                    resource.get("url"),
-                    podcast_records=podcast_records,
-                ),
-            )
+    normalized = normalize_podcast_resources(
+        raw_resources,
+        records=podcast_records,
+        strict=False,
+    )
+    return tuple(
+        EpisodeResource(
+            title=resource.title,
+            url=resource.url,
+            is_external=resource.is_external,
+            target=resource.target,
+            rel=resource.rel,
         )
-    return tuple(prepared)
+        for resource in normalized
+    )
 
 
 def _format_seconds(seconds: int | float) -> str:
@@ -686,6 +677,47 @@ def _transcript(record: dict[str, Any], watch_url: str) -> tuple[TranscriptEntry
     return tuple(entries)
 
 
+_TIMESTAMP_LABEL_MAX_LENGTH = 160
+
+
+def _timestamp_entries(
+    transcript: tuple[TranscriptEntry, ...],
+) -> tuple[TimestampEntry, ...]:
+    """Derive a compact chapter index from source section headers.
+
+    A source header is a chapter label when its section contains a transcript
+    line carrying a displayable time.  The first such line supplies the marker;
+    this handles source sections whose opening paragraph is un-timestamped.
+    This intentionally does not use transcript prose as a fallback label: a
+    missing or malformed chapter marker stays missing rather than becoming a
+    second copy of the transcript.
+    """
+
+    entries: list[TimestampEntry] = []
+    for index, entry in enumerate(transcript):
+        label = entry.header.strip()
+        if not label or len(label) > _TIMESTAMP_LABEL_MAX_LENGTH:
+            continue
+        marker = None
+        for candidate in transcript[index + 1 :]:
+            if candidate.header:
+                break
+            if candidate.line and candidate.time and candidate.seconds is not None:
+                marker = candidate
+                break
+        if marker is None:
+            continue
+        entries.append(
+            TimestampEntry(
+                label=" ".join(label.split()),
+                seconds=marker.seconds,
+                time=marker.time,
+                fallback_url=marker.fallback_url,
+            )
+        )
+    return tuple(entries)
+
+
 def episode_view(
     record: dict[str, Any],
     *,
@@ -700,8 +732,8 @@ def episode_view(
     return Episode(
         title=_required_text(record, "title"),
         description=_required_text(record, "description"),
-        # The catalogue's checked `/podcast/<slug>.html` identity, never a link the
-        # page invents from a title.
+        # The catalogue's checked canonical identity, never a link the page invents
+        # from a title.
         public_path=podcast_public_path(record),
         season=_required_number(record, "season"),
         episode=_required_number(record, "episode"),
@@ -717,9 +749,7 @@ def episode_view(
         video=_video_embed(record),
         spotify=_spotify_embed(record),
         transcript=transcript,
-        timestamp_entries=tuple(
-            entry for entry in transcript if not entry.header and entry.seconds is not None
-        ),
+        timestamp_entries=_timestamp_entries(transcript),
     )
 
 

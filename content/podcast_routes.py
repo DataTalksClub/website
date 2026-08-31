@@ -4,13 +4,21 @@ from __future__ import annotations
 
 PODCAST_ROUTE_MIGRATION_SLUG = "s24e05-ai-adoption-in-enterprise-beyond-writing-code"
 PODCAST_ROUTE_MIGRATION_PATH = "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code"
+PODCAST_GENAI_PILOTS_SLUG = "s24e04-from-genai-pilots-to-production"
+PODCAST_GENAI_PILOTS_PATH = "/podcast/s24e04/from-genai-pilots-to-production"
 PODCAST_AI_PRODUCTION_SLUG = "s24e06-how-to-build-ai-that-actually-ships-in-production"
 PODCAST_AI_PRODUCTION_PATH = "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production"
 
 PODCAST_STABLE_ROUTES = {
     PODCAST_ROUTE_MIGRATION_SLUG: PODCAST_ROUTE_MIGRATION_PATH,
+    PODCAST_GENAI_PILOTS_SLUG: PODCAST_GENAI_PILOTS_PATH,
     PODCAST_AI_PRODUCTION_SLUG: PODCAST_AI_PRODUCTION_PATH,
 }
+
+# This episode was explicitly cut over to the hierarchical route without retaining
+# either of the generated flat-slug aliases.  The other reviewed stable-ID routes
+# retain their existing migration aliases until their separate contracts change.
+PODCAST_HIERARCHICAL_ONLY_SLUGS = frozenset({PODCAST_GENAI_PILOTS_SLUG})
 
 
 def podcast_canonical_path(slug: str) -> str:

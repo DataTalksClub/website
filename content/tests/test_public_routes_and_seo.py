@@ -13,6 +13,8 @@ from django.test import TestCase
 from content.docs_projection import docs_page
 from content.podcast_routes import (
     PODCAST_AI_PRODUCTION_PATH,
+    PODCAST_GENAI_PILOTS_PATH,
+    PODCAST_HIERARCHICAL_ONLY_SLUGS,
     PODCAST_ROUTE_MIGRATION_PATH,
     podcast_legacy_path,
 )
@@ -158,17 +160,30 @@ class PublicRouteAndSeoTests(TestCase):
     def test_editorial_detail_aliases_redirect_directly_to_canonicals(self) -> None:
         projection = public_projection()
         migration = projection["editorial_route_migration"]
-        self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_592})
+        self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_590})
         self.assertEqual(len(migration["finals"]), 796)
-        self.assertEqual(len(migration["aliases"]), 1_592)
+        self.assertEqual(len(migration["aliases"]), 1_590)
         canonical_paths = {item["final_path"] for item in migration["finals"]}
         alias_map = {item["source_path"]: item["final_path"] for item in migration["aliases"]}
-        self.assertEqual(len(alias_map), 1_592)
-        self.assertEqual(set(alias_map.values()), canonical_paths)
+        self.assertEqual(len(alias_map), 1_590)
+        self.assertEqual(
+            set(alias_map.values()),
+            canonical_paths
+            - {
+                item["final_path"]
+                for item in migration["finals"]
+                if item["collection"] == "podcasts"
+                and item["record_key"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
+            },
+        )
         self.assertTrue(set(alias_map).isdisjoint(canonical_paths))
         self.assertEqual(
             {path for path in canonical_paths if not path.endswith(".html")},
-            {PODCAST_ROUTE_MIGRATION_PATH, PODCAST_AI_PRODUCTION_PATH},
+            {
+                PODCAST_GENAI_PILOTS_PATH,
+                PODCAST_ROUTE_MIGRATION_PATH,
+                PODCAST_AI_PRODUCTION_PATH,
+            },
         )
         self.assertEqual(
             set(alias_map),
@@ -187,6 +202,10 @@ class PublicRouteAndSeoTests(TestCase):
                         else item["final_path"].removesuffix(".html")
                     )
                     + "/",
+                )
+                if not (
+                    item["collection"] == "podcasts"
+                    and item["record_key"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
                 )
             },
         )

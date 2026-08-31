@@ -56,8 +56,20 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         self.assertEqual(
             resources,
             [
-                {"title": "First", "url": "https://example.test/first"},
-                {"title": "Second", "url": "https://example.test/second"},
+                {
+                    "title": "First",
+                    "url": "https://example.test/first",
+                    "is_external": True,
+                    "target": "_blank",
+                    "rel": "noopener noreferrer",
+                },
+                {
+                    "title": "Second",
+                    "url": "https://example.test/second",
+                    "is_external": True,
+                    "target": "_blank",
+                    "rel": "noopener noreferrer",
+                },
             ],
         )
         self.assertEqual(
@@ -65,17 +77,63 @@ class PublicProjectionBuilderTests(SimpleTestCase):
                 [
                     {
                         "title": "Related episode",
-                        "url": "https://www.datatalks.club/podcast/example.html?from=notes#topic",
+                        "url": "https://www.datatalks.club/podcast/example.html",
                     }
                 ],
                 source_name="episode.yaml",
+                podcast_records=[
+                    {
+                        "slug": "example",
+                        "season": 1,
+                        "episode": 1,
+                        "public_path": "/podcast/example.html",
+                    }
+                ],
             ),
             [
                 {
                     "title": "Related episode",
-                    "url": "/podcast/example.html?from=notes#topic",
+                    "url": "/podcast/s01e01/example",
+                    "is_external": False,
+                    "target": "",
+                    "rel": "",
                 }
             ],
+        )
+        self.assertEqual(
+            builder._podcast_resources(
+                [{"title": "Related episode", "url": "/podcast/s01e01-example.html"}],
+                source_name="episode.yaml",
+                podcast_records=[
+                    {
+                        "slug": "example",
+                        "season": 1,
+                        "episode": 1,
+                        "public_path": "/podcast/example.html",
+                    }
+                ],
+            )[0]["url"],
+            "/podcast/s01e01/example",
+        )
+        self.assertEqual(
+            builder._podcast_resources(
+                [
+                    {
+                        "title": "Related episode",
+                        "url": "http://www.datatalks.club/podcast/s01e01-example.html",
+                    }
+                ],
+                source_name="episode.yaml",
+                podcast_records=[
+                    {
+                        "slug": "example",
+                        "season": 1,
+                        "episode": 1,
+                        "public_path": "/podcast/example.html",
+                    }
+                ],
+            )[0]["url"],
+            "/podcast/s01e01/example",
         )
         with self.assertRaisesRegex(builder.ProjectionBuildError, "unsafe public URL"):
             builder._podcast_resources(
@@ -418,9 +476,9 @@ class PublicProjectionBuilderTests(SimpleTestCase):
     def test_editorial_route_manifest_is_exhaustive_and_schema_bound(self) -> None:
         collections, source_artifacts, manifest = self.editorial_route_fixture()
 
-        self.assertEqual(manifest["counts"], {"finals": 796, "aliases": 1_592})
+        self.assertEqual(manifest["counts"], {"finals": 796, "aliases": 1_590})
         self.assertEqual(len(manifest["finals"]), 796)
-        self.assertEqual(len(manifest["aliases"]), 1_592)
+        self.assertEqual(len(manifest["aliases"]), 1_590)
         self.assertEqual(
             {
                 item["final_path"]
@@ -428,6 +486,7 @@ class PublicProjectionBuilderTests(SimpleTestCase):
                 if not item["final_path"].endswith(".html")
             },
             {
+                "/podcast/s24e04/from-genai-pilots-to-production",
                 "/podcast/s24e05/ai-adoption-in-enterprise-beyond-writing-code",
                 "/podcast/s24e06/how-to-build-ai-that-actually-ships-in-production",
             },
@@ -443,7 +502,7 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
         self.assertEqual(schema["properties"]["counts"]["properties"]["finals"]["const"], 796)
-        self.assertEqual(schema["properties"]["counts"]["properties"]["aliases"]["const"], 1_592)
+        self.assertEqual(schema["properties"]["counts"]["properties"]["aliases"]["const"], 1_590)
         self.assertEqual(manifest["schema"]["sha256"], builder._sha256_file(schema_path))
         builder._validate_editorial_route_manifest(
             manifest,

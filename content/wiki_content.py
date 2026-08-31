@@ -35,7 +35,7 @@ from core.graph_layout import (
     ring_layouts,
 )
 
-from .podcast_routes import podcast_public_id
+from .podcast_routes import podcast_canonical_path, podcast_public_id
 from .public_data import public_projection, safe_public_graph_url
 
 _PODCAST_GRAPH_PATH = re.compile(r"/podcast/s[0-9]+e[0-9]+/[a-z0-9_][a-z0-9_.-]*")
@@ -238,6 +238,9 @@ def _hierarchical_podcast_graph_path(record: dict[str, Any]) -> str:
         or episode < 1
     ):
         return ""
+    reviewed_path = podcast_canonical_path(slug)
+    if reviewed_path != f"/podcast/{slug}.html":
+        return safe_public_graph_url(reviewed_path)
     return safe_public_graph_url(
         f"/podcast/{podcast_public_id(season=season, episode=episode)}/{slug}"
     )

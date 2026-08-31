@@ -8,7 +8,7 @@ from typing import Any
 from django.conf import settings
 from django.test import SimpleTestCase
 
-from content.podcast_routes import podcast_canonical_path
+from content.podcast_routes import PODCAST_HIERARCHICAL_ONLY_SLUGS, podcast_canonical_path
 from content.public_data import public_projection
 
 
@@ -37,7 +37,7 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
 
         self.assertEqual(checked, migration)
         self.assertEqual(migration["schema_version"], 1)
-        self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_592})
+        self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_590})
         self.assertEqual(
             migration["provenance"]["source_artifacts"],
             {
@@ -60,7 +60,7 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         aliases = {item["source_path"]: item for item in migration["aliases"]}
 
         self.assertEqual(len(finals), 796)
-        self.assertEqual(len(aliases), 1_592)
+        self.assertEqual(len(aliases), 1_590)
         self.assertTrue(set(finals).isdisjoint(aliases))
         self.assertTrue(all(item["final_path"] in finals for item in aliases.values()))
         self.assertTrue(all(item["status_code"] == 301 for item in aliases.values()))
@@ -76,6 +76,13 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
                 if final["collection"] == "podcasts"
                 else final_path.removesuffix(".html")
             )
+            if (
+                final["collection"] == "podcasts"
+                and final["record_key"] in PODCAST_HIERARCHICAL_ONLY_SLUGS
+            ):
+                self.assertNotIn(clean_path, aliases)
+                self.assertNotIn(f"{clean_path}/", aliases)
+                continue
             self.assertEqual(
                 {
                     aliases[clean_path]["final_path"],
@@ -147,8 +154,8 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertIn("production SEO cutover commander", runbook)
         self.assertIn("Search Console", runbook)
         self.assertIn("Googlebot", runbook)
-        self.assertIn("established `.html` editorial finals", runbook)
-        self.assertIn("all 796 final and 1,592 alias probes", runbook)
+        self.assertIn("796 editorial finals", runbook)
+        self.assertIn("all 796 final and 1,590 alias probes", runbook)
         self.assertEqual(
             [step["id"] for step in self.policy["rollback_steps"]],
             [

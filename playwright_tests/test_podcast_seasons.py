@@ -3,7 +3,11 @@ from pathlib import Path
 import pytest
 from playwright.sync_api import Browser, Page, ViewportSize, expect
 
-from content.podcast_routes import podcast_legacy_path
+from content.podcast_routes import (
+    PODCAST_GENAI_PILOTS_PATH,
+    PODCAST_GENAI_PILOTS_SLUG,
+    podcast_legacy_path,
+)
 from content.public_data import ordered_podcasts, podcast_seasons
 from playwright_tests.accessibility_support import assert_accessible_page
 
@@ -503,3 +507,30 @@ def test_alias_query_and_safe_denial_browser_matrix(page: Page, live_server) -> 
     expect(page.locator('link[rel="next"]')).to_have_count(0)
     expect(page.locator("body")).not_to_contain_text("Traceback")
     _screenshot(page, "podcast-malformed-season-query-400.png")
+
+
+@pytest.mark.core
+def test_genai_pilots_has_only_the_hierarchical_public_episode_url(page: Page, live_server) -> None:
+    origin = live_server.url
+    canonical_path = PODCAST_GENAI_PILOTS_PATH
+
+    final = page.goto(f"{origin}{canonical_path}", wait_until="networkidle")
+    assert final is not None and final.status == 200
+    expect(page).to_have_url(f"{origin}{canonical_path}")
+    expect(page.locator('link[rel="canonical"]')).to_have_attribute(
+        "href",
+        f"https://datatalks.club{canonical_path}",
+    )
+    expect(page.locator('meta[property="og:url"]')).to_have_attribute(
+        "content",
+        f"https://datatalks.club{canonical_path}",
+    )
+
+    legacy = podcast_legacy_path(PODCAST_GENAI_PILOTS_SLUG)
+    clean_legacy = legacy.removesuffix(".html")
+    for unavailable_path in (legacy, clean_legacy, f"{clean_legacy}/"):
+        for method in (page.request.get, page.request.head):
+            unavailable = method(f"{origin}{unavailable_path}", max_redirects=0)
+            assert unavailable.status == 404
+            assert "location" not in unavailable.headers
+            assert '<link rel="canonical"' not in unavailable.text().casefold()

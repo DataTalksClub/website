@@ -25,9 +25,12 @@ The baseline inventory covers:
   to `/blog`; the `.html` and slash variants of Podcast, Events, and Books to their clean hub; and
   `/courses/` and `/wiki/` to `/courses` and `/wiki`. Queries are preserved.
 - Main editorial details preserve the established canonical paths `/blog/<slug>.html`,
-  `/podcast/<slug>.html`, `/books/<slug>.html`, and `/people/<slug>.html`. Their clean and
-  trailing-slash aliases redirect permanently in one hop to the `.html` detail while preserving the
-  raw query. The bounded public course catalog uses `/courses/<slug>`; established
+  `/books/<slug>.html`, and `/people/<slug>.html`. Podcast episodes retain their established
+  `/podcast/<slug>.html` canonicals unless a reviewed hierarchical route is recorded; the
+  hierarchical-only `From GenAI Pilots to Production` episode is `/podcast/s24e04/from-genai-pilots-to-production`
+  and its flat-slug forms return `404` without a redirect. Clean and trailing-slash aliases for
+  supported details redirect permanently in one hop to the recorded final while preserving the raw
+  query. The bounded public course catalog uses `/courses/<slug>`; established
   `/tools/<slug>.html` and `/conferences/<slug>.html` routes remain unchanged where they currently
   exist.
 - There is no public People catalogue. `/people`, `/people/`, and `/people.html` return `404`
@@ -111,7 +114,7 @@ Anonymous `POST` is rejected before catalogue/query work with `405`, exact `Allo
 
 The `.html` and slash hub aliases preserve the raw query byte-for-byte in their one-hop redirects.
 Season-query hub URLs stay out of the sitemap, whose podcast portion remains exactly clean
-`/podcast` plus all 205 canonical podcast detail `.html` URLs. The shared canonical validator's
+`/podcast` plus all 205 canonical podcast detail URLs. The shared canonical validator's
 only query exception is exact normalized `/podcast?season=N` syntax; the view emits such a canonical
 only for an existing non-latest season. All other canonical-query rejection remains unchanged.
 

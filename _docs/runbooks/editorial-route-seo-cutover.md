@@ -1,8 +1,10 @@
 # Editorial route SEO cutover and rollback runbook
 
-This runbook governs the 796 established `.html` editorial finals and 1,592 direct clean/slash
-aliases in
+This runbook governs the 796 editorial finals (including 793 `.html` finals and three hierarchical
+podcast finals) and 1,590 direct clean/slash aliases in
 [`editorial_route_migration.json`](../../content/public_projection/editorial_route_migration.json).
+The `s24e04` GenAI Pilots episode is hierarchical-only: its former flat-slug path is not an alias
+and must return `404` without a redirect.
 Its machine-checkable thresholds are
 [`editorial-route-seo-cutover-policy.json`](editorial-route-seo-cutover-policy.json). The primary
 owner is the **production SEO cutover commander**; the **website on-call engineer** executes a
@@ -13,7 +15,7 @@ activate production, submit Search Console data, or handle production records.
 
 Production cutover remains a HUMAN gate. Before authorizing it, the owner verifies that the checked
 preferred migration-manifest digest matches the policy, all 796 finals pass with `200` and one
-self-canonical, and all 1,592 aliases pass with a one-hop query-preserving `301`. Any omission,
+self-canonical, and all 1,590 aliases pass with a one-hop query-preserving `301`. Any omission,
 duplicate, final/alias collision, chain, or loop stops the cutover.
 
 Capture a UTC baseline no later than 24 hours before cutover. Use the preceding 28 complete days and
@@ -24,8 +26,8 @@ Never capture account, token, registration, raw IP, or other production-record d
 
 Build the old/new comparison from the persisted manifest, not a sampled or synthesized route list:
 
-1. Normalize every clean and slash alias to its recorded `.html` `final_path`; keep the `.html`
-   final as its own comparison key.
+1. Normalize every clean and slash alias to its recorded `final_path`; keep each final as its own
+   comparison key.
 2. Export production Search Console page-indexing, crawl, Google-selected canonical, clicks, and
    impressions for those exact URL groups. Do not submit or inspect the development hostname.
 3. Aggregate organic landing sessions by the same key and weekday. Report clean/slash aliases,
@@ -69,11 +71,11 @@ avoid rollback.
 
 1. Freeze unrelated application and editorial releases. Record the first breached threshold using
    aggregate redacted evidence.
-2. Keep all 1,592 permanent aliases active as direct redirects. Never send them to the home page or
+2. Keep all 1,590 permanent aliases active as direct redirects. Never send them to the home page or
    introduce a chain.
 3. Restore the last accepted immutable application image while retaining compatible Django dynamic
    endpoints and forward-only data, as required by specification 09.
-4. Re-run all 796 final and 1,592 alias probes plus robots, sitemap, canonical, Open Graph, and JSON-LD
+4. Re-run all 796 final and 1,590 alias probes plus robots, sitemap, canonical, Open Graph, and JSON-LD
    checks before calling the rollback stable.
 5. Verify the breached 15-minute or 60-minute HTTP window twice. Continue through the next complete
    UTC day for delayed Search Console and organic recovery.

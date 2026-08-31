@@ -322,6 +322,11 @@
         border-bottom: 0;
       }
 
+      .episode-empty-state {
+        color: var(--muted);
+        margin-top: 1.25rem;
+      }
+
       .episode-timestamp {
         align-items: baseline;
         display: inline-flex;
@@ -637,63 +642,101 @@
         </div>
       </section>
 
-      {% if episode.resources or episode.timestamp_entries or episode.transcript %}
-        <section class="band band-lavender" aria-label="Episode reading sections">
-          <div class="shell episode-shell">
-            <nav class="episode-tabs" aria-label="Episode sections">
-              {% if episode.resources %}
-                <a class="episode-tab" href="#show-notes">Show Notes</a>
-              {% endif %}
-              {% if episode.timestamp_entries %}
-                <a class="episode-tab" href="#timestamps">Timestamps</a>
-              {% endif %}
-              {% if episode.transcript %}
-                <a class="episode-tab" href="#transcript">Transcript</a>
-              {% endif %}
-            </nav>
-
-            {% if episode.resources %}
-              <section id="show-notes" class="episode-section" aria-labelledby="show-notes-heading">
-                <div class="band-head">
-                  <div>
-                    <h2 id="show-notes-heading">Show Notes</h2>
-                    <p>Links and resources mentioned in this episode.</p>
-                  </div>
-                </div>
-                <ul class="episode-resource-list">
-                  {% for resource in episode.resources %}
-                    <li>
-                      <a href="{{ resource.url }}" target="_blank" rel="noopener noreferrer">
-                        {{ resource.title }}
-                        <span class="sr-only"> (opens in a new tab)</span>
-                      </a>
-                    </li>
-                  {% endfor %}
-                </ul>
-              </section>
-            {% endif %}
-
+      <section class="band band-lavender" aria-label="Episode reading sections">
+        <div class="shell episode-shell">
+          <nav class="episode-tabs" aria-label="Episode sections">
+            <a class="episode-tab" href="#show-notes">Show Notes</a>
             {% if episode.timestamp_entries %}
-              <section id="timestamps" class="episode-section" aria-labelledby="timestamps-heading">
-                <div class="band-head">
-                  <div>
-                    <h2 id="timestamps-heading">Timestamps</h2>
-                    <p>Jump to a moment in the conversation.</p>
-                  </div>
+              <a class="episode-tab" href="#timestamps">Timestamps</a>
+            {% endif %}
+            {% if episode.transcript %}
+              <a class="episode-tab" href="#transcript">Transcript</a>
+            {% endif %}
+          </nav>
+
+          <section id="show-notes" class="episode-section" aria-labelledby="show-notes-heading">
+            <div class="band-head">
+              <div>
+                <h2 id="show-notes-heading">Show Notes</h2>
+                <p>Links and resources mentioned in this episode.</p>
+              </div>
+            </div>
+            {% if episode.resources %}
+              <ul class="episode-resource-list" aria-label="Show notes resources">
+                {% for resource in episode.resources %}
+                  <li>
+                    <a
+                      href="{{ resource.url }}"
+                      {% if resource.is_external %}
+                        target="{{ resource.target }}"
+                        rel="{{ resource.rel }}"
+                      {% endif %}
+                    >
+                      {{ resource.label }}
+                      {% if resource.is_external %}
+                        <span class="sr-only"> (opens in a new tab)</span>
+                      {% endif %}
+                    </a>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="episode-empty-state">No show notes are available for this episode.</p>
+            {% endif %}
+          </section>
+
+          {% if episode.timestamp_entries %}
+            <section id="timestamps" class="episode-section" aria-labelledby="timestamps-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="timestamps-heading">Timestamps</h2>
+                  <p>Jump to a moment in the conversation.</p>
                 </div>
-                {% for entry in episode.timestamp_entries %}
-                  <div class="timestamp-row timestamp-index-row">
+              </div>
+              {% for entry in episode.timestamp_entries %}
+                <div class="timestamp-row timestamp-index-row">
+                  <span class="timestamp-mark">
+                    {% if entry.fallback_url %}
+                      <a
+                        class="episode-timestamp"
+                        href="{{ entry.fallback_url }}"
+                        data-seconds="{{ entry.seconds }}"
+                        aria-label="Jump to {{ entry.time }}: {{ entry.label }}"
+                      >
+                        <span class="transcript-time-link">{{ entry.time }}</span>
+                      </a>
+                    {% else %}
+                      <span class="transcript-time-link">{{ entry.time }}</span>
+                    {% endif %}
+                  </span>
+                  <p>{{ entry.label }}</p>
+                </div>
+              {% endfor %}
+            </section>
+          {% endif %}
+
+          {% if episode.transcript %}
+            <section id="transcript" class="episode-section" aria-labelledby="transcript-heading">
+              <div class="band-head">
+                <div>
+                  <h2 id="transcript-heading">Transcript</h2>
+                  <p>The conversation in full, as it was recorded.</p>
+                </div>
+              </div>
+              {% for entry in episode.transcript %}
+                {% if entry.header %}
+                  <h3 class="transcript-section">{{ entry.header }}</h3>
+                {% else %}
+                  <div class="timestamp-row" id="{{ entry.anchor }}">
                     <span class="timestamp-mark">
                       {% if entry.fallback_url %}
                         <a
-                          class="episode-timestamp"
+                          class="transcript-time-link"
                           href="{{ entry.fallback_url }}"
                           data-seconds="{{ entry.seconds }}"
                           aria-label="Jump to {{ entry.time }}: {{ entry.line }}"
-                        >
-                          <span class="transcript-time-link">{{ entry.time }}</span>
-                        </a>
-                      {% else %}
+                        >{{ entry.time }}</a>
+                      {% elif entry.time %}
                         <span class="transcript-time-link">{{ entry.time }}</span>
                       {% endif %}
                       {% if entry.who %}
@@ -702,47 +745,12 @@
                     </span>
                     <p>{{ entry.line }}</p>
                   </div>
-                {% endfor %}
-              </section>
-            {% endif %}
-
-            {% if episode.transcript %}
-              <section id="transcript" class="episode-section" aria-labelledby="transcript-heading">
-                <div class="band-head">
-                  <div>
-                    <h2 id="transcript-heading">Transcript</h2>
-                    <p>The conversation in full, as it was recorded.</p>
-                  </div>
-                </div>
-                {% for entry in episode.transcript %}
-                  {% if entry.header %}
-                    <h3 class="transcript-section">{{ entry.header }}</h3>
-                  {% else %}
-                    <div class="timestamp-row" id="{{ entry.anchor }}">
-                      <span class="timestamp-mark">
-                        {% if entry.fallback_url %}
-                          <a
-                            class="transcript-time-link"
-                            href="{{ entry.fallback_url }}"
-                            data-seconds="{{ entry.seconds }}"
-                            aria-label="Jump to {{ entry.time }}: {{ entry.line }}"
-                          >{{ entry.time }}</a>
-                        {% elif entry.time %}
-                          <span class="transcript-time-link">{{ entry.time }}</span>
-                        {% endif %}
-                        {% if entry.who %}
-                          <span class="transcript-time">{{ entry.who }}</span>
-                        {% endif %}
-                      </span>
-                      <p>{{ entry.line }}</p>
-                    </div>
-                  {% endif %}
-                {% endfor %}
-              </section>
-            {% endif %}
-          </div>
-        </section>
-      {% endif %}
+                {% endif %}
+              {% endfor %}
+            </section>
+          {% endif %}
+        </div>
+      </section>
 
       {% if episode.guests %}
         <section class="band band-lavender" aria-labelledby="guest-bios-heading">
