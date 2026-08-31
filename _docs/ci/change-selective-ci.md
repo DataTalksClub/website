@@ -5,6 +5,11 @@ workflow. `ci/ownership.json` is the versioned ownership and impact graph. Its d
 version are bound into every plan and evidence envelope. The same graph is used by local
 engineering, push CI, scheduled-state calculation, tester review, and handoff reporting.
 
+The separate [content-update lane](../runbooks/content-update.md) validates the checked courses,
+Podwiki, FAQ, and docs projections with one read-only, redacted, checksum-bound matrix contract.
+It is projection validation only: source-repository authoring/build/deploy workflows remain in
+their owning repositories, while this website workflow never fetches or mutates them.
+
 The accepted #104 source contract remains the first stage. A push is classified from the complete
 `before..after` range using a full-history, rename/copy-aware, NUL-delimited Git diff. The immutable
 release SHA must equal the push `after` SHA and `github.sha`. A `workflow_dispatch` promote of a

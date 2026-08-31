@@ -4,6 +4,7 @@
 	test-content test-factories test-migrations test-playwright-core test-playwright test-browser \
 	test-accessibility test-playwright-smoke test-playwright-quarantined \
 	test-course-platform-sync course-platform-source-checkout course-platform-sync-dry-run course-platform-sync \
+	content-update-check \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
@@ -30,6 +31,8 @@ VERIFY_PRODUCER_ROLE ?= $(if $(filter tester,$(VERIFY_CONSUMER)),tester,engineer
 CMP_SOURCE_REF ?= main
 CMP_SOURCE_REPOSITORY ?=
 CMP_SOURCE_CHECKOUT ?=
+CONTENT_UPDATE_FAMILY ?= all
+CONTENT_UPDATE_OUTPUT_DIR ?= .tmp/content-update
 SECURITY_ARTIFACT_INPUTS ?= .tmp/security/security-baseline.json .tmp/security/security-vulnerability-scan.json .tmp/security/security-redaction-canary.json
 SECURITY_ARTIFACT_CANARIES ?= synthetic-secret-canary synthetic-email@example.invalid synthetic-token-canary
 SECURITY_VULNERABILITY_EVIDENCE ?= .tmp/security/security-vulnerability-scan.json
@@ -147,6 +150,17 @@ test-content:
 
 test-course-platform-sync:
 	uv run --frozen pytest scripts/tests/test_sync_course_platform.py -q
+
+content-update-check:
+	@set -eu; \
+		families="$(CONTENT_UPDATE_FAMILY)"; \
+		if test "$$families" = all; then families="courses podwiki faq docs"; fi; \
+		for family in $$families; do \
+			mkdir -p "$(CONTENT_UPDATE_OUTPUT_DIR)/$$family"; \
+			DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.content_update \
+				--family "$$family" --repository . \
+				--output "$(CONTENT_UPDATE_OUTPUT_DIR)/$$family/report.json"; \
+		done
 
 course-platform-source-checkout:
 	uv run python scripts/prepare_course_platform_source.py

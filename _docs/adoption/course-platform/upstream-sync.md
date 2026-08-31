@@ -6,6 +6,10 @@ The website adopts the Course Management Platform (CMP) by literal copy. It is
 not a Git mirror and CMP changes are never deployed automatically. A sync is a
 reviewed, source-pinned change to this repository.
 
+The website's read-only [content-update lane](../../runbooks/content-update.md) checks the pinned
+public course projection and course-repository adapter tests after such a change. It does not
+replace this manual sync recipe, fetch a moving CMP branch in CI, or write to the CMP repository.
+
 ## Repeatable recipe
 
 Use this short sequence for the next CMP update. It deliberately resolves one

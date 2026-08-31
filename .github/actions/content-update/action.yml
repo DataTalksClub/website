@@ -1,0 +1,38 @@
+name: Validate content update
+description: Run the website's bounded, redacted content-update projection contract
+inputs:
+  family:
+    description: Content family to validate
+    required: true
+  output-directory:
+    description: Gitignored directory in which to write the safe report
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Validate the checked projection
+      shell: bash
+      env:
+        CONTENT_UPDATE_FAMILY: ${{ inputs.family }}
+        CONTENT_UPDATE_OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$CONTENT_UPDATE_OUTPUT_DIRECTORY"
+        DJANGO_SETTINGS_MODULE=website.settings.test uv run --frozen python -m ci.content_update \
+          --family "$CONTENT_UPDATE_FAMILY" \
+          --repository . \
+          --output "$CONTENT_UPDATE_OUTPUT_DIRECTORY/report.json"
+    - name: Write the redacted content-update summary
+      if: always()
+      shell: bash
+      env:
+        CONTENT_UPDATE_OUTPUT_DIRECTORY: ${{ inputs.output-directory }}
+      run: |
+        set -euo pipefail
+        report="$CONTENT_UPDATE_OUTPUT_DIRECTORY/report.json"
+        if test -f "$report"; then
+          uv run --frozen python -m ci.content_update \
+            --summary --report "$report" >> "$GITHUB_STEP_SUMMARY"
+        else
+          printf '%s\n' '## Content update: report unavailable' >> "$GITHUB_STEP_SUMMARY"
+        fi

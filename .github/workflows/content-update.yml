@@ -1,0 +1,139 @@
+name: Content update
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/actions/content-update/action.yml
+      - .github/workflows/content-update.yml
+      - Makefile
+      - ci/content_update.py
+      - ci/tests/test_content_update.py
+      - content/**
+      - content_sync/**
+      - courses/**
+      - api/views/course_repository_webhooks.py
+      - api/tests/test_course_repository_webhooks.py
+      - scripts/build_public_projection.py
+      - scripts/prepare_course_platform_source.py
+      - scripts/sync_course_platform.py
+      - scripts/verify_course_platform_adoption.py
+      - scripts/tests/test_sync_course_platform.py
+      - templates/**
+      - course_platform_templates/**
+      - _docs/adoption/course-platform/**
+      - _docs/compatibility/**
+      - _docs/ci/content-update.md
+      - _docs/runbooks/content-update.md
+  push:
+    branches:
+      - main
+    paths:
+      - .github/actions/content-update/action.yml
+      - .github/workflows/content-update.yml
+      - Makefile
+      - ci/content_update.py
+      - ci/tests/test_content_update.py
+      - content/**
+      - content_sync/**
+      - courses/**
+      - api/views/course_repository_webhooks.py
+      - api/tests/test_course_repository_webhooks.py
+      - scripts/build_public_projection.py
+      - scripts/prepare_course_platform_source.py
+      - scripts/sync_course_platform.py
+      - scripts/verify_course_platform_adoption.py
+      - scripts/tests/test_sync_course_platform.py
+      - templates/**
+      - course_platform_templates/**
+      - _docs/adoption/course-platform/**
+      - _docs/compatibility/**
+      - _docs/ci/content-update.md
+      - _docs/runbooks/content-update.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: website-content-update-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate ${{ matrix.family }} content
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        family:
+          - courses
+          - podwiki
+          - faq
+          - docs
+    steps:
+      - name: Check out the reviewed website tree
+        uses: actions/checkout@v4
+        with:
+          clean: true
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install the locked Python environment
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: false
+          version: "0.10.11"
+      - name: Sync locked dependencies
+        run: uv sync --locked
+      - name: Run the common content-update contract
+        uses: ./.github/actions/content-update
+        with:
+          family: ${{ matrix.family }}
+          output-directory: .tmp/content-update/${{ matrix.family }}
+      - name: Run course source-specific validation
+        if: matrix.family == 'courses'
+        run: |
+          set -euo pipefail
+          uv run --frozen pytest \
+            content_sync/tests/test_course_repository.py \
+            content_sync/tests/test_course_repository_registration.py \
+            content_sync/tests/test_course_repository_sync.py \
+            content_sync/tests/test_webhook_delivery.py \
+            api/tests/test_course_repository_webhooks.py \
+            courses/tests/test_curriculum_import_service.py \
+            courses/tests/test_curriculum_source_provenance.py -q
+      - name: Run Podwiki source-specific validation
+        if: matrix.family == 'podwiki'
+        env:
+          DJANGO_SETTINGS_MODULE: website.settings.test
+        run: |
+          set -euo pipefail
+          uv run --frozen python manage.py test \
+            content.tests.test_wiki_design \
+            content.tests.test_podcast_episode_graph --noinput
+      - name: Run FAQ source-specific validation
+        if: matrix.family == 'faq'
+        env:
+          DJANGO_SETTINGS_MODULE: website.settings.test
+        run: |
+          set -euo pipefail
+          uv run --frozen python manage.py test content.tests.test_faq --noinput
+      - name: Run Docs source-specific validation
+        if: matrix.family == 'docs'
+        env:
+          DJANGO_SETTINGS_MODULE: website.settings.test
+        run: |
+          set -euo pipefail
+          uv run --frozen python manage.py test content.tests.test_docs_projection --noinput
+      - name: Upload the redacted content-update report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          if-no-files-found: error
+          name: content-update-${{ matrix.family }}-${{ github.run_id }}-attempt-${{ github.run_attempt }}
+          path: .tmp/content-update/${{ matrix.family }}/report.json
+          retention-days: 30

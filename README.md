@@ -80,6 +80,7 @@ make format-check
 make typecheck
 make migrations-check
 make deployment-check
+make content-update-check
 make test-core
 make test-playwright-core
 make test
@@ -101,5 +102,6 @@ Deployed development and production require a non-placeholder secret, a PostgreS
 
 See [`_docs/architecture/app-boundaries.md`](_docs/architecture/app-boundaries.md) for dependency
 direction, [`_docs/architecture/database-portability.md`](_docs/architecture/database-portability.md)
-for the database boundary and remaining-term inventory, and
+for the database boundary and remaining-term inventory, the
+[`content-update` runbook](_docs/runbooks/content-update.md) for the checked projection lane, and
 [`_docs/contributing.md`](_docs/contributing.md) for the full contribution handoff.
