@@ -107,9 +107,8 @@ facts intended for migration evidence.
   - [ ] Count only statuses accepted by the reviewed policy and discard attendee
         identity fields after deriving aggregate evidence.
   - [ ] Activate the reviewed Luma aggregates and verify the registration count is
-        visible on each mapped public event page as `N registered` before the event
-        and `N came` after it. This is one registration aggregate with time-aware
-        wording, not attendance or check-in evidence.
+        visible on each mapped public event page as `N registered`. This is one
+        registration aggregate, not attendance or check-in evidence.
 - [ ] Import Eventbrite registration totals.
   - [x] Record the protected Eventbrite archive checksum, normalize its wrapper for
         the aggregate adapter and validate every embedded event CSV against an
