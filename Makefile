@@ -7,6 +7,7 @@
 	content-update-check \
 	security-check security-artifact-scan \
 	test-remote-readonly test-remote-mutation test-live-email test-live-provider test-all migrate run worker \
+	production-prep-local \
 	terraform-seo-source-check terminology-check check-openapi check-management-parity \
 	database-portability-check verify-dtc-content review-data review-data-dry-run \
 	review-data-cleanup run-review-data verification-plan verification-run verification-full \
@@ -384,6 +385,14 @@ test-all: lock-check terminology-check database-portability-check lint format-ch
 
 migrate:
 	uv run python manage.py migrate
+
+production-prep-local:
+	@test -n "$(PRODUCTION_PREP_DATABASE)" || (echo "PRODUCTION_PREP_DATABASE is required" >&2; exit 2)
+	@test -n "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" || (echo "PRODUCTION_PREP_COURSE_MODULES_INPUT is required" >&2; exit 2)
+	uv run --frozen python scripts/prepare_local_data.py \
+		--database "$(PRODUCTION_PREP_DATABASE)" \
+		--course-modules-input "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" \
+		$(if $(PRODUCTION_PREP_FRESH),--fresh,)
 
 run:
 	uv run python manage.py runserver 0.0.0.0:8000

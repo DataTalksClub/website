@@ -55,7 +55,28 @@ Re-running the apply command with the same manifest is an idempotent replay. The
 contains only source identities, commits/checksums, aggregate curriculum counts, replay state, and
 course format/status counts.
 
-There is no all-source production-data preparation orchestrator in this checkout. The Luma worker
-and its prepared registration aggregate remain separate; this course command neither reads nor
-modifies that data. Do not promote this local command into a production workflow without a
-separately reviewed source transport and operational-data contract.
+## Combined local rehearsal
+
+The local-only orchestrator composes migrations, the reviewed event identity manifest, the
+baseline course catalog, and this three-course module preparation. It also validates the prepared
+Eventbrite and Luma aggregate snapshots against the safe facts recorded in
+`_docs/migration-data/event-registration-sources.json`. It does not activate those registration
+totals: the exact provider-to-event mapping review remains a required gate, and the command never
+prints or persists attendee-level fields.
+
+Run it against a new SQLite database, then run the same command without `--fresh` to prove replay:
+
+```bash
+uv run --frozen python scripts/prepare_local_data.py \
+  --database .tmp/production-prep.sqlite3 \
+  --course-modules-input .tmp/course-modules-input.json \
+  --fresh
+
+uv run --frozen python scripts/prepare_local_data.py \
+  --database .tmp/production-prep.sqlite3 \
+  --course-modules-input .tmp/course-modules-input.json
+```
+
+The script refuses databases outside `.tmp/` and forces the local SQLite settings. It is a
+rehearsal tool, not a production importer; provider credentials, live registrations, and
+unreviewed mapping decisions must be supplied through a separately approved operational flow.
