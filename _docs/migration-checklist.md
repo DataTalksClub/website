@@ -59,6 +59,31 @@ authoritative specifications under `_docs/specs/`.
 
 ## Events and community data
 
+### Located local Luma snapshot (verified 2026-08-31)
+
+The protected Luma export is present in the main checkout at
+`/home/alexey/git/dtc-website/.local/migration-data/events/luma/`. It is outside the
+`production-prep` worktree because the preparation script resolves protected migration data from
+the Git common checkout. The directory contains the raw per-event CSVs, matching event checkpoint
+JSON files, and descriptions.
+
+The adapter-ready copy is at
+`/home/alexey/git/dtc-website/.local/migration-data/events/luma-aggregate-v1/`. It contains 166
+CSV/checkpoint pairs and matches the recorded tree checksum in
+`_docs/migration-data/event-registration-sources.json`:
+
+- capture completed: `2026-08-29T20:46:15.172888+00:00`;
+- input rows: `51,924`;
+- accepted aggregate rows: `51,873`;
+- excluded rows: `51`;
+- activation state: `mapping_review_required`.
+
+This export is protected attendee-level migration data, not an API credential or a live Luma
+connection. No Luma token is stored in the repository, worktrees, CI artifacts, or this document.
+The source and prepared directories are gitignored. Never copy their rows into logs, screenshots,
+issues, reports, or public projections. The checksum and aggregate facts above are the only safe
+facts intended for migration evidence.
+
 - [ ] Provision the protected local source bundle under the repository root at
       `.local/migration-data/events/` (currently
       `/home/alexey/git/dtc-website/.local/migration-data/events/`). The directory
