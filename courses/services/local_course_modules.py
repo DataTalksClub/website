@@ -51,6 +51,13 @@ TARGET_COHORTS = MappingProxyType(
         "ai-dev-tools-zoomcamp": "2026",
     }
 )
+TARGET_REPOSITORIES = MappingProxyType(
+    {
+        "llm-zoomcamp": ("DataTalksClub", "llm-zoomcamp"),
+        "ml-zoomcamp": ("DataTalksClub", "machine-learning-zoomcamp"),
+        "ai-dev-tools-zoomcamp": ("DataTalksClub", "ai-dev-tools-zoomcamp"),
+    }
+)
 _SHA1 = re.compile(r"^[0-9a-f]{40}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -230,6 +237,10 @@ def _validate_git_checkout(root: Path, *, commit_sha: str, branch: str) -> None:
     commands = (
         (["git", "-C", str(root), "rev-parse", "HEAD"], commit_sha),
         (["git", "-C", str(root), "rev-parse", "--abbrev-ref", "HEAD"], branch),
+        (
+            ["git", "-C", str(root), "status", "--porcelain=v1", "--untracked-files=all"],
+            "",
+        ),
     )
     for command, expected in commands:
         try:
@@ -312,6 +323,8 @@ def _validate_source_record(record: Mapping[str, Any]) -> tuple[dict[str, Any], 
     owner = _string(record.get("repository_owner"), code="repository_identity_invalid")
     name = _string(record.get("repository_name"), code="repository_identity_invalid")
     branch = _string(record.get("repository_branch"), code="repository_identity_invalid")
+    if TARGET_REPOSITORIES[stable_id] != (owner, name) or branch != "main":
+        _refuse("repository_identity_invalid")
     commit_sha = _string(record.get("commit_sha"), code="source_commit_invalid")
     if not _SHA1.fullmatch(commit_sha):
         _refuse("source_commit_invalid")
