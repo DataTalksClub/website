@@ -80,7 +80,11 @@ def test_podcast_cards_and_controls_share_hover_and_keyboard_affordances(
     context.close()
 
 
-def test_event_card_uses_the_same_bottom_right_cue(page: Page, live_server) -> None:
+def test_event_card_uses_the_same_bottom_right_cue(
+    page: Page,
+    live_server,
+    stable_public_event_clock,
+) -> None:
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
     page.set_viewport_size({"width": 1440, "height": 900})
     response = page.goto(f"{live_server.url}/events", wait_until="networkidle")

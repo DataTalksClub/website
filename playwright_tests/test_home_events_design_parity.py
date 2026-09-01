@@ -177,6 +177,7 @@ def _load_light(page: Page, url: str, path: str) -> None:
 def test_home_events_and_detail_match_cmp_composition(
     page: Page,
     live_server,
+    stable_public_event_clock,
     viewport: dict[str, int],
     suffix: str,
 ) -> None:

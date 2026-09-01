@@ -5,9 +5,12 @@ import re
 import threading
 from collections.abc import Generator
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Protocol
+from unittest.mock import patch
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo
 
 import pytest
 from playwright.sync_api import Browser, BrowserContext, Route
@@ -123,6 +126,7 @@ _EMAIL_PREFERENCES_CONSOLE_RE = re.compile(
 _OFFLINE_ROUTE_BYTES: dict[str, tuple[bytes, str]] = {}
 _YOUTUBE_EMBED_ORIGIN = "https://www.youtube-nocookie.com"
 _SPOTIFY_EMBED_ORIGIN = "https://creators.spotify.com"
+PUBLIC_EVENT_TEST_NOW = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
 _LIVE_SERVER_READY_TIMEOUT_SECONDS = 10.0
 _LIVE_SERVER_SHUTDOWN_TIMEOUT_SECONDS = 10.0
 
@@ -597,6 +601,14 @@ def live_server(django_db_setup: None):
     finally:
         if started:
             _stop_live_server(server, connections=_live_server_connections(server))
+
+
+@pytest.fixture
+def stable_public_event_clock() -> Generator[None]:
+    """Keep browser event pages aligned with the deterministic public fixture."""
+
+    with patch("content.public_data.timezone.now", return_value=PUBLIC_EVENT_TEST_NOW):
+        yield
 
 
 @pytest.fixture

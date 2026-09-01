@@ -189,6 +189,7 @@ def test_docs_and_faq_root_trailing_slash_browser_contract(
 def test_internal_event_to_person_flow(
     page: Page,
     live_server,
+    stable_public_event_clock,
     viewport: ViewportSize,
     suffix: str,
 ) -> None:

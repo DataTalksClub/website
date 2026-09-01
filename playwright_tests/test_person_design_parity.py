@@ -118,7 +118,7 @@ def test_a_wide_body_of_work_is_grouped_into_scannable_rows(page: Page, live_ser
     )
     expect(page.locator(".stat-tile")).to_have_count(len(person.groups))
     expect(page.locator(".person-rows-podcast .play-disc")).to_have_count(5)
-    expect(page.locator(".person-rows-events .date-rail")).to_have_count(50)
+    expect(page.locator(".person-rows-events .date-rail")).to_have_count(51)
     for group in person.groups:
         heading = page.locator(f"#{group.anchor}-heading")
         expect(heading).to_be_visible()
