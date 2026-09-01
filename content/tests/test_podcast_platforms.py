@@ -121,8 +121,10 @@ class PodcastPlatformDataTests(TestCase):
             'href="https://creators.spotify.com/pod/profile/datatalksclub/episodes/',
         )
         for provider in ("apple", "spotify", "youtube"):
-            link_start = body.index(f'href="{episode["links"][provider]}"')
+            marker_start = body.index(f'data-podcast-platform="{provider}"')
+            link_start = body.rfind("<a", 0, marker_start)
             link_markup = body[link_start : body.index("</a>", link_start)]
+            self.assertIn(f'href="{episode["links"][provider]}"', link_markup)
             self.assertIn(f'data-podcast-platform="{provider}"', link_markup)
             self.assertIn(
                 f'class="podcast-platform-icon" data-podcast-platform-icon="{provider}" '
