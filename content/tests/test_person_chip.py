@@ -241,27 +241,16 @@ class PersonChipRenderingTests(TestCase):
         self.assertIn('height="96"', portrait)
 
     def test_a_credit_without_a_portrait_keeps_the_stand_in_disc(self) -> None:
-        """Every profile carries a picture today; a credit with no profile does not.
+        """Every profile carries a picture today; a credit with no profile does not."""
 
-        The one podcast guest the people records do not hold is exactly that
-        case, so the episode still credits them — with the striped disc the
-        design system reserves for a person it has no face for.
-        """
-
-        projection = public_projection()
-        episode = next(
-            record
-            for record in projection["podcasts"]
-            if any(not guest["public_path"] for guest in record["guest_profiles"])
-        )
-        guest = next(guest for guest in episode["guest_profiles"] if not guest["public_path"])
-        body = self.client.get(episode["public_path"]).content.decode()
+        record = public_projection()["books_by_slug"][MIXED_BOOK]
+        body = self.client.get(record["public_path"]).content.decode()
 
         self.assertIn(
             '<span class="avatar avatar-striped person-chip-portrait" aria-hidden="true">',
             body,
         )
-        self.assertIn(f'<span class="person-chip-name">{escape(guest["name"])}</span>', body)
+        self.assertIn('<span class="person-chip-name">Sara Robinson</span>', body)
 
     def test_the_episode_page_draws_its_guest_with_the_shared_chip(self) -> None:
         projection = public_projection()
