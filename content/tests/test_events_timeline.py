@@ -23,7 +23,21 @@ from events.models import Event
 from .pagination_support import catalogue_page_bodies
 
 
-class EventTimelineDataTests(TestCase):
+STABLE_EVENT_NOW = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
+
+
+class StableEventClockTestCase(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.event_clock = patch(
+            "content.public_data.timezone.now",
+            return_value=STABLE_EVENT_NOW,
+        )
+        self.event_clock.start()
+        self.addCleanup(self.event_clock.stop)
+
+
+class EventTimelineDataTests(StableEventClockTestCase):
     def test_date_groups_use_local_calendar_date_and_preserve_input_order(self) -> None:
         first = {
             "starts_at_value": datetime(2026, 8, 17, 22, tzinfo=ZoneInfo("UTC")),
@@ -57,7 +71,7 @@ class EventTimelineDataTests(TestCase):
         )
 
 
-class EventTimelineRouteTests(TestCase):
+class EventTimelineRouteTests(StableEventClockTestCase):
     def test_legacy_aliases_accept_trailing_slash_and_cache_redirects(self) -> None:
         events = Event.objects.prefetch_related("aliases").order_by("source_key")
         self.assertEqual(events.count(), 421)
@@ -208,7 +222,7 @@ class EventTimelineRouteTests(TestCase):
         self.assertEqual(head_response.content, b"")
 
 
-class PastEventPaginationTests(TestCase):
+class PastEventPaginationTests(StableEventClockTestCase):
     """The archive on the shared paginator (issues #177, #178).
 
     The archive's own parser, page-path builder, context keys and control markup are
@@ -491,7 +505,7 @@ class PastEventPaginationTests(TestCase):
         self.assertNotRegex(archive, r"\bkind-tip-0\b")
 
 
-class EventTimelineTemplateTests(TestCase):
+class EventTimelineTemplateTests(StableEventClockTestCase):
     def test_timeline_uses_numeric_paths_at_runtime(self) -> None:
         projection = public_projection()
         self.assertTrue(
@@ -510,7 +524,7 @@ class EventTimelineTemplateTests(TestCase):
             self.assertEqual(event["public_path"], f"/events/{public_id}/{event['slug']}")
 
 
-class EventIndexDesignSystemTests(TestCase):
+class EventIndexDesignSystemTests(StableEventClockTestCase):
     """The events index is a design 5a page (issue #179, mockup 6c).
 
     It carries one inline stylesheet built from the shared design system partial, loads no
@@ -589,7 +603,7 @@ class EventIndexDesignSystemTests(TestCase):
         )
 
 
-class EventKindsExplainerTests(TestCase):
+class EventKindsExplainerTests(StableEventClockTestCase):
     """The explainer that gives the rows' kind pills their meaning.
 
     A visitor's first question on this page is what a "podcast" event is as opposed
@@ -660,7 +674,7 @@ class EventKindsExplainerTests(TestCase):
                 self.assertNotIn("fa-microphone-alt", body)
 
 
-class EventDetailDesignSystemTests(TestCase):
+class EventDetailDesignSystemTests(StableEventClockTestCase):
     """The event detail page is a design 5a page (issue #179).
 
     It is the page a reader reaches by clicking a row on the index, so the two are
