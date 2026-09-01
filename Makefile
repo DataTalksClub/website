@@ -392,6 +392,7 @@ production-prep-local:
 	uv run --frozen python scripts/prepare_local_data.py \
 		--database "$(PRODUCTION_PREP_DATABASE)" \
 		--course-modules-input "$(PRODUCTION_PREP_COURSE_MODULES_INPUT)" \
+		$(if $(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT),--current-registration-input "$(PRODUCTION_PREP_CURRENT_REGISTRATION_INPUT)",) \
 		$(if $(PRODUCTION_PREP_FRESH),--fresh,)
 
 run:
