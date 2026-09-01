@@ -3,7 +3,10 @@ from __future__ import annotations
 import csv
 import hashlib
 import re
+from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
+from zoneinfo import ZoneInfo
 
 from django.template.loader import get_template
 from django.test import SimpleTestCase, TestCase
@@ -152,7 +155,9 @@ class HomeEventsCmpRenderingTests(TestCase):
             for event in public_projection()["events"]
             if event["title"] == FEATURED_EVENT_TITLE
         )
-        catalog = self.client.get("/events")
+        stable_now = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
+        with patch("content.public_data.timezone.now", return_value=stable_now):
+            catalog = self.client.get("/events")
         detail = self.client.get(featured_event_path)
 
         self.assertEqual(catalog.status_code, 200)
