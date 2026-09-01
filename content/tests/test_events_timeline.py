@@ -22,7 +22,6 @@ from events.models import Event
 
 from .pagination_support import catalogue_page_bodies
 
-
 STABLE_EVENT_NOW = datetime(2026, 8, 12, tzinfo=ZoneInfo("Europe/Berlin"))
 
 
