@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import json
 from pathlib import Path
+from typing import Any, ClassVar
 
 from django.template.loader import render_to_string
 from django.test import SimpleTestCase
@@ -20,6 +21,8 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 class PodcastShowNotesContractTests(SimpleTestCase):
+    records: ClassVar[list[dict[str, Any]]]
+
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -64,7 +67,10 @@ class PodcastShowNotesContractTests(SimpleTestCase):
 
         self.assertEqual(len(self.records), 203)
         self.assertEqual(sum(bool(episode) for episode in normalized), 174)
-        self.assertEqual(sum(len(record.get("resources") or []) for record in self.records), 544)
+        self.assertEqual(
+            sum((len(record.get("resources") or []) for record in self.records), 0),
+            544,
+        )
         self.assertEqual(len(rows), 544)
         self.assertEqual(sum(resource.is_external for resource in rows), 541)
         self.assertEqual(sum(not resource.is_external for resource in rows), 3)
