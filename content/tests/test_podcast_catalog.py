@@ -48,8 +48,8 @@ class PodcastOrderingTests(SimpleTestCase):
         ordered = ordered_podcasts(projection)
         seasons = podcast_seasons(projection)
 
-        self.assertEqual(len(ordered), 205)
-        self.assertEqual(len({episode["slug"] for episode in ordered}), 205)
+        self.assertEqual(len(ordered), 203)
+        self.assertEqual(len({episode["slug"] for episode in ordered}), 203)
         self.assertEqual([season.number for season in seasons], list(range(24, 0, -1)))
         self.assertEqual(
             source_order[:4],
@@ -175,7 +175,7 @@ class PodcastPageCompositionTests(SimpleTestCase):
             )
             self.assertIn(view.watch_url, set(record["links"].values()))
         # Seventeen entries carry no publication date, and the pages simply omit it.
-        self.assertEqual(sum(1 for view in views if not view.published_display), 17)
+        self.assertEqual(sum(1 for view in views if not view.published_display), 16)
 
     def test_guest_public_paths_keep_only_safe_root_relative_links(self) -> None:
         record = dict(ordered_podcasts()[0])
@@ -388,7 +388,7 @@ class PodcastEpisodeParityTests(TestCase):
 
         self.assertEqual(
             record["image_path"],
-            "/images/podcast/s24e06-how-to-build-ai-that-actually-ships-in-production.jpg",
+            "/images/podcast/s24e07-how-to-build-ai-that-actually-ships-in-production.jpg",
         )
         self.assertEqual(view.image_path, record["image_path"])
         self.assertEqual(
@@ -931,8 +931,8 @@ class PodcastSeasonNavigationTests(TestCase):
             seen_paths.extend(page_paths)
 
         expected_paths = {episode["public_path"] for episode in projection["podcasts"]}
-        self.assertEqual(len(seen_paths), 205)
-        self.assertEqual(len(set(seen_paths)), 205)
+        self.assertEqual(len(seen_paths), 203)
+        self.assertEqual(len(set(seen_paths)), 203)
         self.assertEqual(set(seen_paths), expected_paths)
 
         for detail_path in seen_paths:
@@ -964,9 +964,9 @@ class PodcastSeasonNavigationTests(TestCase):
             item for item in migration["aliases"] if item["collection"] == "podcasts"
         ]
 
-        self.assertEqual(len(podcasts), 205)
+        self.assertEqual(len(podcasts), 203)
         self.assertEqual({episode["public_path"] for episode in podcasts}, podcast_finals)
-        self.assertEqual(len(podcast_finals), 205)
+        self.assertEqual(len(podcast_finals), 203)
         self.assertTrue(all(path.startswith("/podcast/") for path in podcast_finals))
         self.assertEqual(
             {path for path in podcast_finals if not path.endswith(".html")},
@@ -976,7 +976,7 @@ class PodcastSeasonNavigationTests(TestCase):
                 PODCAST_AI_PRODUCTION_PATH,
             },
         )
-        self.assertEqual(len(podcast_aliases), 408)
+        self.assertEqual(len(podcast_aliases), 404)
         self.assertEqual(
             {item["final_path"] for item in podcast_aliases},
             podcast_finals - {PODCAST_GENAI_PILOTS_PATH},
@@ -1481,7 +1481,7 @@ class PodcastSeasonNavigationTests(TestCase):
         self.assertIn("private", cache_directives(credentialed))
         self.assertIn("no-store", cache_directives(credentialed))
 
-    def test_podcast_sitemap_is_clean_hub_plus_205_unchanged_details(self) -> None:
+    def test_podcast_sitemap_is_clean_hub_plus_203_details(self) -> None:
         response = self.client.get("/sitemaps/podcast.xml")
         self.assertEqual(response.status_code, 200)
         document = ElementTree.fromstring(response.content)
@@ -1493,8 +1493,8 @@ class PodcastSeasonNavigationTests(TestCase):
                 for episode in public_projection()["podcasts"]
             ),
         }
-        self.assertEqual(len(locations), 206)
-        self.assertEqual(len(set(locations)), 206)
+        self.assertEqual(len(locations), 204)
+        self.assertEqual(len(set(locations)), 204)
         self.assertEqual(set(locations), expected)
         self.assertFalse(any("?" in location for location in locations))
         self.assertFalse(any(location.endswith("/podcast.html") for location in locations))

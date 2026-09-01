@@ -602,16 +602,6 @@
         "type": "wiki"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Theme Park to Tesla",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Brand Engagement",
-        "type": "citation"
-      },
-      {
         "href": "/wiki/power-analysis",
         "label": "Power analysis",
         "type": "wiki"
@@ -670,11 +660,6 @@
         "href": "/wiki/responsible-ai-and-governance",
         "label": "responsible AI and\ngovernance",
         "type": "wiki"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Route Modeling",
-        "type": "citation"
       },
       {
         "href": "/podcast/causal-inference-for-machine-learning.html",
@@ -3077,11 +3062,6 @@
         "href": "/wiki/prompt-engineering",
         "label": "Prompt Engineering",
         "type": "wiki"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Theme Park to Tesla",
-        "type": "citation"
       },
       {
         "href": "/podcast/s23e07-understanding-ai-engineer-role.html",
@@ -6674,16 +6654,6 @@
         "type": "wiki"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Theme Park to Tesla",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Local Inference Cost",
-        "type": "citation"
-      },
-      {
         "href": "/wiki/orchestration",
         "label": "Orchestration",
         "type": "wiki"
@@ -6717,16 +6687,6 @@
         "href": "/wiki/retrieval-augmented-generation",
         "label": "Retrieval-Augmented Generation",
         "type": "wiki"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Small LLMs",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Coding Models",
-        "type": "citation"
       },
       {
         "href": "/wiki/caching",
@@ -30114,11 +30074,6 @@
         "type": "citation"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "From Theme Parks to Tesla",
-        "type": "citation"
-      },
-      {
         "href": "/people/ellenkonig.html",
         "label": "Ellen Koenig",
         "type": "person"
@@ -37142,16 +37097,6 @@
         "type": "wiki"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Theme Park to Tesla",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "App Incentives",
-        "type": "citation"
-      },
-      {
         "href": "/wiki/data-teams",
         "label": "data team",
         "type": "wiki"
@@ -37262,24 +37207,9 @@
         "type": "wiki"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Route Recommendations",
-        "type": "citation"
-      },
-      {
         "href": "/wiki/a-b-testing",
         "label": "A/B testing",
         "type": "wiki"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Employee Swiping",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Brand Engagement",
-        "type": "citation"
       },
       {
         "href": "/podcast/generative-ai-chatbots-in-production-security.html",
@@ -68647,11 +68577,6 @@
         "href": "/wiki/machine-learning-personalization",
         "label": "recommendations",
         "type": "wiki"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Theme Park Crowd Modeling",
-        "type": "citation"
       },
       {
         "href": "/wiki/autonomous-driving-ai",
@@ -113775,16 +113700,6 @@
         "type": "wiki"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Theme Park Crowd Modeling",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "App Adoption",
-        "type": "citation"
-      },
-      {
         "href": "/wiki/search",
         "label": "production search",
         "type": "wiki"
@@ -113810,21 +113725,6 @@
         "type": "wiki"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Crowd Signals",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Route Modeling",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Route Recommendations",
-        "type": "citation"
-      },
-      {
         "href": "/wiki/machine-learning-personalization",
         "label": "ML personalization",
         "type": "wiki"
@@ -113840,24 +113740,9 @@
         "type": "wiki"
       },
       {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Employee Swiping",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Validation Result",
-        "type": "citation"
-      },
-      {
         "href": "/wiki/streaming",
         "label": "streaming",
         "type": "wiki"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Streaming Validation",
-        "type": "citation"
       },
       {
         "href": "/podcast/from-software-engineering-to-leading-data-science-teams.html",
@@ -123377,16 +123262,6 @@
         "href": "/wiki/a-b-testing",
         "label": "experiment design",
         "type": "wiki"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Theme Park to Tesla",
-        "type": "citation"
-      },
-      {
-        "href": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html",
-        "label": "Employee Targeting",
-        "type": "citation"
       },
       {
         "href": "/people/elenitziritazacharatou.html",

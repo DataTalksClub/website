@@ -1547,6 +1547,11 @@
         "label": "Bring Your Own Data",
         "public_path": "/events/ff836dd1-29ac-4fda-bbc1-2472214d27b0/bring-your-own-data",
         "role": "speaker"
+      },
+      {
+        "label": "Roles in a Data Team",
+        "public_path": "/events/c32b5aeb-3a45-4258-a74d-1d5e1a10dd1f/roles-in-a-data-team",
+        "role": "speaker"
       }
     ],
     "roles": [
@@ -8740,12 +8745,12 @@
     "relationships": [
       {
         "label": "The Journey of a Data Generalist: From Bioinformatics to Freelancing",
-        "public_path": "/podcast/_s12e08.html",
-        "role": "guest"
+        "public_path": "/events/6be73992-6f40-4223-812e-e5fdc991cb99/the-journey-of-a-data-generalist-from-bioinformatics-to",
+        "role": "speaker"
       }
     ],
     "roles": [
-      "guest"
+      "speaker"
     ],
     "slug": "jekaterinakokatjuhha",
     "summary": "",

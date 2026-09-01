@@ -71,20 +71,20 @@
       "additionalProperties": false,
       "required": ["finals", "aliases"],
       "properties": {
-        "finals": { "const": 796 },
-        "aliases": { "const": 1590 }
+        "finals": { "const": 794 },
+        "aliases": { "const": 1586 }
       }
     },
     "finals": {
       "type": "array",
-      "minItems": 796,
-      "maxItems": 796,
+      "minItems": 794,
+      "maxItems": 794,
       "items": { "$ref": "#/$defs/final" }
     },
     "aliases": {
       "type": "array",
-      "minItems": 1590,
-      "maxItems": 1590,
+      "minItems": 1586,
+      "maxItems": 1586,
       "items": { "$ref": "#/$defs/alias" }
     },
     "content_sha256": { "$ref": "#/$defs/sha256" }

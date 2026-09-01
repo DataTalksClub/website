@@ -44,11 +44,11 @@ class PublicProjectionTests(TestCase):
         self.assertFalse(self.projection["manifest"]["sources"]["fallback_selection"]["accepted"])
         self.assertEqual(
             self.projection["manifest"]["sources"]["preferred_content"]["revision"],
-            "e29f56ce70bd997171a78a9f0facc9354797f421",
+            "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
         )
         self.assertEqual(
             self.projection["manifest"]["sources"]["preferred_content"]["editorial_overlay_sha256"],
-            "63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6",
+            "b2e6f23da40b6afbc310340196101422ac5de466b89e409c0ce5f24f5bf20326",
         )
         self.assertEqual(
             self.projection["manifest"]["wiki_assets"],
@@ -391,9 +391,9 @@ class PublicProjectionTests(TestCase):
 
         graph = self.client.get("/wiki/graph/graph.json").json()
         search = self.client.get("/wiki/search-corpus.json").json()
-        self.assertEqual(len(graph["nodes"]), 1_072)
-        self.assertEqual(len(graph["links"]), 13_006)
-        self.assertEqual(len(search["docs"]), 2_998)
+        self.assertEqual(len(graph["nodes"]), 1_070)
+        self.assertEqual(len(graph["links"]), 12_987)
+        self.assertEqual(len(search["docs"]), 2_996)
         for document in graph["nodes"] + search["docs"]:
             url = document.get("url", "")
             self.assertFalse(url.startswith("/podwiki/"))

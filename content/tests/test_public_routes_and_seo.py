@@ -30,6 +30,53 @@ SITEMAP_NAMESPACE = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 class PublicRouteAndSeoTests(TestCase):
     maxDiff = None
 
+    def test_removed_podcast_records_are_absent_from_active_projections(self) -> None:
+        removed_slugs = {
+            "_s12e08",
+            "_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
+        }
+        removed_aliases = {slug.removeprefix("_") for slug in removed_slugs}
+        projection = public_projection()
+
+        self.assertTrue(
+            removed_slugs.isdisjoint({episode["slug"] for episode in projection["podcasts"]})
+        )
+        migration = projection["editorial_route_migration"]
+        route_records = migration["finals"] + migration["aliases"]
+        self.assertFalse(
+            any(
+                record["collection"] == "podcasts"
+                and any(
+                    alias in str(record.get(field, ""))
+                    for alias in removed_aliases
+                    for field in ("record_key", "final_path", "source_path")
+                )
+                for record in route_records
+            )
+        )
+
+        graph = projection["wiki_graph"]
+        removed_node_ids = {f"podcast:{alias}" for alias in removed_aliases}
+        self.assertFalse(
+            removed_node_ids.intersection({node["id"] for node in graph["nodes"]})
+        )
+        self.assertFalse(
+            any(
+                link["source"] in removed_node_ids or link["target"] in removed_node_ids
+                for link in graph["links"]
+            )
+        )
+
+        search_documents = projection["wiki_search"]["docs"]
+        self.assertFalse(
+            any(
+                alias in str(document.get(field, ""))
+                for document in search_documents
+                for alias in removed_aliases
+                for field in ("episode_slug", "graph_id", "url", "related_terms")
+            )
+        )
+
     def test_docs_and_faq_roots_preserve_trailing_slash_contract(self) -> None:
         roots = (("/docs/", "/docs"), ("/faq/", "/faq"))
         query = "utm_source=oncall%2Btest&x=a%2Fb&blank="
@@ -160,12 +207,12 @@ class PublicRouteAndSeoTests(TestCase):
     def test_editorial_detail_aliases_redirect_directly_to_canonicals(self) -> None:
         projection = public_projection()
         migration = projection["editorial_route_migration"]
-        self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_590})
-        self.assertEqual(len(migration["finals"]), 796)
-        self.assertEqual(len(migration["aliases"]), 1_590)
+        self.assertEqual(migration["counts"], {"finals": 794, "aliases": 1_586})
+        self.assertEqual(len(migration["finals"]), 794)
+        self.assertEqual(len(migration["aliases"]), 1_586)
         canonical_paths = {item["final_path"] for item in migration["finals"]}
         alias_map = {item["source_path"]: item["final_path"] for item in migration["aliases"]}
-        self.assertEqual(len(alias_map), 1_590)
+        self.assertEqual(len(alias_map), 1_586)
         self.assertEqual(
             set(alias_map.values()),
             canonical_paths
@@ -323,12 +370,9 @@ class PublicRouteAndSeoTests(TestCase):
         ]
         linked_guests = [guest for guest in guest_profiles if guest["public_path"]]
         unresolved_guests = [guest for guest in guest_profiles if not guest["public_path"]]
-        self.assertEqual(len(guest_profiles), 208)
-        self.assertEqual(len(linked_guests), 207)
-        self.assertEqual(
-            unresolved_guests,
-            [{"key": "abouzarabbaspour", "name": "abouzarabbaspour", "public_path": ""}],
-        )
+        self.assertEqual(len(guest_profiles), 206)
+        self.assertEqual(len(linked_guests), 206)
+        self.assertEqual(unresolved_guests, [])
         for podcast in projection["podcasts"]:
             response = self.client.get(podcast["public_path"])
             self.assertEqual(response.status_code, 200)

@@ -31618,19 +31618,6 @@
     },
     {
       "document_type": "page",
-      "episode_slug": "s12e08",
-      "graph_id": "podcast:s12e08",
-      "id": "podcast_summary:s12e08",
-      "level": "podcast_summary",
-      "page_title": "The Journey of a Data Generalist: From Bioinformatics to Freelancing",
-      "related_terms": "podcast_summary datatalksclub.github.io/_podcast/_s12e08.md jekaterinakokatjuhha",
-      "segment_title": "",
-      "text": "The Journey of a Data Generalist: From Bioinformatics to Freelancing podcast summary datatalksclub.github.io/ podcast/ s12e08.md jekaterinakokatjuhha Episode: The Journey of a Data Generalist: From Bioinformatics to Freelancing Source DataTalks.Club episode Watch on YouTube Listen on Spotify Listen on Apple Podcasts People Jekaterina Kokatjuhha Key Concepts No explicit topic metadata is available. Use the chapter summary before relying on this episode. Agent Summary Why it matters: The Journey of a Data Generalist: From Bioinformatics to Freelancing Useful for: Future agents triaging Jekaterina's background; How Jekaterina started freelancing; Jekaterina's initial ways of getting freelancing clients. Probably skip if: you do not need material from Jekaterina Kokatjuhha. Chapter Headers 2:02 Jekaterina's background 7:13 How Jekaterina started freelancing 10:44 Jekaterina's initial ways of getting freelancing clients 16:30 How being a generalist helped Jekaterina's career 21:22 Connecting business and data 23:09 How Jekaterina's LinkedIn posts helped her get clients 29:10 Jekaterina's work in fundraising 31:46 Cohorts and KPIs 34:03 Improving communication between the data and business teams 36:43 Motivating every link in the company's chain 38:45 The cons of freelancing 42:40 Balancing projects and networking 48:36 The importance of enjoying what you do 51:16 Growing the client base 54:59 In the office work vs working remotely 56:11 Jekaterina's advice who people who feel stuck 58:03 Jekaterina's resource recommendations Source File datatalksclub.github.io/ podcast/ s12e08.md",
-      "title": "The Journey of a Data Generalist: From Bioinformatics to Freelancing",
-      "url": "/podcast/_s12e08.html"
-    },
-    {
-      "document_type": "page",
       "episode_slug": "s22e06-from-black-box-systems-to-augmented-decision-making",
       "graph_id": "podcast:s22e06-from-black-box-systems-to-augmented-decision-making",
       "id": "podcast_summary:s22e06-from-black-box-systems-to-augmented-decision-making",
@@ -31940,19 +31927,6 @@
       "text": "Master Technical Writing: 7 Day Workflow to Accelerate Your Data Science Career podcast summary datatalksclub.github.io/ podcast/technical writing for data scientists.md software engineering tools practices communication career transition eugeneyan Episode: Master Technical Writing: 7 Day Workflow to Accelerate Your Data Science Career Source DataTalks.Club episode Watch on YouTube People Eugene Yan Key Concepts software engineering tools practices communication career transition Agent Summary Why it matters: Master Technical Writing: 7 Day Workflow to Accelerate Your Data Science Career Useful for: Future agents triaging software engineering, tools, practices, communication and Career Transition: Psychology to Applied Scientist; First Public Writing: Early Blog Posts and Meetups; Writing Motivations: Share, Learn, Be a Beacon. Probably skip if: you do not need material from Eugene Yan or you are not working on software engineering, tools, practices. Chapter Headers 0:00 Podcast Introduction 1:40 Career Transition: Psychology to Applied Scientist 6:00 First Public Writing: Early Blog Posts and Meetups 9:30 Writing Motivations: Share, Learn, Be a Beacon 14:00 Audience Targeting: Readers, Peers, and Future Teammates 16:30 Writing as Product: Weekly Shipping and UX Mindset 20:00 Weekly Writing Cadence: 7 Day Workflow and Schedule 25:00 Outline First Method: Memory Rewriting and Idea Filtering 29:00 Time Budget & Editing: 25 Hours/Week and Avoiding Over Editing 33:00 Idea Sources and Topic Prioritization for Technical Writing 37:00 Title Crafting and Article Length Decisions 41:00 Getting Started: Start Writing, Overcome Friction 43:30 Blogging Tools: Medium, Substack, WordPress, Jekyll (GitHub Pages) 46:00 Writing Habits: Morning Reps and Weekend Deep Work 48:30 Audience Growth: Distribution via Twitter, LinkedIn, Consistency 51:00 Writing at Work: Press Release, Working Backwards, and Design Docs 54:00 Technical Documentation: Decision Logs, Rationales, and Team Memory 56:30 Portfolio Best Practices: Clear README, Quick Start, Repo Tour 58:30 Practical Tips: Iterate Outlines, Ship Weekly, Learn by Teaching Source File datatalksclub.github.io/ podcast/technical writing for data scientists.md",
       "title": "Master Technical Writing: 7-Day Workflow to Accelerate Your Data Science Career",
       "url": "/podcast/technical-writing-for-data-scientists.html"
-    },
-    {
-      "document_type": "page",
-      "episode_slug": "theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "graph_id": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "id": "podcast_summary:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "level": "podcast_summary",
-      "page_title": "From Theme Parks to Tesla: Building Data Products Through Applied ML and Full-Stack Engineering",
-      "related_terms": "podcast_summary datatalksclub.github.io/_podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.md machine learning MLOps data engineering LLMs data science abouzarabbaspour",
-      "segment_title": "",
-      "text": "From Theme Parks to Tesla: Building Data Products Through Applied ML and Full Stack Engineering podcast summary datatalksclub.github.io/ podcast/ theme park crowd modeling to tesla full stack data engineering.md machine learning MLOps data engineering LLMs data science abouzarabbaspour Episode: From Theme Parks to Tesla: Building Data Products Through Applied ML and Full Stack Engineering Source DataTalks.Club episode Watch on YouTube Listen on Spotify Listen on Apple Podcasts People Abouzarabbaspour Key Concepts machine learning MLOps data engineering LLMs data science Agent Summary Why it matters: From Theme Parks to Tesla: Building Data Products That Work Useful for: Future agents triaging machine learning, MLOps, data engineering, LLMs and Early Career: Software Engineering to Data Science; Academic Path: Professional Doctorate & TU Berlin; Research Partnerships: Industry Projects and Applied Research. Probably skip if: you do not need material from Abouzarabbaspour or you are not working on machine learning, MLOps, data engineering. Chapter Headers 0:00 Podcast Introduction & Event Info 1:17 Early Career: Software Engineering to Data Science 2:06 Academic Path: Professional Doctorate & TU Berlin 4:48 Research Partnerships: Industry Projects and Applied Research 6:17 Efteling Insights: Theme Park Tech and Experience Design 7:36 Crowd Modeling: Queue Prediction and Ride Capacity 12:59 Visitor Routing: Next Best Action Recommendation System 14:50 App Adoption & Incentives for Data Collection 16:40 Behavioral Route Modeling & Probabilistic Recommendations 18:29 E commerce Recs: Bol.com Favorite Brand Carousel 24:03 Recommendation Validation: Employee Swiping Experiment & A/B Testing 26:01 Real time Processing: Streaming for Live Experiments 31:19 Measurement & Rollout: Engagement Metrics and Accuracy Results 33:21 Role at Tesla: Data Engineering vs. ML Engineering Responsibilities 34:21 Full Stack Data Work: Building Apps, Instrumentation, and Deployment 41:43 LLMs & AI Assisted Development: Productivity Gains and Risks 46:06 On Prem Inference Hardware: Raspberry Pi, Jetson Orin, Mac Mini 49:53 Models & Platforms: LLaMA, Code Models, and Replicate 54:03 Interview Preparation: Tesla Data Engineering Expectations (Architecture, 57:43 Career Strategy: Prioritization, Learning Opportunities, Underpromise & Overdeliver 1:00:10 Episode Closing & Key Takeaways Source File datatalksclub.github.io/ podcast/ theme park crowd modeling to tesla full stack data engineering.md",
-      "title": "From Theme Parks to Tesla: Building Data Products Through Applied ML and Full-Stack Engineering",
-      "url": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html"
     },
     {
       "document_type": "page",
@@ -33327,7 +33301,7 @@
       "interaction": "unprojected_public_person",
       "level": "person",
       "page_title": "abouzarabbaspour",
-      "related_terms": "person theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
+      "related_terms": "person",
       "segment_title": "",
       "text": "abouzarabbaspour abouzarabbaspour's DataTalks.Club person index record. person theme park crowd modeling to tesla full stack data engineering",
       "title": "abouzarabbaspour",
@@ -35615,7 +35589,7 @@
       "id": "person:jekaterinakokatjuhha",
       "level": "person",
       "page_title": "Jekaterina Kokatjuhha",
-      "related_terms": "person s12e08",
+      "related_terms": "person",
       "segment_title": "",
       "text": "Jekaterina Kokatjuhha Jekaterina Kokatjuhha's DataTalks.Club person index record. person s12e08",
       "title": "Jekaterina Kokatjuhha",

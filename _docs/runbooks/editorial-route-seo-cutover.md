@@ -1,7 +1,7 @@
 # Editorial route SEO cutover and rollback runbook
 
-This runbook governs the 796 editorial finals (including 793 `.html` finals and three hierarchical
-podcast finals) and 1,590 direct clean/slash aliases in
+This runbook governs the 794 editorial finals (including 791 `.html` finals and three hierarchical
+podcast finals) and 1,586 direct clean/slash aliases in
 [`editorial_route_migration.json`](../../content/public_projection/editorial_route_migration.json).
 The `s24e04` GenAI Pilots episode is hierarchical-only: its former flat-slug path is not an alias
 and must return `404` without a redirect.
@@ -14,8 +14,8 @@ activate production, submit Search Console data, or handle production records.
 ## Hold point and baseline
 
 Production cutover remains a HUMAN gate. Before authorizing it, the owner verifies that the checked
-preferred migration-manifest digest matches the policy, all 796 finals pass with `200` and one
-self-canonical, and all 1,590 aliases pass with a one-hop query-preserving `301`. Any omission,
+preferred migration-manifest digest matches the policy, all 794 finals pass with `200` and one
+self-canonical, and all 1,586 aliases pass with a one-hop query-preserving `301`. Any omission,
 duplicate, final/alias collision, chain, or loop stops the cutover.
 
 Capture a UTC baseline no later than 24 hours before cutover. Use the preceding 28 complete days and
@@ -71,11 +71,11 @@ avoid rollback.
 
 1. Freeze unrelated application and editorial releases. Record the first breached threshold using
    aggregate redacted evidence.
-2. Keep all 1,590 permanent aliases active as direct redirects. Never send them to the home page or
+2. Keep all 1,586 permanent aliases active as direct redirects. Never send them to the home page or
    introduce a chain.
 3. Restore the last accepted immutable application image while retaining compatible Django dynamic
    endpoints and forward-only data, as required by specification 09.
-4. Re-run all 796 final and 1,590 alias probes plus robots, sitemap, canonical, Open Graph, and JSON-LD
+4. Re-run all 794 final and 1,586 alias probes plus robots, sitemap, canonical, Open Graph, and JSON-LD
    checks before calling the rollback stable.
 5. Verify the breached 15-minute or 60-minute HTTP window twice. Continue through the next complete
    UTC day for delayed Search Console and organic recovery.

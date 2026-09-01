@@ -476,9 +476,9 @@ class PublicProjectionBuilderTests(SimpleTestCase):
     def test_editorial_route_manifest_is_exhaustive_and_schema_bound(self) -> None:
         collections, source_artifacts, manifest = self.editorial_route_fixture()
 
-        self.assertEqual(manifest["counts"], {"finals": 796, "aliases": 1_590})
-        self.assertEqual(len(manifest["finals"]), 796)
-        self.assertEqual(len(manifest["aliases"]), 1_590)
+        self.assertEqual(manifest["counts"], {"finals": 794, "aliases": 1_586})
+        self.assertEqual(len(manifest["finals"]), 794)
+        self.assertEqual(len(manifest["aliases"]), 1_586)
         self.assertEqual(
             {
                 item["final_path"]
@@ -501,8 +501,8 @@ class PublicProjectionBuilderTests(SimpleTestCase):
         schema_path = Path(settings.BASE_DIR) / manifest["schema"]["path"]
         schema = json.loads(schema_path.read_text(encoding="utf-8"))
         self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
-        self.assertEqual(schema["properties"]["counts"]["properties"]["finals"]["const"], 796)
-        self.assertEqual(schema["properties"]["counts"]["properties"]["aliases"]["const"], 1_590)
+        self.assertEqual(schema["properties"]["counts"]["properties"]["finals"]["const"], 794)
+        self.assertEqual(schema["properties"]["counts"]["properties"]["aliases"]["const"], 1_586)
         self.assertEqual(manifest["schema"]["sha256"], builder._sha256_file(schema_path))
         builder._validate_editorial_route_manifest(
             manifest,

@@ -23,10 +23,10 @@
     "provenance": {
       "checksum": "f7fee5337b77c8d217470fa3cb6820e4f7e0b8b2d7ec37f576861d41b86bcb21",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20251006-software-development-at-rocket-speed",
-      "source_path": "books/20251006-software-development-at-rocket-speed.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20251006-software-development-at-rocket-speed.yaml"
+      "source_path": "books/2025/25-10-06-software-development-at-rocket-speed.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2025/25-10-06-software-development-at-rocket-speed.yaml"
     },
     "public_path": "/books/20251006-software-development-at-rocket-speed.html",
     "published": "2025-10-06T00:00:00",
@@ -62,10 +62,10 @@
     "provenance": {
       "checksum": "ab4fdddcb970997d01b97026d96e00f9f4992d917e86284515881cc551caa469",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20250922-how-software-fails",
-      "source_path": "books/20250922-how-software-fails.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20250922-how-software-fails.yaml"
+      "source_path": "books/2025/25-09-22-how-software-fails.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2025/25-09-22-how-software-fails.yaml"
     },
     "public_path": "/books/20250922-how-software-fails.html",
     "published": "2025-09-22T00:00:00",
@@ -105,10 +105,10 @@
     "provenance": {
       "checksum": "1f21a3da1411bad113ad0cd656192bbd4ce785744972e7216ee156730d65a120",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20250908-machine-learning-algorithms-in-depth",
-      "source_path": "books/20250908-machine-learning-algorithms-in-depth.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20250908-machine-learning-algorithms-in-depth.yaml"
+      "source_path": "books/2025/25-09-08-machine-learning-algorithms-in-depth.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2025/25-09-08-machine-learning-algorithms-in-depth.yaml"
     },
     "public_path": "/books/20250908-machine-learning-algorithms-in-depth.html",
     "published": "2025-09-08T00:00:00",
@@ -144,10 +144,10 @@
     "provenance": {
       "checksum": "c87ea1eefab202c7fa6635c3d590f69a0ec4ea75c16ef76a5b4d67c6a0a4325d",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20250728-production-ready-data-science",
-      "source_path": "books/20250728-production-ready-data-science.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20250728-production-ready-data-science.yaml"
+      "source_path": "books/2025/25-07-28-production-ready-data-science.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2025/25-07-28-production-ready-data-science.yaml"
     },
     "public_path": "/books/20250728-production-ready-data-science.html",
     "published": "2025-07-28T00:00:00",
@@ -193,10 +193,10 @@
     "provenance": {
       "checksum": "c1cfbe4cdf54840ee40a637ca5e4c7d6ab71c5c7406d823b8eef54daaa01a561",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20250505-machine-learning-for-tabular-data",
-      "source_path": "books/20250505-machine-learning-for-tabular-data.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20250505-machine-learning-for-tabular-data.yaml"
+      "source_path": "books/2025/25-05-05-machine-learning-for-tabular-data.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2025/25-05-05-machine-learning-for-tabular-data.yaml"
     },
     "public_path": "/books/20250505-machine-learning-for-tabular-data.html",
     "published": "2025-05-05T00:00:00",
@@ -759,10 +759,10 @@
     "provenance": {
       "checksum": "aad80eb2b83165d72cb4fce0b9d10842f8f363185de384f1df79c3342b364e9a",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series",
-      "source_path": "books/20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.yaml"
+      "source_path": "books/2024/24-11-18-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-11-18-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.yaml"
     },
     "public_path": "/books/20241118-why-data-science-projects-fail-harsh-realities-of-implementing-ai-and-analytics-without-hype-chapman-hall-crc-data-science-series.html",
     "published": "2024-11-18T00:00:00",
@@ -1382,10 +1382,10 @@
     "provenance": {
       "checksum": "50f0daba20e444dd4266f71ec512ba743d2a5edffe70c53d25d67e92f8007a96",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20241104-llm-engineer-s-handbook",
-      "source_path": "books/20241104-llm-engineer-s-handbook.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20241104-llm-engineer-s-handbook.yaml"
+      "source_path": "books/2024/24-11-04-llm-engineer-s-handbook.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-11-04-llm-engineer-s-handbook.yaml"
     },
     "public_path": "/books/20241104-llm-engineer-s-handbook.html",
     "published": "2024-11-04T00:00:00",
@@ -2135,10 +2135,10 @@
     "provenance": {
       "checksum": "ec3f49ec0a0394da0446422de964f7717c690fe1774fc69c59a99fefb01c30be",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20241017-build-large-language-model-from-scratch",
-      "source_path": "books/20241017-build-large-language-model-from-scratch.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20241017-build-large-language-model-from-scratch.yaml"
+      "source_path": "books/2024/24-10-14-build-large-language-model-from-scratch.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-10-14-build-large-language-model-from-scratch.yaml"
     },
     "public_path": "/books/20241017-build-large-language-model-from-scratch.html",
     "published": "2024-10-14T00:00:00",
@@ -2242,10 +2242,10 @@
     "provenance": {
       "checksum": "5924a46bd72fb6a339fe3cc61f99c99a58a9acdc308547c5e66e9aa6819197e6",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240902-data-storytelling-with-altair-and-ai",
-      "source_path": "books/20240902-data-storytelling-with-altair-and-ai.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240902-data-storytelling-with-altair-and-ai.yaml"
+      "source_path": "books/2024/24-09-02-data-storytelling-with-altair-and-ai.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-09-02-data-storytelling-with-altair-and-ai.yaml"
     },
     "public_path": "/books/20240902-data-storytelling-with-altair-and-ai.html",
     "published": "2024-09-02T00:00:00",
@@ -2381,10 +2381,10 @@
     "provenance": {
       "checksum": "345e560370a2abcab7cb729df61ad5e7e593524a6cad974078ddd0546a066ff1",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240715-ai-data-privacy-and-protection",
-      "source_path": "books/20240715-ai-data-privacy-and-protection.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240715-ai-data-privacy-and-protection.yaml"
+      "source_path": "books/2024/24-07-15-ai-data-privacy-and-protection.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-07-15-ai-data-privacy-and-protection.yaml"
     },
     "public_path": "/books/20240715-ai-data-privacy-and-protection.html",
     "published": "2024-07-15T00:00:00",
@@ -2803,10 +2803,10 @@
     "provenance": {
       "checksum": "d0bac55b5536226dac7f16ff5c271217d9dd9749cf41c2d133a233cd9ab76aeb",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240701-prompt-engineering-for-generative-ai",
-      "source_path": "books/20240701-prompt-engineering-for-generative-ai.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240701-prompt-engineering-for-generative-ai.yaml"
+      "source_path": "books/2024/24-07-01-prompt-engineering-for-generative-ai.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-07-01-prompt-engineering-for-generative-ai.yaml"
     },
     "public_path": "/books/20240701-prompt-engineering-for-generative-ai.html",
     "published": "2024-07-01T00:00:00",
@@ -3051,10 +3051,10 @@
     "provenance": {
       "checksum": "ce82ec0160725939163e2357f03e120c08b6f8e15b5dc9d41c876a148b0b034c",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240429-fundamentals-of-data-observability",
-      "source_path": "books/20240429-fundamentals-of-data-observability.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240429-fundamentals-of-data-observability.yaml"
+      "source_path": "books/2024/24-04-29-fundamentals-of-data-observability.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-04-29-fundamentals-of-data-observability.yaml"
     },
     "public_path": "/books/20240429-fundamentals-of-data-observability.html",
     "published": "2024-04-29T00:00:00",
@@ -3182,10 +3182,10 @@
     "provenance": {
       "checksum": "055e648f60b0aec8fe831978cbc646d7433d19d7092b697fb79b7c586f44a5df",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240415-understanding-etl",
-      "source_path": "books/20240415-understanding-etl.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240415-understanding-etl.yaml"
+      "source_path": "books/2024/24-04-15-understanding-etl.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-04-15-understanding-etl.yaml"
     },
     "public_path": "/books/20240415-understanding-etl.html",
     "published": "2024-04-15T00:00:00",
@@ -3334,10 +3334,10 @@
     "provenance": {
       "checksum": "08aff82283df3d2f3884269692a67f60e0b135634ceaca8cd5ecc58cbd9e948e",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240408-data-centric-machine-learning-with-python",
-      "source_path": "books/20240408-data-centric-machine-learning-with-python.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240408-data-centric-machine-learning-with-python.yaml"
+      "source_path": "books/2024/24-04-08-data-centric-machine-learning-with-python.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-04-08-data-centric-machine-learning-with-python.yaml"
     },
     "public_path": "/books/20240408-data-centric-machine-learning-with-python.html",
     "published": "2024-04-08T00:00:00",
@@ -3509,10 +3509,10 @@
     "provenance": {
       "checksum": "e5ce3511cb577740bc8b54aa3cb1e4d154a8eeb083c52757432329dab28acae2",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240205-creating-intelligent-products",
-      "source_path": "books/20240205-creating-intelligent-products.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240205-creating-intelligent-products.yaml"
+      "source_path": "books/2024/24-02-05-creating-intelligent-products.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-02-05-creating-intelligent-products.yaml"
     },
     "public_path": "/books/20240205-creating-intelligent-products.html",
     "published": "2024-02-05T00:00:00",
@@ -3746,10 +3746,10 @@
     "provenance": {
       "checksum": "c92612606c5314f87e84efc55121e7d87fa55d65570dca2fa96876d460794689",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20240115-distributed-machine-learning-patterns",
-      "source_path": "books/20240115-distributed-machine-learning-patterns.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20240115-distributed-machine-learning-patterns.yaml"
+      "source_path": "books/2024/24-01-15-distributed-machine-learning-patterns.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2024/24-01-15-distributed-machine-learning-patterns.yaml"
     },
     "public_path": "/books/20240115-distributed-machine-learning-patterns.html",
     "published": "2024-01-15T00:00:00",
@@ -4174,10 +4174,10 @@
     "provenance": {
       "checksum": "79a24807aad8c721a8065ae457ea4cab76a9128d35f8efad1c936c135bc256b5",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20231106-analytics-engineering-with-sql-and-dbt",
-      "source_path": "books/20231106-analytics-engineering-with-sql-and-dbt.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20231106-analytics-engineering-with-sql-and-dbt.yaml"
+      "source_path": "books/2023/23-11-06-analytics-engineering-with-sql-and-dbt.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2023/23-11-06-analytics-engineering-with-sql-and-dbt.yaml"
     },
     "public_path": "/books/20231106-analytics-engineering-with-sql-and-dbt.html",
     "published": "2023-11-06T00:00:00",
@@ -4356,10 +4356,10 @@
     "provenance": {
       "checksum": "67bd6c607ec335da624eaa68444daeda5bb21136badc242f0dd26fbadcb473f7",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20230807-driving-data-quality-with-data-contracts",
-      "source_path": "books/20230807-driving-data-quality-with-data-contracts.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20230807-driving-data-quality-with-data-contracts.yaml"
+      "source_path": "books/2023/23-08-07-driving-data-quality-with-data-contracts.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2023/23-08-07-driving-data-quality-with-data-contracts.yaml"
     },
     "public_path": "/books/20230807-driving-data-quality-with-data-contracts.html",
     "published": "2023-08-07T00:00:00",
@@ -4499,10 +4499,10 @@
     "provenance": {
       "checksum": "39cf7b1f6db7efa7d0551772ecaf431525042fe5075810c5440c504fa5f1c2c6",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20230612-hands-on-time-series-analysis-with-python",
-      "source_path": "books/20230612-hands-on-time-series-analysis-with-python.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20230612-hands-on-time-series-analysis-with-python.yaml"
+      "source_path": "books/2023/23-06-12-hands-on-time-series-analysis-with-python.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2023/23-06-12-hands-on-time-series-analysis-with-python.yaml"
     },
     "public_path": "/books/20230612-hands-on-time-series-analysis-with-python.html",
     "published": "2023-06-12T00:00:00",
@@ -4701,10 +4701,10 @@
     "provenance": {
       "checksum": "94db21b8ba30e611a63c8489936eeb8d36fda39d9e856ca010f291a9c2f559c9",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20230529-modeling-mindsets",
-      "source_path": "books/20230529-modeling-mindsets.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20230529-modeling-mindsets.yaml"
+      "source_path": "books/2023/23-05-29-modeling-mindsets.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2023/23-05-29-modeling-mindsets.yaml"
     },
     "public_path": "/books/20230529-modeling-mindsets.html",
     "published": "2023-05-29T00:00:00",
@@ -4912,10 +4912,10 @@
     "provenance": {
       "checksum": "914bc5dc6d462d315abf88b86f5a3458ceb61137bf876b1ee2000a2beaeaf89d",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20230306-gpt-3",
-      "source_path": "books/20230306-gpt-3.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20230306-gpt-3.yaml"
+      "source_path": "books/2023/23-03-06-gpt-3.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2023/23-03-06-gpt-3.yaml"
     },
     "public_path": "/books/20230306-gpt-3.html",
     "published": "2023-03-06T00:00:00",
@@ -5194,10 +5194,10 @@
     "provenance": {
       "checksum": "b0ff3863090312665f2df0f43c007358269e38549fa8162ce79e5b791371d614",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20230123-snowflake-definitive-guide",
-      "source_path": "books/20230123-snowflake-definitive-guide.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20230123-snowflake-definitive-guide.yaml"
+      "source_path": "books/2023/23-01-23-snowflake-definitive-guide.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2023/23-01-23-snowflake-definitive-guide.yaml"
     },
     "public_path": "/books/20230123-snowflake-definitive-guide.html",
     "published": "2023-01-23T00:00:00",
@@ -5564,10 +5564,10 @@
     "provenance": {
       "checksum": "4a9b93cc9b21129872d5ee1ffe819fcbc7b9fb1859024ee604fa9d777decd9db",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20221121-reliable-machine-learning",
-      "source_path": "books/20221121-reliable-machine-learning.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20221121-reliable-machine-learning.yaml"
+      "source_path": "books/2022/22-12-05-reliable-machine-learning.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-12-05-reliable-machine-learning.yaml"
     },
     "public_path": "/books/20221121-reliable-machine-learning.html",
     "published": "2022-12-05T00:00:00",
@@ -5732,10 +5732,10 @@
     "provenance": {
       "checksum": "973ef6be0e7143c9fe494f16c8f409c51a2c78b0cca20fffdafc78b92942cd23",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20221107-machine-learning-on-kubernetes",
-      "source_path": "books/20221107-machine-learning-on-kubernetes.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20221107-machine-learning-on-kubernetes.yaml"
+      "source_path": "books/2022/22-11-07-machine-learning-on-kubernetes.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-11-07-machine-learning-on-kubernetes.yaml"
     },
     "public_path": "/books/20221107-machine-learning-on-kubernetes.html",
     "published": "2022-11-07T00:00:00",
@@ -5840,10 +5840,10 @@
     "provenance": {
       "checksum": "9b552a593a51467c6b1937414ee1026770a2691e2bff9c1f52c4654943cbfcc0",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20221107-comet-for-data-science",
-      "source_path": "books/20221107-comet-for-data-science.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20221107-comet-for-data-science.yaml"
+      "source_path": "books/2022/22-10-24-comet-for-data-science.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-10-24-comet-for-data-science.yaml"
     },
     "public_path": "/books/20221107-comet-for-data-science.html",
     "published": "2022-10-24T00:00:00",
@@ -6097,10 +6097,10 @@
     "provenance": {
       "checksum": "0f73805187c55fb012b21bae49eb58f4884b70a64456aa678ff159d542987c69",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20221010-managing-machine-learning-projects",
-      "source_path": "books/20221010-managing-machine-learning-projects.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20221010-managing-machine-learning-projects.yaml"
+      "source_path": "books/2022/22-10-10-managing-machine-learning-projects.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-10-10-managing-machine-learning-projects.yaml"
     },
     "public_path": "/books/20221010-managing-machine-learning-projects.html",
     "published": "2022-10-10T00:00:00",
@@ -6320,10 +6320,10 @@
     "provenance": {
       "checksum": "f0128993cbafa0e55497bbf152a5601425431a4b20999e7bddc8a9941479575a",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220926-graph-algorithms-for-data-science",
-      "source_path": "books/20220926-graph-algorithms-for-data-science.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220926-graph-algorithms-for-data-science.yaml"
+      "source_path": "books/2022/22-09-26-graph-algorithms-for-data-science.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-09-26-graph-algorithms-for-data-science.yaml"
     },
     "public_path": "/books/20220926-graph-algorithms-for-data-science.html",
     "published": "2022-09-26T00:00:00",
@@ -6600,10 +6600,10 @@
     "provenance": {
       "checksum": "55b443eb7d7a1eda32865c7d01271c77da6da53ab18f3dd3e608e9e865fa9f3f",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220919-kaggle-book",
-      "source_path": "books/20220919-kaggle-book.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220919-kaggle-book.yaml"
+      "source_path": "books/2022/22-09-19-kaggle-book.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-09-19-kaggle-book.yaml"
     },
     "public_path": "/books/20220919-kaggle-book.html",
     "published": "2022-09-19T00:00:00",
@@ -6807,10 +6807,10 @@
     "provenance": {
       "checksum": "da27bf03e0d48abd66384c99a9b8605e13f973e80bd538b813ab6c560d49bec7",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220912-skills-of-successful-software-engineer",
-      "source_path": "books/20220912-skills-of-successful-software-engineer.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220912-skills-of-successful-software-engineer.yaml"
+      "source_path": "books/2022/22-09-12-skills-of-successful-software-engineer.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-09-12-skills-of-successful-software-engineer.yaml"
     },
     "public_path": "/books/20220912-skills-of-successful-software-engineer.html",
     "published": "2022-09-12T00:00:00",
@@ -7080,10 +7080,10 @@
     "provenance": {
       "checksum": "4c85086e7fae0a0834ad93af9238d4417d84394eeac9a77232045e85230fed1c",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220829-essential-math-for-data-science",
-      "source_path": "books/20220829-essential-math-for-data-science.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220829-essential-math-for-data-science.yaml"
+      "source_path": "books/2022/22-08-29-essential-math-for-data-science.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-08-29-essential-math-for-data-science.yaml"
     },
     "public_path": "/books/20220829-essential-math-for-data-science.html",
     "published": "2022-08-29T00:00:00",
@@ -8017,10 +8017,10 @@
     "provenance": {
       "checksum": "b6dda38fe90f589080b118032c96e6d6378d30f2cfb74b39e84a996318b97d8b",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220815-fundamentals-of-data-engineering",
-      "source_path": "books/20220815-fundamentals-of-data-engineering.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220815-fundamentals-of-data-engineering.yaml"
+      "source_path": "books/2022/22-08-15-fundamentals-of-data-engineering.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-08-15-fundamentals-of-data-engineering.yaml"
     },
     "public_path": "/books/20220815-fundamentals-of-data-engineering.html",
     "published": "2022-08-15T00:00:00",
@@ -8151,10 +8151,10 @@
     "provenance": {
       "checksum": "ec4da6f44b5fecddedd37dfe7e7c241b5b1dcca890155fc2ce1892a756e254ef",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220801-data-analytics-initiatives",
-      "source_path": "books/20220801-data-analytics-initiatives.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220801-data-analytics-initiatives.yaml"
+      "source_path": "books/2022/22-08-01-data-analytics-initiatives.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-08-01-data-analytics-initiatives.yaml"
     },
     "public_path": "/books/20220801-data-analytics-initiatives.html",
     "published": "2022-08-01T00:00:00",
@@ -8303,10 +8303,10 @@
     "provenance": {
       "checksum": "5f698b3b86d18276dd193abf20d15c86dfcc0554a517bbf69feaf1fae88c9c44",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220718-hands-on-data-analysis-with-pandas",
-      "source_path": "books/20220718-hands-on-data-analysis-with-pandas.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220718-hands-on-data-analysis-with-pandas.yaml"
+      "source_path": "books/2022/22-07-18-hands-on-data-analysis-with-pandas.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-07-18-hands-on-data-analysis-with-pandas.yaml"
     },
     "public_path": "/books/20220718-hands-on-data-analysis-with-pandas.html",
     "published": "2022-07-18T00:00:00",
@@ -8703,10 +8703,10 @@
     "provenance": {
       "checksum": "d6fe61f78edf4594adb3dfbba32df013a1fd6a08e01863e0b5bf6e34facc7dea",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220704-grokking-streaming-systems",
-      "source_path": "books/20220704-grokking-streaming-systems.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220704-grokking-streaming-systems.yaml"
+      "source_path": "books/2022/22-07-04-grokking-streaming-systems.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-07-04-grokking-streaming-systems.yaml"
     },
     "public_path": "/books/20220704-grokking-streaming-systems.html",
     "published": "2022-07-04T00:00:00",
@@ -9144,10 +9144,10 @@
     "provenance": {
       "checksum": "2ec6ecfcb7c04d99496c43f4529b9f4337f49f155ba12086a1f2e98aca44ccd9",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220627-designing-machine-learning-systems",
-      "source_path": "books/20220627-designing-machine-learning-systems.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220627-designing-machine-learning-systems.yaml"
+      "source_path": "books/2022/22-06-27-designing-machine-learning-systems.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-06-27-designing-machine-learning-systems.yaml"
     },
     "public_path": "/books/20220627-designing-machine-learning-systems.html",
     "published": "2022-06-27T00:00:00",
@@ -9256,10 +9256,10 @@
     "provenance": {
       "checksum": "0df4b741de9e9b6fe452abec12c239101a47c3284b4721ba9abcdebeb346c948",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220620-python-machine-learning-by-example",
-      "source_path": "books/20220620-python-machine-learning-by-example.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220620-python-machine-learning-by-example.yaml"
+      "source_path": "books/2022/22-06-20-python-machine-learning-by-example.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-06-20-python-machine-learning-by-example.yaml"
     },
     "public_path": "/books/20220620-python-machine-learning-by-example.html",
     "published": "2022-06-20T00:00:00",
@@ -9425,10 +9425,10 @@
     "provenance": {
       "checksum": "1468fb25500df561cc82266a7a7877418f4c9069374cdabae67cb97c3e592954",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220606-ai-powered-business-intelligence",
-      "source_path": "books/20220606-ai-powered-business-intelligence.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220606-ai-powered-business-intelligence.yaml"
+      "source_path": "books/2022/22-06-06-ai-powered-business-intelligence.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-06-06-ai-powered-business-intelligence.yaml"
     },
     "public_path": "/books/20220606-ai-powered-business-intelligence.html",
     "published": "2022-06-06T00:00:00",
@@ -9648,10 +9648,10 @@
     "provenance": {
       "checksum": "4dede8555a354a5f3b067fb2aaafe531d79a33d10798bfb8e7abb9d9d8c91463",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220523-practical-fairness",
-      "source_path": "books/20220523-practical-fairness.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220523-practical-fairness.yaml"
+      "source_path": "books/2022/22-05-23-practical-fairness.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-05-23-practical-fairness.yaml"
     },
     "public_path": "/books/20220523-practical-fairness.html",
     "published": "2022-05-23T00:00:00",
@@ -10010,10 +10010,10 @@
     "provenance": {
       "checksum": "6f88efe715b915d185b4761a919c75ca8d27f7448b26bbcfd12f14819e883fed",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220516-everyday-ml-questions",
-      "source_path": "books/20220516-everyday-ml-questions.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220516-everyday-ml-questions.yaml"
+      "source_path": "books/2022/22-05-16-everyday-ml-questions.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-05-16-everyday-ml-questions.yaml"
     },
     "public_path": "/books/20220516-everyday-ml-questions.html",
     "published": "2022-05-16T00:00:00",
@@ -10110,10 +10110,10 @@
     "provenance": {
       "checksum": "35aa1caf29fd9bfb7e084f2165372877617cbf4d74bc565a8107d9bc948204ea",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220509-artificial-intelligence-with-python",
-      "source_path": "books/20220509-artificial-intelligence-with-python.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220509-artificial-intelligence-with-python.yaml"
+      "source_path": "books/2022/22-05-09-artificial-intelligence-with-python.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-05-09-artificial-intelligence-with-python.yaml"
     },
     "public_path": "/books/20220509-artificial-intelligence-with-python.html",
     "published": "2022-05-09T00:00:00",
@@ -10490,10 +10490,10 @@
     "provenance": {
       "checksum": "c78ac10a8e28f36bce57f74f4e142d1a4f5beb0e2e035c09e178b7454f756fe4",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220425-natural-language-processing-with-transformers",
-      "source_path": "books/20220425-natural-language-processing-with-transformers.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220425-natural-language-processing-with-transformers.yaml"
+      "source_path": "books/2022/22-04-25-natural-language-processing-with-transformers.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-04-25-natural-language-processing-with-transformers.yaml"
     },
     "public_path": "/books/20220425-natural-language-processing-with-transformers.html",
     "published": "2022-04-25T00:00:00",
@@ -10804,10 +10804,10 @@
     "provenance": {
       "checksum": "41f0ad4f10c5a648946556a355d9cebf7bea9cd73922f9f0ccdba1c35aec1f3c",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220411-interpretable-machine-learning",
-      "source_path": "books/20220411-interpretable-machine-learning.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220411-interpretable-machine-learning.yaml"
+      "source_path": "books/2022/22-04-11-interpretable-machine-learning.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-04-11-interpretable-machine-learning.yaml"
     },
     "public_path": "/books/20220411-interpretable-machine-learning.html",
     "published": "2022-04-11T00:00:00",
@@ -10960,10 +10960,10 @@
     "provenance": {
       "checksum": "abf4128ac8e614ae6b756c1ae8e67d88384554ba480fe8194206e2be235784fc",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220328-serverless-analytics-with-amazon-athena",
-      "source_path": "books/20220328-serverless-analytics-with-amazon-athena.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220328-serverless-analytics-with-amazon-athena.yaml"
+      "source_path": "books/2022/22-03-28-serverless-analytics-with-amazon-athena.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-03-28-serverless-analytics-with-amazon-athena.yaml"
     },
     "public_path": "/books/20220328-serverless-analytics-with-amazon-athena.html",
     "published": "2022-03-28T00:00:00",
@@ -11132,10 +11132,10 @@
     "provenance": {
       "checksum": "9b6fd5a9b8ca6eff3958a093a29c8eb459dc1c9c816f7fc5da8e334bdb0c4264",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse",
-      "source_path": "books/20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse.yaml"
+      "source_path": "books/2022/22-03-14-data-engineering-with-apache-spark-delta-lake-and-lakehouse.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-03-14-data-engineering-with-apache-spark-delta-lake-and-lakehouse.yaml"
     },
     "public_path": "/books/20220314-data-engineering-with-apache-spark-delta-lake-and-lakehouse.html",
     "published": "2022-03-14T00:00:00",
@@ -11286,10 +11286,10 @@
     "provenance": {
       "checksum": "50b49ec439a1044a7599d3a63689c8bc364239118ff24c53d6c70cbab5eaa1c4",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220228-hands-on-data-preprocessing-in-python",
-      "source_path": "books/20220228-hands-on-data-preprocessing-in-python.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220228-hands-on-data-preprocessing-in-python.yaml"
+      "source_path": "books/2022/22-02-28-hands-on-data-preprocessing-in-python.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-02-28-hands-on-data-preprocessing-in-python.yaml"
     },
     "public_path": "/books/20220228-hands-on-data-preprocessing-in-python.html",
     "published": "2022-02-28T00:00:00",
@@ -11518,10 +11518,10 @@
     "provenance": {
       "checksum": "e822d6aa6146f10ca5365a562249d73007e5604bb87ac49a85b90ecdd75def77",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220214-a-visual-introduction-to-deep-learning",
-      "source_path": "books/20220214-a-visual-introduction-to-deep-learning.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220214-a-visual-introduction-to-deep-learning.yaml"
+      "source_path": "books/2022/22-02-14-a-visual-introduction-to-deep-learning.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-02-14-a-visual-introduction-to-deep-learning.yaml"
     },
     "public_path": "/books/20220214-a-visual-introduction-to-deep-learning.html",
     "published": "2022-02-14T00:00:00",
@@ -11794,10 +11794,10 @@
     "provenance": {
       "checksum": "9fba9f527d3b0945e76bad4f575deda8f6372f148853e710929c72941e9fee3e",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220131-effective-pandas",
-      "source_path": "books/20220131-effective-pandas.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220131-effective-pandas.yaml"
+      "source_path": "books/2022/22-01-31-effective-pandas.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-01-31-effective-pandas.yaml"
     },
     "public_path": "/books/20220131-effective-pandas.html",
     "published": "2022-01-31T00:00:00",
@@ -11833,10 +11833,10 @@
     "provenance": {
       "checksum": "5d2cad7374f91f48409dcfb66404f4660b1f72dbf4909a356819567ca24b0345",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20220117-machine-learning-engineering-with-python",
-      "source_path": "books/20220117-machine-learning-engineering-with-python.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20220117-machine-learning-engineering-with-python.yaml"
+      "source_path": "books/2022/22-01-10-machine-learning-engineering-with-python.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2022/22-01-10-machine-learning-engineering-with-python.yaml"
     },
     "public_path": "/books/20220117-machine-learning-engineering-with-python.html",
     "published": "2022-01-10T00:00:00",
@@ -12116,10 +12116,10 @@
     "provenance": {
       "checksum": "fac51b59a748208968c6005b792f257ff0dc1db81911f6a566d6ea96d34291c1",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211213-mastering-spacy",
-      "source_path": "books/20211213-mastering-spacy.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211213-mastering-spacy.yaml"
+      "source_path": "books/2021/21-12-13-mastering-spacy.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-12-13-mastering-spacy.yaml"
     },
     "public_path": "/books/20211213-mastering-spacy.html",
     "published": "2021-12-13T00:00:00",
@@ -12353,10 +12353,10 @@
     "provenance": {
       "checksum": "88e6779a37d20d249006c74cbee98b60b506e1d79e191eeaa2fb31cc56740edf",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211206-deep-learning-with-fastai-cookbook",
-      "source_path": "books/20211206-deep-learning-with-fastai-cookbook.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211206-deep-learning-with-fastai-cookbook.yaml"
+      "source_path": "books/2021/21-12-06-deep-learning-with-fastai-cookbook.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-12-06-deep-learning-with-fastai-cookbook.yaml"
     },
     "public_path": "/books/20211206-deep-learning-with-fastai-cookbook.html",
     "published": "2021-12-06T00:00:00",
@@ -12708,10 +12708,10 @@
     "provenance": {
       "checksum": "46ce89c5df0d55c7d4d3e232402d503f8eed36680a875b8dc1871a1b3f472009",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211129-own-your-tech-career",
-      "source_path": "books/20211129-own-your-tech-career.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211129-own-your-tech-career.yaml"
+      "source_path": "books/2021/21-11-29-own-your-tech-career.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-11-29-own-your-tech-career.yaml"
     },
     "public_path": "/books/20211129-own-your-tech-career.html",
     "published": "2021-11-29T00:00:00",
@@ -12927,10 +12927,10 @@
     "provenance": {
       "checksum": "4a96e9817af990246e68a6c91745470b085f02f64c47da92f3d0868daf7d2021",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211122-building-machine-learning-powered-applications",
-      "source_path": "books/20211122-building-machine-learning-powered-applications.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211122-building-machine-learning-powered-applications.yaml"
+      "source_path": "books/2021/21-11-22-building-machine-learning-powered-applications.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-11-22-building-machine-learning-powered-applications.yaml"
     },
     "public_path": "/books/20211122-building-machine-learning-powered-applications.html",
     "published": "2021-11-22T00:00:00",
@@ -13405,10 +13405,10 @@
     "provenance": {
       "checksum": "417e0e583e9e8352c9b79ee3ea887c13fbc1e01985cc3dbb133b79da255b33e1",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211115-ace-the-data-science-interview",
-      "source_path": "books/20211115-ace-the-data-science-interview.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211115-ace-the-data-science-interview.yaml"
+      "source_path": "books/2021/21-11-15-ace-the-data-science-interview.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-11-15-ace-the-data-science-interview.yaml"
     },
     "public_path": "/books/20211115-ace-the-data-science-interview.html",
     "published": "2021-11-15T00:00:00",
@@ -13610,10 +13610,10 @@
     "provenance": {
       "checksum": "929eb66862879d60d58d0f96ea80d365473c5916b5fdbaaa6664751f97c521d1",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211108-generative-ai-with-python-and-tensorflow-2",
-      "source_path": "books/20211108-generative-ai-with-python-and-tensorflow-2.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211108-generative-ai-with-python-and-tensorflow-2.yaml"
+      "source_path": "books/2021/21-11-08-generative-ai-with-python-and-tensorflow-2.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-11-08-generative-ai-with-python-and-tensorflow-2.yaml"
     },
     "public_path": "/books/20211108-generative-ai-with-python-and-tensorflow-2.html",
     "published": "2021-11-08T00:00:00",
@@ -13927,10 +13927,10 @@
     "provenance": {
       "checksum": "612c4510e02c1bb14fe6ba59c5fed2942109a20280cf79a02bac532a15f35567",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211101-ai-powered-search",
-      "source_path": "books/20211101-ai-powered-search.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211101-ai-powered-search.yaml"
+      "source_path": "books/2021/21-11-01-ai-powered-search.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-11-01-ai-powered-search.yaml"
     },
     "public_path": "/books/20211101-ai-powered-search.html",
     "published": "2021-11-01T00:00:00",
@@ -14285,10 +14285,10 @@
     "provenance": {
       "checksum": "d259f95cc3e498734d371f27c4ff0d2893100b9fdbbc9bc53e17122a3809588d",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211025-data-analysis-with-python-and-pyspark",
-      "source_path": "books/20211025-data-analysis-with-python-and-pyspark.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211025-data-analysis-with-python-and-pyspark.yaml"
+      "source_path": "books/2021/21-10-25-data-analysis-with-python-and-pyspark.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-10-25-data-analysis-with-python-and-pyspark.yaml"
     },
     "public_path": "/books/20211025-data-analysis-with-python-and-pyspark.html",
     "published": "2021-10-25T00:00:00",
@@ -14543,10 +14543,10 @@
     "provenance": {
       "checksum": "99ccba7182e695eec95b4a4eb1448b7300ab382d9eb908dec2a16b4118dc3ac6",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211018-blueprints-for-text-analytics-using-python",
-      "source_path": "books/20211018-blueprints-for-text-analytics-using-python.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211018-blueprints-for-text-analytics-using-python.yaml"
+      "source_path": "books/2021/21-10-18-blueprints-for-text-analytics-using-python.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-10-18-blueprints-for-text-analytics-using-python.yaml"
     },
     "public_path": "/books/20211018-blueprints-for-text-analytics-using-python.html",
     "published": "2021-10-18T00:00:00",
@@ -14763,10 +14763,10 @@
     "provenance": {
       "checksum": "30642cb3d72038fd7604ed733bd40a40aef7bb212946242e6ce6d2c7483cb9da",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211011-mastering-transformers",
-      "source_path": "books/20211011-mastering-transformers.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211011-mastering-transformers.yaml"
+      "source_path": "books/2021/21-10-11-mastering-transformers.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-10-11-mastering-transformers.yaml"
     },
     "public_path": "/books/20211011-mastering-transformers.html",
     "published": "2021-10-11T00:00:00",
@@ -14979,10 +14979,10 @@
     "provenance": {
       "checksum": "191d52f19762aa21123c23a105fb3b8a767e8d468628d4137ad57c5ead025d47",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20211004-transfer-learning-in-action",
-      "source_path": "books/20211004-transfer-learning-in-action.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20211004-transfer-learning-in-action.yaml"
+      "source_path": "books/2021/21-10-04-transfer-learning-in-action.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-10-04-transfer-learning-in-action.yaml"
     },
     "public_path": "/books/20211004-transfer-learning-in-action.html",
     "published": "2021-10-04T00:00:00",
@@ -15398,10 +15398,10 @@
     "provenance": {
       "checksum": "76268887a0145ed9a647e1aa4eb5c288f26836351f5c5988b7c1f4d672b66a2d",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210927-effective-data-science-infrastructure",
-      "source_path": "books/20210927-effective-data-science-infrastructure.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210927-effective-data-science-infrastructure.yaml"
+      "source_path": "books/2021/21-09-27-effective-data-science-infrastructure.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-09-27-effective-data-science-infrastructure.yaml"
     },
     "public_path": "/books/20210927-effective-data-science-infrastructure.html",
     "published": "2021-09-27T00:00:00",
@@ -15725,10 +15725,10 @@
     "provenance": {
       "checksum": "49abc19cd138add63ca812e863f511a85a5c3e6945169750e788df9f4f283309",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210920-python-feature-engineering-cookbook",
-      "source_path": "books/20210920-python-feature-engineering-cookbook.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210920-python-feature-engineering-cookbook.yaml"
+      "source_path": "books/2021/21-09-20-python-feature-engineering-cookbook.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-09-20-python-feature-engineering-cookbook.yaml"
     },
     "public_path": "/books/20210920-python-feature-engineering-cookbook.html",
     "published": "2021-09-20T00:00:00",
@@ -15958,10 +15958,10 @@
     "provenance": {
       "checksum": "c657dbbc634b01f46daeacd91d64b222995afbebc48ec5ed00af9460cac0bce6",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210913-dataops-for-dummies",
-      "source_path": "books/20210913-dataops-for-dummies.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210913-dataops-for-dummies.yaml"
+      "source_path": "books/2021/21-09-13-dataops-for-dummies.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-09-13-dataops-for-dummies.yaml"
     },
     "public_path": "/books/20210913-dataops-for-dummies.html",
     "published": "2021-09-13T00:00:00",
@@ -16178,10 +16178,10 @@
     "provenance": {
       "checksum": "0864e11f50d83c3dc90fef4ac5480e85400cdac79f1d28bd3e539150189422c4",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210906-software-mistakes-and-tradeoffs",
-      "source_path": "books/20210906-software-mistakes-and-tradeoffs.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210906-software-mistakes-and-tradeoffs.yaml"
+      "source_path": "books/2021/21-09-06-software-mistakes-and-tradeoffs.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-09-06-software-mistakes-and-tradeoffs.yaml"
     },
     "public_path": "/books/20210906-software-mistakes-and-tradeoffs.html",
     "published": "2021-09-06T00:00:00",
@@ -16572,10 +16572,10 @@
     "provenance": {
       "checksum": "406e38076d78d7a322eba6102ecce81a807814981092a493187aa4dfd373d5f6",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210830-practical-mlops",
-      "source_path": "books/20210830-practical-mlops.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210830-practical-mlops.yaml"
+      "source_path": "books/2021/21-08-30-practical-mlops.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-08-30-practical-mlops.yaml"
     },
     "public_path": "/books/20210830-practical-mlops.html",
     "published": "2021-08-30T00:00:00",
@@ -17033,10 +17033,10 @@
     "provenance": {
       "checksum": "a8fe92041c1dd64b26563935b2c918fa0b589b524ad6ebf0b64c3412574fdbcd",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210823-business-skills-for-data-scientists",
-      "source_path": "books/20210823-business-skills-for-data-scientists.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210823-business-skills-for-data-scientists.yaml"
+      "source_path": "books/2021/21-08-23-business-skills-for-data-scientists.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-08-23-business-skills-for-data-scientists.yaml"
     },
     "public_path": "/books/20210823-business-skills-for-data-scientists.html",
     "published": "2021-08-23T00:00:00",
@@ -17336,10 +17336,10 @@
     "provenance": {
       "checksum": "36596a98a7bd8754a55f1a77147b46cfd8cb66d5f09627ee2c02691fd1ca39af",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210816-tuning-up",
-      "source_path": "books/20210816-tuning-up.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210816-tuning-up.yaml"
+      "source_path": "books/2021/21-08-16-tuning-up.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-08-16-tuning-up.yaml"
     },
     "public_path": "/books/20210816-tuning-up.html",
     "published": "2021-08-16T00:00:00",
@@ -17715,10 +17715,10 @@
     "provenance": {
       "checksum": "5106d3d96b95498fb13520ad2a6b7dd6176fbe8c817b2e29a9a0abfb0b65d40e",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210809-grokking-machine-learning",
-      "source_path": "books/20210809-grokking-machine-learning.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210809-grokking-machine-learning.yaml"
+      "source_path": "books/2021/21-08-09-grokking-machine-learning.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-08-09-grokking-machine-learning.yaml"
     },
     "public_path": "/books/20210809-grokking-machine-learning.html",
     "published": "2021-08-09T00:00:00",
@@ -18054,10 +18054,10 @@
     "provenance": {
       "checksum": "17a76da5758082ddb43dc4b85f0a06fa6874c26cc51b2de7311efd46825e1672",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210802-practical-recommender-systems",
-      "source_path": "books/20210802-practical-recommender-systems.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210802-practical-recommender-systems.yaml"
+      "source_path": "books/2021/21-08-02-practical-recommender-systems.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-08-02-practical-recommender-systems.yaml"
     },
     "public_path": "/books/20210802-practical-recommender-systems.html",
     "published": "2021-08-02T00:00:00",
@@ -18638,10 +18638,10 @@
     "provenance": {
       "checksum": "818fd79e9aaa2d2fb8fd5f36b3110f41d0175dde92b17cb35e7458a659ab3da7",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210726-applied-natural-language-processing-in-the-enterprise",
-      "source_path": "books/20210726-applied-natural-language-processing-in-the-enterprise.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210726-applied-natural-language-processing-in-the-enterprise.yaml"
+      "source_path": "books/2021/21-07-26-applied-natural-language-processing-in-the-enterprise.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-07-26-applied-natural-language-processing-in-the-enterprise.yaml"
     },
     "public_path": "/books/20210726-applied-natural-language-processing-in-the-enterprise.html",
     "published": "2021-07-26T00:00:00",
@@ -18960,10 +18960,10 @@
     "provenance": {
       "checksum": "792b37d0bbd86cab8fe8ebdb46e7e5623c07b15ca33bf8750a3f03c1a48a7f56",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210719-interpretable-machine-learning-with-python",
-      "source_path": "books/20210719-interpretable-machine-learning-with-python.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210719-interpretable-machine-learning-with-python.yaml"
+      "source_path": "books/2021/21-07-19-interpretable-machine-learning-with-python.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-07-19-interpretable-machine-learning-with-python.yaml"
     },
     "public_path": "/books/20210719-interpretable-machine-learning-with-python.html",
     "published": "2021-07-19T00:00:00",
@@ -19370,10 +19370,10 @@
     "provenance": {
       "checksum": "8b60c06d331ca1414bfda0c908854bdaf587568d0bbf01944ad57a1f8b582072",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210712-relevant-search",
-      "source_path": "books/20210712-relevant-search.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210712-relevant-search.yaml"
+      "source_path": "books/2021/21-07-12-relevant-search.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-07-12-relevant-search.yaml"
     },
     "public_path": "/books/20210712-relevant-search.html",
     "published": "2021-07-12T00:00:00",
@@ -19617,10 +19617,10 @@
     "provenance": {
       "checksum": "2b16ef6a81450d03be010e4349ffccceb8287727a82e4da96ef4bab3667b42f5",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210705-engineering-mlops",
-      "source_path": "books/20210705-engineering-mlops.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210705-engineering-mlops.yaml"
+      "source_path": "books/2021/21-07-05-engineering-mlops.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-07-05-engineering-mlops.yaml"
     },
     "public_path": "/books/20210705-engineering-mlops.html",
     "published": "2021-07-05T00:00:00",
@@ -20022,10 +20022,10 @@
     "provenance": {
       "checksum": "3afc4fee0bceb423687b9698644f4d8af7ac1f18ae47aa520ff7846dac380f08",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210628-data-science-on-aws",
-      "source_path": "books/20210628-data-science-on-aws.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210628-data-science-on-aws.yaml"
+      "source_path": "books/2021/21-06-28-data-science-on-aws.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-06-28-data-science-on-aws.yaml"
     },
     "public_path": "/books/20210628-data-science-on-aws.html",
     "published": "2021-06-28T00:00:00",
@@ -20304,10 +20304,10 @@
     "provenance": {
       "checksum": "14f89d236410a66d3f9713af92213f588c770fd071731f496412d81383ae04f3",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210621-cleaning-data-for-effective-data-science",
-      "source_path": "books/20210621-cleaning-data-for-effective-data-science.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210621-cleaning-data-for-effective-data-science.yaml"
+      "source_path": "books/2021/21-06-21-cleaning-data-for-effective-data-science.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-06-21-cleaning-data-for-effective-data-science.yaml"
     },
     "public_path": "/books/20210621-cleaning-data-for-effective-data-science.html",
     "published": "2021-06-21T00:00:00",
@@ -20636,10 +20636,10 @@
     "provenance": {
       "checksum": "a3c51029ea0b06aec80929c8c3ccc16c750c6df5b594955f0c482ee09df1e609",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210614-graph-databases-in-action",
-      "source_path": "books/20210614-graph-databases-in-action.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210614-graph-databases-in-action.yaml"
+      "source_path": "books/2021/21-06-14-graph-databases-in-action.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-06-14-graph-databases-in-action.yaml"
     },
     "public_path": "/books/20210614-graph-databases-in-action.html",
     "published": "2021-06-14T00:00:00",
@@ -21098,10 +21098,10 @@
     "provenance": {
       "checksum": "a30c8b5cec58e4b5e082aa932ac4c32b65ac4f02216f0df356614ea987ab63a2",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210607-building-machine-learning-pipelines",
-      "source_path": "books/20210607-building-machine-learning-pipelines.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210607-building-machine-learning-pipelines.yaml"
+      "source_path": "books/2021/21-06-07-building-machine-learning-pipelines.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-06-07-building-machine-learning-pipelines.yaml"
     },
     "public_path": "/books/20210607-building-machine-learning-pipelines.html",
     "published": "2021-06-07T00:00:00",
@@ -21800,10 +21800,10 @@
     "provenance": {
       "checksum": "4495f485c07a30abc499626b9d328ed1f19be0189b125293c55eeb61612ada5f",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210531-advanced-algorithms-and-data-structures",
-      "source_path": "books/20210531-advanced-algorithms-and-data-structures.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210531-advanced-algorithms-and-data-structures.yaml"
+      "source_path": "books/2021/21-05-31-advanced-algorithms-and-data-structures.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-05-31-advanced-algorithms-and-data-structures.yaml"
     },
     "public_path": "/books/20210531-advanced-algorithms-and-data-structures.html",
     "published": "2021-05-31T00:00:00",
@@ -22096,10 +22096,10 @@
     "provenance": {
       "checksum": "ac1a3b4a4a7307e13e7f5cb4b3a7b485fcf306d95aa530a4d8d7cde86cb5de85",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210524-data-governance-the-definitive-guide",
-      "source_path": "books/20210524-data-governance-the-definitive-guide.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210524-data-governance-the-definitive-guide.yaml"
+      "source_path": "books/2021/21-05-24-data-governance-the-definitive-guide.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-05-24-data-governance-the-definitive-guide.yaml"
     },
     "public_path": "/books/20210524-data-governance-the-definitive-guide.html",
     "published": "2021-05-24T00:00:00",
@@ -22364,10 +22364,10 @@
     "provenance": {
       "checksum": "d51430b19f4d92dad4a6487ca93b571be45ae21c743fe0c6242dc85f5dc2bf31",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210517-grokking-deep-reinforcement-learning",
-      "source_path": "books/20210517-grokking-deep-reinforcement-learning.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210517-grokking-deep-reinforcement-learning.yaml"
+      "source_path": "books/2021/21-05-17-grokking-deep-reinforcement-learning.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-05-17-grokking-deep-reinforcement-learning.yaml"
     },
     "public_path": "/books/20210517-grokking-deep-reinforcement-learning.html",
     "published": "2021-05-17T00:00:00",
@@ -22702,10 +22702,10 @@
     "provenance": {
       "checksum": "76a1f8788208f9755e9d82436060dd4126e6f82262a33b1fae7677001bfa95f4",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210510-the-coding-career-handbook",
-      "source_path": "books/20210510-the-coding-career-handbook.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210510-the-coding-career-handbook.yaml"
+      "source_path": "books/2021/21-05-10-the-coding-career-handbook.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-05-10-the-coding-career-handbook.yaml"
     },
     "public_path": "/books/20210510-the-coding-career-handbook.html",
     "published": "2021-05-10T00:00:00",
@@ -22933,10 +22933,10 @@
     "provenance": {
       "checksum": "f64a408f1380c3a7c6ebfa30560e93534488ea20aed5d555ab800f93f0733efe",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210503-machine-learning-using-tensorflow-cookbook",
-      "source_path": "books/20210503-machine-learning-using-tensorflow-cookbook.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210503-machine-learning-using-tensorflow-cookbook.yaml"
+      "source_path": "books/2021/21-05-03-machine-learning-using-tensorflow-cookbook.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-05-03-machine-learning-using-tensorflow-cookbook.yaml"
     },
     "public_path": "/books/20210503-machine-learning-using-tensorflow-cookbook.html",
     "published": "2021-05-03T00:00:00",
@@ -23415,10 +23415,10 @@
     "provenance": {
       "checksum": "aa478d97652950fd091497c9637ac7c94324f01c7dcaeaf21473fdfd1a4c07e8",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210426-tiny-python-projects",
-      "source_path": "books/20210426-tiny-python-projects.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210426-tiny-python-projects.yaml"
+      "source_path": "books/2021/21-04-26-tiny-python-projects.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-04-26-tiny-python-projects.yaml"
     },
     "public_path": "/books/20210426-tiny-python-projects.html",
     "published": "2021-04-26T00:00:00",
@@ -23808,10 +23808,10 @@
     "provenance": {
       "checksum": "694cf6e2dc8d31fa619b44835c7222b6e367c7372709a3400dae00a9d6c96266",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210419-transformers-for-natural-language-processing",
-      "source_path": "books/20210419-transformers-for-natural-language-processing.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210419-transformers-for-natural-language-processing.yaml"
+      "source_path": "books/2021/21-04-19-transformers-for-natural-language-processing.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-04-19-transformers-for-natural-language-processing.yaml"
     },
     "public_path": "/books/20210419-transformers-for-natural-language-processing.html",
     "published": "2021-04-19T00:00:00",
@@ -24279,10 +24279,10 @@
     "provenance": {
       "checksum": "601653bf7a0b3666f35aa6a33d5efec0028d6728ff600364146957bbeeed2124",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210412-ai-and-machine-learning-for-coders",
-      "source_path": "books/20210412-ai-and-machine-learning-for-coders.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210412-ai-and-machine-learning-for-coders.yaml"
+      "source_path": "books/2021/21-04-12-ai-and-machine-learning-for-coders.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-04-12-ai-and-machine-learning-for-coders.yaml"
     },
     "public_path": "/books/20210412-ai-and-machine-learning-for-coders.html",
     "published": "2021-04-12T00:00:00",
@@ -24975,10 +24975,10 @@
     "provenance": {
       "checksum": "6a93f146f8ef1d3daa454e7ee87ce67ec32357afab5025a401a778d80a3ee030",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210405-the-practitioners-guide-to-graph-data",
-      "source_path": "books/20210405-the-practitioners-guide-to-graph-data.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210405-the-practitioners-guide-to-graph-data.yaml"
+      "source_path": "books/2021/21-04-05-the-practitioners-guide-to-graph-data.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-04-05-the-practitioners-guide-to-graph-data.yaml"
     },
     "public_path": "/books/20210405-the-practitioners-guide-to-graph-data.html",
     "published": "2021-04-05T00:00:00",
@@ -25325,10 +25325,10 @@
     "provenance": {
       "checksum": "195ac6c03e6b027542ee31adaf5723e47dcb5b33fd549532f50fa7ca5647793c",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210329-learning-tensorflow-js",
-      "source_path": "books/20210329-learning-tensorflow-js.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210329-learning-tensorflow-js.yaml"
+      "source_path": "books/2021/21-03-29-learning-tensorflow-js.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-03-29-learning-tensorflow-js.yaml"
     },
     "public_path": "/books/20210329-learning-tensorflow-js.html",
     "published": "2021-03-29T00:00:00",
@@ -25592,10 +25592,10 @@
     "provenance": {
       "checksum": "5927e949f451e966bf7d209ed8276b0e90c9bbe97801e34aee7956db08d056ba",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210322-street-coder",
-      "source_path": "books/20210322-street-coder.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210322-street-coder.yaml"
+      "source_path": "books/2021/21-03-22-street-coder.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-03-22-street-coder.yaml"
     },
     "public_path": "/books/20210322-street-coder.html",
     "published": "2021-03-22T00:00:00",
@@ -25635,10 +25635,10 @@
     "provenance": {
       "checksum": "daf22a8a1790c23fe8ff00f9f4d86187e82d950928456148b4483b84c07cf1c5",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210315-database-internals",
-      "source_path": "books/20210315-database-internals.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210315-database-internals.yaml"
+      "source_path": "books/2021/21-03-15-database-internals.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-03-15-database-internals.yaml"
     },
     "public_path": "/books/20210315-database-internals.html",
     "published": "2021-03-15T00:00:00",
@@ -26116,10 +26116,10 @@
     "provenance": {
       "checksum": "acf956058df7947e29bf691d7f0a7fd1bf4b16961798f0408967967b7bf8d786",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210308-designing-data-intensive-applications",
-      "source_path": "books/20210308-designing-data-intensive-applications.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210308-designing-data-intensive-applications.yaml"
+      "source_path": "books/2021/21-03-08-designing-data-intensive-applications.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-03-08-designing-data-intensive-applications.yaml"
     },
     "public_path": "/books/20210308-designing-data-intensive-applications.html",
     "published": "2021-03-08T00:00:00",
@@ -26382,10 +26382,10 @@
     "provenance": {
       "checksum": "2a062a55d08d0c724f8cfc2d19d56dccaad37e616c835b6ed1a7fad1ead0e6d4",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210301-ml-engineering",
-      "source_path": "books/20210301-ml-engineering.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210301-ml-engineering.yaml"
+      "source_path": "books/2021/21-03-01-ml-engineering.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-03-01-ml-engineering.yaml"
     },
     "public_path": "/books/20210301-ml-engineering.html",
     "published": "2021-03-01T00:00:00",
@@ -26813,10 +26813,10 @@
     "provenance": {
       "checksum": "e8231b9e30580de1cc46406677dbc3a82f4aefedbe9e1f691cd5ccfc7044f254",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210222-ml-algotrading-2ed",
-      "source_path": "books/20210222-ml-algotrading-2ed.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210222-ml-algotrading-2ed.yaml"
+      "source_path": "books/2021/21-02-22-ml-algotrading-2ed.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-02-22-ml-algotrading-2ed.yaml"
     },
     "public_path": "/books/20210222-ml-algotrading-2ed.html",
     "published": "2021-02-22T00:00:00",
@@ -27145,10 +27145,10 @@
     "provenance": {
       "checksum": "7a880884bf770d308ced341edf784c2a7e93a32f15382ec358cf47cc96cedd05",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210215-math-for-programmers",
-      "source_path": "books/20210215-math-for-programmers.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210215-math-for-programmers.yaml"
+      "source_path": "books/2021/21-02-15-math-for-programmers.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-02-15-math-for-programmers.yaml"
     },
     "public_path": "/books/20210215-math-for-programmers.html",
     "published": "2021-02-15T00:00:00",
@@ -27422,10 +27422,10 @@
     "provenance": {
       "checksum": "f2b5080ddb4bd4e6401bd3f99f6e2d56fa41a6d4cf93db662adc210d5dc57cdd",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210208-ml-design-patterns",
-      "source_path": "books/20210208-ml-design-patterns.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210208-ml-design-patterns.yaml"
+      "source_path": "books/2021/21-02-08-ml-design-patterns.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-02-08-ml-design-patterns.yaml"
     },
     "public_path": "/books/20210208-ml-design-patterns.html",
     "published": "2021-02-08T00:00:00",
@@ -27891,10 +27891,10 @@
     "provenance": {
       "checksum": "66ebc03bf08174d62b168db37d8d74063d606f0115fb9d79a2dd9ead6018be98",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210201-data-teams",
-      "source_path": "books/20210201-data-teams.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210201-data-teams.yaml"
+      "source_path": "books/2021/21-02-01-data-teams.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-02-01-data-teams.yaml"
     },
     "public_path": "/books/20210201-data-teams.html",
     "published": "2021-02-01T00:00:00",
@@ -28254,10 +28254,10 @@
     "provenance": {
       "checksum": "c77b6f524a8f24e286d7c4e07e4b57cc7d624465e5f74eddf1fe8258b64f68b7",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210125-mastering-ml-algorithms-2ed",
-      "source_path": "books/20210125-mastering-ml-algorithms-2ed.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210125-mastering-ml-algorithms-2ed.yaml"
+      "source_path": "books/2021/21-01-25-mastering-ml-algorithms-2ed.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-01-25-mastering-ml-algorithms-2ed.yaml"
     },
     "public_path": "/books/20210125-mastering-ml-algorithms-2ed.html",
     "published": "2021-01-25T00:00:00",
@@ -28642,10 +28642,10 @@
     "provenance": {
       "checksum": "c147365900362fb25aaf33e351f83152dbc47197a02056463821bda54924e52d",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210118-deep-learning-structured-data",
-      "source_path": "books/20210118-deep-learning-structured-data.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210118-deep-learning-structured-data.yaml"
+      "source_path": "books/2021/21-01-18-deep-learning-structured-data.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-01-18-deep-learning-structured-data.yaml"
     },
     "public_path": "/books/20210118-deep-learning-structured-data.html",
     "published": "2021-01-18T00:00:00",
@@ -29038,10 +29038,10 @@
     "provenance": {
       "checksum": "7bb554d773ed9b87a4c8ef3b0c18a65d4e2e73bf61a0f12f5e69313cca128f3e",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20210111-reinforcement-learning",
-      "source_path": "books/20210111-reinforcement-learning.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20210111-reinforcement-learning.yaml"
+      "source_path": "books/2021/21-01-11-reinforcement-learning.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2021/21-01-11-reinforcement-learning.yaml"
     },
     "public_path": "/books/20210111-reinforcement-learning.html",
     "published": "2021-01-11T00:00:00",
@@ -29323,10 +29323,10 @@
     "provenance": {
       "checksum": "decd10d7ac7d4f2e8de0600aa0d5ddb0f4dce1a718efe4aca3f84b0624b8a14a",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
       "source_key": "20201214-ml-bookcamp",
-      "source_path": "books/20201214-ml-bookcamp.yaml",
-      "source_url": "https://github.com/DataTalksClub/content/blob/e29f56ce70bd997171a78a9f0facc9354797f421/books/20201214-ml-bookcamp.yaml"
+      "source_path": "books/2020/20-12-14-ml-bookcamp.yaml",
+      "source_url": "https://github.com/DataTalksClub/content/blob/1375c506dbce85c7c0e5e61f83c753128c5a48d1/books/2020/20-12-14-ml-bookcamp.yaml"
     },
     "public_path": "/books/20201214-ml-bookcamp.html",
     "published": "2020-12-14T00:00:00",

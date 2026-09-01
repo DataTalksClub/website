@@ -37,7 +37,7 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
 
         self.assertEqual(checked, migration)
         self.assertEqual(migration["schema_version"], 1)
-        self.assertEqual(migration["counts"], {"finals": 796, "aliases": 1_590})
+        self.assertEqual(migration["counts"], {"finals": 794, "aliases": 1_586})
         self.assertEqual(
             migration["provenance"]["source_artifacts"],
             {
@@ -59,8 +59,8 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         finals = {item["final_path"]: item for item in migration["finals"]}
         aliases = {item["source_path"]: item for item in migration["aliases"]}
 
-        self.assertEqual(len(finals), 796)
-        self.assertEqual(len(aliases), 1_590)
+        self.assertEqual(len(finals), 794)
+        self.assertEqual(len(aliases), 1_586)
         self.assertTrue(set(finals).isdisjoint(aliases))
         self.assertTrue(all(item["final_path"] in finals for item in aliases.values()))
         self.assertTrue(all(item["status_code"] == 301 for item in aliases.values()))
@@ -154,8 +154,8 @@ class EditorialRouteMigrationContractTests(SimpleTestCase):
         self.assertIn("production SEO cutover commander", runbook)
         self.assertIn("Search Console", runbook)
         self.assertIn("Googlebot", runbook)
-        self.assertIn("796 editorial finals", runbook)
-        self.assertIn("all 796 final and 1,590 alias probes", runbook)
+        self.assertIn("794 editorial finals", runbook)
+        self.assertIn("all 794 final and 1,586 alias probes", runbook)
         self.assertEqual(
             [step["id"] for step in self.policy["rollback_steps"]],
             [

@@ -56,8 +56,8 @@ EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
 )
 EXPECTED_COUNTS = {
     "articles": 55,
-    "podcasts": 205,
-    "transcripts": 203,
+    "podcasts": 203,
+    "transcripts": 201,
     "books": 98,
     "people": 438,
     "events": 421,
@@ -82,7 +82,7 @@ EDITORIAL_ROUTE_COLLECTIONS = {
 EXPECTED_EDITORIAL_FINALS = sum(EXPECTED_COUNTS[name] for name in EDITORIAL_ROUTE_COLLECTIONS)
 EXPECTED_EDITORIAL_ALIASES = 2 * (EXPECTED_EDITORIAL_FINALS - len(PODCAST_HIERARCHICAL_ONLY_SLUGS))
 EXPECTED_REVISIONS = {
-    "preferred_content": "e29f56ce70bd997171a78a9f0facc9354797f421",
+    "preferred_content": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
     "fallback_selection": "373bef2912342ece1d2a2d2a9395aa3417243283",
     "legacy_main": "ee43d3fa0929faf691178d79f19528e6f15a83e5",
     "wiki": "988b79d0d655bf4755945c3118544cb9e0dbead6",

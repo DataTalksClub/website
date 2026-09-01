@@ -62,13 +62,13 @@ EDITORIAL_ROUTE_MIGRATION_SCHEMA = (
 )
 EVENT_IDENTITY_MANIFEST = REPOSITORY_ROOT / "events" / "event_identity_manifest.json"
 
-PREFERRED_CONTENT_REVISION = "e29f56ce70bd997171a78a9f0facc9354797f421"
-PREFERRED_CONTENT_TREE = "c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa"
+PREFERRED_CONTENT_REVISION = "1375c506dbce85c7c0e5e61f83c753128c5a48d1"
+PREFERRED_CONTENT_TREE = "1537664d1222950f43f11cc4b105683c81456cc9"
 PREFERRED_REPAIR_MANIFEST_SHA256 = (
-    "80d3014c47bf57de792473fc1da8f7569daeb55107688c3485153f773948d3aa"
+    "6016c3f25eff81dff9643ee127e72b0df7d827b8edd3f89b83ae5cb880810178"
 )
 PREFERRED_EDITORIAL_OVERLAY_SHA256 = (
-    "63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6"
+    "b2e6f23da40b6afbc310340196101422ac5de466b89e409c0ce5f24f5bf20326"
 )
 PREFERRED_CI_RUN = "https://github.com/DataTalksClub/content/actions/runs/31365358459"
 FALLBACK_SELECTION_REVISION = "373bef2912342ece1d2a2d2a9395aa3417243283"
@@ -83,8 +83,8 @@ COURSES_REPOSITORY = "https://github.com/DataTalksClub/course-management-platfor
 
 EXPECTED_COUNTS = {
     "articles": 55,
-    "podcasts": 205,
-    "transcripts": 203,
+    "podcasts": 203,
+    "transcripts": 201,
     "books": 98,
     "people": 438,
     "events": 421,
@@ -125,7 +125,7 @@ MAX_SOURCE_FILE_BYTES = 2 * 1024 * 1024
 MAX_GRAPH_FILE_BYTES = 16 * 1024 * 1024
 SAFE_KEY = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._-]{0,199}$")
 PERSON_KEY = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9._()-]{0,199}$")
-DATE_PREFIX = re.compile(r"^\d{4}-\d{2}-\d{2}-(.+)$")
+DATE_PREFIX = re.compile(r"^(?:\d{2}|\d{4})-\d{2}-\d{2}-(.+)$")
 HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 HTML_TAG = re.compile(r"<[^>]{1,2000}>")
 LIQUID = re.compile(r"{%.*?%}|{{.*?}}", re.DOTALL)
@@ -1360,13 +1360,22 @@ def _main_records(
         "charts": 0,
     }
 
-    for path in sorted((content_root / "articles").glob("*.md")):
+    article_paths = (
+        (content_root / "articles").rglob("*.md")
+        if mode == "preferred"
+        else (content_root / "articles").glob("*.md")
+    )
+    for path in sorted(article_paths):
         metadata, body = _frontmatter(path)
         match = DATE_PREFIX.fullmatch(path.stem)
         if match is None:
             raise ProjectionBuildError(f"article selection key rejected: {path.name[:120]}")
         slug = _safe_key(match.group(1), field="article slug")
-        source_path = f"articles/{path.name}" if mode == "preferred" else f"_posts/{path.name}"
+        source_path = (
+            f"articles/{path.relative_to(content_root / 'articles').as_posix()}"
+            if mode == "preferred"
+            else f"_posts/{path.name}"
+        )
         source_file = path if mode == "preferred" else legacy_main_root / source_path
         checksum = _sha256_bytes(_read_bytes(source_file))
         title = _title_from_record(metadata, slug)
@@ -1421,8 +1430,18 @@ def _main_records(
     }:
         raise ProjectionBuildError("article body inventory mismatch")
 
-    transcript_root = content_root / "podcasts" / "transcripts"
-    for path in sorted((content_root / "podcasts").glob("*.yaml")):
+    podcast_root = content_root / "podcasts"
+    podcast_paths = (
+        sorted(
+            path
+            for path in podcast_root.rglob("*.yaml")
+            if not path.name.endswith("-transcript.yaml")
+        )
+        if mode == "preferred"
+        else sorted(podcast_root.glob("*.yaml"))
+    )
+    transcript_root = podcast_root / "transcripts"
+    for path in podcast_paths:
         raw = _load_yaml(path)
         if not isinstance(raw, dict):
             raise ProjectionBuildError(f"podcast record rejected: {path.name[:120]}")
@@ -1435,10 +1454,14 @@ def _main_records(
         transcript: list[dict[str, Any]] = []
         transcript_provenance: dict[str, str] | None = None
         if transcript_path:
-            expected = f"transcripts/{slug}.yaml"
+            if mode == "preferred":
+                expected = f"{path.stem}-transcript.yaml"
+                selected_transcript = path.parent / transcript_path
+            else:
+                expected = f"transcripts/{slug}.yaml"
+                selected_transcript = transcript_root / f"{slug}.yaml"
             if transcript_path != expected:
                 raise ProjectionBuildError(f"podcast transcript mismatch: {path.name[:120]}")
-            selected_transcript = transcript_root / f"{slug}.yaml"
             transcript_record = _load_yaml(selected_transcript)
             if not isinstance(transcript_record, dict) or transcript_record.get("podcast") != slug:
                 raise ProjectionBuildError(f"podcast transcript rejected: {path.name[:120]}")
@@ -1503,7 +1526,7 @@ def _main_records(
                     }
                 )
             if mode == "preferred":
-                transcript_source_path = f"podcasts/transcripts/{slug}.yaml"
+                transcript_source_path = selected_transcript.relative_to(content_root).as_posix()
                 transcript_source_file = selected_transcript
                 transcript_revision = PREFERRED_CONTENT_REVISION
                 transcript_repository = CONTENT_REPOSITORY
@@ -1519,7 +1542,11 @@ def _main_records(
                 source_key=slug,
                 checksum=_sha256_bytes(_read_bytes(transcript_source_file)),
             )
-        source_path = f"podcasts/{path.name}" if mode == "preferred" else f"_podcast/{path.stem}.md"
+        source_path = (
+            f"podcasts/{path.relative_to(podcast_root).as_posix()}"
+            if mode == "preferred"
+            else f"_podcast/{path.stem}.md"
+        )
         source_file = path if mode == "preferred" else legacy_main_root / source_path
         podcast_links: dict[str, str] = {}
         raw_links = raw.get("links")
@@ -1586,7 +1613,12 @@ def _main_records(
             podcast_records=podcasts,
         )
 
-    for path in sorted((content_root / "books").glob("*.yaml")):
+    book_paths = (
+        (content_root / "books").rglob("*.yaml")
+        if mode == "preferred"
+        else (content_root / "books").glob("*.yaml")
+    )
+    for path in sorted(book_paths):
         raw = _load_yaml(path)
         if not isinstance(raw, dict):
             raise ProjectionBuildError(f"book record rejected: {path.name[:120]}")
@@ -1595,7 +1627,11 @@ def _main_records(
         if legacy_path != f"/books/{slug}.html":
             raise ProjectionBuildError(f"book route mismatch: {path.name[:120]}")
         public_path = f"/books/{slug}.html"
-        source_path = f"books/{path.name}" if mode == "preferred" else f"_books/{path.stem}.md"
+        source_path = (
+            f"books/{path.relative_to(content_root / 'books').as_posix()}"
+            if mode == "preferred"
+            else f"_books/{path.stem}.md"
+        )
         source_file = path if mode == "preferred" else legacy_main_root / source_path
         book_links: list[dict[str, str]] = []
         raw_book_links = raw.get("links")
@@ -2043,6 +2079,8 @@ def _wiki_relations(
             slug = title_to_slug.get(target.casefold()) or _slugify(target)
             if slug in title_to_slug.values():
                 href = f"/wiki/{slug}"
+        if relation_type in {"podcast", "citation"} and not href:
+            continue
         relation = (relation_type, label, href)
         if relation not in seen:
             seen.add(relation)
@@ -2172,6 +2210,57 @@ def _wiki(
         book_paths,
         people_paths,
     )
+    stale_graph_nodes = {
+        node["id"]
+        for node in graph.get("nodes", [])
+        if node.get("collection") == "podcast" and not node.get("url")
+    }
+    if stale_graph_nodes:
+        graph["nodes"] = [
+            node for node in graph["nodes"] if node.get("id") not in stale_graph_nodes
+        ]
+        graph["links"] = [
+            link
+            for link in graph["links"]
+            if link.get("source") not in stale_graph_nodes
+            and link.get("target") not in stale_graph_nodes
+        ]
+    stale_episode_slugs = {
+        episode_slug
+        for document in search["docs"]
+        if isinstance(document, dict)
+        for episode_slug in (document.get("episode_slug"),)
+        if isinstance(episode_slug, str)
+        and episode_slug
+        and episode_slug not in podcast_paths
+    }
+    stale_episode_aliases = {
+        alias
+        for episode_slug in stale_episode_slugs
+        for alias in (episode_slug, episode_slug.removeprefix("_"))
+    }
+    active_search_documents: list[dict[str, Any]] = []
+    for document in search["docs"]:
+        if not isinstance(document, dict):
+            continue
+        episode_slug = document.get("episode_slug")
+        if episode_slug and episode_slug not in podcast_paths:
+            continue
+        related_terms = document.get("related_terms")
+        if isinstance(related_terms, str) and stale_episode_aliases:
+            document["related_terms"] = " ".join(
+                term
+                for term in related_terms.split()
+                if not any(alias in term for alias in stale_episode_aliases)
+            )
+        active_search_documents.append(document)
+    search["docs"] = active_search_documents
+    graph["counts"] = {
+        **graph["counts"],
+        "nodes": len(graph["nodes"]),
+        "links": len(graph["links"]),
+        "podcasts": sum(node.get("collection") == "podcast" for node in graph["nodes"]),
+    }
     podcast_public_paths = set(podcast_paths.values())
     book_public_paths = set(book_paths.values())
     people_public_paths = set(people_paths.values())
@@ -2185,13 +2274,13 @@ def _wiki(
     graph_nodes = graph.get("nodes", [])
     graph_links = graph.get("links", [])
     search_documents = search.get("docs", [])
-    if len(graph_nodes) != 1_072 or len(graph_links) != 13_006:
+    if len(graph_nodes) != 1_070 or len(graph_links) != 12_987:
         raise ProjectionBuildError("wiki graph checked count mismatch")
-    if len(search_documents) != 2_998:
+    if len(search_documents) != 2_996:
         raise ProjectionBuildError("wiki search checked count mismatch")
     if sum(node.get("url", "").startswith("/wiki/") for node in graph_nodes) != 330:
         raise ProjectionBuildError("wiki graph page URL count mismatch")
-    if sum(node.get("url", "") in podcast_public_paths for node in graph_nodes) != 205:
+    if sum(node.get("url", "") in podcast_public_paths for node in graph_nodes) != 203:
         raise ProjectionBuildError("wiki graph podcast URL count mismatch")
     if sum(node.get("url", "") in book_public_paths for node in graph_nodes) != 98:
         raise ProjectionBuildError("wiki graph book URL count mismatch")
@@ -2814,11 +2903,12 @@ def build(args: argparse.Namespace) -> None:
         )
         if _run(["git", "rev-parse", "HEAD^{tree}"], cwd=content_root) != PREFERRED_CONTENT_TREE:
             raise ProjectionBuildError("preferred content tree mismatch")
-        repair_manifest = content_root / "repairs" / "2026-08-09-missing-media.yaml"
+        repair_manifest = content_root / "migration" / "repairs" / "2026-08-09-missing-media.yaml"
         if _sha256_file(repair_manifest) != PREFERRED_REPAIR_MANIFEST_SHA256:
             raise ProjectionBuildError("preferred content repair manifest mismatch")
         editorial_overlay = (
-            content_root / "editorial-overlays" / "2026-08-10-podcast-descriptions.yaml"
+            content_root
+            / "migration/editorial-overlays/2026-08-10-podcast-descriptions.yaml"
         )
         if _sha256_file(editorial_overlay) != PREFERRED_EDITORIAL_OVERLAY_SHA256:
             raise ProjectionBuildError("preferred content editorial overlay mismatch")
@@ -2844,7 +2934,10 @@ def build(args: argparse.Namespace) -> None:
             if guest not in people_by_slug
         }
     )
-    if unresolved_podcast_guests != ["abouzarabbaspour"]:
+    expected_unresolved_podcast_guests = (
+        [] if args.mode == "preferred" else ["abouzarabbaspour"]
+    )
+    if unresolved_podcast_guests != expected_unresolved_podcast_guests:
         raise ProjectionBuildError("podcast guest/profile exception inventory mismatch")
     for article in articles:
         if any(author not in people_by_slug for author in article["authors"]):

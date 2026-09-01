@@ -5,10 +5,10 @@
     "comparisons": 24,
     "guides": 25,
     "how_tos": 4,
-    "links": 13006,
-    "nodes": 1072,
+    "links": 12987,
+    "nodes": 1070,
     "persons": 439,
-    "podcasts": 205,
+    "podcasts": 203,
     "roadmaps": 12,
     "topics": 48,
     "transitions": 15,
@@ -1338,12 +1338,6 @@
     },
     {
       "kind": "person-podcast",
-      "source": "person:abouzarabbaspour",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "weight": 4
-    },
-    {
-      "kind": "person-podcast",
       "source": "person:adamsroka",
       "target": "podcast:ml-engineering-kpis-and-metrics-strategy",
       "weight": 4
@@ -1862,12 +1856,6 @@
       "kind": "person-podcast",
       "source": "person:jeffkatz",
       "target": "podcast:get-data-engineering-job-prep-and-interview",
-      "weight": 4
-    },
-    {
-      "kind": "person-podcast",
-      "source": "person:jekaterinakokatjuhha",
-      "target": "podcast:s12e08",
       "weight": 4
     },
     {
@@ -9438,18 +9426,6 @@
     },
     {
       "kind": "podcast-link",
-      "source": "podcast:s12e08",
-      "target": "person:jekaterinakokatjuhha",
-      "weight": 1
-    },
-    {
-      "kind": "podcast-person",
-      "source": "podcast:s12e08",
-      "target": "person:jekaterinakokatjuhha",
-      "weight": 4
-    },
-    {
-      "kind": "podcast-link",
       "source": "podcast:s22e06-from-black-box-systems-to-augmented-decision-making",
       "target": "person:anushaakkina",
       "weight": 1
@@ -10272,48 +10248,6 @@
     },
     {
       "kind": "podcast-link",
-      "source": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "target": "person:abouzarabbaspour",
-      "weight": 1
-    },
-    {
-      "kind": "podcast-person",
-      "source": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "target": "person:abouzarabbaspour",
-      "weight": 4
-    },
-    {
-      "kind": "podcast-topic",
-      "source": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "target": "wiki:data-engineering",
-      "weight": 2
-    },
-    {
-      "kind": "podcast-topic",
-      "source": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "target": "wiki:data-science",
-      "weight": 2
-    },
-    {
-      "kind": "podcast-topic",
-      "source": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "target": "wiki:llms",
-      "weight": 2
-    },
-    {
-      "kind": "podcast-topic",
-      "source": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "target": "wiki:machine-learning",
-      "weight": 2
-    },
-    {
-      "kind": "podcast-topic",
-      "source": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "target": "wiki:mlops",
-      "weight": 2
-    },
-    {
-      "kind": "podcast-link",
       "source": "podcast:trends-in-modern-data-engineering",
       "target": "person:adrianbrudaru",
       "weight": 1
@@ -10574,12 +10508,6 @@
       "kind": "wiki-chip",
       "source": "wiki:a-b-testing",
       "target": "podcast:production-ml-mlops-and-data-team-building",
-      "weight": 1
-    },
-    {
-      "kind": "wiki-chip",
-      "source": "wiki:a-b-testing",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
       "weight": 1
     },
     {
@@ -12379,12 +12307,6 @@
     {
       "kind": "wiki-chip",
       "source": "wiki:ai-coding-tools",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "weight": 1
-    },
-    {
-      "kind": "wiki-chip",
-      "source": "wiki:ai-coding-tools",
       "target": "wiki:agent-engineering",
       "weight": 1
     },
@@ -14150,12 +14072,6 @@
       "kind": "wiki-chip",
       "source": "wiki:ai-infrastructure",
       "target": "podcast:production-ready-ai-engineering",
-      "weight": 1
-    },
-    {
-      "kind": "wiki-chip",
-      "source": "wiki:ai-infrastructure",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
       "weight": 1
     },
     {
@@ -26827,12 +26743,6 @@
     {
       "kind": "article-chip",
       "source": "wiki:data-engineering-and-data-science",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "weight": 1
-    },
-    {
-      "kind": "article-chip",
-      "source": "wiki:data-engineering-and-data-science",
       "target": "wiki:data-engineer-roadmap",
       "weight": 1
     },
@@ -30404,12 +30314,6 @@
       "kind": "wiki-chip",
       "source": "wiki:data-product-adoption",
       "target": "podcast:product-designer-to-data-product-manager",
-      "weight": 1
-    },
-    {
-      "kind": "wiki-chip",
-      "source": "wiki:data-product-adoption",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
       "weight": 1
     },
     {
@@ -47654,12 +47558,6 @@
       "kind": "wiki-chip",
       "source": "wiki:industrial-ml-applications",
       "target": "podcast:s22e08-building-pet-health-tech-ml-sensors-and-dog-behavior-data",
-      "weight": 1
-    },
-    {
-      "kind": "wiki-chip",
-      "source": "wiki:industrial-ml-applications",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
       "weight": 1
     },
     {
@@ -70669,12 +70567,6 @@
     {
       "kind": "wiki-chip",
       "source": "wiki:recommendation-systems",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "weight": 1
-    },
-    {
-      "kind": "wiki-chip",
-      "source": "wiki:recommendation-systems",
       "target": "wiki:a-b-testing",
       "weight": 1
     },
@@ -75206,12 +75098,6 @@
       "kind": "wiki-chip",
       "source": "wiki:streaming",
       "target": "podcast:scaling-data-engineering-teams-self-service-platforms",
-      "weight": 1
-    },
-    {
-      "kind": "wiki-chip",
-      "source": "wiki:streaming",
-      "target": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
       "weight": 1
     },
     {
@@ -85388,16 +85274,6 @@
     {
       "collection": "podcast",
       "count": 1,
-      "id": "podcast:theme-park-crowd-modeling-to-tesla-full-stack-data-engineering",
-      "label": "From Theme Parks to Tesla: Building Data Products Through Applied ML and Full-Stack Engineering",
-      "search": "From Theme Parks to Tesla: Building Data Products Through Applied ML and Full Stack Engineering",
-      "title": "From Theme Parks to Tesla: Building Data Products Through Applied ML and Full-Stack Engineering",
-      "type": "podcast",
-      "url": "/podcast/_theme-park-crowd-modeling-to-tesla-full-stack-data-engineering.html"
-    },
-    {
-      "collection": "podcast",
-      "count": 1,
       "id": "podcast:generative-ai-chatbots-in-production-security",
       "label": "Hardening Generative AI Chatbots: Prevent Prompt Injection, Data Exfiltration & Hallucinations",
       "search": "Hardening Generative AI Chatbots: Prevent Prompt Injection, Data Exfiltration & Hallucinations",
@@ -86264,16 +86140,6 @@
       "title": "The Future of AI Agents",
       "type": "podcast",
       "url": "/podcast/s23e03-future-of-ai-agents.html"
-    },
-    {
-      "collection": "podcast",
-      "count": 1,
-      "id": "podcast:s12e08",
-      "label": "The Journey of a Data Generalist: From Bioinformatics to Freelancing",
-      "search": "The Journey of a Data Generalist: From Bioinformatics to Freelancing",
-      "title": "The Journey of a Data Generalist: From Bioinformatics to Freelancing",
-      "type": "podcast",
-      "url": "/podcast/_s12e08.html"
     },
     {
       "collection": "podcast",

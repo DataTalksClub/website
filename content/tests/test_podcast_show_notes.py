@@ -62,11 +62,11 @@ class PodcastShowNotesContractTests(SimpleTestCase):
         ]
         rows = [resource for episode in normalized for resource in episode]
 
-        self.assertEqual(len(self.records), 205)
-        self.assertEqual(sum(bool(episode) for episode in normalized), 176)
-        self.assertEqual(sum(len(record.get("resources") or []) for record in self.records), 547)
-        self.assertEqual(len(rows), 547)
-        self.assertEqual(sum(resource.is_external for resource in rows), 544)
+        self.assertEqual(len(self.records), 203)
+        self.assertEqual(sum(bool(episode) for episode in normalized), 174)
+        self.assertEqual(sum(len(record.get("resources") or []) for record in self.records), 544)
+        self.assertEqual(len(rows), 544)
+        self.assertEqual(sum(resource.is_external for resource in rows), 541)
         self.assertEqual(sum(not resource.is_external for resource in rows), 3)
         self.assertEqual(sum(not episode for episode in normalized), 29)
         self.assertFalse(
@@ -118,7 +118,7 @@ class PodcastShowNotesContractTests(SimpleTestCase):
         )
         self.assertEqual(
             record["transcript_provenance"]["source_path"],
-            "podcasts/transcripts/building-data-team.yaml",
+            "podcasts/s01/e03-transcript.yaml",
         )
         self.assertEqual(record["transcript"][2]["time"], "2:06")
         self.assertEqual(record["transcript"][2]["sec"], 126)

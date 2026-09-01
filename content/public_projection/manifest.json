@@ -1,17 +1,17 @@
 {
   "artifacts": {
-    "articles.json": "4ca8e4f3a1fcf3fe3c6434fdaf945f47e7969b6d6cf3cc03194c75b7a6318428",
-    "books.json": "c960306e3a2f6d6f312815826dc6d9b69858cefacd183b15215b37bfde37ec18",
+    "articles.json": "a06b4167aef93e4f603b9a265347e4748bab3afc71780163d6d63553a6c203ad",
+    "books.json": "b97d3c1706cd44bccfcfb7bcb1735f72eaa1b954b4d5973eaecfe95fdcb65042",
     "courses.json": "8e4cc4864822ac885c360fb154e0a1f4bb402047bb66b80c5673c3233a1ecdb8",
-    "editorial_route_migration.json": "dc2338770baf397b542372dd858701cf00b19aa7c76121ca6d5d689637328a91",
+    "editorial_route_migration.json": "c7c53b1fbd89a2193d314cca4b8d5befe6fe907e7f75f2c7c2934949df1477da",
     "events.json": "333c53c88445d9cbc6d91c26f9043a6998645346a84fdd3b2782ec0a989d7fc6",
-    "media.json": "72788d42f6b4742733f6155571d2b1ba347612011f3cdcdae834d59fc5f0e784",
-    "people.json": "a4b6edaa67eb48c31f63f1bcd4a9278d0206dafaa4545d490dd8bbf5f7b391c8",
+    "media.json": "199c7860ad429b2e3fc0d58578df1bac28a34bef0ac3abbb65d36f83d4c34500",
+    "people.json": "788dc6857f19e907e7612169ab022b8ca1680a4ed3b6a07d37551157b090e789",
     "podcast_platforms.json": "16a1eff26191e2aef48b8df939bed7d2ae134677d06bbfba55a6fd2842526dda",
-    "podcasts.json": "65ba1c7f1634067adfddbd1fcb84499bb215f19ff7a9b1140a044d11d49cd7fa",
-    "wiki.json": "7022a490dc4c38bc470c8e8f0969cc013d0c6340b8356ad5ee3ebaba98880521",
-    "wiki_graph.json": "dd33dc3c9fe0ca14a80322129e57ccac18641e6cdb674b12f7c774e53b91b43a",
-    "wiki_search.json": "af25a7d027f42c72a0001be8d890caf7805bdd9ec054bb121703a77f30bf0d75"
+    "podcasts.json": "ddebc6af56a5342c0276895e5e0392e9594fe6124e8629ff1738687c1447e94a",
+    "wiki.json": "4a9f7abbaacc0ecbf28b73223b3435473efe5d752a0221777ec5a4217dec6556",
+    "wiki_graph.json": "93b32081baa5a8b03cf7a58b94cbed48cce5569f48357aacc136febfe2c706f5",
+    "wiki_search.json": "507f701a784272f5aa56f0f18ab9ba229379343bb39b09c98b6e02efa3a6258d"
   },
   "counts": {
     "articles": 55,
@@ -20,8 +20,8 @@
     "events": 421,
     "media": 1253,
     "people": 438,
-    "podcasts": 205,
-    "transcripts": 203,
+    "podcasts": 203,
+    "transcripts": 201,
     "wiki": 282
   },
   "projection_rules": {
@@ -108,9 +108,7 @@
     },
     "media": "signature-checked local allowlist with per-asset provenance",
     "people_source": "438 public _people profiles; underscore-prefixed source excluded",
-    "unresolved_podcast_guest_keys": [
-      "abouzarabbaspour"
-    ]
+    "unresolved_podcast_guest_keys": []
   },
   "runtime_contract": {
     "database_writes": "none",
@@ -147,18 +145,18 @@
     "preferred_content": {
       "accepted": true,
       "ci_run": "https://github.com/DataTalksClub/content/actions/runs/31365358459",
-      "editorial_overlay_sha256": "63969508134e8b2ef3c8471e9c8dbccc96842fcfc25225fe02e1ed5a4f5926f6",
-      "repair_manifest_sha256": "80d3014c47bf57de792473fc1da8f7569daeb55107688c3485153f773948d3aa",
+      "editorial_overlay_sha256": "b2e6f23da40b6afbc310340196101422ac5de466b89e409c0ce5f24f5bf20326",
+      "repair_manifest_sha256": "6016c3f25eff81dff9643ee127e72b0df7d827b8edd3f89b83ae5cb880810178",
       "repository": "DataTalksClub/content",
-      "revision": "e29f56ce70bd997171a78a9f0facc9354797f421",
-      "tree": "c82b0c6ff462dcdd7140f03f2e7d884ed10ff8fa"
+      "revision": "1375c506dbce85c7c0e5e61f83c753128c5a48d1",
+      "tree": "1537664d1222950f43f11cc4b105683c81456cc9"
     },
     "wiki": {
       "repository": "DataTalksClub/podwiki",
       "revision": "988b79d0d655bf4755945c3118544cb9e0dbead6"
     }
   },
-  "tree_sha256": "abccd9e14f2f9e77c047c135f20d9565aefc9c2715ad29b5e1bf873e3cf150d6",
+  "tree_sha256": "29a1819fa006965b093501353d009acdcbac2f85b5f30f88b9f5507fd0c9f793",
   "wiki_assets": {
     "/wiki/assets/og-default.png": "afddea001f9cf846630cb7a8046352a52d4d6c2edacd0feaaecb0e8d9b27e8de"
   }
