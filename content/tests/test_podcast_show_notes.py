@@ -63,12 +63,12 @@ class PodcastShowNotesContractTests(SimpleTestCase):
         rows = [resource for episode in normalized for resource in episode]
 
         self.assertEqual(len(self.records), 205)
-        self.assertEqual(sum(bool(episode) for episode in normalized), 153)
-        self.assertEqual(sum(len(record.get("resources") or []) for record in self.records), 461)
-        self.assertEqual(len(rows), 461)
-        self.assertEqual(sum(resource.is_external for resource in rows), 458)
+        self.assertEqual(sum(bool(episode) for episode in normalized), 176)
+        self.assertEqual(sum(len(record.get("resources") or []) for record in self.records), 547)
+        self.assertEqual(len(rows), 547)
+        self.assertEqual(sum(resource.is_external for resource in rows), 544)
         self.assertEqual(sum(not resource.is_external for resource in rows), 3)
-        self.assertEqual(sum(not episode for episode in normalized), 52)
+        self.assertEqual(sum(not episode for episode in normalized), 29)
         self.assertFalse(
             any(
                 resource.url.startswith("/podcast/") and ".html" in resource.url
@@ -97,6 +97,31 @@ class PodcastShowNotesContractTests(SimpleTestCase):
                 self.assertRegex(resource.url, r"^/podcast/s[0-9]+e[0-9]+/[a-z0-9][a-z0-9_-]*$")
                 self.assertEqual(resource.target, "")
                 self.assertEqual(resource.rel, "")
+
+    def test_structured_resources_keep_transcript_and_timestamp_data_separate(self) -> None:
+        record = next(record for record in self.records if record["slug"] == "building-data-team")
+
+        self.assertEqual(record["public_path"], "/podcast/building-data-team.html")
+        self.assertEqual(len(record["resources"]), 14)
+        self.assertEqual(
+            record["resources"][0],
+            {
+                "title": "Extreme Programming Explained by Kent Beck (1999)",
+                "url": (
+                    "https://www.amazon.com/Extreme-Programming-Explained-Embrace-Change/"
+                    "dp/0321278658"
+                ),
+                "is_external": True,
+                "target": "_blank",
+                "rel": "noopener noreferrer",
+            },
+        )
+        self.assertEqual(
+            record["transcript_provenance"]["source_path"],
+            "podcasts/transcripts/building-data-team.yaml",
+        )
+        self.assertEqual(record["transcript"][2]["time"], "2:06")
+        self.assertEqual(record["transcript"][2]["sec"], 126)
 
     def test_normalization_is_idempotent_and_does_not_mutate_provenance(self) -> None:
         record = next(

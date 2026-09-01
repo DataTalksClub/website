@@ -134824,7 +134824,29 @@
     },
     "public_path": "/podcast/postdoc-to-data-science-lead-career-transition.html",
     "published": "2021-12-11",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "CJ's LinkedIn",
+        "url": "https://www.linkedin.com/in/christina-jenkins/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "one",
+        "url": "https://www.linkedin.com/jobs/view/2805710562/?refId=s0%2B1cPS1YR3X957qK7Ha5w%3D%3D&trackingId=gcvkgfWd3Y%2B5XGClan6u1g%3D%3D&trk=d_flagship3_company"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "two",
+        "url": "https://www.linkedin.com/jobs/view/2805710559/?refId=s0%2B1cPS1YR3X957qK7Ha5w%3D%3D&trackingId=bv9f9o1RhJe5wvALsrDExQ%3D%3D&trk=d_flagship3_company"
+      }
+    ],
     "season": 6,
     "short": "Moving from Academia to Industry",
     "slug": "postdoc-to-data-science-lead-career-transition",
@@ -136635,7 +136657,43 @@
     },
     "public_path": "/podcast/product-designer-to-data-product-manager.html",
     "published": "2021-11-26",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "course 1",
+        "url": "https://www.lennyrachitsky.com/course"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "course 2",
+        "url": "https://www.reforge.com/mastering-product-management"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "link 1",
+        "url": "https://svpg.com/inspired-how-to-create-products-customers-love/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "link 2",
+        "url": "https://steveblank.com/category/customer-development/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Data Engineering for Noobs",
+        "url": "https://www.datacamp.com/"
+      }
+    ],
     "season": 6,
     "short": "Becoming a Data Product Manager",
     "slug": "product-designer-to-data-product-manager",
@@ -142710,7 +142768,15 @@
     },
     "public_path": "/podcast/building-and-scaling-data-team.html",
     "published": "2021-10-09",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Tammy's podcast",
+        "url": "https://dataforfuture.org/"
+      }
+    ],
     "season": 5,
     "short": "Building and Leading Data Teams",
     "slug": "building-and-scaling-data-team",
@@ -143770,7 +143836,15 @@
     },
     "public_path": "/podcast/research-to-production-ml-systems-roadmap.html",
     "published": "2021-10-02",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Mihail's Twitter",
+        "url": "https://twitter.com/mihail_eric"
+      }
+    ],
     "season": 5,
     "short": "What Researchers and Engineers Can Learn from Each Other",
     "slug": "research-to-production-ml-systems-roadmap",
@@ -147071,7 +147145,22 @@
     },
     "public_path": "/podcast/algorithms-data-structures-for-engineers.html",
     "published": "2021-09-05",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "MIT, Introduction to Algorithms",
+        "url": "https://ocw.mit.edu/courses/electrical-engineering-and-computer-science/6-006-introduction-to-algorithms-fall-2011/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Algorithms specialization by Tim Roughgarden",
+        "url": "https://www.coursera.org/specializations/algorithms"
+      }
+    ],
     "season": 5,
     "short": "Mastering Algorithms and Data Structures",
     "slug": "algorithms-data-structures-for-engineers",
@@ -148604,7 +148693,22 @@
     },
     "public_path": "/podcast/freelancing-in-machine-learning.html",
     "published": "2021-08-20",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Mikio's Twitter",
+        "url": "https://twitter.com/mikiobraun/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Mikio's LinkedIn",
+        "url": "https://www.linkedin.com/in/mikiobraun/"
+      }
+    ],
     "season": 4,
     "short": "Freelancing in Machine Learning",
     "slug": "freelancing-in-machine-learning",
@@ -149897,7 +150001,29 @@
     },
     "public_path": "/podcast/launch-and-build-retail-startup.html",
     "published": "2021-08-15",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "FreshFlow",
+        "url": "https://freshflow.ai/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Carmine's LinkedIn",
+        "url": "https://www.linkedin.com/in/carminepaolino"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Carmine's Twitter",
+        "url": "https://twitter.com/paolino"
+      }
+    ],
     "season": 4,
     "short": "Launching a Startup: From Idea to First Hire",
     "slug": "launch-and-build-retail-startup",
@@ -151772,7 +151898,15 @@
     },
     "public_path": "/podcast/machine-learning-engineering-production-best-practices.html",
     "published": "2021-07-23",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Ben's book",
+        "url": "https://www.manning.com/books/machine-learning-engineering-in-action"
+      }
+    ],
     "season": 4,
     "short": "Running from Complexity",
     "slug": "machine-learning-engineering-production-best-practices",
@@ -154972,7 +155106,29 @@
     },
     "public_path": "/podcast/production-ml-pipelines-with-aws-and-kafka.html",
     "published": "2021-07-02",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
+        "url": "https://www.linkedin.com/in/andreas-kretz"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Data engieering cookbook",
+        "url": "https://cookbook.learndataengineering.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Course",
+        "url": "https://learndataengineering.com/"
+      }
+    ],
     "season": 4,
     "short": "Build Your Own Data Pipeline",
     "slug": "production-ml-pipelines-with-aws-and-kafka",
@@ -155833,7 +155989,29 @@
     },
     "public_path": "/podcast/from-software-engineer-to-machine-learning.html",
     "published": "2021-06-25",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Santiago's Twitter",
+        "url": "https://twitter.com/svpino"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Santiago's course",
+        "url": "https://gumroad.com/svpino#kBjbC"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Pinned tweet with a roadmap",
+        "url": "https://twitter.com/svpino/status/1400798154732212230"
+      }
+    ],
     "season": 4,
     "short": "From Software Engineering to Machine Learning",
     "slug": "from-software-engineer-to-machine-learning",
@@ -156742,7 +156920,22 @@
     },
     "public_path": "/podcast/analytics-engineer-skills-tools.html",
     "published": "2021-06-19",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://www.notion.so/Analytics-Engineer-New-Role-in-a-Data-Team-9decbf33825c4580967cf3173eb77177",
+        "url": "https://www.notion.so/Analytics-Engineer-New-Role-in-a-Data-Team-9decbf33825c4580967cf3173eb77177"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Victoria's LinkedIn",
+        "url": "https://www.linkedin.com/in/victoriaperezmola/"
+      }
+    ],
     "season": 3,
     "short": "Analytics Engineer: New Role in a Data Team",
     "slug": "analytics-engineer-skills-tools",
@@ -157492,7 +157685,36 @@
     },
     "public_path": "/podcast/cloud-data-governance.html",
     "published": "2021-06-13",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Book",
+        "url": "https://www.oreilly.com/library/view/data-governance-the/9781492063483/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Jessi's LinkedIn",
+        "url": "https://www.linkedin.com/in/jashdown/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Uri's LinkedIn",
+        "url": "https://linkedin.com/in/ugilad"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Uri's Twitter",
+        "url": "https://twitter.com/ugilad"
+      }
+    ],
     "season": 3,
     "short": "Data Governance",
     "slug": "cloud-data-governance",
@@ -159731,7 +159953,22 @@
     },
     "public_path": "/podcast/developer-personal-brand-learn-in-public.html",
     "published": "2021-05-22",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Shawn's personal page",
+        "url": "https://www.swyx.io/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Twitter",
+        "url": "https://twitter.com/swyx"
+      }
+    ],
     "season": 3,
     "short": "Learn in Public: Personal Branding & Career Marketing for Developers",
     "slug": "developer-personal-brand-learn-in-public",
@@ -161011,7 +161248,99 @@
     },
     "public_path": "/podcast/from-physics-to-computer-vision-career-transition.html",
     "published": "2021-05-14",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Mock interviews",
+        "url": "https://www.pramp.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Machine learning course",
+        "url": "https://www.coursera.org/learn/machine-learning"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Deep learning specialization",
+        "url": "https://www.coursera.org/specializations/deep-learning"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Python course",
+        "url": "https://www.coursera.org/learn/machine-learning-with-python"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "SQL practice",
+        "url": "https://www.sqlhabit.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Kaggle practice",
+        "url": "https://www.kaggle.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "MIT 6.006",
+        "url": "https://courses.csail.mit.edu/6.006/fall11/notes.shtml"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Coding practice",
+        "url": "https://leetcode.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "System design course",
+        "url": "https://www.educative.io/courses/grokking-the-system-design-interview"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Faang Interview Channel",
+        "url": "https://t.me/FaangInterviewChannel"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Faang Tech Interview",
+        "url": "https://t.me/FaangTechInterview"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Flood Interview",
+        "url": "https://t.me/FloodInterview"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Omdena",
+        "url": "https://omdena.com/"
+      }
+    ],
     "season": 3,
     "short": "From Physics to Machine Learning",
     "slug": "from-physics-to-computer-vision-career-transition",
@@ -162002,7 +162331,22 @@
     },
     "public_path": "/podcast/data-science-interview-and-cv-guide.html",
     "published": "2021-05-07",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Oleg's service for interviews",
+        "url": "https://nextround.cc/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
+        "url": "https://www.linkedin.com/in/olegnovikov/"
+      }
+    ],
     "season": 3,
     "short": "Data Science Interview Guide: CV Optimization, Take-Home Projects, Mock Interviews & Negotiation",
     "slug": "data-science-interview-and-cv-guide",
@@ -162670,7 +163014,64 @@
     },
     "public_path": "/podcast/data-translator-role-and-data-strategy.html",
     "published": "2021-05-01",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Book",
+        "url": "https://www.amazon.com/-/en/Sarah-Mayor/dp/B086L277LZ"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Company",
+        "url": "https://www.taleaboutdata.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Podcast",
+        "url": "https://podcast.whatthedatapodcast.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "LinkedIn",
+        "url": "https://www.linkedin.com/in/liorbarak/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Twitter",
+        "url": "https://twitter.com/liorb"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Azzam",
+        "url": "https://goo.gl/maps/uCkb3ATc5CVKapDa6"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Akkawy",
+        "url": "https://g.page/akkawy"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "The Eatery Berlin",
+        "url": "https://g.page/theeateryberlin"
+      }
+    ],
     "season": 3,
     "short": "Data Strategist Guide to Driving Growth: Prototypes, MVPs & Building Data Trust",
     "slug": "data-translator-role-and-data-strategy",
@@ -163332,7 +163733,36 @@
     },
     "public_path": "/podcast/data-quality-data-observability-data-reliability.html",
     "published": "2021-04-24",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Monte Carlo",
+        "url": "https://www.montecarlodata.com"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "The Data Engineer's Guide to Root Cause Analysis",
+        "url": "https://www.montecarlodata.com/the-data-engineers-guide-to-root-cause-analysis/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Why You Need to Set SLAs for Your Data Pipelines",
+        "url": "https://www.montecarlodata.com/how-to-make-your-data-pipelines-more-reliable-with-slas/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Data Observability: The Next Frontier of Data Engineering",
+        "url": "https://www.montecarlodata.com/data-observability-the-next-frontier-of-data-engineering/"
+      }
+    ],
     "season": 3,
     "short": "Data Observability: The Next Frontier of Data Engineering",
     "slug": "data-quality-data-observability-data-reliability",
@@ -164892,7 +165322,15 @@
     },
     "public_path": "/podcast/project-manager-to-data-scientist.html",
     "published": "2021-04-10",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Notes prepared by Ksenia with all the info",
+        "url": "https://www.notion.so/ksenialeg/DataTalks-Club-7597e55f476040a5921db58d48cf718f"
+      }
+    ],
     "season": 3,
     "short": "Transitioning from Project Management to Data Science",
     "slug": "project-manager-to-data-scientist",
@@ -165581,7 +166019,15 @@
     },
     "public_path": "/podcast/mlops-community-building-and-meetups.html",
     "published": "2021-04-02",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "MLOps community",
+        "url": "https://mlops.community/"
+      }
+    ],
     "season": 2,
     "short": "Building Online Tech Communities",
     "slug": "mlops-community-building-and-meetups",
@@ -166509,7 +166955,22 @@
     },
     "public_path": "/podcast/dataops-principles-and-scalable-data-platforms.html",
     "published": "2021-03-27",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://www.scling.com/reading-list",
+        "url": "https://www.scling.com/reading-list"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://www.scling.com/presentations",
+        "url": "https://www.scling.com/presentations"
+      }
+    ],
     "season": 2,
     "short": "DataOps 101",
     "slug": "dataops-principles-and-scalable-data-platforms",
@@ -167917,7 +168378,29 @@
     },
     "public_path": "/podcast/make-money-with-machine-learning-roles-skills.html",
     "published": "2021-03-12",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://twitter.com/v_vashishta",
+        "url": "https://twitter.com/v_vashishta"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://LinkedIn.com/in/vineetvashishta",
+        "url": "https://linkedin.com/in/vineetvashishta"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://databyvsquared.com/",
+        "url": "https://databyvsquared.com/"
+      }
+    ],
     "season": 2,
     "short": "New Roles and Key Skills to Monetize Machine Learning",
     "slug": "make-money-with-machine-learning-roles-skills",
@@ -168831,7 +169314,50 @@
     },
     "public_path": "/podcast/personal-brand-for-data-professionals.html",
     "published": "2021-03-05",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://twitter.com/admond1994",
+        "url": "https://twitter.com/admond1994"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://LinkedIn.com/in/admond1994",
+        "url": "https://linkedin.com/in/admond1994"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://buzzsumo.com",
+        "url": "https://buzzsumo.com"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://feedly.com/",
+        "url": "https://feedly.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://lunchclub.com/",
+        "url": "https://lunchclub.com/"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "https://thelead.io/data-scientist-personal-brand-toolkit",
+        "url": "https://thelead.io/data-scientist-personal-brand-toolkit?utm_medium=instructor&utm_source=admond"
+      }
+    ],
     "season": 2,
     "short": "Personal Branding",
     "slug": "personal-brand-for-data-professionals",
@@ -178297,7 +178823,106 @@
     },
     "public_path": "/podcast/building-data-team.html",
     "published": "2021-02-23",
-    "resources": [],
+    "resources": [
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Extreme Programming Explained by Kent Beck (1999)",
+        "url": "https://www.amazon.com/Extreme-Programming-Explained-Embrace-Change/dp/0321278658"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Test-Driven Development: By Example by Kent Beck (2002)",
+        "url": "https://www.amazon.com/Test-Driven-Development-Kent-Beck/dp/0321146530"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Introduction to Operations Research by Churchman, Ackoff & Arnoff (1957)",
+        "url": "https://www.amazon.com/Introduction-Operations-Research-Charles-Churchman/dp/0395042001"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "The Theory and Practice of Revenue Management by Talluri & van Ryzin (2004)",
+        "url": "https://link.springer.com/book/10.1007/b139000"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "High Output Management by Andrew S. Grove (1983)",
+        "url": "https://www.amazon.com/High-Output-Management-Andrew-Grove/dp/0679762884"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "The Lean Startup by Eric Ries (2011)",
+        "url": "https://www.amazon.com/Lean-Startup-Entrepreneurs-Continuous-Innovation/dp/0307887898"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "First Things First by Stephen R. Covey, A. Roger Merrill, Rebecca R. Merrill (1994)",
+        "url": "https://www.amazon.com/First-Things-Stephen-R-Covey/dp/0684802031"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Hidden Technical Debt in Machine Learning Systems (Sculley et al., 2015)",
+        "url": "https://arxiv.org/abs/1706.04972"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Random Search for Hyper-Parameter Optimization (Bergstra & Bengio, 2012)",
+        "url": "https://www.jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "On the Input-Output Stability of Time-Varying Nonlinear Feedback Systems (Zames, 1966)",
+        "url": "https://ieeexplore.ieee.org/document/1089830"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "DARPA Explainable AI (XAI) (Program page, 2017)",
+        "url": "https://www.darpa.mil/program/explainable-artificial-intelligence"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "The AI Hierarchy of Needs by Monica Rogati (2017)",
+        "url": "https://hackernoon.com/the-ai-hierarchy-of-needs-18f111fcc007"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Eisenhower Decision Principle (Background)",
+        "url": "https://www.eisenhowerlibrary.gov/eisenhowers/quotes"
+      },
+      {
+        "is_external": true,
+        "rel": "noopener noreferrer",
+        "target": "_blank",
+        "title": "Machine Learning (Coursera) by Andrew Ng",
+        "url": "https://www.coursera.org/learn/machine-learning"
+      }
+    ],
     "season": 1,
     "short": "Building a Data Science Team",
     "slug": "building-data-team",
