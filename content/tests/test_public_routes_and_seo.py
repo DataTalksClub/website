@@ -57,9 +57,7 @@ class PublicRouteAndSeoTests(TestCase):
 
         graph = projection["wiki_graph"]
         removed_node_ids = {f"podcast:{alias}" for alias in removed_aliases}
-        self.assertFalse(
-            removed_node_ids.intersection({node["id"] for node in graph["nodes"]})
-        )
+        self.assertFalse(removed_node_ids.intersection({node["id"] for node in graph["nodes"]}))
         self.assertFalse(
             any(
                 link["source"] in removed_node_ids or link["target"] in removed_node_ids
